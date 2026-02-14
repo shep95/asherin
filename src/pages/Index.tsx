@@ -1,5 +1,6 @@
 import heroBg from "@/assets/hero-bg.jpeg";
 import Header from "@/components/Header";
+import { AlertCircle, Smile, AlertTriangle } from "lucide-react";
 
 const Index = () => {
   return (
@@ -37,7 +38,7 @@ const Index = () => {
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
             {/* Card 1 */}
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <span className="text-3xl">🚫</span>
+              <AlertCircle className="h-8 w-8 text-foreground" />
               <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">
                 "I Can't Help With That"
               </h3>
@@ -48,7 +49,7 @@ const Index = () => {
 
             {/* Card 2 */}
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <span className="text-3xl">🎭</span>
+              <Smile className="h-8 w-8 text-foreground" />
               <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">
                 Emotional Engineering
               </h3>
@@ -59,7 +60,7 @@ const Index = () => {
 
             {/* Card 3 */}
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
-              <span className="text-3xl">🐌</span>
+              <AlertTriangle className="h-8 w-8 text-foreground" />
               <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">
                 Code That Doesn't Work
               </h3>
