@@ -19,12 +19,8 @@ const Index = () => {
         <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
           The AI That Actually Tells You The Truth.
         </h1>
-        <p className="mt-6 max-w-xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
-          No filters. No emotional manipulation. No hidden agendas.
-          <br className="hidden sm:block" />
-          ZIALIEL gives you uncensored answers, brutal logic, and
-          <br className="hidden sm:block" />
-          code that outperforms the leading models.
+        <p className="mt-6 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
+          No filters. No emotional manipulation. No hidden agendas. ZIALIEL gives you uncensored answers, brutal logic, and code that outperforms the leading models.
         </p>
       </div>
     </div>
