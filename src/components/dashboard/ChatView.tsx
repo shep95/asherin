@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Eye } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
 import type { ResponseDepth } from "./DepthSelector";
@@ -11,7 +11,9 @@ import FollowUpSuggestions from "./FollowUpSuggestions";
 import DecodeView from "./DecodeView";
 import CalibrationFeedback from "./CalibrationFeedback";
 import type { FeedbackType } from "./CalibrationFeedback";
-import { Eye } from "lucide-react";
+import AdaptiveInputBar from "./AdaptiveInputBar";
+import ScrollIntelligence from "./ScrollIntelligence";
+import SmartSelectionMenu from "./SmartSelectionMenu";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -23,16 +25,16 @@ interface ChatViewProps {
   isStreaming?: boolean;
   suggestions?: string[];
   onCalibrationFeedback?: (messageId: string, feedback: FeedbackType) => void;
+  onStopStreaming?: () => void;
+  focusMode?: boolean;
 }
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [conversation.messages.length, conversation.messages[conversation.messages.length - 1]?.content]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
   const handleSend = () => {
     if (!input.trim() || isStreaming) return;
@@ -40,25 +42,58 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     setInput("");
   };
 
+  const handleQuickAction = useCallback((action: string, content: string) => {
+    const prompts: Record<string, string> = {
+      debug: `Debug this code:\n\`\`\`\n${content}\n\`\`\``,
+      explain: `Explain this code line by line:\n\`\`\`\n${content}\n\`\`\``,
+      optimize: `Optimize this code:\n\`\`\`\n${content}\n\`\`\``,
+      test: `Write tests for this code:\n\`\`\`\n${content}\n\`\`\``,
+      summarize: `Summarize the content at: ${content}`,
+      "fact-check": `Fact check: ${content}`,
+      extract: `Extract key data from: ${content}`,
+    };
+    const prompt = prompts[action] ?? `${action}: ${content}`;
+    onSendMessage(prompt);
+    setInput("");
+  }, [onSendMessage]);
+
+  const handleSelectionAction = useCallback((action: string, text: string) => {
+    if (action === "copy") {
+      navigator.clipboard.writeText(text);
+      return;
+    }
+    const prompts: Record<string, string> = {
+      expand: `Expand on this: "${text}"`,
+      rewrite: `Rewrite this differently: "${text}"`,
+      "fact-check": `Fact check this claim: "${text}"`,
+      ask: `Tell me more about: "${text}"`,
+      explain: `Explain this code:\n\`\`\`\n${text}\n\`\`\``,
+      debug: `Debug this code:\n\`\`\`\n${text}\n\`\`\``,
+    };
+    onSendMessage(prompts[action] ?? `${action}: "${text}"`);
+  }, [onSendMessage]);
+
   const lastMsg = conversation.messages[conversation.messages.length - 1];
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
   return (
     <div className="flex flex-1 flex-col min-w-0 h-full">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
-        <ModeSelector active={mode} onChange={onModeChange} />
-        <div className="flex items-center gap-3">
-          <ContextHealthIndicator messageCount={conversation.messages.length} />
-          <DepthSelector active={depth} onChange={onDepthChange} />
+      {/* Top bar — hidden in focus mode */}
+      {!focusMode && (
+        <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
+          <ModeSelector active={mode} onChange={onModeChange} />
+          <div className="flex items-center gap-3">
+            <ContextHealthIndicator messageCount={conversation.messages.length} />
+            <DepthSelector active={depth} onChange={onDepthChange} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-4 relative">
         {conversation.messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <div className="text-center max-w-md">
+            <div className="text-center max-w-md animate-fade-in">
               <h1 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
                 How can I help?
               </h1>
@@ -68,12 +103,17 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-3xl space-y-4 py-4">
-            {conversation.messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+          <div ref={messagesRef} className="relative mx-auto max-w-3xl space-y-4 py-4">
+            <SmartSelectionMenu containerRef={messagesRef} onAction={handleSelectionAction} />
+            {conversation.messages.map((msg, idx) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up`}
+                style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
+              >
                 <div className="max-w-[80%]">
                   <div
-                    className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed ${
+                    className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed transition-all ${
                       msg.role === "user"
                         ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
                         : "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
@@ -91,7 +131,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     )}
                   </div>
                   {msg.role === "assistant" && msg.content && !isStreaming && (
-                    <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap">
+                    <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
                       <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
                       <button
                         onClick={() => setDecodeId(decodeId === msg.id ? null : msg.id)}
@@ -116,38 +156,23 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <div ref={messagesEndRef} />
           </div>
         )}
+        <ScrollIntelligence
+          containerRef={scrollContainerRef}
+          isStreaming={!!isStreaming}
+          messagesEndRef={messagesEndRef}
+        />
       </div>
 
-      {/* Input area */}
-      <div className="px-4 pb-4 lg:pb-6">
-        <div className="mx-auto max-w-3xl">
-          <div className="flex items-end gap-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl p-3">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Message Zialiel…"
-              rows={1}
-              className="flex-1 resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isStreaming}
-              className="shrink-0 rounded-xl bg-foreground p-2.5 text-background transition-colors hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
-          </div>
-          <p className="mt-2 text-center text-xs font-extralight text-muted-foreground/50">
-            Zialiel may make mistakes. Verify important information.
-          </p>
-        </div>
-      </div>
+      {/* Adaptive Input */}
+      <AdaptiveInputBar
+        value={input}
+        onChange={setInput}
+        onSend={handleSend}
+        onStop={onStopStreaming}
+        onQuickAction={handleQuickAction}
+        isStreaming={!!isStreaming}
+        disabled={!!isStreaming}
+      />
     </div>
   );
 };

@@ -18,6 +18,7 @@ export async function streamChat({
   personaId,
   depth,
   userProfile,
+  signal,
   onDelta,
   onDone,
 }: {
@@ -26,6 +27,7 @@ export async function streamChat({
   personaId?: string | null;
   depth?: ResponseDepth;
   userProfile?: UserProfile | null;
+  signal?: AbortSignal;
   onDelta: (text: string) => void;
   onDone: () => void;
 }) {
@@ -36,6 +38,7 @@ export async function streamChat({
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
     body: JSON.stringify({ messages, mode, personaId, depth, userProfile }),
+    signal,
   });
 
   if (!resp.ok) {
