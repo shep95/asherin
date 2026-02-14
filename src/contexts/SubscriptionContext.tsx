@@ -21,6 +21,8 @@ interface SubscriptionState {
   productId: string | null;
   tierKey: TierKey | null;
   subscriptionEnd: string | null;
+  status: string | null;
+  cancelAtPeriodEnd: boolean;
   loading: boolean;
 }
 
@@ -36,6 +38,8 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
   productId: null,
   tierKey: null,
   subscriptionEnd: null,
+  status: null,
+  cancelAtPeriodEnd: false,
   loading: true,
   checkSubscription: async () => {},
   startCheckout: async () => {},
@@ -60,13 +64,15 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     productId: null,
     tierKey: null,
     subscriptionEnd: null,
+    status: null,
+    cancelAtPeriodEnd: false,
     loading: true,
   });
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const checkSubscription = useCallback(async () => {
     if (!user) {
-      setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, loading: false });
+      setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false });
       return;
     }
     try {
@@ -78,6 +84,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         productId: data?.product_id ?? null,
         tierKey,
         subscriptionEnd: data?.subscription_end ?? null,
+        status: data?.status ?? null,
+        cancelAtPeriodEnd: data?.cancel_at_period_end ?? false,
         loading: false,
       });
     } catch (e) {
