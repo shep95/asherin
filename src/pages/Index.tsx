@@ -349,6 +349,63 @@ const Index = () => {
           </p>
         </div>
       </div>
+
+      {/* Section 8: Pricing Block */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            One Plan. Everything Unlocked.
+            <br />
+            <span className="text-muted-foreground">No Upsells. No Tiers Designed To Frustrate You.</span>
+          </h2>
+
+          <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-10 sm:p-14">
+            <p className="text-sm font-light tracking-[0.2em] text-muted-foreground uppercase">ZIALIEL Full Access</p>
+            <p className="mt-4 text-5xl sm:text-6xl font-extralight tracking-tight text-foreground">
+              $18<span className="text-xl text-muted-foreground font-extralight"> / month</span>
+            </p>
+
+            <ul className="mt-10 space-y-3 text-left">
+              {[
+                "Uncensored responses on any topic",
+                "Elite coding engine",
+                "Live DuckDuckGo web search",
+                "Persistent memory across sessions",
+                "Team workspace included",
+                "Multi-language output",
+                "Data encrypted — never sold",
+                "Never trains our models",
+                "US-based servers",
+                "Cancel anytime in one click",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3 text-sm font-extralight text-foreground/90">
+                  <Check className="h-4 w-4 mt-0.5 shrink-0 text-green-400" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <button className="group mt-10 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
+              Get Full Access Now
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </button>
+
+            <p className="mt-6 text-xs font-extralight leading-relaxed text-muted-foreground">
+              No free trial. Full access. Day one.
+              <br />
+              Your data is encrypted from your first message to your last.
+            </p>
+          </div>
+
+          {/* Why no free tier */}
+          <div className="mt-16 text-center">
+            <p className="text-lg font-extralight tracking-wide text-foreground italic">"Why no free tier?"</p>
+            <p className="mt-4 max-w-lg mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
+              Because free tiers train you to expect less. ZIALIEL gives you everything on day one or nothing. That's the only honest model.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
