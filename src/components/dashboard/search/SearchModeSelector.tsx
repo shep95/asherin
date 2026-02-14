@@ -17,21 +17,23 @@ interface SearchModeSelectorProps {
 
 const SearchModeSelector = ({ active, onChange }: SearchModeSelectorProps) => {
   return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {modes.map((m) => (
-        <button
-          key={m.id}
-          onClick={() => onChange(m.id)}
-          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-light transition-all ${
-            active === m.id
-              ? "bg-accent/20 text-accent border border-accent/30"
-              : "text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 border border-transparent"
-          }`}
-        >
-          {m.icon}
-          {m.label}
-        </button>
-      ))}
+    <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+      <div className="flex items-center gap-1 w-max">
+        {modes.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => onChange(m.id)}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-light whitespace-nowrap transition-all ${
+              active === m.id
+                ? "bg-accent/20 text-accent border border-accent/30"
+                : "text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 border border-transparent"
+            }`}
+          >
+            {m.icon}
+            {m.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };

@@ -157,7 +157,7 @@ const ZophielEngineView = () => {
   const hasGroups = Object.keys(grouped).length > 1;
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full relative">
       {/* Filter Sidebar */}
       {searched && (
         <FilterSidebar
@@ -171,8 +171,8 @@ const ZophielEngineView = () => {
 
       <div className="flex flex-col flex-1 min-w-0">
         {/* Search Header */}
-        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-4 pb-3" : "pt-[18vh] pb-6"}`}>
-          <div className="max-w-2xl mx-auto px-6">
+        <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
+          <div className="max-w-2xl mx-auto px-3 sm:px-6">
             {!searched && (
               <div className="text-center mb-6 animate-fade-in">
                 <div className="flex items-center justify-center gap-2 mb-2">
@@ -254,7 +254,7 @@ const ZophielEngineView = () => {
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto px-6 pb-8">
+            <div className="max-w-2xl mx-auto px-3 sm:px-6 pb-8">
               {/* Meta */}
               {!loading && results.length > 0 && (
                 <p className="text-[10px] font-light text-muted-foreground/40 mb-4">
@@ -340,7 +340,7 @@ const ZophielEngineView = () => {
       {/* Keyboard Shortcuts Modal */}
       {showShortcuts && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={() => setShowShortcuts(false)}>
-          <div className="rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl p-6 max-w-sm w-full shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+          <div className="rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl p-6 max-w-sm w-full mx-4 shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-medium text-foreground">Keyboard Shortcuts</h3>
               <button onClick={() => setShowShortcuts(false)} className="p-1 rounded-lg text-muted-foreground/50 hover:text-foreground"><X className="h-4 w-4" /></button>
