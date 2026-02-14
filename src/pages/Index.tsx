@@ -228,6 +228,20 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Section 5: Featured In */}
+      <div className="relative z-10 px-6 py-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12">
+            <p className="text-sm font-extralight tracking-[0.2em] text-muted-foreground uppercase">As Featured In</p>
+            <div className="flex items-center gap-8 sm:gap-12">
+              <div className="h-8 w-32 rounded-lg border border-border/30 bg-card/20 flex items-center justify-center">
+                <span className="text-xs font-light text-muted-foreground">FORBES</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
