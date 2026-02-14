@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { Upload, FileText, Image, FileCode, CheckCircle2, AlertTriangle, Loader2, X, Edit3, ChevronDown, ChevronUp } from "lucide-react";
-import type { AshaFile, AshaColumn, DataIssue, ColumnType, ColumnRole } from "./types";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import type { AshaFile, AshaColumn, DataIssue } from "./types";
+import { validateFile, sanitizeDisplayName, MAX_FILE_SIZE_DISPLAY } from "@/lib/file-security";
+import { useToast } from "@/hooks/use-toast";
 
 const fileIcon = (type: string) => {
   if (type.startsWith("image/")) return Image;
@@ -44,12 +45,27 @@ const IngestPanel = () => {
   const [dragOver, setDragOver] = useState(false);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  const ingestFiles = useCallback((fileList: FileList | File[]) => {
+  const ingestFiles = useCallback(async (fileList: FileList | File[]) => {
     const arr = Array.from(fileList);
-    const newFiles: AshaFile[] = arr.map((f) => ({
+    const validated: File[] = [];
+
+    // Security: validate every file before ingestion
+    for (const file of arr) {
+      const result = await validateFile(file);
+      if (!result.valid) {
+        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: ${result.error}`, variant: "destructive" });
+        continue;
+      }
+      validated.push(file);
+    }
+
+    if (validated.length === 0) return;
+
+    const newFiles: AshaFile[] = validated.map((f) => ({
       id: crypto.randomUUID(),
-      name: f.name,
+      name: sanitizeDisplayName(f.name),
       size: f.size,
       type: f.type || "application/octet-stream",
       status: "analyzing" as const,
@@ -78,7 +94,7 @@ const IngestPanel = () => {
         );
       }, 1500 + Math.random() * 2000);
     });
-  }, []);
+  }, [toast]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -103,7 +119,10 @@ const IngestPanel = () => {
         <Upload className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
         <p className="text-sm font-light text-foreground">Drop files here or click to browse</p>
         <p className="text-[10px] text-muted-foreground/50 mt-2">
-          CSV, JSON, XLSX, XML, PDF, SQL, Parquet, GeoJSON — up to 500MB per file
+          CSV, JSON, XLSX, XML, PDF, SQL, Parquet, GeoJSON — up to {MAX_FILE_SIZE_DISPLAY} per file
+        </p>
+        <p className="text-[10px] text-muted-foreground/30 mt-1">
+          Files are validated for type, content, and security before processing
         </p>
         <input ref={inputRef} type="file" multiple className="hidden" accept=".csv,.json,.jsonl,.xlsx,.xls,.xml,.pdf,.sql,.parquet,.geojson,.txt,.log,.yaml,.yml,.toml" onChange={(e) => { if (e.target.files) ingestFiles(e.target.files); e.target.value = ""; }} />
       </div>

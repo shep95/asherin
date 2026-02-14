@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { FileText, Upload, Search, FolderOpen, Trash2, File, Image, FileCode, Loader2 } from "lucide-react";
+import { FileText, Upload, Search, FolderOpen, Trash2, Image, FileCode, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { validateFile, buildStoragePath, sanitizeDisplayName, MAX_FILE_SIZE_DISPLAY } from "@/lib/file-security";
 
 interface LibraryFile {
   id: string;
@@ -45,25 +46,39 @@ const LibraryView = () => {
     if (!user) return;
     setUploading(true);
     const arr = Array.from(fileList);
+    let successCount = 0;
 
     for (const file of arr) {
-      const path = `${user.id}/${Date.now()}-${file.name}`;
+      // Security: validate file before upload
+      const validation = await validateFile(file);
+      if (!validation.valid) {
+        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: ${validation.error}`, variant: "destructive" });
+        continue;
+      }
+
+      // Security: UUID-based storage path (original filename never used for storage)
+      const path = buildStoragePath(user.id, file.name);
       const { error: uploadErr } = await supabase.storage.from("library").upload(path, file);
       if (uploadErr) {
         toast({ title: "Upload failed", description: uploadErr.message, variant: "destructive" });
         continue;
       }
+
+      // Store sanitized display name in DB
       const { data: row } = await supabase.from("library_files").insert({
         user_id: user.id,
-        file_name: file.name,
+        file_name: sanitizeDisplayName(file.name),
         file_size: file.size,
         file_type: file.type || "application/octet-stream",
         storage_path: path,
       }).select().single();
       if (row) setFiles((prev) => [row, ...prev]);
+      successCount++;
     }
     setUploading(false);
-    toast({ title: `${arr.length} file(s) uploaded` });
+    if (successCount > 0) {
+      toast({ title: `${successCount} file(s) uploaded` });
+    }
   };
 
   const deleteFile = async (file: LibraryFile) => {
@@ -101,6 +116,7 @@ const LibraryView = () => {
         <div>
           <h2 className="text-xl font-extralight tracking-wide text-foreground">Your Library</h2>
           <p className="text-sm font-extralight text-muted-foreground mt-1">Upload files that persist across all conversations.</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-0.5">Max {MAX_FILE_SIZE_DISPLAY} per file · Only approved file types accepted</p>
         </div>
         <button
           onClick={() => inputRef.current?.click()}
