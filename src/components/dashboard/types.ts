@@ -1,0 +1,56 @@
+export interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  truthScore?: "high" | "medium" | "low";
+  sources?: { title: string; url: string }[];
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
+  pinned?: boolean;
+  mode?: ChatMode;
+  projectId?: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  conversationIds: string[];
+  files: string[];
+  createdAt: Date;
+}
+
+export interface Persona {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  systemPrompt: string;
+  builtIn: boolean;
+}
+
+export interface MemoryEntry {
+  id: string;
+  content: string;
+  category: string;
+  createdAt: Date;
+}
+
+export interface SavedPrompt {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  starred: boolean;
+  usageCount: number;
+  createdAt: Date;
+}
+
+export type ChatMode = "research" | "chat" | "code" | "truth";
+export type DashboardView = "chat" | "library" | "projects" | "memory" | "stats" | "settings";
