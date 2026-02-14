@@ -1,5 +1,5 @@
 import heroBg from "@/assets/hero-bg.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Conversation, ChatMode, DashboardView, Message } from "@/components/dashboard/types";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ChatView from "@/components/dashboard/ChatView";
@@ -8,15 +8,22 @@ import ProjectsView from "@/components/dashboard/ProjectsView";
 import MemoryCenterView from "@/components/dashboard/MemoryCenterView";
 import StatsView from "@/components/dashboard/StatsView";
 import SettingsView from "@/components/dashboard/SettingsView";
+import { saveConversationsOffline, loadConversationsOffline } from "@/components/dashboard/offlineStorage";
 
 const Dashboard = () => {
-  const [conversations, setConversations] = useState<Conversation[]>([
-    { id: "1", title: "New conversation", messages: [], createdAt: new Date() },
-  ]);
+  const [conversations, setConversations] = useState<Conversation[]>(() => {
+    const offline = loadConversationsOffline();
+    return offline ?? [{ id: "1", title: "New conversation", messages: [], createdAt: new Date() }];
+  });
   const [activeConvId, setActiveConvId] = useState("1");
   const [activeView, setActiveView] = useState<DashboardView>("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
+
+  // Persist conversations to localStorage for offline access
+  useEffect(() => {
+    saveConversationsOffline(conversations);
+  }, [conversations]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? conversations[0];
 
@@ -74,6 +81,11 @@ const Dashboard = () => {
     setConversations((prev) => prev.map((c) => c.id === id ? { ...c, pinned: !c.pinned } : c));
   };
 
+  const archiveConversation = (id: string) => {
+    // For now, archive behaves like delete but could be moved to an archive list later
+    deleteConversation(id);
+  };
+
   const renderView = () => {
     switch (activeView) {
       case "library": return <LibraryView />;
@@ -105,6 +117,7 @@ const Dashboard = () => {
           onSelectConversation={setActiveConvId}
           onNewConversation={newConversation}
           onDeleteConversation={deleteConversation}
+          onArchiveConversation={archiveConversation}
           onTogglePin={togglePin}
           onViewChange={setActiveView}
           sidebarOpen={sidebarOpen}
