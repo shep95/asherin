@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import { useToast } from "@/hooks/use-toast";
+import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
 
 const Dashboard = () => {
@@ -94,7 +95,12 @@ const Dashboard = () => {
           .order("created_at", { ascending: true });
 
         const msgMap = new Map<string, Message[]>();
-        (msgRows ?? []).forEach((m) => {
+        const decryptPromises = (msgRows ?? []).map(async (m) => {
+          const decryptedContent = await decryptText(m.content, user.id);
+          return { ...m, content: decryptedContent };
+        });
+        const decryptedMsgs = await Promise.all(decryptPromises);
+        decryptedMsgs.forEach((m) => {
           const list = msgMap.get(m.conversation_id) ?? [];
           list.push({
             id: m.id,
@@ -183,9 +189,10 @@ const Dashboard = () => {
     if (!user || !activeConvId || isStreaming) return;
     setSuggestions([]);
 
+    const encryptedContent = await encryptText(content, user.id);
     const { data: userMsgRow } = await supabase
       .from("messages")
-      .insert({ conversation_id: activeConvId, user_id: user.id, role: "user", content })
+      .insert({ conversation_id: activeConvId, user_id: user.id, role: "user", content: encryptedContent })
       .select()
       .single();
     if (!userMsgRow) return;
@@ -238,12 +245,13 @@ const Dashboard = () => {
         },
         onDone: async () => {
           setIsStreaming(false);
+          const encryptedAssistant = await encryptText(assistantContent, user.id);
           await supabase.from("messages").insert({
             id: assistantId,
             conversation_id: activeConvId,
             user_id: user.id,
             role: "assistant",
-            content: assistantContent,
+            content: encryptedAssistant,
           });
           const sug = await fetchSuggestions(assistantContent);
           setSuggestions(sug);
@@ -254,12 +262,13 @@ const Dashboard = () => {
       if (e.name === "AbortError") {
         // Save partial response
         if (assistantContent) {
+          const encryptedPartial = await encryptText(assistantContent, user.id);
           await supabase.from("messages").insert({
             id: assistantId,
             conversation_id: activeConvId,
             user_id: user.id,
             role: "assistant",
-            content: assistantContent,
+            content: encryptedPartial,
           });
         }
         toast({ title: "Stopped", description: "Generation stopped. Partial response saved." });

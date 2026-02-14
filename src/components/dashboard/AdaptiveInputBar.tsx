@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock } from "lucide-react";
 
 type InputIntent = "text" | "code" | "url" | "image" | "file";
 
@@ -123,9 +123,12 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
             </button>
           )}
         </div>
-        <p className="mt-2 text-center text-xs font-extralight text-muted-foreground/50">
-          Zialiel may make mistakes. Verify important information.
-        </p>
+        <div className="mt-2 flex items-center justify-center gap-1.5">
+          <Lock className="h-3 w-3 text-emerald-500/50" />
+          <p className="text-xs font-extralight text-muted-foreground/50">
+            End-to-end encrypted · Zialiel may make mistakes
+          </p>
+        </div>
       </div>
     </div>
   );

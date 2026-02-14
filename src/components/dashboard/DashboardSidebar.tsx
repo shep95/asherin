@@ -2,7 +2,7 @@ import { useState, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck,
 } from "lucide-react";
 import type { Conversation, DashboardView } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -125,7 +125,10 @@ const DashboardSidebar = ({
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl">
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
-            <span className="text-sm font-extralight tracking-[0.25em] text-foreground">ZIALIEL</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-extralight tracking-[0.25em] text-foreground">ZIALIEL</span>
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" />
+            </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={onNewConversation}

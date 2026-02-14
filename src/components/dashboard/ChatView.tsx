@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Eye } from "lucide-react";
+import { Eye, Lock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
 import type { ResponseDepth } from "./DepthSelector";
@@ -94,11 +94,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         {conversation.messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center max-w-md animate-fade-in">
-              <h1 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
+               <h1 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
                 How can I help?
               </h1>
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <Lock className="h-3 w-3 text-emerald-500/70" />
+                <span className="text-xs font-extralight text-emerald-500/70">End-to-end encrypted</span>
+              </div>
               <p className="text-sm font-extralight text-muted-foreground">
-                Start a conversation — your messages are encrypted end-to-end.
+                Your messages are encrypted before leaving your device.
               </p>
             </div>
           </div>
