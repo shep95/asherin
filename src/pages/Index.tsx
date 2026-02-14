@@ -1,7 +1,26 @@
 import heroBg from "@/assets/hero-bg.jpeg";
 import Header from "@/components/Header";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon } from "lucide-react";
 import { useState } from "react";
+
+const StatusIcon = ({ type }: { type: string }) => {
+  if (type === "check") return <Check className="h-4 w-4 text-green-400 inline" />;
+  if (type === "x") return <X className="h-4 w-4 text-red-400/70 inline" />;
+  return <AlertOctagon className="h-4 w-4 text-yellow-400/70 inline" />;
+};
+
+const TableRow = ({ feature, z, zIcon, gpt, gptIcon, claude, claudeIcon, venice, veniceIcon }: {
+  feature: string; z: string; zIcon: string; gpt: string; gptIcon: string;
+  claude: string; claudeIcon: string; venice: string; veniceIcon: string;
+}) => (
+  <tr className="border-t border-border/10">
+    <td className="px-6 py-3.5 text-muted-foreground">{feature}</td>
+    <td className="px-4 py-3.5 text-foreground"><StatusIcon type={zIcon} /> <span className="ml-1">{z}</span></td>
+    <td className="px-4 py-3.5 text-muted-foreground"><StatusIcon type={gptIcon} /> <span className="ml-1">{gpt}</span></td>
+    <td className="px-4 py-3.5 text-muted-foreground"><StatusIcon type={claudeIcon} /> <span className="ml-1">{claude}</span></td>
+    <td className="px-4 py-3.5 text-muted-foreground"><StatusIcon type={veniceIcon} /> <span className="ml-1">{venice}</span></td>
+  </tr>
+);
 
 const Index = () => {
   const [demoQuery, setDemoQuery] = useState("");
@@ -284,6 +303,50 @@ const Index = () => {
               <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Thinks and delivers in any language. Same raw output. No filtered translations.</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Section 7: Comparison Table */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            You've Used The Others.
+            <br />
+            <span className="text-muted-foreground">Here's What They Won't Show You Side By Side.</span>
+          </h2>
+
+          <div className="mt-16 overflow-x-auto rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md">
+            <table className="w-full min-w-[600px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border/20">
+                  <th className="px-6 py-4 font-light tracking-wide text-muted-foreground">Feature</th>
+                  <th className="px-4 py-4 font-light tracking-wide text-foreground">ZIALIEL</th>
+                  <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">ChatGPT</th>
+                  <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">Claude</th>
+                  <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">Venice</th>
+                </tr>
+              </thead>
+              <tbody className="font-extralight">
+                <TableRow feature="Uncensored Output" z="Always" zIcon="check" gpt="No" gptIcon="x" claude="No" claudeIcon="x" venice="Partial" veniceIcon="warn" />
+                <TableRow feature="Real-Time Search" z="Free" zIcon="check" gpt="Plus+" gptIcon="warn" claude="Yes" claudeIcon="check" venice="No" veniceIcon="x" />
+                <TableRow feature="Persistent Memory" z="Included" zIcon="check" gpt="Limited" gptIcon="warn" claude="Yes" claudeIcon="check" venice="No" veniceIcon="x" />
+                <TableRow feature="Team Workspace" z="Included" zIcon="check" gpt="Paid+" gptIcon="warn" claude="Paid" claudeIcon="check" venice="No" veniceIcon="x" />
+                <TableRow feature="Coding Performance" z="Leads" zIcon="check" gpt="Strong" gptIcon="warn" claude="Strong" claudeIcon="check" venice="Basic" veniceIcon="x" />
+                <TableRow feature="Data Privacy" z="Never Trains" zIcon="check" gpt="May Train" gptIcon="x" claude="May Train" claudeIcon="x" venice="Partial" veniceIcon="warn" />
+                <tr className="border-t border-border/20">
+                  <td className="px-6 py-4 text-muted-foreground">Price</td>
+                  <td className="px-4 py-4 text-foreground font-light">$18/mo</td>
+                  <td className="px-4 py-4 text-muted-foreground">$20/mo</td>
+                  <td className="px-4 py-4 text-muted-foreground">$20/mo</td>
+                  <td className="px-4 py-4 text-muted-foreground">$12.99/mo</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-10 text-xl sm:text-2xl font-extralight tracking-wide text-foreground">
+            The $2 difference buys you the truth.
+          </p>
         </div>
       </div>
     </div>
