@@ -1,0 +1,124 @@
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
+// Stripe product/price mapping
+export const TIERS = {
+  aureon: {
+    product_id: "prod_TypqKDKcRduDQS",
+    price_id: "price_1T0sB1RxgCpmPfiFDF7VtYX8",
+  },
+  enterprise: {
+    product_id: "prod_TypqQSMqan0aOZ",
+    price_id: "price_1T0sB3RxgCpmPfiFUdHAAqD5",
+  },
+} as const;
+
+export type TierKey = keyof typeof TIERS;
+
+interface SubscriptionState {
+  subscribed: boolean;
+  productId: string | null;
+  tierKey: TierKey | null;
+  subscriptionEnd: string | null;
+  loading: boolean;
+}
+
+interface SubscriptionContextValue extends SubscriptionState {
+  checkSubscription: () => Promise<void>;
+  startCheckout: (tier: TierKey) => Promise<void>;
+  openPortal: () => Promise<void>;
+  checkoutLoading: boolean;
+}
+
+const SubscriptionContext = createContext<SubscriptionContextValue>({
+  subscribed: false,
+  productId: null,
+  tierKey: null,
+  subscriptionEnd: null,
+  loading: true,
+  checkSubscription: async () => {},
+  startCheckout: async () => {},
+  openPortal: async () => {},
+  checkoutLoading: false,
+});
+
+export const useSubscription = () => useContext(SubscriptionContext);
+
+function productToTier(productId: string | null): TierKey | null {
+  if (!productId) return null;
+  for (const [key, val] of Object.entries(TIERS)) {
+    if (val.product_id === productId) return key as TierKey;
+  }
+  return null;
+}
+
+export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+  const [state, setState] = useState<SubscriptionState>({
+    subscribed: false,
+    productId: null,
+    tierKey: null,
+    subscriptionEnd: null,
+    loading: true,
+  });
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const checkSubscription = useCallback(async () => {
+    if (!user) {
+      setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, loading: false });
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (error) throw error;
+      const tierKey = productToTier(data?.product_id ?? null);
+      setState({
+        subscribed: data?.subscribed ?? false,
+        productId: data?.product_id ?? null,
+        tierKey,
+        subscriptionEnd: data?.subscription_end ?? null,
+        loading: false,
+      });
+    } catch (e) {
+      console.error("check-subscription error:", e);
+      setState(prev => ({ ...prev, loading: false }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    checkSubscription();
+    const interval = setInterval(checkSubscription, 60_000);
+    return () => clearInterval(interval);
+  }, [checkSubscription]);
+
+  const startCheckout = useCallback(async (tier: TierKey) => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { priceId: TIERS[tier].price_id },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (e) {
+      console.error("create-checkout error:", e);
+    }
+    setCheckoutLoading(false);
+  }, []);
+
+  const openPortal = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (e) {
+      console.error("customer-portal error:", e);
+    }
+  }, []);
+
+  return (
+    <SubscriptionContext.Provider value={{ ...state, checkSubscription, startCheckout, openPortal, checkoutLoading }}>
+      {children}
+    </SubscriptionContext.Provider>
+  );
+};
