@@ -549,9 +549,14 @@ const Index = () => {
               </div>
 
               {/* Right — Copyright */}
-              <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">
-                © {new Date().getFullYear()} Zorak Corp
-              </p>
+              <div className="text-right">
+                <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">
+                  © {new Date().getFullYear()} Zorak Corp
+                </p>
+                <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30 mt-1">
+                  ZIALIEL — Founded June 28, 2026
+                </p>
+              </div>
             </div>
           </div>
         </div>
