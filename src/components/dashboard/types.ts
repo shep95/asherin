@@ -53,4 +53,4 @@ export interface SavedPrompt {
 }
 
 export type ChatMode = "research" | "chat" | "code" | "truth";
-export type DashboardView = "chat" | "library" | "projects" | "memory" | "stats" | "settings";
+export type DashboardView = "chat" | "library" | "projects" | "memory" | "stats" | "settings" | "search";
