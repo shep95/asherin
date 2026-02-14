@@ -1,4 +1,4 @@
-import heroBg from "@/assets/hero-bg.png";
+import heroBg from "@/assets/hero-bg.jpeg";
 import Header from "@/components/Header";
 
 const Index = () => {
