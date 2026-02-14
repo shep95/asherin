@@ -14,7 +14,275 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          archived: boolean
+          created_at: string
+          id: string
+          mode: string
+          persona_id: string | null
+          pinned: boolean
+          project_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          mode?: string
+          persona_id?: string | null
+          pinned?: boolean
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          mode?: string
+          persona_id?: string | null
+          pinned?: boolean
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      memory_entries: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          sources: Json | null
+          truth_score: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          sources?: Json | null
+          truth_score?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          sources?: Json | null
+          truth_score?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          description: string
+          files: string[]
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          files?: string[]
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          files?: string[]
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_prompts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          starred: boolean
+          tags: string[]
+          title: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          starred?: boolean
+          tags?: string[]
+          title: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          starred?: boolean
+          tags?: string[]
+          title?: string
+          usage_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_stats: {
+        Row: {
+          chat_prompts: number
+          code_prompts: number
+          created_at: string
+          id: string
+          last_active_date: string | null
+          research_prompts: number
+          streak_days: number
+          total_prompts: number
+          truth_prompts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_prompts?: number
+          code_prompts?: number
+          created_at?: string
+          id?: string
+          last_active_date?: string | null
+          research_prompts?: number
+          streak_days?: number
+          total_prompts?: number
+          truth_prompts?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chat_prompts?: number
+          code_prompts?: number
+          created_at?: string
+          id?: string
+          last_active_date?: string | null
+          research_prompts?: number
+          streak_days?: number
+          total_prompts?: number
+          truth_prompts?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          id: string
+          memory_enabled: boolean
+          response_length: string
+          theme: string
+          updated_at: string
+          user_id: string
+          web_search_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          memory_enabled?: boolean
+          response_length?: string
+          theme?: string
+          updated_at?: string
+          user_id: string
+          web_search_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          memory_enabled?: boolean
+          response_length?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+          web_search_enabled?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

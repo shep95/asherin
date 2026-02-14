@@ -1,4 +1,5 @@
 import { useState, createContext, useContext } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus, Search, LogOut,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu,
@@ -36,6 +37,8 @@ interface DashboardSidebarProps {
   onViewChange: (view: DashboardView) => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  personaId?: string | null;
+  onPersonaChange?: (id: string | null) => void;
 }
 
 const navItems: { id: DashboardView; icon: React.ElementType; label: string }[] = [
@@ -78,10 +81,11 @@ function groupByDate(convs: Conversation[]) {
 const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
   onNewConversation, onDeleteConversation, onArchiveConversation, onTogglePin, onViewChange,
-  sidebarOpen, onToggleSidebar,
+  sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
 }: DashboardSidebarProps) => {
   const [search, setSearch] = useState("");
-  const [personaId, setPersonaId] = useState<string | null>(null);
+  const personaId = externalPersonaId ?? null;
+  const setPersonaId = onPersonaChange ?? (() => {});
 
   const filtered = conversations.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -197,16 +201,22 @@ const DashboardSidebar = ({
             ))}
           </div>
 
-          {/* Footer */}
           <div className="flex-shrink-0 p-3 pb-5 border-t border-border/20">
-            <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
-              <LogOut className="h-4 w-4" />
-              Log out
-            </button>
+            <LogoutBtn />
           </div>
         </div>
       </aside>
     </SidebarContext.Provider>
+  );
+};
+
+const LogoutBtn = () => {
+  const { signOut } = useAuth();
+  return (
+    <button onClick={signOut} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
+      <LogOut className="h-4 w-4" />
+      Log out
+    </button>
   );
 };
 

@@ -1,42 +1,66 @@
-import { BarChart3, Clock, Zap, TrendingUp, MessageSquare, Star } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BarChart3, Clock, Zap, TrendingUp, MessageSquare, Star, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-const stats = [
-  { label: "Prompts This Month", value: "247", icon: MessageSquare, change: "+18%" },
-  { label: "Time Saved", value: "47h", icon: Clock, change: "~$2,350 value" },
-  { label: "Current Streak", value: "12 days", icon: Zap, change: "Best: 34 days" },
-  { label: "Saved Prompts", value: "23", icon: Star, change: "8 starred" },
-];
+const StatsView = () => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-const topModes = [
-  { name: "Research", pct: 42 },
-  { name: "Code", pct: 31 },
-  { name: "Truth", pct: 18 },
-  { name: "Chat", pct: 9 },
-];
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("usage_stats").select("*").eq("user_id", user.id).single()
+      .then(({ data }) => { setStats(data); setLoading(false); });
+  }, [user]);
 
-const topTopics = ["AI Architecture", "TypeScript", "Market Analysis", "Prompt Engineering", "Security"];
+  if (loading) {
+    return <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  }
 
-const StatsView = () => (
-  <div className="max-w-3xl mx-auto p-6 space-y-6">
-    <div>
-      <h2 className="text-xl font-extralight tracking-wide text-foreground">Your Zialiel Stats</h2>
-      <p className="text-sm font-extralight text-muted-foreground mt-1">Your personal intelligence dashboard.</p>
-    </div>
+  const s = stats ?? {};
+  const total = s.total_prompts ?? 0;
+  const research = s.research_prompts ?? 0;
+  const code = s.code_prompts ?? 0;
+  const truth = s.truth_prompts ?? 0;
+  const chat = s.chat_prompts ?? 0;
+  const streak = s.streak_days ?? 0;
+  const timeSaved = Math.round(total * 1.5); // ~1.5 min per prompt
 
-    <div className="grid grid-cols-2 gap-3">
-      {stats.map((s) => (
-        <div key={s.label} className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <s.icon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">{s.label}</span>
+  const statCards = [
+    { label: "Prompts This Month", value: String(total), icon: MessageSquare, change: "" },
+    { label: "Time Saved", value: `${timeSaved}m`, icon: Clock, change: `~$${Math.round(timeSaved * 0.83)} value` },
+    { label: "Current Streak", value: `${streak} days`, icon: Zap, change: "" },
+    { label: "Total Messages", value: String(total), icon: Star, change: "" },
+  ];
+
+  const topModes = [
+    { name: "Research", pct: total > 0 ? Math.round((research / total) * 100) : 0 },
+    { name: "Code", pct: total > 0 ? Math.round((code / total) * 100) : 0 },
+    { name: "Truth", pct: total > 0 ? Math.round((truth / total) * 100) : 0 },
+    { name: "Chat", pct: total > 0 ? Math.round((chat / total) * 100) : 0 },
+  ];
+
+  return (
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      <div>
+        <h2 className="text-xl font-extralight tracking-wide text-foreground">Your Zialiel Stats</h2>
+        <p className="text-sm font-extralight text-muted-foreground mt-1">Your personal intelligence dashboard.</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {statCards.map((sc) => (
+          <div key={sc.label} className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <sc.icon className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">{sc.label}</span>
+            </div>
+            <p className="text-2xl font-extralight text-foreground">{sc.value}</p>
+            {sc.change && <p className="text-[10px] text-muted-foreground/60 mt-1">{sc.change}</p>}
           </div>
-          <p className="text-2xl font-extralight text-foreground">{s.value}</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">{s.change}</p>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
 
-    <div className="grid grid-cols-2 gap-3">
       <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -54,19 +78,8 @@ const StatsView = () => (
           ))}
         </div>
       </div>
-      <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Top Topics</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {topTopics.map((t) => (
-            <span key={t} className="text-[10px] font-light text-muted-foreground rounded-full border border-border/20 px-2.5 py-1">{t}</span>
-          ))}
-        </div>
-      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default StatsView;
