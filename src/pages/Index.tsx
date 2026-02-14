@@ -1,6 +1,6 @@
 import heroBg from "@/assets/hero-bg.jpeg";
 import Header from "@/components/Header";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3 } from "lucide-react";
 import { useState } from "react";
 
 const Index = () => {
@@ -164,6 +164,67 @@ const Index = () => {
               Get Full Access
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4: Use Case Identity Grid */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            Built For People Who Are Done
+            <br />
+            <span className="text-muted-foreground">Being Managed By Their Tools.</span>
+          </h2>
+
+          {/* Row 1 */}
+          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Hammer className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Builders</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                Build full-stack products without being blocked mid-build. ZIALIEL doesn't stop when the code gets hard.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <FlaskConical className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Researchers</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                Get the real data on any topic — not the sanitized version. No "I'd recommend consulting a professional."
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Code className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Coders</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                Outperform Claude Opus on every benchmark. Debug. Build. Ship. No re-running the same prompt 12 times.
+              </p>
+            </div>
+          </div>
+
+          {/* Row 2 */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Target className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Strategists</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                Understand what is actually happening in any market, conflict, or system.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Feather className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Writers</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                Write without the AI rewriting your edge out of your voice to be "safe."
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <BarChart3 className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Analysts</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                Get the economic and structural truth behind any event — not the surface headline.
+              </p>
+            </div>
           </div>
         </div>
       </div>
