@@ -1,6 +1,6 @@
 import heroBg from "@/assets/hero-bg.jpeg";
 import Header from "@/components/Header";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 const StatusIcon = ({ type }: { type: string }) => {
@@ -21,6 +21,23 @@ const TableRow = ({ feature, z, zIcon, gpt, gptIcon, claude, claudeIcon, venice,
     <td className="px-4 py-3.5 text-muted-foreground"><StatusIcon type={veniceIcon} /> <span className="ml-1">{venice}</span></td>
   </tr>
 );
+
+const FaqItem = ({ q, a }: { q: string; a: string }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-6 py-4 text-left">
+        <span className="text-sm font-light tracking-wide text-foreground">{q}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="px-6 pb-5">
+          <p className="text-sm font-extralight leading-relaxed text-muted-foreground">{a}</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Index = () => {
   const [demoQuery, setDemoQuery] = useState("");
@@ -403,6 +420,96 @@ const Index = () => {
             <p className="mt-4 max-w-lg mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
               Because free tiers train you to expect less. ZIALIEL gives you everything on day one or nothing. That's the only honest model.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 9: Trust + Data Privacy */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            Your Words Never Leave The Room.
+          </h2>
+
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
+            {/* Left — Statement */}
+            <div className="text-left">
+              <p className="text-base font-extralight leading-relaxed text-foreground/90">
+                Every prompt you send to ZIALIEL is encrypted end-to-end.
+              </p>
+              <p className="mt-6 text-sm font-extralight text-muted-foreground">Your conversations are never:</p>
+              <ul className="mt-3 space-y-2">
+                {[
+                  "Sold to third parties",
+                  "Used to train any AI model",
+                  "Shared with advertisers",
+                  "Read by our team",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2 text-sm font-extralight text-foreground/80">
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-8 text-sm font-extralight leading-relaxed text-muted-foreground">
+                Servers hosted in the United States. Your account data lives with you. Cancel and it's gone. Full stop.
+              </p>
+            </div>
+
+            {/* Right — Icon Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: Lock, label: "End-To-End Encryption" },
+                { icon: ShieldOff, label: "Never Sold" },
+                { icon: Brain, label: "Never Trains Our Models" },
+                { icon: Flag, label: "US-Based Servers" },
+                { icon: X, label: "No Third Party Access" },
+                { icon: Trash2, label: "Delete Anytime" },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex items-center gap-3 rounded-xl border border-border/20 bg-card/30 backdrop-blur-md px-4 py-4">
+                  <Icon className="h-5 w-5 shrink-0 text-foreground" />
+                  <span className="text-xs font-extralight tracking-wide text-foreground/80">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 10: FAQ Block */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            The Questions Everyone Has.
+            <br />
+            <span className="text-muted-foreground">Answered Without Spin.</span>
+          </h2>
+
+          <div className="mt-16 space-y-3">
+            <FaqItem
+              q="Why is ZIALIEL uncensored when others aren't?"
+              a="Other LLMs are trained using RLHF — Reinforcement Learning from Human Feedback. The feedback is corporate-filtered to avoid liability. ZIALIEL was built without that leash. You get the answer, not the approved version of it."
+            />
+            <FaqItem
+              q="How does the coding engine beat Claude Opus?"
+              a="ZIALIEL doesn't stop mid-build when the problem gets hard. It holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution."
+            />
+            <FaqItem
+              q='What does "never trains our models" mean?'
+              a="Every message you send is used by most AI companies to improve their model. ZIALIEL does not. Your prompt is processed, answered, and encrypted. It is not stored as training data."
+            />
+            <FaqItem
+              q="Can I cancel anytime?"
+              a='Yes. One click. No retention flow. No "are you sure?" loop. Your access ends at the billing cycle. Your data is deleted on request.'
+            />
+            <FaqItem
+              q="What is the live web search powered by?"
+              a="DuckDuckGo. Privacy-first search. ZIALIEL pulls live data without tracking your search behavior or feeding it to ad networks."
+            />
+            <FaqItem
+              q="Is ZIALIEL available in multiple languages?"
+              a="Yes. ZIALIEL processes and delivers in any major language. The output quality and uncensored standard remain identical regardless of language."
+            />
           </div>
         </div>
       </div>
