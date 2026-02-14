@@ -1,6 +1,6 @@
 import heroBg from "@/assets/hero-bg.jpeg";
 import Header from "@/components/Header";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3 } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe } from "lucide-react";
 import { useState } from "react";
 
 const Index = () => {
@@ -238,6 +238,50 @@ const Index = () => {
               <div className="h-8 w-32 rounded-lg border border-border/30 bg-card/20 flex items-center justify-center">
                 <span className="text-xs font-light text-muted-foreground">FORBES</span>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 6: Features Breakdown */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            What ZIALIEL Actually Does.
+            <br />
+            <span className="text-muted-foreground">Specific. No Buzzwords.</span>
+          </h2>
+
+          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Unlock className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Uncensored Responses</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">No topic triggers a shutdown. No hidden training bias. You get the full answer.</p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Monitor className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Elite Coding Engine</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Outperforms Claude Opus on complex builds, debugging, and multi-file architecture.</p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Search className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Live Web Intelligence</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">DuckDuckGo-powered real-time search. Current data, not 2-year-old training sets.</p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Brain className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Persistent Memory</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">ZIALIEL remembers your context, preferences, and projects across every session.</p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Users className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Team Workspace</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Collaborate in real time. Share threads, outputs, and builds with your team.</p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Globe className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Multi-Language Output</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Thinks and delivers in any language. Same raw output. No filtered translations.</p>
             </div>
           </div>
         </div>
