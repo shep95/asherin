@@ -1,6 +1,9 @@
 import heroBg from "@/assets/hero-bg.png";
 import { useState, useEffect, useCallback } from "react";
 import type { Conversation, ChatMode, DashboardView, Message } from "@/components/dashboard/types";
+import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
+import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
+import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ChatView from "@/components/dashboard/ChatView";
 import LibraryView from "@/components/dashboard/LibraryView";
@@ -21,22 +24,39 @@ const Dashboard = () => {
   const [activeView, setActiveView] = useState<DashboardView>("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
+  const [depth, setDepth] = useState<ResponseDepth>("standard");
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // Load conversations from DB
+  // Load conversations and user profile from DB
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data: convRows } = await supabase
-        .from("conversations")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("archived", false)
-        .order("created_at", { ascending: false });
+      // Load user profile + settings + conversations in parallel
+      const [convResult, profileResult, settingsResult] = await Promise.all([
+        supabase.from("conversations").select("*").eq("user_id", user.id).eq("archived", false).order("created_at", { ascending: false }),
+        supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).single(),
+        supabase.from("user_settings").select("*").eq("user_id", user.id).single(),
+      ]);
 
+      // Set user intelligence profile
+      if (profileResult.data) {
+        setUserProfile({
+          tone_preference: profileResult.data.tone_preference,
+          topics_of_interest: profileResult.data.topics_of_interest,
+          inferred_traits: profileResult.data.inferred_traits as Record<string, unknown>,
+        });
+      }
+
+      // Set saved depth preference
+      if (settingsResult.data?.response_depth) {
+        setDepth(settingsResult.data.response_depth as ResponseDepth);
+      }
+
+      const convRows = convResult.data;
       if (!convRows || convRows.length === 0) {
         const { data: newConv } = await supabase
           .from("conversations")
@@ -48,7 +68,6 @@ const Dashboard = () => {
           setActiveConvId(newConv.id);
         }
       } else {
-        // Load messages for all conversations
         const convIds = convRows.map((c) => c.id);
         const { data: msgRows } = await supabase
           .from("messages")
@@ -90,6 +109,14 @@ const Dashboard = () => {
 
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? conversations[0];
 
+  // Save depth preference when changed
+  const handleDepthChange = useCallback((newDepth: ResponseDepth) => {
+    setDepth(newDepth);
+    if (user) {
+      supabase.from("user_settings").update({ response_depth: newDepth }).eq("user_id", user.id).then();
+    }
+  }, [user]);
+
   // Track usage
   const trackUsage = useCallback(async (modeUsed: ChatMode) => {
     if (!user) return;
@@ -111,11 +138,56 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Calibration feedback handler
+  const handleCalibrationFeedback = useCallback(async (messageId: string, feedback: FeedbackType) => {
+    if (!user) return;
+    
+    // Save to DB
+    await supabase.from("calibration_feedback").insert({
+      user_id: user.id,
+      message_id: messageId,
+      feedback,
+    });
+
+    // Update user intelligence profile based on feedback
+    const { data: profile } = await supabase
+      .from("user_intelligence_profile")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profile) {
+      const updates: Record<string, any> = {
+        total_calibrations: (profile.total_calibrations ?? 0) + 1,
+      };
+
+      // Adjust depth preference based on feedback patterns
+      if (feedback === "too_shallow") {
+        const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
+        const currentIdx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
+        if (currentIdx < depthOrder.length - 1) {
+          updates.depth_auto = depthOrder[currentIdx + 1];
+        }
+      } else if (feedback === "too_deep") {
+        const depthOrder: ResponseDepth[] = ["shallow", "standard", "deep", "expert"];
+        const currentIdx = depthOrder.indexOf(profile.depth_auto as ResponseDepth);
+        if (currentIdx > 0) {
+          updates.depth_auto = depthOrder[currentIdx - 1];
+        }
+      } else if (feedback === "perfect") {
+        updates.tone_preference = "direct"; // Users who click "perfect" tend to prefer directness
+      }
+
+      await supabase.from("user_intelligence_profile").update(updates).eq("user_id", user.id);
+    }
+
+    toast({ title: "Calibrated", description: "ZIALIEL adjusted to your preference." });
+  }, [user, toast]);
+
   const sendMessage = async (content: string) => {
     if (!user || !activeConvId || isStreaming) return;
     setSuggestions([]);
 
-    // Save user message to DB
     const { data: userMsgRow } = await supabase
       .from("messages")
       .insert({ conversation_id: activeConvId, user_id: user.id, role: "user", content })
@@ -128,7 +200,6 @@ const Dashboard = () => {
       id: userMsgRow.id, role: "user", content, timestamp: new Date(userMsgRow.created_at),
     };
 
-    // Update title if first message
     const isFirst = activeConv?.messages.length === 0;
     if (isFirst) {
       const newTitle = content.slice(0, 50);
@@ -142,15 +213,12 @@ const Dashboard = () => {
       );
     }
 
-    // Track usage
     trackUsage(mode);
 
-    // Stream AI response
     setIsStreaming(true);
     let assistantContent = "";
     const assistantId = crypto.randomUUID();
 
-    // Add empty assistant message
     setConversations((prev) =>
       prev.map((c) =>
         c.id === activeConvId
@@ -169,6 +237,8 @@ const Dashboard = () => {
         messages: history,
         mode,
         personaId,
+        depth,
+        userProfile,
         onDelta: (chunk) => {
           assistantContent += chunk;
           const current = assistantContent;
@@ -183,7 +253,6 @@ const Dashboard = () => {
         onDone: async () => {
           setIsStreaming(false);
 
-          // Save assistant message to DB
           await supabase.from("messages").insert({
             id: assistantId,
             conversation_id: activeConvId,
@@ -192,7 +261,6 @@ const Dashboard = () => {
             content: assistantContent,
           });
 
-          // Fetch follow-up suggestions
           const sug = await fetchSuggestions(assistantContent);
           setSuggestions(sug);
         },
@@ -267,8 +335,11 @@ const Dashboard = () => {
           onSendMessage={sendMessage}
           mode={mode}
           onModeChange={setMode}
+          depth={depth}
+          onDepthChange={handleDepthChange}
           isStreaming={isStreaming}
           suggestions={suggestions}
+          onCalibrationFeedback={handleCalibrationFeedback}
         />
       ) : null;
     }

@@ -1,21 +1,31 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Eye, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
+import type { ResponseDepth } from "./DepthSelector";
 import ModeSelector from "./ModeSelector";
+import DepthSelector from "./DepthSelector";
+import ContextHealthIndicator from "./ContextHealthIndicator";
 import TruthScore from "./TruthScore";
 import FollowUpSuggestions from "./FollowUpSuggestions";
 import DecodeView from "./DecodeView";
+import CalibrationFeedback from "./CalibrationFeedback";
+import type { FeedbackType } from "./CalibrationFeedback";
+import { Eye } from "lucide-react";
 
 interface ChatViewProps {
   conversation: Conversation;
   onSendMessage: (content: string) => void;
   mode: ChatMode;
   onModeChange: (mode: ChatMode) => void;
+  depth: ResponseDepth;
+  onDepthChange: (depth: ResponseDepth) => void;
   isStreaming?: boolean;
   suggestions?: string[];
+  onCalibrationFeedback?: (messageId: string, feedback: FeedbackType) => void;
 }
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, isStreaming, suggestions = [] }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,9 +45,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, isStreaming
 
   return (
     <div className="flex flex-1 flex-col min-w-0 h-full">
-      {/* Top bar with mode selector */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
         <ModeSelector active={mode} onChange={onModeChange} />
+        <div className="flex items-center gap-3">
+          <ContextHealthIndicator messageCount={conversation.messages.length} />
+          <DepthSelector active={depth} onChange={onDepthChange} />
+        </div>
       </div>
 
       {/* Messages */}
@@ -59,19 +73,25 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, isStreaming
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className="max-w-[80%]">
                   <div
-                    className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed whitespace-pre-wrap ${
+                    className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed ${
                       msg.role === "user"
                         ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
                         : "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
                     }`}
                   >
-                    {msg.content}
-                    {msg.role === "assistant" && isStreaming && msg === lastMsg && (
-                      <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
+                    {msg.role === "assistant" ? (
+                      <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        {isStreaming && msg === lastMsg && (
+                          <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
+                        )}
+                      </div>
+                    ) : (
+                      <span className="whitespace-pre-wrap">{msg.content}</span>
                     )}
                   </div>
-                  {msg.role === "assistant" && msg.content && (
-                    <div className="flex items-center gap-2 mt-1.5 px-1">
+                  {msg.role === "assistant" && msg.content && !isStreaming && (
+                    <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap">
                       <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
                       <button
                         onClick={() => setDecodeId(decodeId === msg.id ? null : msg.id)}
@@ -80,6 +100,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, isStreaming
                         <Eye className="h-3 w-3" />
                         Decode
                       </button>
+                      <CalibrationFeedback
+                        messageId={msg.id}
+                        onFeedback={onCalibrationFeedback ?? (() => {})}
+                      />
                     </div>
                   )}
                   {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} />}

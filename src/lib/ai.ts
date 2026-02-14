@@ -1,20 +1,31 @@
 import type { ChatMode } from "@/components/dashboard/types";
+import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+export interface UserProfile {
+  tone_preference?: string;
+  topics_of_interest?: string[];
+  inferred_traits?: Record<string, unknown>;
+}
+
 export async function streamChat({
   messages,
   mode,
   personaId,
+  depth,
+  userProfile,
   onDelta,
   onDone,
 }: {
   messages: Msg[];
   mode: ChatMode;
   personaId?: string | null;
+  depth?: ResponseDepth;
+  userProfile?: UserProfile | null;
   onDelta: (text: string) => void;
   onDone: () => void;
 }) {
@@ -24,7 +35,7 @@ export async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages, mode, personaId }),
+    body: JSON.stringify({ messages, mode, personaId, depth, userProfile }),
   });
 
   if (!resp.ok) {

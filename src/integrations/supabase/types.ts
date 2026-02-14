@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      calibration_feedback: {
+        Row: {
+          created_at: string
+          feedback: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           archived: boolean
@@ -250,11 +274,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_intelligence_profile: {
+        Row: {
+          active_hours: string[]
+          created_at: string
+          depth_auto: string
+          id: string
+          inferred_traits: Json
+          tone_preference: string
+          topics_of_interest: string[]
+          total_calibrations: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_hours?: string[]
+          created_at?: string
+          depth_auto?: string
+          id?: string
+          inferred_traits?: Json
+          tone_preference?: string
+          topics_of_interest?: string[]
+          total_calibrations?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_hours?: string[]
+          created_at?: string
+          depth_auto?: string
+          id?: string
+          inferred_traits?: Json
+          tone_preference?: string
+          topics_of_interest?: string[]
+          total_calibrations?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           created_at: string
           id: string
           memory_enabled: boolean
+          response_depth: string
           response_length: string
           theme: string
           updated_at: string
@@ -265,6 +329,7 @@ export type Database = {
           created_at?: string
           id?: string
           memory_enabled?: boolean
+          response_depth?: string
           response_length?: string
           theme?: string
           updated_at?: string
@@ -275,6 +340,7 @@ export type Database = {
           created_at?: string
           id?: string
           memory_enabled?: boolean
+          response_depth?: string
           response_length?: string
           theme?: string
           updated_at?: string
