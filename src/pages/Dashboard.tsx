@@ -18,15 +18,37 @@ import AshaView from "@/components/dashboard/asha/AshaView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
+import { Lock, ArrowRight } from "lucide-react";
+
+const AshaGate = ({ onUpgrade }: { onUpgrade: () => void }) => (
+  <div className="flex flex-1 items-center justify-center p-6">
+    <div className="max-w-md text-center space-y-6 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-10">
+      <Lock className="h-10 w-10 text-accent mx-auto" />
+      <h2 className="text-xl font-extralight tracking-wide text-foreground">Asha Intelligence</h2>
+      <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
+        Asha is the full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. It's available exclusively on the <span className="text-accent">ZIALIEL Enterprise</span> plan.
+      </p>
+      <button
+        onClick={onUpgrade}
+        className="group inline-flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-6 py-3 text-sm font-light tracking-wide hover:bg-accent/90 transition-all"
+      >
+        View Enterprise Plan
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      </button>
+    </div>
+  </div>
+);
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { tierKey } = useSubscription();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<DashboardView>("chat");
@@ -342,7 +364,7 @@ const Dashboard = () => {
   const renderView = () => {
     switch (activeView) {
       case "search": return <ZophielEngineView />;
-      case "asha": return <AshaView />;
+      case "asha": return tierKey === "enterprise" ? <AshaView /> : <AshaGate onUpgrade={() => setActiveView("subscription")} />;
       case "library": return <LibraryView />;
       case "projects": return <ProjectsView />;
       case "memory": return <MemoryCenterView />;
