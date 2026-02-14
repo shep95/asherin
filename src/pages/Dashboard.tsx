@@ -163,7 +163,7 @@ const Dashboard = () => {
             </div>
 
             {/* Sidebar footer */}
-            <div className="p-3 border-t border-border/20">
+            <div className="p-3 pb-5 border-t border-border/20 space-y-1">
               <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
                 <LogOut className="h-4 w-4" />
                 Log out
