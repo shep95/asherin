@@ -16,8 +16,15 @@ const Index = () => {
 
       {/* Content */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <p className="max-w-md text-lg font-extralight tracking-widest text-muted-foreground">
-          Everything you need to express yourself without limits
+        <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+          The AI That Actually Tells You The Truth.
+        </h1>
+        <p className="mt-6 max-w-xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
+          No filters. No emotional manipulation. No hidden agendas.
+          <br className="hidden sm:block" />
+          ZIALIEL gives you uncensored answers, brutal logic, and
+          <br className="hidden sm:block" />
+          code that outperforms the leading models.
         </p>
       </div>
     </div>
