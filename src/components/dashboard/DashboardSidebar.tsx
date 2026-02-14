@@ -1,0 +1,202 @@
+import { useState } from "react";
+import {
+  Plus, MessageSquare, Trash2, Pin, Search, LogOut,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu,
+} from "lucide-react";
+import type { Conversation, DashboardView } from "./types";
+import PersonaSelector from "./PersonaSelector";
+
+interface DashboardSidebarProps {
+  conversations: Conversation[];
+  activeConversationId: string;
+  activeView: DashboardView;
+  onSelectConversation: (id: string) => void;
+  onNewConversation: () => void;
+  onDeleteConversation: (id: string) => void;
+  onTogglePin: (id: string) => void;
+  onViewChange: (view: DashboardView) => void;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
+}
+
+const navItems: { id: DashboardView; icon: React.ElementType; label: string }[] = [
+  { id: "library", icon: FolderOpen, label: "Library" },
+  { id: "projects", icon: Layers, label: "Projects" },
+  { id: "memory", icon: Brain, label: "Memory Center" },
+  { id: "stats", icon: BarChart3, label: "My Stats" },
+  { id: "settings", icon: Settings, label: "Settings" },
+];
+
+function groupByDate(convs: Conversation[]) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const week = new Date(today); week.setDate(today.getDate() - 7);
+  const month = new Date(today); month.setDate(today.getDate() - 30);
+
+  const groups: { label: string; items: Conversation[] }[] = [
+    { label: "Pinned", items: [] },
+    { label: "Today", items: [] },
+    { label: "Yesterday", items: [] },
+    { label: "Last 7 Days", items: [] },
+    { label: "Last 30 Days", items: [] },
+    { label: "Older", items: [] },
+  ];
+
+  convs.forEach((c) => {
+    if (c.pinned) { groups[0].items.push(c); return; }
+    const d = new Date(c.createdAt);
+    if (d >= today) groups[1].items.push(c);
+    else if (d >= yesterday) groups[2].items.push(c);
+    else if (d >= week) groups[3].items.push(c);
+    else if (d >= month) groups[4].items.push(c);
+    else groups[5].items.push(c);
+  });
+
+  return groups.filter((g) => g.items.length > 0);
+}
+
+const DashboardSidebar = ({
+  conversations, activeConversationId, activeView, onSelectConversation,
+  onNewConversation, onDeleteConversation, onTogglePin, onViewChange,
+  sidebarOpen, onToggleSidebar,
+}: DashboardSidebarProps) => {
+  const [search, setSearch] = useState("");
+  const [personaId, setPersonaId] = useState<string | null>(null);
+
+  const filtered = conversations.filter((c) =>
+    c.title.toLowerCase().includes(search.toLowerCase()) ||
+    c.messages.some((m) => m.content.toLowerCase().includes(search.toLowerCase()))
+  );
+  const groups = groupByDate(filtered);
+
+  return (
+    <>
+      {/* Mobile toggle */}
+      <button
+        onClick={onToggleSidebar}
+        className="fixed top-4 left-4 z-50 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5 lg:hidden"
+      >
+        {sidebarOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
+      </button>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-30 bg-background/50 lg:hidden" onClick={onToggleSidebar} />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border/20">
+            <span className="text-sm font-extralight tracking-[0.25em] text-foreground">ZIALIEL</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onNewConversation}
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+                title="New conversation"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="px-3 pt-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
+              <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search conversations…"
+                className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Conversation list */}
+          <div className="flex-1 overflow-y-auto p-2 space-y-3">
+            {groups.map((group) => (
+              <div key={group.label}>
+                <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
+                  {group.label === "Pinned" ? "📌 Pinned" : group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {group.items.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className={`group flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer transition-colors ${
+                        activeView === "chat" && conv.id === activeConversationId
+                          ? "bg-foreground/10 text-foreground"
+                          : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                      }`}
+                      onClick={() => {
+                        onSelectConversation(conv.id);
+                        onViewChange("chat");
+                        onToggleSidebar();
+                      }}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onTogglePin(conv.id); }}
+                          className={`p-1 rounded text-muted-foreground hover:text-foreground transition-colors ${conv.pinned ? "opacity-100 text-foreground" : ""}`}
+                        >
+                          <Pin className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
+                          className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Personas */}
+          <div className="px-2 py-2 border-t border-border/20">
+            <PersonaSelector activeId={personaId} onSelect={setPersonaId} />
+          </div>
+
+          {/* Navigation */}
+          <div className="px-2 py-2 border-t border-border/20 space-y-0.5">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                  activeView === item.id
+                    ? "bg-foreground/10 text-foreground"
+                    : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="p-3 pb-5 border-t border-border/20">
+            <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
+              <LogOut className="h-4 w-4" />
+              Log out
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default DashboardSidebar;
