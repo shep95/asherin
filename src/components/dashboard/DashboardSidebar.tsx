@@ -1,5 +1,6 @@
 import { useState, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database,
@@ -41,9 +42,9 @@ interface DashboardSidebarProps {
   onPersonaChange?: (id: string | null) => void;
 }
 
-const navItems: { id: DashboardView; icon: React.ElementType; label: string }[] = [
-  { id: "search", icon: Zap, label: "Zophiel Engine" },
-  { id: "asha", icon: Database, label: "Asha Intelligence" },
+const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; enterprise?: boolean }[] = [
+  { id: "search", icon: Zap, label: "Zophiel Engine", enterprise: true },
+  { id: "asha", icon: Database, label: "Asha Intelligence", enterprise: true },
   { id: "library", icon: FolderOpen, label: "Library" },
   { id: "projects", icon: Layers, label: "Projects" },
   { id: "memory", icon: Brain, label: "Memory Center" },
@@ -86,9 +87,11 @@ const DashboardSidebar = ({
   onNewConversation, onDeleteConversation, onArchiveConversation, onTogglePin, onViewChange,
   sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
 }: DashboardSidebarProps) => {
+  const { tierKey } = useSubscription();
   const [search, setSearch] = useState("");
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
+  const navItems = allNavItems.filter((item) => !item.enterprise || tierKey === "enterprise");
 
   const filtered = conversations.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase()) ||

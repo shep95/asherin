@@ -363,7 +363,7 @@ const Dashboard = () => {
 
   const renderView = () => {
     switch (activeView) {
-      case "search": return <ZophielEngineView />;
+      case "search": return tierKey === "enterprise" ? <ZophielEngineView /> : <AshaGate onUpgrade={() => setActiveView("subscription")} />;
       case "asha": return tierKey === "enterprise" ? <AshaView /> : <AshaGate onUpgrade={() => setActiveView("subscription")} />;
       case "library": return <LibraryView />;
       case "projects": return <ProjectsView />;
