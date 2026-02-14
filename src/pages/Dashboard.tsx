@@ -14,6 +14,7 @@ import StatsView from "@/components/dashboard/StatsView";
 import SettingsView from "@/components/dashboard/SettingsView";
 import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
+import AshaView from "@/components/dashboard/asha/AshaView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -341,6 +342,7 @@ const Dashboard = () => {
   const renderView = () => {
     switch (activeView) {
       case "search": return <ZophielEngineView />;
+      case "asha": return <AshaView />;
       case "library": return <LibraryView />;
       case "projects": return <ProjectsView />;
       case "memory": return <MemoryCenterView />;
