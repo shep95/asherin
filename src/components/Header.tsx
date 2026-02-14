@@ -99,7 +99,40 @@ const AuthForm = ({ isLogin, setIsLogin, mobile }: { isLogin: boolean; setIsLogi
   const [forgotMode, setForgotMode] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const { toast } = useToast();
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setLoading(true);
+    if (isLogin) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      setLoading(false);
+      if (error) {
+        toast({ title: "Login failed", description: error.message, variant: "destructive" });
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      setLoading(false);
+      if (error) {
+        toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Check your email", description: "We've sent you a confirmation link. Please verify your email before logging in." });
+      }
+    }
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,23 +179,23 @@ const AuthForm = ({ isLogin, setIsLogin, mobile }: { isLogin: boolean; setIsLogi
       <p className="mb-5 text-sm font-extralight text-muted-foreground">
         {isLogin ? "Log in to your account" : "Sign up to get started"}
       </p>
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
+      <form onSubmit={handleAuth} className="space-y-3">
         {!isLogin && (
           <div>
             <label className="mb-1.5 block text-xs font-light tracking-wide text-muted-foreground">Name</label>
-            <input type="text" placeholder="Your name" className="w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
           </div>
         )}
         <div>
           <label className="mb-1.5 block text-xs font-light tracking-wide text-muted-foreground">Email</label>
-          <input type="email" placeholder="you@example.com" className="w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-light tracking-wide text-muted-foreground">Password</label>
-          <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-border/40 bg-background/50 px-3 py-2 text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-foreground/30 transition-colors" />
         </div>
-        <button type="submit" className="w-full rounded-lg bg-foreground py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">
-          {isLogin ? "Log in" : "Sign up"}
+        <button type="submit" disabled={loading} className="w-full rounded-lg bg-foreground py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 disabled:opacity-50">
+          {loading ? (isLogin ? "Logging in…" : "Signing up…") : (isLogin ? "Log in" : "Sign up")}
         </button>
       </form>
       {isLogin && (
