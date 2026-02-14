@@ -36,21 +36,21 @@ const TermsOfService = () => {
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">1. Acceptance of Terms</h2>
                 <p>
-                  By accessing or using ZIALIEL ("the Service"), operated by Zorak Corp & House Of Asher, you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Service.
+                  By accessing or using Aureon ("the Service"), operated by Zorak Corp & House Of Asher, you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Service.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">2. Service Description</h2>
                 <p>
-                  ZIALIEL is an AI-powered platform providing uncensored responses, an elite coding engine, live web search via DuckDuckGo, persistent memory across sessions, team workspace functionality, and multi-language output. The Service is offered at a single tier of $18/month with full access to all features from day one.
+                  Aureon is an AI-powered platform providing uncensored responses, an elite coding engine, live web search via DuckDuckGo, persistent memory across sessions, team workspace functionality, and multi-language output. The Service is offered at a single tier of $18/month with full access to all features from day one.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">3. Data Privacy & Security</h2>
                 <p className="mb-3">
-                  Your privacy is foundational to ZIALIEL, not an afterthought. We commit to the following:
+                  Your privacy is foundational to Aureon, not an afterthought. We commit to the following:
                 </p>
                 <ul className="space-y-2 ml-4">
                   <li>→ All prompts and conversations are encrypted end-to-end.</li>
@@ -66,7 +66,7 @@ const TermsOfService = () => {
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">4. Uncensored Output Policy</h2>
                 <p>
-                  ZIALIEL provides uncensored AI responses. The Service does not apply corporate-filtered RLHF (Reinforcement Learning from Human Feedback) to suppress or sanitize outputs. Users acknowledge that responses are generated without editorial filtering and accept full responsibility for how they use the information provided.
+                  Aureon provides uncensored AI responses. The Service does not apply corporate-filtered RLHF (Reinforcement Learning from Human Feedback) to suppress or sanitize outputs. Users acknowledge that responses are generated without editorial filtering and accept full responsibility for how they use the information provided.
                 </p>
               </section>
 
@@ -86,14 +86,14 @@ const TermsOfService = () => {
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">6. User Responsibilities</h2>
                 <p>
-                  You are solely responsible for your use of the Service and any content generated through your interactions. You agree not to use ZIALIEL for any activity that violates applicable law. The uncensored nature of the platform does not constitute encouragement or endorsement of illegal activity.
+                  You are solely responsible for your use of the Service and any content generated through your interactions. You agree not to use Aureon for any activity that violates applicable law. The uncensored nature of the platform does not constitute encouragement or endorsement of illegal activity.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">7. Intellectual Property</h2>
                 <p>
-                  Content you generate through ZIALIEL is yours. We claim no ownership over your prompts, outputs, or code generated through the Service. The ZIALIEL name, branding, and platform technology are the property of Zorak Corp & House Of Asher.
+                  Content you generate through Aureon is yours. We claim no ownership over your prompts, outputs, or code generated through the Service. The Aureon name, branding, and platform technology are the property of Zorak Corp & House Of Asher.
                 </p>
               </section>
 
@@ -107,7 +107,7 @@ const TermsOfService = () => {
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">9. Limitation of Liability</h2>
                 <p>
-                  ZIALIEL is provided "as is." Zorak Corp & House Of Asher shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service. AI-generated content should not be treated as professional, legal, medical, or financial advice.
+                  Aureon is provided "as is." Zorak Corp & House Of Asher shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service. AI-generated content should not be treated as professional, legal, medical, or financial advice.
                 </p>
               </section>
 

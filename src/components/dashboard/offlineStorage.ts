@@ -1,6 +1,6 @@
 import type { Conversation } from "./types";
 
-const STORAGE_KEY = "zialiel_offline_conversations";
+const STORAGE_KEY = "aureon_offline_conversations";
 const MAX_OFFLINE = 10;
 
 export function saveConversationsOffline(conversations: Conversation[]) {

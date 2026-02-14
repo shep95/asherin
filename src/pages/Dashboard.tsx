@@ -170,7 +170,7 @@ const Dashboard = () => {
       }
       await supabase.from("user_intelligence_profile").update(updates).eq("user_id", user.id);
     }
-    toast({ title: "Calibrated", description: "ZIALIEL adjusted to your preference." });
+    toast({ title: "Calibrated", description: "Aureon adjusted to your preference." });
   }, [user, toast]);
 
   const stopStreaming = useCallback(() => {
@@ -357,7 +357,7 @@ const Dashboard = () => {
   if (!loaded) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">ZIALIEL</div>
+        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">AUREON</div>
       </div>
     );
   }
