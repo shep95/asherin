@@ -1,4 +1,4 @@
-import heroBg from "@/assets/hero-bg.jpeg";
+import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
