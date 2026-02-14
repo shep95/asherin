@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import {
   Plus, Search, LogOut,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu,
@@ -6,6 +6,23 @@ import {
 import type { Conversation, DashboardView } from "./types";
 import PersonaSelector from "./PersonaSelector";
 import SwipeableConversationItem from "./SwipeableConversationItem";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Sidebar context for shared state
+interface SidebarContextValue {
+  isOpen: boolean;
+  toggle: () => void;
+  activeView: DashboardView;
+  setActiveView: (view: DashboardView) => void;
+}
+
+const SidebarContext = createContext<SidebarContextValue | null>(null);
+
+export const useSidebarContext = () => {
+  const ctx = useContext(SidebarContext);
+  if (!ctx) throw new Error("useSidebarContext must be used within DashboardSidebar");
+  return ctx;
+};
 
 interface DashboardSidebarProps {
   conversations: Conversation[];
@@ -72,8 +89,15 @@ const DashboardSidebar = ({
   );
   const groups = groupByDate(filtered);
 
+  const contextValue: SidebarContextValue = {
+    isOpen: sidebarOpen,
+    toggle: onToggleSidebar,
+    activeView,
+    setActiveView: onViewChange,
+  };
+
   return (
-    <>
+    <SidebarContext.Provider value={contextValue}>
       {/* Mobile toggle */}
       <button
         onClick={onToggleSidebar}
@@ -94,7 +118,7 @@ const DashboardSidebar = ({
       >
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border/20">
+          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
             <span className="text-sm font-extralight tracking-[0.25em] text-foreground">ZIALIEL</span>
             <div className="flex items-center gap-1">
               <button
@@ -108,7 +132,7 @@ const DashboardSidebar = ({
           </div>
 
           {/* Search */}
-          <div className="px-3 pt-3">
+          <div className="flex-shrink-0 px-3 pt-3">
             <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
               <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
               <input
@@ -120,41 +144,43 @@ const DashboardSidebar = ({
             </div>
           </div>
 
-          {/* Conversation list */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-3">
-            {groups.map((group) => (
-              <div key={group.label}>
-                <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
-                  {group.label === "Pinned" ? "📌 Pinned" : group.label}
-                </p>
-                <div className="space-y-0.5">
-                  {group.items.map((conv) => (
-                    <SwipeableConversationItem
-                      key={conv.id}
-                      conv={conv}
-                      isActive={activeView === "chat" && conv.id === activeConversationId}
-                      onSelect={() => {
-                        onSelectConversation(conv.id);
-                        onViewChange("chat");
-                        onToggleSidebar();
-                      }}
-                      onTogglePin={() => onTogglePin(conv.id)}
-                      onDelete={() => onDeleteConversation(conv.id)}
-                      onArchive={() => onArchiveConversation(conv.id)}
-                    />
-                  ))}
+          {/* Scrollable conversation list */}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-2 space-y-3">
+              {groups.map((group) => (
+                <div key={group.label}>
+                  <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
+                    {group.label === "Pinned" ? "📌 Pinned" : group.label}
+                  </p>
+                  <div className="space-y-0.5">
+                    {group.items.map((conv) => (
+                      <SwipeableConversationItem
+                        key={conv.id}
+                        conv={conv}
+                        isActive={activeView === "chat" && conv.id === activeConversationId}
+                        onSelect={() => {
+                          onSelectConversation(conv.id);
+                          onViewChange("chat");
+                          onToggleSidebar();
+                        }}
+                        onTogglePin={() => onTogglePin(conv.id)}
+                        onDelete={() => onDeleteConversation(conv.id)}
+                        onArchive={() => onArchiveConversation(conv.id)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
 
           {/* Personas */}
-          <div className="px-2 py-2 border-t border-border/20">
+          <div className="flex-shrink-0 px-2 py-2 border-t border-border/20">
             <PersonaSelector activeId={personaId} onSelect={setPersonaId} />
           </div>
 
           {/* Navigation */}
-          <div className="px-2 py-2 border-t border-border/20 space-y-0.5">
+          <div className="flex-shrink-0 px-2 py-2 border-t border-border/20 space-y-0.5">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -172,7 +198,7 @@ const DashboardSidebar = ({
           </div>
 
           {/* Footer */}
-          <div className="p-3 pb-5 border-t border-border/20">
+          <div className="flex-shrink-0 p-3 pb-5 border-t border-border/20">
             <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
               <LogOut className="h-4 w-4" />
               Log out
@@ -180,7 +206,7 @@ const DashboardSidebar = ({
           </div>
         </div>
       </aside>
-    </>
+    </SidebarContext.Provider>
   );
 };
 
