@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.suggest]
 verify_jwt = false
+
+[functions.zophiel-search]
+verify_jwt = false
