@@ -8,7 +8,7 @@ const Index = () => {
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${heroBg})` }}
       />
-      <div className="fixed inset-0 bg-background/90" />
+      <div className="fixed inset-0 bg-background/95" />
 
       {/* Content */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
