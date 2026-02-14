@@ -1,7 +1,8 @@
 import heroBg from "@/assets/hero-bg.jpeg";
 import Header from "@/components/Header";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-green-400 inline" />;
@@ -513,6 +514,48 @@ const Index = () => {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 px-6 pb-8 pt-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md px-8 py-10 sm:px-12">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+              {/* Left — Branding */}
+              <div className="text-center sm:text-left">
+                <p className="text-sm font-light tracking-[0.2em] text-foreground">
+                  ZIALIEL
+                </p>
+                <p className="mt-1 text-xs font-extralight tracking-wide text-muted-foreground">
+                  Powered by Zorak Corp & House Of Asher
+                </p>
+              </div>
+
+              {/* Center — Links */}
+              <div className="flex items-center gap-6">
+                <Link
+                  to="/terms"
+                  className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Terms of Service
+                </Link>
+                <a
+                  href="https://x.com/shep_newton"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Twitter className="h-4 w-4" />
+                </a>
+              </div>
+
+              {/* Right — Copyright */}
+              <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">
+                © {new Date().getFullYear()} Zorak Corp
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
