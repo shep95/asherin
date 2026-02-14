@@ -88,8 +88,9 @@ const LibraryView = () => {
   }
 
   return (
+    <div className="h-full overflow-y-auto">
     <div
-      className={`max-w-3xl mx-auto p-6 space-y-6 h-full ${dragOver ? "ring-2 ring-accent/50 ring-inset rounded-2xl" : ""}`}
+      className={`max-w-3xl mx-auto p-6 space-y-6 ${dragOver ? "ring-2 ring-accent/50 ring-inset rounded-2xl" : ""}`}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
@@ -158,6 +159,7 @@ const LibraryView = () => {
           })}
         </div>
       )}
+    </div>
     </div>
   );
 };

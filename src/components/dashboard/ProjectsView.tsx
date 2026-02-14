@@ -61,7 +61,8 @@ const ProjectsView = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-3xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extralight tracking-wide text-foreground">Projects</h2>
         <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/5 transition-colors">
@@ -94,6 +95,7 @@ const ProjectsView = () => {
           </div>
         ))}
       </div>
+    </div>
     </div>
   );
 };
