@@ -2,7 +2,7 @@ import { useState, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database,
 } from "lucide-react";
 import type { Conversation, DashboardView } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -43,6 +43,7 @@ interface DashboardSidebarProps {
 
 const navItems: { id: DashboardView; icon: React.ElementType; label: string }[] = [
   { id: "search", icon: Zap, label: "Zophiel Engine" },
+  { id: "asha", icon: Database, label: "Asha Intelligence" },
   { id: "library", icon: FolderOpen, label: "Library" },
   { id: "projects", icon: Layers, label: "Projects" },
   { id: "memory", icon: Brain, label: "Memory Center" },
