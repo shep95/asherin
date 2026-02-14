@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Upload, Table2, Share2, GitBranch, Workflow, LayoutDashboard,
-  Lightbulb, MessageSquare, Database, Shield,
+  Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -12,16 +12,20 @@ import QueryBar from "./QueryBar";
 import WorkflowPanel from "./WorkflowPanel";
 import DashboardBuilderPanel from "./DashboardBuilderPanel";
 import BranchPanel from "./BranchPanel";
+import CatalogPanel from "./CatalogPanel";
+import ReportsPanel from "./ReportsPanel";
 import EncryptionBadge from "../EncryptionBadge";
 
 const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "ingest", icon: Upload, label: "Ingest" },
+  { id: "catalog", icon: BookOpen, label: "Catalog" },
   { id: "table", icon: Table2, label: "Table" },
   { id: "graph", icon: Share2, label: "Graph" },
   { id: "pipelines", icon: GitBranch, label: "Branches" },
   { id: "workflows", icon: Workflow, label: "Workflows" },
   { id: "dashboards", icon: LayoutDashboard, label: "Dashboards" },
   { id: "insights", icon: Lightbulb, label: "Insights" },
+  { id: "reports", icon: FileOutput, label: "Reports" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
 
@@ -31,12 +35,14 @@ const AshaView = () => {
   const renderPanel = () => {
     switch (activeTab) {
       case "ingest": return <IngestPanel />;
+      case "catalog": return <CatalogPanel />;
       case "table": return <DataTablePanel />;
       case "graph": return <GraphViewPanel />;
       case "pipelines": return <BranchPanel />;
       case "workflows": return <WorkflowPanel />;
       case "dashboards": return <DashboardBuilderPanel />;
       case "insights": return <InsightsPanel />;
+      case "reports": return <ReportsPanel />;
       case "query": return <QueryBar />;
     }
   };

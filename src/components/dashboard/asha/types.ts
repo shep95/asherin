@@ -1,4 +1,4 @@
-export type AshaTab = "ingest" | "table" | "graph" | "pipelines" | "workflows" | "dashboards" | "insights" | "query";
+export type AshaTab = "ingest" | "table" | "graph" | "pipelines" | "workflows" | "dashboards" | "insights" | "query" | "catalog" | "reports";
 
 export interface AshaFile {
   id: string;
