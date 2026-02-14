@@ -12,6 +12,7 @@ import ProjectsView from "@/components/dashboard/ProjectsView";
 import MemoryCenterView from "@/components/dashboard/MemoryCenterView";
 import StatsView from "@/components/dashboard/StatsView";
 import SettingsView from "@/components/dashboard/SettingsView";
+import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
@@ -336,6 +337,7 @@ const Dashboard = () => {
       case "memory": return <MemoryCenterView />;
       case "stats": return <StatsView />;
       case "settings": return <SettingsView />;
+      case "subscription": return <SubscriptionView />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}

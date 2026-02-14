@@ -2,7 +2,7 @@ import { useState, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard,
 } from "lucide-react";
 import type { Conversation, DashboardView } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -47,6 +47,7 @@ const navItems: { id: DashboardView; icon: React.ElementType; label: string }[] 
   { id: "projects", icon: Layers, label: "Projects" },
   { id: "memory", icon: Brain, label: "Memory Center" },
   { id: "stats", icon: BarChart3, label: "My Stats" },
+  { id: "subscription", icon: CreditCard, label: "Subscription" },
   { id: "settings", icon: Settings, label: "Settings" },
 ];
 
