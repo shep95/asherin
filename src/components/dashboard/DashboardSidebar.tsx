@@ -1,10 +1,11 @@
 import { useState } from "react";
 import {
-  Plus, MessageSquare, Trash2, Pin, Search, LogOut,
+  Plus, Search, LogOut,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu,
 } from "lucide-react";
 import type { Conversation, DashboardView } from "./types";
 import PersonaSelector from "./PersonaSelector";
+import SwipeableConversationItem from "./SwipeableConversationItem";
 
 interface DashboardSidebarProps {
   conversations: Conversation[];
@@ -13,6 +14,7 @@ interface DashboardSidebarProps {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
+  onArchiveConversation: (id: string) => void;
   onTogglePin: (id: string) => void;
   onViewChange: (view: DashboardView) => void;
   sidebarOpen: boolean;
@@ -58,7 +60,7 @@ function groupByDate(convs: Conversation[]) {
 
 const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
-  onNewConversation, onDeleteConversation, onTogglePin, onViewChange,
+  onNewConversation, onDeleteConversation, onArchiveConversation, onTogglePin, onViewChange,
   sidebarOpen, onToggleSidebar,
 }: DashboardSidebarProps) => {
   const [search, setSearch] = useState("");
@@ -127,36 +129,19 @@ const DashboardSidebar = ({
                 </p>
                 <div className="space-y-0.5">
                   {group.items.map((conv) => (
-                    <div
+                    <SwipeableConversationItem
                       key={conv.id}
-                      className={`group flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer transition-colors ${
-                        activeView === "chat" && conv.id === activeConversationId
-                          ? "bg-foreground/10 text-foreground"
-                          : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                      }`}
-                      onClick={() => {
+                      conv={conv}
+                      isActive={activeView === "chat" && conv.id === activeConversationId}
+                      onSelect={() => {
                         onSelectConversation(conv.id);
                         onViewChange("chat");
                         onToggleSidebar();
                       }}
-                    >
-                      <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                      <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
-                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onTogglePin(conv.id); }}
-                          className={`p-1 rounded text-muted-foreground hover:text-foreground transition-colors ${conv.pinned ? "opacity-100 text-foreground" : ""}`}
-                        >
-                          <Pin className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
-                          className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
+                      onTogglePin={() => onTogglePin(conv.id)}
+                      onDelete={() => onDeleteConversation(conv.id)}
+                      onArchive={() => onArchiveConversation(conv.id)}
+                    />
                   ))}
                 </div>
               </div>
