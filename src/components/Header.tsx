@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -28,6 +29,12 @@ const Header = () => {
         {/* Desktop Auth buttons */}
         <div className="hidden sm:block">
           <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
+            <Link
+              to="/pricing"
+              className="rounded-lg px-4 py-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Pricing
+            </Link>
             <button
               onClick={() => openAuth(true)}
               className="rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10"
