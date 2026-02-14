@@ -146,7 +146,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       />
                     </div>
                   )}
-                  {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} />}
+                  {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
                 </div>
               </div>
             ))}

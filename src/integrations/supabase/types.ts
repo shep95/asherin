@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      library_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       memory_entries: {
         Row: {
           category: string
