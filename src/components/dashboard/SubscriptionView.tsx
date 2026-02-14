@@ -54,7 +54,7 @@ const plans: {
 ];
 
 const SubscriptionView = () => {
-  const { subscribed, tierKey, subscriptionEnd, loading, checkSubscription, startCheckout, openPortal, checkoutLoading } = useSubscription();
+  const { subscribed, tierKey, subscriptionEnd, status, cancelAtPeriodEnd, loading, checkSubscription, startCheckout, openPortal, checkoutLoading } = useSubscription();
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -97,10 +97,14 @@ const SubscriptionView = () => {
                   <p className="text-sm font-light text-muted-foreground">Checking subscription…</p>
                 ) : subscribed ? (
                   <>
-                    <p className="text-sm font-light text-foreground">{activePlanName} — Active</p>
+                    <p className="text-sm font-light text-foreground">
+                      {activePlanName} — {cancelAtPeriodEnd ? "Canceling" : status === "trialing" ? "Trial" : "Active"}
+                    </p>
                     {subscriptionEnd && (
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Renews {new Date(subscriptionEnd).toLocaleDateString()}
+                        {cancelAtPeriodEnd
+                          ? `Access until ${new Date(subscriptionEnd).toLocaleDateString()}`
+                          : `Renews ${new Date(subscriptionEnd).toLocaleDateString()}`}
                       </p>
                     )}
                   </>
