@@ -303,7 +303,7 @@ const Index = () => {
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Search className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Live Web Intelligence</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">DuckDuckGo-powered real-time search. Current data, not 2-year-old training sets.</p>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Privacy-first real-time search. Current data, not 2-year-old training sets.</p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Brain className="h-7 w-7 text-foreground" />
@@ -387,7 +387,7 @@ const Index = () => {
               {[
                 "Uncensored responses on any topic",
                 "Elite coding engine",
-                "Live DuckDuckGo web search",
+                "Live web search",
                 "Persistent memory across sessions",
                 "Team workspace included",
                 "Multi-language output",
@@ -505,7 +505,7 @@ const Index = () => {
             />
             <FaqItem
               q="What is the live web search powered by?"
-              a="DuckDuckGo. Privacy-first search. Aureon pulls live data without tracking your search behavior or feeding it to ad networks."
+              a="Privacy-first search infrastructure. Aureon pulls live data without tracking your search behavior or feeding it to ad networks."
             />
             <FaqItem
               q="Is Aureon available in multiple languages?"

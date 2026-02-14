@@ -160,7 +160,7 @@ const ZophielEngineView = () => {
             {/* Meta */}
             {!loading && results.length > 0 && (
               <p className="text-[10px] font-light text-muted-foreground/40 mb-4">
-                {results.length} results in {searchTime}ms · Powered by DuckDuckGo
+                {results.length} results in {searchTime}ms
               </p>
             )}
 
