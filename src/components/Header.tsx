@@ -21,7 +21,7 @@ const Header = () => {
         {/* Logo */}
         <div className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-2.5">
           <span className="text-base sm:text-lg font-extralight tracking-[0.25em] text-foreground">
-            AUREON
+            ZIALIEL
           </span>
         </div>
 

@@ -357,7 +357,7 @@ const Dashboard = () => {
   if (!loaded) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">AUREON</div>
+        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">ZIALIEL</div>
       </div>
     );
   }
