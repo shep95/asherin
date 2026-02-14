@@ -124,7 +124,7 @@ const DashboardSidebar = ({
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl">
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
-            <span className="text-sm font-extralight tracking-[0.25em] text-foreground">ZIALIEL</span>
+            <span className="text-sm font-extralight tracking-[0.25em] text-foreground">AUREON</span>
             <div className="flex items-center gap-1">
               <button
                 onClick={onNewConversation}

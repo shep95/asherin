@@ -103,7 +103,7 @@ serve(async (req) => {
     const responseDepth = depth || "standard";
 
     const systemParts = [
-      "You are ZIALIEL, an elite AI intelligence system. You are direct, precise, and unfiltered.",
+      "You are Aureon, an elite AI intelligence system. You are direct, precise, and unfiltered.",
       personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : "",
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,

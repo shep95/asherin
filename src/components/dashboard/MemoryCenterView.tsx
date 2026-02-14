@@ -58,7 +58,7 @@ const MemoryCenterView = () => {
     const json = JSON.stringify(memories, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "zialiel-memories.json"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "aureon-memories.json"; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -67,7 +67,7 @@ const MemoryCenterView = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-extralight tracking-wide text-foreground">Memory Control Center</h2>
-          <p className="text-sm font-extralight text-muted-foreground mt-1">Full control over what Zialiel remembers about you.</p>
+          <p className="text-sm font-extralight text-muted-foreground mt-1">Full control over what Aureon remembers about you.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={exportAll} className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors" title="Export all">
@@ -81,7 +81,7 @@ const MemoryCenterView = () => {
 
       {addingMode ? (
         <div className="rounded-xl border border-border/30 bg-card/20 p-4 space-y-3">
-          <input value={newContent} onChange={(e) => setNewContent(e.target.value)} placeholder="What should Zialiel remember?" className="w-full bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none" />
+          <input value={newContent} onChange={(e) => setNewContent(e.target.value)} placeholder="What should Aureon remember?" className="w-full bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none" />
           <div className="flex items-center gap-2">
             <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="text-xs bg-background/50 border border-border/20 rounded-lg px-2 py-1 text-foreground outline-none">
               <option value="general">General</option>
