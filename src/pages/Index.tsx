@@ -7,12 +7,18 @@ const Index = () => {
   const [demoQuery, setDemoQuery] = useState("");
   const [demoResponse, setDemoResponse] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [demoCount, setDemoCount] = useState(() => {
+    return parseInt(localStorage.getItem("zialiel_demo_count") || "0", 10);
+  });
+  const maxDemos = 3;
 
   const handleDemo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!demoQuery.trim()) return;
+    if (!demoQuery.trim() || isTyping || demoCount >= maxDemos) return;
+    const newCount = demoCount + 1;
+    setDemoCount(newCount);
+    localStorage.setItem("zialiel_demo_count", String(newCount));
     setIsTyping(true);
-    setDemoResponse("");
 
     const responses = [
       "Here's the direct answer without the corporate disclaimers. Most LLMs would refuse this or wrap it in 5 paragraphs of warnings. ZIALIEL respects your time and intelligence.",
@@ -118,18 +124,27 @@ const Index = () => {
                 No sign up. No filters. See the difference.
               </p>
 
-              <form onSubmit={handleDemo} className="flex items-center gap-3 rounded-xl border border-border/30 bg-background/30 px-4 py-3">
-                <input
-                  type="text"
-                  value={demoQuery}
-                  onChange={(e) => setDemoQuery(e.target.value)}
-                  placeholder="Ask ZIALIEL anything..."
-                  className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none"
-                />
-                <button type="submit" className="text-foreground/60 hover:text-foreground transition-colors">
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
+              {demoCount >= maxDemos ? (
+                <div className="rounded-xl border border-border/30 bg-background/30 px-4 py-4 text-center">
+                  <p className="text-sm font-extralight text-muted-foreground">
+                    You've used all {maxDemos} free demo messages. Sign up for full access.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleDemo} className="flex items-center gap-3 rounded-xl border border-border/30 bg-background/30 px-4 py-3">
+                  <input
+                    type="text"
+                    value={demoQuery}
+                    onChange={(e) => setDemoQuery(e.target.value)}
+                    placeholder="Ask ZIALIEL anything..."
+                    className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none"
+                  />
+                  <button type="submit" className="text-foreground/60 hover:text-foreground transition-colors">
+                    <Send className="h-4 w-4" />
+                  </button>
+                  <span className="text-xs font-extralight text-muted-foreground/50">{maxDemos - demoCount} left</span>
+                </form>
+              )}
 
               {(demoResponse || isTyping) && (
                 <div className="mt-6 rounded-xl border border-border/10 bg-background/20 p-5">
