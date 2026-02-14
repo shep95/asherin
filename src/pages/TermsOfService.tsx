@@ -43,7 +43,7 @@ const TermsOfService = () => {
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">2. Service Description</h2>
                 <p>
-                  Aureon is an AI-powered platform providing uncensored responses, an elite coding engine, live web search via DuckDuckGo, persistent memory across sessions, team workspace functionality, and multi-language output. The Service is offered at a single tier of $18/month with full access to all features from day one.
+                  Aureon is an AI-powered platform providing uncensored responses, an elite coding engine, live web search, persistent memory across sessions, team workspace functionality, and multi-language output. The Service is offered at a single tier of $18/month with full access to all features from day one.
                 </p>
               </section>
 
