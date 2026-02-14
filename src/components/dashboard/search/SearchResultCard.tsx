@@ -18,7 +18,6 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
   const cleanUrl = (url: string) => {
     try {
       const u = new URL(url);
-      // Strip tracking params
       ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'gclid', 'ref', 'source'].forEach(p => u.searchParams.delete(p));
       return u.toString();
     } catch { return url; }
@@ -47,28 +46,30 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
   };
 
   return (
-    <div className="group rounded-xl border border-border/15 bg-card/20 backdrop-blur-sm p-4 hover:bg-foreground/5 hover:border-border/30 transition-all animate-slide-up" style={{ animationDelay: `${index * 40}ms` }}>
+    <div className="group rounded-xl border border-border/15 bg-card/20 backdrop-blur-sm p-3 sm:p-4 hover:bg-foreground/5 hover:border-border/30 transition-all animate-slide-up" style={{ animationDelay: `${index * 40}ms` }}>
       {/* Freshness Alert */}
       {freshnessAlert && (
-        <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 mb-3 text-[11px] font-light ${freshnessAlert.severity === 'warning' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
-          {freshnessAlert.severity === 'warning' ? <AlertTriangle className="h-3 w-3 shrink-0" /> : <Info className="h-3 w-3 shrink-0" />}
-          {freshnessAlert.message}
+        <div className={`flex items-start gap-2 rounded-lg px-3 py-1.5 mb-3 text-[11px] font-light ${freshnessAlert.severity === 'warning' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+          {freshnessAlert.severity === 'warning' ? <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> : <Info className="h-3 w-3 shrink-0 mt-0.5" />}
+          <span className="break-words">{freshnessAlert.message}</span>
         </div>
       )}
 
       {/* Top row: tier + domain */}
-      <div className="flex items-center gap-2 mb-1.5">
+      <div className="flex items-center gap-2 mb-1.5 min-w-0">
         <SourceTierBadge tier={result.tier} />
-        <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0 flex-1">
           <Globe className="h-3 w-3 text-muted-foreground/40 shrink-0" />
           <span className="text-[11px] font-light text-muted-foreground/50 truncate">{result.source || domain(result.url)}</span>
         </div>
-        <ExternalLink className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0" />
+        <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1">
+          <ExternalLink className="h-3 w-3 text-muted-foreground/30" />
+        </a>
       </div>
 
       {/* Title */}
       <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="block">
-        <h3 className="text-sm font-normal text-accent hover:underline underline-offset-2 mb-1 line-clamp-2">{result.title}</h3>
+        <h3 className="text-sm font-normal text-accent hover:underline underline-offset-2 mb-1 line-clamp-2 break-words">{result.title}</h3>
       </a>
 
       {/* URL */}
@@ -76,11 +77,11 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
 
       {/* Snippet */}
       {result.snippet && (
-        <p className="text-xs font-extralight text-muted-foreground leading-relaxed line-clamp-3 mb-2">{result.snippet}</p>
+        <p className="text-xs font-extralight text-muted-foreground leading-relaxed line-clamp-3 mb-2 break-words">{result.snippet}</p>
       )}
 
-      {/* Bottom row: meta + actions */}
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground/40">
+      {/* Bottom row: meta + actions — always visible on mobile */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] text-muted-foreground/40">
         {result.publishDate && (
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
@@ -91,14 +92,14 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
           <span>{result.readingTimeMin} min read</span>
         )}
 
-        <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 sm:ml-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             onClick={loadPreview}
             disabled={loadingPreview}
             className="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-foreground/5 transition-colors text-muted-foreground/50 hover:text-foreground"
           >
             <Eye className="h-3 w-3" />
-            {loadingPreview ? "Loading…" : "Preview"}
+            {loadingPreview ? "…" : "Preview"}
           </button>
           <button
             onClick={copyLink}
