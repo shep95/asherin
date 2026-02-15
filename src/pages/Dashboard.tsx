@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasEnterpriseAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
+import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
@@ -85,6 +86,13 @@ const Dashboard = () => {
       return next;
     });
   }, []);
+
+  // Sync custom personas to localStorage on every change (safety net)
+  useEffect(() => {
+    if (customPersonas.length > 0) {
+      localStorage.setItem("aureon_custom_personas", JSON.stringify(customPersonas));
+    }
+  }, [customPersonas]);
 
   // CMD+K global shortcut
   useEffect(() => {
@@ -279,7 +287,8 @@ const Dashboard = () => {
 
     const history = [...(activeConv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-    const activePersona = customPersonas.find((p) => p.id === personaId);
+    const activePersona = customPersonas.find((p) => p.id === personaId) 
+      || builtInPersonas.find((p) => p.id === personaId);
     const personaSystemPrompt = activePersona?.systemPrompt || null;
 
     try {
