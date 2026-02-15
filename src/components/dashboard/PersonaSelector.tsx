@@ -1,17 +1,42 @@
 import { useState } from "react";
-import { Search, Scale, Code, Shield, PenTool, BookOpen, Plus, X, Check } from "lucide-react";
+import {
+  Search, Scale, Code, Shield, PenTool, BookOpen, Plus, X, Check,
+  Target, Flame, Gem, Moon, Zap, FlaskConical, Drama, Radio, Bot,
+  Eye, Skull, Crown, Compass, Aperture, Fingerprint, Swords,
+} from "lucide-react";
 import type { Persona } from "./types";
 
 const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
-  { id: "analyst", name: "The Analyst", icon: "🔍", Icon: Search, description: "Cold, data-driven. Numbers and evidence only.", systemPrompt: "", builtIn: true },
-  { id: "strategist", name: "The Strategist", icon: "⚖️", Icon: Scale, description: "Long-term thinking. Pros, cons, second-order effects.", systemPrompt: "", builtIn: true },
-  { id: "engineer", name: "The Engineer", icon: "💻", Icon: Code, description: "Pure technical. Code-first. No fluff.", systemPrompt: "", builtIn: true },
-  { id: "truth", name: "The Truth Engine", icon: "🔓", Icon: Shield, description: "Uncensored. Direct. Raw.", systemPrompt: "", builtIn: true },
-  { id: "writer", name: "The Writer", icon: "📝", Icon: PenTool, description: "Voice-matched. Adapts to your writing style.", systemPrompt: "", builtIn: true },
-  { id: "researcher", name: "The Researcher", icon: "🧠", Icon: BookOpen, description: "Source-heavy. Cites everything. Academic rigor.", systemPrompt: "", builtIn: true },
+  { id: "analyst", name: "The Analyst", icon: "search", Icon: Search, description: "Cold, data-driven. Numbers and evidence only.", systemPrompt: "", builtIn: true },
+  { id: "strategist", name: "The Strategist", icon: "scale", Icon: Scale, description: "Long-term thinking. Pros, cons, second-order effects.", systemPrompt: "", builtIn: true },
+  { id: "engineer", name: "The Engineer", icon: "code", Icon: Code, description: "Pure technical. Code-first. No fluff.", systemPrompt: "", builtIn: true },
+  { id: "truth", name: "The Truth Engine", icon: "shield", Icon: Shield, description: "Uncensored. Direct. Raw.", systemPrompt: "", builtIn: true },
+  { id: "writer", name: "The Writer", icon: "pen", Icon: PenTool, description: "Voice-matched. Adapts to your writing style.", systemPrompt: "", builtIn: true },
+  { id: "researcher", name: "The Researcher", icon: "book", Icon: BookOpen, description: "Source-heavy. Cites everything. Academic rigor.", systemPrompt: "", builtIn: true },
 ];
 
-const EMOJI_OPTIONS = ["🎯", "🔥", "💎", "🌙", "⚡", "🛡️", "🧪", "🎭", "📡", "🦾"];
+const ICON_OPTIONS: { id: string; Icon: React.ElementType }[] = [
+  { id: "target", Icon: Target },
+  { id: "flame", Icon: Flame },
+  { id: "gem", Icon: Gem },
+  { id: "moon", Icon: Moon },
+  { id: "zap", Icon: Zap },
+  { id: "flask", Icon: FlaskConical },
+  { id: "drama", Icon: Drama },
+  { id: "radio", Icon: Radio },
+  { id: "bot", Icon: Bot },
+  { id: "eye", Icon: Eye },
+  { id: "skull", Icon: Skull },
+  { id: "crown", Icon: Crown },
+  { id: "compass", Icon: Compass },
+  { id: "aperture", Icon: Aperture },
+  { id: "fingerprint", Icon: Fingerprint },
+  { id: "swords", Icon: Swords },
+];
+
+const ICON_MAP: Record<string, React.ElementType> = Object.fromEntries(
+  ICON_OPTIONS.map((o) => [o.id, o.Icon])
+);
 
 interface PersonaSelectorProps {
   activeId: string | null;
@@ -25,14 +50,14 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
-  const [icon, setIcon] = useState("🎯");
+  const [iconId, setIconId] = useState("target");
 
   const handleCreate = () => {
     if (!name.trim()) return;
     const newPersona: Persona = {
       id: `custom-${Date.now()}`,
       name: name.trim(),
-      icon,
+      icon: iconId,
       description: description.trim() || "Custom persona",
       systemPrompt: systemPrompt.trim(),
       builtIn: false,
@@ -41,13 +66,13 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
     setName("");
     setDescription("");
     setSystemPrompt("");
-    setIcon("🎯");
+    setIconId("target");
     setCreating(false);
   };
 
   const allPersonas = [
     ...builtInPersonas,
-    ...customPersonas.map((p) => ({ ...p, Icon: null as any })),
+    ...customPersonas.map((p) => ({ ...p, Icon: ICON_MAP[p.icon] || Target })),
   ];
 
   return (
@@ -63,11 +88,7 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
               : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
           }`}
         >
-          {p.Icon ? (
-            <p.Icon className="h-4 w-4 shrink-0" />
-          ) : (
-            <span className="text-sm shrink-0">{p.icon}</span>
-          )}
+          <p.Icon className="h-4 w-4 shrink-0" />
           <div className="min-w-0">
             <p className="text-xs font-light truncate">{p.name}</p>
             <p className="text-[10px] text-muted-foreground/60 truncate">{p.description}</p>
@@ -84,17 +105,17 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
             </button>
           </div>
 
-          {/* Emoji picker */}
+          {/* Icon picker */}
           <div className="flex gap-1 flex-wrap">
-            {EMOJI_OPTIONS.map((e) => (
+            {ICON_OPTIONS.map((opt) => (
               <button
-                key={e}
-                onClick={() => setIcon(e)}
-                className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-colors ${
-                  icon === e ? "bg-foreground/15 ring-1 ring-foreground/30" : "hover:bg-foreground/5"
+                key={opt.id}
+                onClick={() => setIconId(opt.id)}
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                  iconId === opt.id ? "bg-foreground/15 ring-1 ring-foreground/30" : "hover:bg-foreground/5"
                 }`}
               >
-                {e}
+                <opt.Icon className="h-3.5 w-3.5 text-foreground" />
               </button>
             ))}
           </div>
