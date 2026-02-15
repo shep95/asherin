@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [showAuth, setShowAuth] = useState(false);
@@ -29,18 +35,28 @@ const Header = () => {
         {/* Desktop Auth buttons */}
         <div className="hidden sm:block">
           <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
-            <Link
-              to="/founder"
-              className="rounded-lg px-4 py-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Founder
-            </Link>
-            <Link
-              to="/pricing"
-              className="rounded-lg px-4 py-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Pricing
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground outline-none">
+                Pages <ChevronDown className="h-3.5 w-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-card border-border/40">
+                <DropdownMenuItem asChild>
+                  <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide">
+                    Founder
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide">
+                    Pricing
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide">
+                    Prompt Engineering
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               onClick={() => openAuth(true)}
               className="rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10"
@@ -83,6 +99,13 @@ const Header = () => {
                   className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left"
                 >
                   Pricing
+                </Link>
+                <Link
+                  to="/prompt-engineering"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left"
+                >
+                  Prompt Engineering
                 </Link>
                 <button
                   onClick={() => openAuth(true)}
