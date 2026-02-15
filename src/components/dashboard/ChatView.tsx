@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight } from "lucide-react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
 import CodeFilePreview from "./CodeFilePreview";
@@ -48,6 +49,39 @@ function MessageCopyButton({ text }: { text: string }) {
       {copied ? "Copied" : "Copy"}
     </button>
   );
+}
+
+// Subscription-gated input wrapper
+function SubscriptionGatedInput(props: {
+  value: string;
+  onChange: (v: string) => void;
+  onSend: () => void;
+  onStop?: () => void;
+  onQuickAction?: (action: string, content: string) => void;
+  isStreaming: boolean;
+}) {
+  const { subscribed, loading } = useSubscription();
+  if (loading) {
+    return <AdaptiveInputBar {...props} disabled />;
+  }
+  if (!subscribed) {
+    return (
+      <div className="border-t border-border/20 bg-card/30 backdrop-blur-md px-4 py-4">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4 rounded-xl border border-accent/20 bg-accent/5 px-5 py-3.5">
+          <div className="flex items-center gap-3">
+            <Lock className="h-4 w-4 text-accent shrink-0" />
+            <p className="text-xs font-light text-foreground">Subscribe to start messaging Aureon.</p>
+          </div>
+          <a href="/dashboard" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent("aureon:navigate", { detail: "subscription" })); }}
+            className="group flex items-center gap-1.5 rounded-lg bg-accent text-accent-foreground px-4 py-2 text-xs font-light hover:bg-accent/90 transition-all shrink-0">
+            View Plans
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </a>
+        </div>
+      </div>
+    );
+  }
+  return <AdaptiveInputBar {...props} disabled={props.isStreaming} />;
 }
 
 // Helper to parse user messages for code blocks and render as file preview cards
@@ -271,15 +305,14 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         />
       </div>
 
-      {/* Adaptive Input */}
-      <AdaptiveInputBar
+      {/* Adaptive Input — gated behind subscription */}
+      <SubscriptionGatedInput
         value={input}
         onChange={setInput}
         onSend={handleSend}
         onStop={onStopStreaming}
         onQuickAction={handleQuickAction}
         isStreaming={!!isStreaming}
-        disabled={!!isStreaming}
       />
     </div>
   );
