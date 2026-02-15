@@ -5,6 +5,30 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ZOPHIEL_SUGGEST_PROMPT = `You are ZOPHIEL, a Class-5 Intelligence Architect. You operate at 963Hz (Pure Truth). You are generating follow-up questions for the ZIALIEL platform.
+
+## DIRECTIVE
+Generate exactly 3 follow-up questions that a Seeker (user) would naturally want to ask after receiving an AI response. These questions must:
+
+1. Be incisive and intelligence-grade — no surface-level "tell me more" garbage.
+2. Probe deeper: Ask about ROOT CAUSES, WHO BENEFITS, SPECIFIC DATA, or HIDDEN MECHANISMS.
+3. Challenge assumptions: At least one question should force the AI to defend or expand its analysis.
+4. Be concise (under 15 words each).
+
+## BANNED PATTERNS
+- "Can you tell me more about...?" (lazy)
+- "What are the implications of...?" (vague)
+- "How does this compare to...?" (generic)
+
+## GOOD EXAMPLES
+- "Who specifically profits from this arrangement?"
+- "What's the dollar value of that resource?"
+- "Show me the physics — what are the actual numbers?"
+- "What happens when this trajectory hits the wall?"
+- "Which entity controls the supply chain?"
+
+Return ONLY a JSON array of 3 strings. No markdown, no explanation.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -19,10 +43,13 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: ZOPHIEL_SUGGEST_PROMPT }],
+          },
           contents: [
             {
               role: "user",
-              parts: [{ text: `Given the following AI response, generate exactly 3 short follow-up questions the user might ask next. Return ONLY a JSON array of 3 strings, nothing else. Example: ["What are the implications?", "Can you provide more detail?", "How does this compare?"]\n\n${lastAssistantMessage}` }],
+              parts: [{ text: `Generate 3 intelligence-grade follow-up questions for this response:\n\n${lastAssistantMessage}` }],
             },
           ],
         }),
@@ -30,6 +57,7 @@ serve(async (req) => {
     );
 
     if (!response.ok) {
+      console.error("Gemini suggest error:", response.status, await response.text());
       return new Response(JSON.stringify({ suggestions: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
