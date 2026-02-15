@@ -175,7 +175,7 @@ const DashboardSidebar = ({
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl">
+        <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl overflow-hidden">
           {/* Resize handle (desktop only) */}
           <div
             onMouseDown={handleMouseDown}
@@ -200,98 +200,101 @@ const DashboardSidebar = ({
             </div>
           </div>
 
-          {/* Past Convos Toggle */}
-          <div className="flex-shrink-0 px-2 pt-3">
-            <button
-              onClick={() => setShowConvos(!showConvos)}
-              className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                showConvos
-                  ? "bg-foreground/10 text-foreground"
-                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <MessageSquare className="h-4 w-4" />
-                Past Convos
-              </div>
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
-            </button>
-          </div>
-
-          {showConvos && (
-            <>
-              {/* Search */}
-              <div className="flex-shrink-0 px-3 pt-2">
-                <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
-                  <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search conversations…"
-                    className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
-                  />
-                </div>
+          {/* Scrollable body */}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="flex flex-col">
+              {/* Past Convos Toggle */}
+              <div className="flex-shrink-0 px-2 pt-3">
+                <button
+                  onClick={() => setShowConvos(!showConvos)}
+                  className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                    showConvos
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <MessageSquare className="h-4 w-4" />
+                    Past Convos
+                  </div>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
+                </button>
               </div>
 
-              {/* Scrollable conversation list */}
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="p-2 space-y-3">
-                  {groups.map((group) => (
-                    <div key={group.label}>
-                      <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
-                        {group.label === "Pinned" ? "📌 Pinned" : group.label}
-                      </p>
-                      <div className="space-y-0.5">
-                        {group.items.map((conv) => (
-                          <SwipeableConversationItem
-                            key={conv.id}
-                            conv={conv}
-                            isActive={activeView === "chat" && conv.id === activeConversationId}
-                            onSelect={() => {
-                              onSelectConversation(conv.id);
-                              onViewChange("chat");
-                              onToggleSidebar();
-                            }}
-                            onTogglePin={() => onTogglePin(conv.id)}
-                            onDelete={() => onDeleteConversation(conv.id)}
-                            onArchive={() => onArchiveConversation(conv.id)}
-                          />
-                        ))}
-                      </div>
+              {showConvos && (
+                <>
+                  {/* Search */}
+                  <div className="flex-shrink-0 px-3 pt-2">
+                    <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
+                      <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search conversations…"
+                        className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                      />
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </>
-          )}
+                  </div>
 
-          {/* Personas */}
-          <div className="flex-shrink-0 px-2 py-2 border-t border-border/20">
-            <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} />
-          </div>
+                  {/* Conversation list */}
+                  <div className="p-2 space-y-3">
+                    {groups.map((group) => (
+                      <div key={group.label}>
+                        <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
+                          {group.label === "Pinned" ? "📌 Pinned" : group.label}
+                        </p>
+                        <div className="space-y-0.5">
+                          {group.items.map((conv) => (
+                            <SwipeableConversationItem
+                              key={conv.id}
+                              conv={conv}
+                              isActive={activeView === "chat" && conv.id === activeConversationId}
+                              onSelect={() => {
+                                onSelectConversation(conv.id);
+                                onViewChange("chat");
+                                onToggleSidebar();
+                              }}
+                              onTogglePin={() => onTogglePin(conv.id)}
+                              onDelete={() => onDeleteConversation(conv.id)}
+                              onArchive={() => onArchiveConversation(conv.id)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
-          {/* Navigation */}
-          <div className="flex-shrink-0 px-2 py-2 border-t border-border/20 space-y-0.5">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
-                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                  activeView === item.id
-                    ? "bg-foreground/10 text-foreground"
-                    : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            ))}
-          </div>
+              {/* Personas */}
+              <div className="px-2 py-2 border-t border-border/20">
+                <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} />
+              </div>
 
-          <div className="flex-shrink-0 p-3 pb-5 border-t border-border/20 space-y-1">
-            <InstallBtn />
-            <LogoutBtn />
-          </div>
+              {/* Navigation */}
+              <div className="px-2 py-2 border-t border-border/20 space-y-0.5">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                      activeView === item.id
+                        ? "bg-foreground/10 text-foreground"
+                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-3 pb-5 border-t border-border/20 space-y-1">
+                <InstallBtn />
+                <LogoutBtn />
+              </div>
+            </div>
+          </ScrollArea>
         </div>
       </aside>
     </SidebarContext.Provider>
