@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, Palette, Loader2, Camera } from "lucide-react";
+import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 const SettingsView = () => {
   const { user } = useAuth();
@@ -13,6 +14,10 @@ const SettingsView = () => {
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -45,23 +50,17 @@ const SettingsView = () => {
   const uploadAvatar = async (file: File) => {
     if (!user) return;
     setUploadingAvatar(true);
-
     const ext = file.name.split(".").pop();
     const path = `${user.id}/avatar.${ext}`;
-
-    // Remove old avatar if exists
     await supabase.storage.from("avatars").remove([path]);
-
     const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (uploadErr) {
       toast({ title: "Upload failed", description: uploadErr.message, variant: "destructive" });
       setUploadingAvatar(false);
       return;
     }
-
     const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-
     await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", user.id);
     setAvatarUrl(publicUrl);
     setUploadingAvatar(false);
@@ -78,6 +77,65 @@ const SettingsView = () => {
       uploadAvatar(file);
     }
     e.target.value = "";
+  };
+
+  const handleExportData = async () => {
+    if (!user) return;
+    setExporting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `zialiel-data-export-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Data exported successfully" });
+    } catch {
+      toast({ title: "Export failed", description: "Please try again.", variant: "destructive" });
+    }
+    setExporting(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user || deleteConfirmText !== "DELETE MY ACCOUNT") return;
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Deletion failed");
+
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch {
+      toast({ title: "Deletion failed", description: "Please try again.", variant: "destructive" });
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -117,11 +175,7 @@ const SettingsView = () => {
                   )}
                 </div>
                 <div className="absolute inset-0 rounded-full bg-background/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  {uploadingAvatar ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-foreground" />
-                  ) : (
-                    <Camera className="h-5 w-5 text-foreground" />
-                  )}
+                  {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-foreground" /> : <Camera className="h-5 w-5 text-foreground" />}
                 </div>
               </button>
               <div>
@@ -129,7 +183,6 @@ const SettingsView = () => {
                 <p className="text-[10px] text-muted-foreground/60 mt-0.5">Click to upload · Max 5MB</p>
               </div>
             </div>
-
             <div>
               <label className="text-xs text-muted-foreground">Display Name</label>
               <div className="flex gap-2 mt-1">
@@ -195,6 +248,92 @@ const SettingsView = () => {
                 <div className={`w-4 h-4 rounded-full bg-foreground transition-transform mx-0.5 ${settings?.web_search_enabled ? "translate-x-5" : ""}`} />
               </button>
             </label>
+          </div>
+        </div>
+
+        {/* GDPR / Data Rights */}
+        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-5">
+          <div className="flex items-center gap-3">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-sm font-light text-foreground">Your Data Rights</h3>
+          </div>
+
+          <p className="text-xs font-extralight text-muted-foreground leading-relaxed">
+            You have full control over your data. Download a copy, correct it, or permanently delete your account at any time.{" "}
+            <Link to="/privacy" className="text-foreground underline underline-offset-4 hover:text-foreground/80 transition-colors">
+              Read our Privacy Policy
+            </Link>
+          </p>
+
+          {/* Download My Data */}
+          <div className="rounded-lg border border-border/15 bg-card/10 p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Download className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-light text-foreground">Download My Data</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+              Export all your data — profile, conversations, memory, files, settings — as a machine-readable JSON file. Delivered within seconds.
+            </p>
+            <button
+              onClick={handleExportData}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 rounded-lg border border-border/20 bg-foreground/5 px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/10 transition-colors disabled:opacity-50"
+            >
+              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              {exporting ? "Exporting…" : "Export All Data"}
+            </button>
+          </div>
+
+          {/* Delete Account */}
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-destructive" />
+              <span className="text-xs font-light text-destructive">Delete My Account</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+              Permanently delete your account and ALL associated data — conversations, files, memory, settings. This action is irreversible. Data is purged from all systems within 30 days.
+            </p>
+
+            {!showDeleteConfirm ? (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-4 py-2 text-xs font-light text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete Account
+              </button>
+            ) : (
+              <div className="space-y-3 pt-1">
+                <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3">
+                  <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-destructive leading-relaxed">
+                    This will permanently delete your account and all data. Type <strong>DELETE MY ACCOUNT</strong> below to confirm.
+                  </p>
+                </div>
+                <input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE MY ACCOUNT"
+                  className="w-full bg-background/50 border border-destructive/30 rounded-lg px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deleting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-xs font-light text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
+                  >
+                    {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    {deleting ? "Deleting…" : "Permanently Delete"}
+                  </button>
+                  <button
+                    onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                    className="rounded-lg border border-border/20 px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
