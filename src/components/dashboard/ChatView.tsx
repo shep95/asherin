@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
@@ -174,6 +174,21 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     setInput("");
   };
 
+  const downloadConversation = () => {
+    if (!conversation.messages.length) return;
+    const lines = conversation.messages.map(m =>
+      `**${m.role === "user" ? "You" : "Aureon"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
+    );
+    const md = `# ${conversation.title}\n\n${lines.join("\n\n---\n\n")}`;
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${conversation.title.replace(/[^a-zA-Z0-9 -]/g, "")}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleQuickAction = useCallback((action: string, content: string) => {
     const prompts: Record<string, string> = {
       debug: `Debug this code:\n\`\`\`\n${content}\n\`\`\``,
@@ -215,6 +230,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
           <ModeSelector active={mode} onChange={onModeChange} />
           <div className="flex items-center gap-3">
+            {conversation.messages.length > 0 && (
+              <button onClick={downloadConversation} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
+                <Download className="h-4 w-4" />
+              </button>
+            )}
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <DepthSelector active={depth} onChange={onDepthChange} />
           </div>
