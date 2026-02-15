@@ -1,7 +1,7 @@
 import heroBg from "@/assets/hero-bg.png";
 import React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Conversation, ChatMode, DashboardView, Message } from "@/components/dashboard/types";
+import type { Conversation, ChatMode, DashboardView, Message, Persona } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
 import type { UserProfile } from "@/lib/ai";
@@ -63,6 +63,20 @@ const Dashboard = () => {
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
+    try {
+      const stored = localStorage.getItem("zialiel_custom_personas");
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+
+  const addCustomPersona = useCallback((persona: Persona) => {
+    setCustomPersonas((prev) => {
+      const next = [...prev, persona];
+      localStorage.setItem("zialiel_custom_personas", JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   // CMD+K global shortcut
   useEffect(() => {
@@ -420,6 +434,8 @@ const Dashboard = () => {
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             personaId={personaId}
             onPersonaChange={setPersonaId}
+            customPersonas={customPersonas}
+            onAddCustomPersona={addCustomPersona}
           />
         )}
 
