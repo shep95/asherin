@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown,
 } from "lucide-react";
 import type { Conversation, DashboardView } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -90,6 +90,7 @@ const DashboardSidebar = ({
 }: DashboardSidebarProps) => {
   const { tierKey } = useSubscription();
   const [search, setSearch] = useState("");
+  const [showConvos, setShowConvos] = useState(false);
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
   const navItems = allNavItems.filter((item) => !item.enterprise || tierKey === "enterprise");
@@ -145,48 +146,70 @@ const DashboardSidebar = ({
             </div>
           </div>
 
-          {/* Search */}
-          <div className="flex-shrink-0 px-3 pt-3">
-            <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
-              <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search conversations…"
-                className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
-              />
-            </div>
+          {/* Past Convos Toggle */}
+          <div className="flex-shrink-0 px-2 pt-3">
+            <button
+              onClick={() => setShowConvos(!showConvos)}
+              className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                showConvos
+                  ? "bg-foreground/10 text-foreground"
+                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <MessageSquare className="h-4 w-4" />
+                Past Convos
+              </div>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showConvos ? "rotate-180" : ""}`} />
+            </button>
           </div>
 
-          {/* Scrollable conversation list */}
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-2 space-y-3">
-              {groups.map((group) => (
-                <div key={group.label}>
-                  <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
-                    {group.label === "Pinned" ? "📌 Pinned" : group.label}
-                  </p>
-                  <div className="space-y-0.5">
-                    {group.items.map((conv) => (
-                      <SwipeableConversationItem
-                        key={conv.id}
-                        conv={conv}
-                        isActive={activeView === "chat" && conv.id === activeConversationId}
-                        onSelect={() => {
-                          onSelectConversation(conv.id);
-                          onViewChange("chat");
-                          onToggleSidebar();
-                        }}
-                        onTogglePin={() => onTogglePin(conv.id)}
-                        onDelete={() => onDeleteConversation(conv.id)}
-                        onArchive={() => onArchiveConversation(conv.id)}
-                      />
-                    ))}
-                  </div>
+          {showConvos && (
+            <>
+              {/* Search */}
+              <div className="flex-shrink-0 px-3 pt-2">
+                <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search conversations…"
+                    className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              </div>
+
+              {/* Scrollable conversation list */}
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-2 space-y-3">
+                  {groups.map((group) => (
+                    <div key={group.label}>
+                      <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
+                        {group.label === "Pinned" ? "📌 Pinned" : group.label}
+                      </p>
+                      <div className="space-y-0.5">
+                        {group.items.map((conv) => (
+                          <SwipeableConversationItem
+                            key={conv.id}
+                            conv={conv}
+                            isActive={activeView === "chat" && conv.id === activeConversationId}
+                            onSelect={() => {
+                              onSelectConversation(conv.id);
+                              onViewChange("chat");
+                              onToggleSidebar();
+                            }}
+                            onTogglePin={() => onTogglePin(conv.id)}
+                            onDelete={() => onDeleteConversation(conv.id)}
+                            onArchive={() => onArchiveConversation(conv.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </>
+          )}
 
           {/* Personas */}
           <div className="flex-shrink-0 px-2 py-2 border-t border-border/20">
