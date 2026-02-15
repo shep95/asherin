@@ -79,30 +79,30 @@ serve(async (req) => {
     const searches: { category: string; query: string }[] = [];
 
     if (profile.company_name) {
-      searches.push({ category: "company_mentions", query: `"${profile.company_name}" news today` });
+      searches.push({ category: "company_mentions", query: `"${profile.company_name}" news today OR yesterday` });
     }
     if (profile.competitors?.length) {
       for (const comp of profile.competitors.slice(0, 5)) {
-        searches.push({ category: "competitor", query: `${comp} news funding launch 2026` });
+        searches.push({ category: "competitor", query: `${comp} news funding launch latest 2026` });
       }
     }
     if (profile.industry) {
-      searches.push({ category: "industry", query: `${profile.industry} industry news today 2026` });
-      searches.push({ category: "regulation", query: `${profile.industry} regulation policy bill 2026` });
+      searches.push({ category: "industry", query: `${profile.industry} industry news today OR yesterday 2026` });
+      searches.push({ category: "regulation", query: `${profile.industry} regulation policy bill latest 2026` });
     }
     if (profile.key_markets?.length) {
       for (const market of profile.key_markets.slice(0, 3)) {
-        searches.push({ category: "market", query: `${market} market trends funding 2026` });
+        searches.push({ category: "market", query: `${market} market trends funding latest 2026` });
       }
     }
     if (profile.tracked_people?.length) {
       for (const person of profile.tracked_people.slice(0, 3)) {
-        searches.push({ category: "person", query: `"${person}" news statement 2026` });
+        searches.push({ category: "person", query: `"${person}" news statement latest 2026` });
       }
     }
     if (profile.regulatory_bodies?.length) {
       for (const body of profile.regulatory_bodies.slice(0, 3)) {
-        searches.push({ category: "regulatory", query: `${body} ruling update announcement 2026` });
+        searches.push({ category: "regulatory", query: `${body} ruling update announcement latest 2026` });
       }
     }
     if (profile.custom_topics?.length) {
@@ -134,7 +134,9 @@ serve(async (req) => {
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
     if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
 
-    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const now = new Date();
+    const today = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const yesterday = new Date(now.getTime() - 86400000).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
     const prompt = `You are AUREON Intelligence, generating a personalized daily intelligence briefing.
 
@@ -152,7 +154,7 @@ USER PROFILE:
 RAW INTELLIGENCE DATA:
 ${contextBlocks}
 
-Generate a structured intelligence briefing for ${today}. Format it in markdown exactly like this:
+Generate a structured intelligence briefing covering the last 24-48 hours (${yesterday} through ${today}). Format it in markdown exactly like this:
 
 # AUREON MORNING BRIEF — ${today}
 
@@ -171,7 +173,7 @@ Any relevant market or funding data found.
 ---
 *Generated from ${totalSources} sources checked this morning.*
 
-Be specific, cite sources with [links], and prioritize relevance to the user's profile. If data is limited, say so honestly rather than fabricating. Keep each item concise but actionable.`;
+Be specific, cite sources with [links], and prioritize relevance to the user's profile. Include news from both today and yesterday to ensure comprehensive coverage. If data is limited, say so honestly rather than fabricating. Keep each item concise but actionable.`;
 
     const geminiResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
