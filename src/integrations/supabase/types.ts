@@ -387,6 +387,82 @@ export type Database = {
         }
         Relationships: []
       }
+      code_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "code_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      code_snippets: {
+        Row: {
+          content: string
+          created_at: string
+          folder_id: string | null
+          id: string
+          language: string
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          language?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          language?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_snippets_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "code_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           archived: boolean
