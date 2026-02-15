@@ -8,6 +8,7 @@ import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ChatView from "@/components/dashboard/ChatView";
 import LibraryView from "@/components/dashboard/LibraryView";
+import CodeSnippetsView from "@/components/dashboard/CodeSnippetsView";
 import ProjectsView from "@/components/dashboard/ProjectsView";
 import MemoryCenterView from "@/components/dashboard/MemoryCenterView";
 import StatsView from "@/components/dashboard/StatsView";
@@ -413,6 +414,7 @@ const Dashboard = () => {
           ? <BriefingView />
           : <FeatureGate title="Intelligence Briefings" description="Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro and Enterprise plans." onUpgrade={() => setActiveView("subscription")} />;
       case "library": return <LibraryView />;
+      case "snippets": return <CodeSnippetsView />;
       case "projects": return <ProjectsView />;
       case "memory": return <MemoryCenterView />;
       case "stats": return <StatsView />;

@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasEnterpriseAccess } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -50,6 +50,7 @@ const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; 
   { id: "asha", icon: Database, label: "Asha Intelligence", access: "enterprise" },
   { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "enterprise" },
   { id: "library", icon: FolderOpen, label: "Library" },
+  { id: "snippets", icon: Code2, label: "Code Snippets" },
   { id: "projects", icon: Layers, label: "Projects" },
   { id: "memory", icon: Brain, label: "Memory Center" },
   { id: "stats", icon: BarChart3, label: "My Stats" },
