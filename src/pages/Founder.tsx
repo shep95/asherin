@@ -22,7 +22,7 @@ const Founder = () => {
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
             {/* Photo + Name */}
             <div className="flex flex-col items-center text-center mb-12">
-              <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-border/30 mb-6 shadow-2xl">
+              <div className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-border/30 mb-6 shadow-2xl">
                 <img src={founderImg} alt="Asher Newton" className="w-full h-full object-cover" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide text-foreground mb-1">

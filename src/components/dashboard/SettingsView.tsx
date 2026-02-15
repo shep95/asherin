@@ -165,7 +165,7 @@ const SettingsView = () => {
                 disabled={uploadingAvatar}
                 className="relative group shrink-0"
               >
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border/30 bg-card/30">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-border/30 bg-card/30">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -174,7 +174,7 @@ const SettingsView = () => {
                     </div>
                   )}
                 </div>
-                <div className="absolute inset-0 rounded-full bg-background/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 rounded-2xl bg-background/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-foreground" /> : <Camera className="h-5 w-5 text-foreground" />}
                 </div>
               </button>
