@@ -89,6 +89,44 @@ function UserMessageContent({ content }: { content: string }) {
   return <>{parts}</>;
 }
 
+// Custom markdown components with copy button on code blocks
+function CodeBlockCopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="absolute top-2 right-2 p-1.5 rounded-md bg-foreground/10 hover:bg-foreground/20 text-muted-foreground hover:text-foreground transition-colors"
+      title="Copy code"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+const markdownComponents = {
+  pre({ children, ...props }: any) {
+    // Extract text content from children
+    let codeText = "";
+    const extractText = (node: any): string => {
+      if (typeof node === "string") return node;
+      if (node?.props?.children) {
+        if (Array.isArray(node.props.children)) return node.props.children.map(extractText).join("");
+        return extractText(node.props.children);
+      }
+      return "";
+    };
+    codeText = extractText(children);
+    return (
+      <div className="relative group">
+        <pre {...props}>{children}</pre>
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <CodeBlockCopyButton code={codeText} />
+        </div>
+      </div>
+    );
+  },
+};
+
 const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
@@ -185,7 +223,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   >
                     {msg.role === "assistant" ? (
                       <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
                         {isStreaming && msg === lastMsg && (
                           <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
                         )}
