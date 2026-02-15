@@ -25,14 +25,12 @@ const Header = () => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-        {/* Logo */}
         <div className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-2.5">
           <span className="text-base sm:text-lg font-extralight tracking-[0.25em] text-foreground">
-            ZIALIEL
+            AUREON
           </span>
         </div>
 
-        {/* Desktop Auth buttons */}
         <div className="hidden sm:block">
           <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
             <DropdownMenu>
@@ -41,91 +39,41 @@ const Header = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-card border-border/40">
                 <DropdownMenuItem asChild>
-                  <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide">
-                    Founder
-                  </Link>
+                  <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide">Founder</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide">
-                    Pricing
-                  </Link>
+                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide">Pricing</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide">
-                    Prompt Engineering
-                  </Link>
+                  <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide">Prompt Engineering</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
-              onClick={() => openAuth(true)}
-              className="rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10"
-            >
-              Log in
-            </button>
-            <button
-              onClick={() => openAuth(false)}
-              className="rounded-lg bg-foreground px-5 py-1.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90"
-            >
-              Sign up
-            </button>
+            <button onClick={() => openAuth(true)} className="rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Log in</button>
+            <button onClick={() => openAuth(false)} className="rounded-lg bg-foreground px-5 py-1.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">Sign up</button>
           </div>
         </div>
 
-        {/* Mobile menu button */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5"
-        >
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5">
           {mobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
         </button>
 
-        {/* Mobile dropdown */}
         {mobileMenuOpen && (
           <>
             <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobileMenuOpen(false)} />
             <div className="absolute right-4 top-full z-50 mt-2 w-64 rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl sm:hidden">
               <div className="flex flex-col gap-2">
-                <Link
-                  to="/founder"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left"
-                >
-                  Founder
-                </Link>
-                <Link
-                  to="/pricing"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left"
-                >
-                  Pricing
-                </Link>
-                <Link
-                  to="/prompt-engineering"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left"
-                >
-                  Prompt Engineering
-                </Link>
-                <button
-                  onClick={() => openAuth(true)}
-                  className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left"
-                >
-                  Log in
-                </button>
-                <button
-                  onClick={() => openAuth(false)}
-                  className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center"
-                >
-                  Sign up
-                </button>
+                <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
+                <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Pricing</Link>
+                <Link to="/prompt-engineering" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Prompt Engineering</Link>
+                <button onClick={() => openAuth(true)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Log in</button>
+                <button onClick={() => openAuth(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">Sign up</button>
               </div>
             </div>
           </>
         )}
       </header>
 
-      {/* Full-page centered auth overlay */}
       {showAuth && (
         <AuthOverlay isLogin={isLogin} setIsLogin={setIsLogin} onClose={() => setShowAuth(false)} />
       )}
@@ -198,12 +146,8 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: { isLogin: boolean; setIs
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      {/* Backdrop click to close */}
       <div className="absolute inset-0" onClick={onClose} />
-
-      {/* Auth card */}
       <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-8 shadow-2xl">
-        {/* Close button */}
         <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors">
           <X className="h-5 w-5" />
         </button>
@@ -234,12 +178,7 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: { isLogin: boolean; setIs
               {isLogin ? "Log in to your account" : "Sign up to get started"}
             </p>
 
-            {/* Google Sign-In */}
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-border/40 bg-background/30 py-3 text-sm font-light text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-50"
-            >
+            <button onClick={handleGoogleSignIn} disabled={googleLoading} className="flex w-full items-center justify-center gap-3 rounded-xl border border-border/40 bg-background/30 py-3 text-sm font-light text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-50">
               <svg className="h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -249,14 +188,12 @@ const AuthOverlay = ({ isLogin, setIsLogin, onClose }: { isLogin: boolean; setIs
               {googleLoading ? "Connecting…" : `Continue with Google`}
             </button>
 
-            {/* Divider */}
             <div className="my-6 flex items-center gap-4">
               <div className="flex-1 border-t border-border/20" />
               <span className="text-xs font-extralight text-muted-foreground/50">or</span>
               <div className="flex-1 border-t border-border/20" />
             </div>
 
-            {/* Email/Password form */}
             <form onSubmit={handleAuth} className="space-y-4">
               {!isLogin && (
                 <div>

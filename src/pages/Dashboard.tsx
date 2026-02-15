@@ -19,7 +19,7 @@ import NomadView from "@/components/dashboard/NomadView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasEnterpriseAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import { useToast } from "@/hooks/use-toast";
@@ -27,19 +27,17 @@ import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
 import { Lock, ArrowRight } from "lucide-react";
 
-const EnterpriseGate = ({ title, description, onUpgrade }: { title: string; description: string; onUpgrade: () => void }) => (
+const FeatureGate = ({ title, description, onUpgrade }: { title: string; description: string; onUpgrade: () => void }) => (
   <div className="flex flex-1 items-center justify-center p-6">
     <div className="max-w-md text-center space-y-6 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-10">
       <Lock className="h-10 w-10 text-accent mx-auto" />
       <h2 className="text-xl font-extralight tracking-wide text-foreground">{title}</h2>
-      <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
-        {description}
-      </p>
+      <p className="text-sm font-extralight leading-relaxed text-muted-foreground">{description}</p>
       <button
         onClick={onUpgrade}
         className="group inline-flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-6 py-3 text-sm font-light tracking-wide hover:bg-accent/90 transition-all"
       >
-        View Enterprise Plan
+        View Plans
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
       </button>
     </div>
@@ -66,7 +64,7 @@ const Dashboard = () => {
   const abortRef = useRef<AbortController | null>(null);
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
-      const stored = localStorage.getItem("zialiel_custom_personas");
+      const stored = localStorage.getItem("aureon_custom_personas");
       return stored ? JSON.parse(stored) : [];
     } catch { return []; }
   });
@@ -74,7 +72,7 @@ const Dashboard = () => {
   const addCustomPersona = useCallback((persona: Persona) => {
     setCustomPersonas((prev) => {
       const next = [...prev, persona];
-      localStorage.setItem("zialiel_custom_personas", JSON.stringify(next));
+      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
       return next;
     });
   }, []);
@@ -262,7 +260,6 @@ const Dashboard = () => {
 
     const history = [...(activeConv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
-    // Resolve custom persona system prompt
     const activePersona = customPersonas.find((p) => p.id === personaId);
     const personaSystemPrompt = activePersona?.systemPrompt || null;
 
@@ -303,7 +300,6 @@ const Dashboard = () => {
     } catch (e: any) {
       setIsStreaming(false);
       if (e.name === "AbortError") {
-        // Save partial response
         if (assistantContent) {
           const encryptedPartial = await encryptText(assistantContent, user.id);
           await supabase.from("messages").insert({
@@ -352,7 +348,6 @@ const Dashboard = () => {
       setConversations(remaining);
       if (activeConvId === id) setActiveConvId(remaining[0].id);
     }
-    // Undo toast
     if (deleted) {
       toast({
         title: "Conversation archived",
@@ -378,14 +373,23 @@ const Dashboard = () => {
   };
 
   const archiveConversation = async (id: string) => {
-    await deleteConversation(id); // Uses same logic with undo
+    await deleteConversation(id);
   };
 
   const renderView = () => {
     switch (activeView) {
-      case "search": return tierKey === "enterprise" ? <ZophielEngineView /> : <EnterpriseGate title="Zophiel Engine" description="The privacy-first search intelligence engine with source credibility tiers. Available on the ZIALIEL Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
-      case "asha": return tierKey === "enterprise" ? <AshaView /> : <EnterpriseGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on the ZIALIEL Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
-      case "nomad": return tierKey === "enterprise" ? <NomadView /> : <EnterpriseGate title="NOMAD Agent" description="Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation and structured dossier output. Available on the ZIALIEL Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
+      case "search": 
+        return hasSearchAccess(tierKey) 
+          ? <ZophielEngineView /> 
+          : <FeatureGate title="Zophiel Engine" description="The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "asha": 
+        return hasEnterpriseAccess(tierKey) 
+          ? <AshaView /> 
+          : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on the Aureon Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
+      case "nomad": 
+        return hasEnterpriseAccess(tierKey) 
+          ? <NomadView /> 
+          : <FeatureGate title="NOMAD Agent" description="Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation and structured dossier output. Available on the Aureon Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
       case "library": return <LibraryView />;
       case "projects": return <ProjectsView />;
       case "memory": return <MemoryCenterView />;
@@ -413,7 +417,7 @@ const Dashboard = () => {
   if (!loaded) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">ZIALIEL</div>
+        <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">AUREON</div>
       </div>
     );
   }

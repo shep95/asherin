@@ -18,6 +18,7 @@ const SettingsView = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ const SettingsView = () => {
     ]).then(([settingsRes, profileRes]) => {
       setSettings(settingsRes.data);
       setProfile(profileRes.data);
-      setDisplayName(profileRes.data?.display_name ?? "");
+      setDisplayName(profileRes.data?.display_name ?? user.user_metadata?.name ?? "");
       setAvatarUrl(profileRes.data?.avatar_url ?? null);
       setLoading(false);
     });
@@ -36,15 +37,29 @@ const SettingsView = () => {
 
   const updateSetting = async (key: string, value: any) => {
     if (!user) return;
-    await supabase.from("user_settings").update({ [key]: value }).eq("user_id", user.id);
+    const { error } = await supabase.from("user_settings").update({ [key]: value }).eq("user_id", user.id);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+      return;
+    }
     setSettings((prev: any) => ({ ...prev, [key]: value }));
     toast({ title: "Setting updated" });
   };
 
   const saveProfile = async () => {
-    if (!user) return;
-    await supabase.from("profiles").update({ display_name: displayName }).eq("user_id", user.id);
-    toast({ title: "Profile updated" });
+    if (!user || !displayName.trim()) return;
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: displayName.trim(), updated_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+    setSavingProfile(false);
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    } else {
+      setProfile((prev: any) => ({ ...prev, display_name: displayName.trim() }));
+      toast({ title: "Profile saved", description: "Your display name has been updated." });
+    }
   };
 
   const uploadAvatar = async (file: File) => {
@@ -61,10 +76,14 @@ const SettingsView = () => {
     }
     const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
     const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-    await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("user_id", user.id);
-    setAvatarUrl(publicUrl);
+    const { error: updateErr } = await supabase.from("profiles").update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+    if (updateErr) {
+      toast({ title: "Profile update failed", description: updateErr.message, variant: "destructive" });
+    } else {
+      setAvatarUrl(publicUrl);
+      toast({ title: "Profile picture updated" });
+    }
     setUploadingAvatar(false);
-    toast({ title: "Profile picture updated" });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +120,7 @@ const SettingsView = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `zialiel-data-export-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `aureon-data-export-${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: "Data exported successfully" });
@@ -147,7 +166,7 @@ const SettingsView = () => {
       <div className="max-w-2xl mx-auto p-6 space-y-6">
         <div>
           <h2 className="text-xl font-extralight tracking-wide text-foreground">Settings</h2>
-          <p className="text-sm font-extralight text-muted-foreground mt-1">Configure your Zialiel experience.</p>
+          <p className="text-sm font-extralight text-muted-foreground mt-1">Configure your Aureon experience.</p>
         </div>
 
         {/* Profile */}
@@ -160,11 +179,7 @@ const SettingsView = () => {
             {/* Avatar */}
             <div className="flex items-center gap-4">
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                className="relative group shrink-0"
-              >
+              <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="relative group shrink-0">
                 <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-border/30 bg-card/30">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
@@ -186,8 +201,19 @@ const SettingsView = () => {
             <div>
               <label className="text-xs text-muted-foreground">Display Name</label>
               <div className="flex gap-2 mt-1">
-                <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="flex-1 bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-sm text-foreground outline-none" />
-                <button onClick={saveProfile} className="text-xs bg-foreground text-background px-3 py-2 rounded-lg">Save</button>
+                <input 
+                  value={displayName} 
+                  onChange={(e) => setDisplayName(e.target.value)} 
+                  onKeyDown={(e) => e.key === "Enter" && saveProfile()}
+                  className="flex-1 bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/30 transition-colors" 
+                />
+                <button 
+                  onClick={saveProfile} 
+                  disabled={savingProfile || !displayName.trim()}
+                  className="text-xs bg-foreground text-background px-3 py-2 rounded-lg hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                >
+                  {savingProfile ? "Saving…" : "Save"}
+                </button>
               </div>
             </div>
             <div>
@@ -265,14 +291,13 @@ const SettingsView = () => {
             </Link>
           </p>
 
-          {/* Download My Data */}
           <div className="rounded-lg border border-border/15 bg-card/10 p-4 space-y-2">
             <div className="flex items-center gap-2">
               <Download className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-light text-foreground">Download My Data</span>
             </div>
             <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-              Export all your data — profile, conversations, memory, files, settings — as a machine-readable JSON file. Delivered within seconds.
+              Export all your data — profile, conversations, memory, files, settings — as a machine-readable JSON file.
             </p>
             <button
               onClick={handleExportData}
@@ -284,21 +309,17 @@ const SettingsView = () => {
             </button>
           </div>
 
-          {/* Delete Account */}
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Trash2 className="h-4 w-4 text-destructive" />
               <span className="text-xs font-light text-destructive">Delete My Account</span>
             </div>
             <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-              Permanently delete your account and ALL associated data — conversations, files, memory, settings. This action is irreversible. Data is purged from all systems within 30 days.
+              Permanently delete your account and ALL associated data. This action is irreversible.
             </p>
 
             {!showDeleteConfirm ? (
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-4 py-2 text-xs font-light text-destructive hover:bg-destructive/10 transition-colors"
-              >
+              <button onClick={() => setShowDeleteConfirm(true)} className="inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-4 py-2 text-xs font-light text-destructive hover:bg-destructive/10 transition-colors">
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete Account
               </button>
@@ -307,30 +328,16 @@ const SettingsView = () => {
                 <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3">
                   <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                   <p className="text-[10px] text-destructive leading-relaxed">
-                    This will permanently delete your account and all data. Type <strong>DELETE MY ACCOUNT</strong> below to confirm.
+                    Type <strong>DELETE MY ACCOUNT</strong> below to confirm.
                   </p>
                 </div>
-                <input
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="Type DELETE MY ACCOUNT"
-                  className="w-full bg-background/50 border border-destructive/30 rounded-lg px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
-                />
+                <input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="Type DELETE MY ACCOUNT" className="w-full bg-background/50 border border-destructive/30 rounded-lg px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40" />
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleDeleteAccount}
-                    disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deleting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-xs font-light text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
-                  >
+                  <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== "DELETE MY ACCOUNT" || deleting} className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-xs font-light text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50">
                     {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     {deleting ? "Deleting…" : "Permanently Delete"}
                   </button>
-                  <button
-                    onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                    className="rounded-lg border border-border/20 px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }} className="rounded-lg border border-border/20 px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
                 </div>
               </div>
             )}

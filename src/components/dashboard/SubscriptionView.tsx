@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, Newspaper } from "lucide-react";
 import { useSubscription, TIERS, type TierKey } from "@/contexts/SubscriptionContext";
 
 const plans: {
@@ -18,11 +18,13 @@ const plans: {
     tagline: "AI Intelligence",
     price: "$18",
     period: "/ month",
-    description: "Full access to Aureon AI — uncensored, unfiltered, built for individuals who demand the truth.",
+    description: "Full access to Aureon AI — uncensored, unfiltered. 60 messages per 3 hours.",
     highlight: false,
     features: [
       "Uncensored AI responses on any topic",
+      "60 messages per 3-hour window",
       "Elite coding engine",
+      "Zophiel Search Engine",
       "Persistent memory across sessions",
       "Context intelligence & intent detection",
       "Multi-persona system",
@@ -31,18 +33,40 @@ const plans: {
     ],
   },
   {
+    id: "pro",
+    name: "AUREON PRO",
+    tagline: "Enhanced Intelligence",
+    price: "$74",
+    period: "/ month",
+    description: "Everything in Aureon plus higher limits, priority access, and advanced search capabilities.",
+    highlight: false,
+    features: [
+      "Everything in Aureon — expanded",
+      "200 messages per 3-hour window",
+      "Zophiel Search Engine — full access",
+      "Priority model access",
+      "Advanced context intelligence",
+      "Extended memory capacity",
+      "Priority support",
+    ],
+  },
+  {
     id: "enterprise",
-    name: "ZIALIEL ENTERPRISE",
+    name: "AUREON ENTERPRISE",
     tagline: "Full Intelligence Suite",
     price: "$5,000",
     period: "/ week",
-    description: "The complete intelligence platform — Aureon AI + ZIALIEL Search + OSINT tooling + data analysis.",
+    description: "Complete intelligence platform — Aureon AI + Zophiel Search + Asha Intelligence + NOMAD OSINT + Daily Intelligence Briefings.",
     highlight: true,
     features: [
-      "Everything in Aureon — unlimited",
-      "ZIALIEL Search Engine — full deployment",
-      "Source credibility intelligence (4-tier)",
-      "Backend OSINT tool for applications",
+      "Everything in Aureon Pro — unlimited",
+      "Asha Data Intelligence Platform",
+      "NOMAD Public Intelligence Agent",
+      "Daily Intelligence Briefings",
+      "Company & competitor tracking",
+      "40+ OSINT data sources — automated correlation",
+      "Structured intelligence dossiers & reports",
+      "Entity resolution & relationship mapping",
       "Real-time data analysis pipeline",
       "Dedicated intelligence API endpoints",
       "Priority model access — zero queue",
@@ -67,7 +91,7 @@ const SubscriptionView = () => {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -126,51 +150,46 @@ const SubscriptionView = () => {
         </div>
 
         {/* Plan Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
             const isActive = tierKey === plan.id;
             return (
               <div
                 key={plan.id}
-                className={`rounded-xl border backdrop-blur-sm p-4 sm:p-6 transition-all flex flex-col ${
+                className={`rounded-xl border backdrop-blur-sm p-4 sm:p-5 transition-all flex flex-col ${
                   plan.highlight
                     ? "border-accent/30 bg-accent/5"
                     : "border-border/20 bg-card/20"
                 } ${isActive ? "ring-1 ring-accent/50" : ""}`}
               >
-                {/* Badge */}
                 {plan.highlight && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 mb-4 w-fit">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 mb-3 w-fit">
                     <Zap className="h-3 w-3 text-accent" />
                     <span className="text-[10px] font-medium tracking-[0.15em] text-accent uppercase">Full Suite</span>
                   </div>
                 )}
 
                 {isActive && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 mb-4 w-fit">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 mb-3 w-fit">
                     <Check className="h-3 w-3 text-emerald-400" />
                     <span className="text-[10px] font-medium tracking-[0.15em] text-emerald-400 uppercase">Your Plan</span>
                   </div>
                 )}
 
-                {/* Name */}
                 <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground uppercase">{plan.tagline}</p>
                 <h3 className="mt-1 text-sm font-light tracking-[0.1em] text-foreground">{plan.name}</h3>
 
-                {/* Price */}
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-3xl sm:text-4xl font-extralight tracking-tight text-foreground">{plan.price}</span>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-2xl sm:text-3xl font-extralight tracking-tight text-foreground">{plan.price}</span>
                   <span className="text-sm text-muted-foreground font-extralight">{plan.period}</span>
                 </div>
 
-                {/* Description */}
-                <p className="mt-3 text-xs font-extralight leading-relaxed text-muted-foreground">{plan.description}</p>
+                <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">{plan.description}</p>
 
-                {/* CTA */}
                 <button
                   onClick={() => !isActive && startCheckout(plan.id)}
                   disabled={isActive || checkoutLoading}
-                  className={`group mt-5 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
+                  className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
                     isActive
                       ? "bg-muted/20 text-muted-foreground cursor-default"
                       : plan.highlight
@@ -190,14 +209,12 @@ const SubscriptionView = () => {
                   )}
                 </button>
 
-                {/* Divider */}
-                <div className="my-5 h-px bg-border/15" />
+                <div className="my-4 h-px bg-border/15" />
 
-                {/* Features */}
-                <ul className="space-y-2 flex-1">
+                <ul className="space-y-1.5 flex-1">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 text-xs font-extralight text-foreground/80">
-                      <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${plan.highlight ? "text-accent" : "text-emerald-400"}`} />
+                    <li key={feature} className="flex items-start gap-2 text-[11px] font-extralight text-foreground/80">
+                      <Check className={`h-3 w-3 mt-0.5 shrink-0 ${plan.highlight ? "text-accent" : "text-emerald-400"}`} />
                       {feature}
                     </li>
                   ))}
@@ -242,6 +259,7 @@ const SubscriptionView = () => {
           {[
             { q: "Can I switch plans?", a: "Yes. Upgrade or downgrade anytime. Changes take effect immediately." },
             { q: "How do I cancel?", a: "Click 'Manage Billing' above to access the Stripe portal where you can cancel instantly." },
+            { q: "What are the message limits?", a: "Aureon: 60 messages per 3 hours. Pro: 200 per 3 hours. Enterprise: Unlimited." },
             { q: "Is Enterprise billed weekly?", a: "Yes. Weekly billing, no long-term contract. Cancel with 7 days notice." },
           ].map(({ q, a }) => (
             <details key={q} className="group rounded-lg border border-border/20 bg-card/20 backdrop-blur-sm overflow-hidden">

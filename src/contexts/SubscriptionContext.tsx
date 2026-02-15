@@ -8,6 +8,10 @@ export const TIERS = {
     product_id: "prod_TypqKDKcRduDQS",
     price_id: "price_1T0sB1RxgCpmPfiFDF7VtYX8",
   },
+  pro: {
+    product_id: "prod_Tz6XjwPUtCwUmI",
+    price_id: "price_1T18KRRxgCpmPfiFAewsYO5G",
+  },
   enterprise: {
     product_id: "prod_TypqQSMqan0aOZ",
     price_id: "price_1T0sB3RxgCpmPfiFUdHAAqD5",
@@ -55,6 +59,16 @@ function productToTier(productId: string | null): TierKey | null {
     if (val.product_id === productId) return key as TierKey;
   }
   return null;
+}
+
+/** Check if user has access to Zophiel Search (pro or enterprise) */
+export function hasSearchAccess(tierKey: TierKey | null): boolean {
+  return tierKey === "pro" || tierKey === "enterprise" || tierKey === "aureon";
+}
+
+/** Check if user has enterprise-level access */
+export function hasEnterpriseAccess(tierKey: TierKey | null): boolean {
+  return tierKey === "enterprise";
 }
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
