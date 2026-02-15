@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from "react";
+import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
@@ -98,6 +98,49 @@ const DashboardSidebar = ({
   const setPersonaId = onPersonaChange ?? (() => {});
   const navItems = allNavItems.filter((item) => !item.enterprise || tierKey === "enterprise");
 
+  // Resizable sidebar width
+  const MIN_WIDTH = 220;
+  const MAX_WIDTH = 480;
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const stored = localStorage.getItem("zialiel_sidebar_width");
+      return stored ? Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Number(stored))) : 288;
+    } catch { return 288; }
+  });
+  const isResizing = useRef(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isResizing.current) return;
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + (ev.clientX - startX)));
+      setSidebarWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      localStorage.setItem("zialiel_sidebar_width", String(sidebarWidth));
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [sidebarWidth]);
+
+  // Persist width on change
+  useEffect(() => {
+    localStorage.setItem("zialiel_sidebar_width", String(sidebarWidth));
+  }, [sidebarWidth]);
+
   const filtered = conversations.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase()) ||
     c.messages.some((m) => m.content.toLowerCase().includes(search.toLowerCase()))
@@ -127,11 +170,19 @@ const DashboardSidebar = ({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${
+        style={{ width: `${sidebarWidth}px` }}
+        className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 lg:relative lg:translate-x-0 flex-shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl">
+          {/* Resize handle (desktop only) */}
+          <div
+            onMouseDown={handleMouseDown}
+            className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group"
+          >
+            <div className="absolute inset-y-0 right-0 w-0.5 bg-border/0 group-hover:bg-foreground/20 transition-colors rounded-full" />
+          </div>
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
             <div className="flex items-center gap-2">
