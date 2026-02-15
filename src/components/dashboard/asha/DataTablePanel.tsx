@@ -1,139 +1,166 @@
-import { useState } from "react";
-import { Search, Filter, Pin, Eye, EyeOff, ArrowUpDown, Flag, StickyNote, Save } from "lucide-react";
-
-interface MockRow {
-  id: number;
-  name: string;
-  email: string;
-  amount: string;
-  date: string;
-  region: string;
-  status: string;
-}
-
-const MOCK_DATA: MockRow[] = Array.from({ length: 50 }, (_, i) => ({
-  id: i + 1,
-  name: ["Alice Chen", "Bob Martinez", "Carol Williams", "David Kim", "Eva Novak", "Frank Osei"][i % 6],
-  email: [`user${i + 1}@example.com`][0],
-  amount: `$${(Math.random() * 10000).toFixed(2)}`,
-  date: `2025-${String(Math.floor(Math.random() * 12) + 1).padStart(2, "0")}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, "0")}`,
-  region: ["US", "EU", "APAC", "LATAM", "MEA"][i % 5],
-  status: ["Active", "Churned", "New", "At-risk"][i % 4],
-}));
-
-const columns = ["id", "name", "email", "amount", "date", "region", "status"] as const;
+import { useState, useEffect } from "react";
+import { Search, Filter, ArrowUpDown, Flag, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DataTablePanel = () => {
+  const [datasets, setDatasets] = useState<any[]>([]);
+  const [selectedDs, setSelectedDs] = useState<string>("");
+  const [rows, setRows] = useState<Record<string, string>[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
-  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
   const [flaggedRows, setFlaggedRows] = useState<Set<number>>(new Set());
-  const [filterCol, setFilterCol] = useState("");
-  const [filterVal, setFilterVal] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("asha_datasets")
+        .select("id, file_name, storage_path, schema")
+        .eq("user_id", user.id)
+        .eq("status", "ready")
+        .order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        setDatasets(data);
+        setSelectedDs(data[0].id);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [user]);
+
+  useEffect(() => {
+    if (!selectedDs || !user) return;
+    const ds = datasets.find((d) => d.id === selectedDs);
+    if (!ds) return;
+
+    const loadData = async () => {
+      setLoadingData(true);
+      try {
+        const { data: fileData } = await supabase.storage.from("asha-data").download(ds.storage_path);
+        if (!fileData) return;
+        const text = await fileData.text();
+        const ext = ds.file_name.split(".").pop()?.toLowerCase();
+
+        if (ext === "csv") {
+          const lines = text.split("\n").filter((l: string) => l.trim());
+          if (lines.length > 0) {
+            const headers = lines[0].split(",").map((h: string) => h.trim().replace(/^"|"$/g, ""));
+            setColumns(headers);
+            const dataRows = lines.slice(1, 201).map((line: string) => {
+              const vals = line.split(",").map((v: string) => v.trim().replace(/^"|"$/g, ""));
+              const row: Record<string, string> = {};
+              headers.forEach((h, i) => { row[h] = vals[i] || ""; });
+              return row;
+            });
+            setRows(dataRows);
+          }
+        } else if (ext === "json" || ext === "jsonl") {
+          try {
+            let parsed = ext === "jsonl"
+              ? text.split("\n").filter((l: string) => l.trim()).map((l: string) => JSON.parse(l))
+              : JSON.parse(text);
+            if (!Array.isArray(parsed)) parsed = [parsed];
+            if (parsed.length > 0) {
+              const keys = Object.keys(parsed[0]);
+              setColumns(keys);
+              setRows(parsed.slice(0, 200).map((r: any) => {
+                const row: Record<string, string> = {};
+                keys.forEach((k) => { row[k] = r[k] != null ? String(r[k]) : ""; });
+                return row;
+              }));
+            }
+          } catch { setRows([]); setColumns([]); }
+        } else {
+          setRows([]);
+          setColumns(["content"]);
+        }
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    loadData();
+  }, [selectedDs, datasets, user]);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) setSortAsc(!sortAsc);
     else { setSortCol(col); setSortAsc(true); }
   };
 
-  const toggleFlag = (id: number) => {
-    setFlaggedRows((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  const toggleFlag = (idx: number) => {
+    setFlaggedRows((prev) => { const next = new Set(prev); next.has(idx) ? next.delete(idx) : next.add(idx); return next; });
   };
 
-  const visibleCols = columns.filter((c) => !hiddenCols.has(c));
-
-  let filtered = MOCK_DATA.filter((row) => {
-    if (search) {
-      const q = search.toLowerCase();
-      return Object.values(row).some((v) => String(v).toLowerCase().includes(q));
-    }
-    return true;
-  });
-
-  if (filterCol && filterVal) {
-    filtered = filtered.filter((row) => String((row as any)[filterCol]).toLowerCase().includes(filterVal.toLowerCase()));
+  let filtered = rows;
+  if (search) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter((row) => Object.values(row).some((v) => v.toLowerCase().includes(q)));
+  }
+  if (sortCol) {
+    filtered = [...filtered].sort((a, b) => sortAsc ? (a[sortCol] || "").localeCompare(b[sortCol] || "") : (b[sortCol] || "").localeCompare(a[sortCol] || ""));
   }
 
-  if (sortCol) {
-    filtered = [...filtered].sort((a, b) => {
-      const av = String((a as any)[sortCol]);
-      const bv = String((b as any)[sortCol]);
-      return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
+  if (loading) return <div className="flex justify-center items-center h-full"><Loader2 className="h-5 w-5 animate-spin text-accent" /></div>;
+
+  if (datasets.length === 0) {
+    return <div className="flex justify-center items-center h-full"><p className="text-xs text-muted-foreground/40">No datasets available. Upload files first.</p></div>;
   }
 
   return (
     <div className="flex h-full flex-col">
-      {/* Toolbar */}
       <div className="flex-shrink-0 flex flex-wrap items-center gap-3 p-4 border-b border-border/20">
+        <select value={selectedDs} onChange={(e) => setSelectedDs(e.target.value)} className="bg-card/30 border border-border/20 rounded-lg px-3 py-1.5 text-xs text-foreground outline-none">
+          {datasets.map((d) => <option key={d.id} value={d.id}>{d.file_name}</option>)}
+        </select>
         <div className="flex items-center gap-2 rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 flex-1 max-w-md">
           <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search all columns…" className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
         </div>
-
-        {/* Filter bar */}
-        <div className="flex items-center gap-1.5 text-[10px]">
-          <Filter className="h-3 w-3 text-muted-foreground" />
-          <select value={filterCol} onChange={(e) => setFilterCol(e.target.value)} className="bg-card/30 border border-border/20 rounded px-1.5 py-1 text-[10px] text-foreground outline-none">
-            <option value="">Column…</option>
-            {columns.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          {filterCol && (
-            <input value={filterVal} onChange={(e) => setFilterVal(e.target.value)} placeholder="contains…" className="bg-card/30 border border-border/20 rounded px-1.5 py-1 text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none w-24" />
-          )}
-        </div>
-
         <span className="text-[10px] text-muted-foreground/50">{filtered.length} rows</span>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-card/60 backdrop-blur-sm z-10">
-            <tr className="border-b border-border/20">
-              <th className="w-8 px-2 py-2.5" />
-              {visibleCols.map((col) => (
-                <th key={col} className="px-3 py-2.5 text-left font-light text-muted-foreground/60 uppercase tracking-wider text-[10px]">
-                  <button onClick={() => toggleSort(col)} className="flex items-center gap-1 hover:text-foreground transition-colors">
-                    {col}
-                    <ArrowUpDown className="h-2.5 w-2.5" />
-                  </button>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((row) => (
-              <tr key={row.id} className={`border-b border-border/10 transition-colors hover:bg-foreground/5 ${flaggedRows.has(row.id) ? "bg-amber-500/5" : ""}`}>
-                <td className="px-2 py-2">
-                  <button onClick={() => toggleFlag(row.id)} className="p-0.5">
-                    <Flag className={`h-3 w-3 ${flaggedRows.has(row.id) ? "text-amber-500" : "text-muted-foreground/20 hover:text-muted-foreground"}`} />
-                  </button>
-                </td>
-                {visibleCols.map((col) => (
-                  <td key={col} className="px-3 py-2 font-light text-foreground">
-                    {col === "email" ? (
-                      <span className="text-muted-foreground/50 tracking-wider">••••@••••</span>
-                    ) : col === "status" ? (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] ${
-                        row.status === "Active" ? "bg-emerald-500/10 text-emerald-400" :
-                        row.status === "At-risk" ? "bg-amber-500/10 text-amber-400" :
-                        row.status === "Churned" ? "bg-destructive/10 text-destructive" :
-                        "bg-accent/10 text-accent"
-                      }`}>
-                        {row.status}
-                      </span>
-                    ) : (
-                      String((row as any)[col])
-                    )}
-                  </td>
+      {loadingData ? (
+        <div className="flex justify-center items-center flex-1"><Loader2 className="h-5 w-5 animate-spin text-accent" /></div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-auto">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-card/60 backdrop-blur-sm z-10">
+              <tr className="border-b border-border/20">
+                <th className="w-8 px-2 py-2.5" />
+                {columns.map((col) => (
+                  <th key={col} className="px-3 py-2.5 text-left font-light text-muted-foreground/60 uppercase tracking-wider text-[10px]">
+                    <button onClick={() => toggleSort(col)} className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      {col}
+                      <ArrowUpDown className="h-2.5 w-2.5" />
+                    </button>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filtered.map((row, idx) => (
+                <tr key={idx} className={`border-b border-border/10 transition-colors hover:bg-foreground/5 ${flaggedRows.has(idx) ? "bg-amber-500/5" : ""}`}>
+                  <td className="px-2 py-2">
+                    <button onClick={() => toggleFlag(idx)} className="p-0.5">
+                      <Flag className={`h-3 w-3 ${flaggedRows.has(idx) ? "text-amber-500" : "text-muted-foreground/20 hover:text-muted-foreground"}`} />
+                    </button>
+                  </td>
+                  {columns.map((col) => (
+                    <td key={col} className="px-3 py-2 font-light text-foreground max-w-xs truncate">
+                      {/email|phone|ssn/i.test(col) ? <span className="text-muted-foreground/50 tracking-wider">••••</span> : row[col]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
