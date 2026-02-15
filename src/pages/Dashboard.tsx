@@ -64,8 +64,15 @@ const Dashboard = () => {
   const abortRef = useRef<AbortController | null>(null);
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
-      const stored = localStorage.getItem("aureon_custom_personas");
-      return stored ? JSON.parse(stored) : [];
+      // Migrate from old key if needed
+      const oldStored = localStorage.getItem("zialiel_custom_personas");
+      const newStored = localStorage.getItem("aureon_custom_personas");
+      if (oldStored && !newStored) {
+        localStorage.setItem("aureon_custom_personas", oldStored);
+        localStorage.removeItem("zialiel_custom_personas");
+        return JSON.parse(oldStored);
+      }
+      return newStored ? JSON.parse(newStored) : [];
     } catch { return []; }
   });
 

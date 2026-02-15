@@ -2,8 +2,15 @@ import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 
 const PrivacyPolicy = () => {
+  useEffect(() => {
+    document.title = "Privacy Policy — Aureon";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "Aureon Privacy Policy — how we protect your data with end-to-end encryption and zero-training guarantees.");
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
@@ -87,7 +94,7 @@ const PrivacyPolicy = () => {
                   <li>→ Encryption keys are derived per-user via PBKDF2 (100,000 iterations).</li>
                   <li>→ Data is encrypted in transit (TLS) and at rest.</li>
                   <li>→ All servers are hosted in the United States.</li>
-                  <li>→ No ZIALIEL employee can read your encrypted messages.</li>
+                  <li>→ No Aureon employee can read your encrypted messages.</li>
                 </ul>
               </section>
 
@@ -102,23 +109,17 @@ const PrivacyPolicy = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">8. Cookies</h2>
-                <p>
-                  ZIALIEL uses only essential session cookies required for authentication. We do not use tracking cookies, analytics cookies, or advertising cookies.
-                </p>
+                <p>Aureon uses only essential session cookies required for authentication. We do not use tracking cookies, analytics cookies, or advertising cookies.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">9. Children's Privacy</h2>
-                <p>
-                  The Service is not intended for users under the age of 13. We do not knowingly collect data from children. If we discover that a child has created an account, it will be deleted immediately.
-                </p>
+                <p>The Service is not intended for users under the age of 13. We do not knowingly collect data from children. If we discover that a child has created an account, it will be deleted immediately.</p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">10. Changes to This Policy</h2>
-                <p>
-                  We may update this Privacy Policy from time to time. Material changes will be communicated through the platform. Continued use after changes constitutes acceptance.
-                </p>
+                <p>We may update this Privacy Policy from time to time. Material changes will be communicated through the platform. Continued use after changes constitutes acceptance.</p>
               </section>
 
               <section>

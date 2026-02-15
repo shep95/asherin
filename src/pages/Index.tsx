@@ -1,7 +1,7 @@
 import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
 import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
@@ -43,6 +43,9 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 };
 
 const Index = () => {
+  useEffect(() => {
+    document.title = "Aureon — Uncensored AI Intelligence";
+  }, []);
   const [demoQuery, setDemoQuery] = useState("");
   const [demoResponse, setDemoResponse] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -366,7 +369,7 @@ const Index = () => {
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Brain className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Persistent Memory</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">ZIALIEL remembers your context, preferences, and projects across every session.</p>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon remembers your context, preferences, and projects across every session.</p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Users className="h-7 w-7 text-foreground" />
@@ -581,7 +584,7 @@ const Index = () => {
               {/* Left — Branding */}
               <div className="text-center sm:text-left">
                 <p className="text-sm font-light tracking-[0.2em] text-foreground">
-                  ZIALIEL
+                  AUREON
                 </p>
                 <p className="mt-1 text-xs font-extralight tracking-wide text-muted-foreground">
                   Powered by Zorak Corp & House Of Asher
