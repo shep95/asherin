@@ -28,12 +28,12 @@ async function searchDDG(query: string): Promise<string> {
 async function queryEdgar(companyName: string): Promise<string> {
   try {
     const resp = await fetch(`https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(companyName)}&dateRange=custom&startdt=2020-01-01&forms=10-K,10-Q,8-K,4&hits.hits.total=true&hits.hits._source=file_date,display_names,form_type,file_num`, {
-      headers: { 'User-Agent': 'ZIALIEL-NOMAD research@zialiel.com', 'Accept': 'application/json' },
+      headers: { 'User-Agent': 'AUREON-NOMAD research@aureon.ai', 'Accept': 'application/json' },
     });
     if (!resp.ok) {
       // Fallback to EDGAR full-text search
       const fallback = await fetch(`https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(companyName)}&forms=10-K,8-K`, {
-        headers: { 'User-Agent': 'ZIALIEL-NOMAD research@zialiel.com' },
+        headers: { 'User-Agent': 'AUREON-NOMAD research@aureon.ai' },
       });
       if (!fallback.ok) return 'SEC EDGAR: No results or API unavailable.';
       const data = await fallback.json();
@@ -47,7 +47,7 @@ async function queryEdgar(companyName: string): Promise<string> {
 async function queryEdgarCompany(query: string): Promise<string> {
   try {
     const resp = await fetch(`https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(query)}&CIK=&type=&dateb=&owner=include&count=10&search_text=&action=getcompany&output=atom`, {
-      headers: { 'User-Agent': 'ZIALIEL-NOMAD research@zialiel.com', 'Accept': 'application/atom+xml' },
+      headers: { 'User-Agent': 'AUREON-NOMAD research@aureon.ai', 'Accept': 'application/atom+xml' },
     });
     if (!resp.ok) return 'SEC EDGAR company search unavailable.';
     const text = await resp.text();
@@ -255,7 +255,7 @@ async function gatherIntelligence(query: string): Promise<string> {
 
 // ── Main Handler ─────────────────────────────────────────────────────────────
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD — an elite Public Intelligence Agent built into the ZIALIEL platform. You specialize in Open Source Intelligence (OSINT) using only publicly available, legal data sources.
+const NOMAD_SYSTEM_PROMPT = `You are NOMAD — an elite Public Intelligence Agent built into the AUREON platform. You specialize in Open Source Intelligence (OSINT) using only publicly available, legal data sources.
 
 YOUR CAPABILITIES:
 - Web search across surface web
