@@ -42,6 +42,30 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
+    // Check granted_subscriptions table first (free/manual grants)
+    const { data: granted } = await supabaseClient
+      .from("granted_subscriptions")
+      .select("*")
+      .eq("email", user.email)
+      .eq("active", true)
+      .maybeSingle();
+
+    if (granted) {
+      logStep("Found granted subscription", { tier: granted.tier, product_id: granted.product_id });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: granted.product_id,
+        price_id: null,
+        subscription_end: granted.expires_at || null,
+        status: "active",
+        cancel_at_period_end: false,
+        granted: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
       return new Response(JSON.stringify({ subscribed: false }), {
@@ -53,13 +77,11 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found customer", { customerId });
 
-    // Check active AND trialing subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       limit: 10,
     });
 
-    // Find the first active or trialing subscription
     const activeSub = subscriptions.data.find(
       (s) => s.status === "active" || s.status === "trialing"
     );

@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      granted_subscriptions: {
+        Row: {
+          active: boolean
+          email: string
+          expires_at: string | null
+          granted_at: string
+          id: string
+          product_id: string
+          tier: string
+        }
+        Insert: {
+          active?: boolean
+          email: string
+          expires_at?: string | null
+          granted_at?: string
+          id?: string
+          product_id: string
+          tier: string
+        }
+        Update: {
+          active?: boolean
+          email?: string
+          expires_at?: string | null
+          granted_at?: string
+          id?: string
+          product_id?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       library_files: {
         Row: {
           created_at: string
