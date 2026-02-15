@@ -15,6 +15,7 @@ import SettingsView from "@/components/dashboard/SettingsView";
 import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AshaView from "@/components/dashboard/asha/AshaView";
+import NomadView from "@/components/dashboard/NomadView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,13 +27,13 @@ import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
 import { Lock, ArrowRight } from "lucide-react";
 
-const AshaGate = ({ onUpgrade }: { onUpgrade: () => void }) => (
+const EnterpriseGate = ({ title, description, onUpgrade }: { title: string; description: string; onUpgrade: () => void }) => (
   <div className="flex flex-1 items-center justify-center p-6">
     <div className="max-w-md text-center space-y-6 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-10">
       <Lock className="h-10 w-10 text-accent mx-auto" />
-      <h2 className="text-xl font-extralight tracking-wide text-foreground">Asha Intelligence</h2>
+      <h2 className="text-xl font-extralight tracking-wide text-foreground">{title}</h2>
       <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
-        Asha is the full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. It's available exclusively on the <span className="text-accent">ZIALIEL Enterprise</span> plan.
+        {description}
       </p>
       <button
         onClick={onUpgrade}
@@ -382,8 +383,9 @@ const Dashboard = () => {
 
   const renderView = () => {
     switch (activeView) {
-      case "search": return tierKey === "enterprise" ? <ZophielEngineView /> : <AshaGate onUpgrade={() => setActiveView("subscription")} />;
-      case "asha": return tierKey === "enterprise" ? <AshaView /> : <AshaGate onUpgrade={() => setActiveView("subscription")} />;
+      case "search": return tierKey === "enterprise" ? <ZophielEngineView /> : <EnterpriseGate title="Zophiel Engine" description="The privacy-first search intelligence engine with source credibility tiers. Available on the ZIALIEL Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
+      case "asha": return tierKey === "enterprise" ? <AshaView /> : <EnterpriseGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on the ZIALIEL Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
+      case "nomad": return tierKey === "enterprise" ? <NomadView /> : <EnterpriseGate title="NOMAD Agent" description="Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation and structured dossier output. Available on the ZIALIEL Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
       case "library": return <LibraryView />;
       case "projects": return <ProjectsView />;
       case "memory": return <MemoryCenterView />;
