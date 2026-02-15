@@ -273,6 +273,96 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_profiles: {
+        Row: {
+          company_name: string | null
+          competitors: string[]
+          created_at: string
+          custom_topics: string[]
+          delivery_time: string
+          enabled: boolean
+          id: string
+          industry: string
+          investment_interests: string[]
+          key_markets: string[]
+          regulatory_bodies: string[]
+          technology_stack: string[]
+          tracked_people: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          competitors?: string[]
+          created_at?: string
+          custom_topics?: string[]
+          delivery_time?: string
+          enabled?: boolean
+          id?: string
+          industry?: string
+          investment_interests?: string[]
+          key_markets?: string[]
+          regulatory_bodies?: string[]
+          technology_stack?: string[]
+          tracked_people?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          competitors?: string[]
+          created_at?: string
+          custom_topics?: string[]
+          delivery_time?: string
+          enabled?: boolean
+          id?: string
+          industry?: string
+          investment_interests?: string[]
+          key_markets?: string[]
+          regulatory_bodies?: string[]
+          technology_stack?: string[]
+          tracked_people?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      briefing_reports: {
+        Row: {
+          content: string
+          created_at: string
+          critical_items: number
+          id: string
+          monitoring_items: number
+          significant_items: number
+          sources_checked: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          critical_items?: number
+          id?: string
+          monitoring_items?: number
+          significant_items?: number
+          sources_checked?: number
+          title?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          critical_items?: number
+          id?: string
+          monitoring_items?: number
+          significant_items?: number
+          sources_checked?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calibration_feedback: {
         Row: {
           created_at: string
