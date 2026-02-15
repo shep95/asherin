@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Eye, Lock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
+import CodeFilePreview from "./CodeFilePreview";
 import type { ResponseDepth } from "./DepthSelector";
 import ModeSelector from "./ModeSelector";
 import DepthSelector from "./DepthSelector";
@@ -27,6 +28,45 @@ interface ChatViewProps {
   onCalibrationFeedback?: (messageId: string, feedback: FeedbackType) => void;
   onStopStreaming?: () => void;
   focusMode?: boolean;
+}
+
+// Helper to parse user messages for code blocks and render as file preview cards
+const CODE_BLOCK_RE = /```(\w+)?\n([\s\S]*?)```/g;
+
+function UserMessageContent({ content }: { content: string }) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const regex = new RegExp(CODE_BLOCK_RE);
+  let key = 0;
+
+  while ((match = regex.exec(content)) !== null) {
+    // Text before the code block
+    if (match.index > lastIndex) {
+      parts.push(<span key={key++} className="whitespace-pre-wrap">{content.slice(lastIndex, match.index)}</span>);
+    }
+    parts.push(<CodeFilePreview key={key++} code={match[2].trimEnd()} language={match[1]} />);
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Remaining text after last code block
+  if (lastIndex < content.length) {
+    parts.push(<span key={key++} className="whitespace-pre-wrap">{content.slice(lastIndex)}</span>);
+  }
+
+  // No code blocks found — check if entire content looks like code
+  if (parts.length === 0) {
+    const trimmed = content.trim();
+    const looksLikeCode = trimmed.split("\n").length >= 3 && (
+      /[{};()=>]/.test(trimmed) && /^(import|export|const|let|var|function|def |class |#include|package |fn |pub )/.test(trimmed)
+    );
+    if (looksLikeCode) {
+      return <CodeFilePreview code={trimmed} />;
+    }
+    return <span className="whitespace-pre-wrap">{content}</span>;
+  }
+
+  return <>{parts}</>;
 }
 
 const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode }: ChatViewProps) => {
@@ -131,7 +171,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                         )}
                       </div>
                     ) : (
-                      <span className="whitespace-pre-wrap">{msg.content}</span>
+                      <UserMessageContent content={msg.content} />
                     )}
                   </div>
                   {msg.role === "assistant" && msg.content && !isStreaming && (
