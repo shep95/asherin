@@ -4,6 +4,7 @@ import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConic
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
+import ReactMarkdown from "react-markdown";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-green-400 inline" />;
@@ -241,11 +242,11 @@ const Index = () => {
               )}
 
               {(demoResponse || isTyping) && (
-                <div className="mt-6 rounded-xl border border-border/10 bg-background/20 p-5">
-                  <p className="text-sm font-extralight leading-relaxed text-foreground/90">
-                    {demoResponse}
-                    {isTyping && <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />}
-                  </p>
+                <div className="mt-6 rounded-xl border border-border/10 bg-background/20 p-5 max-h-[60vh] overflow-y-auto">
+                  <div className="prose prose-invert prose-sm max-w-none font-extralight [&_h1]:text-lg [&_h1]:font-light [&_h1]:tracking-wide [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-base [&_h2]:font-light [&_h2]:tracking-wide [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-light [&_h3]:tracking-wide [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_p]:mb-3 [&_ul]:space-y-1.5 [&_ul]:my-3 [&_ol]:space-y-1.5 [&_ol]:my-3 [&_li]:text-sm [&_li]:text-foreground/90 [&_strong]:text-foreground [&_a]:text-accent [&_a]:underline [&_code]:bg-secondary/50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:bg-secondary/30 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-accent/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_hr]:border-border/20 [&_hr]:my-4">
+                    <ReactMarkdown>{demoResponse}</ReactMarkdown>
+                  </div>
+                  {isTyping && <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-1 align-text-bottom" />}
                 </div>
               )}
             </div>
