@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = false
+
+[functions.ddg-search]
+verify_jwt = false
+
+[functions.zophiel-preview]
+verify_jwt = false
