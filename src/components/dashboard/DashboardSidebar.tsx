@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasEnterpriseAccess } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair,
@@ -11,7 +11,6 @@ import SwipeableConversationItem from "./SwipeableConversationItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 
-// Sidebar context for shared state
 interface SidebarContextValue {
   isOpen: boolean;
   toggle: () => void;
@@ -45,10 +44,10 @@ interface DashboardSidebarProps {
   onAddCustomPersona?: (persona: Persona) => void;
 }
 
-const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; enterprise?: boolean }[] = [
-  { id: "search", icon: Zap, label: "Zophiel Engine", enterprise: true },
-  { id: "asha", icon: Database, label: "Asha Intelligence", enterprise: true },
-  { id: "nomad", icon: Crosshair, label: "NOMAD Agent", enterprise: true },
+const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" }[] = [
+  { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
+  { id: "asha", icon: Database, label: "Asha Intelligence", access: "enterprise" },
+  { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "enterprise" },
   { id: "library", icon: FolderOpen, label: "Library" },
   { id: "projects", icon: Layers, label: "Projects" },
   { id: "memory", icon: Brain, label: "Memory Center" },
@@ -97,14 +96,20 @@ const DashboardSidebar = ({
   const [showConvos, setShowConvos] = useState(false);
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
-  const navItems = allNavItems.filter((item) => !item.enterprise || tierKey === "enterprise");
+  
+  // Filter nav items based on tier access
+  const navItems = allNavItems.filter((item) => {
+    if (!item.access) return true;
+    if (item.access === "search") return hasSearchAccess(tierKey);
+    if (item.access === "enterprise") return hasEnterpriseAccess(tierKey);
+    return true;
+  });
 
-  // Resizable sidebar width
   const MIN_WIDTH = 220;
   const MAX_WIDTH = 480;
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     try {
-      const stored = localStorage.getItem("zialiel_sidebar_width");
+      const stored = localStorage.getItem("aureon_sidebar_width");
       return stored ? Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Number(stored))) : 288;
     } catch { return 288; }
   });
@@ -128,7 +133,7 @@ const DashboardSidebar = ({
       document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      localStorage.setItem("zialiel_sidebar_width", String(sidebarWidth));
+      localStorage.setItem("aureon_sidebar_width", String(sidebarWidth));
     };
 
     document.body.style.cursor = "col-resize";
@@ -137,9 +142,8 @@ const DashboardSidebar = ({
     document.addEventListener("mouseup", onMouseUp);
   }, [sidebarWidth]);
 
-  // Persist width on change
   useEffect(() => {
-    localStorage.setItem("zialiel_sidebar_width", String(sidebarWidth));
+    localStorage.setItem("aureon_sidebar_width", String(sidebarWidth));
   }, [sidebarWidth]);
 
   const filtered = conversations.filter((c) =>
@@ -157,15 +161,10 @@ const DashboardSidebar = ({
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      {/* Mobile toggle */}
-      <button
-        onClick={onToggleSidebar}
-        className="fixed top-4 left-4 z-50 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5 lg:hidden"
-      >
+      <button onClick={onToggleSidebar} className="fixed top-4 left-4 z-50 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5 lg:hidden">
         {sidebarOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
       </button>
 
-      {/* Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-30 bg-background/50 lg:hidden" onClick={onToggleSidebar} />
       )}
@@ -177,41 +176,29 @@ const DashboardSidebar = ({
         }`}
       >
         <div className="flex h-full flex-col m-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl overflow-hidden">
-          {/* Resize handle (desktop only) */}
-          <div
-            onMouseDown={handleMouseDown}
-            className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group"
-          >
+          <div onMouseDown={handleMouseDown} className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize z-50 group">
             <div className="absolute inset-y-0 right-0 w-0.5 bg-border/0 group-hover:bg-foreground/20 transition-colors rounded-full" />
           </div>
-          {/* Header */}
+          
           <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-extralight tracking-[0.25em] text-foreground">ZIALIEL</span>
+              <span className="text-sm font-extralight tracking-[0.25em] text-foreground">AUREON</span>
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" />
             </div>
             <div className="flex items-center gap-1">
-              <button
-                onClick={onNewConversation}
-                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                title="New conversation"
-              >
+              <button onClick={onNewConversation} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground" title="New conversation">
                 <Plus className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          {/* Scrollable body */}
           <ScrollArea className="flex-1 min-h-0">
             <div className="flex flex-col">
-              {/* Past Convos Toggle */}
               <div className="flex-shrink-0 px-2 pt-3">
                 <button
                   onClick={() => setShowConvos(!showConvos)}
                   className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                    showConvos
-                      ? "bg-foreground/10 text-foreground"
-                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                    showConvos ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -224,20 +211,13 @@ const DashboardSidebar = ({
 
               {showConvos && (
                 <>
-                  {/* Search */}
                   <div className="flex-shrink-0 px-3 pt-2">
                     <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
                       <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
-                      <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search conversations…"
-                        className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
-                      />
+                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search conversations…" className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
                     </div>
                   </div>
 
-                  {/* Conversation list */}
                   <div className="p-2 space-y-3">
                     {groups.map((group) => (
                       <div key={group.label}>
@@ -250,11 +230,7 @@ const DashboardSidebar = ({
                               key={conv.id}
                               conv={conv}
                               isActive={activeView === "chat" && conv.id === activeConversationId}
-                              onSelect={() => {
-                                onSelectConversation(conv.id);
-                                onViewChange("chat");
-                                onToggleSidebar();
-                              }}
+                              onSelect={() => { onSelectConversation(conv.id); onViewChange("chat"); onToggleSidebar(); }}
                               onTogglePin={() => onTogglePin(conv.id)}
                               onDelete={() => onDeleteConversation(conv.id)}
                               onArchive={() => onArchiveConversation(conv.id)}
@@ -267,21 +243,17 @@ const DashboardSidebar = ({
                 </>
               )}
 
-              {/* Personas */}
               <div className="px-2 py-2 border-t border-border/20">
                 <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} />
               </div>
 
-              {/* Navigation */}
               <div className="px-2 py-2 border-t border-border/20 space-y-0.5">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
                     className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                      activeView === item.id
-                        ? "bg-foreground/10 text-foreground"
-                        : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                      activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                     }`}
                   >
                     <item.icon className="h-4 w-4" />

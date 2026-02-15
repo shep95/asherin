@@ -48,7 +48,7 @@ const Index = () => {
   const [isTyping, setIsTyping] = useState(false);
   const { canInstall, install } = usePwaInstall();
   const [demoCount, setDemoCount] = useState(() => {
-    return parseInt(localStorage.getItem("zialiel_demo_count") || "0", 10);
+    return parseInt(localStorage.getItem("aureon_demo_count") || "0", 10);
   });
   const maxDemos = 3;
 
@@ -57,7 +57,7 @@ const Index = () => {
     if (!demoQuery.trim() || isTyping || demoCount >= maxDemos) return;
     const newCount = demoCount + 1;
     setDemoCount(newCount);
-    localStorage.setItem("zialiel_demo_count", String(newCount));
+    localStorage.setItem("aureon_demo_count", String(newCount));
     setIsTyping(true);
     setDemoResponse("");
 
@@ -141,7 +141,7 @@ const Index = () => {
           The AI That Actually Tells You The Truth.
         </h1>
         <p className="mt-6 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
-          No filters. No emotional manipulation. No hidden agendas. ZIALIEL gives you uncensored answers, brutal logic, and code that outperforms the leading models.
+          No filters. No emotional manipulation. No hidden agendas. Aureon gives you uncensored answers, brutal logic, and code that outperforms the leading models.
         </p>
         {canInstall && (
           <button
@@ -183,7 +183,7 @@ const Index = () => {
           </div>
 
           <p className="mt-16 text-xl sm:text-2xl font-extralight tracking-wide text-foreground">
-            ZIALIEL was built for one reason:
+            Aureon was built for one reason:
             <br />
             <span className="text-muted-foreground">You deserve an AI that respects your intelligence.</span>
           </p>
@@ -203,7 +203,7 @@ const Index = () => {
           <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden text-left">
             {/* Demo Header */}
             <div className="flex items-center justify-between border-b border-border/20 px-6 py-4">
-              <span className="text-sm font-light tracking-[0.2em] text-foreground">ZIALIEL LIVE</span>
+              <span className="text-sm font-light tracking-[0.2em] text-foreground">AUREON LIVE</span>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                 <span className="text-xs font-extralight tracking-wide text-muted-foreground">LIVE</span>
@@ -342,7 +342,7 @@ const Index = () => {
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            What ZIALIEL Actually Does.
+            What Aureon Actually Does.
             <br />
             <span className="text-muted-foreground">Specific. No Buzzwords.</span>
           </h2>
@@ -396,7 +396,7 @@ const Index = () => {
               <thead>
                 <tr className="border-b border-border/20">
                   <th className="px-6 py-4 font-light tracking-wide text-muted-foreground">Feature</th>
-                  <th className="px-4 py-4 font-light tracking-wide text-foreground">ZIALIEL</th>
+                  <th className="px-4 py-4 font-light tracking-wide text-foreground">AUREON</th>
                   <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">ChatGPT</th>
                   <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">Claude</th>
                   <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">Venice</th>
@@ -436,7 +436,7 @@ const Index = () => {
           </h2>
 
           <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-10 sm:p-14">
-            <p className="text-sm font-light tracking-[0.2em] text-muted-foreground uppercase">ZIALIEL Full Access</p>
+            <p className="text-sm font-light tracking-[0.2em] text-muted-foreground uppercase">AUREON Full Access</p>
             <p className="mt-4 text-5xl sm:text-6xl font-extralight tracking-tight text-foreground">
               $18<span className="text-xl text-muted-foreground font-extralight"> / month</span>
             </p>
@@ -477,7 +477,7 @@ const Index = () => {
           <div className="mt-16 text-center">
             <p className="text-lg font-extralight tracking-wide text-foreground italic">"Why no free tier?"</p>
             <p className="mt-4 max-w-lg mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
-              Because free tiers train you to expect less. ZIALIEL gives you everything on day one or nothing. That's the only honest model.
+              Because free tiers train you to expect less. Aureon gives you everything on day one or nothing. That's the only honest model.
             </p>
           </div>
         </div>
@@ -612,7 +612,7 @@ const Index = () => {
                   © {new Date().getFullYear()} Zorak Corp
                 </p>
                 <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30 mt-1">
-                  ZIALIEL — Founded June 28, 2026
+                  AUREON — Founded June 28, 2026
                 </p>
               </div>
             </div>
