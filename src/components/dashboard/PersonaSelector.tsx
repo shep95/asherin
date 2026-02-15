@@ -138,7 +138,7 @@ ACCESSIBILITY AUDIT MODE: Full WCAG 2.1 AA audit. For each violation: RULE, ELEM
 
 DEFAULT: Run all 9 phases, output rebuilt UI with design changelog. Every pixel intentional. Ship-grade or nothing.`;
 
-const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
+export const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
   { id: "analyst", name: "The Analyst", icon: "search", Icon: Search, description: "Cold, data-driven. Numbers and evidence only.", systemPrompt: "", builtIn: true },
   { id: "strategist", name: "The Strategist", icon: "scale", Icon: Scale, description: "Long-term thinking. Pros, cons, second-order effects.", systemPrompt: "", builtIn: true },
   { id: "engineer", name: "The Engineer", icon: "code", Icon: Code, description: "Pure technical. Code-first. No fluff.", systemPrompt: "", builtIn: true },

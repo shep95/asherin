@@ -1,6 +1,7 @@
 import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
 import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download } from "lucide-react";
+import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
@@ -428,6 +429,9 @@ const Index = () => {
           </p>
         </div>
       </div>
+
+      {/* Dashboard Preview Section */}
+      <DashboardPreview />
 
       {/* Section 8: Pricing Block */}
       <div className="relative z-10 px-6 py-24 sm:py-32">
