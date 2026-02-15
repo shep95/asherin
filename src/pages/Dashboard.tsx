@@ -97,6 +97,16 @@ const Dashboard = () => {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // Listen for navigation events from child components
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const view = (e as CustomEvent).detail as DashboardView;
+      if (view) setActiveView(view);
+    };
+    window.addEventListener("aureon:navigate", handler);
+    return () => window.removeEventListener("aureon:navigate", handler);
+  }, []);
+
   // Load conversations and user profile from DB
   useEffect(() => {
     if (!user) return;
