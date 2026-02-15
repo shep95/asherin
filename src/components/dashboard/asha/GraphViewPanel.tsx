@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { ZoomIn, ZoomOut, Maximize2, Filter, Search } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ZoomIn, ZoomOut, Maximize2, Filter, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface GraphNode {
   id: string;
   label: string;
-  type: "person" | "company" | "transaction" | "event" | "location" | "product";
+  type: string;
   x: number;
   y: number;
 }
@@ -13,126 +15,132 @@ interface GraphEdge {
   from: string;
   to: string;
   label: string;
-  style: "solid" | "dashed" | "wavy";
 }
 
 const nodeColors: Record<string, string> = {
-  person: "hsl(220, 60%, 60%)",
-  company: "hsl(45, 80%, 55%)",
-  transaction: "hsl(140, 50%, 50%)",
-  event: "hsl(0, 60%, 55%)",
-  location: "hsl(280, 50%, 55%)",
-  product: "hsl(180, 50%, 50%)",
+  dataset: "hsl(220, 60%, 60%)",
+  column: "hsl(45, 80%, 55%)",
+  type: "hsl(140, 50%, 50%)",
+  tag: "hsl(280, 50%, 55%)",
 };
-
-const nodeShapes: Record<string, string> = {
-  person: "●",
-  company: "■",
-  transaction: "◆",
-  event: "▲",
-  location: "⬟",
-  product: "◯",
-};
-
-const MOCK_NODES: GraphNode[] = [
-  { id: "1", label: "Alice Chen", type: "person", x: 200, y: 150 },
-  { id: "2", label: "Acme Corp", type: "company", x: 450, y: 120 },
-  { id: "3", label: "TXN-4721", type: "transaction", x: 350, y: 280 },
-  { id: "4", label: "Bob Martinez", type: "person", x: 550, y: 300 },
-  { id: "5", label: "New York", type: "location", x: 150, y: 350 },
-  { id: "6", label: "Product X", type: "product", x: 650, y: 200 },
-  { id: "7", label: "Q4 Review", type: "event", x: 400, y: 420 },
-];
-
-const MOCK_EDGES: GraphEdge[] = [
-  { from: "1", to: "2", label: "works at", style: "solid" },
-  { from: "1", to: "3", label: "initiated", style: "solid" },
-  { from: "3", to: "4", label: "received by", style: "solid" },
-  { from: "1", to: "5", label: "based in", style: "dashed" },
-  { from: "2", to: "6", label: "manufactures", style: "solid" },
-  { from: "4", to: "7", label: "attended", style: "dashed" },
-  { from: "2", to: "7", label: "organized", style: "solid" },
-];
 
 const GraphViewPanel = () => {
+  const [nodes, setNodes] = useState<GraphNode[]>([]);
+  const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [filterType, setFilterType] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  const filteredNodes = filterType ? MOCK_NODES.filter((n) => n.type === filterType) : MOCK_NODES;
-  const filteredNodeIds = new Set(filteredNodes.map((n) => n.id));
-  const filteredEdges = MOCK_EDGES.filter((e) => filteredNodeIds.has(e.from) && filteredNodeIds.has(e.to));
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data: datasets } = await supabase
+        .from("asha_datasets")
+        .select("id, file_name, schema, tags")
+        .eq("user_id", user.id)
+        .eq("status", "ready");
+
+      if (!datasets || datasets.length === 0) { setLoading(false); return; }
+
+      const gNodes: GraphNode[] = [];
+      const gEdges: GraphEdge[] = [];
+      const colMap = new Map<string, string>();
+
+      // Place dataset nodes in a circle
+      datasets.forEach((ds: any, i: number) => {
+        const angle = (2 * Math.PI * i) / datasets.length;
+        const cx = 400 + Math.cos(angle) * 200;
+        const cy = 300 + Math.sin(angle) * 200;
+        gNodes.push({ id: ds.id, label: ds.file_name, type: "dataset", x: cx, y: cy });
+
+        // Add column nodes and edges
+        const schema = ds.schema || [];
+        schema.forEach((col: any, ci: number) => {
+          const colKey = col.name.toLowerCase();
+          if (!colMap.has(colKey)) {
+            const colAngle = angle + ((ci - schema.length / 2) * 0.15);
+            const colX = cx + Math.cos(colAngle) * 120;
+            const colY = cy + Math.sin(colAngle) * 120;
+            const colId = `col_${colKey}`;
+            colMap.set(colKey, colId);
+            gNodes.push({ id: colId, label: col.name, type: "column", x: colX, y: colY });
+          }
+          gEdges.push({ from: ds.id, to: colMap.get(colKey)!, label: `has ${col.type}` });
+        });
+      });
+
+      // Find shared columns (join keys)
+      const colDatasets = new Map<string, string[]>();
+      datasets.forEach((ds: any) => {
+        (ds.schema || []).forEach((col: any) => {
+          const key = col.name.toLowerCase();
+          if (!colDatasets.has(key)) colDatasets.set(key, []);
+          colDatasets.get(key)!.push(ds.id);
+        });
+      });
+
+      // Create edges between datasets sharing columns
+      colDatasets.forEach((dsIds) => {
+        if (dsIds.length > 1) {
+          for (let i = 0; i < dsIds.length - 1; i++) {
+            for (let j = i + 1; j < dsIds.length; j++) {
+              gEdges.push({ from: dsIds[i], to: dsIds[j], label: "shared column" });
+            }
+          }
+        }
+      });
+
+      setNodes(gNodes);
+      setEdges(gEdges);
+      setLoading(false);
+    };
+    load();
+  }, [user]);
+
+  if (loading) return <div className="flex justify-center items-center h-full"><Loader2 className="h-5 w-5 animate-spin text-accent" /></div>;
+
+  if (nodes.length === 0) {
+    return <div className="flex justify-center items-center h-full"><p className="text-xs text-muted-foreground/40">No datasets to visualize. Upload files first.</p></div>;
+  }
 
   return (
     <div className="flex h-full">
-      {/* Canvas */}
       <div className="flex-1 relative bg-background/50">
-        {/* Controls */}
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-1">
-          <button onClick={() => setZoom((z) => Math.min(z + 0.2, 2))} className="rounded-lg border border-border/20 bg-card/60 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <ZoomIn className="h-4 w-4" />
-          </button>
-          <button onClick={() => setZoom((z) => Math.max(z - 0.2, 0.4))} className="rounded-lg border border-border/20 bg-card/60 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <ZoomOut className="h-4 w-4" />
-          </button>
-          <button onClick={() => setZoom(1)} className="rounded-lg border border-border/20 bg-card/60 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
-            <Maximize2 className="h-4 w-4" />
-          </button>
+          <button onClick={() => setZoom((z) => Math.min(z + 0.2, 2))} className="rounded-lg border border-border/20 bg-card/60 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors"><ZoomIn className="h-4 w-4" /></button>
+          <button onClick={() => setZoom((z) => Math.max(z - 0.2, 0.4))} className="rounded-lg border border-border/20 bg-card/60 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors"><ZoomOut className="h-4 w-4" /></button>
+          <button onClick={() => setZoom(1)} className="rounded-lg border border-border/20 bg-card/60 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors"><Maximize2 className="h-4 w-4" /></button>
         </div>
 
-        {/* Filter */}
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="bg-card/60 backdrop-blur-sm border border-border/20 rounded-lg px-2 py-1.5 text-[10px] text-foreground outline-none">
-            <option value="">All types</option>
-            {Object.keys(nodeColors).map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-
-        {/* Legend */}
         <div className="absolute bottom-4 left-4 z-10 rounded-xl border border-border/20 bg-card/60 backdrop-blur-sm p-3">
           <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-2">Legend</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            {Object.entries(nodeShapes).map(([type, shape]) => (
+          <div className="space-y-1">
+            {Object.entries(nodeColors).map(([type, color]) => (
               <div key={type} className="flex items-center gap-1.5 text-[10px]">
-                <span style={{ color: nodeColors[type] }}>{shape}</span>
+                <div className="w-2 h-2 rounded-full" style={{ background: color }} />
                 <span className="text-muted-foreground capitalize">{type}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Graph SVG */}
         <svg className="w-full h-full" style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}>
-          {/* Edges */}
-          {filteredEdges.map((edge, i) => {
-            const from = MOCK_NODES.find((n) => n.id === edge.from);
-            const to = MOCK_NODES.find((n) => n.id === edge.to);
+          {edges.map((edge, i) => {
+            const from = nodes.find((n) => n.id === edge.from);
+            const to = nodes.find((n) => n.id === edge.to);
             if (!from || !to) return null;
             return (
               <g key={i}>
-                <line
-                  x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                  stroke="hsl(0, 0%, 25%)"
-                  strokeWidth={1.5}
-                  strokeDasharray={edge.style === "dashed" ? "6,4" : undefined}
-                />
-                <text
-                  x={(from.x + to.x) / 2} y={(from.y + to.y) / 2 - 6}
-                  fill="hsl(0, 0%, 45%)" fontSize={9} textAnchor="middle"
-                >
-                  {edge.label}
-                </text>
+                <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="hsl(0, 0%, 25%)" strokeWidth={1} strokeDasharray="4,3" />
               </g>
             );
           })}
-
-          {/* Nodes */}
-          {filteredNodes.map((node) => (
+          {nodes.map((node) => (
             <g key={node.id} onClick={() => setSelectedNode(node)} className="cursor-pointer">
-              <circle cx={node.x} cy={node.y} r={22} fill={nodeColors[node.type]} opacity={0.15} stroke={nodeColors[node.type]} strokeWidth={1.5} />
-              <circle cx={node.x} cy={node.y} r={6} fill={nodeColors[node.type]} />
-              <text x={node.x} y={node.y + 36} fill="hsl(0, 0%, 80%)" fontSize={10} textAnchor="middle" fontWeight={300}>
+              <circle cx={node.x} cy={node.y} r={node.type === "dataset" ? 22 : 14} fill={nodeColors[node.type] || "hsl(0,0%,50%)"} opacity={0.15} stroke={nodeColors[node.type] || "hsl(0,0%,50%)"} strokeWidth={1.5} />
+              <circle cx={node.x} cy={node.y} r={node.type === "dataset" ? 6 : 4} fill={nodeColors[node.type] || "hsl(0,0%,50%)"} />
+              <text x={node.x} y={node.y + (node.type === "dataset" ? 36 : 24)} fill="hsl(0, 0%, 80%)" fontSize={node.type === "dataset" ? 10 : 8} textAnchor="middle" fontWeight={300}>
                 {node.label}
               </text>
             </g>
@@ -140,43 +148,25 @@ const GraphViewPanel = () => {
         </svg>
       </div>
 
-      {/* Detail panel */}
       {selectedNode && (
-        <div className="w-72 border-l border-border/20 bg-card/20 backdrop-blur-sm p-4 space-y-4">
+        <div className="w-64 border-l border-border/20 bg-card/20 backdrop-blur-sm p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span style={{ color: nodeColors[selectedNode.type] }} className="text-lg">{nodeShapes[selectedNode.type]}</span>
-              <div>
-                <p className="text-sm font-light text-foreground">{selectedNode.label}</p>
-                <p className="text-[10px] text-muted-foreground capitalize">{selectedNode.type}</p>
-              </div>
-            </div>
+            <p className="text-sm font-light text-foreground">{selectedNode.label}</p>
             <button onClick={() => setSelectedNode(null)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
           </div>
-
+          <p className="text-[10px] text-muted-foreground capitalize">Type: {selectedNode.type}</p>
           <div>
-            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-2">Properties</p>
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs"><span className="text-muted-foreground">ID</span><span className="text-foreground font-mono">{selectedNode.id}</span></div>
-              <div className="flex justify-between text-xs"><span className="text-muted-foreground">Type</span><span className="text-foreground capitalize">{selectedNode.type}</span></div>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-2">Connections</p>
-            <div className="space-y-1">
-              {MOCK_EDGES.filter((e) => e.from === selectedNode.id || e.to === selectedNode.id).map((e, i) => {
-                const otherId = e.from === selectedNode.id ? e.to : e.from;
-                const other = MOCK_NODES.find((n) => n.id === otherId);
-                return (
-                  <button key={i} onClick={() => other && setSelectedNode(other)} className="w-full text-left flex items-center gap-2 rounded-lg bg-card/30 px-2 py-1.5 text-[10px] hover:bg-foreground/5 transition-colors">
-                    <span style={{ color: nodeColors[other?.type ?? "person"] }}>{nodeShapes[other?.type ?? "person"]}</span>
-                    <span className="text-foreground">{other?.label}</span>
-                    <span className="text-muted-foreground/50 ml-auto">{e.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-1">Connections</p>
+            {edges.filter((e) => e.from === selectedNode.id || e.to === selectedNode.id).map((e, i) => {
+              const otherId = e.from === selectedNode.id ? e.to : e.from;
+              const other = nodes.find((n) => n.id === otherId);
+              return (
+                <button key={i} onClick={() => other && setSelectedNode(other)} className="w-full text-left flex items-center gap-2 rounded-lg bg-card/30 px-2 py-1.5 text-[10px] hover:bg-foreground/5 transition-colors mb-1">
+                  <span className="text-foreground truncate">{other?.label}</span>
+                  <span className="text-muted-foreground/50 ml-auto text-[9px]">{e.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

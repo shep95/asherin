@@ -14,6 +14,265 @@ export type Database = {
   }
   public: {
     Tables: {
+      asha_branches: {
+        Row: {
+          conflicts: number
+          created_at: string
+          id: string
+          is_main: boolean
+          is_protected: boolean
+          name: string
+          parent_id: string | null
+          transform_count: number
+          user_id: string
+        }
+        Insert: {
+          conflicts?: number
+          created_at?: string
+          id?: string
+          is_main?: boolean
+          is_protected?: boolean
+          name: string
+          parent_id?: string | null
+          transform_count?: number
+          user_id: string
+        }
+        Update: {
+          conflicts?: number
+          created_at?: string
+          id?: string
+          is_main?: boolean
+          is_protected?: boolean
+          name?: string
+          parent_id?: string | null
+          transform_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asha_branches_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "asha_branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asha_datasets: {
+        Row: {
+          branch: string | null
+          col_count: number | null
+          created_at: string
+          date_range: string | null
+          description: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          issues: Json | null
+          project_name: string | null
+          quality_score: number | null
+          row_count: number | null
+          schema: Json | null
+          status: string
+          storage_path: string
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch?: string | null
+          col_count?: number | null
+          created_at?: string
+          date_range?: string | null
+          description?: string | null
+          file_name: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          issues?: Json | null
+          project_name?: string | null
+          quality_score?: number | null
+          row_count?: number | null
+          schema?: Json | null
+          status?: string
+          storage_path: string
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch?: string | null
+          col_count?: number | null
+          created_at?: string
+          date_range?: string | null
+          description?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          issues?: Json | null
+          project_name?: string | null
+          quality_score?: number | null
+          row_count?: number | null
+          schema?: Json | null
+          status?: string
+          storage_path?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asha_insights: {
+        Row: {
+          created_at: string
+          dataset_id: string | null
+          description: string
+          dismissed: boolean
+          icon: string
+          id: string
+          pinned: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dataset_id?: string | null
+          description: string
+          dismissed?: boolean
+          icon?: string
+          id?: string
+          pinned?: boolean
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dataset_id?: string | null
+          description?: string
+          dismissed?: boolean
+          icon?: string
+          id?: string
+          pinned?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asha_insights_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "asha_datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asha_queries: {
+        Row: {
+          created_at: string
+          id: string
+          query: string
+          response: string
+          response_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          query: string
+          response?: string
+          response_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          query?: string
+          response?: string
+          response_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asha_reports: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          name: string
+          pages: number | null
+          schedule: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          pages?: number | null
+          schedule?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          pages?: number | null
+          schedule?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asha_workflows: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          last_run: string | null
+          name: string
+          runs_count: number
+          template_id: string | null
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_run?: string | null
+          name: string
+          runs_count?: number
+          template_id?: string | null
+          trigger_type?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_run?: string | null
+          name?: string
+          runs_count?: number
+          template_id?: string | null
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calibration_feedback: {
         Row: {
           created_at: string
