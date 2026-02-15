@@ -51,30 +51,75 @@ const Index = () => {
   });
   const maxDemos = 3;
 
-  const handleDemo = (e: React.FormEvent) => {
+  const handleDemo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!demoQuery.trim() || isTyping || demoCount >= maxDemos) return;
     const newCount = demoCount + 1;
     setDemoCount(newCount);
     localStorage.setItem("zialiel_demo_count", String(newCount));
     setIsTyping(true);
+    setDemoResponse("");
 
-    const responses = [
-      "Here's the direct answer without the corporate disclaimers. Most LLMs would refuse this or wrap it in 5 paragraphs of warnings. Aureon respects your time and intelligence.",
-      "Straight to the point: the issue is in your state management. You're mutating the array directly instead of creating a new reference. Replace `arr.push()` with `[...arr, newItem]`. Done.",
-      "The truth is most AI companies optimize for engagement, not accuracy. Aureon optimizes for one thing: being right.",
-    ];
-    const response = responses[Math.floor(Math.random() * responses.length)];
+    const query = demoQuery.trim();
+    setDemoQuery("");
 
-    let i = 0;
-    const interval = setInterval(() => {
-      setDemoResponse(response.slice(0, i + 1));
-      i++;
-      if (i >= response.length) {
-        clearInterval(interval);
+    try {
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: query }],
+          mode: "chat",
+          depth: "standard",
+        }),
+      });
+
+      if (!resp.ok || !resp.body) {
+        setDemoResponse("Something went wrong. Try again.");
         setIsTyping(false);
+        return;
       }
-    }, 18);
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let fullText = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              fullText += content;
+              setDemoResponse(fullText);
+            }
+          } catch { /* partial JSON, wait for more */ }
+        }
+      }
+    } catch (err) {
+      console.error("Demo chat error:", err);
+      setDemoResponse("Connection failed. Please try again.");
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
