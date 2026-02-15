@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import heroBg from "@/assets/hero-bg.png";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
@@ -5,6 +6,12 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 const Founder = () => {
+  useEffect(() => {
+    document.title = "Asher Newton — Founder of Aureon";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", "Meet Asher Newton, the founder of Aureon — the uncensored AI intelligence platform built for researchers, developers, and truth-seekers.");
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
@@ -28,14 +35,14 @@ const Founder = () => {
               <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide text-foreground mb-1">
                 Asher Newton
               </h1>
-              <p className="text-sm font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
-                Founder & Creator of ZIALIEL
+               <p className="text-sm font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
+                Founder & Creator of AUREON
               </p>
             </div>
 
             <div className="space-y-8 text-sm font-extralight leading-relaxed text-muted-foreground">
               <p className="text-base font-extralight text-foreground/80 text-center max-w-xl mx-auto">
-                "I didn't build ZIALIEL for investors or corporations. I built it because the tools humanity deserves don't exist yet — and no one else was going to make them."
+                "I didn't build Aureon for investors or corporations. I built it because the tools humanity deserves don't exist yet — and no one else was going to make them."
               </p>
 
               <div className="w-16 mx-auto border-t border-border/20" />
@@ -57,21 +64,21 @@ const Founder = () => {
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">The Vision</h2>
                 <p>
-                  I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. ZIALIEL is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.
+                  I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. Aureon is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">Beyond Code</h2>
                 <p>
-                  My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives ZIALIEL: the belief that truth exists in layers, and the best tools are the ones that help you see through each one. Aureon speaks without a filter. Zophiel searches where others won't look. That's not a feature — it's a philosophy.
+                  My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one. Aureon speaks without a filter. Zophiel searches where others won't look. That's not a feature — it's a philosophy.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">For Humanity</h2>
                 <p>
-                  ZIALIEL isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. If you're here, you're the reason this exists.
+                  Aureon isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. If you're here, you're the reason this exists.
                 </p>
               </section>
 
