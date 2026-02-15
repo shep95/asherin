@@ -1,8 +1,9 @@
 import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-green-400 inline" />;
@@ -44,6 +45,7 @@ const Index = () => {
   const [demoQuery, setDemoQuery] = useState("");
   const [demoResponse, setDemoResponse] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const { canInstall, install } = usePwaInstall();
   const [demoCount, setDemoCount] = useState(() => {
     return parseInt(localStorage.getItem("zialiel_demo_count") || "0", 10);
   });
@@ -95,6 +97,16 @@ const Index = () => {
         <p className="mt-6 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
           No filters. No emotional manipulation. No hidden agendas. ZIALIEL gives you uncensored answers, brutal logic, and code that outperforms the leading models.
         </p>
+        {canInstall && (
+          <button
+            onClick={install}
+            className="mt-8 group inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+          >
+            <Download className="h-4 w-4" />
+            Download App
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </button>
+        )}
       </div>
 
       {/* Section 2: The Pain Amplifier */}

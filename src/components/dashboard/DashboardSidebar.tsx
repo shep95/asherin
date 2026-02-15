@@ -3,12 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download,
 } from "lucide-react";
 import type { Conversation, DashboardView } from "./types";
 import PersonaSelector from "./PersonaSelector";
 import SwipeableConversationItem from "./SwipeableConversationItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 
 // Sidebar context for shared state
 interface SidebarContextValue {
@@ -210,12 +211,24 @@ const DashboardSidebar = ({
             ))}
           </div>
 
-          <div className="flex-shrink-0 p-3 pb-5 border-t border-border/20">
+          <div className="flex-shrink-0 p-3 pb-5 border-t border-border/20 space-y-1">
+            <InstallBtn />
             <LogoutBtn />
           </div>
         </div>
       </aside>
     </SidebarContext.Provider>
+  );
+};
+
+const InstallBtn = () => {
+  const { canInstall, install } = usePwaInstall();
+  if (!canInstall) return null;
+  return (
+    <button onClick={install} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-light text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground">
+      <Download className="h-4 w-4" />
+      Download App
+    </button>
   );
 };
 
