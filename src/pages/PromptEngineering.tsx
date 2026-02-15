@@ -1,3 +1,5 @@
+import heroBg from "@/assets/hero-bg.png";
+import Header from "@/components/Header";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
@@ -36,63 +38,78 @@ const sections = [
 
 const PromptEngineering = () => {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Back nav */}
-      <div className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-3 sm:py-4">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2 text-sm font-light text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Link>
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      {/* Fixed background image with dark overlay */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${heroBg})` }}
+      />
+      <div className="fixed inset-0 bg-black/80" />
 
-      {/* Hero */}
-      <section className="pt-28 pb-16 px-4 sm:px-6 text-center max-w-3xl mx-auto">
-        <p className="text-xs font-light tracking-[0.3em] uppercase text-muted-foreground mb-4">
-          Master the Art
-        </p>
-        <h1 className="text-4xl sm:text-5xl font-extralight tracking-wide mb-6">
-          Prompt Engineering
-        </h1>
-        <p className="text-base sm:text-lg font-extralight text-muted-foreground leading-relaxed max-w-xl mx-auto">
-          Learn how to craft effective instructions for AI models and unlock their full potential.
-        </p>
-      </section>
+      <Header />
 
-      {/* Sections */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 pb-24 space-y-16">
-        {sections.map((s) => (
-          <article key={s.number} className="space-y-4">
-            <div className="flex items-center gap-4">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/40 text-xs font-light text-muted-foreground">
-                {s.number}
-              </span>
-              <h2 className="text-xl sm:text-2xl font-extralight tracking-wide">
-                {s.title}
-              </h2>
+      <div className="relative z-10 px-6 pt-32 pb-24">
+        <div className="mx-auto max-w-3xl">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors mb-12"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
+
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
+            {/* Hero */}
+            <div className="text-center mb-12">
+              <p className="text-xs font-extralight tracking-[0.3em] uppercase text-muted-foreground/60 mb-4">
+                Master the Art
+              </p>
+              <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide text-foreground mb-4">
+                Prompt Engineering
+              </h1>
+              <p className="text-sm font-extralight leading-relaxed text-muted-foreground max-w-xl mx-auto">
+                Learn how to craft effective instructions for AI models and unlock their full potential.
+              </p>
             </div>
-            <div className="pl-12 space-y-4">
-              {s.content.split("\n\n").map((p, i) => (
-                <p key={i} className="text-sm font-light leading-relaxed text-muted-foreground">
-                  {p}
-                </p>
+
+            <div className="w-16 mx-auto border-t border-border/20 mb-12" />
+
+            {/* Sections */}
+            <div className="space-y-12">
+              {sections.map((s) => (
+                <section key={s.number}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/30 text-xs font-extralight text-muted-foreground">
+                      {s.number}
+                    </span>
+                    <h2 className="text-lg font-light tracking-wide text-foreground">
+                      {s.title}
+                    </h2>
+                  </div>
+                  <div className="pl-12 space-y-4">
+                    {s.content.split("\n\n").map((p, i) => (
+                      <p key={i} className="text-sm font-extralight leading-relaxed text-muted-foreground">
+                        {p}
+                      </p>
+                    ))}
+                  </div>
+                </section>
               ))}
-            </div>
-          </article>
-        ))}
 
-        {/* Conclusion */}
-        <article className="space-y-4 border-t border-border/20 pt-12">
-          <h2 className="text-xl sm:text-2xl font-extralight tracking-wide">
-            Conclusion
-          </h2>
-          <p className="text-sm font-light leading-relaxed text-muted-foreground">
-            Prompt engineering is a dynamic and evolving field that requires a combination of linguistic understanding, technical knowledge, and creative experimentation. By mastering the art of crafting effective prompts, we can unlock the full potential of large language models and harness their power to solve complex problems, generate creative content, and enhance human-computer interaction. As AI becomes increasingly integrated into our lives, the ability to effectively communicate with these powerful tools will be a critical skill for individuals and organizations alike.
-          </p>
-        </article>
-      </main>
+              {/* Conclusion */}
+              <div className="w-16 mx-auto border-t border-border/20" />
+              <section>
+                <h2 className="text-lg font-light tracking-wide text-foreground mb-3">
+                  Conclusion
+                </h2>
+                <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
+                  Prompt engineering is a dynamic and evolving field that requires a combination of linguistic understanding, technical knowledge, and creative experimentation. By mastering the art of crafting effective prompts, we can unlock the full potential of large language models and harness their power to solve complex problems, generate creative content, and enhance human-computer interaction. As AI becomes increasingly integrated into our lives, the ability to effectively communicate with these powerful tools will be a critical skill for individuals and organizations alike.
+                </p>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
