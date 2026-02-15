@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.asha-report]
 verify_jwt = false
+
+[functions.nomad-investigate]
+verify_jwt = false

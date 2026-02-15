@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -48,6 +48,7 @@ interface DashboardSidebarProps {
 const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; enterprise?: boolean }[] = [
   { id: "search", icon: Zap, label: "Zophiel Engine", enterprise: true },
   { id: "asha", icon: Database, label: "Asha Intelligence", enterprise: true },
+  { id: "nomad", icon: Crosshair, label: "NOMAD Agent", enterprise: true },
   { id: "library", icon: FolderOpen, label: "Library" },
   { id: "projects", icon: Layers, label: "Projects" },
   { id: "memory", icon: Brain, label: "Memory Center" },
