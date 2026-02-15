@@ -232,7 +232,12 @@ ${contextBlocks}${instantBlock}
 
 ${totalSources === 0 ? "NOTE: No search results were returned. Generate the briefing based on your training knowledge of recent events related to the user's profile. Clearly mark items as 'Based on available intelligence' rather than citing specific sources." : ""}
 
-Generate a structured intelligence briefing covering the last 24-48 hours (${yesterday} through ${today}). Format it in markdown exactly like this:
+Generate a structured intelligence briefing covering the last 24-48 hours (${yesterday} through ${today}). 
+
+IMPORTANT: Start your response with a single-line TITLE on its own, formatted as:
+TITLE: [A short, unique, specific headline summarizing the most important development today, e.g. "EU AI Act Enforcement Begins as Tech Giants Scramble" or "OpenAI Launches Enterprise Tier — Market Shakes Up"]
+
+Then format the rest in markdown exactly like this:
 
 # AUREON MORNING BRIEF — ${today}
 
@@ -278,7 +283,16 @@ RULES:
     }
 
     const geminiData = await geminiResp.json();
-    const briefingContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Failed to generate briefing.";
+    const rawContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Failed to generate briefing.";
+
+    // Extract dynamic title from AI response
+    let briefingTitle = `Morning Brief — ${today}`;
+    let briefingContent = rawContent;
+    const titleMatch = rawContent.match(/^TITLE:\s*(.+)/m);
+    if (titleMatch) {
+      briefingTitle = titleMatch[1].trim();
+      briefingContent = rawContent.replace(/^TITLE:\s*.+\n*/m, "").trim();
+    }
 
     // Count items by severity
     const criticalCount = (briefingContent.match(/^[-→•]/gm) || []).length;
@@ -288,7 +302,7 @@ RULES:
       .from("briefing_reports")
       .insert({
         user_id: userId,
-        title: `Morning Brief — ${today}`,
+        title: briefingTitle,
         content: briefingContent,
         sources_checked: totalSources,
         critical_items: criticalCount,

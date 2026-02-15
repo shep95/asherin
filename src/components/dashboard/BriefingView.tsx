@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Newspaper, Send, RefreshCw, Loader2, AlertTriangle, Eye, Trash2, Settings2, Clock, ChevronDown } from "lucide-react";
+import { Newspaper, Send, RefreshCw, Loader2, AlertTriangle, Eye, Trash2, Settings2, Clock, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -203,6 +203,16 @@ const BriefingView = () => {
     );
   }
 
+  const downloadBriefing = (report: BriefingReport) => {
+    const blob = new Blob([report.content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${report.title.replace(/[^a-zA-Z0-9 —-]/g, "")}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Active report view
   if (activeReport) {
     return (
@@ -211,10 +221,15 @@ const BriefingView = () => {
           <button onClick={() => setActiveReport(null)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
             ← Back to Briefings
           </button>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span>{activeReport.sources_checked} sources</span>
-            <span>•</span>
-            <span>{new Date(activeReport.created_at).toLocaleString()}</span>
+          <div className="flex items-center gap-3">
+            <button onClick={() => downloadBriefing(activeReport)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors" title="Download briefing">
+              <Download className="h-3.5 w-3.5" />
+            </button>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <span>{activeReport.sources_checked} sources</span>
+              <span>•</span>
+              <span>{new Date(activeReport.created_at).toLocaleString()}</span>
+            </div>
           </div>
         </div>
         <ScrollArea className="flex-1">
@@ -409,6 +424,10 @@ const BriefingView = () => {
                           {report.critical_items}
                         </span>
                       )}
+                      <button onClick={(e) => { e.stopPropagation(); downloadBriefing(report); }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-accent transition-all" title="Download">
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); deleteReport(report.id); }}
                         className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground hover:text-destructive transition-all">
                         <Trash2 className="h-3.5 w-3.5" />
