@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock } from "lucide-react";
+import { Eye, Lock, Copy, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
 import CodeFilePreview from "./CodeFilePreview";
@@ -28,6 +28,26 @@ interface ChatViewProps {
   onCalibrationFeedback?: (messageId: string, feedback: FeedbackType) => void;
   onStopStreaming?: () => void;
   focusMode?: boolean;
+}
+
+// Copy button for messages
+function MessageCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+      title="Copy message"
+    >
+      {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
 }
 
 // Helper to parse user messages for code blocks and render as file preview cards
@@ -174,20 +194,26 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       <UserMessageContent content={msg.content} />
                     )}
                   </div>
-                  {msg.role === "assistant" && msg.content && !isStreaming && (
+                  {/* Action bar for both message types */}
+                  {msg.content && !isStreaming && (
                     <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
-                      <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
-                      <button
-                        onClick={() => setDecodeId(decodeId === msg.id ? null : msg.id)}
-                        className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                      >
-                        <Eye className="h-3 w-3" />
-                        Decode
-                      </button>
-                      <CalibrationFeedback
-                        messageId={msg.id}
-                        onFeedback={onCalibrationFeedback ?? (() => {})}
-                      />
+                      <MessageCopyButton text={msg.content} />
+                      {msg.role === "assistant" && (
+                        <>
+                          <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
+                          <button
+                            onClick={() => setDecodeId(decodeId === msg.id ? null : msg.id)}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <Eye className="h-3 w-3" />
+                            Decode
+                          </button>
+                          <CalibrationFeedback
+                            messageId={msg.id}
+                            onFeedback={onCalibrationFeedback ?? (() => {})}
+                          />
+                        </>
+                      )}
                     </div>
                   )}
                   {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
