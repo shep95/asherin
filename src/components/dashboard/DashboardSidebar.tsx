@@ -5,7 +5,7 @@ import {
   Plus, Search, LogOut, Zap,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown,
 } from "lucide-react";
-import type { Conversation, DashboardView } from "./types";
+import type { Conversation, DashboardView, Persona } from "./types";
 import PersonaSelector from "./PersonaSelector";
 import SwipeableConversationItem from "./SwipeableConversationItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -41,6 +41,8 @@ interface DashboardSidebarProps {
   onToggleSidebar: () => void;
   personaId?: string | null;
   onPersonaChange?: (id: string | null) => void;
+  customPersonas?: Persona[];
+  onAddCustomPersona?: (persona: Persona) => void;
 }
 
 const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; enterprise?: boolean }[] = [
@@ -87,6 +89,7 @@ const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
   onNewConversation, onDeleteConversation, onArchiveConversation, onTogglePin, onViewChange,
   sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
+  customPersonas, onAddCustomPersona,
 }: DashboardSidebarProps) => {
   const { tierKey } = useSubscription();
   const [search, setSearch] = useState("");
@@ -213,7 +216,7 @@ const DashboardSidebar = ({
 
           {/* Personas */}
           <div className="flex-shrink-0 px-2 py-2 border-t border-border/20">
-            <PersonaSelector activeId={personaId} onSelect={setPersonaId} />
+            <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} />
           </div>
 
           {/* Navigation */}
