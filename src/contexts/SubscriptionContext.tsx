@@ -66,6 +66,11 @@ export function hasSearchAccess(tierKey: TierKey | null): boolean {
   return tierKey === "pro" || tierKey === "enterprise" || tierKey === "aureon";
 }
 
+/** Check if user has pro-level access (pro or enterprise) */
+export function hasProAccess(tierKey: TierKey | null): boolean {
+  return tierKey === "pro" || tierKey === "enterprise";
+}
+
 /** Check if user has enterprise-level access */
 export function hasEnterpriseAccess(tierKey: TierKey | null): boolean {
   return tierKey === "enterprise";

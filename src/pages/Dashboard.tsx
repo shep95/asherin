@@ -16,10 +16,11 @@ import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AshaView from "@/components/dashboard/asha/AshaView";
 import NomadView from "@/components/dashboard/NomadView";
+import BriefingView from "@/components/dashboard/BriefingView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasEnterpriseAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasEnterpriseAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import { useToast } from "@/hooks/use-toast";
@@ -397,6 +398,10 @@ const Dashboard = () => {
         return hasEnterpriseAccess(tierKey) 
           ? <NomadView /> 
           : <FeatureGate title="NOMAD Agent" description="Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation and structured dossier output. Available on the Aureon Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
+      case "briefing":
+        return hasProAccess(tierKey)
+          ? <BriefingView />
+          : <FeatureGate title="Intelligence Briefings" description="Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro and Enterprise plans." onUpgrade={() => setActiveView("subscription")} />;
       case "library": return <LibraryView />;
       case "projects": return <ProjectsView />;
       case "memory": return <MemoryCenterView />;
