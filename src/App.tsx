@@ -12,6 +12,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Founder from "./pages/Founder";
 import PromptEngineering from "./pages/PromptEngineering";
+import Features from "./pages/Features";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/founder" element={<Founder />} />
             <Route path="/prompt-engineering" element={<PromptEngineering />} />
+            <Route path="/features" element={<Features />} />
             <Route
               path="/dashboard"
               element={

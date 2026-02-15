@@ -45,6 +45,9 @@ const Header = () => {
                   <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide">Pricing</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide">Features</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide">Prompt Engineering</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -65,6 +68,7 @@ const Header = () => {
               <div className="flex flex-col gap-2">
                 <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
                 <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Pricing</Link>
+                <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Features</Link>
                 <Link to="/prompt-engineering" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Prompt Engineering</Link>
                 <button onClick={() => openAuth(true)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Log in</button>
                 <button onClick={() => openAuth(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">Sign up</button>
