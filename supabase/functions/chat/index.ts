@@ -482,7 +482,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mode, personaId, depth, userProfile } = await req.json();
+    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
@@ -529,7 +529,7 @@ serve(async (req) => {
       AUREON_VEDIC_INTELLIGENCE,
       AUREON_IMAGE_INTELLIGENCE,
       AUREON_ADVANCED_PROTOCOLS,
-      personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : "",
+      personaId && PERSONA_PROMPTS[personaId] ? PERSONA_PROMPTS[personaId] : (personaSystemPrompt ? `PERSONA OVERRIDE: ${personaSystemPrompt}` : ""),
       mode && MODE_PROMPTS[mode] ? MODE_PROMPTS[mode] : MODE_PROMPTS.chat,
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       CONTEXT_INTELLIGENCE_PROMPT,

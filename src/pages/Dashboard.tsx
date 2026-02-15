@@ -261,11 +261,16 @@ const Dashboard = () => {
 
     const history = [...(activeConv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
+    // Resolve custom persona system prompt
+    const activePersona = customPersonas.find((p) => p.id === personaId);
+    const personaSystemPrompt = activePersona?.systemPrompt || null;
+
     try {
       await streamChat({
         messages: history,
         mode,
         personaId,
+        personaSystemPrompt,
         depth,
         userProfile,
         signal: controller.signal,
