@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Upload, Table2, Share2, GitBranch, Workflow, LayoutDashboard,
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
+  Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity, Bell,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -15,6 +16,11 @@ import BranchPanel from "./BranchPanel";
 import CatalogPanel from "./CatalogPanel";
 import ReportsPanel from "./ReportsPanel";
 import WebIntelligencePanel from "./WebIntelligencePanel";
+import EntityResolutionPanel from "./EntityResolutionPanel";
+import ScenarioSimulatorPanel from "./ScenarioSimulatorPanel";
+import DataLineagePanel from "./DataLineagePanel";
+import ThreatModelingPanel from "./ThreatModelingPanel";
+import MonitoringPanel from "./MonitoringPanel";
 import EncryptionBadge from "../EncryptionBadge";
 
 const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
@@ -22,10 +28,15 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "catalog", icon: BookOpen, label: "Catalog" },
   { id: "table", icon: Table2, label: "Table" },
   { id: "graph", icon: Share2, label: "Graph" },
+  { id: "entities", icon: Fingerprint, label: "Entities" },
+  { id: "lineage", icon: GitCommitHorizontal, label: "Lineage" },
   { id: "pipelines", icon: GitBranch, label: "Branches" },
   { id: "workflows", icon: Workflow, label: "Workflows" },
+  { id: "scenarios", icon: FlaskConical, label: "Scenarios" },
+  { id: "threats", icon: Target, label: "Threats" },
   { id: "dashboards", icon: LayoutDashboard, label: "Dashboards" },
   { id: "insights", icon: Lightbulb, label: "Insights" },
+  { id: "monitoring", icon: Activity, label: "Monitoring" },
   { id: "reports", icon: FileOutput, label: "Reports" },
   { id: "webintel", icon: Globe, label: "Web Intel" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
@@ -40,10 +51,15 @@ const AshaView = () => {
       case "catalog": return <CatalogPanel />;
       case "table": return <DataTablePanel />;
       case "graph": return <GraphViewPanel />;
+      case "entities": return <EntityResolutionPanel />;
+      case "lineage": return <DataLineagePanel />;
       case "pipelines": return <BranchPanel />;
       case "workflows": return <WorkflowPanel />;
+      case "scenarios": return <ScenarioSimulatorPanel />;
+      case "threats": return <ThreatModelingPanel />;
       case "dashboards": return <DashboardBuilderPanel />;
       case "insights": return <InsightsPanel />;
+      case "monitoring": return <MonitoringPanel />;
       case "reports": return <ReportsPanel />;
       case "webintel": return <WebIntelligencePanel />;
       case "query": return <QueryBar />;
