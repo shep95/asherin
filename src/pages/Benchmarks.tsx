@@ -10,6 +10,7 @@ interface Criterion {
   name: string;
   aureon: string;
   claude: string;
+  notes: string;
   winner: "aureon" | "claude" | "tie";
 }
 
@@ -23,17 +24,12 @@ interface BenchmarkSection {
 
 const sections: BenchmarkSection[] = [
   {
-    id: "structural",
+    id: "modularity",
     number: "01",
-    title: "Structural Metrics",
+    title: "Modularity / File Structure",
     icon: FileCode,
     criteria: [
-      { name: "Module System", aureon: "CommonJS (require)", claude: "ES Modules (import/export)", winner: "tie" },
-      { name: "Config Centralization", aureon: "Yes (config/index.js)", claude: "Partial (direct process.env)", winner: "aureon" },
-      { name: "File Separation", aureon: "Yes (config, middleware, routes, utils)", claude: "Yes (middleware, routes, utils)", winner: "aureon" },
-      { name: "Error Middleware", aureon: "Yes (global handler)", claude: "Yes (errorHandler + 404)", winner: "tie" },
-      { name: "Health Endpoint", aureon: "/ base route", claude: "/health endpoint", winner: "tie" },
-      { name: "Protected Route Example", aureon: "Yes (/protected)", claude: "Yes (authenticate middleware)", winner: "tie" },
+      { name: "Separation of Concerns", aureon: "Clear config/, utils/, middleware/, routes/ separation", claude: "ES modules, slightly flatter structure", notes: "Aureon is more explicit in separating concerns like config and utils.", winner: "aureon" },
     ],
   },
   {
@@ -42,12 +38,7 @@ const sections: BenchmarkSection[] = [
     title: "Authentication",
     icon: Lock,
     criteria: [
-      { name: "JWT Issuance", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "JWT Expiration", aureon: "Configurable via env", claude: "Fixed (1h)", winner: "aureon" },
-      { name: "JWT Payload", aureon: "{ id, username }", claude: "{ sub, username }", winner: "tie" },
-      { name: "Token Middleware", aureon: "authenticateToken", claude: "authenticate", winner: "tie" },
-      { name: "Expired Token Handling", aureon: "403", claude: "401 with message", winner: "claude" },
-      { name: "Missing Header Handling", aureon: "401", claude: "401", winner: "tie" },
+      { name: "Token Architecture", aureon: "JWT with generateAccessToken + authenticateToken", claude: "JWT verification in middleware", notes: "Aureon separates token generation and verification; Claude combines verification inline.", winner: "aureon" },
     ],
   },
   {
@@ -56,11 +47,7 @@ const sections: BenchmarkSection[] = [
     title: "Rate Limiting",
     icon: Shield,
     criteria: [
-      { name: "Global Limiter", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Auth-Specific Limiter", aureon: "No", claude: "Yes (authLimiter)", winner: "claude" },
-      { name: "Config via Environment", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Standard Headers", aureon: "Enabled", claude: "Enabled", winner: "tie" },
-      { name: "Legacy Headers Disabled", aureon: "Yes", claude: "Yes", winner: "tie" },
+      { name: "Limiter Strategy", aureon: "Global limiter + explanation; configurable", claude: "Global + stricter auth limiter", notes: "Claude adds a stricter limiter for auth, which is security-conscious.", winner: "claude" },
     ],
   },
   {
@@ -69,70 +56,43 @@ const sections: BenchmarkSection[] = [
     title: "Input Validation",
     icon: Target,
     criteria: [
-      { name: "Library Used", aureon: "Joi", claude: "Zod", winner: "tie" },
-      { name: "Schema Separation", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Custom Error Messages", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Aggregated Error Reporting", aureon: "Yes (abortEarly: false)", claude: "Yes (safeParse issues)", winner: "tie" },
-      { name: "Body Replacement with Parsed Data", aureon: "No", claude: "Yes (req.body = result.data)", winner: "claude" },
-    ],
-  },
-  {
-    id: "password",
-    number: "05",
-    title: "Password Security",
-    icon: Shield,
-    criteria: [
-      { name: "Hashing Library", aureon: "bcryptjs", claude: "bcryptjs", winner: "tie" },
-      { name: "Salt Rounds", aureon: "10", claude: "12", winner: "claude" },
-      { name: "Password Comparison", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Plaintext Storage", aureon: "No", claude: "No", winner: "tie" },
-    ],
-  },
-  {
-    id: "storage",
-    number: "06",
-    title: "Data Storage Model",
-    icon: Database,
-    criteria: [
-      { name: "In-Memory Store", aureon: "Array", claude: "Map", winner: "claude" },
-      { name: "ID Strategy", aureon: "Incremental (length+1)", claude: "Incremental counter", winner: "tie" },
-      { name: "O(1) Username Lookup", aureon: "No (array search)", claude: "Yes (Map)", winner: "claude" },
+      { name: "Validation Approach", aureon: "Joi schema with error aggregation", claude: "Zod schemas, supports coercion and defaults", notes: "Both strong; Aureon shows more descriptive messages; Claude is more concise and functional.", winner: "tie" },
     ],
   },
   {
     id: "error-handling",
-    number: "07",
+    number: "05",
     title: "Error Handling",
     icon: AlertTriangle,
     criteria: [
-      { name: "Global Error Middleware", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Stack Trace Logging", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Production Error Suppression", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Explicit 404 Handler", aureon: "No", claude: "Yes", winner: "claude" },
+      { name: "Error Strategy", aureon: "Global error handling middleware, logs stack", claude: "Simple errorHandler function", notes: "Aureon logs and suppresses in production; Claude is minimal.", winner: "aureon" },
     ],
   },
   {
     id: "security",
-    number: "08",
-    title: "Security Controls",
+    number: "06",
+    title: "Security",
     icon: Shield,
     criteria: [
-      { name: "JSON Size Limit", aureon: "No", claude: "Yes (10kb)", winner: "claude" },
-      { name: "CORS Enabled", aureon: "No", claude: "Yes", winner: "claude" },
-      { name: "JWT Secret Fallback", aureon: "Yes", claude: "Yes", winner: "tie" },
-      { name: "Auth Route Throttling", aureon: "No", claude: "Yes", winner: "claude" },
+      { name: "Security Stack", aureon: "bcrypt hashing, JWT, input validation, rate limiting", claude: "bcrypt hashing, JWT, input validation, rate limiting", notes: "Both handle password security well.", winner: "tie" },
     ],
   },
   {
-    id: "code-surface",
-    number: "09",
-    title: "Code Surface",
+    id: "production",
+    number: "07",
+    title: "Production Readiness",
     icon: Cpu,
     criteria: [
-      { name: "Distinct Files Shown", aureon: "6+", claude: "7+", winner: "tie" },
-      { name: "Middleware Count", aureon: "3", claude: "4", winner: "claude" },
-      { name: "Environment Variables", aureon: "3", claude: "4", winner: "tie" },
-      { name: "Routes Defined", aureon: "3", claude: "4+", winner: "tie" },
+      { name: "Production Guidance", aureon: "Extensive recommendations (logging, DB, containerization)", claude: "Minimal", notes: "Aureon provides guidance for production hardening.", winner: "aureon" },
+    ],
+  },
+  {
+    id: "readability",
+    number: "08",
+    title: "Readability & Comments",
+    icon: Code,
+    criteria: [
+      { name: "Documentation Style", aureon: "Heavily commented and structured", claude: "Clean ES module style, less verbose", notes: "Claude is cleaner for a dev who prefers ES module style; Aureon is more educational.", winner: "aureon" },
     ],
   },
 ];
@@ -311,13 +271,14 @@ const Benchmarks = () => {
 
                 {/* Criteria Table */}
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[500px] text-left text-sm">
+                  <table className="w-full min-w-[600px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-border/10">
-                        <th className="px-6 sm:px-8 py-3 text-xs font-light tracking-wide text-muted-foreground w-[35%]">Criterion</th>
-                        <th className="px-4 py-3 text-xs font-light tracking-wide text-foreground w-[28%]">Aureon</th>
-                        <th className="px-4 py-3 text-xs font-light tracking-wide text-muted-foreground w-[28%]">Claude</th>
-                        <th className="px-4 py-3 text-xs font-light tracking-wide text-muted-foreground w-[9%]"></th>
+                        <th className="px-6 sm:px-8 py-3 text-xs font-light tracking-wide text-muted-foreground w-[20%]">Aspect</th>
+                        <th className="px-4 py-3 text-xs font-light tracking-wide text-foreground w-[25%]">Aureon</th>
+                        <th className="px-4 py-3 text-xs font-light tracking-wide text-muted-foreground w-[25%]">Claude</th>
+                        <th className="px-4 py-3 text-xs font-light tracking-wide text-muted-foreground w-[25%]">Notes</th>
+                        <th className="px-4 py-3 text-xs font-light tracking-wide text-muted-foreground w-[5%]"></th>
                       </tr>
                     </thead>
                     <tbody className="font-extralight">
@@ -332,6 +293,7 @@ const Benchmarks = () => {
                             {c.winner === "claude" && <span className="text-muted-foreground mr-1.5">✓</span>}
                             {c.claude}
                           </td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground/70 italic">{c.notes}</td>
                           <td className="px-4 py-3 text-center"><WinnerDot winner={c.winner} /></td>
                         </tr>
                       ))}
