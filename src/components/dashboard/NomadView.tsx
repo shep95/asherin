@@ -279,15 +279,28 @@ const NomadView = () => {
                           <div className="prose prose-invert prose-sm max-w-none font-extralight [&_h1]:text-base [&_h1]:font-light [&_h1]:tracking-wide [&_h2]:text-sm [&_h2]:font-light [&_h2]:tracking-wide [&_h3]:text-xs [&_h3]:font-light [&_ul]:space-y-1 [&_ol]:space-y-1 [&_li]:text-xs [&_p]:text-xs [&_p]:leading-relaxed [&_code]:text-[10px] [&_code]:break-all [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre]:text-[10px] [&_table]:text-xs [&_th]:text-[10px] [&_th]:font-light [&_th]:tracking-wider [&_strong]:text-orange-300 overflow-hidden">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                           </div>
-                          {msg.content.length > 100 && (
-                            <div className="mt-3 pt-3 border-t border-border/10 flex items-center gap-3">
-                              <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1">
-                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                                <span className="text-[9px] font-light text-emerald-400">Confidence: {Math.floor(60 + Math.random() * 35)}%</span>
+                          {msg.content.length > 100 && (() => {
+                            // Extract confidence from response content
+                            const confMatch = msg.content.match(/confidence[:\s]*(?:level[:\s]*)?(HIGH|MEDIUM|LOW|\d+)/i);
+                            const sourceMatch = msg.content.match(/source/gi);
+                            const sourceCount = sourceMatch ? Math.min(sourceMatch.length, 40) : 0;
+                            let confScore = 70;
+                            if (confMatch) {
+                              if (/HIGH/i.test(confMatch[1])) confScore = 85;
+                              else if (/MEDIUM/i.test(confMatch[1])) confScore = 65;
+                              else if (/LOW/i.test(confMatch[1])) confScore = 40;
+                              else confScore = parseInt(confMatch[1]) || 70;
+                            }
+                            return (
+                              <div className="mt-3 pt-3 border-t border-border/10 flex items-center gap-3">
+                                <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${confScore >= 70 ? "bg-emerald-500/10 border border-emerald-500/20" : confScore >= 50 ? "bg-amber-500/10 border border-amber-500/20" : "bg-destructive/10 border border-destructive/20"}`}>
+                                  <div className={`h-1.5 w-1.5 rounded-full ${confScore >= 70 ? "bg-emerald-400" : confScore >= 50 ? "bg-amber-400" : "bg-destructive"}`} />
+                                  <span className={`text-[9px] font-light ${confScore >= 70 ? "text-emerald-400" : confScore >= 50 ? "text-amber-400" : "text-destructive"}`}>Confidence: {confScore}%</span>
+                                </div>
+                                <span className="text-[9px] text-muted-foreground/40">{sourceCount} sources referenced</span>
                               </div>
-                              <span className="text-[9px] text-muted-foreground/40">{Math.floor(3 + Math.random() * 20)} sources cross-referenced</span>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       ) : (
                         <p className="text-xs font-extralight leading-relaxed">{msg.content}</p>
