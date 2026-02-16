@@ -179,20 +179,20 @@ const Pricing = () => {
               { icon: Code, label: "Elite Coding", desc: "Multi-file architecture, debugging, and production-grade output.", tier: "All tiers" },
               { icon: Shield, label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
               { icon: Search, label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
-              { icon: Eye, label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Enterprise" },
-              { icon: BarChart3, label: "Asha Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Enterprise" },
-              { icon: Newspaper, label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Enterprise" },
-              { icon: Users, label: "Team Workspace", desc: "Unlimited seats, shared threads, and collaborative intelligence.", tier: "Enterprise" },
-              { icon: Server, label: "Private Deployment", desc: "On-premise or private cloud deployment for maximum control.", tier: "Enterprise" },
+              { icon: Eye, label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro & Advisor" },
+              { icon: BarChart3, label: "Asha Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro & Advisor" },
+              { icon: Newspaper, label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro & Advisor" },
+              { icon: Users, label: "Direct Advisor Access", desc: "Direct access to Asher for custom intelligence operations. NDA required.", tier: "Advisor Only" },
+              { icon: Server, label: "Private Deployment", desc: "On-premise or private cloud deployment for maximum control.", tier: "Advisor Only" },
             ].map(({ icon: Icon, label, desc, tier: tierLabel }) => (
-              <div key={label} className={`rounded-xl border p-5 backdrop-blur-md ${tierLabel === "Enterprise" ? "border-accent/15 bg-accent/5" : "border-border/20 bg-card/30"}`}>
+              <div key={label} className={`rounded-xl border p-5 backdrop-blur-md ${tierLabel === "Advisor Only" ? "border-purple-500/15 bg-purple-500/5" : tierLabel === "Pro & Advisor" ? "border-accent/15 bg-accent/5" : "border-border/20 bg-card/30"}`}>
                 <div className="flex items-center gap-3 mb-2">
-                  <Icon className={`h-5 w-5 ${tierLabel === "Enterprise" ? "text-accent" : "text-foreground"}`} />
+                  <Icon className={`h-5 w-5 ${tierLabel === "Advisor Only" ? "text-purple-400" : tierLabel === "Pro & Advisor" ? "text-accent" : "text-foreground"}`} />
                   <h3 className="text-sm font-light tracking-wide text-foreground">{label}</h3>
                 </div>
                 <p className="text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
                 <div className="mt-3">
-                  <span className={`text-[10px] tracking-wider uppercase ${tierLabel === "Enterprise" ? "text-accent/70" : "text-emerald-400/70"}`}>{tierLabel}</span>
+                  <span className={`text-[10px] tracking-wider uppercase ${tierLabel === "Advisor Only" ? "text-purple-400/70" : tierLabel === "Pro & Advisor" ? "text-accent/70" : "text-emerald-400/70"}`}>{tierLabel}</span>
                 </div>
               </div>
             ))}
