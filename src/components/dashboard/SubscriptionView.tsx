@@ -23,13 +23,14 @@ const plans: {
     features: [
       "Uncensored AI responses on any topic",
       "60 messages per 3-hour window",
-      "Elite coding engine",
+      "Elite coding engine — outperforms Claude Opus 4.6",
       "Zophiel Search Engine",
-      "Persistent memory across sessions",
+      "Persistent memory across all sessions",
       "Context intelligence & intent detection",
       "Multi-persona system",
       "Live web search integration",
       "End-to-end encryption",
+      "Data never sold or used for training",
     ],
   },
   {
