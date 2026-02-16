@@ -9,12 +9,16 @@ export const TIERS = {
     price_id: "price_1T0sB1RxgCpmPfiFDF7VtYX8",
   },
   pro: {
-    product_id: "prod_Tz6XjwPUtCwUmI",
-    price_id: "price_1T18KRRxgCpmPfiFAewsYO5G",
+    product_id: "prod_TzZksq719TybMX",
+    price_id: "price_1T1abTRxgCpmPfiF6urmDCDF",
   },
-  enterprise: {
-    product_id: "prod_TypqQSMqan0aOZ",
-    price_id: "price_1T0sB3RxgCpmPfiFUdHAAqD5",
+  advisor_monthly: {
+    product_id: "prod_TzZlilj5l50ena",
+    price_id: "price_1T1abVRxgCpmPfiFsZcq9ZNM",
+  },
+  advisor_annual: {
+    product_id: "prod_TzZlU2MDFcXG7o",
+    price_id: "price_1T1abXRxgCpmPfiFFyuty5i6",
   },
 } as const;
 
@@ -61,19 +65,24 @@ function productToTier(productId: string | null): TierKey | null {
   return null;
 }
 
-/** Check if user has access to Zophiel Search (pro or enterprise) */
+/** Check if user has access to Zophiel Search (all paid tiers) */
 export function hasSearchAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "pro" || tierKey === "enterprise" || tierKey === "aureon";
+  return tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
 }
 
-/** Check if user has pro-level access (pro or enterprise) */
+/** Check if user has pro-level access (pro or advisor) */
 export function hasProAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "pro" || tierKey === "enterprise";
+  return tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
 }
 
-/** Check if user has enterprise-level access */
+/** Check if user has advisor-level access */
+export function hasAdvisorAccess(tierKey: TierKey | null): boolean {
+  return tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+}
+
+/** @deprecated Use hasAdvisorAccess instead */
 export function hasEnterpriseAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "enterprise";
+  return hasAdvisorAccess(tierKey);
 }
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {

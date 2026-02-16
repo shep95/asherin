@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Upload, Table2, Share2, GitBranch, Workflow, LayoutDashboard,
-  Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput,
+  Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -14,6 +14,7 @@ import DashboardBuilderPanel from "./DashboardBuilderPanel";
 import BranchPanel from "./BranchPanel";
 import CatalogPanel from "./CatalogPanel";
 import ReportsPanel from "./ReportsPanel";
+import WebIntelligencePanel from "./WebIntelligencePanel";
 import EncryptionBadge from "../EncryptionBadge";
 
 const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
@@ -26,6 +27,7 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "dashboards", icon: LayoutDashboard, label: "Dashboards" },
   { id: "insights", icon: Lightbulb, label: "Insights" },
   { id: "reports", icon: FileOutput, label: "Reports" },
+  { id: "webintel", icon: Globe, label: "Web Intel" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
 
@@ -43,6 +45,7 @@ const AshaView = () => {
       case "dashboards": return <DashboardBuilderPanel />;
       case "insights": return <InsightsPanel />;
       case "reports": return <ReportsPanel />;
+      case "webintel": return <WebIntelligencePanel />;
       case "query": return <QueryBar />;
     }
   };
