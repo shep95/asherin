@@ -14,6 +14,7 @@ import Founder from "./pages/Founder";
 import PromptEngineering from "./pages/PromptEngineering";
 import Features from "./pages/Features";
 import Benchmarks from "./pages/Benchmarks";
+import NDA from "./pages/NDA";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/prompt-engineering" element={<PromptEngineering />} />
             <Route path="/features" element={<Features />} />
             <Route path="/benchmarks" element={<Benchmarks />} />
+            <Route path="/nda" element={<NDA />} />
             <Route
               path="/dashboard"
               element={

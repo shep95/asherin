@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, Newspaper } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, FileText } from "lucide-react";
 import { useSubscription, TIERS, type TierKey } from "@/contexts/SubscriptionContext";
+import { Link } from "react-router-dom";
 
 const plans: {
   id: TierKey;
@@ -10,6 +11,7 @@ const plans: {
   period: string;
   description: string;
   highlight: boolean;
+  purple?: boolean;
   features: string[];
 }[] = [
   {
@@ -36,47 +38,46 @@ const plans: {
   {
     id: "pro",
     name: "AUREON PRO",
-    tagline: "Enhanced Intelligence",
-    price: "$74",
+    tagline: "Full Dashboard Access",
+    price: "$2,400",
     period: "/ month",
-    description: "Everything in Aureon plus higher limits, priority access, and advanced search capabilities.",
+    description: "Complete access to every tool in the dashboard — Asha Intelligence, NOMAD OSINT, Briefings, and unlimited capabilities.",
     highlight: false,
     features: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
-      "Zophiel Search Engine — full access",
-      "Daily Intelligence Briefings",
-      "Company & competitor tracking",
-      "Regulatory monitoring & alerts",
-      "Priority model access",
-      "Advanced context intelligence",
-      "Extended memory capacity",
-      "Priority support",
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "AUREON ENTERPRISE",
-    tagline: "Full Intelligence Suite",
-    price: "$5,000",
-    period: "/ week",
-    description: "Complete intelligence platform — Aureon AI + Zophiel Search + Asha Intelligence + NOMAD OSINT + Daily Intelligence Briefings.",
-    highlight: true,
-    features: [
-      "Everything in Aureon Pro — unlimited",
       "Asha Data Intelligence Platform",
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
-      "Company & competitor tracking",
-      "40+ OSINT data sources — automated correlation",
-      "Structured intelligence dossiers & reports",
+      "Web Intelligence — automated company analysis",
       "Entity resolution & relationship mapping",
-      "Real-time data analysis pipeline",
+      "Scenario Simulator & threat modeling",
+      "Company & competitor tracking",
+      "Priority model access",
+      "Advanced context intelligence",
+      "Extended memory capacity",
+    ],
+  },
+  {
+    id: "advisor_monthly",
+    name: "AUREON ADVISOR",
+    tagline: "Direct Access — Limited to 8 Seats",
+    price: "$20,000",
+    period: "/ month",
+    description: "The full intelligence suite plus direct advisor access to Asher. NDA required. Limited to 8 clients worldwide.",
+    highlight: true,
+    purple: true,
+    features: [
+      "Everything in Pro — unlimited",
+      "Direct advisor access to Asher",
+      "Limited to 8 clients worldwide",
+      "NDA required upon purchase",
+      "Custom intelligence operations",
+      "Private deployment option",
       "Dedicated intelligence API endpoints",
       "Priority model access — zero queue",
-      "Team workspace — unlimited seats",
-      "Private deployment option",
-      "24/7 direct engineering support",
+      "24/7 direct support line",
+      "Annual option: $240,000/year",
     ],
   },
 ];
@@ -91,7 +92,7 @@ const SubscriptionView = () => {
     setRefreshing(false);
   };
 
-  const activePlanName = tierKey ? plans.find(p => p.id === tierKey)?.name ?? "Unknown" : null;
+  const activePlanName = tierKey ? plans.find(p => p.id === tierKey)?.name ?? (tierKey === "advisor_annual" ? "AUREON ADVISOR (Annual)" : "Unknown") : null;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -111,11 +112,11 @@ const SubscriptionView = () => {
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${subscribed ? "bg-accent/20" : "bg-muted/20"}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${subscribed ? (tierKey === "advisor_monthly" || tierKey === "advisor_annual" ? "bg-purple-500/20" : "bg-accent/20") : "bg-muted/20"}`}>
                 {loading ? (
                   <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
                 ) : subscribed ? (
-                  <Crown className="h-5 w-5 text-accent" />
+                  <Crown className={`h-5 w-5 ${tierKey === "advisor_monthly" || tierKey === "advisor_annual" ? "text-purple-400" : "text-accent"}`} />
                 ) : (
                   <AlertCircle className="h-5 w-5 text-muted-foreground" />
                 )}
@@ -156,20 +157,23 @@ const SubscriptionView = () => {
         {/* Plan Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
-            const isActive = tierKey === plan.id;
+            const isActive = tierKey === plan.id || (plan.id === "advisor_monthly" && tierKey === "advisor_annual");
+            const isPurple = plan.purple;
             return (
               <div
                 key={plan.id}
                 className={`rounded-xl border backdrop-blur-sm p-4 sm:p-5 transition-all flex flex-col ${
-                  plan.highlight
-                    ? "border-accent/30 bg-accent/5"
-                    : "border-border/20 bg-card/20"
-                } ${isActive ? "ring-1 ring-accent/50" : ""}`}
+                  isPurple
+                    ? "border-purple-500/30 bg-purple-500/5"
+                    : plan.highlight
+                      ? "border-accent/30 bg-accent/5"
+                      : "border-border/20 bg-card/20"
+                } ${isActive ? `ring-1 ${isPurple ? "ring-purple-500/50" : "ring-accent/50"}` : ""}`}
               >
-                {plan.highlight && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 mb-3 w-fit">
-                    <Zap className="h-3 w-3 text-accent" />
-                    <span className="text-[10px] font-medium tracking-[0.15em] text-accent uppercase">Full Suite</span>
+                {isPurple && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-0.5 mb-3 w-fit">
+                    <Zap className="h-3 w-3 text-purple-400" />
+                    <span className="text-[10px] font-medium tracking-[0.15em] text-purple-400 uppercase">Advisor — 8 Seats Only</span>
                   </div>
                 )}
 
@@ -190,39 +194,63 @@ const SubscriptionView = () => {
 
                 <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">{plan.description}</p>
 
-                <button
-                  onClick={() => !isActive && startCheckout(plan.id)}
-                  disabled={isActive || checkoutLoading}
-                  className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
-                    isActive
-                      ? "bg-muted/20 text-muted-foreground cursor-default"
-                      : plan.highlight
-                        ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                {plan.id === "advisor_monthly" ? (
+                  <div className="mt-4 space-y-2">
+                    <button
+                      onClick={() => !isActive && startCheckout("advisor_monthly")}
+                      disabled={isActive || checkoutLoading}
+                      className={`group flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
+                        isActive
+                          ? "bg-muted/20 text-muted-foreground cursor-default"
+                          : "bg-purple-500 text-white hover:bg-purple-500/90"
+                      }`}
+                    >
+                      {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? "Current Plan" : <>$20,000/mo <ArrowRight className="h-3.5 w-3.5" /></>}
+                    </button>
+                    <button
+                      onClick={() => !isActive && startCheckout("advisor_annual")}
+                      disabled={isActive || checkoutLoading}
+                      className="group flex w-full items-center justify-center gap-2 rounded-lg py-2 text-[11px] font-light tracking-wide border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all disabled:opacity-50"
+                    >
+                      $240,000/year (save $0)
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => !isActive && startCheckout(plan.id)}
+                    disabled={isActive || checkoutLoading}
+                    className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
+                      isActive
+                        ? "bg-muted/20 text-muted-foreground cursor-default"
                         : "bg-foreground text-background hover:bg-foreground/90"
-                  }`}
-                >
-                  {checkoutLoading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : isActive ? (
-                    "Current Plan"
-                  ) : (
-                    <>
-                      Subscribe
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                    </>
-                  )}
-                </button>
+                    }`}
+                  >
+                    {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? "Current Plan" : <>Subscribe <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></>}
+                  </button>
+                )}
 
                 <div className="my-4 h-px bg-border/15" />
 
                 <ul className="space-y-1.5 flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-[11px] font-extralight text-foreground/80">
-                      <Check className={`h-3 w-3 mt-0.5 shrink-0 ${plan.highlight ? "text-accent" : "text-emerald-400"}`} />
+                      <Check className={`h-3 w-3 mt-0.5 shrink-0 ${isPurple ? "text-purple-400" : "text-emerald-400"}`} />
                       {feature}
                     </li>
                   ))}
                 </ul>
+
+                {plan.id === "advisor_monthly" && (
+                  <div className="mt-4 rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <FileText className="h-3.5 w-3.5 text-purple-400" />
+                      <span className="text-[10px] text-purple-400 font-light uppercase tracking-wider">NDA Required</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      Advisor clients must sign a Non-Disclosure Agreement upon purchase. <Link to="/nda" className="text-purple-400 underline">Review NDA</Link>
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -262,9 +290,10 @@ const SubscriptionView = () => {
           <h3 className="text-sm font-light text-foreground mb-3">Common Questions</h3>
           {[
             { q: "Can I switch plans?", a: "Yes. Upgrade or downgrade anytime. Changes take effect immediately." },
-            { q: "How do I cancel?", a: "Click 'Manage Billing' above to access the Stripe portal where you can cancel instantly." },
-            { q: "What are the message limits?", a: "Aureon: 60 messages per 3 hours. Pro: 200 per 3 hours. Enterprise: Unlimited." },
-            { q: "Is Enterprise billed weekly?", a: "Yes. Weekly billing, no long-term contract. Cancel with 7 days notice." },
+            { q: "How do I cancel?", a: "Click 'Manage Billing' above to access the portal where you can cancel instantly." },
+            { q: "What are the message limits?", a: "Aureon: 60 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited." },
+            { q: "What is the Advisor NDA?", a: "Advisor clients sign a Non-Disclosure Agreement to protect proprietary intelligence methods and platform internals." },
+            { q: "Is the Advisor tier really limited to 8 seats?", a: "Yes. Once 8 clients are active, the Advisor tier is closed until a seat opens." },
           ].map(({ q, a }) => (
             <details key={q} className="group rounded-lg border border-border/20 bg-card/20 backdrop-blur-sm overflow-hidden">
               <summary className="flex items-center justify-between px-4 py-3 cursor-pointer text-xs font-light text-foreground list-none">
