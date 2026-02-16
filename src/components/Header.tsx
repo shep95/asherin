@@ -50,6 +50,9 @@ const Header = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide">Prompt Engineering</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide">Benchmarks</Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <button onClick={() => openAuth(true)} className="rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Log in</button>
@@ -70,6 +73,7 @@ const Header = () => {
                 <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Pricing</Link>
                 <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Features</Link>
                 <Link to="/prompt-engineering" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Prompt Engineering</Link>
+                <Link to="/benchmarks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Benchmarks</Link>
                 <button onClick={() => openAuth(true)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Log in</button>
                 <button onClick={() => openAuth(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">Sign up</button>
               </div>

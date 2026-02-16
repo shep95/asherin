@@ -596,7 +596,11 @@ const Index = () => {
               </div>
 
               {/* Center — Links */}
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-6 flex-wrap justify-center">
+                <Link to="/pricing" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+                <Link to="/features" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Features</Link>
+                <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
+                <Link to="/founder" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Founder</Link>
                 <Link
                   to="/terms"
                   className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors"
