@@ -1,6 +1,6 @@
 import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -435,56 +435,90 @@ const Index = () => {
 
       {/* Section 8: Pricing Block */}
       <div className="relative z-10 px-6 py-24 sm:py-32">
-        <div className="mx-auto max-w-2xl text-center">
+        <div className="mx-auto max-w-6xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            One Plan. Everything Unlocked.
+            Choose Your Intelligence Level.
             <br />
-            <span className="text-muted-foreground">No Upsells. No Tiers Designed To Frustrate You.</span>
+            <span className="text-muted-foreground">No Free Tiers. No Data Harvesting.</span>
           </h2>
 
-          <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-10 sm:p-14">
-            <p className="text-sm font-light tracking-[0.2em] text-muted-foreground uppercase">AUREON Full Access</p>
-            <p className="mt-4 text-5xl sm:text-6xl font-extralight tracking-tight text-foreground">
-              $18<span className="text-xl text-muted-foreground font-extralight"> / month</span>
-            </p>
+          <div className="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+            {/* Aureon */}
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left">
+              <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">AI Intelligence</p>
+              <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON</h3>
+              <div className="mt-6 flex items-baseline gap-1">
+                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$18</span>
+                <span className="text-lg text-muted-foreground font-extralight">/ month</span>
+              </div>
+              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Full access to Aureon AI — uncensored, unfiltered. 60 messages per 3-hour window.</p>
+              <Link to="/pricing" className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+                Get Aureon Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <div className="my-8 h-px bg-border/15" />
+              <ul className="space-y-3 flex-1">
+                {["Uncensored AI responses", "Elite coding engine", "Zophiel Search Engine", "Persistent memory", "Live web search", "End-to-end encryption", "Data never sold or trained on"].map(f => (
+                  <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
+                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <ul className="mt-10 space-y-3 text-left">
-              {[
-                "Uncensored responses on any topic",
-                "Elite coding engine",
-                "Live web search",
-                "Persistent memory across sessions",
-                "Team workspace included",
-                "Multi-language output",
-                "Data encrypted — never sold",
-                "Never trains our models",
-                "US-based servers",
-                "Cancel anytime in one click",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm font-extralight text-foreground/90">
-                  <Check className="h-4 w-4 mt-0.5 shrink-0 text-green-400" />
-                  {item}
-                </li>
-              ))}
-            </ul>
+            {/* Pro */}
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left">
+              <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">Full Dashboard Access</p>
+              <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON PRO</h3>
+              <div className="mt-6 flex items-baseline gap-1">
+                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$2,400</span>
+                <span className="text-lg text-muted-foreground font-extralight">/ month</span>
+              </div>
+              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Complete access to every tool — Asha Intelligence, NOMAD OSINT, Briefings, and more.</p>
+              <Link to="/pricing" className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+                Get Pro Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <div className="my-8 h-px bg-border/15" />
+              <ul className="space-y-3 flex-1">
+                {["Everything in Aureon — expanded", "200 messages per 3 hours", "Asha Data Intelligence Platform", "NOMAD Public Intelligence Agent", "Daily Intelligence Briefings", "Web Intelligence & entity resolution", "Scenario Simulator & threat modeling"].map(f => (
+                  <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
+                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <button className="group mt-10 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
-              Get Full Access Now
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </button>
-
-            <p className="mt-6 text-xs font-extralight leading-relaxed text-muted-foreground">
-              No free trial. Full access. Day one.
-              <br />
-              Your data is encrypted from your first message to your last.
-            </p>
+            {/* Advisor */}
+            <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left shadow-[0_0_60px_-15px_rgba(168,85,247,0.15)]">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 mb-4 w-fit">
+                <Zap className="h-3 w-3 text-purple-400" />
+                <span className="text-[10px] font-medium tracking-[0.2em] text-purple-400 uppercase">8 Seats Only</span>
+              </div>
+              <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">Direct Access — Advisor</p>
+              <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON ADVISOR</h3>
+              <div className="mt-6 flex items-baseline gap-1">
+                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$20,000</span>
+                <span className="text-lg text-muted-foreground font-extralight">/ month</span>
+              </div>
+              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Full suite plus direct advisor access to Asher. NDA required. Annual: $240,000/year.</p>
+              <Link to="/pricing" className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-500 py-3.5 text-sm font-light tracking-wide text-white hover:bg-purple-500/90 transition-all">
+                Apply For Advisor Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <div className="my-8 h-px bg-purple-500/15" />
+              <ul className="space-y-3 flex-1">
+                {["Everything in Pro — unlimited", "Direct advisor access to Asher", "Limited to 8 clients worldwide", "NDA required upon purchase", "Custom intelligence operations", "Private deployment option", "24/7 direct support line"].map(f => (
+                  <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
+                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-purple-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Why no free tier */}
           <div className="mt-16 text-center">
             <p className="text-lg font-extralight tracking-wide text-foreground italic">"Why no free tier?"</p>
             <p className="mt-4 max-w-lg mx-auto text-sm font-extralight leading-relaxed text-muted-foreground">
-              Because free tiers train you to expect less. Aureon gives you everything on day one or nothing. That's the only honest model.
+              Because free tiers turn users into products. You pay for the tool — the tool works for you. That's the only honest model.
             </p>
           </div>
         </div>
