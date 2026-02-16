@@ -115,6 +115,7 @@ export type Database = {
           quality_score: number | null
           row_count: number | null
           schema: Json | null
+          session_id: string | null
           status: string
           storage_path: string
           tags: string[]
@@ -136,6 +137,7 @@ export type Database = {
           quality_score?: number | null
           row_count?: number | null
           schema?: Json | null
+          session_id?: string | null
           status?: string
           storage_path: string
           tags?: string[]
@@ -157,13 +159,22 @@ export type Database = {
           quality_score?: number | null
           row_count?: number | null
           schema?: Json | null
+          session_id?: string | null
           status?: string
           storage_path?: string
           tags?: string[]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "asha_datasets_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asha_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       asha_entity_matches: {
         Row: {
@@ -354,6 +365,42 @@ export type Database = {
           schedule?: string | null
           status?: string
           type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asha_sessions: {
+        Row: {
+          company_name: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
           updated_at?: string
           user_id?: string
         }

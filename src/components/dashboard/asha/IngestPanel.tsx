@@ -4,6 +4,7 @@ import { validateFile, sanitizeDisplayName, MAX_FILE_SIZE_DISPLAY } from "@/lib/
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 
 interface AshaDataset {
   id: string;
@@ -40,21 +41,25 @@ const IngestPanel = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
-  // Load existing datasets
+  // Load existing datasets scoped to session
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSession) return;
+    setLoading(true);
     const load = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("asha_datasets")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
+      query = query.eq("session_id", activeSession.id);
+      const { data } = await query;
       if (data) setDatasets(data as any);
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession]);
 
   const ingestFiles = useCallback(async (fileList: FileList | File[]) => {
     if (!user) return;
@@ -96,6 +101,7 @@ const IngestPanel = () => {
           file_size: file.size,
           storage_path: storagePath,
           status: "analyzing",
+          session_id: activeSession?.id || null,
         })
         .select()
         .single();
