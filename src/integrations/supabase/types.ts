@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      asha_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          rule_id: string | null
+          rule_name: string
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          rule_id?: string | null
+          rule_name: string
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          rule_id?: string | null
+          rule_name?: string
+          severity?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asha_alerts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "asha_monitor_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asha_branches: {
         Row: {
           conflicts: number
@@ -124,6 +165,42 @@ export type Database = {
         }
         Relationships: []
       }
+      asha_entity_matches: {
+        Row: {
+          confidence: number
+          created_at: string
+          entity_a: Json
+          entity_b: Json
+          entity_type: string
+          id: string
+          match_fields: string[]
+          status: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          entity_a: Json
+          entity_b: Json
+          entity_type?: string
+          id?: string
+          match_fields?: string[]
+          status?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          entity_a?: Json
+          entity_b?: Json
+          entity_type?: string
+          id?: string
+          match_fields?: string[]
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asha_insights: {
         Row: {
           created_at: string
@@ -170,6 +247,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      asha_monitor_rules: {
+        Row: {
+          active: boolean
+          condition: string
+          created_at: string
+          frequency: string
+          id: string
+          last_checked: string | null
+          last_triggered: string | null
+          name: string
+          target: string
+          threshold: string
+          trigger_count: number
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          condition: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          last_checked?: string | null
+          last_triggered?: string | null
+          name: string
+          target: string
+          threshold: string
+          trigger_count?: number
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          condition?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          last_checked?: string | null
+          last_triggered?: string | null
+          name?: string
+          target?: string
+          threshold?: string
+          trigger_count?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       asha_queries: {
         Row: {
