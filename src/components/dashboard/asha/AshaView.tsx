@@ -2,7 +2,8 @@ import { useState } from "react";
 import {
   Upload, Table2, Share2, GitBranch, Workflow, LayoutDashboard,
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
-  Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity, Bell,
+  Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
+  Plus, Building2, ChevronDown, Trash2,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -22,6 +23,7 @@ import DataLineagePanel from "./DataLineagePanel";
 import ThreatModelingPanel from "./ThreatModelingPanel";
 import MonitoringPanel from "./MonitoringPanel";
 import EncryptionBadge from "../EncryptionBadge";
+import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
 
 const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "ingest", icon: Upload, label: "Ingest" },
@@ -42,10 +44,104 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
 
-const AshaView = () => {
+const SessionSelector = () => {
+  const { sessions, activeSession, setActiveSession, createSession, deleteSession } = useAshaSession();
+  const [open, setOpen] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newCompany, setNewCompany] = useState("");
+
+  const handleCreate = async () => {
+    if (!newName.trim()) return;
+    await createSession(newName.trim(), newCompany.trim());
+    setNewName(""); setNewCompany(""); setShowCreate(false); setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 rounded-lg border border-border/20 bg-card/30 px-3 py-1.5 hover:bg-card/50 transition-colors">
+        <Building2 className="h-3.5 w-3.5 text-accent" />
+        <span className="text-xs font-light text-foreground max-w-[140px] truncate">
+          {activeSession ? activeSession.name : "No Session"}
+        </span>
+        <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setShowCreate(false); }} />
+          <div className="absolute left-0 top-full mt-1 z-50 w-72 rounded-xl border border-border/20 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+            {/* Session list */}
+            <div className="max-h-64 overflow-y-auto p-1.5">
+              {sessions.map(s => (
+                <div key={s.id} className={`flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors group ${activeSession?.id === s.id ? "bg-foreground/10" : "hover:bg-foreground/5"}`}>
+                  <button onClick={() => { setActiveSession(s); setOpen(false); }} className="flex-1 flex items-center gap-2.5 text-left min-w-0">
+                    <span className="text-sm">{s.icon}</span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-light text-foreground truncate">{s.name}</p>
+                      {s.companyName && <p className="text-[9px] text-muted-foreground/50 truncate">{s.companyName}</p>}
+                    </div>
+                  </button>
+                  {activeSession?.id !== s.id && (
+                    <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground/40 hover:text-destructive transition-all">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {sessions.length === 0 && !showCreate && (
+                <p className="text-[10px] text-muted-foreground/40 text-center py-4">No sessions yet</p>
+              )}
+            </div>
+
+            {/* Create new */}
+            <div className="border-t border-border/20 p-2">
+              {showCreate ? (
+                <div className="space-y-2 p-1.5">
+                  <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Session name…"
+                    className="w-full bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30" autoFocus />
+                  <input value={newCompany} onChange={e => setNewCompany(e.target.value)} placeholder="Company (optional)…"
+                    className="w-full bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30" />
+                  <div className="flex gap-2">
+                    <button onClick={handleCreate} disabled={!newName.trim()}
+                      className="flex-1 rounded-lg bg-accent/20 py-1.5 text-xs text-accent hover:bg-accent/30 transition-colors disabled:opacity-40">Create</button>
+                    <button onClick={() => { setShowCreate(false); setNewName(""); setNewCompany(""); }}
+                      className="rounded-lg border border-border/20 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowCreate(true)}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-light text-accent hover:bg-accent/10 transition-colors">
+                  <Plus className="h-3 w-3" /> New Session
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const AshaInner = () => {
   const [activeTab, setActiveTab] = useState<AshaTab>("ingest");
+  const { activeSession, loading } = useAshaSession();
 
   const renderPanel = () => {
+    if (!activeSession) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <Database className="h-12 w-12 text-muted-foreground/20" />
+          <div className="text-center">
+            <p className="text-sm font-extralight text-muted-foreground">Create a session to start analyzing data</p>
+            <p className="text-[10px] text-muted-foreground/40 mt-1">Each session scopes your datasets, insights, and analysis</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "ingest": return <IngestPanel />;
       case "catalog": return <CatalogPanel />;
@@ -79,6 +175,7 @@ const AshaView = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <SessionSelector />
             <EncryptionBadge />
             <div className="flex items-center gap-1 rounded-lg border border-border/20 bg-card/30 px-2 py-1">
               <Shield className="h-3 w-3 text-emerald-500/70" />
@@ -88,30 +185,42 @@ const AshaView = () => {
         </div>
 
         {/* Tab bar */}
-        <div className="mt-4 flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-light transition-colors ${
-                activeTab === tab.id
-                  ? "bg-foreground/10 text-foreground"
-                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-              }`}
-            >
-              <tab.icon className="h-3.5 w-3.5" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {activeSession && (
+          <div className="mt-4 flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-light transition-colors ${
+                  activeTab === tab.id
+                    ? "bg-foreground/10 text-foreground"
+                    : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                }`}
+              >
+                <tab.icon className="h-3.5 w-3.5" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Panel content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {renderPanel()}
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          </div>
+        ) : renderPanel()}
       </div>
     </div>
   );
 };
+
+const AshaView = () => (
+  <AshaSessionProvider>
+    <AshaInner />
+  </AshaSessionProvider>
+);
 
 export default AshaView;

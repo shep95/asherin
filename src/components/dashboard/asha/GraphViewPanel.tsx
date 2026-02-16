@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ZoomIn, ZoomOut, Maximize2, Filter, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 
 interface GraphNode {
   id: string;
@@ -31,15 +32,18 @@ const GraphViewPanel = () => {
   const [zoom, setZoom] = useState(1);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSession) return;
+    setLoading(true);
     const load = async () => {
       const { data: datasets } = await supabase
         .from("asha_datasets")
         .select("id, file_name, schema, tags")
         .eq("user_id", user.id)
-        .eq("status", "ready");
+        .eq("status", "ready")
+        .eq("session_id", activeSession.id);
 
       if (!datasets || datasets.length === 0) { setLoading(false); return; }
 
@@ -96,7 +100,7 @@ const GraphViewPanel = () => {
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession]);
 
   if (loading) return <div className="flex justify-center items-center h-full"><Loader2 className="h-5 w-5 animate-spin text-accent" /></div>;
 

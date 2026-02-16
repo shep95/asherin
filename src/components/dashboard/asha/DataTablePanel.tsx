@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, ArrowUpDown, Flag, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 
 const DataTablePanel = () => {
   const [datasets, setDatasets] = useState<any[]>([]);
@@ -15,24 +16,30 @@ const DataTablePanel = () => {
   const [loading, setLoading] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSession) return;
+    setLoading(true);
     const load = async () => {
       const { data } = await supabase
         .from("asha_datasets")
         .select("id, file_name, storage_path, schema")
         .eq("user_id", user.id)
         .eq("status", "ready")
+        .eq("session_id", activeSession.id)
         .order("created_at", { ascending: false });
       if (data && data.length > 0) {
         setDatasets(data);
         setSelectedDs(data[0].id);
+      } else {
+        setDatasets([]);
+        setSelectedDs("");
       }
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession]);
 
   useEffect(() => {
     if (!selectedDs || !user) return;

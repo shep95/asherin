@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Tag, Clock, Table2, Eye, ExternalLink, Loader2, FileText, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 
 interface CatalogEntry {
   id: string;
@@ -34,21 +35,24 @@ const CatalogPanel = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSession) return;
+    setLoading(true);
     const load = async () => {
       const { data } = await supabase
         .from("asha_datasets")
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "ready")
+        .eq("session_id", activeSession.id)
         .order("created_at", { ascending: false });
       if (data) setDatasets(data as any);
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession]);
 
   const filtered = search
     ? datasets.filter((c) => {
