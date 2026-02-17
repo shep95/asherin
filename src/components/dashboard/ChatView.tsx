@@ -38,6 +38,8 @@ interface ChatViewProps {
   onRemoveFromQueue?: (id: string) => void;
   onClearQueue?: () => void;
   onProcessQueueNow?: () => void;
+  queuePaused?: boolean;
+  onToggleQueuePause?: () => void;
 }
 
 // Copy button for messages
@@ -171,7 +173,7 @@ const markdownComponents = {
   },
 };
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -329,7 +331,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 </div>
               </div>
             ))}
-            {isStreaming && (
+            {isStreaming && lastMsg?.role === "assistant" && !lastMsg.content && (
               <div className="flex justify-start animate-fade-in">
                 <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-card/50 backdrop-blur-md border border-border/20">
                   <TypingIndicator mode="thinking" />
@@ -355,6 +357,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         onRemove={onRemoveFromQueue ?? (() => {})}
         onClear={onClearQueue ?? (() => {})}
         onProcessNow={onProcessQueueNow}
+        paused={queuePaused}
+        onTogglePause={onToggleQueuePause}
       />
 
       {/* Adaptive Input — gated behind subscription */}
