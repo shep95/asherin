@@ -470,7 +470,7 @@ const Index = () => {
               <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">Full Dashboard Access</p>
               <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON PRO</h3>
               <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$2,400</span>
+                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$399</span>
                 <span className="text-lg text-muted-foreground font-extralight">/ month</span>
               </div>
               <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Complete access to every tool — Asha Intelligence, NOMAD OSINT, Briefings, and more.</p>

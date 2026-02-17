@@ -32,7 +32,7 @@ const tiers = [
     id: "pro",
     name: "AUREON PRO",
     tagline: "Full Dashboard Access",
-    price: "$2,400",
+    price: "$399",
     period: "/ month",
     description: "Complete access to every tool in the dashboard — Asha Intelligence, NOMAD OSINT, Daily Briefings, Web Intelligence, and more.",
     cta: "Get Pro Access",
@@ -80,7 +80,7 @@ const Pricing = () => {
   useEffect(() => {
     document.title = "Pricing — Aureon | Uncensored AI Intelligence";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon pricing: $18/mo Individual, $2,400/mo Pro, $20,000/mo Advisor. No free tier. Full access from day one.");
+    if (meta) meta.setAttribute("content", "Aureon pricing: $18/mo Individual, $399/mo Pro, $20,000/mo Advisor. No free tier. Full access from day one.");
   }, []);
 
   return (
