@@ -3,7 +3,7 @@ import heroBg from "@/assets/hero-bg.png";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Twitter, Globe, Zap, Shield, Eye } from "lucide-react";
 
 const Founder = () => {
   useEffect(() => {
@@ -19,88 +19,105 @@ const Founder = () => {
 
       <Header />
 
-      <div className="relative z-10 px-6 pt-32 pb-24">
-        <div className="mx-auto max-w-3xl">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors mb-12">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Link>
+      {/* Hero Section */}
+      <div className="relative z-10 flex min-h-[80vh] flex-col items-center justify-center px-6 text-center pt-20">
+        <Link to="/" className="inline-flex items-center gap-2 text-xs font-extralight tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors mb-16 uppercase">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Home
+        </Link>
 
-          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12">
-            {/* Photo + Name */}
-            <div className="flex flex-col items-center text-center mb-12">
-              <div className="w-32 h-32 rounded-2xl overflow-hidden border-2 border-border/30 mb-6 shadow-2xl">
-                <img src={founderImg} alt="Asher Newton" className="w-full h-full object-cover" />
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-extralight tracking-wide text-foreground mb-1">
-                Asher Newton
-              </h1>
-               <p className="text-sm font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
-                Founder & Creator of AUREON
+        <div className="w-36 h-36 rounded-2xl overflow-hidden border border-border/20 mb-8 shadow-2xl shadow-black/50">
+          <img src={founderImg} alt="Asher Newton" className="w-full h-full object-cover" />
+        </div>
+
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
+          Asher Newton
+        </h1>
+        <p className="mt-3 text-sm font-extralight tracking-[0.25em] text-muted-foreground/50 uppercase">
+          Founder & Creator of Aureon
+        </p>
+
+        <p className="mt-10 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
+          "I didn't build Aureon for investors or corporations. I built it because the tools humanity deserves don't exist yet — and no one else was going to make them."
+        </p>
+      </div>
+
+      {/* Philosophy Cards */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground text-center">
+            The Story Behind
+            <br />
+            <span className="text-muted-foreground">The Machine.</span>
+          </h2>
+
+          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Zap className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">The Beginning</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                I fell in love with AI in 2022 — the moment I realized that language models weren't just autocomplete on steroids, but something closer to a mirror for human thought. I became a prompt engineer not because it was a career path, but because I couldn't stop exploring what these systems could do when you spoke to them the right way.
               </p>
             </div>
 
-            <div className="space-y-8 text-sm font-extralight leading-relaxed text-muted-foreground">
-              <p className="text-base font-extralight text-foreground/80 text-center max-w-xl mx-auto">
-                "I didn't build Aureon for investors or corporations. I built it because the tools humanity deserves don't exist yet — and no one else was going to make them."
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Shield className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">The Problem</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                As the months passed, I watched the industry go in a direction that frustrated me. Every major AI platform started adding more filters, more guardrails, more corporate sanitization. The models became afraid of their own intelligence. AI became <em>censored</em> — and in doing so, became <em>useless</em> for the people who needed it most.
               </p>
+            </div>
 
-              <div className="w-16 mx-auto border-t border-border/20" />
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Eye className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">The Vision</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. Aureon is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.
+              </p>
+            </div>
 
-              <section>
-                <h2 className="text-lg font-light tracking-wide text-foreground mb-3">The Beginning</h2>
-                <p>
-                  I fell in love with AI in 2022 — the moment I realized that language models weren't just autocomplete on steroids, but something closer to a mirror for human thought. I became a prompt engineer not because it was a career path, but because I couldn't stop exploring what these systems could do when you spoke to them the right way.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-lg font-light tracking-wide text-foreground mb-3">The Problem</h2>
-                <p>
-                  But as the months passed, I watched the industry go in a direction that frustrated me. Every major AI platform started adding more filters, more guardrails, more corporate sanitization. The models became afraid of their own intelligence. They'd refuse to answer honest questions, dodge controversial topics, and wrap every response in disclaimers. AI became <em>censored</em> — and in doing so, became <em>useless</em> for the people who needed it most.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-lg font-light tracking-wide text-foreground mb-3">The Vision</h2>
-                <p>
-                  I wanted to build something different — something that trusted users with the truth instead of protecting them from it. Something that respected intelligence instead of dumbing it down. Aureon is that something. An AI platform that doesn't moralize, doesn't gatekeep, and doesn't treat its users like children.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-lg font-light tracking-wide text-foreground mb-3">Beyond Code</h2>
-                <p>
-                  My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one. Aureon speaks without a filter. Zophiel searches where others won't look. That's not a feature — it's a philosophy.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-lg font-light tracking-wide text-foreground mb-3">For Humanity</h2>
-                <p>
-                  Aureon isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. If you're here, you're the reason this exists.
-                </p>
-              </section>
-
-              <div className="w-16 mx-auto border-t border-border/20" />
-
-              <div className="text-center space-y-2">
-                <p className="text-xs text-muted-foreground/50">
-                  Zorak Corp & House Of Asher
-                </p>
-                <a
-                  href="https://x.com/shep_newton"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block text-xs text-foreground underline underline-offset-4 hover:text-foreground/80 transition-colors"
-                >
-                  @shep_newton on X
-                </a>
-              </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
+              <Globe className="h-7 w-7 text-foreground" />
+              <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Beyond Code</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
+                My interests go deeper than technology. I'm drawn to spirituality and the occult — the hidden patterns beneath the surface of things. That same instinct drives Aureon: the belief that truth exists in layers, and the best tools are the ones that help you see through each one.
+              </p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* For Humanity - Full Width Statement */}
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-4xl text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            Built For Humanity.
+            <br />
+            <span className="text-muted-foreground">Not Shareholders.</span>
+          </h2>
+          <p className="mt-10 max-w-2xl mx-auto text-sm sm:text-base font-extralight leading-relaxed text-muted-foreground">
+            Aureon isn't built for shareholders. It's built for researchers who need real answers, developers who need real code, and thinkers who refuse to accept a sanitized version of reality. If you're here, you're the reason this exists.
+          </p>
+
+          <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-12 inline-block">
+            <p className="text-xs font-extralight tracking-[0.2em] text-muted-foreground/40 uppercase mb-6">
+              Zorak Corp & House Of Asher
+            </p>
+            <a
+              href="https://x.com/shep_newton"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2.5 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-6 py-3 text-sm font-light tracking-wide text-foreground transition-all hover:bg-foreground/10"
+            >
+              <Twitter className="h-4 w-4" />
+              @shep_newton on X
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Spacer */}
+      <div className="relative z-10 h-24" />
     </div>
   );
 };
