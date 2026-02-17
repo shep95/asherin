@@ -41,7 +41,7 @@ const TimeSeriesView = () => {
 
   const loadDatasets = useCallback(async () => {
     if (!user) return;
-    const { data } = await (supabase.from as any)("asha_datasets")
+    const { data } = await supabase.from("asha_datasets")
       .select("id, file_name")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
