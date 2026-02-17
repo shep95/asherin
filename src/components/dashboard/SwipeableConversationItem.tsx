@@ -83,7 +83,7 @@ const SwipeableConversationItem = ({
       >
         <MessageSquare className="h-3.5 w-3.5 shrink-0" />
         <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity bg-inherit pl-1">
           <button
             onClick={(e) => { e.stopPropagation(); onRename(); }}
             className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
