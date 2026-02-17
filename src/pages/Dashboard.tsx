@@ -97,6 +97,8 @@ const Dashboard = () => {
   const pendingQueue = useRef<string[]>([]);
   const isStreamingRef = useRef(false);
   const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
+  const [queuePaused, setQueuePaused] = useState(false);
+  const queuePausedRef = useRef(false);
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
@@ -560,6 +562,11 @@ const Dashboard = () => {
     if (processingQueue.current) return;
     processingQueue.current = true;
     while (pendingQueue.current.length > 0) {
+      // Check if paused
+      if (queuePausedRef.current) {
+        processingQueue.current = false;
+        return;
+      }
       const next = pendingQueue.current.shift()!;
       // Remove from visible queue
       setQueueItems(prev => prev.length > 0 ? prev.slice(1) : prev);
@@ -577,6 +584,24 @@ const Dashboard = () => {
     }
     processingQueue.current = false;
   }, [user, mode, depth, personaId, userProfile, customPersonas]);
+
+  const toggleQueuePause = useCallback(() => {
+    setQueuePaused(prev => {
+      const next = !prev;
+      queuePausedRef.current = next;
+      // If unpausing, kick off processing
+      if (!next && pendingQueue.current.length > 0) {
+        processQueue();
+      }
+      return next;
+    });
+  }, [processQueue]);
+
+  const forceProcessQueue = useCallback(() => {
+    queuePausedRef.current = false;
+    setQueuePaused(false);
+    processQueue();
+  }, [processQueue]);
 
   // Public sendMessage — adds to queue and kicks off processing
   const sendMessage = async (content: string) => {
@@ -771,7 +796,9 @@ const Dashboard = () => {
           queueItems={queueItems}
           onRemoveFromQueue={removeFromQueue}
           onClearQueue={clearQueue}
-          onProcessQueueNow={processQueue}
+          onProcessQueueNow={forceProcessQueue}
+          queuePaused={queuePaused}
+          onToggleQueuePause={toggleQueuePause}
         />
       ) : null;
     }
