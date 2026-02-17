@@ -1,5 +1,5 @@
 /**
- * ZIALIEL Client-Side Encryption Module
+ * AUREON Client-Side Encryption Module
  * AES-256-GCM encryption using Web Crypto API
  * Key derived from user ID via PBKDF2
  */

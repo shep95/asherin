@@ -189,7 +189,7 @@ const ZophielEngineView = () => {
               <div className="text-center mb-6 animate-fade-in">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Zap className="h-6 w-6 text-accent" />
-                  <h1 className="text-2xl font-extralight tracking-[0.15em] text-foreground">ZIALIEL ENGINE</h1>
+                  <h1 className="text-2xl font-extralight tracking-[0.15em] text-foreground">ZOPHIEL ENGINE</h1>
                 </div>
                 <p className="text-sm font-extralight text-muted-foreground">Private search. No tracking. No profiling. Full control.</p>
               </div>
