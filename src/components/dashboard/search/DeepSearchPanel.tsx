@@ -284,15 +284,18 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
           )}
 
           {content && (
-            <div className="prose prose-sm prose-invert max-w-none
+            <div className="prose prose-sm prose-invert max-w-none space-y-4
               prose-headings:text-foreground prose-headings:font-medium prose-headings:tracking-wide
-              prose-h2:text-sm prose-h2:mt-6 prose-h2:mb-2 prose-h2:border-b prose-h2:border-border/20 prose-h2:pb-1
-              prose-h3:text-xs prose-h3:mt-4 prose-h3:mb-1.5
-              prose-p:text-[12px] prose-p:leading-relaxed prose-p:text-muted-foreground
-              prose-li:text-[12px] prose-li:text-muted-foreground
+              prose-h2:text-base prose-h2:mt-8 prose-h2:mb-3 prose-h2:border-b prose-h2:border-border/20 prose-h2:pb-2
+              prose-h3:text-sm prose-h3:mt-6 prose-h3:mb-2
+              prose-p:text-[13px] prose-p:leading-[1.8] prose-p:text-muted-foreground prose-p:mb-4
+              prose-li:text-[13px] prose-li:text-muted-foreground prose-li:leading-[1.8] prose-li:mb-1.5
+              prose-ul:my-3 prose-ol:my-3
               prose-strong:text-foreground prose-strong:font-medium
               prose-a:text-accent prose-a:no-underline hover:prose-a:underline
-              prose-code:text-accent/80 prose-code:text-[11px] prose-code:bg-accent/10 prose-code:px-1 prose-code:rounded
+              prose-code:text-accent/80 prose-code:text-[11px] prose-code:bg-accent/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+              prose-blockquote:border-accent/30 prose-blockquote:bg-accent/5 prose-blockquote:rounded-r-lg prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:my-4
+              prose-hr:border-border/20 prose-hr:my-6
             ">
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
