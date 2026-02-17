@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { Brain, ExternalLink, Loader2, Globe, CheckCircle2 } from "lucide-react";
+import { Brain, ExternalLink, Loader2, Globe, CheckCircle2, Sparkles, ArrowRight, SkipForward } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface DeepSource {
   url: string;
   title: string;
   domain: string;
+}
+
+interface ClarifyQuestion {
+  id: string;
+  question: string;
+  options: string[];
 }
 
 interface DeepSearchPanelProps {
@@ -17,19 +23,18 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
   const [sources, setSources] = useState<DeepSource[]>([]);
   const [totalFound, setTotalFound] = useState(0);
   const [content, setContent] = useState("");
-  const [phase, setPhase] = useState<"searching" | "analyzing" | "streaming" | "done">("searching");
+  const [phase, setPhase] = useState<"clarifying" | "searching" | "analyzing" | "streaming" | "done">("clarifying");
   const [error, setError] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<ClarifyQuestion[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Step 1: Fetch clarifying questions
   useEffect(() => {
-    const run = async () => {
-      abortRef.current = new AbortController();
-      setPhase("searching");
-      setContent("");
-      setSources([]);
-      setError(null);
-
+    const fetchQuestions = async () => {
+      setLoadingQuestions(true);
       try {
         const resp = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zophiel-deep-search`,
@@ -39,68 +44,114 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
-            body: JSON.stringify({ query }),
-            signal: abortRef.current.signal,
+            body: JSON.stringify({ query, action: "refine" }),
           }
         );
-
-        if (!resp.ok) {
-          const errData = await resp.json().catch(() => ({ error: "Deep search failed" }));
-          throw new Error(errData.error || `HTTP ${resp.status}`);
-        }
-
-        if (!resp.body) throw new Error("No response body");
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          let newlineIdx: number;
-          while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-            const line = buffer.slice(0, newlineIdx).trim();
-            buffer = buffer.slice(newlineIdx + 1);
-
-            if (!line.startsWith("data: ")) continue;
-            const jsonStr = line.slice(6).trim();
-            if (!jsonStr) continue;
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-
-              if (parsed.type === "sources") {
-                setSources(parsed.sources || []);
-                setTotalFound(parsed.totalSearchResults || 0);
-                setPhase("analyzing");
-                // Small delay to show the analyzing state
-                await new Promise(r => setTimeout(r, 600));
-                setPhase("streaming");
-              } else if (parsed.type === "delta") {
-                setContent(prev => prev + parsed.text);
-              } else if (parsed.type === "done") {
-                setPhase("done");
-              }
-            } catch { /* partial JSON */ }
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.questions && data.questions.length > 0) {
+            setQuestions(data.questions);
+            setLoadingQuestions(false);
+            return;
           }
         }
-        setPhase("done");
-      } catch (e: any) {
-        if (e.name === "AbortError") return;
-        console.error("Deep search error:", e);
-        setError(e.message || "Deep search failed");
-        setPhase("done");
+      } catch (e) {
+        console.error("Failed to get clarifying questions:", e);
       }
+      // Fallback: skip to search
+      setLoadingQuestions(false);
+      startDeepSearch({});
     };
-
-    run();
-    return () => { abortRef.current?.abort(); };
+    fetchQuestions();
   }, [query]);
 
-  // Auto-scroll as content streams
+  const selectAnswer = (questionId: string, option: string) => {
+    setAnswers(prev => {
+      const current = prev[questionId];
+      if (current === option) {
+        const { [questionId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [questionId]: option };
+    });
+  };
+
+  const startDeepSearch = async (finalAnswers: Record<string, string>) => {
+    setPhase("searching");
+    abortRef.current = new AbortController();
+    setContent("");
+    setSources([]);
+    setError(null);
+
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zophiel-deep-search`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ query, answers: finalAnswers }),
+          signal: abortRef.current.signal,
+        }
+      );
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({ error: "Deep search failed" }));
+        throw new Error(errData.error || `HTTP ${resp.status}`);
+      }
+
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+          const line = buffer.slice(0, newlineIdx).trim();
+          buffer = buffer.slice(newlineIdx + 1);
+
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.type === "sources") {
+              setSources(parsed.sources || []);
+              setTotalFound(parsed.totalSearchResults || 0);
+              setPhase("analyzing");
+              await new Promise(r => setTimeout(r, 600));
+              setPhase("streaming");
+            } else if (parsed.type === "delta") {
+              setContent(prev => prev + parsed.text);
+            } else if (parsed.type === "done") {
+              setPhase("done");
+            }
+          } catch { /* partial JSON */ }
+        }
+      }
+      setPhase("done");
+    } catch (e: any) {
+      if (e.name === "AbortError") return;
+      console.error("Deep search error:", e);
+      setError(e.message || "Deep search failed");
+      setPhase("done");
+    }
+  };
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
+
+  // Auto-scroll
   useEffect(() => {
     if (contentRef.current && phase === "streaming") {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
@@ -118,14 +169,73 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
         <span className="text-[10px] text-muted-foreground/50 truncate flex-1">"{query}"</span>
       </div>
 
-      {/* Phase indicator */}
-      <div className="flex-shrink-0 px-4 py-2.5 border-b border-border/10 bg-card/20">
-        <div className="flex items-center gap-4 text-[10px]">
-          <PhaseStep label="Searching web" active={phase === "searching"} done={phase !== "searching"} />
-          <PhaseStep label={`Scraping ${sources.length} sources`} active={phase === "analyzing"} done={phase === "streaming" || phase === "done"} />
-          <PhaseStep label="AI synthesis" active={phase === "streaming"} done={phase === "done"} />
+      {/* Clarification Phase */}
+      {phase === "clarifying" && (
+        <div className="flex-1 overflow-y-auto px-4 py-6">
+          {loadingQuestions ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Sparkles className="h-6 w-6 text-accent animate-pulse" />
+              <p className="text-xs text-muted-foreground/60">Analyzing your query for precision targeting…</p>
+            </div>
+          ) : questions.length > 0 ? (
+            <div className="max-w-lg mx-auto space-y-5">
+              <div className="text-center space-y-1.5 mb-6">
+                <h3 className="text-sm font-medium text-foreground tracking-wide">REFINE YOUR SEARCH</h3>
+                <p className="text-[11px] text-muted-foreground/60">Answer these to get a laser-focused intelligence report</p>
+              </div>
+
+              {questions.map((q) => (
+                <div key={q.id} className="space-y-2">
+                  <p className="text-xs font-medium text-foreground/90">{q.question}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {q.options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => selectAnswer(q.id, opt)}
+                        className={`px-3 py-1.5 rounded-lg border text-[11px] transition-all ${
+                          answers[q.id] === opt
+                            ? "border-accent bg-accent/15 text-accent font-medium"
+                            : "border-border/30 bg-card/30 text-muted-foreground hover:border-accent/30 hover:text-foreground"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex items-center gap-2 pt-4">
+                <button
+                  onClick={() => startDeepSearch(answers)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-all"
+                >
+                  <ArrowRight className="h-3.5 w-3.5" />
+                  Search with context
+                </button>
+                <button
+                  onClick={() => startDeepSearch({})}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border/20 text-[11px] text-muted-foreground hover:text-foreground hover:border-border/40 transition-all"
+                >
+                  <SkipForward className="h-3 w-3" />
+                  Skip
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
-      </div>
+      )}
+
+      {/* Phase indicator (post-clarification) */}
+      {phase !== "clarifying" && (
+        <div className="flex-shrink-0 px-4 py-2.5 border-b border-border/10 bg-card/20">
+          <div className="flex items-center gap-4 text-[10px]">
+            <PhaseStep label="Searching web" active={phase === "searching"} done={phase !== "searching"} />
+            <PhaseStep label={`Scraping ${sources.length} sources`} active={phase === "analyzing"} done={phase === "streaming" || phase === "done"} />
+            <PhaseStep label="AI synthesis" active={phase === "streaming"} done={phase === "done"} />
+          </div>
+        </div>
+      )}
 
       {/* Sources bar */}
       {sources.length > 0 && (
@@ -154,43 +264,45 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
       )}
 
       {/* Content */}
-      <div ref={contentRef} className="flex-1 overflow-y-auto px-4 py-4">
-        {error && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {error}
-          </div>
-        )}
+      {phase !== "clarifying" && (
+        <div ref={contentRef} className="flex-1 overflow-y-auto px-4 py-4">
+          {error && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </div>
+          )}
 
-        {!error && !content && phase !== "done" && (
-          <div className="flex flex-col items-center justify-center py-12 gap-3 animate-pulse">
-            <Brain className="h-8 w-8 text-accent/40" />
-            <p className="text-xs text-muted-foreground/50">
-              {phase === "searching" ? "Searching multiple angles across the web…" :
-               phase === "analyzing" ? "Scraping and analyzing source content…" :
-               "Synthesizing intelligence report…"}
-            </p>
-          </div>
-        )}
+          {!error && !content && phase !== "done" && (
+            <div className="flex flex-col items-center justify-center py-12 gap-3 animate-pulse">
+              <Brain className="h-8 w-8 text-accent/40" />
+              <p className="text-xs text-muted-foreground/50">
+                {phase === "searching" ? "Searching multiple angles across the web…" :
+                 phase === "analyzing" ? "Scraping and analyzing source content…" :
+                 "Synthesizing intelligence report…"}
+              </p>
+            </div>
+          )}
 
-        {content && (
-          <div className="prose prose-sm prose-invert max-w-none
-            prose-headings:text-foreground prose-headings:font-medium prose-headings:tracking-wide
-            prose-h2:text-sm prose-h2:mt-6 prose-h2:mb-2 prose-h2:border-b prose-h2:border-border/20 prose-h2:pb-1
-            prose-h3:text-xs prose-h3:mt-4 prose-h3:mb-1.5
-            prose-p:text-[12px] prose-p:leading-relaxed prose-p:text-muted-foreground
-            prose-li:text-[12px] prose-li:text-muted-foreground
-            prose-strong:text-foreground prose-strong:font-medium
-            prose-a:text-accent prose-a:no-underline hover:prose-a:underline
-            prose-code:text-accent/80 prose-code:text-[11px] prose-code:bg-accent/10 prose-code:px-1 prose-code:rounded
-          ">
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </div>
-        )}
+          {content && (
+            <div className="prose prose-sm prose-invert max-w-none
+              prose-headings:text-foreground prose-headings:font-medium prose-headings:tracking-wide
+              prose-h2:text-sm prose-h2:mt-6 prose-h2:mb-2 prose-h2:border-b prose-h2:border-border/20 prose-h2:pb-1
+              prose-h3:text-xs prose-h3:mt-4 prose-h3:mb-1.5
+              prose-p:text-[12px] prose-p:leading-relaxed prose-p:text-muted-foreground
+              prose-li:text-[12px] prose-li:text-muted-foreground
+              prose-strong:text-foreground prose-strong:font-medium
+              prose-a:text-accent prose-a:no-underline hover:prose-a:underline
+              prose-code:text-accent/80 prose-code:text-[11px] prose-code:bg-accent/10 prose-code:px-1 prose-code:rounded
+            ">
+              <ReactMarkdown>{content}</ReactMarkdown>
+            </div>
+          )}
 
-        {phase === "streaming" && (
-          <span className="inline-block w-1.5 h-4 bg-accent/60 animate-pulse ml-0.5 align-text-bottom" />
-        )}
-      </div>
+          {phase === "streaming" && (
+            <span className="inline-block w-1.5 h-4 bg-accent/60 animate-pulse ml-0.5 align-text-bottom" />
+          )}
+        </div>
+      )}
     </div>
   );
 };

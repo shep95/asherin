@@ -98,6 +98,37 @@ async function scrapePage(url: string, timeoutMs = 6000): Promise<string | null>
   }
 }
 
+// ── Refine: generate clarifying questions ────────────────────────────────────
+const GEMINI_NON_STREAM = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+async function generateClarifyingQuestions(query: string, apiKey: string): Promise<{ questions: { id: string; question: string; options: string[] }[] }> {
+  const resp = await fetch(`${GEMINI_NON_STREAM}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: `You are ZOPHIEL, a precision intelligence engine. The user wants a deep research report on: "${query}"
+
+Before searching, generate 2-3 short clarifying questions that would dramatically improve the search quality. Each question should have 3-4 quick-select options.
+
+Return ONLY valid JSON (no markdown, no code fences):
+{
+  "questions": [
+    { "id": "q1", "question": "What specific aspect interests you most?", "options": ["Technical details", "Market analysis", "Historical context", "Future predictions"] },
+    { "id": "q2", "question": "What timeframe matters?", "options": ["Last 30 days", "Last 6 months", "Last year", "All time"] }
+  ]
+}` }] }],
+      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+    }),
+  });
+
+  if (!resp.ok) throw new Error('Failed to generate questions');
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+  // Strip markdown fences if present
+  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  return JSON.parse(cleaned);
+}
+
 // ── Main Handler ─────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -105,7 +136,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const body = await req.json();
+    const { query, action, answers } = body;
+
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: 'Query is required' }),
@@ -122,11 +155,36 @@ Deno.serve(async (req) => {
     }
 
     const trimmed = query.trim();
-    console.log('Deep search query:', trimmed);
+
+    // ── Action: refine → return clarifying questions ──
+    if (action === 'refine') {
+      console.log('Generating clarifying questions for:', trimmed);
+      try {
+        const result = await generateClarifyingQuestions(trimmed, GEMINI_KEY);
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        console.error('Refine error:', e);
+        // Fallback: skip questions and let them search directly
+        return new Response(JSON.stringify({ questions: [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // ── Build enhanced query from answers ──
+    let enhancedQuery = trimmed;
+    if (answers && typeof answers === 'object' && Object.keys(answers).length > 0) {
+      const context = Object.values(answers).join('; ');
+      enhancedQuery = `${trimmed} — context: ${context}`;
+    }
+
+    console.log('Deep search query:', enhancedQuery);
 
     // Step 1: Run multiple DDG searches with different angles
     const searchVariants = [
-      trimmed,
+      enhancedQuery,
       `${trimmed} latest 2025 2026`,
       `${trimmed} analysis research`,
     ];
