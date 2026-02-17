@@ -96,6 +96,7 @@ const Dashboard = () => {
   const processingQueue = useRef(false);
   const pendingQueue = useRef<string[]>([]);
   const isStreamingRef = useRef(false);
+  const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
@@ -560,6 +561,8 @@ const Dashboard = () => {
     processingQueue.current = true;
     while (pendingQueue.current.length > 0) {
       const next = pendingQueue.current.shift()!;
+      // Remove from visible queue
+      setQueueItems(prev => prev.length > 0 ? prev.slice(1) : prev);
       const [convId, ...contentParts] = next.split("||");
       const content = contentParts.join("||");
       await sendMessageCore(content, convId);
@@ -584,13 +587,49 @@ const Dashboard = () => {
       const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date() };
       setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
       setMessageStatuses(prev => ({ ...prev, [tempId]: "queued" }));
-      pendingQueue.current.push(`${activeConvId}||${content}`);
+      const queueEntry = `${activeConvId}||${content}`;
+      pendingQueue.current.push(queueEntry);
+      setQueueItems(prev => [...prev, { id: tempId, content }]);
       toast({ title: "Message queued", description: "Will send after current response completes." });
       return;
     }
     pendingQueue.current.push(`${activeConvId}||${content}`);
     processQueue();
   };
+
+  const removeFromQueue = useCallback((id: string) => {
+    setQueueItems(prev => {
+      const idx = prev.findIndex(q => q.id === id);
+      if (idx >= 0) pendingQueue.current.splice(idx, 1);
+      return prev.filter(q => q.id !== id);
+    });
+    // Remove from conversation messages too
+    setConversations(prev => prev.map(c => ({
+      ...c,
+      messages: c.messages.filter(m => m.id !== id),
+    })));
+    setMessageStatuses(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
+  const clearQueue = useCallback(() => {
+    const ids = queueItems.map(q => q.id);
+    pendingQueue.current = [];
+    setQueueItems([]);
+    // Remove queued messages from conversation
+    setConversations(prev => prev.map(c => ({
+      ...c,
+      messages: c.messages.filter(m => !ids.includes(m.id)),
+    })));
+    setMessageStatuses(prev => {
+      const next = { ...prev };
+      ids.forEach(id => delete next[id]);
+      return next;
+    });
+  }, [queueItems]);
 
   const newConversation = async () => {
     if (!user) return;
@@ -729,6 +768,10 @@ const Dashboard = () => {
           onStopStreaming={stopStreaming}
           focusMode={focusMode}
           messageStatuses={messageStatuses}
+          queueItems={queueItems}
+          onRemoveFromQueue={removeFromQueue}
+          onClearQueue={clearQueue}
+          onProcessQueueNow={processQueue}
         />
       ) : null;
     }
