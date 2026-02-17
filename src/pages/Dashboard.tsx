@@ -1,4 +1,12 @@
-import heroBg from "@/assets/hero-bg.png";
+import heroBgDefault from "@/assets/hero-bg.png";
+import wallpaperRaven from "@/assets/wallpaper-raven.png";
+import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
+
+const WALLPAPER_MAP: Record<string, string> = {
+  default: heroBgDefault,
+  raven: wallpaperRaven,
+  eclipse: wallpaperEclipse,
+};
 import React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Conversation, ChatMode, DashboardView, Message, Persona } from "@/components/dashboard/types";
@@ -500,9 +508,23 @@ const Dashboard = () => {
     );
   }
 
+  const [wallpaperKey, setWallpaperKey] = useState(() => {
+    try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
+  });
+  const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
+
+  useEffect(() => {
+    const handler = () => {
+      setWallpaperKey(localStorage.getItem("aureon_wallpaper") || "default");
+    };
+    window.addEventListener("storage", handler);
+    window.addEventListener("aureon-wallpaper-change", handler);
+    return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
+  }, []);
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
+      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${activeWallpaper})` }} />
       <div className="fixed inset-0 bg-background/80" />
 
       <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />

@@ -1,9 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText } from "lucide-react";
+import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import wallpaperDefault from "@/assets/hero-bg.png";
+import wallpaperRaven from "@/assets/wallpaper-raven.png";
+import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
+
+const WALLPAPERS = [
+  { key: "default", label: "Original", src: wallpaperDefault },
+  { key: "raven", label: "Raven", src: wallpaperRaven },
+  { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
+];
 
 const SettingsView = () => {
   const { user } = useAuth();
@@ -220,6 +229,39 @@ const SettingsView = () => {
               <label className="text-xs text-muted-foreground">Email</label>
               <p className="text-sm text-foreground/70 mt-1">{user?.email}</p>
             </div>
+          </div>
+        </div>
+
+        {/* Wallpaper */}
+        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-sm font-light text-foreground">Dashboard Wallpaper</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {WALLPAPERS.map((wp) => {
+              const active = (localStorage.getItem("aureon_wallpaper") || "default") === wp.key;
+              return (
+                <button
+                  key={wp.key}
+                  onClick={() => {
+                    localStorage.setItem("aureon_wallpaper", wp.key);
+                    window.dispatchEvent(new Event("aureon-wallpaper-change"));
+                    toast({ title: "Wallpaper updated", description: wp.label });
+                  }}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all aspect-video group ${
+                    active ? "border-foreground/50 ring-1 ring-foreground/20" : "border-border/20 hover:border-foreground/30"
+                  }`}
+                >
+                  <img src={wp.src} alt={wp.label} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-background/60" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                    {active && <Check className="h-4 w-4 text-foreground" />}
+                    <span className="text-[10px] font-light text-foreground">{wp.label}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
