@@ -200,9 +200,62 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
       if (!res.ok) throw new Error("Analysis failed");
       const result = await res.json();
 
-      const updatedSession = { ...newSession, status: "ready" as const, response: result.response };
+      const updatedSession = { ...newSession, status: "ready" as const, response: result.response, savedToAsha: false };
       setSessions(prev => prev.map(s => s.id === sessionId ? updatedSession : s));
       setActiveSession(updatedSession);
+
+      // Auto-save report as data file for Files tab and other Asha tabs
+      if (ashaSession && result.response) {
+        try {
+          const content = result.response;
+          const safeName = finalAnswers.company.replace(/[^a-zA-Z0-9]/g, "_");
+          const fileName = `webintel_${safeName}_${Date.now()}.txt`;
+          const storagePath = `${user.id}/${fileName}`;
+          const blob = new Blob([content], { type: "text/plain" });
+
+          const { error: uploadErr } = await supabase.storage.from("asha-data").upload(storagePath, blob);
+          if (!uploadErr) {
+            // Save as document
+            await supabase.from("asha_documents").insert({
+              user_id: user.id,
+              session_id: ashaSession.id,
+              file_name: `${finalAnswers.company} — Intelligence Report.txt`,
+              file_size: blob.size,
+              file_type: "text/plain",
+              storage_path: storagePath,
+              status: "ready",
+              doc_type: "report",
+              summary: `Web intelligence report on ${finalAnswers.company}. Objective: ${finalAnswers.objective || "Comprehensive due diligence"}.`,
+              language: "en",
+              metadata: { source: "web_intelligence", company: finalAnswers.company, objective: finalAnswers.objective || null },
+              tags: ["web-intelligence", "auto-generated", safeName.toLowerCase()],
+              extracted_text: content.slice(0, 10000),
+            });
+
+            // Save as dataset for Table/Graph/Insights
+            await supabase.from("asha_datasets").insert({
+              user_id: user.id,
+              session_id: ashaSession.id,
+              file_name: `${finalAnswers.company} — Web Intel Data.txt`,
+              file_size: blob.size,
+              file_type: "text/plain",
+              storage_path: storagePath,
+              status: "ready",
+              description: `Auto-generated web intelligence data on ${finalAnswers.company}`,
+              tags: ["web-intelligence", "auto-generated", safeName.toLowerCase()],
+              quality_score: 85,
+              row_count: content.split("\n").length,
+              col_count: 1,
+            });
+
+            const savedSession = { ...updatedSession, savedToAsha: true };
+            setSessions(prev => prev.map(s => s.id === sessionId ? savedSession : s));
+            setActiveSession(savedSession);
+          }
+        } catch (e) {
+          console.error("Auto-save to files failed:", e);
+        }
+      }
     } catch {
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: "error" as const } : s));
       setActiveSession(prev => prev?.id === sessionId ? { ...prev, status: "error" as const } : prev);
