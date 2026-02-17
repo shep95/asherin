@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
+import MessageQueuePanel from "../MessageQueuePanel";
 
 interface QueryHistoryItem {
   id: string;
@@ -183,6 +184,23 @@ const QueryBar = () => {
     processQueue();
   };
 
+  // Derive queue items for panel
+  const ashaQueueItems = useMemo(() =>
+    history.filter(h => h.status === "queued").map(h => ({ id: h.id, content: h.query })),
+    [history]
+  );
+
+  const removeFromAshaQueue = (id: string) => {
+    setHistory(prev => prev.filter(h => h.id !== id));
+    const queue = loadQueue().filter(q => q.id !== id);
+    saveQueue(queue);
+  };
+
+  const clearAshaQueue = () => {
+    setHistory(prev => prev.filter(h => h.status !== "queued"));
+    saveQueue([]);
+  };
+
   return (
     <div className="flex h-full flex-col max-w-3xl mx-auto">
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -242,6 +260,14 @@ const QueryBar = () => {
           </div>
         )}
       </div>
+
+      {/* Queue Panel */}
+      <MessageQueuePanel
+        items={ashaQueueItems}
+        onRemove={removeFromAshaQueue}
+        onClear={clearAshaQueue}
+        onProcessNow={processQueue}
+      />
 
       <div className="flex-shrink-0 p-4 border-t border-border/20 space-y-2">
         {activePlugins.length > 0 && (
