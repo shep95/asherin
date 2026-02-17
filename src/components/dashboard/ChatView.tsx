@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download } from "lucide-react";
+import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
@@ -33,6 +34,10 @@ interface ChatViewProps {
   onStopStreaming?: () => void;
   focusMode?: boolean;
   messageStatuses?: Record<string, import("@/lib/messageQueue").MessageStatus>;
+  queueItems?: QueueItem[];
+  onRemoveFromQueue?: (id: string) => void;
+  onClearQueue?: () => void;
+  onProcessQueueNow?: () => void;
 }
 
 // Copy button for messages
@@ -166,7 +171,7 @@ const markdownComponents = {
   },
 };
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {} }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -174,7 +179,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const messagesRef = useRef<HTMLDivElement>(null);
 
   const handleSend = () => {
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim()) return;
     onSendMessage(input.trim());
     setInput("");
   };
@@ -343,6 +348,14 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           messagesEndRef={messagesEndRef}
         />
       </div>
+
+      {/* Message Queue Panel */}
+      <MessageQueuePanel
+        items={queueItems}
+        onRemove={onRemoveFromQueue ?? (() => {})}
+        onClear={onClearQueue ?? (() => {})}
+        onProcessNow={onProcessQueueNow}
+      />
 
       {/* Adaptive Input — gated behind subscription */}
       <SubscriptionGatedInput
