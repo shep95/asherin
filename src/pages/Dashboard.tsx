@@ -79,6 +79,11 @@ const Dashboard = () => {
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const [wallpaperKey, setWallpaperKey] = useState(() => {
+    try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
+  });
+  const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
+
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       // Migrate from old key if needed
