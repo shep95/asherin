@@ -1647,6 +1647,7 @@ export type Database = {
           theme: string
           updated_at: string
           user_id: string
+          wallpaper: string
           web_search_enabled: boolean
         }
         Insert: {
@@ -1658,6 +1659,7 @@ export type Database = {
           theme?: string
           updated_at?: string
           user_id: string
+          wallpaper?: string
           web_search_enabled?: boolean
         }
         Update: {
@@ -1669,6 +1671,7 @@ export type Database = {
           theme?: string
           updated_at?: string
           user_id?: string
+          wallpaper?: string
           web_search_enabled?: boolean
         }
         Relationships: []

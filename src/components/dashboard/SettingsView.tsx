@@ -247,6 +247,10 @@ const SettingsView = () => {
                   onClick={() => {
                     localStorage.setItem("aureon_wallpaper", wp.key);
                     window.dispatchEvent(new Event("aureon-wallpaper-change"));
+                    // Persist to DB
+                    if (user) {
+                      supabase.from("user_settings").update({ wallpaper: wp.key }).eq("user_id", user.id).then();
+                    }
                     toast({ title: "Wallpaper updated", description: wp.label });
                   }}
                   className={`relative rounded-xl overflow-hidden border-2 transition-all aspect-video group ${

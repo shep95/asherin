@@ -1,0 +1,1 @@
+ALTER TABLE public.user_settings ADD COLUMN wallpaper TEXT NOT NULL DEFAULT 'default';

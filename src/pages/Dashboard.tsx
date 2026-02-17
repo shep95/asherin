@@ -308,6 +308,13 @@ const Dashboard = () => {
         setDepth(settingsResult.data.response_depth as ResponseDepth);
       }
 
+      // Restore wallpaper from DB (source of truth)
+      if (settingsResult.data?.wallpaper) {
+        const dbWallpaper = settingsResult.data.wallpaper as string;
+        setWallpaperKey(dbWallpaper);
+        localStorage.setItem("aureon_wallpaper", dbWallpaper);
+      }
+
       const convRows = convResult.data;
       if (!convRows || convRows.length === 0) {
         const { data: newConv } = await supabase
