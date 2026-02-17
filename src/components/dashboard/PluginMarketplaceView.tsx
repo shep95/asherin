@@ -61,12 +61,13 @@ const PluginMarketplaceView = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showInstalled, setShowInstalled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
     const [{ data: pluginData }, { data: installedData }] = await Promise.all([
-      (supabase.from as any)("plugins").select("*").order("downloads", { ascending: false }),
-      (supabase.from as any)("installed_plugins").select("*").eq("user_id", user.id),
+      supabase.from("plugins").select("*").order("downloads", { ascending: false }),
+      supabase.from("installed_plugins").select("*").eq("user_id", user.id),
     ]);
     setPlugins((pluginData ?? []) as Plugin[]);
     setInstalled((installedData ?? []) as InstalledPlugin[]);
@@ -75,9 +76,45 @@ const PluginMarketplaceView = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const installPlugin = async (pluginId: string) => {
+  // Handle ?plugin_installed= URL param after Stripe success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const installedPluginId = params.get("plugin_installed");
+    if (installedPluginId && user) {
+      // Install the plugin after successful payment
+      (async () => {
+        const { error } = await supabase.from("installed_plugins").insert({ user_id: user.id, plugin_id: installedPluginId });
+        if (!error) {
+          toast({ title: "Plugin purchased & installed" });
+          loadData();
+        }
+        // Clean URL
+        window.history.replaceState({}, "", window.location.pathname);
+      })();
+    }
+  }, [user]);
+
+  const installPlugin = async (plugin: Plugin) => {
     if (!user) return;
-    const { error } = await (supabase.from as any)("installed_plugins").insert({ user_id: user.id, plugin_id: pluginId });
+
+    // Premium plugins go through Stripe checkout
+    if (plugin.is_premium && plugin.price_cents > 0) {
+      setCheckoutLoading(plugin.id);
+      try {
+        const { data, error } = await supabase.functions.invoke("plugin-checkout", {
+          body: { pluginId: plugin.id, pluginName: plugin.name, priceCents: plugin.price_cents },
+        });
+        if (error) throw error;
+        if (data?.url) window.open(data.url, "_blank");
+      } catch (e: any) {
+        toast({ title: "Checkout failed", description: e.message, variant: "destructive" });
+      }
+      setCheckoutLoading(null);
+      return;
+    }
+
+    // Free plugins install directly
+    const { error } = await supabase.from("installed_plugins").insert({ user_id: user.id, plugin_id: plugin.id });
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Plugin installed" });
     loadData();
@@ -85,7 +122,7 @@ const PluginMarketplaceView = () => {
 
   const uninstallPlugin = async (pluginId: string) => {
     if (!user) return;
-    await (supabase.from as any)("installed_plugins").delete().eq("user_id", user.id).eq("plugin_id", pluginId);
+    await supabase.from("installed_plugins").delete().eq("user_id", user.id).eq("plugin_id", pluginId);
     toast({ title: "Plugin uninstalled" });
     loadData();
   };
@@ -172,12 +209,13 @@ const PluginMarketplaceView = () => {
                   </div>
 
                   <button
-                    onClick={() => installed ? uninstallPlugin(plugin.id) : installPlugin(plugin.id)}
+                    onClick={() => installed ? uninstallPlugin(plugin.id) : installPlugin(plugin)}
+                    disabled={checkoutLoading === plugin.id}
                     className={`w-full flex items-center justify-center gap-1.5 rounded-xl py-2 text-[10px] font-light transition-colors ${
-                      installed ? "bg-emerald-500/10 text-emerald-400 hover:bg-red-500/10 hover:text-red-400" : "bg-accent/20 text-accent hover:bg-accent/30"
-                    }`}
+                      installed ? "bg-foreground/5 text-foreground hover:bg-destructive/10 hover:text-destructive" : "bg-accent/20 text-accent hover:bg-accent/30"
+                    } disabled:opacity-50`}
                   >
-                    {installed ? <><Check className="h-3 w-3" /> Installed</> : <><Download className="h-3 w-3" /> Install</>}
+                    {checkoutLoading === plugin.id ? "Redirecting to checkout…" : installed ? <><Check className="h-3 w-3" /> Installed</> : plugin.is_premium && plugin.price_cents > 0 ? <><CreditCard className="h-3 w-3" /> Subscribe ${(plugin.price_cents / 100).toFixed(0)}/mo</> : <><Download className="h-3 w-3" /> Install</>}
                   </button>
                 </div>
               );
