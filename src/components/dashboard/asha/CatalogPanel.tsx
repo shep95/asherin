@@ -3,6 +3,7 @@ import { Search, Tag, Clock, Table2, Eye, ExternalLink, Loader2, FileText, User 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
+import { useAshaNav } from "./AshaView";
 
 interface CatalogEntry {
   id: string;
@@ -36,6 +37,7 @@ const CatalogPanel = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
+  const { navigateToTab } = useAshaNav();
 
   useEffect(() => {
     if (!user || !activeSession) return;
@@ -111,6 +113,10 @@ const CatalogPanel = () => {
                       {entry.quality_score}% quality
                     </span>
                   )}
+                  <button onClick={(e) => { e.stopPropagation(); navigateToTab("table", entry.id); }}
+                    className="flex items-center gap-1 text-[10px] text-accent hover:text-accent/80 transition-colors">
+                    <Table2 className="h-3 w-3" /> View Data
+                  </button>
                 </div>
               </div>
 
