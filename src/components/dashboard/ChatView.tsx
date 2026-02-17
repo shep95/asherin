@@ -3,6 +3,7 @@ import { Eye, Lock, Copy, Check, ArrowRight, Download } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
+import MessageStatusIndicator from "./MessageStatusIndicator";
 import CodeFilePreview from "./CodeFilePreview";
 import type { ResponseDepth } from "./DepthSelector";
 import ModeSelector from "./ModeSelector";
@@ -29,6 +30,7 @@ interface ChatViewProps {
   onCalibrationFeedback?: (messageId: string, feedback: FeedbackType) => void;
   onStopStreaming?: () => void;
   focusMode?: boolean;
+  messageStatuses?: Record<string, import("@/lib/messageQueue").MessageStatus>;
 }
 
 // Copy button for messages
@@ -59,6 +61,7 @@ function SubscriptionGatedInput(props: {
   onStop?: () => void;
   onQuickAction?: (action: string, content: string) => void;
   isStreaming: boolean;
+  conversationId?: string;
 }) {
   const { subscribed, loading } = useSubscription();
   if (loading) {
@@ -161,7 +164,7 @@ const markdownComponents = {
   },
 };
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {} }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -289,6 +292,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   {/* Action bar for both message types */}
                   {msg.content && !isStreaming && (
                     <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
+                      {msg.role === "user" && (
+                        <MessageStatusIndicator status={messageStatuses[msg.id]} />
+                      )}
                       <MessageCopyButton text={msg.content} />
                       {msg.role === "assistant" && (
                         <>
@@ -333,6 +339,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         onStop={onStopStreaming}
         onQuickAction={handleQuickAction}
         isStreaming={!!isStreaming}
+        conversationId={conversation.id}
       />
     </div>
   );
