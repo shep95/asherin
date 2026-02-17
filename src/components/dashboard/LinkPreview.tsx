@@ -25,6 +25,7 @@ const previewCache = new Map<string, PreviewData | null>();
 const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
   const [preview, setPreview] = useState<PreviewData | null>(previewCache.get(url) ?? null);
   const [loading, setLoading] = useState(!previewCache.has(url));
+  const [faviconError, setFaviconError] = useState(false);
 
   useEffect(() => {
     if (previewCache.has(url)) {
@@ -92,8 +93,15 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          {preview.favicon && (
-            <img src={preview.favicon} alt="" className="w-4 h-4 rounded-sm" />
+          {preview.favicon && !faviconError ? (
+            <img
+              src={preview.favicon}
+              alt=""
+              className="w-4 h-4 rounded-sm"
+              onError={() => setFaviconError(true)}
+            />
+          ) : (
+            <Globe className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
           )}
           <span className="text-[10px] text-muted-foreground/60">{preview.domain}</span>
         </div>
