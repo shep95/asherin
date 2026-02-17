@@ -1,15 +1,18 @@
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil,
 } from "lucide-react";
-import type { Conversation, DashboardView, Persona } from "./types";
+import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
 import SwipeableConversationItem from "./SwipeableConversationItem";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
+import { useToast } from "@/hooks/use-toast";
+import { decryptText } from "@/lib/encryption";
 
 interface SidebarContextValue {
   isOpen: boolean;
@@ -34,6 +37,7 @@ interface DashboardSidebarProps {
   onNewConversation: () => void;
   onDeleteConversation: (id: string) => void;
   onArchiveConversation: (id: string) => void;
+  onRenameConversation: (id: string, newTitle: string) => void;
   onTogglePin: (id: string) => void;
   onViewChange: (view: DashboardView) => void;
   sidebarOpen: boolean;
@@ -95,13 +99,20 @@ function groupByDate(convs: Conversation[]) {
 
 const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
-  onNewConversation, onDeleteConversation, onArchiveConversation, onTogglePin, onViewChange,
+  onNewConversation, onDeleteConversation, onArchiveConversation, onRenameConversation, onTogglePin, onViewChange,
   sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
   customPersonas, onAddCustomPersona,
 }: DashboardSidebarProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { tierKey } = useSubscription();
   const [search, setSearch] = useState("");
   const [showConvos, setShowConvos] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedConvos, setArchivedConvos] = useState<Conversation[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
   
@@ -112,6 +123,64 @@ const DashboardSidebar = ({
     if (item.access === "pro") return hasProAccess(tierKey);
     return true;
   });
+
+  // Load archived conversations
+  const loadArchived = useCallback(async () => {
+    if (!user) return;
+    setArchivedLoading(true);
+    const { data: convRows } = await supabase
+      .from("conversations")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("archived", true)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    
+    if (convRows) {
+      const convs: Conversation[] = convRows.map((c) => ({
+        id: c.id,
+        title: c.title,
+        messages: [],
+        createdAt: new Date(c.created_at),
+        pinned: c.pinned,
+        mode: c.mode as ChatMode,
+      }));
+      setArchivedConvos(convs);
+    }
+    setArchivedLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (showArchived) loadArchived();
+  }, [showArchived, loadArchived]);
+
+  const unarchiveConversation = async (id: string) => {
+    await supabase.from("conversations").update({ archived: false }).eq("id", id);
+    setArchivedConvos((prev) => prev.filter((c) => c.id !== id));
+    toast({ title: "Conversation restored" });
+    // Trigger reload by navigating
+    window.location.reload();
+  };
+
+  const permanentlyDeleteArchived = async (id: string) => {
+    await supabase.from("messages").delete().eq("conversation_id", id);
+    await supabase.from("conversations").delete().eq("id", id);
+    setArchivedConvos((prev) => prev.filter((c) => c.id !== id));
+    toast({ title: "Conversation permanently deleted" });
+  };
+
+  const startRename = (conv: Conversation) => {
+    setEditingId(conv.id);
+    setEditTitle(conv.title);
+  };
+
+  const commitRename = () => {
+    if (editingId && editTitle.trim()) {
+      onRenameConversation(editingId, editTitle.trim());
+    }
+    setEditingId(null);
+    setEditTitle("");
+  };
 
   const MIN_WIDTH = 220;
   const MAX_WIDTH = 480;
@@ -234,19 +303,82 @@ const DashboardSidebar = ({
                         </p>
                         <div className="space-y-0.5">
                           {group.items.map((conv) => (
-                            <SwipeableConversationItem
-                              key={conv.id}
-                              conv={conv}
-                              isActive={activeView === "chat" && conv.id === activeConversationId}
-                              onSelect={() => { onSelectConversation(conv.id); onViewChange("chat"); onToggleSidebar(); }}
-                              onTogglePin={() => onTogglePin(conv.id)}
-                              onDelete={() => onDeleteConversation(conv.id)}
-                              onArchive={() => onArchiveConversation(conv.id)}
-                            />
+                            editingId === conv.id ? (
+                              <div key={conv.id} className="flex items-center gap-1.5 rounded-xl px-3 py-2 bg-foreground/10">
+                                <input
+                                  autoFocus
+                                  value={editTitle}
+                                  onChange={(e) => setEditTitle(e.target.value)}
+                                  onBlur={commitRename}
+                                  onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setEditingId(null); setEditTitle(""); } }}
+                                  className="flex-1 bg-transparent text-xs font-light text-foreground outline-none border-b border-foreground/30"
+                                />
+                              </div>
+                            ) : (
+                              <SwipeableConversationItem
+                                key={conv.id}
+                                conv={conv}
+                                isActive={activeView === "chat" && conv.id === activeConversationId}
+                                onSelect={() => { onSelectConversation(conv.id); onViewChange("chat"); onToggleSidebar(); }}
+                                onTogglePin={() => onTogglePin(conv.id)}
+                                onDelete={() => onDeleteConversation(conv.id)}
+                                onArchive={() => onArchiveConversation(conv.id)}
+                                onRename={() => startRename(conv)}
+                              />
+                            )
                           ))}
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  {/* Archived Convos Toggle */}
+                  <div className="px-2 pb-2">
+                    <button
+                      onClick={() => setShowArchived(!showArchived)}
+                      className={`flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                        showArchived ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Archive className="h-4 w-4" />
+                        Archived
+                      </div>
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showArchived ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {showArchived && (
+                      <div className="mt-1 space-y-0.5">
+                        {archivedLoading ? (
+                          <p className="px-3 py-2 text-[10px] text-muted-foreground animate-pulse">Loading…</p>
+                        ) : archivedConvos.length === 0 ? (
+                          <p className="px-3 py-2 text-[10px] text-muted-foreground/50">No archived conversations.</p>
+                        ) : (
+                          archivedConvos.map((conv) => (
+                            <div key={conv.id} className="group flex items-center gap-2 rounded-xl px-3 py-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors">
+                              <Archive className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                              <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
+                              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => unarchiveConversation(conv.id)}
+                                  className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+                                  title="Restore"
+                                >
+                                  <ArchiveRestore className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={() => permanentlyDeleteArchived(conv.id)}
+                                  className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                                  title="Delete permanently"
+                                >
+                                  <Trash2Icon className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

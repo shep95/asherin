@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { MessageSquare, Pin, Trash2, Archive } from "lucide-react";
+import { MessageSquare, Pin, Trash2, Archive, Pencil } from "lucide-react";
 import type { Conversation } from "./types";
 
 interface SwipeableConversationItemProps {
@@ -9,12 +9,13 @@ interface SwipeableConversationItemProps {
   onTogglePin: () => void;
   onDelete: () => void;
   onArchive: () => void;
+  onRename: () => void;
 }
 
 const SWIPE_THRESHOLD = 80;
 
 const SwipeableConversationItem = ({
-  conv, isActive, onSelect, onTogglePin, onDelete, onArchive,
+  conv, isActive, onSelect, onTogglePin, onDelete, onArchive, onRename,
 }: SwipeableConversationItemProps) => {
   const startX = useRef(0);
   const currentX = useRef(0);
@@ -31,7 +32,6 @@ const SwipeableConversationItem = ({
     if (!swiping) return;
     currentX.current = e.touches[0].clientX;
     const diff = currentX.current - startX.current;
-    // Only allow left swipe (negative)
     if (diff < 0) {
       setOffset(Math.max(diff, -120));
     }
@@ -40,7 +40,6 @@ const SwipeableConversationItem = ({
   const handleTouchEnd = () => {
     setSwiping(false);
     if (offset < -SWIPE_THRESHOLD) {
-      // Snap to reveal archive action
       setOffset(-100);
     } else {
       setOffset(0);
@@ -86,14 +85,23 @@ const SwipeableConversationItem = ({
         <span className="flex-1 truncate text-xs font-light">{conv.title}</span>
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
+            onClick={(e) => { e.stopPropagation(); onRename(); }}
+            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+            title="Rename"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
             onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
             className={`p-1 rounded text-muted-foreground hover:text-foreground transition-colors ${conv.pinned ? "opacity-100 text-foreground" : ""}`}
+            title="Pin"
           >
             <Pin className="h-3 w-3" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+            title="Delete permanently"
           >
             <Trash2 className="h-3 w-3" />
           </button>
