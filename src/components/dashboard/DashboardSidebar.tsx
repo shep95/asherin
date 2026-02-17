@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasEnterpriseAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
   FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2,
@@ -47,8 +47,8 @@ interface DashboardSidebarProps {
 const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" | "pro" }[] = [
   { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
   { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
-  { id: "asha", icon: Database, label: "Asha Intelligence", access: "enterprise" },
-  { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "enterprise" },
+  { id: "asha", icon: Database, label: "Asha Intelligence", access: "pro" },
+  { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
   { id: "library", icon: FolderOpen, label: "Library" },
   { id: "snippets", icon: Code2, label: "Code Snippets" },
   { id: "projects", icon: Layers, label: "Projects" },
@@ -103,8 +103,7 @@ const DashboardSidebar = ({
   const navItems = allNavItems.filter((item) => {
     if (!item.access) return true;
     if (item.access === "search") return hasSearchAccess(tierKey);
-    if (item.access === "pro") return hasSearchAccess(tierKey); // pro = pro or enterprise
-    if (item.access === "enterprise") return hasEnterpriseAccess(tierKey);
+    if (item.access === "pro") return hasProAccess(tierKey);
     return true;
   });
 
