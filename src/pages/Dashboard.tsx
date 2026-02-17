@@ -42,6 +42,7 @@ import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
+import { pushNotification } from "@/components/dashboard/NotificationInbox";
 import { Lock, ArrowRight, WifiOff } from "lucide-react";
 import {
   enqueueMessage,
@@ -227,6 +228,13 @@ const Dashboard = () => {
                   await supabase.from("messages").insert({
                     id: assistantId, conversation_id: msg.conversationId,
                     user_id: user.id, role: "assistant", content: encAssistant,
+                  });
+                  pushNotification({
+                    title: "Queued response ready",
+                    message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
+                    type: "success",
+                    actionLabel: "View",
+                    actionView: "chat",
                   });
                 },
               });
@@ -534,6 +542,14 @@ const Dashboard = () => {
           });
           const sug = await fetchSuggestions(assistantContent);
           setSuggestions(sug);
+          // In-app notification trigger for completed AI response
+          pushNotification({
+            title: "Aureon responded",
+            message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
+            type: "success",
+            actionLabel: "View",
+            actionView: "chat",
+          });
         },
       });
     } catch (e: any) {
