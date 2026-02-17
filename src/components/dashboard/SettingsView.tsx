@@ -7,11 +7,13 @@ import { Link } from "react-router-dom";
 import wallpaperDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
+import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
   { key: "raven", label: "Raven", src: wallpaperRaven },
   { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
+  { key: "glitch", label: "Glitch", src: wallpaperGlitch },
 ];
 
 const SettingsView = () => {
