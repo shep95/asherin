@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import {
   Send, Loader2, Crosshair, Globe, Building2, User, AtSign,
-  Fingerprint, MapPin, Phone, Image, Shield, AlertTriangle, Sparkles,
+  Fingerprint, MapPin, Phone, Image, Shield, AlertTriangle, Sparkles, WifiOff, Clock, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -15,6 +15,15 @@ interface NomadMessage {
   content: string;
   timestamp: Date;
   investigationType?: string;
+  status?: "sending" | "queued" | "sent" | "failed";
+}
+
+const NOMAD_QUEUE_KEY = "aureon_nomad_queue";
+function loadNomadQueue(): NomadMessage[] {
+  try { return JSON.parse(localStorage.getItem(NOMAD_QUEUE_KEY) || "[]").map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })); } catch { return []; }
+}
+function saveNomadQueue(q: NomadMessage[]) {
+  localStorage.setItem(NOMAD_QUEUE_KEY, JSON.stringify(q));
 }
 
 const INVESTIGATION_TYPES = [
@@ -44,12 +53,109 @@ const NomadView = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSources, setShowSources] = useState(false);
+  const [online, setOnline] = useState(navigator.onLine);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Online/offline tracking
+  useEffect(() => {
+    const on = () => { setOnline(true); processNomadQueue(); };
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
+  // Load queued messages on mount
+  useEffect(() => {
+    const queued = loadNomadQueue();
+    if (queued.length > 0) {
+      setMessages(prev => [...prev, ...queued]);
+      if (navigator.onLine) processNomadQueue();
+    }
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const processNomadQueue = async () => {
+    const queued = loadNomadQueue();
+    if (queued.length === 0 || !navigator.onLine) return;
+    for (const msg of queued) {
+      if (msg.status !== "queued") continue;
+      try {
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: "sending" } : m));
+        await actualSend(msg);
+        const remaining = loadNomadQueue().filter(q => q.id !== msg.id);
+        saveNomadQueue(remaining);
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: "sent" } : m));
+      } catch {
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: "failed" } : m));
+      }
+    }
+  };
+
+  const actualSend = async (userMsg: NomadMessage) => {
+    const assistantId = crypto.randomUUID();
+    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", timestamp: new Date() }]);
+
+    const history = messages.filter(m => m.role === "user" || m.role === "assistant").concat(userMsg).map(m => ({ role: m.role, content: m.content }));
+
+    const resp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nomad-investigate`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: history }),
+      }
+    );
+
+    if (!resp.ok || !resp.body) {
+      const errData = await resp.json().catch(() => ({}));
+      setMessages(prev => prev.filter(m => m.id !== assistantId));
+      throw new Error(errData.error || `Request failed (${resp.status})`);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let assistantContent = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) {
+            assistantContent += content;
+            const current = assistantContent;
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: current } : m));
+          }
+        } catch {
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
+      }
+    }
+  };
 
   const handleSend = async () => {
     const trimmed = input.trim();
@@ -60,88 +166,49 @@ const NomadView = () => {
       role: "user",
       content: trimmed,
       timestamp: new Date(),
+      status: "sending",
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
-    // Create placeholder assistant message
-    const assistantId = crypto.randomUUID();
-    setMessages((prev) => [
-      ...prev,
-      { id: assistantId, role: "assistant", content: "", timestamp: new Date() },
-    ]);
+    // If offline, queue it
+    if (!navigator.onLine) {
+      const queuedMsg = { ...userMsg, status: "queued" as const };
+      setMessages(prev => prev.map(m => m.id === userMsg.id ? queuedMsg : m));
+      const queue = loadNomadQueue();
+      queue.push(queuedMsg);
+      saveNomadQueue(queue);
+      setIsLoading(false);
+      toast({ title: "Message queued", description: "NOMAD will investigate when you're back online." });
+      return;
+    }
 
     try {
-      const history = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nomad-investigate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ messages: history }),
-        }
-      );
-
-      if (!resp.ok || !resp.body) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || `Request failed (${resp.status})`);
-      }
-
-      // Stream response
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      let assistantContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              const current = assistantContent;
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: current } : m
-                )
-              );
-            }
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
-          }
-        }
-      }
+      await actualSend(userMsg);
+      setMessages(prev => prev.map(m => m.id === userMsg.id ? { ...m, status: "sent" } : m));
     } catch (e: any) {
-      toast({ title: "NOMAD Error", description: e.message, variant: "destructive" });
-      setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+      // Queue for retry
+      const queuedMsg = { ...userMsg, status: "queued" as const };
+      setMessages(prev => prev.map(m => m.id === userMsg.id ? queuedMsg : m));
+      const queue = loadNomadQueue();
+      queue.push(queuedMsg);
+      saveNomadQueue(queue);
+      toast({ title: "NOMAD Error", description: `Queued for retry: ${e.message}`, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const retryMessage = (id: string) => {
+    const msg = messages.find(m => m.id === id);
+    if (!msg) return;
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, status: "queued" } : m));
+    const queue = loadNomadQueue();
+    queue.push({ ...msg, status: "queued" });
+    saveNomadQueue(queue);
+    processNomadQueue();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -303,7 +370,20 @@ const NomadView = () => {
                           })()}
                         </div>
                       ) : (
-                        <p className="text-xs font-extralight leading-relaxed">{msg.content}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-extralight leading-relaxed flex-1">{msg.content}</p>
+                          {msg.status === "sending" && <Loader2 className="h-2.5 w-2.5 text-accent/60 animate-spin shrink-0" />}
+                          {msg.status === "queued" && <Clock className="h-2.5 w-2.5 text-amber-400/70 shrink-0" />}
+                          {msg.status === "sent" && <Check className="h-2.5 w-2.5 text-muted-foreground/30 shrink-0" />}
+                          {msg.status === "failed" && (
+                            <button onClick={() => retryMessage(msg.id)} title="Retry">
+                              <AlertTriangle className="h-2.5 w-2.5 text-destructive/70 shrink-0" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {msg.role === "user" && msg.status === "queued" && (
+                        <p className="text-[9px] text-amber-400/70 mt-1">Queued — will send when online</p>
                       )}
                     </div>
                   </div>
@@ -316,13 +396,14 @@ const NomadView = () => {
           {/* Input */}
           <div className="flex-shrink-0 border-t border-border/20 bg-card/20 backdrop-blur-md px-4 py-3">
             <div className="max-w-3xl mx-auto">
-              <div className="flex items-end gap-2 rounded-2xl border border-border/20 bg-card/30 p-2">
+              <div className={`flex items-end gap-2 rounded-2xl border ${online ? "border-border/20" : "border-amber-500/30"} bg-card/30 p-2`}>
+                {!online && <WifiOff className="h-3.5 w-3.5 text-amber-400/60 shrink-0 mb-2" />}
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Describe your investigation target..."
+                  placeholder={online ? "Describe your investigation target..." : "Offline — investigations will queue…"}
                   className="flex-1 resize-none bg-transparent text-xs font-extralight text-foreground placeholder:text-muted-foreground/40 outline-none min-h-[36px] max-h-[120px] py-2 px-2"
                   rows={1}
                 />

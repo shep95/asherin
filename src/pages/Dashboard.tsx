@@ -94,6 +94,18 @@ const Dashboard = () => {
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
   const processingQueue = useRef(false);
+  const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
+    try {
+      const oldStored = localStorage.getItem("zialiel_custom_personas");
+      const newStored = localStorage.getItem("aureon_custom_personas");
+      if (oldStored && !newStored) {
+        localStorage.setItem("aureon_custom_personas", oldStored);
+        localStorage.removeItem("zialiel_custom_personas");
+        return JSON.parse(oldStored);
+      }
+      return newStored ? JSON.parse(newStored) : [];
+    } catch { return []; }
+  });
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
   });
@@ -135,7 +147,7 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Process queued messages
+  // Process queued messages — actually persist to DB and trigger AI
   const processMessageQueue = useCallback(async () => {
     if (processingQueue.current || !user) return;
     processingQueue.current = true;
@@ -151,9 +163,72 @@ const Dashboard = () => {
         try {
           await updateMessageStatus(msg.id, "sending");
           setMessageStatuses(prev => ({ ...prev, [msg.id]: "sending" }));
-          // The actual send already happened optimistically — just mark done
+
+          // Actually persist the user message to DB
+          const encryptedContent = await encryptText(msg.content, user.id);
+          const { data: savedMsg } = await supabase
+            .from("messages")
+            .insert({ conversation_id: msg.conversationId, user_id: user.id, role: "user", content: encryptedContent })
+            .select()
+            .single();
+
+          if (savedMsg) {
+            // Update the optimistic message with the real DB id
+            setConversations(prev => prev.map(c =>
+              c.id === msg.conversationId
+                ? { ...c, messages: c.messages.map(m => m.id === msg.id ? { ...m, id: savedMsg.id } : m) }
+                : c
+            ));
+          }
+
           await removeMessage(msg.id);
           setMessageStatuses(prev => ({ ...prev, [msg.id]: "sent" }));
+
+          // Trigger AI response for this queued message
+          const conv = conversations.find(c => c.id === msg.conversationId);
+          if (conv) {
+            const assistantId = crypto.randomUUID();
+            setConversations(prev => prev.map(c =>
+              c.id === msg.conversationId
+                ? { ...c, messages: [...c.messages, { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() }] }
+                : c
+            ));
+            setIsStreaming(true);
+            let assistantContent = "";
+            const history = [...conv.messages, { role: "user" as const, content: msg.content }]
+              .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+
+            const activePersona = customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId);
+            try {
+              await streamChat({
+                messages: history,
+                mode,
+                personaId,
+                personaSystemPrompt: activePersona?.systemPrompt || null,
+                depth,
+                userProfile,
+                onDelta: (chunk) => {
+                  assistantContent += chunk;
+                  const current = assistantContent;
+                  setConversations(prev => prev.map(c =>
+                    c.id === msg.conversationId
+                      ? { ...c, messages: c.messages.map(m => m.id === assistantId ? { ...m, content: current } : m) }
+                      : c
+                  ));
+                },
+                onDone: async () => {
+                  setIsStreaming(false);
+                  const encAssistant = await encryptText(assistantContent, user.id);
+                  await supabase.from("messages").insert({
+                    id: assistantId, conversation_id: msg.conversationId,
+                    user_id: user.id, role: "assistant", content: encAssistant,
+                  });
+                },
+              });
+            } catch {
+              setIsStreaming(false);
+            }
+          }
         } catch {
           const delay = getRetryDelay(msg.retryCount);
           await updateMessageStatus(msg.id, "retrying");
@@ -164,21 +239,9 @@ const Dashboard = () => {
     } finally {
       processingQueue.current = false;
     }
-  }, [user]);
+  }, [user, conversations, customPersonas, personaId, mode, depth, userProfile]);
 
-  const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
-    try {
-      // Migrate from old key if needed
-      const oldStored = localStorage.getItem("zialiel_custom_personas");
-      const newStored = localStorage.getItem("aureon_custom_personas");
-      if (oldStored && !newStored) {
-        localStorage.setItem("aureon_custom_personas", oldStored);
-        localStorage.removeItem("zialiel_custom_personas");
-        return JSON.parse(oldStored);
-      }
-      return newStored ? JSON.parse(newStored) : [];
-    } catch { return []; }
-  });
+  // customPersonas declared above processMessageQueue
 
   const addCustomPersona = useCallback((persona: Persona) => {
     setCustomPersonas((prev) => {
