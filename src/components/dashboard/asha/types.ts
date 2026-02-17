@@ -2,7 +2,7 @@ export type AshaTab =
   | "ingest" | "table" | "graph" | "pipelines" | "workflows"
   | "dashboards" | "insights" | "query" | "catalog" | "reports"
   | "webintel" | "entities" | "scenarios" | "lineage" | "threats" | "monitoring"
-  | "docintel";
+  | "docintel" | "files";
 
 export interface AshaFile {
   id: string;
