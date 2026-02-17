@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Globe, Search, Loader2, Plus, Building2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Send, Database, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
 import ReactMarkdown from "react-markdown";
+import { saveWebIntelSession, getWebIntelSessions } from "@/lib/messageQueue";
 
 interface ChatMessage {
   id: string;
@@ -88,6 +89,34 @@ const WebIntelligencePanel = () => {
   const { user } = useAuth();
   const { activeSession: ashaSession } = useAshaSession();
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted sessions from IndexedDB on mount
+  useEffect(() => {
+    getWebIntelSessions().then(saved => {
+      if (saved.length > 0) {
+        const restored = saved.map((s: any) => ({
+          ...s,
+          createdAt: new Date(s.createdAt),
+          chat: (s.chat || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })),
+        }));
+        setSessions(restored);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Persist sessions to IndexedDB whenever they change
+  const persistSessions = useCallback((updatedSessions: WebSession[]) => {
+    updatedSessions.forEach(s => {
+      saveWebIntelSession({
+        ...s,
+        createdAt: s.createdAt instanceof Date ? s.createdAt.toISOString() : s.createdAt,
+        chat: (s.chat || []).map(m => ({
+          ...m,
+          timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : m.timestamp,
+        })),
+      }).catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -201,7 +230,11 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
       const result = await res.json();
 
       const updatedSession = { ...newSession, status: "ready" as const, response: result.response, savedToAsha: false };
-      setSessions(prev => prev.map(s => s.id === sessionId ? updatedSession : s));
+      setSessions(prev => {
+        const next = prev.map(s => s.id === sessionId ? updatedSession : s);
+        persistSessions(next);
+        return next;
+      });
       setActiveSession(updatedSession);
 
       // Auto-save report as data file for Files tab and other Asha tabs
@@ -249,7 +282,11 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
             });
 
             const savedSession = { ...updatedSession, savedToAsha: true };
-            setSessions(prev => prev.map(s => s.id === sessionId ? savedSession : s));
+            setSessions(prev => {
+              const next = prev.map(s => s.id === sessionId ? savedSession : s);
+              persistSessions(next);
+              return next;
+            });
             setActiveSession(savedSession);
           }
         } catch (e) {
@@ -274,7 +311,11 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
     const updatedChat = [...(activeSession.chat || []), userMsg];
     const updated = { ...activeSession, chat: updatedChat };
     setActiveSession(updated);
-    setSessions(prev => prev.map(s => s.id === activeSession.id ? updated : s));
+    setSessions(prev => {
+      const next = prev.map(s => s.id === activeSession.id ? updated : s);
+      persistSessions(next);
+      return next;
+    });
     setChatInput("");
     setChatLoading(true);
 
@@ -320,7 +361,11 @@ INSTRUCTIONS:
       const finalChat = [...updatedChat, assistantMsg];
       const finalSession = { ...updated, chat: finalChat };
       setActiveSession(finalSession);
-      setSessions(prev => prev.map(s => s.id === activeSession.id ? finalSession : s));
+      setSessions(prev => {
+        const next = prev.map(s => s.id === activeSession.id ? finalSession : s);
+        persistSessions(next);
+        return next;
+      });
     } catch {
       const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⚠️ Failed to process follow-up. Please try again.", timestamp: new Date() };
       const errChat = [...updatedChat, errMsg];

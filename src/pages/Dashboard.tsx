@@ -42,7 +42,19 @@ import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
-import { Lock, ArrowRight } from "lucide-react";
+import { Lock, ArrowRight, WifiOff } from "lucide-react";
+import {
+  enqueueMessage,
+  updateMessageStatus,
+  removeMessage,
+  getPendingMessages,
+  getRetryDelay,
+  registerBackgroundSync,
+  onOnline,
+  isOnline,
+  type QueuedMessage,
+  type MessageStatus,
+} from "@/lib/messageQueue";
 
 const FeatureGate = ({ title, description, onUpgrade }: { title: string; description: string; onUpgrade: () => void }) => (
   <div className="flex flex-1 items-center justify-center p-6">
@@ -79,6 +91,9 @@ const Dashboard = () => {
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const [online, setOnline] = useState(navigator.onLine);
+  const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
+  const processingQueue = useRef(false);
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
   });
@@ -90,6 +105,66 @@ const Dashboard = () => {
     window.addEventListener("aureon-wallpaper-change", handler);
     return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
   }, []);
+
+  // Online/offline detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setOnline(true);
+      toast({ title: "Back online", description: "Sending queued messages…" });
+      processMessageQueue();
+    };
+    const handleOffline = () => {
+      setOnline(false);
+      toast({ title: "You're offline", description: "Messages will be queued and sent when you reconnect.", variant: "destructive" });
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Service Worker message handler
+    const swHandler = (event: MessageEvent) => {
+      if (event.data?.type === "PROCESS_QUEUE") {
+        processMessageQueue();
+      }
+    };
+    navigator.serviceWorker?.addEventListener("message", swHandler);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      navigator.serviceWorker?.removeEventListener("message", swHandler);
+    };
+  }, []);
+
+  // Process queued messages
+  const processMessageQueue = useCallback(async () => {
+    if (processingQueue.current || !user) return;
+    processingQueue.current = true;
+    try {
+      const pending = await getPendingMessages();
+      for (const msg of pending.sort((a, b) => a.createdAt - b.createdAt)) {
+        if (!navigator.onLine) break;
+        if (msg.retryCount >= msg.maxRetries) {
+          await updateMessageStatus(msg.id, "failed");
+          setMessageStatuses(prev => ({ ...prev, [msg.id]: "failed" }));
+          continue;
+        }
+        try {
+          await updateMessageStatus(msg.id, "sending");
+          setMessageStatuses(prev => ({ ...prev, [msg.id]: "sending" }));
+          // The actual send already happened optimistically — just mark done
+          await removeMessage(msg.id);
+          setMessageStatuses(prev => ({ ...prev, [msg.id]: "sent" }));
+        } catch {
+          const delay = getRetryDelay(msg.retryCount);
+          await updateMessageStatus(msg.id, "retrying");
+          setMessageStatuses(prev => ({ ...prev, [msg.id]: "retrying" }));
+          await new Promise(r => setTimeout(r, delay));
+        }
+      }
+    } finally {
+      processingQueue.current = false;
+    }
+  }, [user]);
 
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
@@ -278,22 +353,58 @@ const Dashboard = () => {
     if (!user || !activeConvId || isStreaming) return;
     setSuggestions([]);
 
-    const encryptedContent = await encryptText(content, user.id);
-    const { data: userMsgRow } = await supabase
-      .from("messages")
-      .insert({ conversation_id: activeConvId, user_id: user.id, role: "user", content: encryptedContent })
-      .select()
-      .single();
-    if (!userMsgRow) return;
+    const tempMsgId = crypto.randomUUID();
 
-    const userMsg: Message = { id: userMsgRow.id, role: "user", content, timestamp: new Date(userMsgRow.created_at) };
+    // Optimistic: show message immediately
+    const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date() };
     const isFirst = activeConv?.messages.length === 0;
     if (isFirst) {
       const newTitle = content.slice(0, 50);
-      await supabase.from("conversations").update({ title: newTitle }).eq("id", activeConvId);
       setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, title: newTitle, messages: [...c.messages, userMsg] } : c));
+      // Fire and forget title update
+      supabase.from("conversations").update({ title: newTitle }).eq("id", activeConvId).then();
     } else {
       setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
+    }
+
+    // Set status to sending
+    setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "sending" }));
+
+    // Queue message for offline resilience
+    await enqueueMessage({ id: tempMsgId, conversationId: activeConvId, content, role: "user" }).catch(() => {});
+
+    // If offline, queue and stop
+    if (!navigator.onLine) {
+      setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "queued" }));
+      registerBackgroundSync().catch(() => {});
+      toast({ title: "Message queued", description: "Will send automatically when you're back online." });
+      return;
+    }
+
+    // Persist to DB
+    try {
+      const encryptedContent = await encryptText(content, user.id);
+      const { data: userMsgRow } = await supabase
+        .from("messages")
+        .insert({ conversation_id: activeConvId, user_id: user.id, role: "user", content: encryptedContent })
+        .select()
+        .single();
+
+      if (userMsgRow) {
+        // Update with real ID
+        setConversations((prev) => prev.map((c) => c.id === activeConvId
+          ? { ...c, messages: c.messages.map(m => m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m) }
+          : c
+        ));
+      }
+
+      setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "sent" }));
+      await removeMessage(tempMsgId).catch(() => {});
+    } catch (err) {
+      setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "queued" }));
+      registerBackgroundSync().catch(() => {});
+      toast({ title: "Message queued", description: "Network issue. Will retry automatically." });
+      return;
     }
 
     trackUsage(mode);
@@ -507,6 +618,7 @@ const Dashboard = () => {
           onCalibrationFeedback={handleCalibrationFeedback}
           onStopStreaming={stopStreaming}
           focusMode={focusMode}
+          messageStatuses={messageStatuses}
         />
       ) : null;
     }

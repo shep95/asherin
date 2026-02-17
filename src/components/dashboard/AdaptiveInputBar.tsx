@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff } from "lucide-react";
+import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 
 type InputIntent = "text" | "code" | "url" | "image" | "file";
 
@@ -11,6 +12,7 @@ interface AdaptiveInputBarProps {
   onQuickAction?: (action: string, content: string) => void;
   isStreaming: boolean;
   disabled?: boolean;
+  conversationId?: string;
 }
 
 function detectIntent(text: string): InputIntent {
@@ -49,9 +51,12 @@ const quickActions: Record<InputIntent, { id: string; icon: React.ElementType; l
   ],
 };
 
-const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isStreaming, disabled }: AdaptiveInputBarProps) => {
+const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isStreaming, disabled, conversationId }: AdaptiveInputBarProps) => {
   const [intent, setIntent] = useState<InputIntent>("text");
+  const [draftSaved, setDraftSaved] = useState<string | null>(null);
+  const [online, setOnline] = useState(navigator.onLine);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIntent(detectIntent(value));
@@ -65,11 +70,64 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
     ta.style.height = Math.min(ta.scrollHeight, 128) + "px";
   }, [value]);
 
+  // Online/offline tracking
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
+  // Load draft on mount / conversation change
+  useEffect(() => {
+    const key = conversationId || "global";
+    getDraft(key).then(draft => {
+      if (draft && draft.content && !value) {
+        onChange(draft.content);
+        setDraftSaved(`Restored from ${new Date(draft.updatedAt).toLocaleTimeString()}`);
+        setTimeout(() => setDraftSaved(null), 3000);
+      }
+    }).catch(() => {});
+  }, [conversationId]);
+
+  // Auto-save draft every 500ms
+  useEffect(() => {
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    if (!value.trim()) {
+      setDraftSaved(null);
+      return;
+    }
+    draftTimerRef.current = setTimeout(() => {
+      const key = conversationId || "global";
+      saveDraft({ id: key, content: value, updatedAt: Date.now() }).then(() => {
+        setDraftSaved("Draft saved");
+        setTimeout(() => setDraftSaved(null), 2000);
+      }).catch(() => {});
+    }, 500);
+    return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current); };
+  }, [value, conversationId]);
+
+  // Clear draft on send
+  const handleSend = () => {
+    const key = conversationId || "global";
+    deleteDraft(key).catch(() => {});
+    setDraftSaved(null);
+    onSend();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      handleSend();
     }
+  };
+
+  const clearDraft = () => {
+    const key = conversationId || "global";
+    onChange("");
+    deleteDraft(key).catch(() => {});
+    setDraftSaved(null);
   };
 
   const actions = quickActions[intent];
@@ -95,16 +153,21 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
           </div>
         )}
 
-        <div className="flex items-end gap-3 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl p-3 transition-all">
+        <div className={`flex items-end gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-3 transition-all`}>
           <textarea
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message Aureon…"
+            placeholder={online ? "Message Aureon…" : "Offline — messages will queue…"}
             rows={1}
             className="flex-1 resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
           />
+          {value.trim() && (
+            <button onClick={clearDraft} className="shrink-0 p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors" title="Clear draft">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
           {isStreaming ? (
             <button
               onClick={onStop}
@@ -115,7 +178,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
             </button>
           ) : (
             <button
-              onClick={onSend}
+              onClick={handleSend}
               disabled={!value.trim() || disabled}
               className="shrink-0 rounded-xl bg-foreground p-2.5 text-background transition-all hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.02]"
             >
@@ -124,9 +187,10 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
           )}
         </div>
         <div className="mt-2 flex items-center justify-center gap-1.5">
+          {!online && <WifiOff className="h-3 w-3 text-amber-400/70" />}
           <Lock className="h-3 w-3 text-emerald-500/50" />
           <p className="text-xs font-extralight text-muted-foreground/50">
-            End-to-end encrypted · Aureon may make mistakes
+            {!online ? "Offline · messages queued" : "End-to-end encrypted"}{draftSaved ? ` · ${draftSaved}` : ""} · Aureon may make mistakes
           </p>
         </div>
       </div>
