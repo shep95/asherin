@@ -5,7 +5,8 @@ import Header from "@/components/Header";
 import {
   Brain, Code, Shield, Search, Eye, Newspaper, Users, Server,
   Lock, Zap, ArrowRight, MessageSquare, Layers, Database,
-  Globe, Target, Download, RefreshCw, Check, Sparkles,
+  Globe, Target, Download, RefreshCw, Check, Sparkles, FileText,
+  Activity, Puzzle, ClipboardList, MapPin,
 } from "lucide-react";
 
 /* ─── Tier config ─── */
@@ -183,7 +184,6 @@ const features: Feature[] = [
     ],
     tier: "pro",
   },
-  /* ─── Advisor tier ─── */
   {
     icon: Database,
     title: "Asha Data Intelligence",
@@ -215,19 +215,95 @@ const features: Feature[] = [
     tier: "pro",
   },
   {
+    icon: FileText,
+    title: "Intelligence Notebooks",
+    description:
+      "Collaborative analysis notebooks with version control, cell-based editing, and scheduled execution. Write queries, build visualizations, add narrative text — then share with your team or schedule to run on autopilot.",
+    details: [
+      "Cell types: text, query, code, visualization, data source",
+      "Full version history — revert to any previous state",
+      "Clone & fork notebooks for experimentation",
+      "Schedule notebooks to run weekly/daily with alerting",
+      "Share with team — view, clone, edit, or admin permissions",
+      "Export as structured intelligence reports",
+    ],
+    tier: "pro",
+  },
+  {
     icon: Users,
     title: "Team Workspace",
     description:
-      "Unlimited seats for your entire organization. Shared conversation threads, collaborative intelligence, and unified billing under a single Advisor account.",
+      "Create teams via email invite, assign roles (Owner / Admin / Analyst / Viewer), and collaborate on shared intelligence operations with row-level and column-level data security.",
     details: [
-      "Unlimited team members — no per-seat pricing",
-      "Shared conversation threads and intelligence",
-      "Centralized billing and usage analytics",
-      "Role-based access control",
-      "Team-wide memory and context sharing",
+      "Create teams and invite Pro members via email",
+      "Role-based access: Owner, Admin, Analyst, Viewer",
+      "Row-level security — users see only data they're cleared for",
+      "Column-level security — hide sensitive fields per user",
+      "Data sensitivity tagging: Public / Internal / Confidential / Restricted",
+      "Complete audit trail — who accessed what, when",
     ],
-    tier: "advisor",
+    tier: "pro",
   },
+  {
+    icon: Activity,
+    title: "Time-Series Intelligence",
+    description:
+      "Advanced temporal analysis that auto-detects seasonality, extracts trends, forecasts future values with confidence intervals, and alerts on anomalies — all triggered automatically when ASHA detects time-series data.",
+    details: [
+      "Seasonality decomposition — weekly, monthly, annual patterns",
+      "Trend extraction with R² goodness of fit",
+      "Change point detection with probability scoring",
+      "Forecasting with confidence intervals",
+      "Cross-series correlation with lag detection",
+      "Auto-alerts when values deviate beyond 2σ",
+    ],
+    tier: "pro",
+  },
+  {
+    icon: MapPin,
+    title: "Geospatial Intelligence",
+    description:
+      "Spatial-temporal analysis beyond pins on a map. Density heatmaps, route optimization, territory analysis, and location clustering — automatically triggered when datasets contain geographic data.",
+    details: [
+      "Interactive location mapping with data overlays",
+      "Customer density heatmaps by region",
+      "Logistics route analysis with efficiency scoring",
+      "Sales territory mapping with performance metrics",
+      "Geographic clustering and hotspot detection",
+      "Geofencing alerts for movement tracking",
+    ],
+    tier: "pro",
+  },
+  {
+    icon: Puzzle,
+    title: "Plugin Marketplace",
+    description:
+      "Extend ASHA with third-party and first-party plugins — data connectors (Salesforce, HubSpot, Stripe), analysis modules (churn prediction, fraud detection), visualization plugins, and export integrations.",
+    details: [
+      "20+ plugins across 5 categories",
+      "Data connectors: Salesforce, HubSpot, QuickBooks, Shopify, Stripe",
+      "Analysis: Churn prediction, fraud detection, sentiment analysis",
+      "Visualizations: Sankey diagrams, 3D scatter, force graphs",
+      "Export: Tableau, Google Sheets, Airtable, Slack",
+      "One-click install and uninstall",
+    ],
+    tier: "pro",
+  },
+  {
+    icon: ClipboardList,
+    title: "Audit Trail",
+    description:
+      "Complete access and activity logging for compliance. Every data access, team action, and configuration change is logged with timestamps, user IDs, and resource details.",
+    details: [
+      "Full audit log of all team and data actions",
+      "Exportable for HIPAA, SOC2, GDPR compliance",
+      "Alert on unusual access patterns",
+      "Filter by action type, user, and date range",
+      "Immutable log — entries cannot be modified or deleted",
+    ],
+    tier: "pro",
+  },
+  /* ─── Advisor tier ─── */
   {
     icon: Server,
     title: "Private Deployment",
