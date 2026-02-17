@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard } from "lucide-react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
 import SearchModeSelector from "./search/SearchModeSelector";
@@ -38,8 +38,28 @@ const ZophielEngineView = () => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
+  const [online, setOnline] = useState(navigator.onLine);
+  const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Online/offline tracking
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+
+  // Auto-run queued search when back online
+  useEffect(() => {
+    if (online && queuedSearch) {
+      const q = queuedSearch;
+      setQueuedSearch(null);
+      search(q);
+    }
+  }, [online, queuedSearch]);
 
   // Load saved state
   useEffect(() => {
@@ -83,6 +103,15 @@ const ZophielEngineView = () => {
       return;
     }
 
+    // If offline, queue the search
+    if (!navigator.onLine) {
+      setQueuedSearch(q);
+      saveRecent(q);
+      setSearched(true);
+      setShowSuggestions(false);
+      return;
+    }
+
     setDeepSearchQuery(null);
     setLoading(true);
     setSearched(true);
@@ -92,6 +121,7 @@ const ZophielEngineView = () => {
     setFreshnessAlerts({});
     setShowSuggestions(false);
     setSelectedIndex(-1);
+    setQueuedSearch(null);
     saveRecent(q);
 
     const start = performance.now();
@@ -202,7 +232,8 @@ const ZophielEngineView = () => {
 
             {/* Search bar */}
             <form onSubmit={handleSubmit} className="relative">
-              <div className="flex items-center gap-2 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors">
+              <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
+                {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
                 <Search className="h-5 w-5 text-muted-foreground/50 shrink-0" />
                 <input
                   ref={inputRef}
@@ -210,7 +241,7 @@ const ZophielEngineView = () => {
                   onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
                   onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder="Search the web…"
+                  placeholder={online ? "Search the web…" : "Offline — search will queue…"}
                   className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
                 />
                 {query && (
@@ -267,6 +298,18 @@ const ZophielEngineView = () => {
         {searched && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto px-3 sm:px-6 pb-8">
+              {/* Queued search banner */}
+              {queuedSearch && (
+                <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 mb-4 animate-fade-in">
+                  <WifiOff className="h-4 w-4 text-amber-400/70 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-light text-foreground">Search queued: <span className="text-muted-foreground">"{queuedSearch}"</span></p>
+                    <p className="text-[10px] text-amber-400/60 mt-0.5">Will run automatically when you're back online</p>
+                  </div>
+                  <Clock className="h-3.5 w-3.5 text-amber-400/50 shrink-0 animate-pulse" />
+                </div>
+              )}
+
               {/* Deep Search Panel */}
               {deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
