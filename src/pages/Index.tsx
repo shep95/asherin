@@ -635,6 +635,7 @@ const Index = () => {
                 <Link to="/features" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Features</Link>
                 <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
                 <Link to="/founder" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Founder</Link>
+                <Link to="/equity" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Equity</Link>
                 <Link
                   to="/terms"
                   className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors"
