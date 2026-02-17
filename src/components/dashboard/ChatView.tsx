@@ -284,12 +284,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed transition-all ${
                       msg.role === "user"
                         ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
-                        : msg.content
-                          ? "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
-                          : "hidden"
+                        : "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
                     }`}
                   >
-                    {msg.role === "assistant" ? (
+                    {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
+                      <TypingIndicator mode="thinking" />
+                    ) : msg.role === "assistant" ? (
                       <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
                         <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
                         {isStreaming && msg === lastMsg && (
