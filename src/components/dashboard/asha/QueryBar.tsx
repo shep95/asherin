@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Sparkles, Loader2 } from "lucide-react";
+import { Send, Sparkles, Loader2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
@@ -10,6 +10,11 @@ interface QueryHistoryItem {
   response: string;
   response_type: string;
   created_at: string;
+}
+
+interface ActivePlugin {
+  name: string;
+  category: string;
 }
 
 const EXAMPLE_QUERIES = [
@@ -26,18 +31,20 @@ const QueryBar = () => {
   const [history, setHistory] = useState<QueryHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [activePlugins, setActivePlugins] = useState<ActivePlugin[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data } = await supabase
-        .from("asha_queries")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true })
-        .limit(50);
-      if (data) setHistory(data as any);
+      const [{ data: queryData }, { data: pluginData }] = await Promise.all([
+        supabase.from("asha_queries").select("*").eq("user_id", user.id).order("created_at", { ascending: true }).limit(50),
+        supabase.from("installed_plugins").select("plugin_id, plugins(name, category)").eq("user_id", user.id),
+      ]);
+      if (queryData) setHistory(queryData as any);
+      if (pluginData) {
+        setActivePlugins(pluginData.map((p: any) => ({ name: p.plugins?.name || "Unknown", category: p.plugins?.category || "" })).filter((p: ActivePlugin) => p.name !== "Unknown"));
+      }
       setInitialLoading(false);
     };
     load();
@@ -129,7 +136,16 @@ const QueryBar = () => {
         )}
       </div>
 
-      <div className="flex-shrink-0 p-4 border-t border-border/20">
+      <div className="flex-shrink-0 p-4 border-t border-border/20 space-y-2">
+        {activePlugins.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Package className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+            <span className="text-[9px] text-muted-foreground/50">Active:</span>
+            {activePlugins.map((p) => (
+              <span key={p.name} className="text-[9px] px-1.5 py-0.5 rounded bg-foreground/5 text-muted-foreground">{p.name}</span>
+            ))}
+          </div>
+        )}
         <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm px-4 py-3">
           <Sparkles className="h-4 w-4 text-accent/40 shrink-0" />
           <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitQuery()} placeholder="Ask anything about your data…" className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
@@ -137,7 +153,7 @@ const QueryBar = () => {
             <Send className="h-4 w-4" />
           </button>
         </div>
-        <p className="text-[10px] text-muted-foreground/30 text-center mt-2">End-to-end encrypted · PII auto-masked</p>
+        <p className="text-[10px] text-muted-foreground/30 text-center">End-to-end encrypted · PII auto-masked{activePlugins.length > 0 ? ` · ${activePlugins.length} plugins active` : ""}</p>
       </div>
     </div>
   );
