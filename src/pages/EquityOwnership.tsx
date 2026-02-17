@@ -155,7 +155,7 @@ const EquityOwnership = () => {
                 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
-                Core operational partner. Capital allocation and product development across the Bosley ecosystem.
+                A social media platform built to protect user privacy and freedom of speech. No surveillance, no censorship, no compromise.
               </p>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-light pt-2">Active Partner</p>
             </a>
@@ -163,12 +163,12 @@ const EquityOwnership = () => {
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 space-y-3">
               <div className="flex items-center gap-3">
                 <TrendingUp className="h-6 w-6 text-foreground" />
-                <h3 className="text-base font-light tracking-[0.15em] text-foreground uppercase">Trading Algorithms</h3>
+                <h3 className="text-base font-light tracking-[0.15em] text-foreground uppercase">Zorak</h3>
               </div>
               <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
-                Proprietary algorithmic trading systems. Revenue generated feeds directly into R&D and platform expansion.
+                Investment firm backing Aureon's long-term vision. Strategic capital deployment and portfolio oversight across all ventures.
               </p>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-light pt-2">Revenue Engine</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-light pt-2">Investment Firm</p>
             </div>
 
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 space-y-3">
@@ -177,9 +177,9 @@ const EquityOwnership = () => {
                 <h3 className="text-base font-light tracking-[0.15em] text-foreground uppercase">Crandel Trust</h3>
               </div>
               <p className="text-sm font-extralight leading-relaxed text-muted-foreground">
-                Institutional capital partner holding 20% equity. Long-term alignment with Aureon's mission and growth trajectory.
+                Angel investor providing early-stage capital. Believed in Aureon's mission from day one and holds 20% equity.
               </p>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-light pt-2">Equity Holder</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-light pt-2">Angel Investor</p>
             </div>
           </div>
         </div>
