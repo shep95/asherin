@@ -39,7 +39,7 @@ const plans: {
     id: "pro",
     name: "AUREON PRO",
     tagline: "Full Dashboard Access",
-    price: "$2,400",
+    price: "$399",
     period: "/ month",
     description: "Complete access to every tool in the dashboard — Asha Intelligence, NOMAD OSINT, Briefings, and unlimited capabilities.",
     highlight: false,

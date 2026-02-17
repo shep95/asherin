@@ -11,7 +11,7 @@ import {
 /* ─── Tier config ─── */
 const tiers = {
   aureon: { label: "Aureon — $18/mo", accent: "text-emerald-400/80", dot: "bg-emerald-400/70" },
-  pro:    { label: "Pro — $2,400/mo", accent: "text-accent/80", dot: "bg-accent/70" },
+  pro:    { label: "Pro — $399/mo", accent: "text-accent/80", dot: "bg-accent/70" },
   advisor:{ label: "Advisor — $20,000/mo", accent: "text-amber-400/80", dot: "bg-amber-400/70" },
 } as const;
 
@@ -360,7 +360,7 @@ const Features = () => {
               "Uncensored AI intelligence platform with OSINT, data analytics, daily briefings, and end-to-end encryption.",
             offers: [
               { "@type": "Offer", name: "Aureon", price: "18", priceCurrency: "USD", billingDuration: "P1M" },
-              { "@type": "Offer", name: "Pro", price: "2400", priceCurrency: "USD", billingDuration: "P1M" },
+              { "@type": "Offer", name: "Pro", price: "399", priceCurrency: "USD", billingDuration: "P1M" },
               { "@type": "Offer", name: "Advisor", price: "20000", priceCurrency: "USD", billingDuration: "P1M" },
             ],
           }),
@@ -387,7 +387,7 @@ const Features = () => {
         <div className="mx-auto max-w-3xl flex flex-col sm:flex-row items-center justify-center gap-4">
           {[
             { label: "Aureon — $18/mo", anchor: "#aureon", border: "border-emerald-400/25", text: "text-emerald-400" },
-            { label: "Pro — $2,400/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
+            { label: "Pro — $399/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
             { label: "Advisor — $20K/mo", anchor: "#advisor", border: "border-amber-400/25", text: "text-amber-400" },
           ].map(({ label, anchor, border, text }) => (
             <a
@@ -412,7 +412,7 @@ const Features = () => {
       <TierSection
         id="pro"
         title="Aureon Pro"
-        subtitle="$2,400/month — 200 messages per 3-hour window — Everything in Aureon plus NOMAD OSINT, daily briefings, and deep research."
+        subtitle="$399/month — 200 messages per 3-hour window — Everything in Aureon plus NOMAD OSINT, daily briefings, and deep research."
         tierKey="pro"
       />
 
