@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useToast } from "@/hooks/use-toast";
 import { decryptText } from "@/lib/encryption";
+import NotificationInbox from "./NotificationInbox";
 
 interface SidebarContextValue {
   isOpen: boolean;
@@ -263,6 +264,7 @@ const DashboardSidebar = ({
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" />
             </div>
             <div className="flex items-center gap-1">
+              <NotificationInbox onNavigate={(v) => { onViewChange(v as DashboardView); onToggleSidebar(); }} />
               <button onClick={onNewConversation} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground" title="New conversation">
                 <Plus className="h-4 w-4" />
               </button>

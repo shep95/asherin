@@ -195,13 +195,17 @@ const Dashboard = () => {
     }
   }, [customPersonas]);
 
-  // CMD+K global shortcut
+  // CMD+K and CMD+1-4 global shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setCmdPaletteOpen((o) => !o);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); setMode("chat"); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "2") { e.preventDefault(); setMode("code"); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "3") { e.preventDefault(); setMode("research"); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "4") { e.preventDefault(); setMode("truth"); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);

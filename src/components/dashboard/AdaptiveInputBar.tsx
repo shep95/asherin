@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff } from "lucide-react";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
+import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 
 type InputIntent = "text" | "code" | "url" | "image" | "file";
 
@@ -108,15 +109,35 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
     return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current); };
   }, [value, conversationId]);
 
+  // Accept autocomplete suggestion
+  const acceptSuggestion = useCallback(() => {
+    const lower = value.toLowerCase();
+    const allPhrases = [...(JSON.parse(localStorage.getItem("aureon_user_phrases") || "[]") as string[]),
+      "Analyze this dataset", "Write a report about", "Summarize this document", "Explain how",
+      "Compare and contrast", "Create a plan for", "Debug this code", "Optimize this function"];
+    const match = allPhrases.find(p => p.toLowerCase().startsWith(lower) && p.toLowerCase() !== lower);
+    if (match) onChange(match);
+  }, [value, onChange]);
+
   // Clear draft on send
   const handleSend = () => {
     const key = conversationId || "global";
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
+    trackPhrase(value.trim());
     onSend();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Tab" || (e.key === "ArrowRight" && textareaRef.current && textareaRef.current.selectionStart === value.length)) {
+      // Accept autocomplete
+      const lower = value.toLowerCase();
+      if (lower.length >= 3) {
+        e.preventDefault();
+        acceptSuggestion();
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -154,15 +175,22 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
         )}
 
         <div className={`flex items-end gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-3 transition-all`}>
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={online ? "Message Aureon…" : "Offline — messages will queue…"}
-            rows={1}
-            className="flex-1 resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
-          />
+          <div className="flex-1 relative min-w-0">
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={online ? "Message Aureon…" : "Offline — messages will queue…"}
+              rows={1}
+              className="w-full resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
+            />
+            {value && !value.includes("\n") && (
+              <div className="absolute top-0 left-0 pointer-events-none text-sm font-light whitespace-pre overflow-hidden" style={{ color: "transparent" }}>
+                {value}<SmartAutocomplete value={value} onAccept={acceptSuggestion} />
+              </div>
+            )}
+          </div>
           {value.trim() && (
             <button onClick={clearDraft} className="shrink-0 p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors" title="Clear draft">
               <X className="h-3.5 w-3.5" />

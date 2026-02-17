@@ -17,6 +17,8 @@ import type { FeedbackType } from "./CalibrationFeedback";
 import AdaptiveInputBar from "./AdaptiveInputBar";
 import ScrollIntelligence from "./ScrollIntelligence";
 import SmartSelectionMenu from "./SmartSelectionMenu";
+import TypingIndicator from "./TypingIndicator";
+import { renderLinkPreviews } from "./LinkPreview";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -284,9 +286,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                         {isStreaming && msg === lastMsg && (
                           <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
                         )}
+                        {renderLinkPreviews(msg.content)}
                       </div>
                     ) : (
-                      <UserMessageContent content={msg.content} />
+                      <>
+                        <UserMessageContent content={msg.content} />
+                        {renderLinkPreviews(msg.content)}
+                      </>
                     )}
                   </div>
                   {/* Action bar for both message types */}
@@ -318,6 +324,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 </div>
               </div>
             ))}
+            {isStreaming && (
+              <div className="flex justify-start animate-fade-in">
+                <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-card/50 backdrop-blur-md border border-border/20">
+                  <TypingIndicator mode="thinking" />
+                </div>
+              </div>
+            )}
             {showSuggestions && (
               <FollowUpSuggestions suggestions={suggestions} onSelect={(s) => onSendMessage(s)} />
             )}
