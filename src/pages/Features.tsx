@@ -1,96 +1,65 @@
-import heroBg from "@/assets/hero-bg.png";
-import Header from "@/components/Header";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import heroBg from "@/assets/hero-bg.png";
+import Header from "@/components/Header";
 import {
-  Brain, Code, Shield, Search, Eye, BarChart3, Newspaper, Users, Server,
-  Lock, Zap, ArrowRight, MessageSquare, Layers, Database, Network,
-  Globe, FileText, Cpu, Target, Fingerprint, Download, RefreshCw,
-  Check,
+  Brain, Code, Shield, Search, Eye, Newspaper, Users, Server,
+  Lock, Zap, ArrowRight, MessageSquare, Layers, Database,
+  Globe, Target, Download, RefreshCw, Check, Sparkles,
 } from "lucide-react";
 
-interface FeatureCardProps {
+/* ─── Tier config ─── */
+const tiers = {
+  aureon: { label: "Aureon — $18/mo", accent: "text-emerald-400/80", dot: "bg-emerald-400/70" },
+  pro:    { label: "Pro — $2,400/mo", accent: "text-accent/80", dot: "bg-accent/70" },
+  advisor:{ label: "Advisor — $20,000/mo", accent: "text-amber-400/80", dot: "bg-amber-400/70" },
+} as const;
+
+type Tier = keyof typeof tiers;
+
+interface Feature {
   icon: React.ElementType;
   title: string;
   description: string;
   details: string[];
-  tier: "individual" | "pro" | "enterprise";
+  tier: Tier;
 }
 
-const tierLabels: Record<string, { label: string; color: string }> = {
-  individual: { label: "Aureon — $18/mo", color: "text-emerald-400/80" },
-  pro: { label: "Aureon Pro — $74/mo", color: "text-accent/80" },
-  enterprise: { label: "Enterprise — $5,000/wk", color: "text-amber-400/80" },
-};
-
-const FeatureCard = ({ icon: Icon, title, description, details, tier }: FeatureCardProps) => {
-  const { label, color } = tierLabels[tier];
-  const isEnterprise = tier === "enterprise";
-
-  return (
-    <div
-      className={`rounded-2xl border backdrop-blur-md p-8 transition-all hover:bg-foreground/[0.02] ${
-        isEnterprise
-          ? "border-accent/20 bg-accent/5"
-          : "border-border/20 bg-card/30"
-      }`}
-    >
-      <div className="flex items-start gap-4 mb-4">
-        <div className={`rounded-xl p-2.5 ${isEnterprise ? "bg-accent/10" : "bg-foreground/5"}`}>
-          <Icon className={`h-6 w-6 ${isEnterprise ? "text-accent" : "text-foreground"}`} />
-        </div>
-        <div>
-          <h3 className="text-base font-light tracking-wide text-foreground">{title}</h3>
-          <span className={`text-[10px] tracking-[0.2em] uppercase ${color}`}>{label}</span>
-        </div>
-      </div>
-      <p className="text-sm font-extralight leading-relaxed text-muted-foreground mb-5">{description}</p>
-      <ul className="space-y-2.5">
-        {details.map((d) => (
-          <li key={d} className="flex items-start gap-2.5 text-xs font-extralight text-foreground/80">
-            <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${isEnterprise ? "text-accent/70" : "text-emerald-400/70"}`} />
-            {d}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
-
-const features: FeatureCardProps[] = [
+/* ─── Feature data ─── */
+const features: Feature[] = [
   {
     icon: Brain,
     title: "Aureon AI Engine",
     description:
-      "An uncensored, unfiltered intelligence engine that gives you direct answers without corporate safety wrappers. Powered by the Zophiel Ghost Chain Protocol — a multi-layer reasoning architecture that plans, critiques, and refines before responding.",
+      "An uncensored, unfiltered intelligence engine powered by the Zophiel Ghost Chain Protocol — a multi-layer reasoning architecture that plans, critiques, and refines before responding. No corporate safety wrappers.",
     details: [
       "No refusals, no moralizing disclaimers",
       "Multi-step reasoning with internal chain-of-thought",
-      "Calibration feedback loop — the AI adapts to your preferences",
+      "Calibration feedback loop — the AI adapts to you",
       "Context health tracking across long conversations",
       "Adjustable depth: shallow → standard → deep → expert",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
   {
     icon: Code,
     title: "Elite Coding Engine",
     description:
-      "Production-grade code generation that outperforms leading models on real-world benchmarks. Supports multi-file architecture, debugging, refactoring, and ships code that compiles on the first try.",
+      "Production-grade code generation that outperforms leading models on real-world benchmarks. Multi-file architecture, debugging, refactoring — ships code that compiles on the first try.",
     details: [
-      "Multi-file project awareness and architecture",
-      "Inline code preview cards with syntax highlighting",
+      "Multi-file project awareness and architecture planning",
+      "Inline code preview with syntax highlighting",
       "Debug, explain, optimize, and test — one click",
-      "Supports 50+ languages and frameworks",
-      "Code blocks with copy-to-clipboard on every response",
+      "50+ languages and frameworks supported",
+      "Copy-to-clipboard on every code block",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
   {
     icon: Shield,
     title: "End-to-End Encryption",
     description:
-      "Every message is encrypted before it leaves your device. Your prompts are never stored as training data, never sold, and never used to improve any model. Privacy isn't a feature — it's the architecture.",
+      "Every message is encrypted before it leaves your device. Your prompts are never stored as training data, never sold, and never used to improve any model. Privacy is the architecture.",
     details: [
       "Client-side encryption with per-user keys",
       "Zero-knowledge architecture — we can't read your data",
@@ -98,88 +67,89 @@ const features: FeatureCardProps[] = [
       "Data deletion on demand — your data, your rules",
       "SOC 2 aligned security practices",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
   {
     icon: MessageSquare,
     title: "Multi-Persona System",
     description:
-      "Switch between AI personalities tuned for different tasks. Create custom personas with specialized system prompts to shape how Aureon thinks, writes, and responds for your specific workflow.",
+      "Switch between AI personalities tuned for different tasks. Create custom personas with specialized system prompts to shape how Aureon thinks, writes, and responds.",
     details: [
       "Built-in personas: Analyst, Coder, Writer, Strategist",
-      "Create unlimited custom personas with system prompts",
-      "Personas persist across sessions via local storage",
-      "One-click switch between personas mid-conversation",
+      "Unlimited custom personas with system prompts",
+      "Persist across sessions via local storage",
+      "One-click switch mid-conversation",
       "Persona context injected into every response",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
   {
     icon: Layers,
     title: "Persistent Memory",
     description:
-      "Aureon remembers what matters across all your sessions. The memory center stores facts, preferences, and context so you never repeat yourself. Your intelligence profile evolves with every interaction.",
+      "Aureon remembers what matters across all sessions. The memory center stores facts, preferences, and context so you never repeat yourself. Your intelligence profile evolves with every interaction.",
     details: [
       "Cross-session memory with categorized entries",
       "Automatic trait inference from conversation patterns",
-      "User Intelligence Profile — tone, depth, and topic preferences",
-      "Memory center with full CRUD management",
+      "User Intelligence Profile — tone, depth, topic preferences",
+      "Full CRUD management in memory center",
       "Context carries forward without manual re-prompting",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
   {
     icon: Lock,
     title: "Privacy-First Architecture",
     description:
-      "No free tiers that harvest your data. No shadow training. No third-party analytics on your conversations. Aureon is built on the principle that if you're not paying, you're the product.",
+      "No free tiers that harvest your data. No shadow training. No third-party analytics on your conversations. If you're not paying, you're the product — we don't operate that way.",
     details: [
-      "Your prompts are never used for model training",
+      "Prompts never used for model training",
       "No third-party tracking or analytics on content",
       "Cancel anytime — one click, no questions",
-      "Data export available for full portability",
+      "Full data export for portability",
       "Account deletion permanently removes all data",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
   {
     icon: Search,
     title: "Zophiel Search Engine",
     description:
-      "A privacy-first search intelligence engine with source credibility tiers. Every result is ranked by reliability — academic papers, official docs, and verified sources surface first. Includes instant answers and page previews.",
+      "A privacy-first search intelligence engine with source credibility tiers. Every result ranked by reliability — academic papers, official docs, and verified sources surface first.",
     details: [
-      "Source credibility tiers: Verified → Established → Community → Unverified",
+      "Source tiers: Verified → Established → Community → Unverified",
       "Instant answer cards for quick intelligence",
-      "Full page preview panel without leaving the app",
+      "Full page preview without leaving the app",
       "Advanced search operators and filters",
-      "Search mode selector: Web, Academic, News, Code",
+      "Modes: Web, Academic, News, Code",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
   {
     icon: RefreshCw,
-    title: "Live Web Search Integration",
+    title: "Live Web Search",
     description:
-      "Aureon can search the live web in real-time during any conversation. Get current data, recent news, and up-to-the-minute information blended seamlessly into AI responses.",
+      "Real-time web search during any conversation. Current data, recent news, and up-to-the-minute information blended seamlessly into AI responses with source citations.",
     details: [
-      "Real-time web search triggered contextually",
+      "Contextually triggered real-time web search",
       "Source citations with clickable links",
       "Truth score indicators on every response",
-      "Decode view — see the reasoning behind any answer",
+      "Decode view — see reasoning behind any answer",
       "Follow-up suggestions generated from live data",
     ],
-    tier: "individual",
+    tier: "aureon",
   },
+  /* ─── Pro tier ─── */
   {
     icon: Newspaper,
     title: "Daily Intelligence Briefings",
     description:
-      "Personalized AUREON MORNING BRIEFS delivered at your chosen time. The system extracts your business vectors — competitors, markets, tech stack, regulatory bodies — through a conversational AI onboarding, then synthesizes a structured report from 100+ sources every morning.",
+      "Personalized AUREON MORNING BRIEFS synthesized from 100+ sources. AI-powered conversational onboarding extracts your business vectors — competitors, markets, tech stack — then delivers a structured report every morning.",
     details: [
-      "AI-powered conversational profile setup",
+      "Conversational profile setup — no forms",
       "Rolling 24–48 hour intelligence window",
-      "Structured sections: Critical → Significant → Monitoring → Market Signals",
-      "Unique headlines per briefing — no generic titles",
+      "Structured: Critical → Significant → Monitoring → Market Signals",
+      "Unique headlines per briefing — never generic",
       "Download briefings as markdown files",
       "Configurable delivery time with timezone support",
     ],
@@ -189,7 +159,7 @@ const features: FeatureCardProps[] = [
     icon: Download,
     title: "Conversation Export",
     description:
-      "Download any conversation with Aureon as a structured markdown file. Briefing reports are also fully exportable. Your intelligence output belongs to you.",
+      "Download any conversation as structured markdown. Briefing reports fully exportable. Your intelligence output belongs to you — always.",
     details: [
       "One-click download of full chat history",
       "Briefing reports export as .md files",
@@ -202,38 +172,39 @@ const features: FeatureCardProps[] = [
     icon: Eye,
     title: "NOMAD OSINT Agent",
     description:
-      "A public intelligence agent that conducts automated OSINT investigations across 40+ data sources. Feed it a name, company, or topic and receive a structured intelligence dossier with entity resolution, relationship mapping, and source correlation.",
+      "Forensic-grade OSINT investigations across 40+ sources. Feed it a name, company, or topic — receive a structured intelligence dossier with entity resolution, relationship mapping, confidence scores, and deep-dive analysis.",
     details: [
-      "Multi-source intelligence gathering: DDG, public records, news, social",
-      "Structured dossier output with confidence ratings",
-      "Entity resolution — connects aliases, roles, and affiliations",
-      "Relationship mapping between people, orgs, and events",
-      "Investigation history with re-run capability",
+      "Multi-source intelligence: DDG, public records, news, social",
+      "BLUF (Bottom Line Up Front) executive summaries",
+      "0–100 confidence scoring with source correlation",
+      "Entity resolution — connects aliases, roles, affiliations",
+      "Risk matrices and relationship mapping",
       "Exports as structured intelligence reports",
     ],
-    tier: "enterprise",
+    tier: "pro",
   },
+  /* ─── Advisor tier ─── */
   {
     icon: Database,
-    title: "Asha Data Intelligence Platform",
+    title: "Asha Data Intelligence",
     description:
-      "A full data intelligence suite — ingest any dataset (CSV, JSON, Excel), analyze with natural language queries, branch data for experimentation, and generate executive reports with AI-powered insights.",
+      "Full data intelligence suite — ingest any dataset (CSV, JSON, Excel), analyze with natural language, branch data for experimentation, and generate executive reports with AI-powered insights. Guided prompt-based intake ensures forensic-grade research.",
     details: [
-      "Drag-and-drop data ingestion with auto-schema detection",
-      "Natural language queries — ask questions about your data",
-      "Data branching — experiment without touching production data",
+      "Guided prompt-based company intelligence intake",
+      "Natural language queries across your datasets",
+      "Data branching — experiment without touching production",
       "Graph visualization and relationship mapping",
       "Automated insight detection — trends, anomalies, correlations",
       "Executive report generation with scheduling",
-      "Workflow automation with triggers and templates",
+      "Scenario simulation with Monte Carlo modeling",
     ],
-    tier: "enterprise",
+    tier: "advisor",
   },
   {
     icon: Target,
     title: "Company & Competitor Tracking",
     description:
-      "Set up continuous monitoring of your competitors, key markets, regulatory bodies, and tracked individuals. Intelligence is surfaced automatically in your daily briefings and NOMAD investigations.",
+      "Continuous monitoring of competitors, key markets, regulatory bodies, and tracked individuals. Intelligence surfaces automatically in daily briefings and NOMAD investigations.",
     details: [
       "Track unlimited competitors and market segments",
       "Regulatory body monitoring with policy change alerts",
@@ -241,13 +212,13 @@ const features: FeatureCardProps[] = [
       "Technology stack monitoring across competitors",
       "Investment and funding round detection",
     ],
-    tier: "enterprise",
+    tier: "advisor",
   },
   {
     icon: Users,
     title: "Team Workspace",
     description:
-      "Unlimited seats for your entire organization. Shared conversation threads, collaborative intelligence, and unified billing under a single enterprise account.",
+      "Unlimited seats for your entire organization. Shared conversation threads, collaborative intelligence, and unified billing under a single Advisor account.",
     details: [
       "Unlimited team members — no per-seat pricing",
       "Shared conversation threads and intelligence",
@@ -255,47 +226,127 @@ const features: FeatureCardProps[] = [
       "Role-based access control",
       "Team-wide memory and context sharing",
     ],
-    tier: "enterprise",
+    tier: "advisor",
   },
   {
     icon: Server,
     title: "Private Deployment",
     description:
-      "For organizations that require maximum control, Aureon Enterprise can be deployed on-premise or in your private cloud. Full data sovereignty with zero external dependencies.",
+      "Maximum control — Aureon deployed on-premise or in your private cloud. Full data sovereignty with zero external dependencies and dedicated engineering support.",
     details: [
       "On-premise or private cloud deployment",
       "Full data sovereignty — nothing leaves your network",
       "Custom model fine-tuning available",
-      "Dedicated engineering support — 24/7",
+      "Dedicated 24/7 engineering support",
       "SLA-backed uptime guarantees",
     ],
-    tier: "enterprise",
+    tier: "advisor",
+  },
+  {
+    icon: Sparkles,
+    title: "Direct Advisory Access",
+    description:
+      "Limited to 8 seats. Direct strategic advisory from Asher Newton — the founder and architect of Aureon. Your intelligence needs, personally handled.",
+    details: [
+      "Direct communication channel with the founder",
+      "Custom intelligence workflows built for your org",
+      "Priority feature requests and roadmap input",
+      "Quarterly strategic intelligence reviews",
+      "Limited to 8 active Advisor accounts globally",
+    ],
+    tier: "advisor",
   },
 ];
 
+/* ─── Feature Card ─── */
+const FeatureCard = ({ icon: Icon, title, description, details, tier }: Feature) => {
+  const { label, accent, dot } = tiers[tier];
+  const isAdvisor = tier === "advisor";
+
+  return (
+    <div
+      className={`group rounded-2xl border backdrop-blur-md p-8 transition-all duration-300 hover:border-border/40 ${
+        isAdvisor
+          ? "border-accent/15 bg-accent/[0.03] hover:bg-accent/[0.06]"
+          : "border-border/15 bg-card/20 hover:bg-card/30"
+      }`}
+    >
+      <div className="flex items-start gap-4 mb-5">
+        <div className={`rounded-xl p-2.5 ${isAdvisor ? "bg-accent/10" : "bg-foreground/5"}`}>
+          <Icon className={`h-5 w-5 ${isAdvisor ? "text-accent" : "text-foreground/80"}`} />
+        </div>
+        <div>
+          <h3 className="text-base font-light tracking-wide text-foreground">{title}</h3>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+            <span className={`text-[10px] tracking-[0.2em] uppercase ${accent}`}>{label}</span>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-sm font-extralight leading-relaxed text-muted-foreground mb-6">
+        {description}
+      </p>
+
+      <ul className="space-y-2.5">
+        {details.map((d) => (
+          <li key={d} className="flex items-start gap-2.5 text-xs font-extralight text-foreground/75">
+            <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${isAdvisor ? "text-accent/60" : "text-emerald-400/60"}`} />
+            {d}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+/* ─── Tier Section ─── */
+const TierSection = ({
+  id, title, subtitle, tierKey,
+}: {
+  id: string; title: string; subtitle: string; tierKey: Tier;
+}) => (
+  <section id={id} className="relative z-10 px-6 pb-24">
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-12">
+        <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground">
+          {title}
+        </h2>
+        <p className="mt-2 text-sm font-extralight leading-relaxed text-muted-foreground">
+          {subtitle}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {features.filter((f) => f.tier === tierKey).map((f) => (
+          <FeatureCard key={f.title} {...f} />
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
+/* ─── Page ─── */
 const Features = () => {
   useEffect(() => {
-    document.title = "Features — Aureon | AI Intelligence Platform Capabilities";
+    document.title = "Features — Aureon | AI Intelligence Platform";
     const meta = document.querySelector('meta[name="description"]');
     if (meta) {
       meta.setAttribute(
         "content",
-        "Explore Aureon's full feature set: uncensored AI engine, Zophiel search, NOMAD OSINT, Asha data intelligence, daily briefings, end-to-end encryption, and enterprise deployment."
+        "Explore Aureon's full capabilities: uncensored AI, Zophiel search, NOMAD OSINT, Asha data intelligence, daily briefings, encryption, and private deployment."
       );
     }
   }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
-      <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${heroBg})` }}
-      />
+      {/* Fixed BG */}
+      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
       <div className="fixed inset-0 bg-black/80" />
 
       <Header />
 
-      {/* JSON-LD structured data */}
+      {/* JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -309,38 +360,40 @@ const Features = () => {
               "Uncensored AI intelligence platform with OSINT, data analytics, daily briefings, and end-to-end encryption.",
             offers: [
               { "@type": "Offer", name: "Aureon", price: "18", priceCurrency: "USD", billingDuration: "P1M" },
-              { "@type": "Offer", name: "Aureon Pro", price: "74", priceCurrency: "USD", billingDuration: "P1M" },
-              { "@type": "Offer", name: "Enterprise", price: "5000", priceCurrency: "USD", billingDuration: "P1W" },
+              { "@type": "Offer", name: "Pro", price: "2400", priceCurrency: "USD", billingDuration: "P1M" },
+              { "@type": "Offer", name: "Advisor", price: "20000", priceCurrency: "USD", billingDuration: "P1M" },
             ],
           }),
         }}
       />
 
       {/* Hero */}
-      <header className="relative z-10 pt-32 pb-16 px-6 text-center">
-        <p className="text-sm font-light tracking-[0.3em] text-muted-foreground uppercase mb-4">
-          Features
+      <header className="relative z-10 flex flex-col items-center justify-center pt-32 pb-20 px-6 text-center">
+        <p className="text-xs font-extralight tracking-[0.35em] text-muted-foreground/50 uppercase mb-5">
+          Platform Capabilities
         </p>
-        <h1 className="max-w-4xl mx-auto text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-          Every Tool In The Intelligence Arsenal.
+        <h1 className="max-w-4xl text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+          Every Tool In The
+          <br />
+          <span className="text-muted-foreground">Intelligence Arsenal.</span>
         </h1>
-        <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-          From uncensored AI to full OSINT investigations — here's exactly what you get at every tier. No vague promises. No hidden limitations.
+        <p className="mt-8 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
+          From uncensored AI to forensic-grade OSINT investigations — here's exactly what you get at every tier. No vague promises. No hidden limitations.
         </p>
       </header>
 
       {/* Tier quick nav */}
-      <nav className="relative z-10 px-6 pb-16" aria-label="Feature tiers">
+      <nav className="relative z-10 px-6 pb-20" aria-label="Feature tiers">
         <div className="mx-auto max-w-3xl flex flex-col sm:flex-row items-center justify-center gap-4">
           {[
-            { label: "Aureon — $18/mo", anchor: "#individual", color: "border-emerald-400/30 text-emerald-400" },
-            { label: "Pro — $74/mo", anchor: "#pro", color: "border-accent/30 text-accent" },
-            { label: "Enterprise — $5K/wk", anchor: "#enterprise", color: "border-amber-400/30 text-amber-400" },
-          ].map(({ label, anchor, color }) => (
+            { label: "Aureon — $18/mo", anchor: "#aureon", border: "border-emerald-400/25", text: "text-emerald-400" },
+            { label: "Pro — $2,400/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
+            { label: "Advisor — $20K/mo", anchor: "#advisor", border: "border-amber-400/25", text: "text-amber-400" },
+          ].map(({ label, anchor, border, text }) => (
             <a
               key={anchor}
               href={anchor}
-              className={`rounded-xl border backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.15em] uppercase transition-all hover:bg-foreground/5 ${color}`}
+              className={`rounded-xl border backdrop-blur-md px-6 py-3 text-xs font-light tracking-[0.15em] uppercase transition-all hover:bg-foreground/5 ${border} ${text}`}
             >
               {label}
             </a>
@@ -348,74 +401,41 @@ const Features = () => {
         </div>
       </nav>
 
-      {/* Individual Tier */}
-      <section id="individual" className="relative z-10 px-6 pb-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10">
-            <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground">
-              Aureon Individual
-            </h2>
-            <p className="mt-2 text-sm font-extralight text-muted-foreground">
-              $18/month — 60 messages per 3-hour window — Full AI access from day one.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.filter((f) => f.tier === "individual").map((f) => (
-              <FeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Tier sections */}
+      <TierSection
+        id="aureon"
+        title="Aureon"
+        subtitle="$18/month — 60 messages per 3-hour window — Full AI, search, encryption, and memory from day one."
+        tierKey="aureon"
+      />
 
-      {/* Pro Tier */}
-      <section id="pro" className="relative z-10 px-6 pb-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10">
-            <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground">
-              Aureon Pro
-            </h2>
-            <p className="mt-2 text-sm font-extralight text-muted-foreground">
-              $74/month — 200 messages per 3-hour window — Everything in Individual plus enhanced intelligence.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.filter((f) => f.tier === "pro").map((f) => (
-              <FeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <TierSection
+        id="pro"
+        title="Aureon Pro"
+        subtitle="$2,400/month — 200 messages per 3-hour window — Everything in Aureon plus NOMAD OSINT, daily briefings, and deep research."
+        tierKey="pro"
+      />
 
-      {/* Enterprise Tier */}
-      <section id="enterprise" className="relative z-10 px-6 pb-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10">
-            <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground">
-              Aureon Enterprise
-            </h2>
-            <p className="mt-2 text-sm font-extralight text-muted-foreground">
-              $5,000/week — The complete intelligence platform. Everything in Pro plus the full suite.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.filter((f) => f.tier === "enterprise").map((f) => (
-              <FeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <TierSection
+        id="advisor"
+        title="Aureon Advisor"
+        subtitle="$20,000/month — Limited to 8 seats. The complete intelligence platform with direct advisory from Asher Newton."
+        tierKey="advisor"
+      />
 
       {/* CTA */}
-      <section className="relative z-10 px-6 pb-24">
-        <div className="mx-auto max-w-5xl">
-          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md px-8 py-10 sm:px-12 text-center">
+      <section className="relative z-10 px-6 pb-28">
+        <div className="mx-auto max-w-4xl">
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md px-8 py-12 sm:px-14 text-center">
             <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground">
-              Ready To Deploy Real Intelligence?
+              Ready To Deploy
+              <br />
+              <span className="text-muted-foreground">Real Intelligence?</span>
             </h2>
-            <p className="mt-4 text-sm font-extralight text-muted-foreground">
+            <p className="mt-5 text-sm font-extralight text-muted-foreground">
               Pick your tier. Full access. No free-tier data harvesting.
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 to="/pricing"
                 className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all"
@@ -425,9 +445,9 @@ const Features = () => {
               </Link>
               <Link
                 to="/pricing"
-                className="group flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-8 py-3 text-sm font-light tracking-wide text-accent hover:bg-accent/20 transition-all"
+                className="group flex items-center gap-2 rounded-xl border border-accent/25 bg-accent/10 px-8 py-3 text-sm font-light tracking-wide text-accent hover:bg-accent/20 transition-all"
               >
-                Enterprise Access
+                Advisor Access
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>
