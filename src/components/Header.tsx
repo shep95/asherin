@@ -55,6 +55,9 @@ const Header = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide">Benchmarks</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/equity" className="cursor-pointer text-sm font-light tracking-wide">Equity Ownership</Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             {!loading && user ? (
@@ -84,6 +87,7 @@ const Header = () => {
                 <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Features</Link>
                 <Link to="/prompt-engineering" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Prompt Engineering</Link>
                 <Link to="/benchmarks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Benchmarks</Link>
+                <Link to="/equity" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Equity Ownership</Link>
                 {!loading && user ? (
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">
                     Go to Dashboard

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink, Handshake, Building2, TrendingUp } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const equityData = [
@@ -102,6 +102,63 @@ const EquityOwnership = () => {
             <li>Royalty structures and distributions <span className="text-foreground font-normal">will not be disclosed</span>.</li>
             <li>All investment figures are cumulative since inception (March 2024).</li>
           </ul>
+        </section>
+
+        {/* Partnerships */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Handshake className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-sm font-light uppercase tracking-widest text-muted-foreground">Partnerships</h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <a
+              href="https://bosley.app/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group rounded-xl border border-border/30 bg-card/30 backdrop-blur-sm p-6 space-y-3 transition-colors hover:border-foreground/20"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-foreground/70" />
+                  <h3 className="text-base font-light text-foreground">Bosley</h3>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed">
+                Core operational partner. Capital allocation and product development across the Bosley ecosystem.
+              </p>
+              <div className="pt-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-light">Active Partner</span>
+              </div>
+            </a>
+
+            <div className="rounded-xl border border-border/30 bg-card/30 backdrop-blur-sm p-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-5 w-5 text-foreground/70" />
+                <h3 className="text-base font-light text-foreground">Trading Algorithms</h3>
+              </div>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed">
+                Proprietary algorithmic trading systems. Revenue generated feeds directly into R&D and platform expansion.
+              </p>
+              <div className="pt-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-light">Revenue Engine</span>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border/30 bg-card/30 backdrop-blur-sm p-6 space-y-3">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-5 w-5 text-foreground/70" />
+                <h3 className="text-base font-light text-foreground">Crandel Trust</h3>
+              </div>
+              <p className="text-xs text-muted-foreground font-light leading-relaxed">
+                Institutional capital partner holding 20% equity. Long-term alignment with Aureon's mission and growth trajectory.
+              </p>
+              <div className="pt-1">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-light">Equity Holder</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         <footer className="pb-12 text-center">
