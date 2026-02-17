@@ -176,6 +176,172 @@ export type Database = {
           },
         ]
       }
+      asha_document_entities: {
+        Row: {
+          confidence: number | null
+          context: string | null
+          created_at: string
+          document_id: string
+          entity_label: string | null
+          entity_type: string
+          entity_value: string
+          id: string
+          metadata: Json | null
+          page_number: number | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          context?: string | null
+          created_at?: string
+          document_id: string
+          entity_label?: string | null
+          entity_type?: string
+          entity_value: string
+          id?: string
+          metadata?: Json | null
+          page_number?: number | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          context?: string | null
+          created_at?: string
+          document_id?: string
+          entity_label?: string | null
+          entity_type?: string
+          entity_value?: string
+          id?: string
+          metadata?: Json | null
+          page_number?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asha_document_entities_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "asha_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asha_document_links: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          link_reason: string | null
+          link_type: string
+          source_document_id: string
+          target_document_id: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          link_reason?: string | null
+          link_type?: string
+          source_document_id: string
+          target_document_id: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          link_reason?: string | null
+          link_type?: string
+          source_document_id?: string
+          target_document_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asha_document_links_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "asha_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asha_document_links_target_document_id_fkey"
+            columns: ["target_document_id"]
+            isOneToOne: false
+            referencedRelation: "asha_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asha_documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          extracted_text: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          language: string | null
+          metadata: Json | null
+          page_count: number | null
+          session_id: string | null
+          status: string
+          storage_path: string
+          summary: string | null
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_type?: string
+          extracted_text?: string | null
+          file_name: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          language?: string | null
+          metadata?: Json | null
+          page_count?: number | null
+          session_id?: string | null
+          status?: string
+          storage_path: string
+          summary?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          extracted_text?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          language?: string | null
+          metadata?: Json | null
+          page_count?: number | null
+          session_id?: string | null
+          status?: string
+          storage_path?: string
+          summary?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asha_documents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asha_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asha_entity_matches: {
         Row: {
           confidence: number
