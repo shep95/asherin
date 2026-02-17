@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check } from "lucide-react";
+import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -316,6 +316,34 @@ const SettingsView = () => {
                 <div className={`w-4 h-4 rounded-full bg-foreground transition-transform mx-0.5 ${settings?.web_search_enabled ? "translate-x-5" : ""}`} />
               </button>
             </label>
+          </div>
+        </div>
+
+        {/* Keyboard Shortcuts */}
+        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <Keyboard className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-sm font-light text-foreground">Keyboard Shortcuts</h3>
+          </div>
+          <div className="space-y-1.5">
+            {[
+              { keys: "⌘ K", desc: "Open Command Palette" },
+              { keys: "⌘ N", desc: "New Conversation" },
+              { keys: "Enter", desc: "Send Message" },
+              { keys: "Shift + Enter", desc: "New Line" },
+              { keys: "Tab", desc: "Accept Autocomplete" },
+              { keys: "⌘ 1", desc: "Chat Mode" },
+              { keys: "⌘ 2", desc: "Code Mode" },
+              { keys: "⌘ 3", desc: "Research Mode" },
+              { keys: "⌘ 4", desc: "Truth Mode" },
+              { keys: "Esc", desc: "Close Modal / Stop" },
+              { keys: "↑ ↓", desc: "Navigate Command Palette" },
+            ].map((s) => (
+              <div key={s.keys} className="flex items-center justify-between py-1.5 px-1">
+                <span className="text-xs font-light text-muted-foreground">{s.desc}</span>
+                <kbd className="text-[10px] font-mono bg-secondary/40 border border-border/20 rounded-md px-2 py-0.5 text-muted-foreground">{s.keys}</kbd>
+              </div>
+            ))}
           </div>
         </div>
 
