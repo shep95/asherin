@@ -3,7 +3,7 @@ import {
   Upload, Table2, Share2, GitBranch, Workflow, LayoutDashboard,
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
   Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
-  Plus, Building2, ChevronDown, Trash2,
+  Plus, Building2, ChevronDown, Trash2, FileText,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -22,11 +22,13 @@ import ScenarioSimulatorPanel from "./ScenarioSimulatorPanel";
 import DataLineagePanel from "./DataLineagePanel";
 import ThreatModelingPanel from "./ThreatModelingPanel";
 import MonitoringPanel from "./MonitoringPanel";
+import DocumentIntelligencePanel from "./DocumentIntelligencePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
 
 const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "ingest", icon: Upload, label: "Ingest" },
+  { id: "docintel", icon: FileText, label: "Doc Intel" },
   { id: "catalog", icon: BookOpen, label: "Catalog" },
   { id: "table", icon: Table2, label: "Table" },
   { id: "graph", icon: Share2, label: "Graph" },
@@ -144,6 +146,7 @@ const AshaInner = () => {
 
     switch (activeTab) {
       case "ingest": return <IngestPanel />;
+      case "docintel": return <DocumentIntelligencePanel />;
       case "catalog": return <CatalogPanel />;
       case "table": return <DataTablePanel />;
       case "graph": return <GraphViewPanel />;

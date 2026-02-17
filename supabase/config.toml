@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.plugin-checkout]
 verify_jwt = false
+
+[functions.asha-doc-intel]
+verify_jwt = false
