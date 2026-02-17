@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.asha-doc-intel]
 verify_jwt = false
+
+[functions.zophiel-deep-search]
+verify_jwt = false

@@ -9,6 +9,7 @@ import InstantAnswerCard from "./search/InstantAnswerCard";
 import SearchResultCard from "./search/SearchResultCard";
 import FilterSidebar from "./search/FilterSidebar";
 import PagePreviewPanel from "./search/PagePreviewPanel";
+import DeepSearchPanel from "./search/DeepSearchPanel";
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -36,6 +37,7 @@ const ZophielEngineView = () => {
   const [blockedDomains, setBlockedDomains] = useState<string[]>([]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +74,16 @@ const ZophielEngineView = () => {
     const q = (searchQuery ?? query).trim();
     if (!q) return;
 
+    // Deep search mode — delegate to the streaming panel
+    if (mode === "deep") {
+      setSearched(true);
+      setShowSuggestions(false);
+      saveRecent(q);
+      setDeepSearchQuery(q);
+      return;
+    }
+
+    setDeepSearchQuery(null);
     setLoading(true);
     setSearched(true);
     setResults([]);
@@ -255,77 +267,87 @@ const ZophielEngineView = () => {
         {searched && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto px-3 sm:px-6 pb-8">
-              {/* Meta */}
-              {!loading && results.length > 0 && (
-                <p className="text-[10px] font-light text-muted-foreground/40 mb-4">
-                  {results.length} results in {searchTime}ms • Mode: {mode}
-                </p>
+              {/* Deep Search Panel */}
+              {deepSearchQuery && (
+                <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
               )}
 
-              {/* Instant Answer */}
-              {instantAnswer && <InstantAnswerCard answer={instantAnswer} />}
+              {/* Standard search results */}
+              {!deepSearchQuery && (
+                <>
+                  {/* Meta */}
+                  {!loading && results.length > 0 && (
+                    <p className="text-[10px] font-light text-muted-foreground/40 mb-4">
+                      {results.length} results in {searchTime}ms • Mode: {mode}
+                    </p>
+                  )}
 
-              {/* Loading skeleton */}
-              {loading && (
-                <div className="space-y-4 animate-fade-in">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="rounded-xl border border-border/10 bg-card/20 p-4 space-y-2">
-                      <div className="h-3 w-48 bg-foreground/5 rounded animate-pulse" />
-                      <div className="h-2.5 w-32 bg-foreground/5 rounded animate-pulse" />
-                      <div className="h-2.5 w-full bg-foreground/5 rounded animate-pulse" />
-                      <div className="h-2.5 w-3/4 bg-foreground/5 rounded animate-pulse" />
+                  {/* Instant Answer */}
+                  {instantAnswer && <InstantAnswerCard answer={instantAnswer} />}
+
+                  {/* Loading skeleton */}
+                  {loading && (
+                    <div className="space-y-4 animate-fade-in">
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="rounded-xl border border-border/10 bg-card/20 p-4 space-y-2">
+                          <div className="h-3 w-48 bg-foreground/5 rounded animate-pulse" />
+                          <div className="h-2.5 w-32 bg-foreground/5 rounded animate-pulse" />
+                          <div className="h-2.5 w-full bg-foreground/5 rounded animate-pulse" />
+                          <div className="h-2.5 w-3/4 bg-foreground/5 rounded animate-pulse" />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              {/* Grouped results */}
-              {!loading && results.length > 0 && hasGroups && (
-                <div className="space-y-6">
-                  {Object.entries(grouped).filter(([_, items]) => items.length > 0).map(([category, items]) => (
-                    <div key={category}>
-                      <h2 className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-3 flex items-center gap-2">
-                        <span className="h-px flex-1 bg-border/20" />
-                        {CATEGORY_LABELS[category] || category}
-                        <span className="h-px flex-1 bg-border/20" />
-                      </h2>
-                      <div className="space-y-3">
-                        {items.filter(r => !blockedDomains.some(d => r.url.includes(d))).map((r, i) => (
-                          <SearchResultCard
-                            key={r.url}
-                            result={r}
-                            freshnessAlert={freshnessAlerts[r.url]}
-                            onPreview={(p) => setPreview({ data: p, url: r.url })}
-                            index={i}
-                          />
-                        ))}
-                      </div>
+                  {/* Grouped results */}
+                  {!loading && results.length > 0 && hasGroups && (
+                    <div className="space-y-6">
+                      {Object.entries(grouped).filter(([_, items]) => items.length > 0).map(([category, items]) => (
+                        <div key={category}>
+                          <h2 className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-3 flex items-center gap-2">
+                            <span className="h-px flex-1 bg-border/20" />
+                            {CATEGORY_LABELS[category] || category}
+                            <span className="h-px flex-1 bg-border/20" />
+                          </h2>
+                          <div className="space-y-3">
+                            {items.filter(r => !blockedDomains.some(d => r.url.includes(d))).map((r, i) => (
+                              <SearchResultCard
+                                key={r.url}
+                                result={r}
+                                freshnessAlert={freshnessAlerts[r.url]}
+                                onPreview={(p) => setPreview({ data: p, url: r.url })}
+                                index={i}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              {/* Flat results (single group) */}
-              {!loading && results.length > 0 && !hasGroups && (
-                <div className="space-y-3">
-                  {results.map((r, i) => (
-                    <SearchResultCard
-                      key={r.url}
-                      result={r}
-                      freshnessAlert={freshnessAlerts[r.url]}
-                      onPreview={(p) => setPreview({ data: p, url: r.url })}
-                      index={i}
-                    />
-                  ))}
-                </div>
-              )}
+                  {/* Flat results (single group) */}
+                  {!loading && results.length > 0 && !hasGroups && (
+                    <div className="space-y-3">
+                      {results.map((r, i) => (
+                        <SearchResultCard
+                          key={r.url}
+                          result={r}
+                          freshnessAlert={freshnessAlerts[r.url]}
+                          onPreview={(p) => setPreview({ data: p, url: r.url })}
+                          index={i}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-              {/* No results */}
-              {!loading && searched && results.length === 0 && (
-                <div className="text-center py-16 animate-fade-in">
-                  <Search className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-                  <p className="text-sm font-extralight text-muted-foreground">No results found. Try a different query or adjust your filters.</p>
-                </div>
+                  {/* No results */}
+                  {!loading && searched && results.length === 0 && (
+                    <div className="text-center py-16 animate-fade-in">
+                      <Search className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
+                      <p className="text-sm font-extralight text-muted-foreground">No results found. Try a different query or adjust your filters.</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
