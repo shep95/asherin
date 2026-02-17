@@ -1,11 +1,13 @@
 import heroBgDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
+import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
 
 const WALLPAPER_MAP: Record<string, string> = {
   default: heroBgDefault,
   raven: wallpaperRaven,
   eclipse: wallpaperEclipse,
+  glitch: wallpaperGlitch,
 };
 import React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
