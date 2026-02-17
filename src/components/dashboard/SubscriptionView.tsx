@@ -1,6 +1,9 @@
-import { useState } from "react";
-import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, FileText } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, FileText, Package, Trash2 } from "lucide-react";
 import { useSubscription, TIERS, type TierKey } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
 const plans: {
@@ -87,7 +90,41 @@ const plans: {
 
 const SubscriptionView = () => {
   const { subscribed, tierKey, subscriptionEnd, status, cancelAtPeriodEnd, loading, checkSubscription, startCheckout, openPortal, checkoutLoading } = useSubscription();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+
+  interface InstalledPluginRow {
+    id: string;
+    plugin_id: string;
+    installed_at: string;
+    plugins: { name: string; price_cents: number; is_premium: boolean; icon: string } | null;
+  }
+
+  const [pluginSubs, setPluginSubs] = useState<InstalledPluginRow[]>([]);
+  const [pluginsLoading, setPluginsLoading] = useState(true);
+  const [removingPlugin, setRemovingPlugin] = useState<string | null>(null);
+
+  const loadPluginSubs = useCallback(async () => {
+    if (!user) { setPluginsLoading(false); return; }
+    const { data } = await supabase
+      .from("installed_plugins")
+      .select("id, plugin_id, installed_at, plugins(name, price_cents, is_premium, icon)")
+      .eq("user_id", user.id);
+    setPluginSubs((data as unknown as InstalledPluginRow[]) ?? []);
+    setPluginsLoading(false);
+  }, [user]);
+
+  useEffect(() => { loadPluginSubs(); }, [loadPluginSubs]);
+
+  const cancelPlugin = async (row: InstalledPluginRow) => {
+    if (!user) return;
+    setRemovingPlugin(row.id);
+    await supabase.from("installed_plugins").delete().eq("id", row.id);
+    toast({ title: "Plugin removed", description: `${row.plugins?.name ?? "Plugin"} has been uninstalled.` });
+    loadPluginSubs();
+    setRemovingPlugin(null);
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -257,6 +294,50 @@ const SubscriptionView = () => {
               </div>
             );
           })}
+        </div>
+
+        {/* Plugin Subscriptions */}
+        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 sm:p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <Package className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-sm font-light text-foreground">Plugin Subscriptions</h3>
+          </div>
+          {pluginsLoading ? (
+            <div className="flex items-center gap-2 py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Loading plugins…</span>
+            </div>
+          ) : pluginSubs.length === 0 ? (
+            <p className="text-xs font-extralight text-muted-foreground py-2">No plugins installed. Visit the Plugin Marketplace to browse available plugins.</p>
+          ) : (
+            <div className="space-y-2">
+              {pluginSubs.map((row) => (
+                <div key={row.id} className="flex items-center justify-between rounded-lg border border-border/10 bg-card/10 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs font-light text-foreground">{row.plugins?.name ?? "Unknown Plugin"}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Installed {new Date(row.installed_at).toLocaleDateString()}
+                        {row.plugins?.is_premium && row.plugins.price_cents > 0 && (
+                          <> · <span className="text-foreground/70">${(row.plugins.price_cents / 100).toFixed(0)}/mo</span></>
+                        )}
+                        {!row.plugins?.is_premium && " · Free"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => cancelPlugin(row)}
+                    disabled={removingPlugin === row.id}
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-light text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                  >
+                    {removingPlugin === row.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                    {row.plugins?.is_premium ? "Cancel" : "Remove"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Billing Info */}
