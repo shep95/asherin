@@ -21,7 +21,7 @@ import BriefingView from "@/components/dashboard/BriefingView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasEnterpriseAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
@@ -411,13 +411,13 @@ const Dashboard = () => {
           ? <ZophielEngineView /> 
           : <FeatureGate title="Zophiel Engine" description="The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans." onUpgrade={() => setActiveView("subscription")} />;
       case "asha": 
-        return hasEnterpriseAccess(tierKey) 
+        return hasProAccess(tierKey) 
           ? <AshaView /> 
-          : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on the Aureon Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
+          : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "nomad": 
-        return hasEnterpriseAccess(tierKey) 
+        return hasProAccess(tierKey) 
           ? <NomadView /> 
-          : <FeatureGate title="NOMAD Agent" description="Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation and structured dossier output. Available on the Aureon Enterprise plan." onUpgrade={() => setActiveView("subscription")} />;
+          : <FeatureGate title="NOMAD Agent" description="Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation and structured dossier output. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "briefing":
         return hasProAccess(tierKey)
           ? <BriefingView />

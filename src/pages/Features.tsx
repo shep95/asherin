@@ -198,7 +198,7 @@ const features: Feature[] = [
       "Executive report generation with scheduling",
       "Scenario simulation with Monte Carlo modeling",
     ],
-    tier: "advisor",
+    tier: "pro",
   },
   {
     icon: Target,
@@ -212,7 +212,7 @@ const features: Feature[] = [
       "Technology stack monitoring across competitors",
       "Investment and funding round detection",
     ],
-    tier: "advisor",
+    tier: "pro",
   },
   {
     icon: Users,
