@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff } from "lucide-react";
+import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
 import SearchModeSelector from "./search/SearchModeSelector";
@@ -298,17 +299,12 @@ const ZophielEngineView = () => {
         {searched && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-2xl mx-auto px-3 sm:px-6 pb-8">
-              {/* Queued search banner */}
-              {queuedSearch && (
-                <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 mb-4 animate-fade-in">
-                  <WifiOff className="h-4 w-4 text-amber-400/70 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-light text-foreground">Search queued: <span className="text-muted-foreground">"{queuedSearch}"</span></p>
-                    <p className="text-[10px] text-amber-400/60 mt-0.5">Will run automatically when you're back online</p>
-                  </div>
-                  <Clock className="h-3.5 w-3.5 text-amber-400/50 shrink-0 animate-pulse" />
-                </div>
-              )}
+              {/* Queue Panel */}
+              <MessageQueuePanel
+                items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
+                onRemove={() => setQueuedSearch(null)}
+                onClear={() => setQueuedSearch(null)}
+              />
 
               {/* Deep Search Panel */}
               {deepSearchQuery && (

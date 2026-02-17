@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ import {
   Fingerprint, MapPin, Phone, Image, Shield, AlertTriangle, Sparkles, WifiOff, Clock, Check,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import MessageQueuePanel from "./MessageQueuePanel";
 
 interface NomadMessage {
   id: string;
@@ -218,6 +219,24 @@ const NomadView = () => {
     }
   };
 
+  // Derive queue items from messages with "queued" status
+  const nomadQueueItems = useMemo(() =>
+    messages.filter(m => m.role === "user" && m.status === "queued").map(m => ({ id: m.id, content: m.content })),
+    [messages]
+  );
+
+  const removeFromNomadQueue = (id: string) => {
+    setMessages(prev => prev.filter(m => m.id !== id));
+    const queue = loadNomadQueue().filter(q => q.id !== id);
+    saveNomadQueue(queue);
+  };
+
+  const clearNomadQueue = () => {
+    const queuedIds = new Set(messages.filter(m => m.status === "queued").map(m => m.id));
+    setMessages(prev => prev.filter(m => !queuedIds.has(m.id)));
+    saveNomadQueue([]);
+  };
+
   const handleQuickInvestigate = (type: typeof INVESTIGATION_TYPES[0]) => {
     if (type.comingSoon) {
       toast({ title: "Coming Soon", description: `${type.label} investigation is being developed.` });
@@ -392,6 +411,14 @@ const NomadView = () => {
               <div ref={bottomRef} />
             </div>
           </ScrollArea>
+
+          {/* Queue Panel */}
+          <MessageQueuePanel
+            items={nomadQueueItems}
+            onRemove={removeFromNomadQueue}
+            onClear={clearNomadQueue}
+            onProcessNow={processNomadQueue}
+          />
 
           {/* Input */}
           <div className="flex-shrink-0 border-t border-border/20 bg-card/20 backdrop-blur-md px-4 py-3">
