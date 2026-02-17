@@ -151,8 +151,8 @@ const markdownComponents = {
     };
     codeText = extractText(children);
     return (
-      <div className="relative group">
-        <pre {...props}>{children}</pre>
+      <div className="relative group overflow-hidden">
+        <pre className="overflow-x-auto" {...props}>{children}</pre>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
           <CodeBlockCopyButton code={codeText} />
         </div>
@@ -276,7 +276,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     }`}
                   >
                     {msg.role === "assistant" ? (
-                      <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
+                      <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
                         <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
                         {isStreaming && msg === lastMsg && (
                           <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
