@@ -94,6 +94,8 @@ const Dashboard = () => {
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
   const processingQueue = useRef(false);
+  const pendingQueue = useRef<string[]>([]);
+  const isStreamingRef = useRef(false);
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
@@ -416,31 +418,26 @@ const Dashboard = () => {
     setIsStreaming(false);
   }, []);
 
-  const sendMessage = async (content: string) => {
-    if (!user || !activeConvId || isStreaming) return;
+  // Core send logic (called sequentially by queue processor)
+  const sendMessageCore = async (content: string, convId: string) => {
+    if (!user) return;
     setSuggestions([]);
 
     const tempMsgId = crypto.randomUUID();
-
-    // Optimistic: show message immediately
+    const conv = conversations.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date() };
-    const isFirst = activeConv?.messages.length === 0;
+    const isFirst = conv?.messages.length === 0;
     if (isFirst) {
       const newTitle = content.slice(0, 50);
-      setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, title: newTitle, messages: [...c.messages, userMsg] } : c));
-      // Fire and forget title update
-      supabase.from("conversations").update({ title: newTitle }).eq("id", activeConvId).then();
+      setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, title: newTitle, messages: [...c.messages, userMsg] } : c));
+      supabase.from("conversations").update({ title: newTitle }).eq("id", convId).then();
     } else {
-      setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
+      setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, messages: [...c.messages, userMsg] } : c));
     }
 
-    // Set status to sending
     setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "sending" }));
+    await enqueueMessage({ id: tempMsgId, conversationId: convId, content, role: "user" }).catch(() => {});
 
-    // Queue message for offline resilience
-    await enqueueMessage({ id: tempMsgId, conversationId: activeConvId, content, role: "user" }).catch(() => {});
-
-    // If offline, queue and stop
     if (!navigator.onLine) {
       setMessageStatuses(prev => ({ ...prev, [tempMsgId]: "queued" }));
       registerBackgroundSync().catch(() => {});
@@ -448,18 +445,16 @@ const Dashboard = () => {
       return;
     }
 
-    // Persist to DB
     try {
       const encryptedContent = await encryptText(content, user.id);
       const { data: userMsgRow } = await supabase
         .from("messages")
-        .insert({ conversation_id: activeConvId, user_id: user.id, role: "user", content: encryptedContent })
+        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent })
         .select()
         .single();
 
       if (userMsgRow) {
-        // Update with real ID
-        setConversations((prev) => prev.map((c) => c.id === activeConvId
+        setConversations((prev) => prev.map((c) => c.id === convId
           ? { ...c, messages: c.messages.map(m => m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m) }
           : c
         ));
@@ -476,6 +471,7 @@ const Dashboard = () => {
 
     trackUsage(mode);
     setIsStreaming(true);
+    isStreamingRef.current = true;
     let assistantContent = "";
     const assistantId = crypto.randomUUID();
     const controller = new AbortController();
@@ -483,13 +479,13 @@ const Dashboard = () => {
 
     setConversations((prev) =>
       prev.map((c) =>
-        c.id === activeConvId
+        c.id === convId
           ? { ...c, messages: [...c.messages, { id: assistantId, role: "assistant" as const, content: "", timestamp: new Date() }] }
           : c
       )
     );
 
-    const history = [...(activeConv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+    const history = [...(conv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     const activePersona = customPersonas.find((p) => p.id === personaId) 
       || builtInPersonas.find((p) => p.id === personaId);
@@ -509,7 +505,7 @@ const Dashboard = () => {
           const current = assistantContent;
           setConversations((prev) =>
             prev.map((c) =>
-              c.id === activeConvId
+              c.id === convId
                 ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: current } : m) }
                 : c
             )
@@ -517,10 +513,11 @@ const Dashboard = () => {
         },
         onDone: async () => {
           setIsStreaming(false);
+          isStreamingRef.current = false;
           const encryptedAssistant = await encryptText(assistantContent, user.id);
           await supabase.from("messages").insert({
             id: assistantId,
-            conversation_id: activeConvId,
+            conversation_id: convId,
             user_id: user.id,
             role: "assistant",
             content: encryptedAssistant,
@@ -531,12 +528,13 @@ const Dashboard = () => {
       });
     } catch (e: any) {
       setIsStreaming(false);
+      isStreamingRef.current = false;
       if (e.name === "AbortError") {
         if (assistantContent) {
           const encryptedPartial = await encryptText(assistantContent, user.id);
           await supabase.from("messages").insert({
             id: assistantId,
-            conversation_id: activeConvId,
+            conversation_id: convId,
             user_id: user.id,
             role: "assistant",
             content: encryptedPartial,
@@ -547,6 +545,44 @@ const Dashboard = () => {
         toast({ title: "AI Error", description: e.message, variant: "destructive" });
       }
     }
+  };
+
+  // Queue processor — drains pending messages sequentially
+  const processQueue = useCallback(async () => {
+    if (processingQueue.current) return;
+    processingQueue.current = true;
+    while (pendingQueue.current.length > 0) {
+      const next = pendingQueue.current.shift()!;
+      const [convId, ...contentParts] = next.split("||");
+      const content = contentParts.join("||");
+      await sendMessageCore(content, convId);
+      // Wait for streaming to finish before processing next
+      await new Promise<void>(resolve => {
+        const check = () => {
+          if (!isStreamingRef.current) return resolve();
+          setTimeout(check, 100);
+        };
+        check();
+      });
+    }
+    processingQueue.current = false;
+  }, [user, mode, depth, personaId, userProfile, customPersonas]);
+
+  // Public sendMessage — adds to queue and kicks off processing
+  const sendMessage = async (content: string) => {
+    if (!user || !activeConvId) return;
+    // If currently streaming, show queued status and add to queue
+    if (isStreamingRef.current) {
+      const tempId = crypto.randomUUID();
+      const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date() };
+      setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
+      setMessageStatuses(prev => ({ ...prev, [tempId]: "queued" }));
+      pendingQueue.current.push(`${activeConvId}||${content}`);
+      toast({ title: "Message queued", description: "Will send after current response completes." });
+      return;
+    }
+    pendingQueue.current.push(`${activeConvId}||${content}`);
+    processQueue();
   };
 
   const newConversation = async () => {
