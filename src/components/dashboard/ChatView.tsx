@@ -284,7 +284,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed transition-all ${
                       msg.role === "user"
                         ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
-                        : "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
+                        : msg.content
+                          ? "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
+                          : "hidden"
                     }`}
                   >
                     {msg.role === "assistant" ? (
