@@ -373,7 +373,20 @@ const Dashboard = () => {
   };
 
   const deleteConversation = async (id: string) => {
-    const deleted = conversations.find((c) => c.id === id);
+    await supabase.from("messages").delete().eq("conversation_id", id);
+    await supabase.from("conversations").delete().eq("id", id);
+    const remaining = conversations.filter((c) => c.id !== id);
+    if (remaining.length === 0) {
+      await newConversation();
+    } else {
+      setConversations(remaining);
+      if (activeConvId === id) setActiveConvId(remaining[0].id);
+    }
+    toast({ title: "Conversation deleted permanently" });
+  };
+
+  const archiveConversation = async (id: string) => {
+    const archived = conversations.find((c) => c.id === id);
     await supabase.from("conversations").update({ archived: true }).eq("id", id);
     const remaining = conversations.filter((c) => c.id !== id);
     if (remaining.length === 0) {
@@ -382,20 +395,26 @@ const Dashboard = () => {
       setConversations(remaining);
       if (activeConvId === id) setActiveConvId(remaining[0].id);
     }
-    if (deleted) {
+    if (archived) {
       toast({
         title: "Conversation archived",
-        description: deleted.title,
+        description: archived.title,
         action: React.createElement(ToastAction, {
           altText: "Undo archive",
           onClick: async () => {
             await supabase.from("conversations").update({ archived: false }).eq("id", id);
-            setConversations((prev) => [deleted, ...prev]);
+            setConversations((prev) => [archived, ...prev]);
             setActiveConvId(id);
           },
         } as any, "Undo") as any,
       });
     }
+  };
+
+  const renameConversation = async (id: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    await supabase.from("conversations").update({ title: newTitle.trim() }).eq("id", id);
+    setConversations((prev) => prev.map((c) => c.id === id ? { ...c, title: newTitle.trim() } : c));
   };
 
   const togglePin = async (id: string) => {
@@ -404,10 +423,6 @@ const Dashboard = () => {
     const newPinned = !conv.pinned;
     await supabase.from("conversations").update({ pinned: newPinned }).eq("id", id);
     setConversations((prev) => prev.map((c) => c.id === id ? { ...c, pinned: newPinned } : c));
-  };
-
-  const archiveConversation = async (id: string) => {
-    await deleteConversation(id);
   };
 
   const renderView = () => {
@@ -502,6 +517,7 @@ const Dashboard = () => {
             onNewConversation={newConversation}
             onDeleteConversation={deleteConversation}
             onArchiveConversation={archiveConversation}
+            onRenameConversation={renameConversation}
             onTogglePin={togglePin}
             onViewChange={setActiveView}
             sidebarOpen={sidebarOpen}
