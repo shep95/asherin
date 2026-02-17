@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import {
   Upload, Table2, Share2, GitBranch, Workflow, LayoutDashboard,
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
   Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
-  Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen,
+  Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen, Pencil, Check, X,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -27,6 +27,10 @@ import FilesPanel from "./FilesPanel";
 import EncryptionBadge from "../EncryptionBadge";
 import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
 
+// Context for navigating between tabs from child panels
+const AshaNavContext = createContext<{ navigateToTab: (tab: AshaTab, datasetId?: string) => void }>({ navigateToTab: () => {} });
+export const useAshaNav = () => useContext(AshaNavContext);
+
 const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "ingest", icon: Upload, label: "Ingest" },
   { id: "docintel", icon: FileText, label: "Doc Intel" },
@@ -49,16 +53,31 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
 ];
 
 const SessionSelector = () => {
-  const { sessions, activeSession, setActiveSession, createSession, deleteSession } = useAshaSession();
+  const { sessions, activeSession, setActiveSession, createSession, renameSession, deleteSession } = useAshaSession();
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCompany, setNewCompany] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
     await createSession(newName.trim(), newCompany.trim());
     setNewName(""); setNewCompany(""); setShowCreate(false); setOpen(false);
+  };
+
+  const startRename = (s: { id: string; name: string }) => {
+    setRenamingId(s.id);
+    setRenameValue(s.name);
+  };
+
+  const confirmRename = async () => {
+    if (renamingId && renameValue.trim()) {
+      await renameSession(renamingId, renameValue.trim());
+    }
+    setRenamingId(null);
+    setRenameValue("");
   };
 
   return (
@@ -74,24 +93,51 @@ const SessionSelector = () => {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setShowCreate(false); }} />
+          <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setShowCreate(false); setRenamingId(null); }} />
           <div className="absolute left-0 top-full mt-1 z-50 w-72 rounded-xl border border-border/20 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
             {/* Session list */}
             <div className="max-h-64 overflow-y-auto p-1.5">
               {sessions.map(s => (
                 <div key={s.id} className={`flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors group ${activeSession?.id === s.id ? "bg-foreground/10" : "hover:bg-foreground/5"}`}>
-                  <button onClick={() => { setActiveSession(s); setOpen(false); }} className="flex-1 flex items-center gap-2.5 text-left min-w-0">
-                    <span className="text-sm">{s.icon}</span>
-                    <div className="min-w-0">
-                      <p className="text-xs font-light text-foreground truncate">{s.name}</p>
-                      {s.companyName && <p className="text-[9px] text-muted-foreground/50 truncate">{s.companyName}</p>}
+                  {renamingId === s.id ? (
+                    <div className="flex-1 flex items-center gap-1.5">
+                      <input
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") setRenamingId(null); }}
+                        className="flex-1 bg-background/50 border border-border/20 rounded px-2 py-1 text-xs text-foreground outline-none focus:border-accent/30"
+                        autoFocus
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <button onClick={(e) => { e.stopPropagation(); confirmRename(); }} className="p-1 rounded text-emerald-400 hover:bg-emerald-500/10">
+                        <Check className="h-3 w-3" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); setRenamingId(null); }} className="p-1 rounded text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
-                  </button>
-                  {activeSession?.id !== s.id && (
-                    <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-muted-foreground/40 hover:text-destructive transition-all">
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => { setActiveSession(s); setOpen(false); }} className="flex-1 flex items-center gap-2.5 text-left min-w-0">
+                        <Database className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-light text-foreground truncate">{s.name}</p>
+                          {s.companyName && <p className="text-[9px] text-muted-foreground/50 truncate">{s.companyName}</p>}
+                        </div>
+                      </button>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={(e) => { e.stopPropagation(); startRename(s); }}
+                          className="p-1 rounded text-muted-foreground/40 hover:text-foreground transition-all">
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        {activeSession?.id !== s.id && (
+                          <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                            className="p-1 rounded text-muted-foreground/40 hover:text-destructive transition-all">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
@@ -131,7 +177,13 @@ const SessionSelector = () => {
 
 const AshaInner = () => {
   const [activeTab, setActiveTab] = useState<AshaTab>("ingest");
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const { activeSession, loading } = useAshaSession();
+
+  const navigateToTab = (tab: AshaTab, datasetId?: string) => {
+    setActiveTab(tab);
+    if (datasetId) setSelectedDatasetId(datasetId);
+  };
 
   const renderPanel = () => {
     if (!activeSession) {
@@ -150,7 +202,7 @@ const AshaInner = () => {
       case "ingest": return <IngestPanel />;
       case "docintel": return <DocumentIntelligencePanel />;
       case "catalog": return <CatalogPanel />;
-      case "table": return <DataTablePanel />;
+      case "table": return <DataTablePanel initialDatasetId={selectedDatasetId} />;
       case "graph": return <GraphViewPanel />;
       case "entities": return <EntityResolutionPanel />;
       case "lineage": return <DataLineagePanel />;
@@ -169,57 +221,59 @@ const AshaInner = () => {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Database className="h-5 w-5 text-accent" />
-            <div>
-              <h1 className="text-lg font-extralight tracking-wide text-foreground">ASHA</h1>
-              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">Data Intelligence Platform</p>
+    <AshaNavContext.Provider value={{ navigateToTab }}>
+      <div className="flex h-full flex-col">
+        {/* Header */}
+        <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Database className="h-5 w-5 text-accent" />
+              <div>
+                <h1 className="text-lg font-extralight tracking-wide text-foreground">ASHA</h1>
+                <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">Data Intelligence Platform</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <SessionSelector />
+              <EncryptionBadge />
+              <div className="flex items-center gap-1 rounded-lg border border-border/20 bg-card/30 px-2 py-1">
+                <Shield className="h-3 w-3 text-emerald-500/70" />
+                <span className="text-[10px] text-muted-foreground">PII Protected</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <SessionSelector />
-            <EncryptionBadge />
-            <div className="flex items-center gap-1 rounded-lg border border-border/20 bg-card/30 px-2 py-1">
-              <Shield className="h-3 w-3 text-emerald-500/70" />
-              <span className="text-[10px] text-muted-foreground">PII Protected</span>
+
+          {/* Tab bar */}
+          {activeSession && (
+            <div className="mt-4 flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setSelectedDatasetId(null); }}
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-light transition-colors ${
+                    activeTab === tab.id
+                      ? "bg-foreground/10 text-foreground"
+                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                  }`}
+                >
+                  <tab.icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Tab bar */}
-        {activeSession && (
-          <div className="mt-4 flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-light transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-foreground/10 text-foreground"
-                    : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                }`}
-              >
-                <tab.icon className="h-3.5 w-3.5" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Panel content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            </div>
+          ) : renderPanel()}
+        </div>
       </div>
-
-      {/* Panel content */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          </div>
-        ) : renderPanel()}
-      </div>
-    </div>
+    </AshaNavContext.Provider>
   );
 };
 

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
 
-const DataTablePanel = () => {
+const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null }) => {
   const [datasets, setDatasets] = useState<any[]>([]);
   const [selectedDs, setSelectedDs] = useState<string>("");
   const [rows, setRows] = useState<Record<string, string>[]>([]);
@@ -31,7 +31,7 @@ const DataTablePanel = () => {
         .order("created_at", { ascending: false });
       if (data && data.length > 0) {
         setDatasets(data);
-        setSelectedDs(data[0].id);
+        setSelectedDs(initialDatasetId && data.some((d: any) => d.id === initialDatasetId) ? initialDatasetId : data[0].id);
       } else {
         setDatasets([]);
         setSelectedDs("");

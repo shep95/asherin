@@ -17,12 +17,13 @@ interface AshaSessionContextType {
   activeSession: AshaSession | null;
   setActiveSession: (session: AshaSession) => void;
   createSession: (name: string, companyName: string, description?: string) => Promise<AshaSession | null>;
+  renameSession: (id: string, newName: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   loading: boolean;
 }
 
 const AshaSessionContext = createContext<AshaSessionContextType>({
-  sessions: [], activeSession: null, setActiveSession: () => {}, createSession: async () => null, deleteSession: async () => {}, loading: true,
+  sessions: [], activeSession: null, setActiveSession: () => {}, createSession: async () => null, renameSession: async () => {}, deleteSession: async () => {}, loading: true,
 });
 
 export const useAshaSession = () => useContext(AshaSessionContext);
@@ -86,6 +87,15 @@ export const AshaSessionProvider = ({ children }: { children: ReactNode }) => {
     return null;
   };
 
+  const renameSession = async (id: string, newName: string) => {
+    if (!newName.trim()) return;
+    await supabase.from("asha_sessions").update({ name: newName.trim() }).eq("id", id);
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, name: newName.trim() } : s));
+    if (activeSession?.id === id) {
+      setActiveSessionState({ ...activeSession, name: newName.trim() });
+    }
+  };
+
   const deleteSession = async (id: string) => {
     await supabase.from("asha_sessions").delete().eq("id", id);
     setSessions(prev => {
@@ -100,7 +110,7 @@ export const AshaSessionProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AshaSessionContext.Provider value={{ sessions, activeSession, setActiveSession, createSession, deleteSession, loading }}>
+    <AshaSessionContext.Provider value={{ sessions, activeSession, setActiveSession, createSession, renameSession, deleteSession, loading }}>
       {children}
     </AshaSessionContext.Provider>
   );

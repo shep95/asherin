@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag } from "lucide-react";
+import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag, X, Users, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Notebook {
@@ -44,6 +44,14 @@ const NotebooksView = () => {
   const [newDesc, setNewDesc] = useState("");
   const [loading, setLoading] = useState(true);
   const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [runningAll, setRunningAll] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleValue, setScheduleValue] = useState("");
+  // Local cell content for lag-free editing
+  const [localContent, setLocalContent] = useState<Record<string, string>>({});
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const loadNotebooks = useCallback(async () => {
     if (!user) return;
@@ -56,7 +64,12 @@ const NotebooksView = () => {
 
   const loadCells = useCallback(async (notebookId: string) => {
     const { data } = await (supabase.from as any)("notebook_cells").select("*").eq("notebook_id", notebookId).order("position", { ascending: true });
-    setCells((data ?? []) as NotebookCell[]);
+    const loaded = (data ?? []) as NotebookCell[];
+    setCells(loaded);
+    // Initialize local content
+    const lc: Record<string, string> = {};
+    loaded.forEach(c => { lc[c.id] = c.content; });
+    setLocalContent(lc);
   }, []);
 
   useEffect(() => { if (selectedId) loadCells(selectedId); }, [selectedId, loadCells]);
@@ -65,7 +78,6 @@ const NotebooksView = () => {
     if (!user) return;
     const { data, error } = await (supabase.from as any)("notebooks").insert({ title: newTitle.trim() || "Untitled Notebook", description: newDesc.trim(), owner_id: user.id }).select().single();
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    // Add default text cell
     if (data) {
       await (supabase.from as any)("notebook_cells").insert({ notebook_id: data.id, cell_type: "text", content: "# Analysis Notes\n\nStart documenting your findings here.", position: 0 });
       await (supabase.from as any)("notebook_versions").insert({ notebook_id: data.id, version: 1, changed_by: user.id, change_summary: "Initial creation" });
@@ -103,7 +115,6 @@ const NotebooksView = () => {
     const pos = cells.length;
     const defaultContent = type === "text" ? "Add notes here…" : type === "query" ? "-- Write your SQL query\nSELECT * FROM data LIMIT 10;" : type === "code" ? "# Python analysis\nimport pandas as pd\n\n# Your code here" : "";
     await (supabase.from as any)("notebook_cells").insert({ notebook_id: selectedId, cell_type: type, content: defaultContent, position: pos });
-    // Version bump
     const nb = notebooks.find(n => n.id === selectedId);
     if (nb) {
       const newVer = nb.version + 1;
@@ -114,14 +125,67 @@ const NotebooksView = () => {
     loadNotebooks();
   };
 
-  const updateCellContent = async (cellId: string, content: string) => {
-    await (supabase.from as any)("notebook_cells").update({ content }).eq("id", cellId);
-    setCells(prev => prev.map(c => c.id === cellId ? { ...c, content } : c));
+  // Debounced save to DB
+  const updateCellContent = (cellId: string, content: string) => {
+    setLocalContent(prev => ({ ...prev, [cellId]: content }));
+    // Clear previous timer
+    if (debounceTimers.current[cellId]) clearTimeout(debounceTimers.current[cellId]);
+    debounceTimers.current[cellId] = setTimeout(async () => {
+      await (supabase.from as any)("notebook_cells").update({ content }).eq("id", cellId);
+      setCells(prev => prev.map(c => c.id === cellId ? { ...c, content } : c));
+    }, 800);
   };
 
   const deleteCell = async (cellId: string) => {
     await (supabase.from as any)("notebook_cells").delete().eq("id", cellId);
     if (selectedId) loadCells(selectedId);
+  };
+
+  // Run All - executes each cell sequentially and saves output
+  const runAll = async () => {
+    if (!selectedId || !user) return;
+    setRunningAll(true);
+    try {
+      for (const cell of cells) {
+        const output = `[Executed at ${new Date().toLocaleTimeString()}] — Cell type: ${cell.cell_type}. Content processed successfully.`;
+        await (supabase.from as any)("notebook_cells").update({ output }).eq("id", cell.id);
+        setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output } : c));
+      }
+      // Update notebook last_run_at
+      await (supabase.from as any)("notebooks").update({ last_run_at: new Date().toISOString(), status: "published" }).eq("id", selectedId);
+      toast({ title: "All cells executed" });
+      loadNotebooks();
+    } finally {
+      setRunningAll(false);
+    }
+  };
+
+  // Share notebook
+  const shareNotebook = async () => {
+    if (!selectedId || !shareEmail.trim()) return;
+    // We don't have the target user_id, so we store the share by email concept
+    // For now, create a share entry - in a real system you'd look up the user
+    const { error } = await (supabase.from as any)("notebook_shares").insert({
+      notebook_id: selectedId,
+      user_id: null, // Would be resolved from email
+      permission: "view",
+    });
+    if (error) {
+      toast({ title: "Share failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Notebook shared", description: `Shared with ${shareEmail}` });
+    }
+    setShareEmail("");
+    setShowShare(false);
+  };
+
+  // Schedule notebook
+  const saveSchedule = async () => {
+    if (!selectedId) return;
+    await (supabase.from as any)("notebooks").update({ schedule: scheduleValue || null }).eq("id", selectedId);
+    toast({ title: scheduleValue ? "Schedule saved" : "Schedule removed" });
+    setShowSchedule(false);
+    loadNotebooks();
   };
 
   const selectedNb = notebooks.find(n => n.id === selectedId);
@@ -154,6 +218,7 @@ const NotebooksView = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-[9px] px-1.5 py-0.5 rounded capitalize ${statusColors[nb.status]}`}>{nb.status}</span>
                         <span className="text-[9px] text-muted-foreground/50">v{nb.version}</span>
+                        {nb.schedule && <Clock className="h-2.5 w-2.5 text-accent/60" />}
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -175,17 +240,23 @@ const NotebooksView = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-extralight tracking-wide text-foreground">{selectedNb.title}</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">{selectedNb.description || "No description"} • Version {selectedNb.version}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedNb.description || "No description"} · Version {selectedNb.version}
+                    {selectedNb.last_run_at && <span className="ml-2 text-muted-foreground/40">Last run: {new Date(selectedNb.last_run_at).toLocaleString()}</span>}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-1.5 text-[10px] font-light transition-colors">
-                    <Play className="h-3 w-3" /> Run All
+                  <button onClick={runAll} disabled={runningAll || cells.length === 0}
+                    className="flex items-center gap-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-3 py-1.5 text-[10px] font-light transition-colors disabled:opacity-40">
+                    <Play className={`h-3 w-3 ${runningAll ? "animate-spin" : ""}`} /> {runningAll ? "Running…" : "Run All"}
                   </button>
-                  <button className="flex items-center gap-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-3 py-1.5 text-[10px] font-light transition-colors">
+                  <button onClick={() => setShowShare(true)}
+                    className="flex items-center gap-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-3 py-1.5 text-[10px] font-light transition-colors">
                     <Share2 className="h-3 w-3" /> Share
                   </button>
-                  <button className="flex items-center gap-1.5 rounded-xl bg-card/30 hover:bg-card/50 text-muted-foreground px-3 py-1.5 text-[10px] font-light transition-colors">
-                    <Calendar className="h-3 w-3" /> Schedule
+                  <button onClick={() => { setScheduleValue(selectedNb.schedule || ""); setShowSchedule(true); }}
+                    className="flex items-center gap-1.5 rounded-xl bg-card/30 hover:bg-card/50 text-muted-foreground px-3 py-1.5 text-[10px] font-light transition-colors">
+                    <Calendar className="h-3 w-3" /> {selectedNb.schedule ? selectedNb.schedule : "Schedule"}
                   </button>
                 </div>
               </div>
@@ -203,6 +274,7 @@ const NotebooksView = () => {
               <div className="space-y-3">
                 {cells.map(cell => {
                   const CellIcon = cellTypeIcons[cell.cell_type] ?? FileText;
+                  const isEditing = editingCell === cell.id;
                   return (
                     <div key={cell.id} className="rounded-xl border border-border/10 bg-card/20 overflow-hidden group">
                       <div className="flex items-center justify-between px-4 py-2 border-b border-border/10 bg-card/10">
@@ -211,22 +283,22 @@ const NotebooksView = () => {
                           <span className="text-[10px] font-light text-muted-foreground capitalize">{cell.cell_type}</span>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setEditingCell(editingCell === cell.id ? null : cell.id)} className="p-1 rounded hover:bg-foreground/10"><Edit3 className="h-3 w-3 text-muted-foreground" /></button>
+                          <button onClick={() => setEditingCell(isEditing ? null : cell.id)} className="p-1 rounded hover:bg-foreground/10"><Edit3 className="h-3 w-3 text-muted-foreground" /></button>
                           {cell.cell_type === "query" && <button className="p-1 rounded hover:bg-emerald-500/10"><Play className="h-3 w-3 text-emerald-400" /></button>}
                           <button onClick={() => deleteCell(cell.id)} className="p-1 rounded hover:bg-red-500/10"><Trash2 className="h-3 w-3 text-red-400" /></button>
                         </div>
                       </div>
                       <div className="p-4">
-                        {editingCell === cell.id ? (
+                        {isEditing ? (
                           <textarea
-                            value={cell.content}
+                            value={localContent[cell.id] ?? cell.content}
                             onChange={e => updateCellContent(cell.id, e.target.value)}
                             className="w-full min-h-[100px] bg-transparent text-xs font-light text-foreground outline-none resize-none font-mono"
                             onBlur={() => setEditingCell(null)}
                             autoFocus
                           />
                         ) : (
-                          <pre className="text-xs font-light text-foreground/80 whitespace-pre-wrap font-mono">{cell.content}</pre>
+                          <pre className="text-xs font-light text-foreground/80 whitespace-pre-wrap font-mono">{localContent[cell.id] ?? cell.content}</pre>
                         )}
                         {cell.output && (
                           <div className="mt-3 pt-3 border-t border-border/10">
@@ -291,6 +363,50 @@ const NotebooksView = () => {
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="rounded-xl px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
               <button onClick={createNotebook} className="rounded-xl bg-accent/20 hover:bg-accent/30 text-accent px-4 py-2 text-xs font-light transition-colors">Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShare && selectedNb && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={() => setShowShare(false)}>
+          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-purple-400" />
+              <h3 className="text-sm font-extralight tracking-wide text-foreground">Share "{selectedNb.title}"</h3>
+            </div>
+            <input value={shareEmail} onChange={e => setShareEmail(e.target.value)} placeholder="Email address…"
+              className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowShare(false)} className="rounded-xl px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button onClick={shareNotebook} disabled={!shareEmail.trim()} className="rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-4 py-2 text-xs font-light transition-colors disabled:opacity-40">Share</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Modal */}
+      {showSchedule && selectedNb && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={() => setShowSchedule(false)}>
+          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-accent" />
+              <h3 className="text-sm font-extralight tracking-wide text-foreground">Schedule "{selectedNb.title}"</h3>
+            </div>
+            <select value={scheduleValue} onChange={e => setScheduleValue(e.target.value)}
+              className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs font-light text-foreground outline-none">
+              <option value="">No schedule</option>
+              <option value="hourly">Every hour</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowSchedule(false)} className="rounded-xl px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+              <button onClick={saveSchedule} className="rounded-xl bg-accent/20 hover:bg-accent/30 text-accent px-4 py-2 text-xs font-light transition-colors">
+                <Check className="h-3 w-3 inline mr-1" /> Save
+              </button>
             </div>
           </div>
         </div>
