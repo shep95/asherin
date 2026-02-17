@@ -513,19 +513,7 @@ const Dashboard = () => {
     );
   }
 
-  const [wallpaperKey, setWallpaperKey] = useState(() => {
-    try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
-  });
-  const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
 
-  useEffect(() => {
-    const handler = () => {
-      setWallpaperKey(localStorage.getItem("aureon_wallpaper") || "default");
-    };
-    window.addEventListener("storage", handler);
-    window.addEventListener("aureon-wallpaper-change", handler);
-    return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
-  }, []);
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
