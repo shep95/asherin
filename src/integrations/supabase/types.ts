@@ -1682,10 +1682,19 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: string
       }
+      has_notebook_share: {
+        Args: { _notebook_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_notebook_owner: {
+        Args: { _notebook_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      notebook_team_id: { Args: { _notebook_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
