@@ -442,6 +442,50 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json
+          id: string
+          ip_address: string | null
+          resource_id: string | null
+          resource_type: string
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type: string
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          team_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       briefing_profiles: {
         Row: {
           company_name: string | null
@@ -671,6 +715,54 @@ export type Database = {
         }
         Relationships: []
       }
+      data_permissions: {
+        Row: {
+          created_at: string
+          dataset_id: string | null
+          id: string
+          row_filter: Json | null
+          sensitivity_level: string
+          team_id: string
+          user_id: string | null
+          visible_columns: string[]
+        }
+        Insert: {
+          created_at?: string
+          dataset_id?: string | null
+          id?: string
+          row_filter?: Json | null
+          sensitivity_level?: string
+          team_id: string
+          user_id?: string | null
+          visible_columns?: string[]
+        }
+        Update: {
+          created_at?: string
+          dataset_id?: string | null
+          id?: string
+          row_filter?: Json | null
+          sensitivity_level?: string
+          team_id?: string
+          user_id?: string | null
+          visible_columns?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_permissions_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "asha_datasets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_permissions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       granted_subscriptions: {
         Row: {
           active: boolean
@@ -700,6 +792,38 @@ export type Database = {
           tier?: string
         }
         Relationships: []
+      }
+      installed_plugins: {
+        Row: {
+          config: Json
+          id: string
+          installed_at: string
+          plugin_id: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          id?: string
+          installed_at?: string
+          plugin_id: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          id?: string
+          installed_at?: string
+          plugin_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installed_plugins_plugin_id_fkey"
+            columns: ["plugin_id"]
+            isOneToOne: false
+            referencedRelation: "plugins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       library_files: {
         Row: {
@@ -796,6 +920,283 @@ export type Database = {
           },
         ]
       }
+      notebook_cells: {
+        Row: {
+          cell_type: string
+          config: Json
+          content: string
+          created_at: string
+          id: string
+          notebook_id: string
+          output: string | null
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          cell_type?: string
+          config?: Json
+          content?: string
+          created_at?: string
+          id?: string
+          notebook_id: string
+          output?: string | null
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          cell_type?: string
+          config?: Json
+          content?: string
+          created_at?: string
+          id?: string
+          notebook_id?: string
+          output?: string | null
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_cells_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebook_comments: {
+        Row: {
+          cell_id: string | null
+          content: string
+          created_at: string
+          id: string
+          notebook_id: string
+          parent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          cell_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          notebook_id: string
+          parent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          cell_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          notebook_id?: string
+          parent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_comments_cell_id_fkey"
+            columns: ["cell_id"]
+            isOneToOne: false
+            referencedRelation: "notebook_cells"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebook_comments_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebook_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "notebook_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebook_shares: {
+        Row: {
+          created_at: string
+          id: string
+          notebook_id: string
+          permission: string
+          team_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notebook_id: string
+          permission?: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notebook_id?: string
+          permission?: string
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_shares_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebook_shares_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebook_versions: {
+        Row: {
+          change_summary: string
+          changed_by: string
+          created_at: string
+          id: string
+          notebook_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          change_summary?: string
+          changed_by: string
+          created_at?: string
+          id?: string
+          notebook_id: string
+          snapshot?: Json
+          version: number
+        }
+        Update: {
+          change_summary?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+          notebook_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_versions_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebooks: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          last_run_at: string | null
+          owner_id: string
+          schedule: string | null
+          status: string
+          tags: string[]
+          team_id: string | null
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          last_run_at?: string | null
+          owner_id: string
+          schedule?: string | null
+          status?: string
+          tags?: string[]
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          last_run_at?: string | null
+          owner_id?: string
+          schedule?: string | null
+          status?: string
+          tags?: string[]
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebooks_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plugins: {
+        Row: {
+          author: string
+          category: string
+          config_schema: Json
+          created_at: string
+          description: string
+          downloads: number
+          icon: string
+          id: string
+          is_premium: boolean
+          name: string
+          price_cents: number
+          rating: number
+          version: string
+        }
+        Insert: {
+          author?: string
+          category?: string
+          config_schema?: Json
+          created_at?: string
+          description?: string
+          downloads?: number
+          icon?: string
+          id?: string
+          is_premium?: boolean
+          name: string
+          price_cents?: number
+          rating?: number
+          version?: string
+        }
+        Update: {
+          author?: string
+          category?: string
+          config_schema?: Json
+          created_at?: string
+          description?: string
+          downloads?: number
+          icon?: string
+          id?: string
+          is_premium?: boolean
+          name?: string
+          price_cents?: number
+          rating?: number
+          version?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -883,6 +1284,109 @@ export type Database = {
           title?: string
           usage_count?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      team_invites: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: string
+          status: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: string
+          status?: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: string
+          status?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invites_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1008,7 +1512,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_team_role: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: string
+      }
+      is_team_member: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
