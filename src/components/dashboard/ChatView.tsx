@@ -86,7 +86,7 @@ function SubscriptionGatedInput(props: {
       </div>
     );
   }
-  return <AdaptiveInputBar {...props} disabled={props.isStreaming} />;
+  return <AdaptiveInputBar {...props} disabled={false} />;
 }
 
 // Helper to parse user messages for code blocks and render as file preview cards

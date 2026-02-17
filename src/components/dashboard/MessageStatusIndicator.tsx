@@ -27,7 +27,7 @@ const MessageStatusIndicator = ({ status, retryCount }: MessageStatusIndicatorPr
       return (
         <span className="inline-flex items-center gap-1 text-[9px] text-amber-400/70">
           <Clock className="h-2.5 w-2.5" />
-          Queued
+          Queued — will send next
         </span>
       );
     case "retrying":
