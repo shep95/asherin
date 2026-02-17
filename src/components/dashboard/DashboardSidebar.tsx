@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -49,6 +49,12 @@ const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; 
   { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
   { id: "asha", icon: Database, label: "Asha Intelligence", access: "pro" },
   { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
+  { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
+  { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
+  { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
+  { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
+  { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
+  { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
   { id: "library", icon: FolderOpen, label: "Library" },
   { id: "snippets", icon: Code2, label: "Code Snippets" },
   { id: "projects", icon: Layers, label: "Projects" },

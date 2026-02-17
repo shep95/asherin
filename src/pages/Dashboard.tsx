@@ -18,6 +18,12 @@ import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AshaView from "@/components/dashboard/asha/AshaView";
 import NomadView from "@/components/dashboard/NomadView";
 import BriefingView from "@/components/dashboard/BriefingView";
+import TeamsView from "@/components/dashboard/TeamsView";
+import NotebooksView from "@/components/dashboard/NotebooksView";
+import GeospatialView from "@/components/dashboard/GeospatialView";
+import PluginMarketplaceView from "@/components/dashboard/PluginMarketplaceView";
+import TimeSeriesView from "@/components/dashboard/TimeSeriesView";
+import AuditLogView from "@/components/dashboard/AuditLogView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -429,6 +435,30 @@ const Dashboard = () => {
       case "stats": return <StatsView />;
       case "settings": return <SettingsView />;
       case "subscription": return <SubscriptionView />;
+      case "teams":
+        return hasProAccess(tierKey)
+          ? <TeamsView />
+          : <FeatureGate title="Team Workspace" description="Collaborative intelligence with role-based access, team invites, and shared analysis. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "notebooks":
+        return hasProAccess(tierKey)
+          ? <NotebooksView />
+          : <FeatureGate title="Intelligence Notebooks" description="Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "geospatial":
+        return hasProAccess(tierKey)
+          ? <GeospatialView />
+          : <FeatureGate title="Geospatial Intelligence" description="Spatial-temporal analysis with location mapping, heatmaps, and route optimization. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "plugins":
+        return hasProAccess(tierKey)
+          ? <PluginMarketplaceView />
+          : <FeatureGate title="Plugin Marketplace" description="Extend Asha with data connectors, analysis modules, and visualization plugins. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "timeseries":
+        return hasProAccess(tierKey)
+          ? <TimeSeriesView />
+          : <FeatureGate title="Time-Series Intelligence" description="Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "audit":
+        return hasProAccess(tierKey)
+          ? <AuditLogView />
+          : <FeatureGate title="Audit Trail" description="Complete access and activity logging for compliance and security. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
