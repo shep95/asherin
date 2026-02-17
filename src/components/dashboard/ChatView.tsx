@@ -331,13 +331,6 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 </div>
               </div>
             ))}
-            {isStreaming && lastMsg?.role === "assistant" && !lastMsg.content && (
-              <div className="flex justify-start animate-fade-in">
-                <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-card/50 backdrop-blur-md border border-border/20">
-                  <TypingIndicator mode="thinking" />
-                </div>
-              </div>
-            )}
             {showSuggestions && (
               <FollowUpSuggestions suggestions={suggestions} onSelect={(s) => onSendMessage(s)} />
             )}
