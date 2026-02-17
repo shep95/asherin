@@ -84,6 +84,13 @@ const Dashboard = () => {
   });
   const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
 
+  useEffect(() => {
+    const handler = () => setWallpaperKey(localStorage.getItem("aureon_wallpaper") || "default");
+    window.addEventListener("storage", handler);
+    window.addEventListener("aureon-wallpaper-change", handler);
+    return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
+  }, []);
+
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       // Migrate from old key if needed
