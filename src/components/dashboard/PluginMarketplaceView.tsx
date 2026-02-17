@@ -2,8 +2,32 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Download, Star, Check, Trash2, Filter, ExternalLink } from "lucide-react";
+import { Search, Download, Star, Check, Cloud, Link, DollarSign, ShoppingCart, CreditCard, Sparkles, Shield, MessageSquare, Eye, Mic, BarChart3, ScatterChart, Network, LayoutDashboard, FileOutput, FileSpreadsheet, Send, Workflow, Bot, RefreshCw, Package } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+const pluginIconMap: Record<string, React.ReactNode> = {
+  "☁️": <Cloud className="h-5 w-5 text-muted-foreground" />,
+  "🟠": <Link className="h-5 w-5 text-muted-foreground" />,
+  "💰": <DollarSign className="h-5 w-5 text-muted-foreground" />,
+  "🛒": <ShoppingCart className="h-5 w-5 text-muted-foreground" />,
+  "💳": <CreditCard className="h-5 w-5 text-muted-foreground" />,
+  "🔮": <Sparkles className="h-5 w-5 text-muted-foreground" />,
+  "🛡️": <Shield className="h-5 w-5 text-muted-foreground" />,
+  "💬": <MessageSquare className="h-5 w-5 text-muted-foreground" />,
+  "👁️": <Eye className="h-5 w-5 text-muted-foreground" />,
+  "🎙️": <Mic className="h-5 w-5 text-muted-foreground" />,
+  "📊": <BarChart3 className="h-5 w-5 text-muted-foreground" />,
+  "📈": <ScatterChart className="h-5 w-5 text-muted-foreground" />,
+  "🕸️": <Network className="h-5 w-5 text-muted-foreground" />,
+  "📋": <LayoutDashboard className="h-5 w-5 text-muted-foreground" />,
+  "📤": <FileOutput className="h-5 w-5 text-muted-foreground" />,
+  "📑": <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />,
+  "📧": <Send className="h-5 w-5 text-muted-foreground" />,
+  "⚡": <Workflow className="h-5 w-5 text-muted-foreground" />,
+  "🤖": <Bot className="h-5 w-5 text-muted-foreground" />,
+  "🔄": <RefreshCw className="h-5 w-5 text-muted-foreground" />,
+  "🔌": <Package className="h-5 w-5 text-muted-foreground" />,
+};
 
 interface Plugin {
   id: string;
@@ -117,7 +141,7 @@ const PluginMarketplaceView = () => {
                 <div key={plugin.id} className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3 hover:border-border/30 transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{plugin.icon}</span>
+                      {pluginIconMap[plugin.icon] || <Package className="h-5 w-5 text-muted-foreground" />}
                       <div>
                         <p className="text-xs font-light text-foreground">{plugin.name}</p>
                         <p className="text-[10px] text-muted-foreground">{plugin.author} • v{plugin.version}</p>
