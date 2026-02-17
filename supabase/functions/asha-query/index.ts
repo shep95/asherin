@@ -35,11 +35,90 @@ serve(async (req) => {
       .eq("status", "ready")
       .limit(20);
 
-    // Fetch some sample data from the most recent dataset
+    // Fetch user's installed plugins with plugin details
+    const { data: installedPlugins } = await supabase
+      .from("installed_plugins")
+      .select("plugin_id, config, plugins(name, category, description)")
+      .eq("user_id", user.id);
+
+    // Build active plugins context
+    const activePlugins = (installedPlugins || []).map((ip: any) => {
+      const p = ip.plugins;
+      return p ? `- ${p.name} (${p.category}): ${p.description}` : null;
+    }).filter(Boolean);
+
+    const pluginContext = activePlugins.length > 0
+      ? `\nActive Plugins (use these capabilities in your analysis):\n${activePlugins.join("\n")}`
+      : "";
+
+    // Build plugin-specific instructions
+    let pluginInstructions = "";
+    const pluginNames = (installedPlugins || []).map((ip: any) => ip.plugins?.name?.toLowerCase() || "");
+
+    if (pluginNames.some((n: string) => n.includes("sentiment"))) {
+      pluginInstructions += "\n- SENTIMENT ANALYSIS ENABLED: Extract sentiment scores, emotional tone, and opinion polarity from any text data. Tag findings as POSITIVE/NEGATIVE/NEUTRAL with confidence percentages.";
+    }
+    if (pluginNames.some((n: string) => n.includes("churn"))) {
+      pluginInstructions += "\n- CHURN PREDICTION ENABLED: Identify churn risk factors, calculate retention probability, and suggest intervention strategies for at-risk segments.";
+    }
+    if (pluginNames.some((n: string) => n.includes("fraud"))) {
+      pluginInstructions += "\n- FRAUD DETECTION ENABLED: Flag anomalous transactions, calculate fraud risk scores, and identify suspicious patterns using ensemble detection methods.";
+    }
+    if (pluginNames.some((n: string) => n.includes("salesforce"))) {
+      pluginInstructions += "\n- SALESFORCE CONNECTOR ACTIVE: Interpret CRM data structures (Leads, Opportunities, Contacts). Map pipeline stages and conversion metrics.";
+    }
+    if (pluginNames.some((n: string) => n.includes("hubspot"))) {
+      pluginInstructions += "\n- HUBSPOT INTEGRATION ACTIVE: Analyze marketing funnels, deal pipelines, and contact engagement scoring.";
+    }
+    if (pluginNames.some((n: string) => n.includes("quickbooks"))) {
+      pluginInstructions += "\n- QUICKBOOKS FINANCIAL ACTIVE: Parse financial statements, calculate ratios (Current, Quick, Debt-to-Equity), and flag P&L anomalies.";
+    }
+    if (pluginNames.some((n: string) => n.includes("shopify"))) {
+      pluginInstructions += "\n- SHOPIFY ORDERS ACTIVE: Analyze order patterns, product performance, customer lifetime value, and inventory velocity.";
+    }
+    if (pluginNames.some((n: string) => n.includes("stripe"))) {
+      pluginInstructions += "\n- STRIPE TRANSACTIONS ACTIVE: Analyze payment flows, subscription metrics (MRR, churn rate, expansion revenue), and revenue cohort analysis.";
+    }
+    if (pluginNames.some((n: string) => n.includes("image"))) {
+      pluginInstructions += "\n- IMAGE RECOGNITION ENABLED: Classify and tag uploaded images, extract visual features, and detect objects.";
+    }
+    if (pluginNames.some((n: string) => n.includes("audio") || n.includes("transcription"))) {
+      pluginInstructions += "\n- AUDIO TRANSCRIPTION ENABLED: Convert audio references to searchable text with speaker identification.";
+    }
+    if (pluginNames.some((n: string) => n.includes("sankey"))) {
+      pluginInstructions += "\n- SANKEY DIAGRAMS ENABLED: When presenting flow data, structure output for sankey visualization with source→target→value format.";
+    }
+    if (pluginNames.some((n: string) => n.includes("3d") || n.includes("scatter"))) {
+      pluginInstructions += "\n- 3D SCATTER PLOTS ENABLED: Structure multi-dimensional data for 3D visualization with x, y, z axes clearly defined.";
+    }
+    if (pluginNames.some((n: string) => n.includes("network") || n.includes("force"))) {
+      pluginInstructions += "\n- NETWORK FORCE GRAPHS ENABLED: Extract entity relationships and present as nodes/edges for graph visualization.";
+    }
+    if (pluginNames.some((n: string) => n.includes("industry") || n.includes("dashboard"))) {
+      pluginInstructions += "\n- INDUSTRY DASHBOARDS ENABLED: Apply sector-specific KPI frameworks (healthcare, finance, retail) to the analysis.";
+    }
+    if (pluginNames.some((n: string) => n.includes("tableau"))) {
+      pluginInstructions += "\n- TABLEAU EXPORT ENABLED: Structure data outputs for Tableau compatibility.";
+    }
+    if (pluginNames.some((n: string) => n.includes("excel") || n.includes("spreadsheet"))) {
+      pluginInstructions += "\n- EXCEL/CSV EXPORT ENABLED: Format tabular outputs for direct spreadsheet export.";
+    }
+    if (pluginNames.some((n: string) => n.includes("email") || n.includes("scheduled"))) {
+      pluginInstructions += "\n- SCHEDULED EMAIL REPORTS ENABLED: Structure findings for periodic email delivery.";
+    }
+    if (pluginNames.some((n: string) => n.includes("etl") || n.includes("pipeline"))) {
+      pluginInstructions += "\n- ETL PIPELINE BUILDER ENABLED: Suggest data transformation steps and pipeline architectures.";
+    }
+    if (pluginNames.some((n: string) => n.includes("smart") || n.includes("enrichment"))) {
+      pluginInstructions += "\n- SMART DATA ENRICHMENT ENABLED: Suggest external data sources to enrich existing datasets.";
+    }
+    if (pluginNames.some((n: string) => n.includes("sync"))) {
+      pluginInstructions += "\n- DATA SYNC AUTOMATION ENABLED: Provide recommendations for automated data synchronization workflows.";
+    }
+
+    // Fetch sample data from most recent dataset
     let sampleData = "";
     if (datasets && datasets.length > 0) {
-      const latestDs = datasets[0];
-      // Try to get sample data from storage
       const { data: allDs } = await supabase
         .from("asha_datasets")
         .select("storage_path")
@@ -73,8 +152,8 @@ serve(async (req) => {
 
 User's Datasets:
 ${datasetsContext}
-
-${sampleData ? `Sample data from most recent file:\n${sampleData}\n` : ""}
+${pluginContext}
+${sampleData ? `\nSample data from most recent file:\n${sampleData}\n` : ""}
 
 User Query: "${query}"
 
@@ -87,7 +166,8 @@ INSTRUCTIONS:
 - Include a RISK ASSESSMENT MATRIX if applicable.
 - If you can't answer from available data, specify exactly what additional data sources would close the gap.
 - Never use filler text or generic statements. Every sentence must add intelligence value.
-- Think like a senior analyst at a top-tier intelligence firm.` }] }],
+- Think like a senior analyst at a top-tier intelligence firm.
+${pluginInstructions ? `\nPLUGIN-ENHANCED CAPABILITIES:${pluginInstructions}\n\nLeverage ALL active plugin capabilities in your analysis. Mention which plugin capabilities you used.` : ""}` }] }],
         generationConfig: { temperature: 0.3, maxOutputTokens: 8000 },
       }),
     });
