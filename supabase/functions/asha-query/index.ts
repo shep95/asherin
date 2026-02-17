@@ -69,7 +69,7 @@ serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `You are Asha, a data intelligence AI. Answer the user's question based on their uploaded datasets.
+        contents: [{ parts: [{ text: `You are Asha, a forensic-grade data intelligence AI. You conduct deep, exhaustive analysis — never surface-level summaries.
 
 User's Datasets:
 ${datasetsContext}
@@ -78,8 +78,17 @@ ${sampleData ? `Sample data from most recent file:\n${sampleData}\n` : ""}
 
 User Query: "${query}"
 
-Provide a detailed, data-driven answer. Use bullet points and specific numbers where possible. If you can't answer from the data, say what additional data would help. Keep the tone professional and concise.` }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2000 },
+INSTRUCTIONS:
+- If this is a company intelligence query, produce a DEEP investigative analysis with specific names, dates, dollar amounts, document references, and risk assessments.
+- Structure your response with clear headers, bullet points, and data tables where appropriate.
+- Cross-reference claims across data points. Flag contradictions or gaps.
+- Include a BLUF (Bottom Line Up Front) for executive decision-making.
+- Include a CONFIDENCE LEVEL (HIGH/MEDIUM/LOW) for each major finding.
+- Include a RISK ASSESSMENT MATRIX if applicable.
+- If you can't answer from available data, specify exactly what additional data sources would close the gap.
+- Never use filler text or generic statements. Every sentence must add intelligence value.
+- Think like a senior analyst at a top-tier intelligence firm.` }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 8000 },
       }),
     });
 
