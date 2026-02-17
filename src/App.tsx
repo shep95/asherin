@@ -15,6 +15,7 @@ import PromptEngineering from "./pages/PromptEngineering";
 import Features from "./pages/Features";
 import Benchmarks from "./pages/Benchmarks";
 import NDA from "./pages/NDA";
+import EquityOwnership from "./pages/EquityOwnership";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/features" element={<Features />} />
             <Route path="/benchmarks" element={<Benchmarks />} />
             <Route path="/nda" element={<NDA />} />
+            <Route path="/equity" element={<EquityOwnership />} />
             <Route
               path="/dashboard"
               element={
