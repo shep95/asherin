@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
       `[SOURCE ${i + 1}] ${s.title}\nURL: ${s.url}\nDomain: ${s.domain}\n---\n${s.content}\n`
     ).join('\n\n');
 
-    const systemPrompt = `You are ZIALIEL Deep Intelligence Engine — a forensic-grade research analyst.
+    const systemPrompt = `You are ZOPHIEL Deep Intelligence Engine — a forensic-grade research analyst.
 
 MISSION: Provide a comprehensive, deeply researched answer to the user's query by synthesizing multiple sources.
 

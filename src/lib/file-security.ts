@@ -1,5 +1,5 @@
 /**
- * ZIALIEL File Upload Security Module
+ * AUREON File Upload Security Module
  * Extension whitelist, MIME validation, size limits, UUID naming
  */
 

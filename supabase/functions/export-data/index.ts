@@ -82,7 +82,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="zialiel-data-export-${new Date().toISOString().split("T")[0]}.json"`,
+        "Content-Disposition": `attachment; filename="aureon-data-export-${new Date().toISOString().split("T")[0]}.json"`,
       },
     });
   } catch (err) {

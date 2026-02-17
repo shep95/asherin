@@ -101,7 +101,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message Zialiel…"
+            placeholder="Message Aureon…"
             rows={1}
             className="flex-1 resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
           />
@@ -126,7 +126,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
         <div className="mt-2 flex items-center justify-center gap-1.5">
           <Lock className="h-3 w-3 text-emerald-500/50" />
           <p className="text-xs font-extralight text-muted-foreground/50">
-            End-to-end encrypted · Zialiel may make mistakes
+            End-to-end encrypted · Aureon may make mistakes
           </p>
         </div>
       </div>
