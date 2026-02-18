@@ -1,10 +1,10 @@
-import { useState, createContext, useContext } from "react";
+import React, { useState, createContext, useContext } from "react";
 import {
   Upload, Table2, Share2, GitBranch, Workflow, LayoutDashboard,
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
   Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
   Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen, Pencil, Check, X,
-  Brain,
+  Brain, AlertTriangle,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -178,6 +178,26 @@ const SessionSelector = () => {
   );
 };
 
+class AshaErrorBoundary extends React.Component<{ children: React.ReactNode; onReset?: () => void }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error) { console.error("Asha panel error:", error); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4 p-12">
+          <AlertTriangle className="h-10 w-10 text-destructive/40" />
+          <div className="text-center">
+            <p className="text-sm font-light text-foreground">Something went wrong</p>
+            <button onClick={() => this.setState({ hasError: false })} className="text-xs text-accent mt-2 hover:underline">Try again</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const AshaInner = () => {
   const [activeTab, setActiveTab] = useState<AshaTab>("ingest");
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
@@ -201,27 +221,31 @@ const AshaInner = () => {
       );
     }
 
-    switch (activeTab) {
-      case "ingest": return <IngestPanel />;
-      case "docintel": return <DocumentIntelligencePanel />;
-      case "catalog": return <CatalogPanel />;
-      case "table": return <DataTablePanel initialDatasetId={selectedDatasetId} />;
-      case "graph": return <GraphViewPanel />;
-      case "entities": return <EntityResolutionPanel />;
-      case "lineage": return <DataLineagePanel />;
-      case "pipelines": return <BranchPanel />;
-      case "workflows": return <WorkflowPanel />;
-      case "scenarios": return <ScenarioSimulatorPanel />;
-      case "threats": return <ThreatModelingPanel />;
-      case "dashboards": return <DashboardBuilderPanel />;
-      case "insights": return <InsightsPanel />;
-      case "monitoring": return <MonitoringPanel />;
-      case "reports": return <ReportsPanel />;
-      case "webintel": return <WebIntelligencePanel />;
-      case "files": return <FilesPanel />;
-      case "predictions": return <PredictionsPanel />;
-      case "query": return <QueryBar />;
-    }
+    const panel = (() => {
+      switch (activeTab) {
+        case "ingest": return <IngestPanel />;
+        case "docintel": return <DocumentIntelligencePanel />;
+        case "catalog": return <CatalogPanel />;
+        case "table": return <DataTablePanel initialDatasetId={selectedDatasetId} />;
+        case "graph": return <GraphViewPanel />;
+        case "entities": return <EntityResolutionPanel />;
+        case "lineage": return <DataLineagePanel />;
+        case "pipelines": return <BranchPanel />;
+        case "workflows": return <WorkflowPanel />;
+        case "scenarios": return <ScenarioSimulatorPanel />;
+        case "threats": return <ThreatModelingPanel />;
+        case "dashboards": return <DashboardBuilderPanel />;
+        case "insights": return <InsightsPanel />;
+        case "monitoring": return <MonitoringPanel />;
+        case "reports": return <ReportsPanel />;
+        case "webintel": return <WebIntelligencePanel />;
+        case "files": return <FilesPanel />;
+        case "predictions": return <PredictionsPanel />;
+        case "query": return <QueryBar />;
+      }
+    })();
+
+    return <AshaErrorBoundary key={activeTab}>{panel}</AshaErrorBoundary>;
   };
 
   return (

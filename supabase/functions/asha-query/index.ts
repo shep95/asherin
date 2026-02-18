@@ -24,16 +24,18 @@ serve(async (req) => {
     if (claimsError || !claimsData?.claims) throw new Error("Unauthorized");
     const user = { id: claimsData.claims.sub as string };
 
-    const { query } = await req.json();
+    const { query, sessionId } = await req.json();
     if (!query?.trim()) throw new Error("Missing query");
 
-    // Fetch user's datasets for context
-    const { data: datasets } = await supabase
+    // Fetch user's datasets for context — scoped to session
+    let dsQuery = supabase
       .from("asha_datasets")
       .select("file_name, row_count, col_count, schema, quality_score, tags, description")
       .eq("user_id", user.id)
       .eq("status", "ready")
       .limit(20);
+    if (sessionId) dsQuery = dsQuery.eq("session_id", sessionId);
+    const { data: datasets } = await dsQuery;
 
     // Fetch user's installed plugins with plugin details
     const { data: installedPlugins } = await supabase
@@ -116,17 +118,18 @@ serve(async (req) => {
       pluginInstructions += "\n- DATA SYNC AUTOMATION ENABLED: Provide recommendations for automated data synchronization workflows.";
     }
 
-    // Fetch sample data from most recent dataset
+    // Fetch sample data from most recent dataset (session-scoped)
     let sampleData = "";
     if (datasets && datasets.length > 0) {
-      const { data: allDs } = await supabase
+      let sampleQuery = supabase
         .from("asha_datasets")
         .select("storage_path")
         .eq("user_id", user.id)
         .eq("status", "ready")
         .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+      if (sessionId) sampleQuery = sampleQuery.eq("session_id", sessionId);
+      const { data: allDs } = await sampleQuery.single();
 
       if (allDs?.storage_path) {
         const { data: fileData } = await supabase.storage.from("asha-data").download(allDs.storage_path);

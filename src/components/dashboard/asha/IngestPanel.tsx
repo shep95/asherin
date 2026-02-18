@@ -62,7 +62,7 @@ const IngestPanel = () => {
   }, [user, activeSession]);
 
   const ingestFiles = useCallback(async (fileList: FileList | File[]) => {
-    if (!user) return;
+    if (!user || !activeSession) return;
     const arr = Array.from(fileList);
     const validated: File[] = [];
 
@@ -71,6 +71,18 @@ const IngestPanel = () => {
       if (!result.valid) {
         toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: ${result.error}`, variant: "destructive" });
         continue;
+      }
+      // Duplicate detection
+      const { data: existing } = await supabase
+        .from("asha_datasets")
+        .select("id, file_name")
+        .eq("user_id", user.id)
+        .eq("session_id", activeSession.id)
+        .eq("file_name", sanitizeDisplayName(file.name))
+        .eq("file_size", file.size);
+      if (existing && existing.length > 0) {
+        const proceed = window.confirm(`File "${sanitizeDisplayName(file.name)}" already exists in this session. Upload again?`);
+        if (!proceed) continue;
       }
       validated.push(file);
     }
@@ -113,8 +125,11 @@ const IngestPanel = () => {
 
       setDatasets((prev) => [ds as any, ...prev]);
 
-      // Trigger analysis
+      // Trigger analysis with timeout
       const { data: session } = await supabase.auth.getSession();
+      const startTime = Date.now();
+      const TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
       fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-analyze`, {
         method: "POST",
         headers: {
@@ -137,8 +152,47 @@ const IngestPanel = () => {
       }).catch(() => {
         setDatasets((prev) => prev.map((d) => d.id === ds.id ? { ...d, status: "error" } : d));
       });
+
+      // Timeout watchdog
+      setTimeout(async () => {
+        setDatasets((prev) => {
+          const current = prev.find(d => d.id === ds.id);
+          if (current && current.status === "analyzing") {
+            supabase.from("asha_datasets").update({ status: "error" }).eq("id", ds.id);
+            toast({ title: "Processing timeout", description: `"${safeName}" took too long. Click retry.`, variant: "destructive" });
+            return prev.map(d => d.id === ds.id ? { ...d, status: "error" } : d);
+          }
+          return prev;
+        });
+      }, TIMEOUT);
     }
-  }, [toast, user]);
+  }, [toast, user, activeSession]);
+
+  const retryProcessing = async (datasetId: string) => {
+    const ds = datasets.find(d => d.id === datasetId);
+    if (!ds) return;
+    setDatasets(prev => prev.map(d => d.id === datasetId ? { ...d, status: "analyzing" } : d));
+    await supabase.from("asha_datasets").update({ status: "analyzing" }).eq("id", datasetId);
+    const { data: session } = await supabase.auth.getSession();
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-analyze`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.session?.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({ datasetId }),
+    }).then(async (res) => {
+      if (res.ok) {
+        const result = await res.json();
+        setDatasets(prev => prev.map(d => d.id === datasetId ? { ...d, status: "ready", row_count: result.rowCount, col_count: result.colCount, quality_score: result.qualityScore, schema: result.schema, issues: result.issues } : d));
+      } else {
+        setDatasets(prev => prev.map(d => d.id === datasetId ? { ...d, status: "error" } : d));
+      }
+    }).catch(() => {
+      setDatasets(prev => prev.map(d => d.id === datasetId ? { ...d, status: "error" } : d));
+    });
+  };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -194,6 +248,9 @@ const IngestPanel = () => {
                       <p className="text-sm font-light text-foreground truncate">{file.file_name}</p>
                       {file.status === "analyzing" && <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />}
                       {file.status === "ready" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                      {file.status === "error" && (
+                        <button onClick={() => retryProcessing(file.id)} className="text-[9px] text-accent hover:underline ml-1">Retry</button>
+                      )}
                       {file.status === "error" && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
                     </div>
                     <div className="flex items-center gap-3 mt-1">

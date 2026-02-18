@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FileText, Download, Clock, Play, Plus, Trash2, BarChart3, Shield, GitCompare, Sparkles, Loader2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 import ReactMarkdown from "react-markdown";
 
 type ReportType = "executive" | "audit" | "analysis" | "comparison";
@@ -29,21 +30,23 @@ const ReportsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [viewingReport, setViewingReport] = useState<string | null>(null);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSession) return;
+    setLoading(true);
     const load = async () => {
-      const { data } = await supabase.from("asha_reports").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      const { data } = await (supabase.from as any)("asha_reports").select("*").eq("user_id", user.id).eq("session_id", activeSession.id).order("created_at", { ascending: false });
       if (data) setReports(data as any);
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession]);
 
   const createReport = async () => {
-    if (!newName.trim() || !user) return;
-    const { data, error } = await supabase.from("asha_reports").insert({
-      user_id: user.id, name: newName, type: newType, status: "generating",
+    if (!newName.trim() || !user || !activeSession) return;
+    const { data, error } = await (supabase.from as any)("asha_reports").insert({
+      user_id: user.id, name: newName, type: newType, status: "generating", session_id: activeSession.id,
     }).select().single();
 
     if (!data) return;

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 import ReactMarkdown from "react-markdown";
 
 type ThreatType = "competitive" | "churn" | "fraud" | "market" | "legal" | "operational";
@@ -47,6 +48,7 @@ const ThreatModelingPanel = () => {
   const [selectedAnalysis, setSelectedAnalysis] = useState<ThreatAnalysis | null>(null);
   const [view, setView] = useState<"dashboard" | "analyze">("dashboard");
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   // Compute threat stats
   const threatStats = {
@@ -105,6 +107,7 @@ Include:
 8. MITIGATION TIMELINE — optimal intervention windows
 
 Format with BLUF (Bottom Line Up Front). Include confidence scores. Use tables where appropriate.`,
+          sessionId: activeSession?.id,
         }),
       });
 
