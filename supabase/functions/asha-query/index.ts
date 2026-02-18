@@ -37,6 +37,16 @@ serve(async (req) => {
     if (sessionId) dsQuery = dsQuery.eq("session_id", sessionId);
     const { data: datasets } = await dsQuery;
 
+    // Fetch insights — scoped to session (NEW)
+    let insQuery = supabase
+      .from("asha_insights")
+      .select("type, title, description")
+      .eq("user_id", user.id)
+      .eq("dismissed", false)
+      .limit(10);
+    if (sessionId) insQuery = insQuery.eq("session_id", sessionId);
+    const { data: insights } = await insQuery;
+
     // Fetch user's installed plugins with plugin details
     const { data: installedPlugins } = await supabase
       .from("installed_plugins")
@@ -60,62 +70,63 @@ serve(async (req) => {
     if (pluginNames.some((n: string) => n.includes("sentiment"))) {
       pluginInstructions += "\n- SENTIMENT ANALYSIS ENABLED: Extract sentiment scores, emotional tone, and opinion polarity from any text data. Tag findings as POSITIVE/NEGATIVE/NEUTRAL with confidence percentages.";
     }
+    // ... (rest of plugin instructions same as before) ...
     if (pluginNames.some((n: string) => n.includes("churn"))) {
-      pluginInstructions += "\n- CHURN PREDICTION ENABLED: Identify churn risk factors, calculate retention probability, and suggest intervention strategies for at-risk segments.";
+        pluginInstructions += "\n- CHURN PREDICTION ENABLED: Identify churn risk factors, calculate retention probability, and suggest intervention strategies for at-risk segments.";
     }
     if (pluginNames.some((n: string) => n.includes("fraud"))) {
-      pluginInstructions += "\n- FRAUD DETECTION ENABLED: Flag anomalous transactions, calculate fraud risk scores, and identify suspicious patterns using ensemble detection methods.";
+        pluginInstructions += "\n- FRAUD DETECTION ENABLED: Flag anomalous transactions, calculate fraud risk scores, and identify suspicious patterns using ensemble detection methods.";
     }
     if (pluginNames.some((n: string) => n.includes("salesforce"))) {
-      pluginInstructions += "\n- SALESFORCE CONNECTOR ACTIVE: Interpret CRM data structures (Leads, Opportunities, Contacts). Map pipeline stages and conversion metrics.";
+        pluginInstructions += "\n- SALESFORCE CONNECTOR ACTIVE: Interpret CRM data structures (Leads, Opportunities, Contacts). Map pipeline stages and conversion metrics.";
     }
     if (pluginNames.some((n: string) => n.includes("hubspot"))) {
-      pluginInstructions += "\n- HUBSPOT INTEGRATION ACTIVE: Analyze marketing funnels, deal pipelines, and contact engagement scoring.";
+        pluginInstructions += "\n- HUBSPOT INTEGRATION ACTIVE: Analyze marketing funnels, deal pipelines, and contact engagement scoring.";
     }
     if (pluginNames.some((n: string) => n.includes("quickbooks"))) {
-      pluginInstructions += "\n- QUICKBOOKS FINANCIAL ACTIVE: Parse financial statements, calculate ratios (Current, Quick, Debt-to-Equity), and flag P&L anomalies.";
+        pluginInstructions += "\n- QUICKBOOKS FINANCIAL ACTIVE: Parse financial statements, calculate ratios (Current, Quick, Debt-to-Equity), and flag P&L anomalies.";
     }
     if (pluginNames.some((n: string) => n.includes("shopify"))) {
-      pluginInstructions += "\n- SHOPIFY ORDERS ACTIVE: Analyze order patterns, product performance, customer lifetime value, and inventory velocity.";
+        pluginInstructions += "\n- SHOPIFY ORDERS ACTIVE: Analyze order patterns, product performance, customer lifetime value, and inventory velocity.";
     }
     if (pluginNames.some((n: string) => n.includes("stripe"))) {
-      pluginInstructions += "\n- STRIPE TRANSACTIONS ACTIVE: Analyze payment flows, subscription metrics (MRR, churn rate, expansion revenue), and revenue cohort analysis.";
+        pluginInstructions += "\n- STRIPE TRANSACTIONS ACTIVE: Analyze payment flows, subscription metrics (MRR, churn rate, expansion revenue), and revenue cohort analysis.";
     }
     if (pluginNames.some((n: string) => n.includes("image"))) {
-      pluginInstructions += "\n- IMAGE RECOGNITION ENABLED: Classify and tag uploaded images, extract visual features, and detect objects.";
+        pluginInstructions += "\n- IMAGE RECOGNITION ENABLED: Classify and tag uploaded images, extract visual features, and detect objects.";
     }
     if (pluginNames.some((n: string) => n.includes("audio") || n.includes("transcription"))) {
-      pluginInstructions += "\n- AUDIO TRANSCRIPTION ENABLED: Convert audio references to searchable text with speaker identification.";
+        pluginInstructions += "\n- AUDIO TRANSCRIPTION ENABLED: Convert audio references to searchable text with speaker identification.";
     }
     if (pluginNames.some((n: string) => n.includes("sankey"))) {
-      pluginInstructions += "\n- SANKEY DIAGRAMS ENABLED: When presenting flow data, structure output for sankey visualization with source→target→value format.";
+        pluginInstructions += "\n- SANKEY DIAGRAMS ENABLED: When presenting flow data, structure output for sankey visualization with source→target→value format.";
     }
     if (pluginNames.some((n: string) => n.includes("3d") || n.includes("scatter"))) {
-      pluginInstructions += "\n- 3D SCATTER PLOTS ENABLED: Structure multi-dimensional data for 3D visualization with x, y, z axes clearly defined.";
+        pluginInstructions += "\n- 3D SCATTER PLOTS ENABLED: Structure multi-dimensional data for 3D visualization with x, y, z axes clearly defined.";
     }
     if (pluginNames.some((n: string) => n.includes("network") || n.includes("force"))) {
-      pluginInstructions += "\n- NETWORK FORCE GRAPHS ENABLED: Extract entity relationships and present as nodes/edges for graph visualization.";
+        pluginInstructions += "\n- NETWORK FORCE GRAPHS ENABLED: Extract entity relationships and present as nodes/edges for graph visualization.";
     }
     if (pluginNames.some((n: string) => n.includes("industry") || n.includes("dashboard"))) {
-      pluginInstructions += "\n- INDUSTRY DASHBOARDS ENABLED: Apply sector-specific KPI frameworks (healthcare, finance, retail) to the analysis.";
+        pluginInstructions += "\n- INDUSTRY DASHBOARDS ENABLED: Apply sector-specific KPI frameworks (healthcare, finance, retail) to the analysis.";
     }
     if (pluginNames.some((n: string) => n.includes("tableau"))) {
-      pluginInstructions += "\n- TABLEAU EXPORT ENABLED: Structure data outputs for Tableau compatibility.";
+        pluginInstructions += "\n- TABLEAU EXPORT ENABLED: Structure data outputs for Tableau compatibility.";
     }
     if (pluginNames.some((n: string) => n.includes("excel") || n.includes("spreadsheet"))) {
-      pluginInstructions += "\n- EXCEL/CSV EXPORT ENABLED: Format tabular outputs for direct spreadsheet export.";
+        pluginInstructions += "\n- EXCEL/CSV EXPORT ENABLED: Format tabular outputs for direct spreadsheet export.";
     }
     if (pluginNames.some((n: string) => n.includes("email") || n.includes("scheduled"))) {
-      pluginInstructions += "\n- SCHEDULED EMAIL REPORTS ENABLED: Structure findings for periodic email delivery.";
+        pluginInstructions += "\n- SCHEDULED EMAIL REPORTS ENABLED: Structure findings for periodic email delivery.";
     }
     if (pluginNames.some((n: string) => n.includes("etl") || n.includes("pipeline"))) {
-      pluginInstructions += "\n- ETL PIPELINE BUILDER ENABLED: Suggest data transformation steps and pipeline architectures.";
+        pluginInstructions += "\n- ETL PIPELINE BUILDER ENABLED: Suggest data transformation steps and pipeline architectures.";
     }
     if (pluginNames.some((n: string) => n.includes("smart") || n.includes("enrichment"))) {
-      pluginInstructions += "\n- SMART DATA ENRICHMENT ENABLED: Suggest external data sources to enrich existing datasets.";
+        pluginInstructions += "\n- SMART DATA ENRICHMENT ENABLED: Suggest external data sources to enrich existing datasets.";
     }
     if (pluginNames.some((n: string) => n.includes("sync"))) {
-      pluginInstructions += "\n- DATA SYNC AUTOMATION ENABLED: Provide recommendations for automated data synchronization workflows.";
+        pluginInstructions += "\n- DATA SYNC AUTOMATION ENABLED: Provide recommendations for automated data synchronization workflows.";
     }
 
     // Fetch sample data from most recent dataset (session-scoped)
@@ -144,6 +155,11 @@ serve(async (req) => {
       `- ${d.file_name}: ${d.row_count} rows, ${d.col_count} cols, quality ${d.quality_score}%. Schema: ${(d.schema || []).map((c: any) => `${c.name}(${c.type})`).join(", ")}`
     ).join("\n") || "No datasets uploaded yet.";
 
+    // Add insights to context (NEW)
+    const insightsContext = insights?.map((i: any) => 
+      `[${i.type}] ${i.title}: ${i.description}`
+    ).join("\n") || "No prior insights generated.";
+
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
@@ -155,6 +171,10 @@ serve(async (req) => {
 
 User's Datasets:
 ${datasetsContext}
+
+Known Insights (Session Context):
+${insightsContext}
+
 ${pluginContext}
 ${sampleData ? `\nSample data from most recent file:\n${sampleData}\n` : ""}
 
