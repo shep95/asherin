@@ -22,28 +22,42 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
 
+  const loadDatasets = async () => {
+    if (!user || !activeSession) return;
+    const { data } = await supabase
+      .from("asha_datasets")
+      .select("id, file_name, storage_path, schema, row_count")
+      .eq("user_id", user.id)
+      .eq("status", "ready")
+      .eq("session_id", activeSession.id)
+      .order("created_at", { ascending: false });
+    if (data && data.length > 0) {
+      setDatasets(data);
+      setSelectedDs(prev => prev && data.some((d: any) => d.id === prev) ? prev : (initialDatasetId && data.some((d: any) => d.id === initialDatasetId) ? initialDatasetId : data[0].id));
+    } else {
+      setDatasets([]);
+      setSelectedDs("");
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!user || !activeSession) return;
     setLoading(true);
-    const load = async () => {
-      const { data } = await supabase
-        .from("asha_datasets")
-        .select("id, file_name, storage_path, schema, row_count")
-        .eq("user_id", user.id)
-        .eq("status", "ready")
-        .eq("session_id", activeSession.id)
-        .order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        setDatasets(data);
-        setSelectedDs(initialDatasetId && data.some((d: any) => d.id === initialDatasetId) ? initialDatasetId : data[0].id);
-      } else {
-        setDatasets([]);
-        setSelectedDs("");
-      }
-      setLoading(false);
-    };
-    load();
+    loadDatasets();
   }, [user, activeSession]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!activeSession) return;
+    const channel = supabase
+      .channel(`dt-datasets-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_datasets', filter: `session_id=eq.${activeSession.id}` }, () => {
+        loadDatasets();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeSession, user]);
 
   useEffect(() => {
     if (!selectedDs || !user) return;

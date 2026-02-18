@@ -40,39 +40,48 @@ const InsightsPanel = () => {
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
 
+  const loadInsights = async () => {
+    if (!user || !activeSession) return;
+    const { data: sessionDatasets } = await supabase
+      .from("asha_datasets")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("session_id", activeSession.id);
+    const datasetIds = (sessionDatasets || []).map((d: any) => d.id);
+
+    if (datasetIds.length === 0) {
+      setInsights([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("asha_insights")
+      .select("*")
+      .eq("user_id", user.id)
+      .in("dataset_id", datasetIds)
+      .order("created_at", { ascending: false });
+    if (data) setInsights(data as any);
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!user || !activeSession) return;
     setLoading(true);
-    const load = async () => {
-      // Filter insights by datasets in the active session
-      const { data: sessionDatasets } = await supabase
-        .from("asha_datasets")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("session_id", activeSession.id);
-      const datasetIds = (sessionDatasets || []).map((d: any) => d.id);
-
-      let query = supabase
-        .from("asha_insights")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (datasetIds.length > 0) {
-        query = query.in("dataset_id", datasetIds);
-      } else {
-        // No datasets in session — show nothing
-        setInsights([]);
-        setLoading(false);
-        return;
-      }
-
-      const { data } = await query;
-      if (data) setInsights(data as any);
-      setLoading(false);
-    };
-    load();
+    loadInsights();
   }, [user, activeSession]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!activeSession) return;
+    const channel = supabase
+      .channel(`insights-rt-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_insights' }, () => {
+        loadInsights();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeSession, user]);
 
   const dismiss = async (id: string) => {
     await supabase.from("asha_insights").update({ dismissed: true }).eq("id", id);
