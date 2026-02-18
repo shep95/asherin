@@ -3,6 +3,7 @@ import { FlaskConical, Play, TrendingDown, TrendingUp, Minus, AlertTriangle, Loa
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 
 interface ScenarioOutcome { label: string; probability: number; impact: string; direction: "positive" | "negative" | "neutral"; }
 interface Scenario { id: string; name: string; variable: string; change: string; timeHorizon: string; status: "idle" | "running" | "complete"; outcomes?: ScenarioOutcome[]; sensitivity?: { factor: string; impact: "high" | "medium" | "low" }[]; netImpact?: string; }
@@ -18,6 +19,7 @@ const ScenarioSimulatorPanel = () => {
   const [newChange, setNewChange] = useState("");
   const [newHorizon, setNewHorizon] = useState("6 months");
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   const createScenario = async () => {
     if (!newName.trim() || !user) return;
@@ -32,7 +34,7 @@ const ScenarioSimulatorPanel = () => {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-query`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.session?.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ query: `[SCENARIO SIMULATION] "${newName}" — Variable: ${newVariable}, Change: ${newChange}, Horizon: ${newHorizon}. Return ONLY JSON: {"outcomes":[{"label":"desc","probability":0-100,"impact":"$amt","direction":"positive|negative|neutral"}],"sensitivity":[{"factor":"name","impact":"high|medium|low"}],"netImpact":"assessment"}` }),
+        body: JSON.stringify({ query: `[SCENARIO SIMULATION] "${newName}" — Variable: ${newVariable}, Change: ${newChange}, Horizon: ${newHorizon}. Return ONLY JSON: {"outcomes":[{"label":"desc","probability":0-100,"impact":"$amt","direction":"positive|negative|neutral"}],"sensitivity":[{"factor":"name","impact":"high|medium|low"}],"netImpact":"assessment"}`, sessionId: activeSession?.id }),
       });
       if (res.ok) {
         const result = await res.json();

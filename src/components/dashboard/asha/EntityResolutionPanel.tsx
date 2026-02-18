@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Fingerprint, Link2, CheckCircle2, X, Search, Users, Building2, CreditCard, FileText, Loader2, Merge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 
 interface EntityMatch {
   id: string;
@@ -25,9 +26,10 @@ const EntityResolutionPanel = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSession) return;
     const load = async () => {
       const { data } = await supabase.from("asha_entity_matches").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
       if (data) {
@@ -39,7 +41,7 @@ const EntityResolutionPanel = () => {
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession]);
 
   const handleAction = async (id: string, action: "approved" | "rejected") => {
     await supabase.from("asha_entity_matches").update({ status: action }).eq("id", id);
@@ -50,7 +52,7 @@ const EntityResolutionPanel = () => {
     if (!user) return;
     setIsScanning(true);
     try {
-      const { data: datasets } = await supabase.from("asha_datasets").select("id, file_name, schema, storage_path").eq("user_id", user.id).eq("status", "ready");
+      const { data: datasets } = await supabase.from("asha_datasets").select("id, file_name, schema, storage_path").eq("user_id", user.id).eq("status", "ready").eq("session_id", activeSession?.id);
       if (!datasets || datasets.length < 2) { setIsScanning(false); return; }
 
       const { data: session } = await supabase.auth.getSession();
@@ -66,7 +68,7 @@ const EntityResolutionPanel = () => {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-query`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.session?.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-        body: JSON.stringify({ query: `[ENTITY RESOLUTION] Find matching entities across datasets. Schemas:\n${schemaInfo}\n\nSample Data:\n${samples.join("\n\n")}\n\nReturn ONLY JSON array: [{"entityType":"person|company|transaction","entityA":{"source":"file","label":"id","fields":{"k":"v"}},"entityB":{"source":"file","label":"id","fields":{"k":"v"}},"confidence":0-100,"matchFields":["Field (type)"]}]` }),
+        body: JSON.stringify({ query: `[ENTITY RESOLUTION] Find matching entities across datasets. Schemas:\n${schemaInfo}\n\nSample Data:\n${samples.join("\n\n")}\n\nReturn ONLY JSON array: [{"entityType":"person|company|transaction","entityA":{"source":"file","label":"id","fields":{"k":"v"}},"entityB":{"source":"file","label":"id","fields":{"k":"v"}},"confidence":0-100,"matchFields":["Field (type)"]}]`, sessionId: activeSession?.id }),
       });
       if (res.ok) {
         const result = await res.json();
