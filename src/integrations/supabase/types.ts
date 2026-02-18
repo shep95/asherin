@@ -1097,6 +1097,80 @@ export type Database = {
           },
         ]
       }
+      nomad_entities: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          entity_type: string
+          entity_value: string
+          id: string
+          investigation_id: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          entity_type: string
+          entity_value: string
+          id?: string
+          investigation_id: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          entity_type?: string
+          entity_value?: string
+          id?: string
+          investigation_id?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomad_entities_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "nomad_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nomad_investigations: {
+        Row: {
+          created_at: string
+          entities_found: Json | null
+          findings: string
+          id: string
+          investigation_type: string | null
+          query: string
+          sources_checked: string[] | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entities_found?: Json | null
+          findings: string
+          id?: string
+          investigation_type?: string | null
+          query: string
+          sources_checked?: string[] | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entities_found?: Json | null
+          findings?: string
+          id?: string
+          investigation_type?: string | null
+          query?: string
+          sources_checked?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notebook_cells: {
         Row: {
           cell_type: string

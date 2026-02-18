@@ -93,32 +93,28 @@ const PluginRunner = ({ plugin, onClose }: { plugin: Plugin; onClose: () => void
     setResult(null);
 
     try {
-      const promptMap: Record<string, string> = {
-        analysis: `[PLUGIN: ${plugin.name}] Analyze the dataset. ${plugin.description}. Provide structured findings with key metrics, patterns, and actionable recommendations. Format with clear sections using markdown.`,
-        visualization: `[PLUGIN: ${plugin.name}] Generate a visualization analysis for this dataset. ${plugin.description}. Describe the ideal chart layout, data mappings, and key visual insights. Include specific data points and patterns to highlight.`,
-        export: `[PLUGIN: ${plugin.name}] Prepare an export summary for this dataset. ${plugin.description}. List all fields, data types, row counts, and format specifications for the target platform. Include any transformation steps needed.`,
-        connector: `[PLUGIN: ${plugin.name}] Generate a connection test report. ${plugin.description}. Simulate connecting to the service, list available data endpoints, expected schema mappings, and sync recommendations.`,
-        automation: `[PLUGIN: ${plugin.name}] Create an automation plan. ${plugin.description}. Define the workflow steps, trigger conditions, expected outputs, and monitoring alerts. Schedule: ${configValues["Schedule"] || "manual"}.`,
-      };
-
-      const query = promptMap[plugin.category] || `[PLUGIN: ${plugin.name}] Execute: ${plugin.description}`;
-      const bodyPayload: Record<string, string> = { query };
-      if (selectedDataset) bodyPayload.datasetId = selectedDataset;
-
       const { data: session } = await supabase.auth.getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-query`, {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/plugin-execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify(bodyPayload),
+        body: JSON.stringify({
+          pluginId: plugin.id,
+          config: configValues,
+          datasetId: selectedDataset,
+        }),
       });
 
-      if (!res.ok) throw new Error("Plugin execution failed");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.result || "Plugin execution failed");
+      }
+
       const data = await res.json();
-      setResult(data.response || "Plugin executed successfully but returned no output.");
+      setResult(data.result || "Plugin executed successfully but returned no output.");
       toast({ title: `${plugin.name} completed` });
     } catch (e: any) {
       setResult(`Error: ${e.message}`);

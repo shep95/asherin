@@ -49,6 +49,8 @@ const NotebooksView = () => {
   const [shareEmail, setShareEmail] = useState("");
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
+  const [datasets, setDatasets] = useState<{ id: string; file_name: string }[]>([]);
   // Local cell content for lag-free editing
   const [localContent, setLocalContent] = useState<Record<string, string>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -61,6 +63,13 @@ const NotebooksView = () => {
   }, [user]);
 
   useEffect(() => { loadNotebooks(); }, [loadNotebooks]);
+
+  // Load datasets for notebook execution
+  useEffect(() => {
+    if (!user) return;
+    (supabase.from as any)("asha_datasets").select("id, file_name").eq("user_id", user.id).order("created_at", { ascending: false })
+      .then(({ data }: any) => setDatasets((data ?? []) as { id: string; file_name: string }[]));
+  }, [user]);
 
   const loadCells = useCallback(async (notebookId: string) => {
     const { data } = await (supabase.from as any)("notebook_cells").select("*").eq("notebook_id", notebookId).order("position", { ascending: true });
@@ -146,10 +155,31 @@ const NotebooksView = () => {
     if (!selectedId || !user) return;
     setRunningAll(true);
     try {
+      const { data: session } = await supabase.auth.getSession();
       for (const cell of cells) {
-        const output = `[Executed at ${new Date().toLocaleTimeString()}] — Cell type: ${cell.cell_type}. Content processed successfully.`;
-        await (supabase.from as any)("notebook_cells").update({ output }).eq("id", cell.id);
-        setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output } : c));
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notebook-execute`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session?.session?.access_token}`,
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
+              body: JSON.stringify({
+                cellId: cell.id,
+                cellType: cell.cell_type,
+                content: localContent[cell.id] || cell.content,
+                datasetId: selectedDatasetId,
+              }),
+            }
+          );
+          const result = await res.json();
+          setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output: result.output } : c));
+        } catch (e: any) {
+          setCells(prev => prev.map(c => c.id === cell.id ? { ...c, output: `Error: ${e.message}` } : c));
+        }
       }
       // Update notebook last_run_at
       await (supabase.from as any)("notebooks").update({ last_run_at: new Date().toISOString(), status: "published" }).eq("id", selectedId);
@@ -312,17 +342,30 @@ const NotebooksView = () => {
                 })}
               </div>
 
-              {/* Add cell buttons */}
-              <div className="flex items-center gap-2 pt-2">
-                <span className="text-[10px] text-muted-foreground/50">Add cell:</span>
-                {["text", "query", "code", "visualization", "data_source"].map(type => {
-                  const Icon = cellTypeIcons[type] ?? FileText;
-                  return (
-                    <button key={type} onClick={() => addCell(type)} className="flex items-center gap-1 rounded-lg bg-card/20 hover:bg-card/40 px-2.5 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors capitalize">
-                      <Icon className="h-3 w-3" /> {type.replace("_", " ")}
-                    </button>
-                  );
-                })}
+              {/* Dataset selector + Add cell buttons */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground/50">Dataset:</span>
+                  <select
+                    value={selectedDatasetId ?? ""}
+                    onChange={e => setSelectedDatasetId(e.target.value || null)}
+                    className="rounded-lg border border-border/20 bg-card/20 px-2 py-1 text-[10px] text-foreground outline-none"
+                  >
+                    <option value="">No dataset</option>
+                    {datasets.map(d => <option key={d.id} value={d.id}>{d.file_name}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground/50">Add cell:</span>
+                  {["text", "query", "code", "visualization", "data_source"].map(type => {
+                    const Icon = cellTypeIcons[type] ?? FileText;
+                    return (
+                      <button key={type} onClick={() => addCell(type)} className="flex items-center gap-1 rounded-lg bg-card/20 hover:bg-card/40 px-2.5 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors capitalize">
+                        <Icon className="h-3 w-3" /> {type.replace("_", " ")}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Version history */}

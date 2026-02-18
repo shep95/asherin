@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -6,9 +6,42 @@ import ReactMarkdown from "react-markdown";
 import {
   Send, Loader2, Crosshair, Globe, Building2, User, AtSign,
   Fingerprint, MapPin, Phone, Image, Shield, AlertTriangle, Sparkles, WifiOff, Clock, Check,
+  History, X, Download,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageQueuePanel from "./MessageQueuePanel";
+
+interface NomadInvestigation {
+  id: string;
+  query: string;
+  investigation_type: string;
+  sources_checked: string[];
+  findings: string;
+  entities_found: any[];
+  created_at: string;
+}
+
+function extractEntitiesFromText(text: string) {
+  const entities: { type: string; value: string; confidence: number }[] = [];
+  const seen = new Set<string>();
+  const add = (type: string, value: string, confidence: number) => {
+    const key = `${type}:${value}`;
+    if (!seen.has(key)) { seen.add(key); entities.push({ type, value, confidence }); }
+  };
+  // Emails
+  (text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || []).forEach(v => add("email", v, 1.0));
+  // Phones
+  (text.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g) || []).forEach(v => add("phone", v, 0.9));
+  // Money
+  (text.match(/\$[\d,]+(?:\.\d{2})?/g) || []).forEach(v => add("money", v, 0.95));
+  // Companies with Inc/LLC/Corp
+  (text.match(/\b[A-Z][A-Za-z\s&]+(?:Inc\.|LLC|Corp\.|Corporation)\b/g) || []).forEach(v => add("organization", v.trim(), 0.85));
+  // URLs
+  (text.match(/https?:\/\/[^\s)]+/g) || []).forEach(v => add("url", v, 1.0));
+  // Dates
+  (text.match(/\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b/g) || []).forEach(v => add("date", v, 0.9));
+  return entities;
+}
 
 interface NomadMessage {
   id: string;
@@ -54,6 +87,9 @@ const NomadView = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSources, setShowSources] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [pastInvestigations, setPastInvestigations] = useState<NomadInvestigation[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -156,6 +192,39 @@ const NomadView = () => {
         }
       }
     }
+
+    // Save investigation to database
+    if (assistantContent && user) {
+      try {
+        const entities = extractEntitiesFromText(assistantContent);
+        const { data: investigation } = await (supabase.from as any)("nomad_investigations")
+          .insert({
+            user_id: user.id,
+            query: userMsg.content,
+            investigation_type: userMsg.investigationType || "general",
+            sources_checked: ["DuckDuckGo", "SEC EDGAR", "FEC", "ProPublica", "crt.sh", "GitHub", "USASpending"],
+            findings: assistantContent,
+            entities_found: entities,
+          })
+          .select()
+          .single();
+
+        if (investigation && entities.length > 0) {
+          for (const entity of entities.slice(0, 50)) {
+            await (supabase.from as any)("nomad_entities").insert({
+              investigation_id: investigation.id,
+              user_id: user.id,
+              entity_type: entity.type,
+              entity_value: entity.value,
+              confidence: entity.confidence,
+              source: "nomad-investigation",
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to save investigation:", e);
+      }
+    }
   };
 
   const handleSend = async () => {
@@ -246,6 +315,29 @@ const NomadView = () => {
     inputRef.current?.focus();
   };
 
+  const loadHistory = useCallback(async () => {
+    if (!user) return;
+    setHistoryLoading(true);
+    const { data } = await (supabase.from as any)("nomad_investigations")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setPastInvestigations((data || []) as NomadInvestigation[]);
+    setHistoryLoading(false);
+    setShowHistory(true);
+  }, [user]);
+
+  const exportInvestigation = (inv: NomadInvestigation) => {
+    const blob = new Blob([inv.findings], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nomad-investigation-${inv.query.slice(0, 30).replace(/[^a-zA-Z0-9]/g, "_")}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex flex-1 flex-col h-full overflow-hidden">
       {/* Header */}
@@ -262,13 +354,22 @@ const NomadView = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowSources(!showSources)}
-            className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-1.5 text-[10px] font-light tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Shield className="h-3 w-3" />
-            {showSources ? "HIDE" : "VIEW"} SOURCES
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadHistory}
+              className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-1.5 text-[10px] font-light tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <History className="h-3 w-3" />
+              HISTORY
+            </button>
+            <button
+              onClick={() => setShowSources(!showSources)}
+              className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-1.5 text-[10px] font-light tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Shield className="h-3 w-3" />
+              {showSources ? "HIDE" : "VIEW"} SOURCES
+            </button>
+          </div>
         </div>
       </div>
 
@@ -489,6 +590,62 @@ const NomadView = () => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* History panel */}
+        {showHistory && (
+          <div className="w-80 flex-shrink-0 border-l border-border/20 bg-card/10 backdrop-blur-md flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/20">
+              <h3 className="text-[10px] font-light tracking-[0.2em] text-muted-foreground uppercase">
+                Investigation History
+              </h3>
+              <button onClick={() => setShowHistory(false)} className="p-1 rounded hover:bg-foreground/10">
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-3 space-y-2">
+                {historyLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : pastInvestigations.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/50 text-center py-8">No investigations yet.</p>
+                ) : (
+                  pastInvestigations.map(inv => (
+                    <div key={inv.id} className="rounded-xl border border-border/10 bg-card/20 p-3 space-y-2">
+                      <p className="text-[11px] font-light text-foreground truncate">{inv.query}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 capitalize">{inv.investigation_type}</span>
+                        <span className="text-[9px] text-muted-foreground/50">{new Date(inv.created_at).toLocaleDateString()}</span>
+                      </div>
+                      {inv.entities_found && inv.entities_found.length > 0 && (
+                        <p className="text-[9px] text-muted-foreground/40">{inv.entities_found.length} entities extracted</p>
+                      )}
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => {
+                            setMessages(prev => [
+                              ...prev,
+                              { id: crypto.randomUUID(), role: "user", content: inv.query, timestamp: new Date(inv.created_at) },
+                              { id: crypto.randomUUID(), role: "assistant", content: inv.findings, timestamp: new Date(inv.created_at) },
+                            ]);
+                            setShowHistory(false);
+                          }}
+                          className="text-[9px] text-accent hover:text-accent/80 transition-colors"
+                        >
+                          View
+                        </button>
+                        <button onClick={() => exportInvestigation(inv)} className="text-[9px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5">
+                          <Download className="h-2.5 w-2.5" /> Export
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
           </div>
         )}
       </div>
