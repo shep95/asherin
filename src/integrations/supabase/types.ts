@@ -505,6 +505,7 @@ export type Database = {
           name: string
           pages: number | null
           schedule: string | null
+          session_id: string | null
           status: string
           type: string
           updated_at: string
@@ -517,6 +518,7 @@ export type Database = {
           name: string
           pages?: number | null
           schedule?: string | null
+          session_id?: string | null
           status?: string
           type?: string
           updated_at?: string
@@ -529,12 +531,21 @@ export type Database = {
           name?: string
           pages?: number | null
           schedule?: string | null
+          session_id?: string | null
           status?: string
           type?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "asha_reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asha_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       asha_sessions: {
         Row: {

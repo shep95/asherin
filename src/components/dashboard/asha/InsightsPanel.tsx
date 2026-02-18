@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { TrendingUp, AlertTriangle, Share2, BarChart3, HelpCircle, LineChart, X, Pin, Loader2, Play, ListChecks, Bell, FileOutput, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 
 const typeIcon: Record<string, React.ElementType> = {
   trend: TrendingUp, anomaly: AlertTriangle, relationship: Share2,
@@ -37,20 +38,41 @@ const InsightsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [expandedInsight, setExpandedInsight] = useState<string | null>(null);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !activeSession) return;
+    setLoading(true);
     const load = async () => {
-      const { data } = await supabase
+      // Filter insights by datasets in the active session
+      const { data: sessionDatasets } = await supabase
+        .from("asha_datasets")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("session_id", activeSession.id);
+      const datasetIds = (sessionDatasets || []).map((d: any) => d.id);
+
+      let query = supabase
         .from("asha_insights")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
+
+      if (datasetIds.length > 0) {
+        query = query.in("dataset_id", datasetIds);
+      } else {
+        // No datasets in session — show nothing
+        setInsights([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await query;
       if (data) setInsights(data as any);
       setLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession]);
 
   const dismiss = async (id: string) => {
     await supabase.from("asha_insights").update({ dismissed: true }).eq("id", id);

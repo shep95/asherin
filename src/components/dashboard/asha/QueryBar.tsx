@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAshaSession } from "./AshaSessionContext";
 import ReactMarkdown from "react-markdown";
 import MessageQueuePanel from "../MessageQueuePanel";
 
@@ -53,6 +54,7 @@ const QueryBar = () => {
   const [activePlugins, setActivePlugins] = useState<ActivePlugin[]>([]);
   const [online, setOnline] = useState(navigator.onLine);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   // Online/offline tracking
   useEffect(() => {
@@ -101,7 +103,7 @@ const QueryBar = () => {
             Authorization: `Bearer ${session?.session?.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ query: item.query }),
+          body: JSON.stringify({ query: item.query, sessionId: activeSession?.id }),
         });
 
         if (!res.ok) throw new Error("Query failed");
@@ -153,7 +155,7 @@ const QueryBar = () => {
           Authorization: `Bearer ${session?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({ query: q, sessionId: activeSession?.id }),
       });
 
       if (!res.ok) throw new Error("Query failed");

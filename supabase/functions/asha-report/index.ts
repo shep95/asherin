@@ -37,21 +37,25 @@ serve(async (req) => {
 
     if (rErr || !report) throw new Error("Report not found");
 
-    // Get datasets for context
-    const { data: datasets } = await supabase
+    // Get datasets for context — scoped to session if report has session_id
+    let dsQuery = supabase
       .from("asha_datasets")
       .select("file_name, row_count, col_count, schema, quality_score, issues")
       .eq("user_id", user.id)
       .eq("status", "ready")
       .limit(10);
+    if (report.session_id) dsQuery = dsQuery.eq("session_id", report.session_id);
+    const { data: datasets } = await dsQuery;
 
-    // Get insights
-    const { data: insights } = await supabase
+    // Get insights — scoped to session
+    let insQuery = supabase
       .from("asha_insights")
       .select("type, title, description")
       .eq("user_id", user.id)
       .eq("dismissed", false)
       .limit(10);
+    if (report.session_id) insQuery = insQuery.eq("session_id", report.session_id);
+    const { data: insights } = await insQuery;
 
     const datasetsContext = datasets?.map((d: any) =>
       `${d.file_name}: ${d.row_count} rows, ${d.col_count} cols, quality ${d.quality_score}%`
