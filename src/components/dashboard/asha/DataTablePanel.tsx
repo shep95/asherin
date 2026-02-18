@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, ArrowUpDown, Flag, Loader2 } from "lucide-react";
+import { Search, Filter, ArrowUpDown, Flag, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
+
+const PAGE_SIZE = 50;
 
 const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null }) => {
   const [datasets, setDatasets] = useState<any[]>([]);
@@ -15,6 +17,8 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
   const [flaggedRows, setFlaggedRows] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalRows, setTotalRows] = useState(0);
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
 
@@ -24,7 +28,7 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
     const load = async () => {
       const { data } = await supabase
         .from("asha_datasets")
-        .select("id, file_name, storage_path, schema")
+        .select("id, file_name, storage_path, schema, row_count")
         .eq("user_id", user.id)
         .eq("status", "ready")
         .eq("session_id", activeSession.id)
@@ -45,6 +49,7 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
     if (!selectedDs || !user) return;
     const ds = datasets.find((d) => d.id === selectedDs);
     if (!ds) return;
+    setPage(0); // Reset page on dataset change
 
     const loadData = async () => {
       setLoadingData(true);
@@ -59,7 +64,8 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
           if (lines.length > 0) {
             const headers = lines[0].split(",").map((h: string) => h.trim().replace(/^"|"$/g, ""));
             setColumns(headers);
-            const dataRows = lines.slice(1, 201).map((line: string) => {
+            setTotalRows(lines.length - 1);
+            const dataRows = lines.slice(1).map((line: string) => {
               const vals = line.split(",").map((v: string) => v.trim().replace(/^"|"$/g, ""));
               const row: Record<string, string> = {};
               headers.forEach((h, i) => { row[h] = vals[i] || ""; });
@@ -76,16 +82,18 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
             if (parsed.length > 0) {
               const keys = Object.keys(parsed[0]);
               setColumns(keys);
-              setRows(parsed.slice(0, 200).map((r: any) => {
+              setTotalRows(parsed.length);
+              setRows(parsed.map((r: any) => {
                 const row: Record<string, string> = {};
                 keys.forEach((k) => { row[k] = r[k] != null ? String(r[k]) : ""; });
                 return row;
               }));
             }
-          } catch { setRows([]); setColumns([]); }
+          } catch { setRows([]); setColumns([]); setTotalRows(0); }
         } else {
           setRows([]);
           setColumns(["content"]);
+          setTotalRows(0);
         }
       } finally {
         setLoadingData(false);
@@ -111,6 +119,10 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
   if (sortCol) {
     filtered = [...filtered].sort((a, b) => sortAsc ? (a[sortCol] || "").localeCompare(b[sortCol] || "") : (b[sortCol] || "").localeCompare(a[sortCol] || ""));
   }
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginatedRows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   if (loading) return <div className="flex justify-center items-center h-full"><Loader2 className="h-5 w-5 animate-spin text-accent" /></div>;
 
@@ -150,22 +162,53 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row, idx) => (
-                <tr key={idx} className={`border-b border-border/10 transition-colors hover:bg-foreground/5 ${flaggedRows.has(idx) ? "bg-amber-500/5" : ""}`}>
-                  <td className="px-2 py-2">
-                    <button onClick={() => toggleFlag(idx)} className="p-0.5">
-                      <Flag className={`h-3 w-3 ${flaggedRows.has(idx) ? "text-amber-500" : "text-muted-foreground/20 hover:text-muted-foreground"}`} />
-                    </button>
-                  </td>
-                  {columns.map((col) => (
-                    <td key={col} className="px-3 py-2 font-light text-foreground max-w-xs truncate">
-                      {/email|phone|ssn/i.test(col) ? <span className="text-muted-foreground/50 tracking-wider">••••</span> : row[col]}
+              {paginatedRows.map((row, idx) => {
+                const globalIdx = page * PAGE_SIZE + idx;
+                return (
+                  <tr key={globalIdx} className={`border-b border-border/10 transition-colors hover:bg-foreground/5 ${flaggedRows.has(globalIdx) ? "bg-amber-500/5" : ""}`}>
+                    <td className="px-2 py-2">
+                      <button onClick={() => toggleFlag(globalIdx)} className="p-0.5">
+                        <Flag className={`h-3 w-3 ${flaggedRows.has(globalIdx) ? "text-amber-500" : "text-muted-foreground/20 hover:text-muted-foreground"}`} />
+                      </button>
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    {columns.map((col) => (
+                      <td key={col} className="px-3 py-2 font-light text-foreground max-w-xs truncate">
+                        {/email|phone|ssn/i.test(col) ? <span className="text-muted-foreground/50 tracking-wider">••••</span> : row[col]}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-t border-border/20">
+          <span className="text-[10px] text-muted-foreground/50">
+            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="flex items-center gap-1 rounded-lg border border-border/20 bg-card/30 px-2.5 py-1.5 text-[10px] text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="h-3 w-3" /> Prev
+            </button>
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {page + 1} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="flex items-center gap-1 rounded-lg border border-border/20 bg-card/30 px-2.5 py-1.5 text-[10px] text-foreground hover:bg-foreground/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Next <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
         </div>
       )}
     </div>

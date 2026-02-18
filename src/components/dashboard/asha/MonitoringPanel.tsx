@@ -30,6 +30,17 @@ const MonitoringPanel = () => {
       setLoading(false);
     };
     load();
+
+    // Realtime subscription for alerts
+    const channel = supabase
+      .channel(`alerts-${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'asha_alerts', filter: `user_id=eq.${user.id}` }, (payload) => {
+        const a = payload.new as any;
+        setAlerts(prev => [{ id: a.id, ruleId: a.rule_id, ruleName: a.rule_name, message: a.message, severity: a.severity, timestamp: new Date(a.created_at).toLocaleString(), read: a.read }, ...prev]);
+      })
+      .subscribe();
+
+    return () => { channel.unsubscribe(); };
   }, [user]);
 
   const toggleRule = async (id: string) => { const rule = rules.find(r => r.id === id); if (!rule) return; await supabase.from("asha_monitor_rules").update({ active: !rule.active }).eq("id", id); setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r)); };

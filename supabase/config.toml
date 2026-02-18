@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.zophiel-deep-search]
 verify_jwt = false
+
+[functions.asha-monitor]
+verify_jwt = false
