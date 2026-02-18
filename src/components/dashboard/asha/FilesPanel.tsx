@@ -56,68 +56,72 @@ const FilesPanel = () => {
   const { activeSession } = useAshaSession();
   const { toast } = useToast();
 
+  const loadFiles = async () => {
+    if (!user || !activeSession) return;
+    const [datasetsRes, docsRes] = await Promise.all([
+      supabase
+        .from("asha_datasets")
+        .select("id, file_name, file_type, file_size, storage_path, created_at, quality_score, row_count")
+        .eq("user_id", user.id)
+        .eq("session_id", activeSession.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("asha_documents")
+        .select("id, file_name, file_type, file_size, storage_path, created_at")
+        .eq("user_id", user.id)
+        .eq("session_id", activeSession.id)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const allFiles: FileEntry[] = [];
+    const seenPaths = new Set<string>();
+
+    if (datasetsRes.data) {
+      for (const d of datasetsRes.data) {
+        seenPaths.add(d.storage_path);
+        allFiles.push({
+          id: d.id, fileName: d.file_name, fileType: d.file_type, fileSize: d.file_size,
+          storagePath: d.storage_path, createdAt: d.created_at,
+          source: inferSource(d.file_name, d.file_type, d.storage_path),
+          qualityScore: d.quality_score, rowCount: d.row_count,
+        });
+      }
+    }
+
+    if (docsRes.data) {
+      for (const d of docsRes.data) {
+        if (seenPaths.has(d.storage_path)) continue;
+        allFiles.push({
+          id: d.id, fileName: d.file_name, fileType: d.file_type, fileSize: d.file_size,
+          storagePath: d.storage_path, createdAt: d.created_at,
+          source: inferSource(d.file_name, d.file_type, d.storage_path),
+        });
+      }
+    }
+
+    setFiles(allFiles);
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!user || !activeSession) return;
     setLoading(true);
-
-    const load = async () => {
-      // Fetch from both datasets and documents tables
-      const [datasetsRes, docsRes] = await Promise.all([
-        supabase
-          .from("asha_datasets")
-          .select("id, file_name, file_type, file_size, storage_path, created_at, quality_score, row_count")
-          .eq("user_id", user.id)
-          .eq("session_id", activeSession.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("asha_documents")
-          .select("id, file_name, file_type, file_size, storage_path, created_at")
-          .eq("user_id", user.id)
-          .eq("session_id", activeSession.id)
-          .order("created_at", { ascending: false }),
-      ]);
-
-      const allFiles: FileEntry[] = [];
-      const seenPaths = new Set<string>();
-
-      if (datasetsRes.data) {
-        for (const d of datasetsRes.data) {
-          seenPaths.add(d.storage_path);
-          allFiles.push({
-            id: d.id,
-            fileName: d.file_name,
-            fileType: d.file_type,
-            fileSize: d.file_size,
-            storagePath: d.storage_path,
-            createdAt: d.created_at,
-            source: inferSource(d.file_name, d.file_type, d.storage_path),
-            qualityScore: d.quality_score,
-            rowCount: d.row_count,
-          });
-        }
-      }
-
-      if (docsRes.data) {
-        for (const d of docsRes.data) {
-          if (seenPaths.has(d.storage_path)) continue;
-          allFiles.push({
-            id: d.id,
-            fileName: d.file_name,
-            fileType: d.file_type,
-            fileSize: d.file_size,
-            storagePath: d.storage_path,
-            createdAt: d.created_at,
-            source: inferSource(d.file_name, d.file_type, d.storage_path),
-          });
-        }
-      }
-
-      setFiles(allFiles);
-      setLoading(false);
-    };
-
-    load();
+    loadFiles();
   }, [user, activeSession]);
+
+  // Realtime subscriptions
+  useEffect(() => {
+    if (!activeSession) return;
+    const ch1 = supabase
+      .channel(`files-ds-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_datasets', filter: `session_id=eq.${activeSession.id}` }, () => loadFiles())
+      .subscribe();
+    const ch2 = supabase
+      .channel(`files-docs-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_documents', filter: `session_id=eq.${activeSession.id}` }, () => loadFiles())
+      .subscribe();
+    return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); };
+  }, [activeSession, user]);
 
   const grouped = useMemo(() => {
     const map: Record<string, FileEntry[]> = { upload: [], webintel: [], generated: [] };

@@ -44,22 +44,40 @@ const IngestPanel = () => {
   const { activeSession } = useAshaSession();
 
   // Load existing datasets scoped to session
+  const loadDatasets = async () => {
+    if (!user || !activeSession) return;
+    const { data } = await supabase
+      .from("asha_datasets")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("session_id", activeSession.id)
+      .order("created_at", { ascending: false });
+    if (data) setDatasets(data as any);
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!user || !activeSession) return;
     setLoading(true);
-    const load = async () => {
-      let query = supabase
-        .from("asha_datasets")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      query = query.eq("session_id", activeSession.id);
-      const { data } = await query;
-      if (data) setDatasets(data as any);
-      setLoading(false);
-    };
-    load();
+    loadDatasets();
   }, [user, activeSession]);
+
+  // Realtime subscription for processing updates
+  useEffect(() => {
+    if (!activeSession) return;
+    const channel = supabase
+      .channel(`ingest-rt-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_datasets', filter: `session_id=eq.${activeSession.id}` }, (payload) => {
+        if (payload.eventType === 'UPDATE' && payload.new) {
+          const updated = payload.new as any;
+          setDatasets(prev => prev.map(d => d.id === updated.id ? { ...d, ...updated } : d));
+        } else {
+          loadDatasets();
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeSession, user]);
 
   const ingestFiles = useCallback(async (fileList: FileList | File[]) => {
     if (!user || !activeSession) return;

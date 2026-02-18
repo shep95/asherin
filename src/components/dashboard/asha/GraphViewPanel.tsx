@@ -54,20 +54,36 @@ const GraphViewPanel = () => {
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
 
-  useEffect(() => {
+  const loadGraph = async () => {
     if (!user || !activeSession) return;
     setLoading(true);
+    if (viewMode === "entities") {
+      await loadEntityGraph();
+    } else {
+      await loadDatasetGraph();
+    }
+    setLoading(false);
+  };
 
-    const load = async () => {
-      if (viewMode === "entities") {
-        await loadEntityGraph();
-      } else {
-        await loadDatasetGraph();
-      }
-      setLoading(false);
-    };
-    load();
+  useEffect(() => {
+    if (!user || !activeSession) return;
+    loadGraph();
   }, [user, activeSession, viewMode]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!activeSession) return;
+    const channel = supabase
+      .channel(`graph-rt-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_document_entities' }, () => {
+        if (viewMode === "entities") loadGraph();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_datasets', filter: `session_id=eq.${activeSession.id}` }, () => {
+        if (viewMode === "datasets") loadGraph();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeSession, user, viewMode]);
 
   const loadEntityGraph = async () => {
     // Get documents in this session

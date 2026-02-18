@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Upload, Search, Loader2, AlertCircle, CheckCircle2,
@@ -68,7 +68,7 @@ const DocumentIntelligencePanel = () => {
   const [activeView, setActiveView] = useState<"documents" | "search">("documents");
 
   // Fetch documents
-  const { data: documents = [], isLoading } = useQuery({
+  const { data: documents = [], isLoading, refetch: refetchDocs } = useQuery({
     queryKey: ["asha-documents", activeSession?.id],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -89,6 +89,18 @@ const DocumentIntelligencePanel = () => {
     enabled: !!activeSession,
     refetchInterval: 10000,
   });
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!activeSession) return;
+    const channel = supabase
+      .channel(`docintel-rt-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_documents', filter: `session_id=eq.${activeSession.id}` }, () => {
+        refetchDocs();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeSession, refetchDocs]);
 
   // Fetch entities for expanded doc
   const { data: entities = [] } = useQuery({
