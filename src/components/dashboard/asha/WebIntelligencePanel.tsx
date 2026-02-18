@@ -227,7 +227,7 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
           Authorization: `Bearer ${authSession?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ query: deepPrompt }),
+        body: JSON.stringify({ query: deepPrompt, sessionId: ashaSession?.id }),
       });
 
       if (!res.ok) throw new Error("Analysis failed");
@@ -329,16 +329,35 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
             // Start polling for entity extraction & insights completion
             pollRef.current = setInterval(async () => {
               try {
-                const [{ count: entityCount }, { count: insightCount }] = await Promise.all([
-                  supabase.from("asha_document_entities").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
-                  supabase.from("asha_insights").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
-                ]);
+                // Session-scoped: get doc IDs for this session, then count entities/insights linked to them
+                const { data: sessionDocs } = await supabase
+                  .from("asha_documents")
+                  .select("id")
+                  .eq("user_id", user!.id)
+                  .eq("session_id", ashaSession!.id);
+
+                const docIds = (sessionDocs || []).map((d: any) => d.id);
+
+                let entityCount = 0;
+                if (docIds.length > 0) {
+                  const { count } = await supabase
+                    .from("asha_document_entities")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", user!.id)
+                    .in("document_id", docIds);
+                  entityCount = count || 0;
+                }
+
+                const { count: insightCount } = await supabase
+                  .from("asha_insights")
+                  .select("*", { count: "exact", head: true })
+                  .eq("user_id", user!.id);
 
                 setCollectProgress(prev => ({
                   ...prev,
-                  entities: entityCount || 0,
+                  entities: entityCount,
                   insights: insightCount || 0,
-                  phase: (insightCount || 0) > 0 ? "Intelligence complete!" : (entityCount || 0) > 0 ? "Generating insights…" : "Extracting entities…",
+                  phase: (insightCount || 0) > 0 ? "Intelligence complete!" : entityCount > 0 ? "Generating insights…" : "Extracting entities…",
                 }));
 
                 if ((insightCount || 0) > 0) {
@@ -422,7 +441,7 @@ INSTRUCTIONS:
           Authorization: `Bearer ${authSession?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ query: followUpPrompt }),
+        body: JSON.stringify({ query: followUpPrompt, sessionId: ashaSession?.id }),
       });
 
       if (!res.ok) throw new Error("Follow-up failed");

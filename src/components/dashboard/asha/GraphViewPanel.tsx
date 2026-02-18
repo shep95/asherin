@@ -33,6 +33,15 @@ const nodeColors: Record<string, string> = {
   clause: "hsl(280, 50%, 55%)",
   obligation: "hsl(0, 60%, 55%)",
   document: "hsl(170, 50%, 50%)",
+  // Extended entity types from asha-extract
+  product: "hsl(160, 60%, 50%)",
+  regulation: "hsl(15, 70%, 55%)",
+  case_reference: "hsl(260, 50%, 60%)",
+  email: "hsl(50, 70%, 55%)",
+  phone: "hsl(90, 50%, 50%)",
+  url: "hsl(210, 50%, 60%)",
+  job_title: "hsl(310, 50%, 55%)",
+  contract_term: "hsl(180, 50%, 50%)",
 };
 
 const GraphViewPanel = () => {
