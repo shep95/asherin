@@ -49,16 +49,21 @@ const DocumentIntelligencePanel = () => {
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from("asha_documents")
         .select("*")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
+      if (activeSession?.id) {
+        query = query.eq("session_id", activeSession.id);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
     enabled: !!activeSession,
+    refetchInterval: 10000,
   });
 
   // Fetch entities for expanded doc

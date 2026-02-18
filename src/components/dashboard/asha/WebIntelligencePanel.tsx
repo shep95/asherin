@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, Search, Loader2, Plus, Building2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Send, Database, MessageSquare } from "lucide-react";
+import { Globe, Search, Loader2, Plus, Building2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Send, Database, MessageSquare, FileText, Users, Lightbulb, Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
 import ReactMarkdown from "react-markdown";
 import { saveWebIntelSession, getWebIntelSessions } from "@/lib/messageQueue";
+import { toast } from "sonner";
 
 interface ChatMessage {
   id: string;
@@ -86,6 +87,9 @@ const WebIntelligencePanel = () => {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [collecting, setCollecting] = useState(false);
+  const [collectProgress, setCollectProgress] = useState({ docs: 0, entities: 0, insights: 0, phase: "" });
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { user } = useAuth();
   const { activeSession: ashaSession } = useAshaSession();
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -291,6 +295,73 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
           }
         } catch (e) {
           console.error("Auto-save to files failed:", e);
+        }
+
+        // PHASE 2: Trigger web scraping pipeline
+        try {
+          setCollecting(true);
+          setCollectProgress({ docs: 0, entities: 0, insights: 0, phase: "Collecting source documents…" });
+
+          const scrapeResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-scrape`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authSession?.session?.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              companyName: finalAnswers.company,
+              ticker: finalAnswers.ticker || "",
+              domain: finalAnswers.domain || "",
+              sessionId: ashaSession.id,
+              concerns: finalAnswers.concerns || "",
+              people: finalAnswers.people || "",
+              competitors: finalAnswers.competitors || "",
+              timeframe: finalAnswers.timeframe || "",
+            }),
+          });
+
+          if (scrapeResp.ok) {
+            const scrapeResults = await scrapeResp.json();
+            setCollectProgress(prev => ({ ...prev, docs: scrapeResults.totalDocuments || 0, phase: "Extracting entities…" }));
+            toast.success(`Collected ${scrapeResults.totalDocuments || 0} source documents`);
+
+            // Start polling for entity extraction & insights completion
+            pollRef.current = setInterval(async () => {
+              try {
+                const [{ count: entityCount }, { count: insightCount }] = await Promise.all([
+                  supabase.from("asha_document_entities").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
+                  supabase.from("asha_insights").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
+                ]);
+
+                setCollectProgress(prev => ({
+                  ...prev,
+                  entities: entityCount || 0,
+                  insights: insightCount || 0,
+                  phase: (insightCount || 0) > 0 ? "Intelligence complete!" : (entityCount || 0) > 0 ? "Generating insights…" : "Extracting entities…",
+                }));
+
+                if ((insightCount || 0) > 0) {
+                  if (pollRef.current) clearInterval(pollRef.current);
+                  pollRef.current = null;
+                  setCollecting(false);
+                  toast.success("Intelligence pipeline complete — all tabs updated!");
+                }
+              } catch { /* ignore poll errors */ }
+            }, 4000);
+
+            // Auto-stop polling after 2 minutes
+            setTimeout(() => {
+              if (pollRef.current) {
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+                setCollecting(false);
+              }
+            }, 120000);
+          }
+        } catch (scrapeErr) {
+          console.error("Web scraping pipeline failed:", scrapeErr);
+          setCollecting(false);
         }
       }
     } catch {
@@ -562,15 +633,29 @@ INSTRUCTIONS:
                   <div>
                     <h2 className="text-lg font-extralight tracking-wide text-foreground">{activeSession.companyName}</h2>
                     <div className="flex items-center gap-4 mt-1">
-                      {activeSession.status === "ready" && (
-                        <span className="text-[10px] text-emerald-400 flex items-center gap-1"><CheckCircle2 className="h-2.5 w-2.5" /> Deep Analysis Complete</span>
-                      )}
-                      {activeSession.status === "collecting" && (
-                        <span className="text-[10px] text-accent flex items-center gap-1"><Loader2 className="h-2.5 w-2.5 animate-spin" /> Conducting deep research…</span>
-                      )}
+                {activeSession.status === "ready" && (
+                  <span className="text-[10px] text-emerald-400 flex items-center gap-1"><CheckCircle2 className="h-2.5 w-2.5" /> Deep Analysis Complete</span>
+                )}
+                {activeSession.status === "collecting" && (
+                  <span className="text-[10px] text-accent flex items-center gap-1"><Loader2 className="h-2.5 w-2.5 animate-spin" /> Conducting deep research…</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {collecting && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20">
+                  <Loader2 className="h-3 w-3 animate-spin text-accent" />
+                  <div className="text-[10px] text-accent">
+                    <span>{collectProgress.phase}</span>
+                    <div className="flex gap-3 mt-0.5 text-muted-foreground">
+                      {collectProgress.docs > 0 && <span className="flex items-center gap-1"><FileText className="h-2.5 w-2.5" />{collectProgress.docs} docs</span>}
+                      {collectProgress.entities > 0 && <span className="flex items-center gap-1"><Users className="h-2.5 w-2.5" />{collectProgress.entities} entities</span>}
+                      {collectProgress.insights > 0 && <span className="flex items-center gap-1"><Lightbulb className="h-2.5 w-2.5" />{collectProgress.insights} insights</span>}
                     </div>
                   </div>
-                  {activeSession.status === "ready" && ashaSession && (
+                </div>
+              )}
+              {activeSession.status === "ready" && ashaSession && (
                     <button
                       onClick={saveToAsha}
                       disabled={saving || activeSession.savedToAsha}
@@ -585,6 +670,7 @@ INSTRUCTIONS:
                     </button>
                   )}
                 </div>
+              </div>
 
                 {/* Original report */}
                 {activeSession.response && (
