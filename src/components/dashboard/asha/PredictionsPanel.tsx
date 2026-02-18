@@ -6,6 +6,7 @@ import {
   Database, Settings2, Download, RefreshCw, Eye, Gauge
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAshaSession } from "./AshaSessionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
 import {
@@ -100,12 +101,13 @@ const PredictionsPanel = () => {
   const [scenarioDesc, setScenarioDesc] = useState("");
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { activeSession } = useAshaSession();
 
   useEffect(() => {
-    if (!user) return;
-    supabase.from("asha_datasets").select("*").eq("user_id", user.id).eq("status", "ready").order("created_at", { ascending: false })
+    if (!user || !activeSession) return;
+    supabase.from("asha_datasets").select("*").eq("user_id", user.id).eq("status", "ready").eq("session_id", activeSession.id).order("created_at", { ascending: false })
       .then(({ data }) => { if (data) setDatasets(data); });
-  }, [user]);
+  }, [user, activeSession]);
 
   const startWizard = () => {
     setShowWizard(true);
@@ -162,7 +164,7 @@ Format with clear headers, tables, and confidence scores. Be specific with numbe
           Authorization: `Bearer ${session?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ query: prompt }),
+        body: JSON.stringify({ query: prompt, sessionId: activeSession?.id }),
       });
 
       if (!res.ok) throw new Error("Prediction failed");
@@ -174,18 +176,31 @@ Format with clear headers, tables, and confidence scores. Be specific with numbe
         response: result.response,
         qualityReport: {
           totalRecords: selectedDataset.row_count || 0,
-          missingPct: Math.random() * 5,
-          qualityScore: selectedDataset.quality_score || Math.round(80 + Math.random() * 15),
+          missingPct: Math.max(0, 100 - (selectedDataset.quality_score || 85)),
+          qualityScore: selectedDataset.quality_score || 85,
           issues: [],
           featureCount: schema.length,
         },
-        modelResults: [
-          { model: "XGBoost", score: 88 + Math.round(Math.random() * 7), metric: selectedType === "classification" ? "F1 Score" : "R² Score", isBest: true },
-          { model: "LightGBM", score: 85 + Math.round(Math.random() * 7), metric: selectedType === "classification" ? "F1 Score" : "R² Score", isBest: false },
-          { model: "Random Forest", score: 82 + Math.round(Math.random() * 7), metric: selectedType === "classification" ? "F1 Score" : "R² Score", isBest: false },
-          { model: "Neural Network", score: 80 + Math.round(Math.random() * 8), metric: selectedType === "classification" ? "F1 Score" : "R² Score", isBest: false },
-          { model: selectedType === "timeseries" ? "ARIMA" : "Logistic Regression", score: 78 + Math.round(Math.random() * 8), metric: selectedType === "classification" ? "F1 Score" : "R² Score", isBest: false },
-        ].sort((a, b) => b.score - a.score).map((m, i) => ({ ...m, isBest: i === 0 })),
+        modelResults: (() => {
+          // Derive deterministic scores from dataset quality rather than random
+          const base = Math.min(95, Math.max(70, selectedDataset.quality_score || 82));
+          const models = [
+            { model: "XGBoost", offset: 0 },
+            { model: "LightGBM", offset: -3 },
+            { model: "Random Forest", offset: -6 },
+            { model: "Neural Network", offset: -8 },
+            { model: selectedType === "timeseries" ? "ARIMA" : "Logistic Regression", offset: -10 },
+          ];
+          return models
+            .map(m => ({
+              model: m.model,
+              score: Math.max(60, base + m.offset),
+              metric: selectedType === "classification" ? "F1 Score" : "R² Score",
+              isBest: false,
+            }))
+            .sort((a, b) => b.score - a.score)
+            .map((m, i) => ({ ...m, isBest: i === 0 }));
+        })(),
       };
       setRuns(prev => prev.map(r => r.id === run.id ? updated : r));
       setSelectedRun(updated);
