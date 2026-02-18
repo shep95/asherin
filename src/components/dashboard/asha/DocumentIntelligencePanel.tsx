@@ -17,6 +17,10 @@ const DOC_TYPE_ICONS: Record<string, React.ElementType> = {
   medical: Stethoscope,
   research: GraduationCap,
   report: FileText,
+  sec_filing: FileBarChart,
+  news: FileText,
+  press_release: FileText,
+  social: Mail,
   other: File,
   unknown: File,
 };
@@ -29,8 +33,28 @@ const DOC_TYPE_COLORS: Record<string, string> = {
   medical: "text-red-400",
   research: "text-cyan-400",
   report: "text-orange-400",
+  sec_filing: "text-indigo-400",
+  news: "text-sky-400",
+  press_release: "text-teal-400",
+  social: "text-pink-400",
   other: "text-muted-foreground",
   unknown: "text-muted-foreground",
+};
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  contract: "Contracts",
+  invoice: "Invoices",
+  email: "Emails",
+  legal: "Legal / Court",
+  medical: "Medical",
+  research: "Research",
+  report: "Reports",
+  sec_filing: "SEC Filings",
+  news: "News Articles",
+  press_release: "Press Releases",
+  social: "Social Media",
+  other: "Other",
+  unknown: "Uncategorized",
 };
 
 const DocumentIntelligencePanel = () => {
@@ -308,10 +332,32 @@ const DocumentIntelligencePanel = () => {
             ) : readyDocs.length === 0 ? (
               <div className="flex flex-col items-center py-12 gap-3">
                 <FileText className="h-10 w-10 text-muted-foreground/15" />
-                <p className="text-xs text-muted-foreground/40">Upload documents to begin extraction</p>
+                <p className="text-xs text-muted-foreground/40">Upload documents or run Web Intelligence to populate</p>
               </div>
             ) : (
-              readyDocs.map((doc: any) => {
+              /* Group documents by doc_type */
+              Object.entries(
+                readyDocs.reduce((groups: Record<string, any[]>, doc: any) => {
+                  const type = doc.doc_type || "unknown";
+                  if (!groups[type]) groups[type] = [];
+                  groups[type].push(doc);
+                  return groups;
+                }, {} as Record<string, any[]>)
+              ).sort(([a], [b]) => {
+                const order = ["sec_filing", "news", "legal", "press_release", "report", "contract", "invoice", "email", "social", "research", "other", "unknown"];
+                return (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b));
+              }).map(([docType, typeDocs]) => {
+                const GroupIcon = DOC_TYPE_ICONS[docType] || File;
+                return (
+                  <div key={docType} className="space-y-2">
+                    <div className="flex items-center gap-2 px-1 pt-2">
+                      <GroupIcon className={`h-3.5 w-3.5 ${DOC_TYPE_COLORS[docType] || "text-muted-foreground"}`} />
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                        {DOC_TYPE_LABELS[docType] || docType}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/40">({typeDocs.length})</span>
+                    </div>
+                    {typeDocs.map((doc: any) => {
                 const Icon = DOC_TYPE_ICONS[doc.doc_type] || File;
                 const isExpanded = expandedDoc === doc.id;
                 const meta = doc.metadata || {};
@@ -445,6 +491,9 @@ const DocumentIntelligencePanel = () => {
                         </div>
                       </div>
                     )}
+                  </div>
+                );
+                    })}
                   </div>
                 );
               })
