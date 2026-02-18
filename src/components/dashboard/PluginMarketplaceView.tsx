@@ -67,6 +67,25 @@ const PluginRunner = ({ plugin, onClose }: { plugin: Plugin; onClose: () => void
   const [result, setResult] = useState<string | null>(null);
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
 
+  // Load persisted config from installed_plugins
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("installed_plugins").select("config").eq("user_id", user.id).eq("plugin_id", plugin.id).single()
+      .then(({ data }) => {
+        if (data?.config && typeof data.config === "object") {
+          setConfigValues(data.config as Record<string, string>);
+        }
+      });
+  }, [user, plugin.id]);
+
+  // Persist config on change
+  const updateConfig = (key: string, value: string) => {
+    const newConfig = { ...configValues, [key]: value };
+    setConfigValues(newConfig);
+    // Debounced save
+    supabase.from("installed_plugins").update({ config: newConfig }).eq("user_id", user!.id).eq("plugin_id", plugin.id);
+  };
+
   useEffect(() => {
     if (!user) return;
     supabase.from("asha_datasets").select("id, file_name").eq("user_id", user.id).order("created_at", { ascending: false })
@@ -166,7 +185,7 @@ const PluginRunner = ({ plugin, onClose }: { plugin: Plugin; onClose: () => void
               <label className="text-[10px] tracking-[0.1em] text-muted-foreground uppercase">{field.label}</label>
               <input
                 value={configValues[field.label] || ""}
-                onChange={e => setConfigValues(prev => ({ ...prev, [field.label]: e.target.value }))}
+                onChange={e => updateConfig(field.label, e.target.value)}
                 placeholder={field.placeholder}
                 className="w-full rounded-xl border border-border/20 bg-card/20 px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30"
               />

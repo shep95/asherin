@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Newspaper, Send, RefreshCw, Loader2, AlertTriangle, Eye, Trash2, Settings2, Clock, Download } from "lucide-react";
+import { Newspaper, Send, RefreshCw, Loader2, AlertTriangle, Eye, Trash2, Settings2, Clock, Download, FileText, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -224,6 +224,30 @@ const BriefingView = () => {
           <div className="flex items-center gap-3">
             <button onClick={() => downloadBriefing(activeReport)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors" title="Download briefing">
               <Download className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={async () => {
+                // Create notebook from briefing
+                try {
+                  const { data: nb } = await (supabase.from as any)("notebooks").insert({
+                    title: activeReport.title || "Briefing Analysis",
+                    description: `Created from briefing on ${new Date(activeReport.created_at).toLocaleDateString()}`,
+                    owner_id: user!.id,
+                  }).select().single();
+                  if (nb) {
+                    await (supabase.from as any)("notebook_cells").insert({
+                      notebook_id: nb.id, cell_type: "text", position: 0,
+                      content: `# ${activeReport.title}\n\n${activeReport.content}`,
+                    });
+                    toast({ title: "Notebook created", description: `"${nb.title}" with briefing data.` });
+                  }
+                } catch {
+                  toast({ title: "Error", description: "Failed to create notebook.", variant: "destructive" });
+                }
+              }}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors" title="Open in Notebook"
+            >
+              <FileText className="h-3.5 w-3.5" /> Notebook
             </button>
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
               <span>{activeReport.sources_checked} sources</span>

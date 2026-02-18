@@ -56,3 +56,24 @@ verify_jwt = false
 
 [functions.asha-monitor]
 verify_jwt = false
+
+[functions.notebook-execute]
+verify_jwt = false
+
+[functions.plugin-execute]
+verify_jwt = false
+
+[functions.briefing-cron]
+verify_jwt = false
+
+[functions.briefing-onboard]
+verify_jwt = false
+
+[functions.send-email-notification]
+verify_jwt = false
+
+[functions.asha-extract]
+verify_jwt = false
+
+[functions.asha-scrape]
+verify_jwt = false
