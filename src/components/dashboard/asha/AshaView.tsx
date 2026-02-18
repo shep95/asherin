@@ -4,6 +4,7 @@ import {
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
   Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
   Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen, Pencil, Check, X,
+  Brain,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -24,6 +25,7 @@ import ThreatModelingPanel from "./ThreatModelingPanel";
 import MonitoringPanel from "./MonitoringPanel";
 import DocumentIntelligencePanel from "./DocumentIntelligencePanel";
 import FilesPanel from "./FilesPanel";
+import PredictionsPanel from "./PredictionsPanel";
 import EncryptionBadge from "../EncryptionBadge";
 import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
 
@@ -49,6 +51,7 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "reports", icon: FileOutput, label: "Reports" },
   { id: "webintel", icon: Globe, label: "Web Intel" },
   { id: "files", icon: FolderOpen, label: "Files" },
+  { id: "predictions", icon: Brain, label: "Predictions" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
 
@@ -216,6 +219,7 @@ const AshaInner = () => {
       case "reports": return <ReportsPanel />;
       case "webintel": return <WebIntelligencePanel />;
       case "files": return <FilesPanel />;
+      case "predictions": return <PredictionsPanel />;
       case "query": return <QueryBar />;
     }
   };
