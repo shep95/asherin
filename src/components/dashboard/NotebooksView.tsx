@@ -2,8 +2,17 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag, X, Users, Check } from "lucide-react";
+import { Plus, FileText, Play, Clock, GitBranch, Share2, Copy, Trash2, Eye, Edit3, MoreHorizontal, Code, BarChart3, Type, Database, Calendar, Tag, X, Users, Check, History, RotateCcw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface NotebookVersion {
+  id: string;
+  version: number;
+  change_summary: string;
+  changed_by: string;
+  created_at: string;
+  snapshot: any;
+}
 
 interface Notebook {
   id: string;
@@ -51,6 +60,9 @@ const NotebooksView = () => {
   const [scheduleValue, setScheduleValue] = useState("");
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [datasets, setDatasets] = useState<{ id: string; file_name: string }[]>([]);
+  const [showVersions, setShowVersions] = useState(false);
+  const [versions, setVersions] = useState<NotebookVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   // Local cell content for lag-free editing
   const [localContent, setLocalContent] = useState<Record<string, string>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -155,6 +167,8 @@ const NotebooksView = () => {
     if (!selectedId || !user) return;
     setRunningAll(true);
     try {
+      // Save snapshot before running
+      await saveSnapshot();
       const { data: session } = await supabase.auth.getSession();
       for (const cell of cells) {
         try {
@@ -216,6 +230,58 @@ const NotebooksView = () => {
     toast({ title: scheduleValue ? "Schedule saved" : "Schedule removed" });
     setShowSchedule(false);
     loadNotebooks();
+  };
+
+  // Load version history
+  const loadVersions = useCallback(async (notebookId: string) => {
+    setVersionsLoading(true);
+    const { data } = await (supabase.from as any)("notebook_versions").select("*").eq("notebook_id", notebookId).order("version", { ascending: false });
+    setVersions((data ?? []) as NotebookVersion[]);
+    setVersionsLoading(false);
+    setShowVersions(true);
+  }, []);
+
+  const revertToVersion = async (version: NotebookVersion) => {
+    if (!selectedId || !user) return;
+    const snapshot = version.snapshot as any;
+    if (snapshot?.cells && Array.isArray(snapshot.cells)) {
+      // Delete current cells
+      await (supabase.from as any)("notebook_cells").delete().eq("notebook_id", selectedId);
+      // Restore cells from snapshot
+      for (const cell of snapshot.cells) {
+        await (supabase.from as any)("notebook_cells").insert({
+          notebook_id: selectedId, cell_type: cell.cell_type, content: cell.content,
+          output: cell.output, position: cell.position, config: cell.config || {},
+        });
+      }
+      // Create new version entry
+      const nb = notebooks.find(n => n.id === selectedId);
+      const newVer = (nb?.version || 0) + 1;
+      await (supabase.from as any)("notebooks").update({ version: newVer }).eq("id", selectedId);
+      await (supabase.from as any)("notebook_versions").insert({
+        notebook_id: selectedId, version: newVer, changed_by: user.id,
+        change_summary: `Reverted to v${version.version}`,
+        snapshot: snapshot,
+      });
+      toast({ title: `Reverted to v${version.version}` });
+      loadCells(selectedId);
+      loadNotebooks();
+      setShowVersions(false);
+    } else {
+      toast({ title: "Cannot revert", description: "This version has no snapshot data.", variant: "destructive" });
+    }
+  };
+
+  // Save snapshot when running all
+  const saveSnapshot = async () => {
+    if (!selectedId || !user) return;
+    const nb = notebooks.find(n => n.id === selectedId);
+    if (!nb) return;
+    const snapshot = { cells: cells.map(c => ({ cell_type: c.cell_type, content: localContent[c.id] || c.content, output: c.output, position: c.position, config: c.config })) };
+    await (supabase.from as any)("notebook_versions").insert({
+      notebook_id: selectedId, version: nb.version, changed_by: user.id,
+      change_summary: "Auto-snapshot before run", snapshot,
+    });
   };
 
   const selectedNb = notebooks.find(n => n.id === selectedId);
@@ -370,9 +436,14 @@ const NotebooksView = () => {
 
               {/* Version history */}
               <div className="rounded-xl border border-border/10 bg-card/10 p-4 mt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Version History</p>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Version History</p>
+                  </div>
+                  <button onClick={() => loadVersions(selectedNb.id)} className="text-[9px] text-accent hover:text-accent/80 flex items-center gap-1 transition-colors">
+                    <History className="h-3 w-3" /> View All
+                  </button>
                 </div>
                 <div className="space-y-2">
                   {Array.from({ length: Math.min(selectedNb.version, 5) }, (_, i) => selectedNb.version - i).map(v => (
@@ -384,6 +455,50 @@ const NotebooksView = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Version History Modal */}
+              {showVersions && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm" onClick={() => setShowVersions(false)}>
+                  <div className="w-full max-w-lg max-h-[70vh] rounded-2xl border border-border/20 bg-card/90 backdrop-blur-xl p-6 space-y-4 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <History className="h-4 w-4 text-accent" />
+                        <h3 className="text-sm font-extralight tracking-wide text-foreground">Version History</h3>
+                      </div>
+                      <button onClick={() => setShowVersions(false)} className="p-1 rounded hover:bg-foreground/10"><X className="h-4 w-4 text-muted-foreground" /></button>
+                    </div>
+                    <ScrollArea className="flex-1 max-h-[50vh]">
+                      <div className="space-y-2">
+                        {versionsLoading ? (
+                          <p className="text-xs text-muted-foreground/50 text-center py-8">Loading versions…</p>
+                        ) : versions.length === 0 ? (
+                          <p className="text-xs text-muted-foreground/50 text-center py-8">No version history. Run the notebook to create snapshots.</p>
+                        ) : (
+                          versions.map(v => (
+                            <div key={v.id} className="rounded-xl border border-border/10 bg-card/20 p-3 flex items-center justify-between group">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-light text-foreground">v{v.version}</span>
+                                  <span className="text-[9px] text-muted-foreground/50">{new Date(v.created_at).toLocaleString()}</span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{v.change_summary || "No description"}</p>
+                              </div>
+                              {v.version !== selectedNb?.version && (
+                                <button
+                                  onClick={() => revertToVersion(v)}
+                                  className="flex items-center gap-1 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[10px] text-amber-400 hover:bg-amber-500/20 opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                  <RotateCcw className="h-3 w-3" /> Revert
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-1 items-center justify-center h-full">

@@ -112,13 +112,27 @@ serve(async (req) => {
   );
 
   try {
+    // Support both direct auth and cron-triggered (userId in body)
+    let userId: string;
+    let bodyData: any = {};
+    try { bodyData = await req.clone().json(); } catch {}
+
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No auth header");
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) throw new Error("Auth failed");
-    const userId = userData.user.id;
-    log("User authenticated", { userId });
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    
+    if (bodyData?.userId && authHeader?.includes(serviceKey)) {
+      // Cron job calling with service role key and userId in body
+      userId = bodyData.userId;
+      log("Cron-triggered generation", { userId });
+    } else if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError || !userData.user) throw new Error("Auth failed");
+      userId = userData.user.id;
+      log("User authenticated", { userId });
+    } else {
+      throw new Error("No auth header");
+    }
 
     // Fetch profile
     const { data: profile } = await supabaseClient

@@ -640,6 +640,52 @@ const NomadView = () => {
                         <button onClick={() => exportInvestigation(inv)} className="text-[9px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5">
                           <Download className="h-2.5 w-2.5" /> Export
                         </button>
+                        <button
+                          onClick={async () => {
+                            // Create ASHA session from investigation
+                            try {
+                              const { data: session } = await (supabase.from as any)("asha_sessions").insert({
+                                user_id: user!.id,
+                                name: `Investigation: ${inv.query.slice(0, 40)}`,
+                                company_name: inv.query.split(":").pop()?.trim().slice(0, 50) || inv.query.slice(0, 50),
+                                description: `Created from Nomad investigation on ${new Date(inv.created_at).toLocaleDateString()}`,
+                                is_active: true,
+                              }).select().single();
+                              if (session) {
+                                toast({ title: "ASHA session created", description: `Session "${session.name}" is ready.` });
+                              }
+                            } catch (e) {
+                              toast({ title: "Error", description: "Failed to create ASHA session.", variant: "destructive" });
+                            }
+                          }}
+                          className="text-[9px] text-emerald-400 hover:text-emerald-300 transition-colors"
+                        >
+                          → ASHA
+                        </button>
+                        <button
+                          onClick={async () => {
+                            // Create notebook from investigation
+                            try {
+                              const { data: nb } = await (supabase.from as any)("notebooks").insert({
+                                title: `Nomad: ${inv.query.slice(0, 40)}`,
+                                description: `Investigation findings from ${new Date(inv.created_at).toLocaleDateString()}`,
+                                owner_id: user!.id,
+                              }).select().single();
+                              if (nb) {
+                                await (supabase.from as any)("notebook_cells").insert({
+                                  notebook_id: nb.id, cell_type: "text", position: 0,
+                                  content: `# Investigation: ${inv.query}\n\n${inv.findings}`,
+                                });
+                                toast({ title: "Notebook created", description: `"${nb.title}" with investigation data.` });
+                              }
+                            } catch {
+                              toast({ title: "Error", description: "Failed to create notebook.", variant: "destructive" });
+                            }
+                          }}
+                          className="text-[9px] text-purple-400 hover:text-purple-300 transition-colors"
+                        >
+                          → Notebook
+                        </button>
                       </div>
                     </div>
                   ))
