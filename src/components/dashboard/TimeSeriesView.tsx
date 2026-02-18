@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TrendingUp, AlertTriangle, Calendar, BarChart3, Activity, Zap, Loader2, Upload, Database, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -97,14 +98,14 @@ const TimeSeriesView = () => {
             <p className="text-xs font-extralight text-muted-foreground mt-1">Automated temporal analysis from your uploaded datasets</p>
           </div>
           {datasets.length > 0 && (
-            <select
-              value={selectedDataset ?? ""}
-              onChange={e => { if (e.target.value) runAnalysis(e.target.value); }}
-              className="rounded-xl border border-border/20 bg-card/20 px-3 py-2 text-xs text-foreground outline-none"
-            >
-              <option value="">Select dataset…</option>
-              {datasets.map(d => <option key={d.id} value={d.id}>{d.file_name}</option>)}
-            </select>
+            <Select value={selectedDataset ?? ""} onValueChange={(val) => { if (val) runAnalysis(val); }}>
+              <SelectTrigger className="w-[200px] rounded-xl border-border/20 bg-card/30 backdrop-blur-sm text-xs text-foreground">
+                <SelectValue placeholder="Select dataset…" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-border/20 bg-card backdrop-blur-xl">
+                {datasets.map(d => <SelectItem key={d.id} value={d.id} className="text-xs">{d.file_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           )}
         </div>
         {analysis && (
