@@ -101,6 +101,7 @@ async function queryCrtSh(domain: string): Promise<string> {
   } catch { return 'crt.sh: Query failed.'; }
 }
 
+// ── GitHub Profile ──
 async function queryGitHub(username: string): Promise<string> {
   try {
     const resp = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, {
@@ -108,7 +109,6 @@ async function queryGitHub(username: string): Promise<string> {
     });
     if (!resp.ok) return 'GitHub: User not found.';
     const user = await resp.json();
-    // Get repos
     const repoResp = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=5`, {
       headers: { 'Accept': 'application/vnd.github.v3+json' },
     });
@@ -127,6 +127,70 @@ async function queryGitHubSearch(query: string): Promise<string> {
     if (!data.items?.length) return 'GitHub: No matching users found.';
     return `GitHub Users Found:\n${data.items.map((u: any) => `- ${u.login} (${u.html_url})`).join('\n')}`;
   } catch { return 'GitHub Search: Failed.'; }
+}
+
+// ── Reddit Search ──
+async function searchReddit(query: string): Promise<string> {
+  try {
+    const resp = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=10&sort=relevance`, {
+      headers: { 'User-Agent': 'AUREON-NOMAD/1.0' },
+    });
+    if (!resp.ok) return 'Reddit: Search failed.';
+    const data = await resp.json();
+    const posts = data.data?.children || [];
+    if (posts.length === 0) return 'Reddit: No results found.';
+    return `Reddit Results:\n${posts.map((p: any) => `- r/${p.data.subreddit}: ${p.data.title} (${p.data.score} pts, ${p.data.num_comments} comments)`).join('\n')}`;
+  } catch { return 'Reddit: Query failed.'; }
+}
+
+// ── HaveIBeenPwned ──
+async function queryHIBP(email: string): Promise<string> {
+  try {
+    const apiKey = Deno.env.get('HIBP_API_KEY');
+    const headers: Record<string, string> = { 'User-Agent': 'AUREON-NOMAD' };
+    if (apiKey) headers['hibp-api-key'] = apiKey;
+    
+    const resp = await fetch(`https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`, { headers });
+    if (resp.status === 404) return 'HaveIBeenPwned: No breaches found (good news!).';
+    if (resp.status === 401) return 'HaveIBeenPwned: API key required for breach lookups.';
+    if (!resp.ok) return `HaveIBeenPwned: Query failed (${resp.status}).`;
+    
+    const breaches = await resp.json();
+    return `Email Breach Report (${email}):\n${breaches.map((b: any) => `- ${b.Name} (${b.BreachDate}): ${b.DataClasses?.join(', ') || 'Unknown data'} — ${b.PwnCount?.toLocaleString() || '?'} accounts affected`).join('\n')}`;
+  } catch { return 'HaveIBeenPwned: Query failed.'; }
+}
+
+// ── WHOIS Lookup ──
+async function queryWHOIS(domain: string): Promise<string> {
+  try {
+    const apiKey = Deno.env.get('WHOIS_API_KEY');
+    if (!apiKey) return 'WHOIS: API key not configured. Set WHOIS_API_KEY for domain lookups.';
+    
+    const resp = await fetch(`https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${apiKey}&domainName=${encodeURIComponent(domain)}&outputFormat=JSON`);
+    if (!resp.ok) return `WHOIS: Query failed (${resp.status}).`;
+    
+    const data = await resp.json();
+    const whois = data.WhoisRecord;
+    if (!whois) return 'WHOIS: No data returned.';
+    
+    return `WHOIS Data for ${domain}:\n- Registrar: ${whois.registrarName || 'N/A'}\n- Created: ${whois.createdDate || 'N/A'}\n- Updated: ${whois.updatedDate || 'N/A'}\n- Expires: ${whois.expiresDate || 'N/A'}\n- Registrant: ${whois.registrant?.organization || 'REDACTED'}\n- Registrant Country: ${whois.registrant?.country || 'N/A'}\n- Name Servers: ${whois.nameServers?.hostNames?.join(', ') || 'N/A'}\n- Status: ${whois.status || 'N/A'}`;
+  } catch { return 'WHOIS: Query failed.'; }
+}
+
+// ── CourtListener ──
+async function queryCourtListener(name: string): Promise<string> {
+  try {
+    const apiKey = Deno.env.get('COURTLISTENER_API_KEY');
+    const headers: Record<string, string> = {};
+    if (apiKey) headers['Authorization'] = `Token ${apiKey}`;
+    
+    const resp = await fetch(`https://www.courtlistener.com/api/rest/v3/search/?q=${encodeURIComponent(name)}&type=o&page_size=5`, { headers });
+    if (!resp.ok) return 'CourtListener: No cases found or API unavailable.';
+    
+    const data = await resp.json();
+    if (!data.results?.length) return 'CourtListener: No matching court opinions found.';
+    return `Court Cases:\n${data.results.slice(0, 5).map((c: any) => `- ${c.caseName || c.case_name || 'Unknown'} (${c.court || 'Unknown court'}) — ${c.dateFiled || c.date_filed || 'N/A'}`).join('\n')}`;
+  } catch { return 'CourtListener: Query failed.'; }
 }
 
 async function queryUSASpending(query: string): Promise<string> {
@@ -206,6 +270,8 @@ async function gatherIntelligence(query: string): Promise<string> {
     if (domainMatch) {
       tasks.push(queryCrtSh(domainMatch[0]));
       labels.push('CERTIFICATE TRANSPARENCY');
+      tasks.push(queryWHOIS(domainMatch[0]));
+      labels.push('WHOIS DOMAIN DATA');
     }
   }
 
@@ -215,6 +281,8 @@ async function gatherIntelligence(query: string): Promise<string> {
     if (emailMatch) {
       tasks.push(searchDDG(`"${emailMatch[0]}" site:github.com OR site:linkedin.com OR site:twitter.com`));
       labels.push('EMAIL FOOTPRINT');
+      tasks.push(queryHIBP(emailMatch[0]));
+      labels.push('BREACH INTELLIGENCE');
     }
   }
 
@@ -224,9 +292,18 @@ async function gatherIntelligence(query: string): Promise<string> {
     if (username) {
       tasks.push(queryGitHub(username));
       labels.push('GITHUB PROFILE');
-      tasks.push(searchDDG(`"${username}" site:reddit.com OR site:twitter.com OR site:linkedin.com OR site:instagram.com`));
+      tasks.push(searchReddit(username));
+      labels.push('REDDIT MENTIONS');
+      tasks.push(searchDDG(`"${username}" site:twitter.com OR site:linkedin.com OR site:instagram.com`));
       labels.push('SOCIAL MEDIA SCAN');
     }
+  }
+
+  // Person indicators — add court search
+  if (/person|individual|who is|about|officer|director|ceo|cto|founder/i.test(q)) {
+    const name = query.replace(/investigate|person|research|find|who is|look up|about/gi, '').trim();
+    tasks.push(queryCourtListener(name));
+    labels.push('COURT RECORDS');
   }
 
   // FEC / political
