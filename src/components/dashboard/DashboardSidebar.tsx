@@ -4,7 +4,7 @@ import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/Subsc
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -52,6 +52,7 @@ interface DashboardSidebarProps {
 const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" | "pro" }[] = [
   { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
   { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
+  { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
   { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
   { id: "asha", icon: Database, label: "Asha Intelligence", access: "pro" },
   { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
