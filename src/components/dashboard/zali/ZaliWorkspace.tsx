@@ -1,10 +1,30 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, Suspense, Component } from "react";
+import React from "react";
 import { Atom, Box, Layers, Microscope, Cpu, Activity, Grid3x3, CheckCircle2, AlertTriangle, Zap, Shield, Sparkles, Send, RotateCw } from "lucide-react";
 import type { ZaliPhase, ZaliProject } from "./types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ModelDetailsPanel from "./ModelDetailsPanel";
+import Zali3DModel from "./Zali3DModel";
 
-const Zali3DModel = lazy(() => import("./Zali3DModel"));
+// Local error boundary for 3D canvas crashes
+class Model3DErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-full min-h-[350px]">
+          <div className="text-center">
+            <AlertTriangle className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground/50">3D viewport unavailable</p>
+            <button onClick={() => this.setState({ hasError: false })} className="text-[10px] text-accent mt-2 hover:underline">Retry</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const PHASE_CONFIG: Record<ZaliPhase, { label: string; color: string; description: string }> = {
   understanding: { label: "UNDERSTANDING", color: "text-blue-400", description: "Socratic questioning & first principles" },
@@ -207,16 +227,18 @@ const ZaliWorkspace = ({ project, autoBuild, modelPrompt }: Props) => {
                 <div className="space-y-0">
                   {/* 3D Viewport */}
                   <div className="relative h-[400px] sm:h-[450px]">
-                    <Suspense fallback={
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center">
-                          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent mx-auto" />
-                          <p className="text-[10px] text-muted-foreground/50 mt-3 tracking-wider">BUILDING MODEL...</p>
+                    <Model3DErrorBoundary>
+                      <Suspense fallback={
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent mx-auto" />
+                            <p className="text-[10px] text-muted-foreground/50 mt-3 tracking-wider">BUILDING MODEL...</p>
+                          </div>
                         </div>
-                      </div>
-                    }>
-                      <Zali3DModel project={project} viewMode={viewMode} />
-                    </Suspense>
+                      }>
+                        <Zali3DModel project={project} viewMode={viewMode} />
+                      </Suspense>
+                    </Model3DErrorBoundary>
                     {/* Overlay info */}
                     <div className="absolute top-3 left-3 space-y-1">
                       <div className="px-2 py-1 rounded-md bg-background/70 backdrop-blur-sm border border-border/20">
