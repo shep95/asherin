@@ -11,7 +11,7 @@ const WALLPAPER_MAP: Record<string, string> = {
 };
 import React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Conversation, ChatMode, DashboardView, Message, Persona } from "@/components/dashboard/types";
+import type { Conversation, ChatMode, DashboardView, Message, Persona, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
 import type { UserProfile } from "@/lib/ai";
@@ -97,6 +97,7 @@ const Dashboard = () => {
   const [focusMode, setFocusMode] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
+  const attachmentMapRef = useRef<Map<string, FileAttachment[]>>(new Map());
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
   const processingQueue = useRef(false);
@@ -445,13 +446,13 @@ const Dashboard = () => {
   }, []);
 
   // Core send logic (called sequentially by queue processor)
-  const sendMessageCore = async (content: string, convId: string) => {
+  const sendMessageCore = async (content: string, convId: string, attachments?: FileAttachment[]) => {
     if (!user) return;
     setSuggestions([]);
 
     const tempMsgId = crypto.randomUUID();
     const conv = conversationsRef.current.find(c => c.id === convId);
-    const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date() };
+    const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date(), attachments };
     const isFirst = conv?.messages.length === 0;
     if (isFirst) {
       const newTitle = content.slice(0, 50);
@@ -511,7 +512,7 @@ const Dashboard = () => {
       )
     );
 
-    const history = [...(conv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+    const history = [...(conv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content, attachments: m.attachments }));
 
     const activePersona = customPersonas.find((p) => p.id === personaId) 
       || builtInPersonas.find((p) => p.id === personaId);
@@ -596,7 +597,9 @@ const Dashboard = () => {
       setQueueItems(prev => prev.length > 0 ? prev.slice(1) : prev);
       const [convId, ...contentParts] = next.split("||");
       const content = contentParts.join("||");
-      await sendMessageCore(content, convId);
+      const fileAttachments = attachmentMapRef.current.get(content);
+      if (fileAttachments) attachmentMapRef.current.delete(content);
+      await sendMessageCore(content, convId, fileAttachments);
       // Wait for streaming to finish before processing next
       await new Promise<void>(resolve => {
         const check = () => {
@@ -628,12 +631,16 @@ const Dashboard = () => {
   }, [processQueue]);
 
   // Public sendMessage — adds to queue and kicks off processing
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, attachments?: FileAttachment[]) => {
     if (!user || !activeConvId) return;
+    // Store attachments for the first message in a ref-based map
+    if (attachments?.length) {
+      attachmentMapRef.current.set(content, attachments);
+    }
     // If currently streaming, show queued status and add to queue
     if (isStreamingRef.current) {
       const tempId = crypto.randomUUID();
-      const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date() };
+      const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date(), attachments };
       setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
       setMessageStatuses(prev => ({ ...prev, [tempId]: "queued" }));
       const queueEntry = `${activeConvId}||${content}`;
