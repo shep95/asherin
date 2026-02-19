@@ -1,3 +1,11 @@
+export interface FileAttachment {
+  name: string;
+  type: string;
+  size: number;
+  base64: string;
+  previewUrl?: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -5,6 +13,7 @@ export interface Message {
   timestamp: Date;
   truthScore?: "high" | "medium" | "low";
   sources?: { title: string; url: string }[];
+  attachments?: FileAttachment[];
 }
 
 export interface Conversation {

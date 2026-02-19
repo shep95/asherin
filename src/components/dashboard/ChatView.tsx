@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import type { FileAttachment } from "./types";
 import ReactMarkdown from "react-markdown";
 import type { Conversation, ChatMode, Message } from "./types";
 import MessageStatusIndicator from "./MessageStatusIndicator";
@@ -24,7 +25,7 @@ import { renderLinkPreviews } from "./LinkPreview";
 
 interface ChatViewProps {
   conversation: Conversation;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
   mode: ChatMode;
   onModeChange: (mode: ChatMode) => void;
   depth: ResponseDepth;
@@ -72,6 +73,8 @@ function SubscriptionGatedInput(props: {
   onQuickAction?: (action: string, content: string) => void;
   isStreaming: boolean;
   conversationId?: string;
+  attachments?: FileAttachment[];
+  onAttachmentsChange?: (files: FileAttachment[]) => void;
 }) {
   const { subscribed, loading } = useSubscription();
   if (loading) {
@@ -176,6 +179,7 @@ const markdownComponents = {
 
 const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause }: ChatViewProps) => {
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const [cotId, setCotId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -183,9 +187,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const messagesRef = useRef<HTMLDivElement>(null);
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    onSendMessage(input.trim());
+    if (!input.trim() && attachments.length === 0) return;
+    onSendMessage(input.trim(), attachments.length > 0 ? attachments : undefined);
     setInput("");
+    setAttachments([]);
   };
 
   const downloadConversation = () => {
@@ -301,6 +306,22 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       </div>
                     ) : (
                       <>
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {msg.attachments.map((att, aidx) => (
+                              <div key={aidx} className="rounded-lg overflow-hidden border border-border/20">
+                                {att.type.startsWith("image/") && att.previewUrl ? (
+                                  <img src={att.previewUrl} alt={att.name} className="max-w-[200px] max-h-[150px] object-cover rounded-lg" />
+                                ) : (
+                                  <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 text-xs text-muted-foreground">
+                                    <FileText className="h-4 w-4" />
+                                    <span className="truncate max-w-[150px]">{att.name}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <UserMessageContent content={msg.content} />
                         {renderLinkPreviews(msg.content)}
                       </>
@@ -381,6 +402,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         onQuickAction={handleQuickAction}
         isStreaming={!!isStreaming}
         conversationId={conversation.id}
+        attachments={attachments}
+        onAttachmentsChange={setAttachments}
       />
     </div>
   );

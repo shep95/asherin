@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip } from "lucide-react";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
+import type { FileAttachment } from "./types";
 
 type InputIntent = "text" | "code" | "url" | "image" | "file";
 
@@ -14,6 +15,8 @@ interface AdaptiveInputBarProps {
   isStreaming: boolean;
   disabled?: boolean;
   conversationId?: string;
+  attachments?: FileAttachment[];
+  onAttachmentsChange?: (files: FileAttachment[]) => void;
 }
 
 function detectIntent(text: string): InputIntent {
@@ -52,11 +55,12 @@ const quickActions: Record<InputIntent, { id: string; icon: React.ElementType; l
   ],
 };
 
-const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isStreaming, disabled, conversationId }: AdaptiveInputBarProps) => {
+const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isStreaming, disabled, conversationId, attachments = [], onAttachmentsChange }: AdaptiveInputBarProps) => {
   const [intent, setIntent] = useState<InputIntent>("text");
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -151,6 +155,38 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
     setDraftSaved(null);
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !onAttachmentsChange) return;
+
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    const newAttachments: FileAttachment[] = [];
+
+    for (const file of Array.from(files).slice(0, 10 - attachments.length)) {
+      if (file.size > maxSize) continue;
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]); // strip data:...;base64, prefix
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
+      newAttachments.push({ name: file.name, type: file.type, size: file.size, base64, previewUrl });
+    }
+
+    onAttachmentsChange([...attachments, ...newAttachments]);
+    e.target.value = "";
+  };
+
+  const removeAttachment = (idx: number) => {
+    if (!onAttachmentsChange) return;
+    const updated = attachments.filter((_, i) => i !== idx);
+    onAttachmentsChange(updated);
+  };
+
   const actions = quickActions[intent];
 
   return (
@@ -174,7 +210,47 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
           </div>
         )}
 
+        {/* Attachment previews */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2 animate-fade-in">
+            {attachments.map((file, idx) => (
+              <div key={idx} className="relative group flex items-center gap-2 rounded-lg border border-border/30 bg-secondary/30 px-2.5 py-1.5 text-xs">
+                {file.previewUrl ? (
+                  <img src={file.previewUrl} alt={file.name} className="h-8 w-8 rounded object-cover" />
+                ) : (
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-muted-foreground truncate max-w-[120px]">{file.name}</span>
+                <button
+                  onClick={() => removeAttachment(idx)}
+                  className="ml-1 p-0.5 rounded-full hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className={`flex items-end gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-3 transition-all`}>
+          {/* Attach button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.csv,.txt,.md,.json,.xml,.doc,.docx,.xls,.xlsx"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isStreaming}
+            className="shrink-0 p-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
+            title="Attach files or images"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+
           <div className="flex-1 relative min-w-0">
             <textarea
               ref={textareaRef}
@@ -207,7 +283,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
           ) : (
             <button
               onClick={handleSend}
-              disabled={!value.trim() || disabled}
+              disabled={(!value.trim() && attachments.length === 0) || disabled}
               className="shrink-0 rounded-xl bg-foreground p-2.5 text-background transition-all hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.02]"
             >
               <Send className="h-4 w-4" />

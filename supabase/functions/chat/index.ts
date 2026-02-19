@@ -675,10 +675,30 @@ serve(async (req) => {
     const geminiMessages = [
       { role: "user", parts: [{ text: systemParts }] },
       { role: "model", parts: [{ text: "All intelligence protocols loaded. Ghost Chain active. Aureon online. Ready." }] },
-      ...messages.map((m: { role: string; content: string }) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
+      ...messages.map((m: { role: string; content: string; attachments?: { name: string; type: string; base64: string }[] }) => {
+        const parts: any[] = [];
+        // Add file/image attachments as inline_data for Gemini multimodal
+        if (m.attachments?.length) {
+          for (const att of m.attachments) {
+            if (att.type.startsWith("image/")) {
+              parts.push({ inline_data: { mime_type: att.type, data: att.base64 } });
+            } else {
+              // For non-image files, decode base64 text and include as text context
+              try {
+                const decoded = atob(att.base64);
+                parts.push({ text: `[File: ${att.name}]\n${decoded}` });
+              } catch {
+                parts.push({ text: `[File: ${att.name} — binary content, ${att.type}]` });
+              }
+            }
+          }
+        }
+        parts.push({ text: m.content || "(see attached files)" });
+        return {
+          role: m.role === "assistant" ? "model" : "user",
+          parts,
+        };
+      }),
     ];
 
     const response = await fetch(
