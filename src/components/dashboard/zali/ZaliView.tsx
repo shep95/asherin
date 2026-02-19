@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { GripVertical } from "lucide-react";
 import { Atom, AlertTriangle, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +58,44 @@ const ZaliView = () => {
   const [chatMode, setChatMode] = useState<ChatMode>("chat");
   const [chatDepth, setChatDepth] = useState<ResponseDepth>("standard");
   const abortRef = useRef<AbortController | null>(null);
+
+  // Resizable chat panel state
+  const [chatWidth, setChatWidth] = useState(() => {
+    const saved = localStorage.getItem("zali_chat_width");
+    return saved ? Math.max(260, Math.min(600, parseInt(saved, 10))) : 360;
+  });
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = chatWidth;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = dragStartX.current - ev.clientX;
+      const newWidth = Math.max(260, Math.min(600, dragStartWidth.current + delta));
+      setChatWidth(newWidth);
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setChatWidth((w) => {
+        localStorage.setItem("zali_chat_width", String(w));
+        return w;
+      });
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [chatWidth]);
 
   // Load projects
   useEffect(() => {
@@ -433,21 +472,31 @@ const ZaliView = () => {
           </ZaliErrorBoundary>
         </div>
 
-        {/* Desktop: Chat panel */}
-        <div className="w-[340px] lg:w-[380px] flex-shrink-0 border-l border-border/20 hidden md:flex flex-col">
-          <ZaliErrorBoundary>
-             <ZaliChatPanel
-              messages={messages}
-              project={activeProject}
-              isStreaming={isStreaming}
-              onSend={sendMessage}
-              onStop={stopStreaming}
-              mode={chatMode}
-              onModeChange={setChatMode}
-              depth={chatDepth}
-              onDepthChange={setChatDepth}
-            />
-          </ZaliErrorBoundary>
+        {/* Desktop: Resizable Chat panel */}
+        <div className="hidden md:flex flex-shrink-0 relative">
+          {/* Drag handle */}
+          <div
+            onMouseDown={handleDragStart}
+            className="absolute left-0 top-0 bottom-0 w-2 z-10 cursor-col-resize group flex items-center justify-center hover:bg-accent/10 transition-colors -translate-x-1/2"
+            title="Drag to resize chat"
+          >
+            <div className="w-0.5 h-8 rounded-full bg-border/30 group-hover:bg-accent/50 transition-colors" />
+          </div>
+          <div style={{ width: chatWidth }} className="border-l border-border/20 flex flex-col">
+            <ZaliErrorBoundary>
+              <ZaliChatPanel
+                messages={messages}
+                project={activeProject}
+                isStreaming={isStreaming}
+                onSend={sendMessage}
+                onStop={stopStreaming}
+                mode={chatMode}
+                onModeChange={setChatMode}
+                depth={chatDepth}
+                onDepthChange={setChatDepth}
+              />
+            </ZaliErrorBoundary>
+          </div>
         </div>
 
         {/* Mobile: Chat overlay */}
