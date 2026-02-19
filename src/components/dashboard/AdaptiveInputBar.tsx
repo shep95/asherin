@@ -157,28 +157,47 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || !onAttachmentsChange) return;
+    if (!files || files.length === 0 || !onAttachmentsChange) return;
 
     const maxSize = 20 * 1024 * 1024; // 20MB
     const newAttachments: FileAttachment[] = [];
+    const maxSlots = Math.max(0, 10 - attachments.length);
 
-    for (const file of Array.from(files).slice(0, 10 - attachments.length)) {
-      if (file.size > maxSize) continue;
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1]); // strip data:...;base64, prefix
-        };
-        reader.readAsDataURL(file);
-      });
+    for (const file of Array.from(files).slice(0, maxSlots)) {
+      if (file.size > maxSize) {
+        console.warn(`File "${file.name}" skipped: exceeds 20MB limit`);
+        continue;
+      }
+      if (file.size === 0) {
+        console.warn(`File "${file.name}" skipped: empty file`);
+        continue;
+      }
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const commaIdx = result.indexOf(",");
+            resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
 
-      const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
-      newAttachments.push({ name: file.name, type: file.type, size: file.size, base64, previewUrl });
+        const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
+        newAttachments.push({ name: file.name, type: file.type || "application/octet-stream", size: file.size, base64, previewUrl });
+      } catch (err) {
+        console.error(`Failed to read file "${file.name}":`, err);
+      }
     }
 
-    onAttachmentsChange([...attachments, ...newAttachments]);
-    e.target.value = "";
+    if (newAttachments.length > 0) {
+      onAttachmentsChange([...attachments, ...newAttachments]);
+    }
+    // Reset input so re-selecting the same file triggers onChange again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const removeAttachment = (idx: number) => {
