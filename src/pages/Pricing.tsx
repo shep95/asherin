@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
-import { Check, ArrowRight, Zap, Search, Brain, Code, Shield, Users, Globe, BarChart3, Lock, Server, Cpu, Database, Network, Eye, Newspaper, TrendingUp, ArrowLeft } from "lucide-react";
+import { Check, ArrowRight, Zap, Search, Brain, Code, Shield, Users, Globe, BarChart3, Lock, Server, Cpu, Database, Network, Eye, Newspaper, TrendingUp, ArrowLeft, ScanLine } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
 
@@ -40,6 +40,8 @@ const tiers = [
     features: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
+      "Elion / Zohar Toolkit — domain forensics & OSINT",
+      "Full Domain Scan — security score + subdomain recon",
       "Predictive Intelligence — AI event forecasting",
       "Asha Data Intelligence Platform",
       "NOMAD Public Intelligence Agent",
@@ -189,6 +191,7 @@ const Pricing = () => {
               { icon: Eye, label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro & Advisor" },
               { icon: BarChart3, label: "Asha Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro & Advisor" },
               { icon: Newspaper, label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro & Advisor" },
+              { icon: ScanLine, label: "Elion / Zohar Toolkit", desc: "Domain forensics, security scoring, subdomain recon, and full attack surface mapping.", tier: "Pro & Advisor" },
               { icon: Users, label: "Direct Advisor Access", desc: "Direct access to Asher for custom intelligence operations. NDA required.", tier: "Advisor Only" },
               { icon: Server, label: "Private Deployment", desc: "On-premise or private cloud deployment for maximum control.", tier: "Advisor Only" },
             ].map(({ icon: Icon, label, desc, tier: tierLabel }) => (

@@ -49,6 +49,8 @@ const plans: {
     features: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
+      "Elion / Zohar Toolkit — domain forensics & OSINT",
+      "Full Domain Scan — security score + subdomain recon",
       "Predictive Intelligence — AI event forecasting",
       "ZALI Design Intelligence Lab",
       "ZALI Community — questions, requests & feature votes",
