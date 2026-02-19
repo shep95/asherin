@@ -53,6 +53,197 @@ interface Props {
   project: ZaliProject;
 }
 
+// Material shape types for variety
+const MATERIAL_SHAPES: Array<"cube" | "cylinder" | "slab" | "sphere"> = ["cube", "cylinder", "slab", "sphere"];
+
+function Material3DCube({ color, size, shape, spinning }: { color: string; size: number; shape: string; spinning: boolean }) {
+  const s = size;
+  const hs = s / 2;
+
+  if (shape === "sphere") {
+    return (
+      <div className="relative" style={{ width: s, height: s, perspective: 400, transformStyle: "preserve-3d" }}>
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `radial-gradient(circle at 35% 30%, ${color}90, ${color}40 50%, ${color}15 80%, transparent)`,
+            boxShadow: `0 ${s/6}px ${s/3}px ${color}30, inset 0 -${s/8}px ${s/4}px ${color}20, inset 0 ${s/8}px ${s/4}px rgba(255,255,255,0.15)`,
+            animation: spinning ? "material-rotate 6s ease-in-out infinite" : undefined,
+          }}
+        />
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: s * 0.3, height: s * 0.15,
+            top: "18%", left: "22%",
+            background: "rgba(255,255,255,0.2)",
+            filter: "blur(3px)",
+            borderRadius: "50%",
+            transform: "rotate(-25deg)",
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (shape === "cylinder") {
+    return (
+      <div className="relative" style={{ width: s, height: s * 1.2, perspective: 500, transformStyle: "preserve-3d" }}>
+        {/* Cylinder body */}
+        <div
+          className="absolute"
+          style={{
+            width: s, height: s * 0.8,
+            top: s * 0.2,
+            background: `linear-gradient(90deg, ${color}20, ${color}60 30%, ${color}90 50%, ${color}60 70%, ${color}20)`,
+            borderRadius: "4px",
+            boxShadow: `inset 0 0 ${s/4}px ${color}15`,
+          }}
+        />
+        {/* Top ellipse */}
+        <div
+          className="absolute"
+          style={{
+            width: s, height: s * 0.35,
+            top: s * 0.05,
+            borderRadius: "50%",
+            background: `radial-gradient(ellipse at 40% 40%, ${color}95, ${color}60)`,
+            boxShadow: `0 0 ${s/6}px ${color}30, inset 0 -2px 6px ${color}40`,
+            border: `1px solid ${color}50`,
+          }}
+        />
+        {/* Bottom ellipse */}
+        <div
+          className="absolute"
+          style={{
+            width: s, height: s * 0.35,
+            bottom: 0,
+            borderRadius: "50%",
+            background: `${color}25`,
+            border: `1px solid ${color}20`,
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (shape === "slab") {
+    return (
+      <div
+        className="relative"
+        style={{
+          width: s * 1.4, height: s * 0.7,
+          perspective: 600,
+          transformStyle: "preserve-3d",
+          animation: spinning ? "material-rotate 8s ease-in-out infinite" : undefined,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute", width: "100%", height: "100%",
+            transformStyle: "preserve-3d",
+            transform: "rotateX(15deg) rotateY(-20deg)",
+          }}
+        >
+          {/* Front */}
+          <div style={{
+            position: "absolute", width: s * 1.4, height: s * 0.5,
+            background: `linear-gradient(135deg, ${color}70, ${color}50)`,
+            border: `1px solid ${color}40`,
+            borderRadius: 3,
+            transform: `translateZ(${s * 0.08}px)`,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.1)`,
+          }} />
+          {/* Top */}
+          <div style={{
+            position: "absolute", width: s * 1.4, height: s * 0.16,
+            background: `linear-gradient(180deg, ${color}85, ${color}65)`,
+            borderRadius: 2,
+            transform: `rotateX(90deg) translateZ(0px)`,
+            transformOrigin: "top",
+          }} />
+          {/* Right side */}
+          <div style={{
+            position: "absolute", width: s * 0.16, height: s * 0.5,
+            right: 0,
+            background: `linear-gradient(90deg, ${color}45, ${color}30)`,
+            borderRadius: 2,
+            transform: `rotateY(90deg) translateZ(${s * 0.08}px)`,
+            transformOrigin: "right",
+          }} />
+        </div>
+      </div>
+    );
+  }
+
+  // Default: cube
+  return (
+    <div
+      className="relative"
+      style={{
+        width: s, height: s,
+        perspective: 600,
+        transformStyle: "preserve-3d",
+        animation: spinning ? "material-rotate 8s ease-in-out infinite" : undefined,
+      }}
+    >
+      <div
+        style={{
+          position: "relative", width: "100%", height: "100%",
+          transformStyle: "preserve-3d",
+          transform: "rotateX(-20deg) rotateY(30deg)",
+        }}
+      >
+        {/* Front face */}
+        <div style={{
+          position: "absolute", width: s, height: s,
+          background: `linear-gradient(135deg, ${color}80, ${color}55)`,
+          border: `1px solid ${color}45`,
+          borderRadius: 4,
+          transform: `translateZ(${hs}px)`,
+          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.1)`,
+        }} />
+        {/* Back face */}
+        <div style={{
+          position: "absolute", width: s, height: s,
+          background: `${color}30`,
+          borderRadius: 4,
+          transform: `translateZ(-${hs}px)`,
+        }} />
+        {/* Top face */}
+        <div style={{
+          position: "absolute", width: s, height: s,
+          background: `linear-gradient(180deg, ${color}90, ${color}70)`,
+          borderRadius: 4,
+          transform: `rotateX(90deg) translateZ(${hs}px)`,
+          boxShadow: `inset 0 0 ${s/3}px rgba(255,255,255,0.08)`,
+        }} />
+        {/* Bottom face */}
+        <div style={{
+          position: "absolute", width: s, height: s,
+          background: `${color}25`,
+          borderRadius: 4,
+          transform: `rotateX(-90deg) translateZ(${hs}px)`,
+        }} />
+        {/* Right face */}
+        <div style={{
+          position: "absolute", width: s, height: s,
+          background: `linear-gradient(90deg, ${color}50, ${color}35)`,
+          borderRadius: 4,
+          transform: `rotateY(90deg) translateZ(${hs}px)`,
+        }} />
+        {/* Left face */}
+        <div style={{
+          position: "absolute", width: s, height: s,
+          background: `${color}40`,
+          borderRadius: 4,
+          transform: `rotateY(-90deg) translateZ(${hs}px)`,
+        }} />
+      </div>
+    </div>
+  );
+}
+
 function MaterialCard({
   label,
   color,
@@ -69,6 +260,7 @@ function MaterialCard({
   const [hovered, setHovered] = useState(false);
   const active = isSelected || hovered;
   const meta = useMemo(() => getMaterialMeta(label, index), [label, index]);
+  const shape = MATERIAL_SHAPES[index % MATERIAL_SHAPES.length];
 
   const properties = useMemo(() => [
     { key: "Density", value: `${(1.2 + (index * 1.7) % 8).toFixed(1)} g/cm³` },
@@ -87,48 +279,20 @@ function MaterialCard({
           : "border-border/20 bg-card/20 hover:border-border/40"
       }`}
     >
-      {/* Mini visualization */}
-      <div className="relative h-24 flex items-center justify-center overflow-hidden">
+      {/* 3D Material visualization */}
+      <div className="relative h-28 flex items-center justify-center overflow-hidden">
         <div
-          className="absolute w-20 h-20 rounded-full blur-2xl transition-opacity duration-500"
-          style={{ backgroundColor: color + "20", opacity: active ? 1 : 0.4 }}
+          className="absolute w-24 h-24 rounded-full blur-3xl transition-opacity duration-500"
+          style={{ backgroundColor: color + "15", opacity: active ? 1 : 0.3 }}
         />
+        {/* Shadow beneath */}
         <div
-          className="absolute w-16 h-16 rounded-full border transition-all duration-500"
-          style={{
-            borderColor: active ? color + "40" : color + "15",
-            animation: "spin 10s linear infinite",
-          }}
+          className="absolute bottom-3 w-12 h-2 rounded-full blur-sm"
+          style={{ backgroundColor: color + "25" }}
         />
-        <div
-          className="relative w-10 h-10 rounded-lg border transition-all duration-300"
-          style={{
-            borderColor: active ? "#00ffcc" : color + "50",
-            backgroundColor: color + (active ? "30" : "15"),
-            boxShadow: active ? `0 0 25px ${color}25` : "none",
-            transform: active ? "scale(1.15) rotate(12deg)" : "scale(1) rotate(0deg)",
-          }}
-        >
-          <div
-            className="absolute inset-0 rounded-lg border border-dashed"
-            style={{ borderColor: "#00ffcc", opacity: active ? 0.25 : 0 }}
-          />
+        <div style={{ transform: active ? "scale(1.12)" : "scale(1)", transition: "transform 0.4s ease" }}>
+          <Material3DCube color={color} size={40} shape={shape} spinning={active} />
         </div>
-        {[0, 120, 240].map((angle) => (
-          <div
-            key={angle}
-            className="absolute w-1.5 h-1.5 rounded-full transition-all duration-500"
-            style={{
-              backgroundColor: color,
-              opacity: active ? 0.7 : 0.2,
-              transform: `rotate(${angle}deg) translateX(${active ? 30 : 24}px)`,
-              top: "50%",
-              left: "50%",
-              marginTop: -3,
-              marginLeft: -3,
-            }}
-          />
-        ))}
       </div>
       {/* Label + price + properties */}
       <div className="px-3 pb-3">
@@ -153,6 +317,7 @@ function MaterialCard({
 
 function MaterialExpanded({ label, color, index }: { label: string; color: string; index: number }) {
   const meta = useMemo(() => getMaterialMeta(label, index), [label, index]);
+  const shape = MATERIAL_SHAPES[index % MATERIAL_SHAPES.length];
 
   const properties = useMemo(() => [
     { key: "Density", value: `${(1.2 + (index * 1.7) % 8).toFixed(1)} g/cm³` },
@@ -165,38 +330,31 @@ function MaterialExpanded({ label, color, index }: { label: string; color: strin
 
   return (
     <div className="flex flex-col h-full">
-      {/* Large visualization */}
-      <div className="relative h-[220px] flex items-center justify-center overflow-hidden">
-        <div className="absolute w-40 h-40 rounded-full blur-3xl" style={{ backgroundColor: color + "15" }} />
-        <div className="absolute w-48 h-48 rounded-full border" style={{ borderColor: color + "10", animation: "spin 15s linear infinite" }} />
-        <div className="absolute w-36 h-36 rounded-full border" style={{ borderColor: color + "15", animation: "spin 12s linear infinite reverse" }} />
-        <div className="relative">
-          <div
-            className="w-20 h-20 rounded-2xl border backdrop-blur-sm flex items-center justify-center"
-            style={{
-              borderColor: color + "50",
-              backgroundColor: color + "20",
-              boxShadow: `0 0 40px ${color}15, 0 0 80px ${color}08`,
-              animation: "float 4s ease-in-out infinite",
-            }}
-          >
-            <Layers className="h-8 w-8" style={{ color: color + "90" }} />
-          </div>
-          <div className="absolute inset-0 w-20 h-20 rounded-2xl border border-dashed" style={{ borderColor: "#00ffcc20" }} />
+      {/* Large 3D visualization */}
+      <div className="relative h-[260px] flex items-center justify-center overflow-hidden">
+        <div className="absolute w-48 h-48 rounded-full blur-3xl" style={{ backgroundColor: color + "12" }} />
+        <div className="absolute w-56 h-56 rounded-full border" style={{ borderColor: color + "08", animation: "spin 20s linear infinite" }} />
+        <div className="absolute w-40 h-40 rounded-full border" style={{ borderColor: color + "10", animation: "spin 14s linear infinite reverse" }} />
+        {/* Shadow beneath model */}
+        <div
+          className="absolute bottom-10 w-24 h-4 rounded-full blur-md"
+          style={{ backgroundColor: color + "20" }}
+        />
+        <div style={{ animation: "material-float 4s ease-in-out infinite" }}>
+          <Material3DCube color={color} size={80} shape={shape} spinning />
         </div>
-        {[0, 60, 120, 180, 240, 300].map((angle, j) => (
+        {/* Particle ring */}
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, j) => (
           <div
             key={angle}
-            className="absolute w-2 h-2 rounded-full"
+            className="absolute w-1.5 h-1.5 rounded-full"
             style={{
               backgroundColor: color,
-              opacity: 0.4,
-              top: "50%",
-              left: "50%",
-              transform: `rotate(${angle}deg) translateX(${70 + (j % 2) * 15}px)`,
-              marginTop: -4,
-              marginLeft: -4,
-              animation: `float ${2.5 + j * 0.3}s ease-in-out ${j * 0.2}s infinite`,
+              opacity: 0.3,
+              top: "50%", left: "50%",
+              transform: `rotate(${angle}deg) translateX(${90 + (j % 2) * 12}px)`,
+              marginTop: -3, marginLeft: -3,
+              animation: `material-float ${2 + j * 0.2}s ease-in-out ${j * 0.15}s infinite`,
             }}
           />
         ))}
@@ -249,9 +407,14 @@ function MaterialExpanded({ label, color, index }: { label: string; color: strin
         </div>
       </div>
       <style>{`
-        @keyframes float {
+        @keyframes material-float {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes material-rotate {
+          0% { transform: rotate(0deg); }
+          50% { transform: rotate(8deg); }
+          100% { transform: rotate(0deg); }
         }
       `}</style>
     </div>
