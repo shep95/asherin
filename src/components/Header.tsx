@@ -39,15 +39,35 @@ const Header = () => {
               <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground outline-none">
                 Pages <ChevronDown className="h-3.5 w-3.5" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-card border-border/40">
+              <DropdownMenuContent align="end" className="w-56 bg-card border-border/40">
+                <DropdownMenuItem asChild>
+                  <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide">All Features</Link>
+                </DropdownMenuItem>
+                <div className="my-1 border-t border-border/20" />
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide">Zophiel Search</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide">NOMAD OSINT</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide">Asha Intelligence</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide">Daily Briefings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide">AI Personas</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide">ZALI Design Lab</Link>
+                </DropdownMenuItem>
+                <div className="my-1 border-t border-border/20" />
                 <DropdownMenuItem asChild>
                   <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide">Founder</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide">Pricing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide">Features</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide">Prompt Engineering</Link>
@@ -82,9 +102,17 @@ const Header = () => {
             <div className="fixed inset-0 z-40 sm:hidden" onClick={() => setMobileMenuOpen(false)} />
             <div className="absolute right-4 top-full z-50 mt-2 w-64 rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl p-4 shadow-2xl sm:hidden">
               <div className="flex flex-col gap-2">
+                <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">All Features</Link>
+                <div className="my-1 border-t border-border/20 mx-4" />
+                <Link to="/feature/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Zophiel Search</Link>
+                <Link to="/feature/nomad" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">NOMAD OSINT</Link>
+                <Link to="/feature/asha" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Asha Intelligence</Link>
+                <Link to="/feature/briefings" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Daily Briefings</Link>
+                <Link to="/feature/personas" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">AI Personas</Link>
+                <Link to="/feature/zali" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">ZALI Design Lab</Link>
+                <div className="my-1 border-t border-border/20 mx-4" />
                 <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
                 <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Pricing</Link>
-                <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Features</Link>
                 <Link to="/prompt-engineering" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Prompt Engineering</Link>
                 <Link to="/benchmarks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Benchmarks</Link>
                 <Link to="/equity" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Equity Ownership</Link>

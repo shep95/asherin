@@ -16,6 +16,12 @@ import Features from "./pages/Features";
 import Benchmarks from "./pages/Benchmarks";
 import NDA from "./pages/NDA";
 import EquityOwnership from "./pages/EquityOwnership";
+import FeatureZophiel from "./pages/FeatureZophiel";
+import FeatureNomad from "./pages/FeatureNomad";
+import FeatureAsha from "./pages/FeatureAsha";
+import FeatureBriefings from "./pages/FeatureBriefings";
+import FeaturePersonas from "./pages/FeaturePersonas";
+import FeatureZali from "./pages/FeatureZali";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -40,6 +46,12 @@ const App = () => (
             <Route path="/benchmarks" element={<Benchmarks />} />
             <Route path="/nda" element={<NDA />} />
             <Route path="/equity" element={<EquityOwnership />} />
+            <Route path="/feature/zophiel" element={<FeatureZophiel />} />
+            <Route path="/feature/nomad" element={<FeatureNomad />} />
+            <Route path="/feature/asha" element={<FeatureAsha />} />
+            <Route path="/feature/briefings" element={<FeatureBriefings />} />
+            <Route path="/feature/personas" element={<FeaturePersonas />} />
+            <Route path="/feature/zali" element={<FeatureZali />} />
             <Route
               path="/dashboard"
               element={
