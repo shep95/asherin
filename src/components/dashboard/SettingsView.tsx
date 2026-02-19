@@ -35,8 +35,8 @@ const SettingsView = () => {
   useEffect(() => {
     if (!user) return;
     Promise.all([
-      supabase.from("user_settings").select("*").eq("user_id", user.id).single(),
-      supabase.from("profiles").select("*").eq("user_id", user.id).single(),
+      supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
     ]).then(([settingsRes, profileRes]) => {
       setSettings(settingsRes.data);
       setProfile(profileRes.data);
