@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAshaSession } from "./AshaSessionContext";
 import { toast } from "sonner";
 
-const DOC_TYPE_ICONS: Record<string, React.ElementType> = {
+const DOC_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   contract: Scale,
   invoice: FileBarChart,
   email: Mail,

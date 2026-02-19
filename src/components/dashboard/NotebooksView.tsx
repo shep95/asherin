@@ -39,7 +39,7 @@ interface NotebookCell {
   config: Record<string, unknown>;
 }
 
-const cellTypeIcons: Record<string, React.ElementType> = { text: Type, query: Database, visualization: BarChart3, code: Code, data_source: Database };
+const cellTypeIcons: Record<string, React.ComponentType<{ className?: string }>> = { text: Type, query: Database, visualization: BarChart3, code: Code, data_source: Database };
 const statusColors: Record<string, string> = { draft: "text-amber-400 bg-amber-500/10", published: "text-emerald-400 bg-emerald-500/10", archived: "text-muted-foreground bg-muted/20" };
 
 const NotebooksView = () => {

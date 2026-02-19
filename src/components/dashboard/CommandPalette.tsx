@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, Plus, MessageSquare, Code, FlaskConical, Shield, FolderOpen, Layers, Brain, BarChart3, Settings, Focus, Download, FileText, Upload, Moon, Sun, Database, Crosshair, Newspaper, Users, Globe, Activity, Puzzle, ClipboardList, Code2, CreditCard, Bell, Hexagon } from "lucide-react";
+import { Search, Plus, MessageSquare, Code, FlaskConical, Shield, FolderOpen, Layers, Brain, BarChart3, Settings, Focus, Download, FileText, Upload, Moon, Sun, Database, Crosshair, Newspaper, Users, Globe, Activity, Puzzle, ClipboardList, Code2, CreditCard, Bell, Hexagon, type LucideIcon } from "lucide-react";
 import type { ChatMode, DashboardView } from "./types";
 
 interface CommandPaletteProps {
@@ -15,7 +15,7 @@ interface Command {
   id: string;
   label: string;
   category: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   action: () => void;
   keywords?: string[];
   shortcut?: string;

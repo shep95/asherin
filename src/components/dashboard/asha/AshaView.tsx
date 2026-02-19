@@ -33,7 +33,7 @@ import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
 const AshaNavContext = createContext<{ navigateToTab: (tab: AshaTab, datasetId?: string) => void }>({ navigateToTab: () => {} });
 export const useAshaNav = () => useContext(AshaNavContext);
 
-const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
+const tabs: { id: AshaTab; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
   { id: "ingest", icon: Upload, label: "Ingest" },
   { id: "docintel", icon: FileText, label: "Doc Intel" },
   { id: "catalog", icon: BookOpen, label: "Catalog" },

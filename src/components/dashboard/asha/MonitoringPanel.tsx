@@ -7,7 +7,7 @@ interface MonitorRule { id: string; name: string; target: string; condition: str
 interface AlertEvent { id: string; ruleId: string | null; ruleName: string; message: string; severity: "critical" | "warning" | "info"; timestamp: string; read: boolean; }
 
 const severityStyles: Record<string, string> = { critical: "border-destructive/30 bg-destructive/5", warning: "border-amber-500/30 bg-amber-500/5", info: "border-accent/30 bg-accent/5" };
-const severityIcons: Record<string, React.ElementType> = { critical: AlertTriangle, warning: BellRing, info: Bell };
+const severityIcons: Record<string, React.ComponentType<{ className?: string }>> = { critical: AlertTriangle, warning: BellRing, info: Bell };
 
 const MonitoringPanel = () => {
   const [rules, setRules] = useState<MonitorRule[]>([]);
