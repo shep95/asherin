@@ -1,104 +1,26 @@
-import { Suspense, useRef, useState, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Environment, Float, Text, RoundedBox, Center, Html } from "@react-three/drei";
-import * as THREE from "three";
+import { useState, useMemo } from "react";
+import { Box, Atom, Layers, Cpu } from "lucide-react";
 import type { ZaliProject } from "./types";
 
-// ── Equipment / component block ──────────────────────────────────────────────
-function EquipmentBlock({ position, size, color, label, index }: {
-  position: [number, number, number];
-  size: [number, number, number];
-  color: string;
-  label: string;
-  index: number;
-}) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
-
-  useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.05;
-    }
-  });
-
-  return (
-    <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.3} floatingRange={[-0.05, 0.05]}>
-      <group position={position}>
-        <RoundedBox
-          ref={meshRef}
-          args={size}
-          radius={0.05}
-          smoothness={4}
-          onPointerOver={() => setHovered(true)}
-          onPointerOut={() => setHovered(false)}
-        >
-          <meshStandardMaterial
-            color={hovered ? "#00ffcc" : color}
-            metalness={0.6}
-            roughness={0.2}
-            transparent
-            opacity={hovered ? 1 : 0.85}
-            emissive={hovered ? "#00ffcc" : color}
-            emissiveIntensity={hovered ? 0.3 : 0.05}
-          />
-        </RoundedBox>
-        {/* Edge wireframe */}
-        <RoundedBox args={size} radius={0.05} smoothness={4}>
-          <meshBasicMaterial color="#00ffcc" wireframe transparent opacity={0.08} />
-        </RoundedBox>
-        {hovered && (
-          <Html center distanceFactor={6} style={{ pointerEvents: "none" }}>
-            <div className="px-2 py-1 rounded-md bg-background/90 border border-accent/30 backdrop-blur-sm whitespace-nowrap">
-              <p className="text-[10px] font-light text-accent">{label}</p>
-            </div>
-          </Html>
-        )}
-      </group>
-    </Float>
-  );
+// ── Holographic CSS-based 3D visualization ───────────────────────────────────
+interface Props {
+  project: ZaliProject;
+  viewMode: string;
 }
 
-// ── Base platform ────────────────────────────────────────────────────────────
-function BasePlatform() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.2, 0]} receiveShadow>
-      <circleGeometry args={[2.5, 64]} />
-      <meshStandardMaterial
-        color="#1a1a2e"
-        metalness={0.8}
-        roughness={0.3}
-        transparent
-        opacity={0.6}
-      />
-    </mesh>
-  );
-}
+const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#14b8a6"];
 
-// ── Grid ring ────────────────────────────────────────────────────────────────
-function GridRing() {
-  const ref = useRef<THREE.Mesh>(null);
-  useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation.z += delta * 0.1;
-  });
-  return (
-    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.15, 0]}>
-      <ringGeometry args={[2.2, 2.5, 64]} />
-      <meshBasicMaterial color="#00ffcc" transparent opacity={0.1} />
-    </mesh>
-  );
-}
+const Zali3DModel = ({ project, viewMode }: Props) => {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-// ── Main scene ───────────────────────────────────────────────────────────────
-function ModelScene({ project, viewMode }: { project: ZaliProject; viewMode: string }) {
   const specs = project.specifications as Record<string, any>;
-  const materials = specs?.materials || [];
-  const features = specs?.key_features || [];
+  const materials: string[] = specs?.materials || [];
+  const features: string[] = specs?.key_features || [];
 
-  // Generate equipment blocks from materials + features
   const equipment = useMemo(() => {
     const items: { label: string; color: string }[] = [];
-    materials.forEach((m: string) => items.push({ label: m, color: "#3b82f6" }));
-    features.forEach((f: string) => items.push({ label: f, color: "#8b5cf6" }));
+    materials.forEach((m, i) => items.push({ label: m, color: COLORS[i % COLORS.length] }));
+    features.forEach((f, i) => items.push({ label: f, color: COLORS[(i + materials.length) % COLORS.length] }));
     if (items.length === 0) {
       items.push(
         { label: "Core Module", color: "#3b82f6" },
@@ -107,122 +29,139 @@ function ModelScene({ project, viewMode }: { project: ZaliProject; viewMode: str
         { label: "Sensor Array", color: "#f59e0b" },
       );
     }
-    return items;
+    return items.slice(0, 12);
   }, [materials, features]);
 
   const exploded = viewMode === "exploded";
-  const spread = exploded ? 1.8 : 1;
-
-  // Layout blocks in a circle — use deterministic sizing (no Math.random)
-  const blocks = useMemo(() => {
-    const count = Math.min(equipment.length, 12);
-    return equipment.slice(0, count).map((eq, i) => {
-      const angle = (i / count) * Math.PI * 2;
-      const radius = count <= 4 ? 0.8 * spread : 1.2 * spread;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const y = (i % 3) * 0.4 - 0.3;
-      // Deterministic sizing based on index
-      const seed = ((i * 7 + 3) % 10) / 10;
-      const sizeBase = 0.3 + seed * 0.15;
-      const heightMul = 0.6 + ((i * 13 + 5) % 10) / 10 * 0.8;
-      return {
-        ...eq,
-        position: [x, y, z] as [number, number, number],
-        size: [sizeBase, sizeBase * heightMul, sizeBase] as [number, number, number],
-      };
-    });
-  }, [equipment, spread]);
 
   return (
-    <>
-      <ambientLight intensity={0.3} />
-      <pointLight position={[5, 5, 5]} intensity={0.8} color="#ffffff" />
-      <pointLight position={[-3, 3, -3]} intensity={0.4} color="#00ffcc" />
-      <spotLight position={[0, 8, 0]} angle={0.3} penumbra={0.8} intensity={0.5} color="#8b5cf6" />
+    <div className="w-full h-full min-h-[350px] relative overflow-hidden select-none">
+      {/* Radial background glow */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-64 h-64 rounded-full bg-accent/5 blur-3xl" />
+      </div>
 
-      <Center>
-        {/* Core central element */}
-        <Float speed={2} rotationIntensity={0.3} floatIntensity={0.4}>
-          <mesh>
-            <icosahedronGeometry args={[0.4, 1]} />
-            <meshStandardMaterial
-              color="#00ffcc"
-              metalness={0.9}
-              roughness={0.1}
-              emissive="#00ffcc"
-              emissiveIntensity={0.15}
-              transparent
-              opacity={0.7}
-            />
-          </mesh>
-          <mesh>
-            <icosahedronGeometry args={[0.42, 1]} />
-            <meshBasicMaterial color="#00ffcc" wireframe transparent opacity={0.15} />
-          </mesh>
-        </Float>
+      {/* Rotating ring */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div
+          className="w-56 h-56 rounded-full border border-accent/10"
+          style={{ animation: "spin 20s linear infinite" }}
+        />
+        <div
+          className="absolute w-72 h-72 rounded-full border border-border/10"
+          style={{ animation: "spin 30s linear infinite reverse" }}
+        />
+      </div>
 
-        {/* Equipment blocks */}
-        {blocks.map((block, i) => (
-          <EquipmentBlock
+      {/* Central core */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="relative">
+          <div
+            className="w-16 h-16 rounded-2xl border border-accent/30 bg-accent/10 backdrop-blur-sm flex items-center justify-center"
+            style={{
+              animation: "pulse 3s ease-in-out infinite",
+              boxShadow: "0 0 30px rgba(0, 255, 204, 0.1)",
+            }}
+          >
+            <Atom className="h-7 w-7 text-accent/70" style={{ animation: "spin 8s linear infinite" }} />
+          </div>
+          {/* Core glow */}
+          <div className="absolute inset-0 w-16 h-16 rounded-2xl bg-accent/5 blur-md" />
+        </div>
+      </div>
+
+      {/* Orbiting equipment blocks */}
+      {equipment.map((eq, i) => {
+        const count = equipment.length;
+        const angle = (i / count) * 360;
+        const radius = exploded ? 140 : 100;
+        const isHovered = hoveredIndex === i;
+        const size = 28 + ((i * 7 + 3) % 10);
+        const delay = i * 0.3;
+
+        return (
+          <div
             key={i}
-            index={i}
-            position={block.position}
-            size={block.size}
-            color={block.color}
-            label={block.label}
-          />
-        ))}
-      </Center>
+            className="absolute left-1/2 top-1/2 transition-all duration-700 ease-out"
+            style={{
+              transform: `translate(-50%, -50%) rotate(${angle}deg) translateX(${radius}px) rotate(-${angle}deg)`,
+            }}
+          >
+            <div
+              className="relative cursor-pointer transition-all duration-300"
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              style={{
+                width: size,
+                height: size,
+                animation: `float ${3 + (i % 3)}s ease-in-out ${delay}s infinite`,
+              }}
+            >
+              {/* Block */}
+              <div
+                className="w-full h-full rounded-lg border transition-all duration-300"
+                style={{
+                  borderColor: isHovered ? "#00ffcc" : eq.color + "40",
+                  backgroundColor: isHovered ? eq.color + "30" : eq.color + "15",
+                  boxShadow: isHovered
+                    ? `0 0 20px ${eq.color}30, 0 0 40px ${eq.color}10`
+                    : `0 0 10px ${eq.color}10`,
+                  transform: isHovered ? "scale(1.3)" : "scale(1)",
+                }}
+              />
+              {/* Wireframe overlay */}
+              <div
+                className="absolute inset-0 rounded-lg border border-dashed transition-opacity duration-300"
+                style={{
+                  borderColor: "#00ffcc",
+                  opacity: isHovered ? 0.3 : 0.05,
+                }}
+              />
+              {/* Tooltip */}
+              {isHovered && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md bg-background/90 border border-accent/30 backdrop-blur-sm whitespace-nowrap z-10">
+                  <p className="text-[10px] font-light text-accent">{eq.label}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
 
-      <BasePlatform />
-      <GridRing />
+      {/* Connection lines from core to blocks */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.08 }}>
+        {equipment.map((_, i) => {
+          const count = equipment.length;
+          const angle = (i / count) * Math.PI * 2;
+          const radius = exploded ? 140 : 100;
+          const cx = 50; // percent
+          const cy = 50;
+          return (
+            <line
+              key={i}
+              x1="50%"
+              y1="50%"
+              x2={`calc(50% + ${Math.cos(angle) * radius}px)`}
+              y2={`calc(50% + ${Math.sin(angle) * radius}px)`}
+              stroke="#00ffcc"
+              strokeWidth="1"
+            />
+          );
+        })}
+      </svg>
 
-      <Environment preset="night" />
-      <OrbitControls
-        enablePan={false}
-        minDistance={3}
-        maxDistance={10}
-        autoRotate
-        autoRotateSpeed={0.5}
-        maxPolarAngle={Math.PI / 1.8}
-      />
-    </>
+      {/* Platform base */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-64 h-4 rounded-full bg-gradient-to-r from-transparent via-accent/10 to-transparent blur-sm" />
+
+      {/* Float animation keyframes */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+      `}</style>
+    </div>
   );
-}
-
-// ── Exported component ───────────────────────────────────────────────────────
-interface Props {
-  project: ZaliProject;
-  viewMode: string;
-}
-
-const Zali3DModel = ({ project, viewMode }: Props) => {
-  try {
-    return (
-      <div className="w-full h-full min-h-[350px]">
-        <Canvas
-          camera={{ position: [4, 3, 4], fov: 45 }}
-          dpr={[1, 2]}
-          gl={{ antialias: true, alpha: true }}
-          style={{ background: "transparent" }}
-          onCreated={(state) => {
-            state.gl.setClearColor(0x000000, 0);
-          }}
-        >
-          <Suspense fallback={null}>
-            <ModelScene project={project} viewMode={viewMode} />
-          </Suspense>
-        </Canvas>
-      </div>
-    );
-  } catch {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[350px]">
-        <p className="text-xs text-muted-foreground">3D viewport unavailable</p>
-      </div>
-    );
-  }
 };
 
 export default Zali3DModel;
