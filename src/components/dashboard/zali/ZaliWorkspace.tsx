@@ -1,7 +1,10 @@
-import { useState } from "react";
-import { Atom, Box, Layers, Microscope, Cpu, Activity, RotateCw, ZoomIn, ZoomOut, Maximize2, Grid3x3, CheckCircle2, AlertTriangle, Zap, Shield } from "lucide-react";
+import { useState, lazy, Suspense } from "react";
+import { Atom, Box, Layers, Microscope, Cpu, Activity, Grid3x3, CheckCircle2, AlertTriangle, Zap, Shield, Sparkles, Send, RotateCw } from "lucide-react";
 import type { ZaliPhase, ZaliProject } from "./types";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ModelDetailsPanel from "./ModelDetailsPanel";
+
+const Zali3DModel = lazy(() => import("./Zali3DModel"));
 
 const PHASE_CONFIG: Record<ZaliPhase, { label: string; color: string; description: string }> = {
   understanding: { label: "UNDERSTANDING", color: "text-blue-400", description: "Socratic questioning & first principles" },
@@ -28,6 +31,10 @@ interface Props {
 const ZaliWorkspace = ({ project }: Props) => {
   const [activeScale, setActiveScale] = useState(0);
   const [viewMode, setViewMode] = useState<"assembled" | "exploded" | "crosssection" | "simulation">("assembled");
+  const [showModel, setShowModel] = useState(false);
+  const [modelDescription, setModelDescription] = useState("");
+  const [appliedDescription, setAppliedDescription] = useState("");
+
   const phase = project?.phase ?? "understanding";
   const phaseConfig = PHASE_CONFIG[phase];
 
@@ -58,6 +65,12 @@ const ZaliWorkspace = ({ project }: Props) => {
   const cost = project.costAnalysis as Record<string, any>;
   const mfg = project.manufacturing as Record<string, any>;
   const sims = project.simulationResults as Record<string, any>;
+
+  const handleApplyDescription = () => {
+    if (modelDescription.trim()) {
+      setAppliedDescription(modelDescription.trim());
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -127,160 +140,124 @@ const ZaliWorkspace = ({ project }: Props) => {
               </div>
             </div>
           ) : (
-            /* Design data visualization */
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 relative z-10">
-              {/* Project header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm sm:text-base font-light text-foreground">{project.name}</h2>
-                  <p className="text-[10px] text-muted-foreground/60">{project.designType} · Phase: {phaseConfig.label}</p>
-                </div>
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-current/20 ${phaseConfig.color}`}>
-                  <Activity className="h-3 w-3" />
-                  <span className="text-[9px] tracking-wider">{phaseConfig.label}</span>
-                </div>
-              </div>
-
-              {/* Specifications card */}
-              {hasSpecs && (
-                <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border/10 flex items-center gap-2">
-                    <Zap className="h-3.5 w-3.5 text-accent" />
-                    <span className="text-[11px] font-light tracking-wider text-foreground uppercase">Specifications</span>
+            <div className="relative z-10">
+              {/* Build 3D Model button or 3D viewport */}
+              {!showModel ? (
+                <div className="flex flex-col items-center justify-center min-h-[350px] gap-4 p-6">
+                  <div className="relative">
+                    <div className="h-24 w-24 rounded-full border border-accent/20 flex items-center justify-center bg-accent/5">
+                      <Box className="h-10 w-10 text-accent/50" />
+                    </div>
+                    <div className="absolute inset-0 h-24 w-24 rounded-full border border-accent/10 animate-ping" style={{ animationDuration: "3s" }} />
                   </div>
-                  <div className="p-4 space-y-3">
-                    {specs.overview && (
-                      <p className="text-xs font-light text-muted-foreground leading-relaxed">{specs.overview}</p>
-                    )}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {specs.dimensions && (
-                        <div className="rounded-lg border border-border/10 bg-foreground/5 p-2.5">
-                          <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">Dimensions</p>
-                          <p className="text-[11px] text-foreground mt-0.5">{specs.dimensions}</p>
-                        </div>
-                      )}
-                      {specs.weight && (
-                        <div className="rounded-lg border border-border/10 bg-foreground/5 p-2.5">
-                          <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">Weight</p>
-                          <p className="text-[11px] text-foreground mt-0.5">{specs.weight}</p>
-                        </div>
-                      )}
-                      {specs.power && (
-                        <div className="rounded-lg border border-border/10 bg-foreground/5 p-2.5">
-                          <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">Power</p>
-                          <p className="text-[11px] text-foreground mt-0.5">{specs.power}</p>
-                        </div>
+                  <div className="text-center max-w-sm">
+                    <p className="text-sm font-light text-foreground">Design data ready</p>
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">
+                      Your specifications, materials, and equipment have been compiled. Build the 3D model to visualize your design.
+                    </p>
+                  </div>
+
+                  {/* Optional: describe the model */}
+                  <div className="w-full max-w-sm">
+                    <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2">
+                      <input
+                        value={modelDescription}
+                        onChange={(e) => setModelDescription(e.target.value)}
+                        placeholder="Describe model appearance (optional)..."
+                        className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none"
+                        onKeyDown={(e) => { if (e.key === "Enter") handleApplyDescription(); }}
+                      />
+                      {modelDescription.trim() && (
+                        <button onClick={handleApplyDescription} className="p-1 rounded-md text-accent hover:bg-accent/10 transition-colors">
+                          <Send className="h-3.5 w-3.5" />
+                        </button>
                       )}
                     </div>
-                    {specs.materials && Array.isArray(specs.materials) && specs.materials.length > 0 && (
-                      <div>
-                        <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1.5">Materials</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {specs.materials.map((m: string, i: number) => (
-                            <span key={i} className="px-2 py-0.5 rounded-md bg-accent/10 text-accent text-[10px]">{m}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {specs.key_features && Array.isArray(specs.key_features) && specs.key_features.length > 0 && (
-                      <div>
-                        <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1.5">Key Features</p>
-                        <div className="space-y-1">
-                          {specs.key_features.map((f: string, i: number) => (
-                            <div key={i} className="flex items-start gap-2">
-                              <CheckCircle2 className="h-3 w-3 text-emerald-400 mt-0.5 shrink-0" />
-                              <span className="text-[11px] text-foreground font-light">{f}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {specs.performance_targets && typeof specs.performance_targets === "object" && (
-                      <div>
-                        <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1.5">Performance Targets</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {Object.entries(specs.performance_targets).map(([key, val]) => (
-                            <div key={key} className="rounded-lg border border-border/10 bg-foreground/5 p-2">
-                              <p className="text-[9px] text-muted-foreground/50 capitalize">{key.replace(/_/g, " ")}</p>
-                              <p className="text-[11px] text-foreground mt-0.5">{String(val)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                    {appliedDescription && (
+                      <p className="text-[9px] text-accent/60 mt-1.5 px-1">✓ Description applied: "{appliedDescription}"</p>
                     )}
                   </div>
-                </div>
-              )}
 
-              {/* Cost Analysis card */}
-              {hasCost && (
-                <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border/10 flex items-center gap-2">
-                    <Activity className="h-3.5 w-3.5 text-cyan-400" />
-                    <span className="text-[11px] font-light tracking-wider text-foreground uppercase">Cost Analysis</span>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {Object.entries(cost).map(([key, val]) => (
-                        <div key={key} className="rounded-lg border border-border/10 bg-foreground/5 p-2.5">
-                          <p className="text-[9px] text-muted-foreground/50 capitalize">{key.replace(/_/g, " ")}</p>
-                          <p className="text-sm font-light text-foreground mt-0.5">{String(val)}</p>
+                  <button
+                    onClick={() => setShowModel(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-xs font-light hover:bg-accent/90 transition-all group"
+                  >
+                    <Sparkles className="h-4 w-4 group-hover:animate-pulse" />
+                    Build 3D Model
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {/* 3D Viewport */}
+                  <div className="relative h-[400px] sm:h-[450px]">
+                    <Suspense fallback={
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent mx-auto" />
+                          <p className="text-[10px] text-muted-foreground/50 mt-3 tracking-wider">BUILDING MODEL...</p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Manufacturing card */}
-              {hasMfg && (
-                <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border/10 flex items-center gap-2">
-                    <Layers className="h-3.5 w-3.5 text-amber-400" />
-                    <span className="text-[11px] font-light tracking-wider text-foreground uppercase">Manufacturing</span>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      {Object.entries(mfg).map(([key, val]) => (
-                        <div key={key} className="rounded-lg border border-border/10 bg-foreground/5 p-2.5">
-                          <p className="text-[9px] text-muted-foreground/50 capitalize">{key.replace(/_/g, " ")}</p>
-                          <p className="text-[11px] text-foreground mt-0.5">
-                            {Array.isArray(val) ? val.join(", ") : String(val)}
-                          </p>
+                      </div>
+                    }>
+                      <Zali3DModel project={project} viewMode={viewMode} />
+                    </Suspense>
+                    {/* Overlay info */}
+                    <div className="absolute top-3 left-3 space-y-1">
+                      <div className="px-2 py-1 rounded-md bg-background/70 backdrop-blur-sm border border-border/20">
+                        <p className="text-[9px] text-muted-foreground/60">
+                          <span className="text-accent">●</span> {project.name}
+                        </p>
+                      </div>
+                      {appliedDescription && (
+                        <div className="px-2 py-1 rounded-md bg-background/70 backdrop-blur-sm border border-accent/20 max-w-[200px]">
+                          <p className="text-[9px] text-accent/70 truncate">"{appliedDescription}"</p>
                         </div>
-                      ))}
+                      )}
                     </div>
+                    {/* Rebuild button */}
+                    <button
+                      onClick={() => setShowModel(false)}
+                      className="absolute top-3 right-3 p-1.5 rounded-md bg-background/70 backdrop-blur-sm border border-border/20 text-muted-foreground/50 hover:text-foreground transition-colors"
+                      title="Reconfigure model"
+                    >
+                      <RotateCw className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                </div>
-              )}
 
-              {/* Simulation Results card */}
-              {hasSims && (
-                <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border/10 flex items-center gap-2">
-                    <Shield className="h-3.5 w-3.5 text-emerald-400" />
-                    <span className="text-[11px] font-light tracking-wider text-foreground uppercase">Simulation Results</span>
-                  </div>
-                  <div className="p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {Object.entries(sims).map(([key, val]) => {
-                        const valStr = String(val).toLowerCase();
-                        const isPass = valStr.includes("pass") || valStr.includes("excellent") || valStr.includes("high");
-                        return (
-                          <div key={key} className="rounded-lg border border-border/10 bg-foreground/5 p-2.5 flex items-start gap-2">
-                            {isPass ? (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 mt-0.5 shrink-0" />
-                            ) : (
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
-                            )}
-                            <div>
-                              <p className="text-[9px] text-muted-foreground/50 capitalize">{key.replace(/_/g, " ")}</p>
-                              <p className="text-[11px] text-foreground mt-0.5">{String(val)}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  {/* Model description input */}
+                  <div className="px-4 py-3 border-t border-border/10">
+                    <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2 max-w-lg">
+                      <input
+                        value={modelDescription}
+                        onChange={(e) => setModelDescription(e.target.value)}
+                        placeholder="Describe changes to the model design..."
+                        className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && modelDescription.trim()) {
+                            setAppliedDescription(modelDescription.trim());
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          if (modelDescription.trim()) {
+                            setAppliedDescription(modelDescription.trim());
+                          }
+                        }}
+                        disabled={!modelDescription.trim()}
+                        className="p-1.5 rounded-md text-accent hover:bg-accent/10 transition-colors disabled:opacity-30"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                      </button>
                     </div>
+                  </div>
+
+                  {/* Model Details */}
+                  <div className="px-4 pb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Activity className="h-3.5 w-3.5 text-accent" />
+                      <span className="text-[11px] font-light tracking-wider text-foreground uppercase">Model Details</span>
+                    </div>
+                    <ModelDetailsPanel project={project} />
                   </div>
                 </div>
               )}
