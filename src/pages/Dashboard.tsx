@@ -9,7 +9,7 @@ const WALLPAPER_MAP: Record<string, string> = {
   eclipse: wallpaperEclipse,
   glitch: wallpaperGlitch,
 };
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Conversation, ChatMode, DashboardView, Message, Persona } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
@@ -26,7 +26,7 @@ import SettingsView from "@/components/dashboard/SettingsView";
 import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AshaView from "@/components/dashboard/asha/AshaView";
-import ZaliView from "@/components/dashboard/zali/ZaliView";
+const ZaliView = lazy(() => import("@/components/dashboard/zali/ZaliView"));
 import NomadView from "@/components/dashboard/NomadView";
 import BriefingView from "@/components/dashboard/BriefingView";
 import TeamsView from "@/components/dashboard/TeamsView";
@@ -765,7 +765,7 @@ const Dashboard = () => {
           : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "zali":
         return hasProAccess(tierKey)
-          ? <ZaliView />
+          ? <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground text-sm animate-pulse">Loading ZALI...</div>}><ZaliView /></Suspense>
           : <FeatureGate title="ZALI Design Lab" description="Universal Design Intelligence System. Design from atoms to universes with holographic visualization and first-principles reasoning. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "nomad": 
         return hasProAccess(tierKey) 
