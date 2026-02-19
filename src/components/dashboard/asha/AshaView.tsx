@@ -63,6 +63,7 @@ const SessionSelector = () => {
   const [newCompany, setNewCompany] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -133,11 +134,24 @@ const SessionSelector = () => {
                           className="p-1 rounded text-muted-foreground/40 hover:text-foreground transition-all">
                           <Pencil className="h-3 w-3" />
                         </button>
-                        {activeSession?.id !== s.id && (
-                          <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                        {activeSession?.id !== s.id && confirmDeleteId !== s.id && (
+                          <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(s.id); }}
                             className="p-1 rounded text-muted-foreground/40 hover:text-destructive transition-all">
                             <Trash2 className="h-3 w-3" />
                           </button>
+                        )}
+                        {confirmDeleteId === s.id && (
+                          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                            <span className="text-[9px] text-destructive font-medium mr-0.5">Delete?</span>
+                            <button onClick={() => { deleteSession(s.id); setConfirmDeleteId(null); }}
+                              className="p-1 rounded text-destructive hover:bg-destructive/10 transition-all">
+                              <Check className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => setConfirmDeleteId(null)}
+                              className="p-1 rounded text-muted-foreground hover:text-foreground transition-all">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </>
