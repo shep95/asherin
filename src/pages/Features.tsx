@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
+import LandingBackground from "@/components/LandingBackground";
 import {
   Brain, Code, Shield, Search, Eye, Newspaper, Users, Server,
   Lock, Zap, ArrowRight, MessageSquare, Layers, Database,
@@ -415,10 +415,7 @@ const Features = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Fixed BG */}
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
-      <div className="fixed inset-0 bg-black/80" />
+    <LandingBackground>
 
       <Header />
 
@@ -548,7 +545,7 @@ const Features = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </LandingBackground>
   );
 };
 

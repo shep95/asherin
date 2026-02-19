@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Handshake, Building2, TrendingUp } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import heroBg from "@/assets/hero-bg.png";
+import LandingBackground from "@/components/LandingBackground";
 import Header from "@/components/Header";
 
 const equityData = [
@@ -31,9 +31,7 @@ const EquityOwnership = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
-      <div className="fixed inset-0 bg-black/80" />
+    <LandingBackground>
 
       <Header />
 
@@ -187,7 +185,7 @@ const EquityOwnership = () => {
 
       {/* Spacer */}
       <div className="relative z-10 h-24" />
-    </div>
+    </LandingBackground>
   );
 };
 

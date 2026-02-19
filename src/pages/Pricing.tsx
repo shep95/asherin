@@ -1,5 +1,5 @@
-import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
+import LandingBackground from "@/components/LandingBackground";
 import { Check, ArrowRight, Zap, Search, Brain, Code, Shield, Users, Globe, BarChart3, Lock, Server, Cpu, Database, Network, Eye, Newspaper } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
@@ -84,9 +84,7 @@ const Pricing = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
-      <div className="fixed inset-0 bg-black/80" />
+    <LandingBackground>
 
       <Header />
 
@@ -279,7 +277,7 @@ const Pricing = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </LandingBackground>
   );
 };
 

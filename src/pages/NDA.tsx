@@ -1,5 +1,5 @@
-import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
+import LandingBackground from "@/components/LandingBackground";
 import { useEffect } from "react";
 import { Shield, FileText, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -10,9 +10,7 @@ const NDA = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
-      <div className="fixed inset-0 bg-black/85" />
+    <LandingBackground overlayOpacity="bg-black/85">
       <Header />
 
       <div className="relative z-10 pt-32 pb-16 px-6">
@@ -127,7 +125,7 @@ const NDA = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </LandingBackground>
   );
 };
 

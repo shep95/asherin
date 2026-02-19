@@ -1,5 +1,5 @@
-import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
+import LandingBackground from "@/components/LandingBackground";
 import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
@@ -128,13 +128,7 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Fixed background image with dark overlay */}
-      <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${heroBg})` }}
-      />
-      <div className="fixed inset-0 bg-black/80" />
+    <LandingBackground>
 
       {/* Header */}
       <Header />
@@ -665,7 +659,7 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </LandingBackground>
   );
 };
 
