@@ -23,6 +23,7 @@ import FeatureBriefings from "./pages/FeatureBriefings";
 import FeaturePersonas from "./pages/FeaturePersonas";
 import FeatureZali from "./pages/FeatureZali";
 import FeaturePredictive from "./pages/FeaturePredictive";
+import FeatureElion from "./pages/FeatureElion";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/feature/personas" element={<FeaturePersonas />} />
             <Route path="/feature/zali" element={<FeatureZali />} />
             <Route path="/feature/predictive" element={<FeaturePredictive />} />
+            <Route path="/feature/elion" element={<FeatureElion />} />
             <Route
               path="/dashboard"
               element={
