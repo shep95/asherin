@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Atom, Box, Layers, Microscope, Cpu, Activity, Grid3x3, CheckCircle2, AlertTriangle, Zap, Shield, Sparkles, Send, RotateCw } from "lucide-react";
+import { Atom, Box, Layers, Microscope, Cpu, Activity, Grid3x3, CheckCircle2, AlertTriangle, Zap, Shield, Sparkles, Send, RotateCw, Package, Puzzle } from "lucide-react";
 import type { ZaliPhase, ZaliProject } from "./types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ModelDetailsPanel from "./ModelDetailsPanel";
 import Zali3DModel from "./Zali3DModel";
+import ZaliMaterialsView from "./ZaliMaterialsView";
 
 const PHASE_CONFIG: Record<ZaliPhase, { label: string; color: string; description: string }> = {
   understanding: { label: "UNDERSTANDING", color: "text-blue-400", description: "Socratic questioning & first principles" },
@@ -32,6 +33,7 @@ interface Props {
 const ZaliWorkspace = ({ project, autoBuild, modelPrompt }: Props) => {
   const [activeScale, setActiveScale] = useState(0);
   const [viewMode, setViewMode] = useState<"assembled" | "exploded" | "crosssection" | "simulation">("assembled");
+  const [designTab, setDesignTab] = useState<"product" | "materials">("product");
   const [showModel, setShowModel] = useState(false);
   const [modelDescription, setModelDescription] = useState("");
   const [appliedDescription, setAppliedDescription] = useState("");
@@ -114,6 +116,34 @@ const ZaliWorkspace = ({ project, autoBuild, modelPrompt }: Props) => {
         </div>
       </div>
 
+      {/* Product / Materials tab switcher */}
+      {hasDesignData && (
+        <div className="flex-shrink-0 px-3 sm:px-4 py-1.5 border-b border-border/15 flex items-center gap-1">
+          <button
+            onClick={() => setDesignTab("product")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] transition-colors ${
+              designTab === "product"
+                ? "bg-accent/15 text-accent border border-accent/20"
+                : "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/5 border border-transparent"
+            }`}
+          >
+            <Package className="h-3 w-3" />
+            Full Product
+          </button>
+          <button
+            onClick={() => setDesignTab("materials")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] transition-colors ${
+              designTab === "materials"
+                ? "bg-accent/15 text-accent border border-accent/20"
+                : "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/5 border border-transparent"
+            }`}
+          >
+            <Puzzle className="h-3 w-3" />
+            Materials
+          </button>
+        </div>
+      )}
+
       {/* Main viewport */}
       <ScrollArea className="flex-1 min-h-0">
         <div className="relative min-h-[400px]">
@@ -154,6 +184,10 @@ const ZaliWorkspace = ({ project, autoBuild, modelPrompt }: Props) => {
                   </div>
                 </div>
               </div>
+            </div>
+          ) : designTab === "materials" ? (
+            <div className="relative z-10 min-h-[400px]">
+              <ZaliMaterialsView project={project} />
             </div>
           ) : (
             <div className="relative z-10">
