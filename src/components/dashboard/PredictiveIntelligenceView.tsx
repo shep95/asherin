@@ -251,23 +251,23 @@ const PredictiveIntelligenceView = () => {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border/20 bg-card/20 backdrop-blur-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-600/20 border border-purple-500/30">
-              <Brain className="h-5 w-5 text-purple-400" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-600/20 border border-purple-500/30 flex-shrink-0">
+              <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
             </div>
-            <div>
-              <h2 className="text-lg font-extralight tracking-wide text-foreground">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-extralight tracking-wide text-foreground truncate">
                 Aureon Predictive Intelligence
               </h2>
-              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
+              <p className="text-[9px] sm:text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase truncate">
                 Algorithmic pattern-based forecasting engine
               </p>
             </div>
           </div>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-violet-600/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-violet-600/30 text-purple-400 transition-all text-xs font-light"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-violet-600/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-violet-600/30 text-purple-400 transition-all text-xs font-light flex-shrink-0 w-full sm:w-auto justify-center sm:justify-start"
           >
             <Zap className="h-3.5 w-3.5" />
             Analyze
@@ -279,7 +279,7 @@ const PredictiveIntelligenceView = () => {
             <p className="text-xs text-muted-foreground">
               Aureon's prediction algorithm: signal detection → scoring → Jaccard pattern matching → 5-factor confidence → time estimation → AI intelligence briefing.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={companyInput}
                 onChange={e => setCompanyInput(e.target.value)}
@@ -291,7 +291,7 @@ const PredictiveIntelligenceView = () => {
               {generating ? (
                 <button
                   onClick={cancelGeneration}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-all text-sm"
+                  className="flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-all text-sm flex-shrink-0"
                 >
                   <XCircle className="h-4 w-4" />
                   Cancel
@@ -300,7 +300,7 @@ const PredictiveIntelligenceView = () => {
                 <button
                   onClick={generatePredictions}
                   disabled={!companyInput.trim()}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 transition-all text-sm disabled:opacity-40"
+                  className="flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 transition-all text-sm disabled:opacity-40 flex-shrink-0"
                 >
                   <Sparkles className="h-4 w-4" />
                   Run Analysis
@@ -441,7 +441,7 @@ const PredictiveIntelligenceView = () => {
                     }}
                     className="w-full p-4 text-left hover:bg-foreground/5 transition-colors rounded-xl"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="flex-shrink-0 p-2 rounded-lg bg-card/50 border border-border/20">
                           <Icon className="h-4 w-4 text-foreground/70" />
@@ -479,9 +479,9 @@ const PredictiveIntelligenceView = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      <div className="flex items-center sm:flex-col sm:items-end gap-2 flex-shrink-0 mt-2 sm:mt-0">
                         <div className="text-right">
-                          <div className={`text-2xl font-light font-mono ${
+                          <div className={`text-lg sm:text-2xl font-light font-mono ${
                             prediction.confidence > 0.75 ? "text-emerald-400" :
                             prediction.confidence > 0.5 ? "text-amber-400" : "text-red-400"
                           }`}>
@@ -489,7 +489,7 @@ const PredictiveIntelligenceView = () => {
                           </div>
                           <div className="text-[9px] text-muted-foreground/40 uppercase tracking-wider">Confidence</div>
                         </div>
-                        <svg width="48" height="48" className="transform -rotate-90">
+                        <svg width="48" height="48" className="transform -rotate-90 hidden sm:block">
                           <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3" className="text-border/20" />
                           <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" strokeWidth="3"
                             strokeDasharray={`${125.6 * prediction.confidence} 125.6`}
@@ -580,7 +580,7 @@ const PredictiveIntelligenceView = () => {
                                       {(signal.signalStrength * 100).toFixed(0)}%
                                     </span>
                                   </div>
-                                  <div className="grid grid-cols-3 gap-3 text-[10px]">
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[10px]">
                                     <div>
                                       <span className="text-muted-foreground/50 block mb-1">Relevance</span>
                                       <MiniBar value={signal.scores?.relevance || 0} />
