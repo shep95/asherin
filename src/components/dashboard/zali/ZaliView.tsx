@@ -471,14 +471,14 @@ const ZaliView = () => {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-3 sm:px-6 py-3 sm:py-4">
+      <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-3 sm:px-6 py-2.5 sm:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <Atom className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
             <div>
-              <h1 className="text-base sm:text-lg font-extralight tracking-wide text-foreground">ZALI</h1>
+              <h1 className="text-sm sm:text-lg font-extralight tracking-wide text-foreground">ZALI</h1>
               <p className="text-[9px] sm:text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">
                 Design Intelligence Lab
               </p>
@@ -488,7 +488,7 @@ const ZaliView = () => {
             {/* Mobile chat toggle */}
             <button
               onClick={() => setShowMobileChat(!showMobileChat)}
-              className="md:hidden p-1.5 rounded-lg border border-border/20 text-muted-foreground hover:text-foreground transition-colors relative"
+              className="md:hidden p-2 rounded-lg border border-border/20 text-muted-foreground hover:text-foreground transition-colors relative active:scale-95"
             >
               <MessageCircle className="h-4 w-4" />
               {messages.length > 0 && (
@@ -501,13 +501,13 @@ const ZaliView = () => {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="mt-3 sm:mt-4 flex gap-1 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+        {/* Tabs - scrollable on mobile */}
+        <div className="mt-2 sm:mt-4 flex gap-0.5 sm:gap-1 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-light transition-colors ${
+              className={`whitespace-nowrap rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs font-light transition-colors flex-shrink-0 active:scale-95 ${
                 activeTab === tab.id
                   ? "bg-foreground/10 text-foreground"
                   : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
@@ -530,9 +530,9 @@ const ZaliView = () => {
       />
 
       {/* Main content */}
-      <div className="flex-1 min-h-0 flex relative">
+      <div className="flex-1 min-h-0 flex relative overflow-hidden">
         {/* Left: Tab content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <ZaliErrorBoundary key={activeTab}>
             {renderTabContent()}
           </ZaliErrorBoundary>
@@ -548,7 +548,7 @@ const ZaliView = () => {
           >
             <div className="w-0.5 h-8 rounded-full bg-border/30 group-hover:bg-accent/50 transition-colors" />
           </div>
-          <div style={{ width: chatWidth }} className="border-l border-border/20 flex flex-col">
+          <div style={{ width: chatWidth }} className="border-l border-border/20 flex flex-col overflow-hidden">
             <ZaliErrorBoundary>
               <ZaliChatPanel
                 messages={messages}
@@ -565,19 +565,19 @@ const ZaliView = () => {
           </div>
         </div>
 
-        {/* Mobile: Chat overlay */}
+        {/* Mobile: Chat overlay - full screen with safe areas */}
         {showMobileChat && (
-          <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-sm flex flex-col md:hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+          <div className="absolute inset-0 z-30 bg-background/98 backdrop-blur-md flex flex-col md:hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/20 flex-shrink-0">
               <h3 className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Conversation</h3>
               <button
                 onClick={() => setShowMobileChat(false)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
                <ZaliChatPanel
                 messages={messages}
                 project={activeProject}

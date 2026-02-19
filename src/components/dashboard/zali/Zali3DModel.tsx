@@ -35,20 +35,20 @@ const Zali3DModel = ({ project, viewMode }: Props) => {
   const exploded = viewMode === "exploded";
 
   return (
-    <div className="w-full h-full min-h-[350px] relative overflow-hidden select-none">
+    <div className="w-full h-full min-h-[280px] sm:min-h-[350px] relative overflow-hidden select-none touch-manipulation">
       {/* Radial background glow */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="w-64 h-64 rounded-full bg-accent/5 blur-3xl" />
+        <div className="w-40 sm:w-64 h-40 sm:h-64 rounded-full bg-accent/5 blur-3xl" />
       </div>
 
       {/* Rotating ring */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
-          className="w-56 h-56 rounded-full border border-accent/10"
+          className="w-36 sm:w-56 h-36 sm:h-56 rounded-full border border-accent/10"
           style={{ animation: "spin 20s linear infinite" }}
         />
         <div
-          className="absolute w-72 h-72 rounded-full border border-border/10"
+          className="absolute w-48 sm:w-72 h-48 sm:h-72 rounded-full border border-border/10"
           style={{ animation: "spin 30s linear infinite reverse" }}
         />
       </div>
@@ -57,16 +57,16 @@ const Zali3DModel = ({ project, viewMode }: Props) => {
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="relative">
           <div
-            className="w-16 h-16 rounded-2xl border border-accent/30 bg-accent/10 backdrop-blur-sm flex items-center justify-center"
+            className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl border border-accent/30 bg-accent/10 backdrop-blur-sm flex items-center justify-center"
             style={{
               animation: "pulse 3s ease-in-out infinite",
               boxShadow: "0 0 30px rgba(0, 255, 204, 0.1)",
             }}
           >
-            <Atom className="h-7 w-7 text-accent/70" style={{ animation: "spin 8s linear infinite" }} />
+            <Atom className="h-5 w-5 sm:h-7 sm:w-7 text-accent/70" style={{ animation: "spin 8s linear infinite" }} />
           </div>
           {/* Core glow */}
-          <div className="absolute inset-0 w-16 h-16 rounded-2xl bg-accent/5 blur-md" />
+          <div className="absolute inset-0 w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-accent/5 blur-md" />
         </div>
       </div>
 
@@ -74,9 +74,10 @@ const Zali3DModel = ({ project, viewMode }: Props) => {
       {equipment.map((eq, i) => {
         const count = equipment.length;
         const angle = (i / count) * 360;
-        const radius = exploded ? 140 : 100;
+        const isMobileView = typeof window !== "undefined" && window.innerWidth < 640;
+        const radius = exploded ? (isMobileView ? 90 : 140) : (isMobileView ? 65 : 100);
         const isHovered = hoveredIndex === i;
-        const size = 28 + ((i * 7 + 3) % 10);
+        const size = isMobileView ? 20 + ((i * 5 + 2) % 8) : 28 + ((i * 7 + 3) % 10);
         const delay = i * 0.3;
 
         return (
@@ -151,7 +152,7 @@ const Zali3DModel = ({ project, viewMode }: Props) => {
       </svg>
 
       {/* Platform base */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-64 h-4 rounded-full bg-gradient-to-r from-transparent via-accent/10 to-transparent blur-sm" />
+      <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 w-40 sm:w-64 h-3 sm:h-4 rounded-full bg-gradient-to-r from-transparent via-accent/10 to-transparent blur-sm" />
 
       {/* Float animation keyframes */}
       <style>{`
