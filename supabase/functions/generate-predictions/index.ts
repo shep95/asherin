@@ -343,68 +343,105 @@ interface SearchResult {
   date: string;
 }
 
-async function searchDDG(query: string): Promise<SearchResult[]> {
-  try {
-    const response = await fetch("https://lite.duckduckgo.com/lite/", {
-      method: "POST",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "text/html",
-      },
-      body: `q=${encodeURIComponent(query)}`,
-    });
-    if (!response.ok) return [];
-    const html = await response.text();
-    const results: SearchResult[] = [];
-
-    const linkRegex = /class='result-link'[^>]*href="([^"]*)"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/gi;
-    const snippetRegex = /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
-
-    const links: { url: string; title: string }[] = [];
-    let match;
-    while ((match = linkRegex.exec(html)) !== null) {
-      let url = match[1].trim();
-      const title = match[2].replace(/<[^>]*>/g, "").trim();
-      if (url.includes("duckduckgo.com/l/")) {
-        const uddg = url.match(/uddg=([^&]*)/);
-        if (uddg) url = decodeURIComponent(uddg[1]);
+async function searchDDG(query: string, retries = 2): Promise<SearchResult[]> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      // Use DuckDuckGo HTML endpoint (more reliable than lite)
+      const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+      });
+      if (!response.ok) {
+        if (attempt < retries) { await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); continue; }
+        return [];
       }
-      if (title && url) links.push({ url, title: cleanHTML(title) });
-    }
+      const html = await response.text();
+      const results: SearchResult[] = [];
 
-    const snippets: string[] = [];
-    while ((match = snippetRegex.exec(html)) !== null) {
-      snippets.push(cleanHTML(match[1].replace(/<[^>]*>/g, "").trim()));
-    }
+      // Parse result links - multiple regex patterns for robustness
+      const links: { url: string; title: string }[] = [];
+      const snippets: string[] = [];
 
-    if (links.length === 0) {
-      const altRegex = /<a[^>]*rel="nofollow"[^>]*href="(https?:\/\/[^"]*)"[^>]*>([^<]+)<\/a>/gi;
-      while ((match = altRegex.exec(html)) !== null) {
-        const url = match[1].trim();
-        const title = match[2].trim();
-        if (title && url && !url.includes("duckduckgo.com")) {
-          links.push({ url, title: cleanHTML(title) });
+      // Pattern 1: Standard result links
+      const linkPatterns = [
+        /class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+        /class='result-link'[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+        /<a[^>]*class="[^"]*result[^"]*"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+      ];
+
+      for (const regex of linkPatterns) {
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+          let linkUrl = match[1].trim();
+          const title = match[2].replace(/<[^>]*>/g, "").trim();
+          // Resolve DDG redirect URLs
+          if (linkUrl.includes("duckduckgo.com")) {
+            const uddg = linkUrl.match(/uddg=([^&]*)/);
+            if (uddg) linkUrl = decodeURIComponent(uddg[1]);
+            else continue;
+          }
+          if (title && linkUrl && linkUrl.startsWith("http") && !links.some(l => l.url === linkUrl)) {
+            links.push({ url: linkUrl, title: cleanHTML(title) });
+          }
+        }
+        if (links.length >= 5) break;
+      }
+
+      // Snippet patterns
+      const snippetPatterns = [
+        /class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi,
+        /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi,
+      ];
+      for (const regex of snippetPatterns) {
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+          snippets.push(cleanHTML(match[1]));
+        }
+        if (snippets.length > 0) break;
+      }
+
+      // Fallback: extract any external links if no results found
+      if (links.length === 0) {
+        const fallbackRegex = /<a[^>]*href="(https?:\/\/(?!duckduckgo)[^"]*)"[^>]*>([^<]{5,})<\/a>/gi;
+        let match;
+        while ((match = fallbackRegex.exec(html)) !== null) {
+          const linkUrl = match[1].trim();
+          const title = match[2].trim();
+          if (title && linkUrl && !links.some(l => l.url === linkUrl)) {
+            links.push({ url: linkUrl, title: cleanHTML(title) });
+          }
+          if (links.length >= 8) break;
         }
       }
-    }
 
-    for (let i = 0; i < Math.min(links.length, 10); i++) {
-      let domain = "unknown";
-      try { domain = new URL(links[i].url).hostname.replace(/^www\./, ""); } catch { /* */ }
-      results.push({
-        title: links[i].title,
-        url: links[i].url,
-        snippet: snippets[i] || "",
-        domain,
-        date: new Date().toISOString(),
-      });
+      for (let i = 0; i < Math.min(links.length, 10); i++) {
+        let domain = "unknown";
+        try { domain = new URL(links[i].url).hostname.replace(/^www\./, ""); } catch { /* */ }
+        results.push({
+          title: links[i].title,
+          url: links[i].url,
+          snippet: snippets[i] || "",
+          domain,
+          date: new Date().toISOString(),
+        });
+      }
+
+      if (results.length > 0) return results;
+      // If no results and we have retries left, wait and retry
+      if (attempt < retries) { await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); continue; }
+      return results;
+    } catch (e) {
+      console.error(`DDG search error (attempt ${attempt + 1}):`, e);
+      if (attempt < retries) { await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); continue; }
+      return [];
     }
-    return results;
-  } catch (e) {
-    console.error("DDG search error:", e);
-    return [];
   }
+  return [];
 }
 
 function cleanHTML(html: string): string {
@@ -702,7 +739,7 @@ serve(async (req) => {
 
     const eventConfigs = getEventConfigs(company);
     const generatedPredictions: any[] = [];
-    const delay = () => new Promise(r => setTimeout(r, 300));
+    const delay = (ms = 800) => new Promise(r => setTimeout(r, ms));
 
     for (const config of eventConfigs) {
       console.log(`[PREDICTIONS] ── Analyzing event type: ${config.eventType} ──`);
@@ -716,10 +753,12 @@ serve(async (req) => {
         let bestScores = { relevance: 0, credibility: 0, recency: 0 };
         let totalResults = 0;
 
-        for (const query of signalDef.searchQueries) {
+        // Use only the first query to reduce rate limiting, use second as fallback
+        for (let qi = 0; qi < signalDef.searchQueries.length; qi++) {
+          const query = signalDef.searchQueries[qi];
           const results = await searchDDG(query);
           totalResults += results.length;
-          await delay();
+          await delay(1000);
 
           for (const result of results) {
             const relevance = calculateRelevance(result, signalDef.keywords);
@@ -733,6 +772,9 @@ serve(async (req) => {
               bestScores = { relevance, credibility, recency };
             }
           }
+
+          // If we got good results from first query, skip remaining queries for this signal
+          if (results.length >= 3 && bestStrength > 0.2) break;
         }
 
         scoredSignals.push({
@@ -750,9 +792,11 @@ serve(async (req) => {
       }
 
       // STEP 2: Aggregate signals (weighted)
-      const activeSignals = scoredSignals.filter(s => s.signalStrength > 0.15);
-      if (activeSignals.length < 2) {
-        console.log(`[PREDICTIONS]   Skipping ${config.eventType}: only ${activeSignals.length} active signals (need ≥2)`);
+      // Lower threshold: any signal with strength > 0 counts, need at least 1 strong signal
+      const activeSignals = scoredSignals.filter(s => s.signalStrength > 0.1);
+      const strongSignals = scoredSignals.filter(s => s.signalStrength > 0.3);
+      if (activeSignals.length === 0 || (activeSignals.length < 2 && strongSignals.length === 0)) {
+        console.log(`[PREDICTIONS]   Skipping ${config.eventType}: only ${activeSignals.length} active signals, ${strongSignals.length} strong (need ≥1 strong or ≥2 active)`);
         continue;
       }
 
