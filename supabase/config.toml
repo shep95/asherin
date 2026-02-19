@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.generate-predictions]
 verify_jwt = false
+
+[functions.elion-execute]
+verify_jwt = false
