@@ -9,7 +9,7 @@ import {
   CheckCircle2, Clock, Loader2, X, Play, RotateCcw,
   Code2, Server, Hash, User, Link2, Key, FileText, Info,
   BookOpen, Crosshair, Radio, ScanLine, ShieldAlert, ShieldCheck,
-  ShieldX, TrendingUp, Target, ExternalLink
+  ShieldX, TrendingUp, Target, ExternalLink, Scan
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ The report synthesizes across all completed module outputs, identifies cross-mod
 
 const ElionView = () => {
   const [selectedModule, setSelectedModule] = useState<ElionModule | null>(null);
-  const [activeTab, setActiveTab] = useState<"modules" | "report" | "about" | "security" | "subdomains">("modules");
+  const [activeTab, setActiveTab] = useState<"modules" | "report" | "about" | "security" | "subdomains" | "fullscan">("modules");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModuleResult[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
@@ -159,6 +159,13 @@ const ElionView = () => {
   const [subdomainTarget, setSubdomainTarget] = useState("");
   const [subdomainOutput, setSubdomainOutput] = useState("");
   const [subdomainLoading, setSubdomainLoading] = useState(false);
+  // Full Scan state
+  const [fullScanDomain, setFullScanDomain] = useState("");
+  const [fullScanSecurityOutput, setFullScanSecurityOutput] = useState("");
+  const [fullScanSubdomainOutput, setFullScanSubdomainOutput] = useState("");
+  const [fullScanSecurityLoading, setFullScanSecurityLoading] = useState(false);
+  const [fullScanSubdomainLoading, setFullScanSubdomainLoading] = useState(false);
+  const [fullScanActivePanel, setFullScanActivePanel] = useState<"security" | "subdomains">("security");
   const abortRef = useRef<AbortController | null>(null);
 
   const toggleCategory = (cat: string) =>
@@ -291,6 +298,37 @@ const ElionView = () => {
     }
   }, [subdomainTarget, ghostMode]);
 
+  const runFullScan = useCallback(async () => {
+    if (!fullScanDomain.trim()) return;
+    setFullScanSecurityOutput("");
+    setFullScanSubdomainOutput("");
+    setFullScanSecurityLoading(true);
+    setFullScanSubdomainLoading(true);
+
+    const domain = fullScanDomain.trim();
+
+    // Fire both in parallel
+    Promise.all([
+      supabase.functions.invoke("elion-execute", {
+        body: { moduleId: "security-score", moduleName: "Domain Security Score", category: "security-score", query: domain, ghostMode },
+      }).then(({ data, error }) => {
+        if (error) throw error;
+        setFullScanSecurityOutput(data.output || "No output returned.");
+      }).catch((e: any) => {
+        setFullScanSecurityOutput(`Error: ${e.message}`);
+      }).finally(() => setFullScanSecurityLoading(false)),
+
+      supabase.functions.invoke("elion-execute", {
+        body: { moduleId: "subdomain-scan", moduleName: "Subdomain Security Analysis", category: "subdomain-scan", query: domain, ghostMode },
+      }).then(({ data, error }) => {
+        if (error) throw error;
+        setFullScanSubdomainOutput(data.output || "No output returned.");
+      }).catch((e: any) => {
+        setFullScanSubdomainOutput(`Error: ${e.message}`);
+      }).finally(() => setFullScanSubdomainLoading(false)),
+    ]);
+  }, [fullScanDomain, ghostMode]);
+
   const downloadOutput = (result: ModuleResult) => {
     const blob = new Blob([result.output], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -324,7 +362,7 @@ const ElionView = () => {
           <p className="text-[10px] font-light text-muted-foreground/50">Forensic OSINT Toolkit</p>
         </div>
 
-        {/* Tab Nav — two rows for 5 tabs */}
+        {/* Tab Nav — two rows */}
         <div className="flex-shrink-0 border-b border-border/20">
           <div className="flex">
             {([
@@ -348,6 +386,7 @@ const ElionView = () => {
           </div>
           <div className="flex border-t border-border/10">
             {([
+              { id: "fullscan", label: "Full Scan", icon: Scan },
               { id: "security", label: "Sec Score", icon: ShieldAlert },
               { id: "subdomains", label: "Subdomains", icon: ScanLine },
             ] as const).map(({ id, label, icon: Icon }) => (
@@ -504,6 +543,29 @@ const ElionView = () => {
           </div>
         )}
 
+        {activeTab === "fullscan" && (
+          <div className="flex-1 flex flex-col items-center justify-center p-4 gap-3 text-center">
+            <Scan className="h-7 w-7 text-accent/50" />
+            <p className="text-[10px] font-light text-muted-foreground/60 leading-relaxed">
+              Enter a domain to run Security Score + Subdomain Intelligence simultaneously
+            </p>
+            {(fullScanSecurityOutput || fullScanSubdomainOutput) && (
+              <div className="w-full space-y-1 mt-1">
+                <div className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] ${fullScanSecurityOutput ? "bg-emerald-500/10 text-emerald-400" : "bg-foreground/5 text-muted-foreground/50"}`}>
+                  <ShieldAlert className="h-3 w-3 flex-shrink-0" />
+                  <span>Security Score</span>
+                  {fullScanSecurityOutput && <CheckCircle2 className="h-3 w-3 ml-auto" />}
+                </div>
+                <div className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[10px] ${fullScanSubdomainOutput ? "bg-emerald-500/10 text-emerald-400" : "bg-foreground/5 text-muted-foreground/50"}`}>
+                  <ScanLine className="h-3 w-3 flex-shrink-0" />
+                  <span>Subdomain Map</span>
+                  {fullScanSubdomainOutput && <CheckCircle2 className="h-3 w-3 ml-auto" />}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "about" && (
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-3 space-y-1">
@@ -544,6 +606,245 @@ const ElionView = () => {
 
       {/* ── Main Workspace ── */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+
+        {/* ── Full Domain Scan Tab ── */}
+        {activeTab === "fullscan" && (
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+            {/* Header */}
+            <div className="flex-shrink-0 px-6 py-4 border-b border-border/20 bg-card/10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-xl border border-border/20 bg-card/40 p-2.5">
+                  <Scan className="h-5 w-5 text-accent" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extralight tracking-wide text-foreground">Full Domain Scan</h2>
+                    <span className="text-[9px] tracking-widest uppercase border rounded px-1.5 py-0.5 text-accent border-accent/20">All Modules</span>
+                  </div>
+                  <p className="text-xs font-light text-muted-foreground mt-0.5">
+                    One domain — runs Security Score & Subdomain Intelligence simultaneously
+                  </p>
+                </div>
+              </div>
+
+              {/* Single domain input */}
+              <div className="flex gap-2">
+                <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/30 bg-card/30 px-4 py-2.5 focus-within:border-accent/40 transition-colors">
+                  <Globe className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                  <input
+                    value={fullScanDomain}
+                    onChange={(e) => setFullScanDomain(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") runFullScan(); }}
+                    placeholder="example.com"
+                    className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  {fullScanDomain && (
+                    <button
+                      onClick={() => { setFullScanDomain(""); setFullScanSecurityOutput(""); setFullScanSubdomainOutput(""); }}
+                      className="p-0.5 text-muted-foreground/50 hover:text-foreground transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={runFullScan}
+                  disabled={!fullScanDomain.trim() || (fullScanSecurityLoading && fullScanSubdomainLoading)}
+                  className="flex items-center gap-2 rounded-xl bg-accent/20 px-5 py-2.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-40"
+                >
+                  {(fullScanSecurityLoading || fullScanSubdomainLoading) ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Scan className="h-4 w-4" />
+                  )}
+                  Scan All
+                </button>
+              </div>
+
+              {/* Status bar when running */}
+              {(fullScanSecurityLoading || fullScanSubdomainLoading) && (
+                <div className="mt-3 flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                    {fullScanSecurityLoading ? (
+                      <Loader2 className="h-3 w-3 text-accent animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                    )}
+                    Security Score
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                    {fullScanSubdomainLoading ? (
+                      <Loader2 className="h-3 w-3 text-accent animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                    )}
+                    Subdomain Intelligence
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Results panel switcher */}
+            {(fullScanSecurityOutput || fullScanSubdomainOutput || fullScanSecurityLoading || fullScanSubdomainLoading) && (
+              <div className="flex-shrink-0 flex border-b border-border/15 bg-card/5">
+                {([
+                  { id: "security" as const, label: "Security Score", icon: ShieldAlert, loading: fullScanSecurityLoading, done: !!fullScanSecurityOutput },
+                  { id: "subdomains" as const, label: "Subdomain Map", icon: ScanLine, loading: fullScanSubdomainLoading, done: !!fullScanSubdomainOutput },
+                ]).map(({ id, label, icon: Icon, loading, done }) => (
+                  <button
+                    key={id}
+                    onClick={() => setFullScanActivePanel(id)}
+                    className={`flex items-center gap-2 px-5 py-2.5 text-xs font-light border-b-2 transition-all ${
+                      fullScanActivePanel === id
+                        ? "text-accent border-accent"
+                        : "text-muted-foreground/50 border-transparent hover:text-muted-foreground"
+                    }`}
+                  >
+                    {loading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : done ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Icon className="h-3.5 w-3.5" />
+                    )}
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-6 max-w-3xl mx-auto">
+                {/* Empty state */}
+                {!fullScanSecurityOutput && !fullScanSubdomainOutput && !fullScanSecurityLoading && !fullScanSubdomainLoading && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+                    <div className="rounded-2xl border border-border/20 bg-card/20 p-8 max-w-md space-y-4">
+                      <div className="flex items-center justify-center gap-3">
+                        <ShieldAlert className="h-8 w-8 text-muted-foreground/20" />
+                        <Scan className="h-10 w-10 text-muted-foreground/20" />
+                        <ScanLine className="h-8 w-8 text-muted-foreground/20" />
+                      </div>
+                      <p className="text-sm font-extralight text-muted-foreground">Full Domain Intelligence Scan</p>
+                      <p className="text-xs text-muted-foreground/40 leading-relaxed">
+                        Enter any domain and Elion will simultaneously run a full Security Score audit and Subdomain Intelligence mapping — all results available in a single session.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        {[
+                          { icon: ShieldAlert, label: "Security Score", desc: "0–100 forensic rating" },
+                          { icon: ScanLine, label: "Subdomain Map", desc: "Attack surface recon" },
+                          { icon: Lock, label: "TLS & Headers", desc: "Full config audit" },
+                          { icon: AlertTriangle, label: "Exploit Vectors", desc: "Live threat analysis" },
+                        ].map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div key={item.label} className="rounded-lg border border-border/15 bg-card/15 p-3 text-left">
+                              <Icon className="h-3.5 w-3.5 text-accent/60 mb-1.5" />
+                              <p className="text-[11px] font-light text-foreground">{item.label}</p>
+                              <p className="text-[10px] text-muted-foreground/50">{item.desc}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Security panel */}
+                {(fullScanActivePanel === "security" || (!fullScanSubdomainOutput && !fullScanSubdomainLoading)) &&
+                  (fullScanSecurityOutput || fullScanSecurityLoading) && (
+                  <div>
+                    {fullScanSecurityLoading ? (
+                      <div className="flex flex-col items-center justify-center py-16 gap-4">
+                        <div className="relative">
+                          <ShieldAlert className="h-10 w-10 text-accent/30" />
+                          <Loader2 className="h-4 w-4 text-accent animate-spin absolute -bottom-1 -right-1" />
+                        </div>
+                        <div className="text-center space-y-1">
+                          <p className="text-sm font-extralight text-foreground">Auditing security posture</p>
+                          <p className="text-xs text-muted-foreground/50">Analyzing headers, TLS, DNS, CORS...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      fullScanActivePanel === "security" && fullScanSecurityOutput && (
+                        <div>
+                          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/20">
+                            <ShieldAlert className="h-4 w-4 text-accent" />
+                            <span className="text-xs font-extralight tracking-[0.2em] text-accent">SECURITY SCORE REPORT</span>
+                            <span className="text-muted-foreground/20">|</span>
+                            <span className="text-[10px] text-muted-foreground/40 font-light tracking-wider uppercase">{fullScanDomain}</span>
+                            <button onClick={() => navigator.clipboard.writeText(fullScanSecurityOutput)} className="ml-auto p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors">
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <div className="prose prose-sm prose-invert max-w-none">
+                            <ReactMarkdown components={{
+                              h1: ({ children }) => <h1 className="text-xl font-extralight tracking-wide text-foreground mt-6 mb-3 first:mt-0">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-base font-extralight tracking-wide text-foreground mt-5 mb-2 flex items-center gap-2"><span className="h-px flex-1 bg-border/20" /><span>{children}</span><span className="h-px flex-1 bg-border/20" /></h2>,
+                              h3: ({ children }) => <h3 className="text-sm font-light text-foreground/90 mt-4 mb-1.5">{children}</h3>,
+                              p: ({ children }) => <p className="text-sm font-light text-muted-foreground leading-relaxed mb-3">{children}</p>,
+                              strong: ({ children }) => <strong className="text-foreground font-normal">{children}</strong>,
+                              ul: ({ children }) => <ul className="space-y-1 mb-3 pl-4">{children}</ul>,
+                              li: ({ children }) => <li className="text-sm font-light text-muted-foreground flex items-start gap-2 before:content-['▸'] before:text-accent/50 before:text-xs before:mt-0.5 before:flex-shrink-0">{children}</li>,
+                              code: ({ children }) => <code className="text-xs font-mono text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded">{children}</code>,
+                              hr: () => <hr className="border-border/20 my-4" />,
+                            }}>
+                              {fullScanSecurityOutput}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+
+                {/* Subdomain panel */}
+                {fullScanActivePanel === "subdomains" && (fullScanSubdomainOutput || fullScanSubdomainLoading) && (
+                  <div>
+                    {fullScanSubdomainLoading ? (
+                      <div className="flex flex-col items-center justify-center py-16 gap-4">
+                        <div className="relative">
+                          <ScanLine className="h-10 w-10 text-accent/30" />
+                          <Loader2 className="h-4 w-4 text-accent animate-spin absolute -bottom-1 -right-1" />
+                        </div>
+                        <div className="text-center space-y-1">
+                          <p className="text-sm font-extralight text-foreground">Enumerating subdomains</p>
+                          <p className="text-xs text-muted-foreground/50">Mapping attack surface and DNS records...</p>
+                        </div>
+                      </div>
+                    ) : fullScanSubdomainOutput && (
+                      <div>
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/20">
+                          <ScanLine className="h-4 w-4 text-accent" />
+                          <span className="text-xs font-extralight tracking-[0.2em] text-accent">SUBDOMAIN INTELLIGENCE MAP</span>
+                          <span className="text-muted-foreground/20">|</span>
+                          <span className="text-[10px] text-muted-foreground/40 font-light tracking-wider uppercase">{fullScanDomain}</span>
+                          <button onClick={() => navigator.clipboard.writeText(fullScanSubdomainOutput)} className="ml-auto p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors">
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="prose prose-sm prose-invert max-w-none">
+                          <ReactMarkdown components={{
+                            h1: ({ children }) => <h1 className="text-xl font-extralight tracking-wide text-foreground mt-6 mb-3 first:mt-0">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-extralight tracking-wide text-foreground mt-5 mb-2 flex items-center gap-2"><span className="h-px flex-1 bg-border/20" /><span>{children}</span><span className="h-px flex-1 bg-border/20" /></h2>,
+                            h3: ({ children }) => <h3 className="text-sm font-light text-foreground/90 mt-4 mb-1.5">{children}</h3>,
+                            p: ({ children }) => <p className="text-sm font-light text-muted-foreground leading-relaxed mb-3">{children}</p>,
+                            strong: ({ children }) => <strong className="text-foreground font-normal">{children}</strong>,
+                            ul: ({ children }) => <ul className="space-y-1 mb-3 pl-4">{children}</ul>,
+                            li: ({ children }) => <li className="text-sm font-light text-muted-foreground flex items-start gap-2 before:content-['▸'] before:text-accent/50 before:text-xs before:mt-0.5 before:flex-shrink-0">{children}</li>,
+                            code: ({ children }) => <code className="text-xs font-mono text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded">{children}</code>,
+                            hr: () => <hr className="border-border/20 my-4" />,
+                          }}>
+                            {fullScanSubdomainOutput}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
 
         {/* ── Security Score Tab ── */}
         {activeTab === "security" && (
