@@ -1,7 +1,7 @@
-import { Search, MessageSquare, Code, Shield, type LucideIcon } from "lucide-react";
+import { Search, MessageSquare, Code, Shield } from "lucide-react";
 import type { ChatMode } from "./types";
 
-const modes: { id: ChatMode; label: string; icon: LucideIcon; desc: string }[] = [
+const modes: { id: ChatMode; label: string; icon: React.ElementType; desc: string }[] = [
   { id: "research", label: "Research", icon: Search, desc: "Web search, cited sources" },
   { id: "chat", label: "Chat", icon: MessageSquare, desc: "Pure LLM, fastest" },
   { id: "code", label: "Code", icon: Code, desc: "Code-optimized output" },

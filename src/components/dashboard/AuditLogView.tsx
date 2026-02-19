@@ -15,7 +15,7 @@ interface AuditEntry {
   created_at: string;
 }
 
-const actionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const actionIcons: Record<string, React.ElementType> = {
   team_created: UserPlus,
   invite_sent: UserPlus,
   invite_accepted: UserPlus,

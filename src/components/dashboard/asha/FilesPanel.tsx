@@ -40,7 +40,7 @@ const inferSource = (fileName: string, fileType: string, storagePath: string): "
   return "upload";
 };
 
-const sourceLabels: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
+const sourceLabels: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   upload: { label: "Uploads", icon: Upload, color: "text-blue-400" },
   webintel: { label: "Web Intelligence", icon: Globe, color: "text-emerald-400" },
   generated: { label: "Generated Reports", icon: Sparkles, color: "text-amber-400" },

@@ -19,7 +19,7 @@ const tiers = {
 type Tier = keyof typeof tiers;
 
 interface Feature {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ElementType;
   title: string;
   description: string;
   details: string[];

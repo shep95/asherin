@@ -34,7 +34,7 @@ interface TeamInvite {
   created_at: string;
 }
 
-const TEAM_ICONS: { icon: React.ComponentType<{ className?: string }>; label: string }[] = [
+const TEAM_ICONS: { icon: React.ElementType; label: string }[] = [
   { icon: Building2, label: "building" },
   { icon: Briefcase, label: "briefcase" },
   { icon: Globe, label: "globe" },
@@ -52,7 +52,7 @@ const getTeamIcon = (iconStr: string) => {
   return found?.icon ?? Building2;
 };
 
-const roleIcons: Record<string, React.ComponentType<{ className?: string }>> = { owner: Crown, admin: Shield, analyst: BarChart3, viewer: Eye };
+const roleIcons: Record<string, React.ElementType> = { owner: Crown, admin: Shield, analyst: BarChart3, viewer: Eye };
 const roleColors: Record<string, string> = { owner: "text-foreground/80", admin: "text-foreground/60", analyst: "text-foreground/50", viewer: "text-muted-foreground" };
 
 const TeamsView = () => {

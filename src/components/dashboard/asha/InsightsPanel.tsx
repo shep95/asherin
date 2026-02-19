@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
 
-const typeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
+const typeIcon: Record<string, React.ElementType> = {
   trend: TrendingUp, anomaly: AlertTriangle, relationship: Share2,
   correlation: BarChart3, gap: HelpCircle, forecast: LineChart,
 };

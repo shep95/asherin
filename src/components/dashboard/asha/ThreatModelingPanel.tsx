@@ -24,7 +24,7 @@ interface ThreatAnalysis {
   createdAt: Date;
 }
 
-const THREAT_TYPES: { id: ThreatType; icon: React.ComponentType<{ className?: string }>; label: string; desc: string }[] = [
+const THREAT_TYPES: { id: ThreatType; icon: React.ElementType; label: string; desc: string }[] = [
   { id: "competitive", icon: Target, label: "Competitive Threat", desc: "Analyze competitor moves, patent filings, hiring patterns, market positioning." },
   { id: "churn", icon: TrendingDown, label: "Customer Churn", desc: "Detect pre-churn behavioral patterns: login frequency, support tickets, feature decline." },
   { id: "fraud", icon: Shield, label: "Fraud Detection", desc: "Flag anomalous transactions: impossible travel, velocity gaming, deviation scores." },

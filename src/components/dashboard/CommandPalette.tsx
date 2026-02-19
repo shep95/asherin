@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, Plus, MessageSquare, Code, FlaskConical, Shield, FolderOpen, Layers, Brain, BarChart3, Settings, Focus, Download, FileText, Upload, Moon, Sun, Database, Crosshair, Newspaper, Users, Globe, Activity, Puzzle, ClipboardList, Code2, CreditCard, Bell, Hexagon, type LucideIcon } from "lucide-react";
+import { Search, Plus, MessageSquare, Code, FlaskConical, Shield, FolderOpen, Layers, Brain, BarChart3, Settings, Focus, Download, FileText, Upload, Moon, Sun, Database, Crosshair, Newspaper, Users, Globe, Activity, Puzzle, ClipboardList, Code2, CreditCard, Bell } from "lucide-react";
 import type { ChatMode, DashboardView } from "./types";
 
 interface CommandPaletteProps {
@@ -15,7 +15,7 @@ interface Command {
   id: string;
   label: string;
   category: string;
-  icon: LucideIcon;
+  icon: React.ElementType;
   action: () => void;
   keywords?: string[];
   shortcut?: string;
@@ -62,7 +62,6 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
     { id: "truth-mode", label: "Switch to Truth Mode", category: "Modes", icon: Shield, action: wrap("truth-mode", () => onModeChange("truth")), shortcut: "⌘4" },
     // Navigation
     { id: "search", label: "Zophiel Engine", category: "Navigation", icon: Search, action: wrap("search", () => onViewChange("search")), keywords: ["zophiel", "search", "intelligence"] },
-    { id: "zali", label: "ZALI Design Lab", category: "Navigation", icon: Hexagon, action: wrap("zali", () => onViewChange("zali")), keywords: ["design", "3d", "hologram", "simulation"] },
     { id: "asha", label: "Asha Intelligence", category: "Navigation", icon: Database, action: wrap("asha", () => onViewChange("asha")), keywords: ["data", "analysis", "dataset"] },
     { id: "nomad", label: "NOMAD Agent", category: "Navigation", icon: Crosshair, action: wrap("nomad", () => onViewChange("nomad")), keywords: ["osint", "investigate"] },
     { id: "briefing", label: "Intel Briefings", category: "Navigation", icon: Newspaper, action: wrap("briefing", () => onViewChange("briefing")), keywords: ["news", "morning"] },

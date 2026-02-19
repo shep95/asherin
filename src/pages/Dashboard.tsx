@@ -9,7 +9,7 @@ const WALLPAPER_MAP: Record<string, string> = {
   eclipse: wallpaperEclipse,
   glitch: wallpaperGlitch,
 };
-import React, { lazy, Suspense } from "react";
+import React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Conversation, ChatMode, DashboardView, Message, Persona } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
@@ -26,7 +26,6 @@ import SettingsView from "@/components/dashboard/SettingsView";
 import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AshaView from "@/components/dashboard/asha/AshaView";
-const ZaliView = lazy(() => import("@/components/dashboard/zali/ZaliView"));
 import NomadView from "@/components/dashboard/NomadView";
 import BriefingView from "@/components/dashboard/BriefingView";
 import TeamsView from "@/components/dashboard/TeamsView";
@@ -100,7 +99,6 @@ const Dashboard = () => {
   const processingQueue = useRef(false);
   const pendingQueue = useRef<string[]>([]);
   const isStreamingRef = useRef(false);
-  const conversationsRef = useRef<Conversation[]>([]);
   const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
   const [queuePaused, setQueuePaused] = useState(false);
   const queuePausedRef = useRef(false);
@@ -127,11 +125,6 @@ const Dashboard = () => {
     window.addEventListener("aureon-wallpaper-change", handler);
     return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
   }, []);
-
-  // Keep conversationsRef in sync for stale closure access
-  useEffect(() => {
-    conversationsRef.current = conversations;
-  }, [conversations]);
 
   // Online/offline detection
   useEffect(() => {
@@ -451,7 +444,7 @@ const Dashboard = () => {
     setSuggestions([]);
 
     const tempMsgId = crypto.randomUUID();
-    const conv = conversationsRef.current.find(c => c.id === convId);
+    const conv = conversations.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date() };
     const isFirst = conv?.messages.length === 0;
     if (isFirst) {
@@ -631,9 +624,11 @@ const Dashboard = () => {
   // Public sendMessage — adds to queue and kicks off processing
   const sendMessage = async (content: string) => {
     if (!user || !activeConvId) return;
-    // If currently streaming, queue only — do NOT add to conversation messages yet
+    // If currently streaming, show queued status and add to queue
     if (isStreamingRef.current) {
       const tempId = crypto.randomUUID();
+      const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date() };
+      setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
       setMessageStatuses(prev => ({ ...prev, [tempId]: "queued" }));
       const queueEntry = `${activeConvId}||${content}`;
       pendingQueue.current.push(queueEntry);
@@ -763,10 +758,6 @@ const Dashboard = () => {
         return hasProAccess(tierKey) 
           ? <AshaView /> 
           : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "zali":
-        return hasProAccess(tierKey)
-          ? <Suspense fallback={<div className="flex h-full items-center justify-center text-muted-foreground text-sm animate-pulse">Loading ZALI...</div>}><ZaliView /></Suspense>
-          : <FeatureGate title="ZALI Design Lab" description="Universal Design Intelligence System. Design from atoms to universes with holographic visualization and first-principles reasoning. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "nomad": 
         return hasProAccess(tierKey) 
           ? <NomadView /> 

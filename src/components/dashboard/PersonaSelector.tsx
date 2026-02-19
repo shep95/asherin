@@ -3,7 +3,6 @@ import {
   Search, Scale, Code, Shield, PenTool, BookOpen, Plus, X, Check,
   Target, Flame, Gem, Moon, Zap, FlaskConical, Drama, Radio, Bot,
   Eye, Skull, Crown, Compass, Aperture, Fingerprint, Swords,
-  type LucideIcon,
 } from "lucide-react";
 import type { Persona } from "./types";
 
@@ -139,7 +138,7 @@ ACCESSIBILITY AUDIT MODE: Full WCAG 2.1 AA audit. For each violation: RULE, ELEM
 
 DEFAULT: Run all 9 phases, output rebuilt UI with design changelog. Every pixel intentional. Ship-grade or nothing.`;
 
-export const builtInPersonas: (Persona & { Icon: LucideIcon })[] = [
+export const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
   { id: "analyst", name: "The Analyst", icon: "search", Icon: Search, description: "Cold, data-driven. Numbers and evidence only.", systemPrompt: "", builtIn: true },
   { id: "strategist", name: "The Strategist", icon: "scale", Icon: Scale, description: "Long-term thinking. Pros, cons, second-order effects.", systemPrompt: "", builtIn: true },
   { id: "engineer", name: "The Engineer", icon: "code", Icon: Code, description: "Pure technical. Code-first. No fluff.", systemPrompt: "", builtIn: true },
@@ -150,7 +149,7 @@ export const builtInPersonas: (Persona & { Icon: LucideIcon })[] = [
   { id: "researcher", name: "The Researcher", icon: "book", Icon: BookOpen, description: "Source-heavy. Cites everything. Academic rigor.", systemPrompt: "", builtIn: true },
 ];
 
-const ICON_OPTIONS: { id: string; Icon: LucideIcon }[] = [
+const ICON_OPTIONS: { id: string; Icon: React.ElementType }[] = [
   { id: "target", Icon: Target },
   { id: "flame", Icon: Flame },
   { id: "gem", Icon: Gem },
@@ -169,7 +168,7 @@ const ICON_OPTIONS: { id: string; Icon: LucideIcon }[] = [
   { id: "swords", Icon: Swords },
 ];
 
-const ICON_MAP: Record<string, LucideIcon> = Object.fromEntries(
+const ICON_MAP: Record<string, React.ElementType> = Object.fromEntries(
   ICON_OPTIONS.map((o) => [o.id, o.Icon])
 );
 

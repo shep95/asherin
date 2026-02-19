@@ -14,7 +14,7 @@ interface EntityMatch {
   entityType: string;
 }
 
-const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const typeIcons: Record<string, React.ElementType> = {
   person: Users, company: Building2, transaction: CreditCard, product: FileText,
 };
 

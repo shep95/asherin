@@ -52,7 +52,7 @@ interface PredictionResult {
   direction: "up" | "down" | "neutral";
 }
 
-const PREDICTION_TYPES: { id: PredictionType; icon: React.ComponentType<{ className?: string }>; label: string; desc: string; examples: string[] }[] = [
+const PREDICTION_TYPES: { id: PredictionType; icon: React.ElementType; label: string; desc: string; examples: string[] }[] = [
   {
     id: "timeseries", icon: TrendingUp, label: "Time Series Forecast",
     desc: "What will this number be in the future?",
@@ -80,7 +80,7 @@ const PREDICTION_TYPES: { id: PredictionType; icon: React.ComponentType<{ classN
   },
 ];
 
-const STEPS: { id: WizardStep; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const STEPS: { id: WizardStep; label: string; icon: React.ElementType }[] = [
   { id: "type", label: "Prediction Type", icon: Brain },
   { id: "data", label: "Select Data", icon: Database },
   { id: "target", label: "Define Target", icon: Target },

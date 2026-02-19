@@ -18,7 +18,7 @@ interface BenchmarkSection {
   id: string;
   number: string;
   title: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ElementType;
   criteria: Criterion[];
 }
 
