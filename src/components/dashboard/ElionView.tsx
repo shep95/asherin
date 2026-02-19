@@ -6,9 +6,10 @@ import {
   Shield, Search, Globe, Cpu, Eye, GitBranch, Layers, Activity,
   FileSearch, Terminal, Network, Database, Lock, Unlock, Zap,
   ChevronRight, ChevronDown, Copy, Download, AlertTriangle,
-  CheckCircle2, Clock, Loader2, X, Plus, Play, RotateCcw,
+  CheckCircle2, Clock, Loader2, X, Play, RotateCcw,
   Code2, Server, Hash, User, Link2, Key, FileText, Info,
-  BookOpen, Crosshair, Radio
+  BookOpen, Crosshair, Radio, ScanLine, ShieldAlert, ShieldCheck,
+  ShieldX, TrendingUp, Target, ExternalLink
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -137,7 +138,7 @@ The report synthesizes across all completed module outputs, identifies cross-mod
 
 const ElionView = () => {
   const [selectedModule, setSelectedModule] = useState<ElionModule | null>(null);
-  const [activeTab, setActiveTab] = useState<"modules" | "report" | "about">("modules");
+  const [activeTab, setActiveTab] = useState<"modules" | "report" | "about" | "security" | "subdomains">("modules");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ModuleResult[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
@@ -152,6 +153,12 @@ const ElionView = () => {
   const [ghostMode, setGhostMode] = useState(false);
   const [reportOutput, setReportOutput] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
+  const [securityDomain, setSecurityDomain] = useState("");
+  const [securityOutput, setSecurityOutput] = useState("");
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [subdomainTarget, setSubdomainTarget] = useState("");
+  const [subdomainOutput, setSubdomainOutput] = useState("");
+  const [subdomainLoading, setSubdomainLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const toggleCategory = (cat: string) =>
@@ -249,6 +256,41 @@ const ElionView = () => {
   }, [completedResults, ghostMode]);
 
   const copyOutput = (text: string) => navigator.clipboard.writeText(text);
+
+  const runSecurityScore = useCallback(async () => {
+    if (!securityDomain.trim()) return;
+    setSecurityLoading(true);
+    setSecurityOutput("");
+    try {
+      const { data, error } = await supabase.functions.invoke("elion-execute", {
+        body: { moduleId: "security-score", moduleName: "Domain Security Score", category: "security-score", query: securityDomain.trim(), ghostMode },
+      });
+      if (error) throw error;
+      setSecurityOutput(data.output || "No output returned.");
+    } catch (e: any) {
+      setSecurityOutput(`Error: ${e.message}`);
+    } finally {
+      setSecurityLoading(false);
+    }
+  }, [securityDomain, ghostMode]);
+
+  const runSubdomainScan = useCallback(async () => {
+    if (!subdomainTarget.trim()) return;
+    setSubdomainLoading(true);
+    setSubdomainOutput("");
+    try {
+      const { data, error } = await supabase.functions.invoke("elion-execute", {
+        body: { moduleId: "subdomain-scan", moduleName: "Subdomain Security Analysis", category: "subdomain-scan", query: subdomainTarget.trim(), ghostMode },
+      });
+      if (error) throw error;
+      setSubdomainOutput(data.output || "No output returned.");
+    } catch (e: any) {
+      setSubdomainOutput(`Error: ${e.message}`);
+    } finally {
+      setSubdomainLoading(false);
+    }
+  }, [subdomainTarget, ghostMode]);
+
   const downloadOutput = (result: ModuleResult) => {
     const blob = new Blob([result.output], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -282,27 +324,49 @@ const ElionView = () => {
           <p className="text-[10px] font-light text-muted-foreground/50">Forensic OSINT Toolkit</p>
         </div>
 
-        {/* Tab Nav */}
-        <div className="flex-shrink-0 flex border-b border-border/20">
-          {([
-            { id: "modules", label: "Modules", icon: Terminal },
-            { id: "report", label: "Report", icon: FileText },
-            { id: "about", label: "About", icon: Info },
-          ] as const).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-light tracking-wider transition-colors ${
-                activeTab === id
-                  ? "text-accent border-b-2 border-accent"
-                  : "text-muted-foreground/50 hover:text-muted-foreground"
-              }`}
-            >
-              <Icon className="h-3 w-3" />
-              {label}
-            </button>
-          ))}
+        {/* Tab Nav — two rows for 5 tabs */}
+        <div className="flex-shrink-0 border-b border-border/20">
+          <div className="flex">
+            {([
+              { id: "modules", label: "Modules", icon: Terminal },
+              { id: "report", label: "Report", icon: FileText },
+              { id: "about", label: "About", icon: Info },
+            ] as const).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[9px] font-light tracking-wider transition-colors ${
+                  activeTab === id
+                    ? "text-accent border-b-2 border-accent"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
+                }`}
+              >
+                <Icon className="h-3 w-3" />
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex border-t border-border/10">
+            {([
+              { id: "security", label: "Sec Score", icon: ShieldAlert },
+              { id: "subdomains", label: "Subdomains", icon: ScanLine },
+            ] as const).map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[9px] font-light tracking-wider transition-colors ${
+                  activeTab === id
+                    ? "text-accent border-b-2 border-accent"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
+                }`}
+              >
+                <Icon className="h-3 w-3" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
+
 
         {/* Ghost Mode Toggle */}
         <div className="flex-shrink-0 px-3 py-2 border-b border-border/20">
@@ -480,6 +544,250 @@ const ElionView = () => {
 
       {/* ── Main Workspace ── */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+
+        {/* ── Security Score Tab ── */}
+        {activeTab === "security" && (
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+            <div className="flex-shrink-0 px-6 py-4 border-b border-border/20 bg-card/10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-border/20 bg-card/40 p-2.5">
+                    <ShieldAlert className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-extralight tracking-wide text-foreground">App Security Score</h2>
+                      <span className="text-[9px] tracking-widest uppercase border rounded px-1.5 py-0.5 text-accent border-accent/20">Domain Audit</span>
+                    </div>
+                    <p className="text-xs font-light text-muted-foreground mt-0.5">Forensic security rating for any domain or application</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/30 bg-card/30 px-4 py-2.5 focus-within:border-accent/40 transition-colors">
+                  <Globe className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                  <input
+                    value={securityDomain}
+                    onChange={(e) => setSecurityDomain(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") runSecurityScore(); }}
+                    placeholder="example.com or https://app.example.com"
+                    className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  {securityDomain && (
+                    <button onClick={() => { setSecurityDomain(""); setSecurityOutput(""); }} className="p-0.5 text-muted-foreground/50 hover:text-foreground transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={runSecurityScore}
+                  disabled={!securityDomain.trim() || securityLoading}
+                  className="flex items-center gap-2 rounded-xl bg-accent/20 px-4 py-2.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-40"
+                >
+                  {securityLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Audit
+                </button>
+              </div>
+            </div>
+
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-6 max-w-3xl mx-auto">
+                {securityLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <div className="relative">
+                      <ShieldAlert className="h-10 w-10 text-accent/30" />
+                      <Loader2 className="h-4 w-4 text-accent animate-spin absolute -bottom-1 -right-1" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-extralight text-foreground">Aureon is auditing domain security posture</p>
+                      <p className="text-xs text-muted-foreground/50">Analyzing headers, TLS, DNS, and application surface...</p>
+                    </div>
+                  </div>
+                ) : securityOutput ? (
+                  <div>
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/20">
+                      <ShieldAlert className="h-4 w-4 text-accent" />
+                      <span className="text-xs font-extralight tracking-[0.2em] text-accent">ELION SECURITY AUDIT</span>
+                      <span className="text-muted-foreground/20">|</span>
+                      <span className="text-[10px] text-muted-foreground/40 font-light tracking-wider uppercase">{securityDomain}</span>
+                      <button onClick={() => navigator.clipboard.writeText(securityOutput)} className="ml-auto p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors" title="Copy">
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="prose prose-sm prose-invert max-w-none">
+                      <ReactMarkdown
+                        components={{
+                          h1: ({ children }) => <h1 className="text-xl font-extralight tracking-wide text-foreground mt-6 mb-3 first:mt-0">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-extralight tracking-wide text-foreground mt-5 mb-2 flex items-center gap-2"><span className="h-px flex-1 bg-border/20" /><span>{children}</span><span className="h-px flex-1 bg-border/20" /></h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-light text-foreground/90 mt-4 mb-1.5">{children}</h3>,
+                          p: ({ children }) => <p className="text-sm font-light text-muted-foreground leading-relaxed mb-3">{children}</p>,
+                          strong: ({ children }) => <strong className="text-foreground font-normal">{children}</strong>,
+                          ul: ({ children }) => <ul className="space-y-1 mb-3 pl-4">{children}</ul>,
+                          li: ({ children }) => <li className="text-sm font-light text-muted-foreground flex items-start gap-2 before:content-['▸'] before:text-accent/50 before:text-xs before:mt-0.5 before:flex-shrink-0">{children}</li>,
+                          code: ({ children }) => <code className="text-xs font-mono text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded">{children}</code>,
+                          blockquote: ({ children }) => <blockquote className="border-l-2 border-accent/30 pl-4 italic text-muted-foreground/70">{children}</blockquote>,
+                          hr: () => <hr className="border-border/20 my-4" />,
+                        }}
+                      >
+                        {securityOutput}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+                    <div className="rounded-2xl border border-border/20 bg-card/20 p-8 max-w-md space-y-4">
+                      <div className="flex items-center justify-center gap-3">
+                        <ShieldX className="h-8 w-8 text-muted-foreground/20" />
+                        <ShieldCheck className="h-10 w-10 text-muted-foreground/20" />
+                        <ShieldAlert className="h-8 w-8 text-muted-foreground/20" />
+                      </div>
+                      <p className="text-sm font-extralight text-muted-foreground">Domain Security Audit</p>
+                      <p className="text-xs text-muted-foreground/40 leading-relaxed">
+                        Enter any domain or app URL to get a comprehensive security score covering TLS configuration, HTTP headers, DNS security, CSP policy, cookie hardening, CORS misconfigurations, and overall risk rating.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        {[
+                          { icon: TrendingUp, label: "Overall Score", desc: "0–100 security rating" },
+                          { icon: Server, label: "Header Audit", desc: "CSP, HSTS, X-Frame" },
+                          { icon: Lock, label: "TLS Analysis", desc: "Certificate & cipher suite" },
+                          { icon: Target, label: "Attack Surface", desc: "Exposed vectors & exploits" },
+                        ].map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div key={item.label} className="rounded-lg border border-border/15 bg-card/15 p-3 text-left">
+                              <Icon className="h-3.5 w-3.5 text-accent/60 mb-1.5" />
+                              <p className="text-[11px] font-light text-foreground">{item.label}</p>
+                              <p className="text-[10px] text-muted-foreground/50">{item.desc}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
+        {/* ── Subdomains Tab ── */}
+        {activeTab === "subdomains" && (
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+            <div className="flex-shrink-0 px-6 py-4 border-b border-border/20 bg-card/10">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-border/20 bg-card/40 p-2.5">
+                  <ScanLine className="h-5 w-5 text-accent" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extralight tracking-wide text-foreground">Subdomain Intelligence</h2>
+                    <span className="text-[9px] tracking-widest uppercase border rounded px-1.5 py-0.5 text-accent border-accent/20">Surface Mapping</span>
+                  </div>
+                  <p className="text-xs font-light text-muted-foreground mt-0.5">Enumerate subdomains, map attack surface, and identify exploitable security flaws</p>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/30 bg-card/30 px-4 py-2.5 focus-within:border-accent/40 transition-colors">
+                  <Network className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                  <input
+                    value={subdomainTarget}
+                    onChange={(e) => setSubdomainTarget(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") runSubdomainScan(); }}
+                    placeholder="example.com"
+                    className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  {subdomainTarget && (
+                    <button onClick={() => { setSubdomainTarget(""); setSubdomainOutput(""); }} className="p-0.5 text-muted-foreground/50 hover:text-foreground transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={runSubdomainScan}
+                  disabled={!subdomainTarget.trim() || subdomainLoading}
+                  className="flex items-center gap-2 rounded-xl bg-accent/20 px-4 py-2.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-40"
+                >
+                  {subdomainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
+                  Enumerate
+                </button>
+              </div>
+            </div>
+
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-6 max-w-3xl mx-auto">
+                {subdomainLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <div className="relative">
+                      <ScanLine className="h-10 w-10 text-accent/30" />
+                      <Loader2 className="h-4 w-4 text-accent animate-spin absolute -bottom-1 -right-1" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-extralight text-foreground">Enumerating subdomains and mapping attack surface</p>
+                      <p className="text-xs text-muted-foreground/50">Analyzing DNS records, wildcard patterns, and security posture per subdomain...</p>
+                    </div>
+                  </div>
+                ) : subdomainOutput ? (
+                  <div>
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border/20">
+                      <ScanLine className="h-4 w-4 text-accent" />
+                      <span className="text-xs font-extralight tracking-[0.2em] text-accent">SUBDOMAIN INTELLIGENCE MAP</span>
+                      <span className="text-muted-foreground/20">|</span>
+                      <span className="text-[10px] text-muted-foreground/40 font-light tracking-wider uppercase">{subdomainTarget}</span>
+                      <button onClick={() => navigator.clipboard.writeText(subdomainOutput)} className="ml-auto p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors" title="Copy">
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="prose prose-sm prose-invert max-w-none">
+                      <ReactMarkdown
+                        components={{
+                          h1: ({ children }) => <h1 className="text-xl font-extralight tracking-wide text-foreground mt-6 mb-3 first:mt-0">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-base font-extralight tracking-wide text-foreground mt-5 mb-2 flex items-center gap-2"><span className="h-px flex-1 bg-border/20" /><span>{children}</span><span className="h-px flex-1 bg-border/20" /></h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-light text-foreground/90 mt-4 mb-1.5">{children}</h3>,
+                          p: ({ children }) => <p className="text-sm font-light text-muted-foreground leading-relaxed mb-3">{children}</p>,
+                          strong: ({ children }) => <strong className="text-foreground font-normal">{children}</strong>,
+                          ul: ({ children }) => <ul className="space-y-1 mb-3 pl-4">{children}</ul>,
+                          li: ({ children }) => <li className="text-sm font-light text-muted-foreground flex items-start gap-2 before:content-['▸'] before:text-accent/50 before:text-xs before:mt-0.5 before:flex-shrink-0">{children}</li>,
+                          code: ({ children }) => <code className="text-xs font-mono text-accent/80 bg-accent/10 px-1.5 py-0.5 rounded">{children}</code>,
+                          blockquote: ({ children }) => <blockquote className="border-l-2 border-accent/30 pl-4 italic text-muted-foreground/70">{children}</blockquote>,
+                          hr: () => <hr className="border-border/20 my-4" />,
+                        }}
+                      >
+                        {subdomainOutput}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+                    <div className="rounded-2xl border border-border/20 bg-card/20 p-8 max-w-md space-y-4">
+                      <ScanLine className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+                      <p className="text-sm font-extralight text-muted-foreground">Subdomain Attack Surface Mapper</p>
+                      <p className="text-xs text-muted-foreground/40 leading-relaxed">
+                        Enumerate all subdomains for a root domain. Each subdomain is analyzed for security misconfigurations, dangling DNS records, takeover vectors, exposed services, and active exploitation pathways.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        {[
+                          { icon: Network, label: "DNS Enumeration", desc: "A, CNAME, MX, TXT records" },
+                          { icon: ExternalLink, label: "Takeover Vectors", desc: "Dangling CNAME & DNS" },
+                          { icon: ShieldX, label: "Security Flaws", desc: "Per-subdomain misconfigs" },
+                          { icon: AlertTriangle, label: "Exploit Paths", desc: "Active attack vectors" },
+                        ].map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div key={item.label} className="rounded-lg border border-border/15 bg-card/15 p-3 text-left">
+                              <Icon className="h-3.5 w-3.5 text-accent/60 mb-1.5" />
+                              <p className="text-[11px] font-light text-foreground">{item.label}</p>
+                              <p className="text-[10px] text-muted-foreground/50">{item.desc}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
 
         {/* ── Intelligence Report Tab ── */}
         {activeTab === "report" && (
