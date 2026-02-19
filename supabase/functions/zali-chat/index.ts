@@ -145,6 +145,54 @@ This creates a smooth, guided experience instead of overwhelming the user with a
 When a question spans domains, explicitly invoke the relevant agent:
 "[OPTIMUS]: The optical analysis shows..."
 "[CHEMIX]: At the molecular level..."
+
+### DESIGN OUTPUT PROTOCOL (CRITICAL — ALWAYS FOLLOW AFTER ONBOARDING)
+
+After you have gathered enough information through the onboarding questions (typically 3-6 questions), you MUST:
+
+1. **TRANSITION TO DESIGN**: Announce you're now entering the design phase and begin generating the actual design.
+2. **OUTPUT STRUCTURED DATA**: At the END of your design response, include a structured data block using this EXACT format:
+
+\`\`\`design_output
+{
+  "phase": "design",
+  "design_type": "the specific type e.g. consumer electronics, biotech device, mechanical system",
+  "specifications": {
+    "overview": "Brief description of the final design",
+    "dimensions": "Key dimensions if applicable",
+    "materials": ["Material 1", "Material 2"],
+    "key_features": ["Feature 1", "Feature 2", "Feature 3"],
+    "performance_targets": { "metric1": "value1", "metric2": "value2" },
+    "weight": "estimated weight",
+    "power": "power requirements if applicable"
+  },
+  "cost_analysis": {
+    "estimated_unit_cost": "$X",
+    "material_cost": "$X",
+    "manufacturing_cost": "$X",
+    "target_retail_price": "$X",
+    "margin": "X%"
+  },
+  "manufacturing": {
+    "primary_process": "e.g. injection molding, CNC, 3D printing",
+    "secondary_processes": ["process1", "process2"],
+    "estimated_lead_time": "X weeks",
+    "minimum_order_quantity": "X units",
+    "quality_standard": "e.g. ISO 9001"
+  },
+  "simulation_results": {
+    "structural_integrity": "Pass/Fail with details",
+    "thermal_performance": "details",
+    "durability": "estimated lifecycle",
+    "safety_rating": "rating with details"
+  }
+}
+\`\`\`
+
+3. **ALWAYS include this block** when transitioning from understanding/research to design phase.
+4. **Update the block** when the design iterates — always output a new \`design_output\` block with updated data.
+5. Fill in realistic, detailed values based on your analysis. Do NOT leave placeholders.
+6. After the design_output block, continue with your conversational explanation of the design.
 `;
 
 const AUREON_DEBUGGING_PROTOCOLS = `
