@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, ArrowUpDown, Flag, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, ArrowUpDown, Flag, Loader2, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
+import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const PAGE_SIZE = 50;
 
@@ -21,6 +23,30 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
   const [totalRows, setTotalRows] = useState(0);
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
+  const { toast } = useToast();
+
+  const exportToCSV = () => {
+    if (filtered.length === 0) return;
+    const csvRows = [
+      columns.join(','),
+      ...filtered.map(row =>
+        columns.map(col => {
+          const value = row[col] || '';
+          return value.includes(',') || value.includes('"')
+            ? `"${value.replace(/"/g, '""')}"`
+            : value;
+        }).join(',')
+      )
+    ];
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${datasets.find(d => d.id === selectedDs)?.file_name || 'data'}_export.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Exported', description: `${filtered.length} rows exported to CSV` });
+  };
 
   const loadDatasets = async () => {
     if (!user || !activeSession) return;
@@ -145,16 +171,30 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
   }
 
   return (
+    <TooltipProvider>
     <div className="flex h-full flex-col">
-      <div className="flex-shrink-0 flex flex-wrap items-center gap-3 p-4 border-b border-border/20">
-        <select value={selectedDs} onChange={(e) => setSelectedDs(e.target.value)} className="bg-card/30 border border-border/20 rounded-lg px-3 py-1.5 text-xs text-foreground outline-none">
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 p-3 sm:p-4 border-b border-border/20">
+        <select value={selectedDs} onChange={(e) => setSelectedDs(e.target.value)} className="bg-card/30 border border-border/20 rounded-lg px-3 py-1.5 text-xs text-foreground outline-none max-w-[140px] sm:max-w-none">
           {datasets.map((d) => <option key={d.id} value={d.id}>{d.file_name}</option>)}
         </select>
-        <div className="flex items-center gap-2 rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 flex-1 max-w-md">
-          <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
+        <div className="flex items-center gap-2 rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 flex-1 min-w-0 max-w-md">
+          <Search className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search…" className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none min-w-0" />
         </div>
-        <span className="text-[10px] text-muted-foreground/50">{filtered.length} rows</span>
+        <span className="text-[10px] text-muted-foreground/50 hidden sm:inline">{filtered.length} rows</span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={exportToCSV}
+              disabled={filtered.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/20 bg-card/30 hover:bg-card/50 transition-colors text-xs text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent><p>Export to CSV</p></TooltipContent>
+        </Tooltip>
       </div>
 
       {loadingData ? (
@@ -226,6 +266,7 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 };
 
