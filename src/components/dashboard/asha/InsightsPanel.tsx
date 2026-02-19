@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { TrendingUp, AlertTriangle, Share2, BarChart3, HelpCircle, LineChart, X, Pin, Loader2, Play, ListChecks, Bell, FileOutput, ChevronRight } from "lucide-react";
+import { TrendingUp, AlertTriangle, Share2, BarChart3, HelpCircle, LineChart, X, Pin, Loader2, Play, ListChecks, Bell, FileOutput, ChevronRight, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
+import { formatDistanceToNow } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const typeIcon: Record<string, React.ElementType> = {
   trend: TrendingUp, anomaly: AlertTriangle, relationship: Share2,
@@ -126,25 +128,47 @@ const InsightsPanel = () => {
     return actions;
   };
 
+  const exportInsights = () => {
+    const exportData = {
+      session: activeSession?.name,
+      exported_at: new Date().toISOString(),
+      insights: visible.map(i => ({ type: i.type, title: i.title, description: i.description, pinned: i.pinned, created_at: i.created_at }))
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `insights_${activeSession?.name}_${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-extralight tracking-wide text-foreground">Intelligence Briefing</h2>
           <p className="text-xs font-extralight text-muted-foreground mt-1">
             Asha found <span className="text-foreground">{visible.length} insights</span> across your datasets.
-            Insight → Action → Execution — all in one surface.
           </p>
         </div>
-        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-card/30 border border-border/20 rounded-lg px-2 py-1.5 text-[10px] text-foreground outline-none">
-          <option value="">All types</option>
-          <option value="trend">Trends</option>
-          <option value="anomaly">Anomalies</option>
-          <option value="relationship">Relationships</option>
-          <option value="correlation">Correlations</option>
-          <option value="gap">Gaps</option>
-          <option value="forecast">Forecasts</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-card/30 border border-border/20 rounded-lg px-2 py-1.5 text-[10px] text-foreground outline-none">
+            <option value="">All types</option>
+            <option value="trend">Trends</option>
+            <option value="anomaly">Anomalies</option>
+            <option value="relationship">Relationships</option>
+            <option value="correlation">Correlations</option>
+            <option value="gap">Gaps</option>
+            <option value="forecast">Forecasts</option>
+          </select>
+          {visible.length > 0 && (
+            <button onClick={exportInsights} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/20 bg-card/30 hover:bg-card/50 transition-colors text-xs text-foreground">
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
