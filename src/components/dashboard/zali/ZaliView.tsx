@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { ZaliProject, ZaliMessage, ZaliTab } from "./types";
+import type { ChatMode } from "../types";
+import type { ResponseDepth } from "../DepthSelector";
 import ZaliWorkspace from "./ZaliWorkspace";
 import ZaliChatPanel from "./ZaliChatPanel";
 import ZaliResearchPanel from "./ZaliResearchPanel";
@@ -52,6 +54,8 @@ const ZaliView = () => {
   const [activeTab, setActiveTab] = useState<ZaliTab>("workspace");
   const [loading, setLoading] = useState(true);
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [chatMode, setChatMode] = useState<ChatMode>("chat");
+  const [chatDepth, setChatDepth] = useState<ResponseDepth>("standard");
   const abortRef = useRef<AbortController | null>(null);
 
   // Load projects
@@ -240,6 +244,8 @@ const ZaliView = () => {
           },
           body: JSON.stringify({
             messages: history,
+            mode: chatMode,
+            depth: chatDepth,
             projectContext: {
               name: activeProject.name,
               description: activeProject.description,
@@ -430,12 +436,16 @@ const ZaliView = () => {
         {/* Desktop: Chat panel */}
         <div className="w-[340px] lg:w-[380px] flex-shrink-0 border-l border-border/20 hidden md:flex flex-col">
           <ZaliErrorBoundary>
-            <ZaliChatPanel
+             <ZaliChatPanel
               messages={messages}
               project={activeProject}
               isStreaming={isStreaming}
               onSend={sendMessage}
               onStop={stopStreaming}
+              mode={chatMode}
+              onModeChange={setChatMode}
+              depth={chatDepth}
+              onDepthChange={setChatDepth}
             />
           </ZaliErrorBoundary>
         </div>
@@ -453,12 +463,16 @@ const ZaliView = () => {
               </button>
             </div>
             <div className="flex-1 min-h-0">
-              <ZaliChatPanel
+               <ZaliChatPanel
                 messages={messages}
                 project={activeProject}
                 isStreaming={isStreaming}
                 onSend={sendMessage}
                 onStop={stopStreaming}
+                mode={chatMode}
+                onModeChange={setChatMode}
+                depth={chatDepth}
+                onDepthChange={setChatDepth}
               />
             </div>
           </div>
