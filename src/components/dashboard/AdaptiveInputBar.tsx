@@ -28,7 +28,7 @@ function detectIntent(text: string): InputIntent {
   return "text";
 }
 
-const quickActions: Record<InputIntent, { id: string; icon: React.ElementType; label: string }[]> = {
+const quickActions: Record<InputIntent, { id: string; icon: React.ComponentType<{ className?: string }>; label: string }[]> = {
   text: [],
   code: [
     { id: "debug", icon: Bug, label: "Debug" },

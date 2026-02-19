@@ -9,7 +9,7 @@ interface CalibrationFeedbackProps {
   existingFeedback?: FeedbackType | null;
 }
 
-const feedbackOptions: { id: FeedbackType; icon: React.ElementType; label: string; color: string }[] = [
+const feedbackOptions: { id: FeedbackType; icon: React.ComponentType<{ className?: string }>; label: string; color: string }[] = [
   { id: "perfect", icon: Check, label: "Perfect", color: "text-emerald-500 hover:bg-emerald-500/10" },
   { id: "too_shallow", icon: ChevronUp, label: "Too shallow", color: "text-amber-500 hover:bg-amber-500/10" },
   { id: "too_deep", icon: ChevronDown, label: "Too deep", color: "text-blue-400 hover:bg-blue-400/10" },

@@ -7,7 +7,7 @@ import { useAshaSession } from "./AshaSessionContext";
 interface LineageNode { id: string; type: "source" | "transform" | "aggregate" | "filter" | "output"; label: string; description: string; timestamp?: string; valuesAfter?: string; }
 interface LineageChain { id: string; metricName: string; currentValue: string; chain: LineageNode[]; }
 
-const nodeIcons: Record<string, React.ElementType> = { source: Database, transform: Calculator, aggregate: Calculator, filter: Filter, output: FileOutput };
+const nodeIcons: Record<string, React.ComponentType<{ className?: string }>> = { source: Database, transform: Calculator, aggregate: Calculator, filter: Filter, output: FileOutput };
 const nodeColors: Record<string, string> = { source: "border-accent/30 bg-accent/10 text-accent", transform: "border-amber-500/30 bg-amber-500/10 text-amber-400", aggregate: "border-purple-500/30 bg-purple-500/10 text-purple-400", filter: "border-cyan-500/30 bg-cyan-500/10 text-cyan-400", output: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" };
 
 const DataLineagePanel = () => {

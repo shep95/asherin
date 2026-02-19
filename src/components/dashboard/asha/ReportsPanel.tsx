@@ -18,7 +18,7 @@ interface Report {
   created_at: string;
 }
 
-const typeIcons: Record<ReportType, React.ElementType> = { executive: BarChart3, audit: Shield, analysis: Sparkles, comparison: GitCompare };
+const typeIcons: Record<ReportType, React.ComponentType<{ className?: string }>> = { executive: BarChart3, audit: Shield, analysis: Sparkles, comparison: GitCompare };
 const typeLabels: Record<ReportType, string> = { executive: "Executive Summary", audit: "Data Audit", analysis: "Analysis Report", comparison: "Comparison Report" };
 const statusColors: Record<string, string> = { draft: "text-muted-foreground bg-secondary/30", generating: "text-amber-400 bg-amber-500/10", ready: "text-emerald-400 bg-emerald-500/10", scheduled: "text-accent bg-accent/10" };
 
