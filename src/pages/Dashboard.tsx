@@ -26,6 +26,7 @@ import SettingsView from "@/components/dashboard/SettingsView";
 import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AshaView from "@/components/dashboard/asha/AshaView";
+import ZaliView from "@/components/dashboard/zali/ZaliView";
 import NomadView from "@/components/dashboard/NomadView";
 import BriefingView from "@/components/dashboard/BriefingView";
 import TeamsView from "@/components/dashboard/TeamsView";
@@ -99,6 +100,7 @@ const Dashboard = () => {
   const processingQueue = useRef(false);
   const pendingQueue = useRef<string[]>([]);
   const isStreamingRef = useRef(false);
+  const conversationsRef = useRef<Conversation[]>([]);
   const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
   const [queuePaused, setQueuePaused] = useState(false);
   const queuePausedRef = useRef(false);
@@ -125,6 +127,11 @@ const Dashboard = () => {
     window.addEventListener("aureon-wallpaper-change", handler);
     return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
   }, []);
+
+  // Keep conversationsRef in sync for stale closure access
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   // Online/offline detection
   useEffect(() => {
@@ -444,7 +451,7 @@ const Dashboard = () => {
     setSuggestions([]);
 
     const tempMsgId = crypto.randomUUID();
-    const conv = conversations.find(c => c.id === convId);
+    const conv = conversationsRef.current.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date() };
     const isFirst = conv?.messages.length === 0;
     if (isFirst) {
@@ -624,11 +631,9 @@ const Dashboard = () => {
   // Public sendMessage — adds to queue and kicks off processing
   const sendMessage = async (content: string) => {
     if (!user || !activeConvId) return;
-    // If currently streaming, show queued status and add to queue
+    // If currently streaming, queue only — do NOT add to conversation messages yet
     if (isStreamingRef.current) {
       const tempId = crypto.randomUUID();
-      const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date() };
-      setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
       setMessageStatuses(prev => ({ ...prev, [tempId]: "queued" }));
       const queueEntry = `${activeConvId}||${content}`;
       pendingQueue.current.push(queueEntry);
@@ -758,6 +763,10 @@ const Dashboard = () => {
         return hasProAccess(tierKey) 
           ? <AshaView /> 
           : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "zali":
+        return hasProAccess(tierKey)
+          ? <ZaliView />
+          : <FeatureGate title="ZALI Design Lab" description="Universal Design Intelligence System. Design from atoms to universes with holographic visualization and first-principles reasoning. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "nomad": 
         return hasProAccess(tierKey) 
           ? <NomadView /> 

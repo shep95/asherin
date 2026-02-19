@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { AUREON_MEMORY_PROTOCOL } from "./memory_protocol.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -655,6 +656,7 @@ serve(async (req) => {
 
     const systemParts = [
       AUREON_CORE_IDENTITY,
+      AUREON_MEMORY_PROTOCOL,
       AUREON_SCENARIO_MATRIX,
       AUREON_DEBUGGING_PROTOCOLS,
       AUREON_CODING_MASTERY,
