@@ -4,8 +4,9 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Database, GitBranch, FileText, BarChart3, Brain, Layers,
-  ArrowRight, Check, Upload, Search, Activity, Puzzle, ArrowLeft,
+  ArrowRight, Check, Upload, Search, Activity, Puzzle, ArrowLeft, Cpu, Network,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const capabilities = [
   {
@@ -111,6 +112,45 @@ const FeatureAsha = () => {
           </div>
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="Asha Data Intelligence Architecture"
+        subtitle="A multi-agent data pipeline from raw ingestion to executive intelligence. Each layer is autonomous — schema profiling, entity resolution, insight generation, and reporting operate concurrently."
+        layers={[
+          {
+            label: "Ingestion Layer",
+            nodes: [
+              { id: "i1", label: "Universal Ingestor", sublabel: "CSV, JSON, Excel, API feeds", type: "input", icon: Upload },
+              { id: "i2", label: "Schema Profiler", sublabel: "Auto-detection, quality scoring, anomaly flagging", type: "input", icon: Database },
+            ],
+          },
+          {
+            label: "Specialist Analysis Agents",
+            nodes: [
+              { id: "a1", label: "Query Agent", sublabel: "Natural language → structured analysis", type: "agent", icon: Search, accent: "text-accent/70" },
+              { id: "a2", label: "Entity Resolver", sublabel: "Cross-dataset identity correlation", type: "agent", icon: Network, accent: "text-accent/70" },
+              { id: "a3", label: "Scenario Simulator", sublabel: "Monte Carlo & what-if modeling", type: "agent", icon: Activity, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Intelligence Core",
+            nodes: [
+              { id: "e1", label: "Insight Engine", sublabel: "Trend, anomaly & correlation detection", type: "engine", icon: Brain, accent: "text-accent/60" },
+              { id: "e2", label: "Branch Manager", sublabel: "Dataset versioning & merge control", type: "engine", icon: GitBranch, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Output",
+            nodes: [
+              { id: "o1", label: "Executive Report", sublabel: "Scheduled, board-ready intelligence", type: "output", icon: FileText },
+              { id: "o2", label: "Visual Analytics", sublabel: "Interactive charts & dashboards", type: "output", icon: BarChart3 },
+              { id: "o3", label: "Data Lineage Map", sublabel: "Full provenance tracking", type: "output", icon: Layers },
+            ],
+          },
+        ]}
+        features={["branch-based versioning", "entity resolution", "natural language queries", "zero SQL required", "automated insights"]}
+      />
 
       {/* Workflow */}
       <section className="relative z-10 px-6 py-24">

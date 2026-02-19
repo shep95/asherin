@@ -4,8 +4,9 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Crosshair, Shield, Globe, Users, FileText, Network, Eye,
-  ArrowRight, Check, AlertTriangle, Search, BarChart3, ArrowLeft,
+  ArrowRight, Check, AlertTriangle, Search, BarChart3, ArrowLeft, Cpu, Database, Brain,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const capabilities = [
   {
@@ -119,6 +120,45 @@ const FeatureNomad = () => {
           </div>
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="NOMAD Agent Architecture"
+        subtitle="An autonomous OSINT pipeline. A single query triggers parallel multi-source collection, entity resolution, and risk scoring — converging into a structured intelligence dossier."
+        layers={[
+          {
+            label: "Target Input",
+            nodes: [
+              { id: "i1", label: "Subject Definition", sublabel: "Person · Company · Topic · Domain", type: "input", icon: Crosshair },
+              { id: "i2", label: "Scope Parameters", sublabel: "Depth, source filters, time range", type: "input", icon: Shield },
+            ],
+          },
+          {
+            label: "Parallel Collection Agents",
+            nodes: [
+              { id: "a1", label: "Public Records Agent", sublabel: "Filings, registrations, court records", type: "agent", icon: FileText, accent: "text-accent/70" },
+              { id: "a2", label: "Network Mapper", sublabel: "Affiliation, ownership & relationship graph", type: "agent", icon: Network, accent: "text-accent/70" },
+              { id: "a3", label: "Media Scanner", sublabel: "News archives, social signals, press", type: "agent", icon: Globe, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Synthesis & Scoring",
+            nodes: [
+              { id: "e1", label: "Entity Resolution Core", sublabel: "Alias merging, deduplication, identity confidence", type: "engine", icon: Brain, accent: "text-accent/60" },
+              { id: "e2", label: "Risk Matrix Engine", sublabel: "Financial · Reputational · Legal · Operational", type: "engine", icon: AlertTriangle, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Intelligence Output",
+            nodes: [
+              { id: "o1", label: "BLUF Summary", sublabel: "Bottom Line Up Front — key findings first", type: "output", icon: BarChart3 },
+              { id: "o2", label: "Dossier Export", sublabel: "Structured PDF/Markdown intelligence report", type: "output", icon: FileText },
+              { id: "o3", label: "Entity Graph", sublabel: "Visual relationship map", type: "output", icon: Users },
+            ],
+          },
+        ]}
+        features={["40+ sources", "confidence scoring", "entity resolution", "risk matrices", "exportable dossiers"]}
+      />
 
       {/* Investigation Types */}
       <section className="relative z-10 px-6 py-24">

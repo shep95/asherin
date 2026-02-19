@@ -4,8 +4,9 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Users, Search, Scale, Code, Swords, Aperture, Shield,
-  PenTool, BookOpen, ArrowRight, Check, Plus, Brain, ArrowLeft,
+  PenTool, BookOpen, ArrowRight, Check, Plus, Brain, ArrowLeft, Cpu, Layers, MessageSquare, Database,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const builtInPersonas = [
   { icon: Search, name: "The Analyst", desc: "Cold, data-driven intelligence analysis. Strips opinion, delivers structure." },
@@ -85,6 +86,43 @@ const FeaturePersonas = () => {
           </div>
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="Persona System Architecture"
+        subtitle="A context-injection framework that reshapes how the core intelligence engine thinks, reasons, and responds — without changing its underlying capability. The same power, infinite cognitive modes."
+        layers={[
+          {
+            label: "Persona Definition",
+            nodes: [
+              { id: "p1", label: "Built-In Persona Library", sublabel: "8 pre-tuned cognitive modes", type: "input", icon: Users },
+              { id: "p2", label: "Custom Persona Engine", sublabel: "User-defined system prompts & behaviours", type: "input", icon: Brain },
+            ],
+          },
+          {
+            label: "Context Injection Layer",
+            nodes: [
+              { id: "c1", label: "Prompt Constructor", sublabel: "Injects persona context into every request", type: "agent", icon: Cpu, accent: "text-accent/70" },
+              { id: "c2", label: "Tone Calibrator", sublabel: "Voice, depth, and reasoning mode control", type: "agent", icon: Layers, accent: "text-accent/70" },
+              { id: "c3", label: "Session Memory", sublabel: "Persona state persisted across conversations", type: "agent", icon: Database, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Intelligence Core",
+            nodes: [
+              { id: "e1", label: "Zophiel Reasoning Engine", sublabel: "Interprets persona context at inference time", type: "engine", icon: Shield, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Response Output",
+            nodes: [
+              { id: "o1", label: "Persona-Shaped Response", sublabel: "Same intelligence, different cognitive frame", type: "output", icon: MessageSquare },
+              { id: "o2", label: "One-Click Switching", sublabel: "Change persona mid-conversation instantly", type: "output", icon: Search },
+            ],
+          },
+        ]}
+        features={["8 built-in personas", "unlimited custom", "session persistence", "one-click switching", "team sharing"]}
+      />
 
       {/* Custom Personas */}
       <section className="relative z-10 px-6 py-24">

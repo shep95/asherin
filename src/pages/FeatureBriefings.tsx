@@ -4,8 +4,9 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Newspaper, Clock, Target, Globe, Download, Bell,
-  ArrowRight, Check, MessageSquare, Layers, ArrowLeft,
+  ArrowRight, Check, MessageSquare, Layers, ArrowLeft, Cpu, Search, Brain,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const capabilities = [
   {
@@ -113,6 +114,45 @@ const FeatureBriefings = () => {
           </div>
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="Briefing Engine Architecture"
+        subtitle="An automated intelligence pipeline that wakes at your configured delivery time, scans 100+ source vectors, synthesizes priorities, and delivers a structured briefing before your day starts."
+        layers={[
+          {
+            label: "Profile Layer",
+            nodes: [
+              { id: "p1", label: "Intelligence Profile", sublabel: "Competitors, markets, people, tech stack", type: "input", icon: Target },
+              { id: "p2", label: "Delivery Schedule", sublabel: "Time zone-aware briefing window", type: "input", icon: Clock },
+            ],
+          },
+          {
+            label: "Parallel Source Agents",
+            nodes: [
+              { id: "a1", label: "News Wire Agent", sublabel: "Real-time press & media signals", type: "agent", icon: Newspaper, accent: "text-accent/70" },
+              { id: "a2", label: "Regulatory Scanner", sublabel: "Policy filings & compliance signals", type: "agent", icon: Search, accent: "text-accent/70" },
+              { id: "a3", label: "Market Data Agent", sublabel: "Financial movements & funding rounds", type: "agent", icon: Globe, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Synthesis Core",
+            nodes: [
+              { id: "e1", label: "Priority Classifier", sublabel: "Critical → Significant → Monitoring → Signal", type: "engine", icon: Brain, accent: "text-accent/60" },
+              { id: "e2", label: "Narrative Engine", sublabel: "Plain-language synthesis with context", type: "engine", icon: MessageSquare, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Delivery",
+            nodes: [
+              { id: "o1", label: "Daily Briefing", sublabel: "Structured in-app intelligence report", type: "output", icon: Layers },
+              { id: "o2", label: "Markdown Export", sublabel: "Portable archive & sharing format", type: "output", icon: Download },
+              { id: "o3", label: "Alert Notifications", sublabel: "Critical items trigger instant push", type: "output", icon: Bell },
+            ],
+          },
+        ]}
+        features={["100+ sources", "automated delivery", "priority classification", "configurable timezone", "full export"]}
+      />
 
       {/* Profile Vectors */}
       <section className="relative z-10 px-6 py-24">

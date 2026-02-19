@@ -4,8 +4,9 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Zap, Cpu, Layers, MessageSquare, FileText, Lightbulb,
-  ArrowRight, Check, Box, Sparkles, Wrench, Users, ArrowLeft,
+  ArrowRight, Check, Box, Sparkles, Wrench, Users, ArrowLeft, Search, Database,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const capabilities = [
   {
@@ -111,6 +112,45 @@ const FeatureZali = () => {
           </div>
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="ZALI Design Intelligence Architecture"
+        subtitle="A multi-phase autonomous design pipeline. Natural language intent flows through specialist sub-agents — each handling a distinct engineering domain — converging in a complete specification."
+        layers={[
+          {
+            label: "Intent Layer",
+            nodes: [
+              { id: "i1", label: "Design Intent Parser", sublabel: "Natural language → structured requirements", type: "input", icon: MessageSquare },
+              { id: "i2", label: "Domain Classifier", sublabel: "Product · Electronics · Bio · Manufacturing", type: "input", icon: Layers },
+            ],
+          },
+          {
+            label: "Specialist Sub-Agents",
+            nodes: [
+              { id: "a1", label: "Research Agent", sublabel: "Patents, standards, material science", type: "agent", icon: Search, accent: "text-accent/70" },
+              { id: "a2", label: "Materials Agent", sublabel: "Property matching & compatibility scoring", type: "agent", icon: Database, accent: "text-accent/70" },
+              { id: "a3", label: "Feasibility Agent", sublabel: "Manufacturing constraints & tolerances", type: "agent", icon: Wrench, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Synthesis Core",
+            nodes: [
+              { id: "e1", label: "Specification Engine", sublabel: "Dimensions, materials, tolerances, processes", type: "engine", icon: Cpu, accent: "text-accent/60" },
+              { id: "e2", label: "Cost Analysis Engine", sublabel: "BOM estimation, process cost, yield modeling", type: "engine", icon: Zap, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Output",
+            nodes: [
+              { id: "o1", label: "Engineering Spec", sublabel: "Full machine-readable specification", type: "output", icon: FileText },
+              { id: "o2", label: "3D Model Guidance", sublabel: "Dimensional parameters for CAD", type: "output", icon: Box },
+              { id: "o3", label: "Manufacturing Plan", sublabel: "Process selection & production path", type: "output", icon: Layers },
+            ],
+          },
+        ]}
+        features={["multi-phase pipeline", "specialist agents", "material science", "cost modeling", "manufacturing feasibility"]}
+      />
 
       {/* Design Types */}
       <section className="relative z-10 px-6 py-24">
