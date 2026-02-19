@@ -55,7 +55,11 @@ const ZaliProjectSelector = ({ projects, activeProject, onSelect, onCreate, onDe
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => { setOpen(false); setShowCreate(false); setRenamingId(null); }} />
-          <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1 z-50 w-72 rounded-xl border border-border/20 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <div
+            className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1 z-50 w-72 rounded-xl border border-border/20 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <div className="max-h-64 overflow-y-auto p-1.5">
               {projects.map((p) => (
                 <div
