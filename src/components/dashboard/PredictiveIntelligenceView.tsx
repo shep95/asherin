@@ -432,7 +432,7 @@ const PredictiveIntelligenceView = () => {
               const title = getTitle(prediction);
 
               return (
-                <div key={prediction.id} className={`rounded-xl border transition-all ${config.border}`}>
+                <div key={prediction.id} className={`rounded-xl border transition-all overflow-hidden ${config.border}`}>
                   {/* Card header */}
                   <button
                     onClick={() => {
@@ -531,13 +531,13 @@ const PredictiveIntelligenceView = () => {
                         ))}
                       </div>
 
-                      <div className="p-4 space-y-4 bg-background/20">
+                      <div className="p-4 space-y-4 bg-background/20 overflow-hidden">
                         {/* Intelligence Briefing */}
                         {expandedSection === "detail" && (
                           <div className="space-y-4">
-                            <div className="prose prose-sm prose-invert max-w-none">
+                            <div className="prose prose-sm prose-invert max-w-none break-words">
                               {prediction.prediction_text.split("\n\n").map((paragraph, idx) => (
-                                <p key={idx} className="text-xs font-light text-foreground/80 leading-relaxed mb-3">
+                                <p key={idx} className="text-xs font-light text-foreground/80 leading-relaxed mb-3 break-words" style={{ overflowWrap: "anywhere" }}>
                                   {paragraph}
                                 </p>
                               ))}
