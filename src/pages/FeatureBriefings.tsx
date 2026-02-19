@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
+import LandingBackground from "@/components/LandingBackground";
 import {
   Newspaper, Clock, Target, Globe, Download, Bell,
   ArrowRight, Check, MessageSquare, Layers,
@@ -61,9 +61,7 @@ const FeatureBriefings = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
-      <div className="fixed inset-0 bg-black/80" />
+    <LandingBackground>
       <Header />
 
       {/* Hero */}
@@ -145,7 +143,7 @@ const FeatureBriefings = () => {
       <footer className="relative z-10 border-t border-border/10 py-8 text-center">
         <p className="text-xs font-extralight text-muted-foreground/50">© {new Date().getFullYear()} Aureon. All rights reserved.</p>
       </footer>
-    </div>
+    </LandingBackground>
   );
 };
 

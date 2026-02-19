@@ -1,5 +1,5 @@
-import heroBg from "@/assets/hero-bg.png";
 import Header from "@/components/Header";
+import LandingBackground from "@/components/LandingBackground";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
@@ -12,9 +12,7 @@ const PrivacyPolicy = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
-      <div className="fixed inset-0 bg-black/80" />
+    <LandingBackground>
 
       <Header />
 
@@ -135,7 +133,7 @@ const PrivacyPolicy = () => {
           </div>
         </div>
       </div>
-    </div>
+    </LandingBackground>
   );
 };
 

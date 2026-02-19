@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import heroBg from "@/assets/hero-bg.png";
+import LandingBackground from "@/components/LandingBackground";
 import founderImg from "@/assets/founder.jpg";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
@@ -13,9 +13,7 @@ const Founder = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${heroBg})` }} />
-      <div className="fixed inset-0 bg-black/80" />
+    <LandingBackground>
 
       <Header />
 
@@ -118,7 +116,7 @@ const Founder = () => {
 
       {/* Spacer */}
       <div className="relative z-10 h-24" />
-    </div>
+    </LandingBackground>
   );
 };
 
