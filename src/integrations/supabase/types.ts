@@ -1551,6 +1551,178 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_history: {
+        Row: {
+          company: string
+          created_at: string
+          event_date: string
+          event_description: string
+          event_type: string
+          id: string
+          lead_time_days: number | null
+          prediction_confidence: number | null
+          prediction_made_at: string | null
+          signals_detected: Json
+          was_predicted: boolean
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          event_date: string
+          event_description: string
+          event_type: string
+          id?: string
+          lead_time_days?: number | null
+          prediction_confidence?: number | null
+          prediction_made_at?: string | null
+          signals_detected?: Json
+          was_predicted?: boolean
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          event_date?: string
+          event_description?: string
+          event_type?: string
+          id?: string
+          lead_time_days?: number | null
+          prediction_confidence?: number | null
+          prediction_made_at?: string | null
+          signals_detected?: Json
+          was_predicted?: boolean
+        }
+        Relationships: []
+      }
+      prediction_signals: {
+        Row: {
+          credibility_score: number
+          detected_at: string
+          id: string
+          prediction_id: string | null
+          relevance_score: number
+          search_query: string
+          signal_category: string
+          signal_type: string
+          source_date: string | null
+          source_domain: string | null
+          source_snippet: string
+          source_title: string
+          source_url: string
+          weight: number
+        }
+        Insert: {
+          credibility_score: number
+          detected_at?: string
+          id?: string
+          prediction_id?: string | null
+          relevance_score: number
+          search_query: string
+          signal_category: string
+          signal_type: string
+          source_date?: string | null
+          source_domain?: string | null
+          source_snippet: string
+          source_title: string
+          source_url: string
+          weight: number
+        }
+        Update: {
+          credibility_score?: number
+          detected_at?: string
+          id?: string
+          prediction_id?: string | null
+          relevance_score?: number
+          search_query?: string
+          signal_category?: string
+          signal_type?: string
+          source_date?: string | null
+          source_domain?: string | null
+          source_snippet?: string
+          source_title?: string
+          source_url?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_signals_prediction_id_fkey"
+            columns: ["prediction_id"]
+            isOneToOne: false
+            referencedRelation: "predictions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      predictions: {
+        Row: {
+          company: string
+          confidence: number
+          created_at: string
+          estimated_date: string
+          event_type: string
+          historical_comparison: Json | null
+          id: string
+          outcome: string | null
+          outcome_date: string | null
+          prediction_text: string
+          reasoning_chain: Json
+          session_id: string | null
+          severity: string
+          signals: Json
+          status: string
+          time_horizon: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company: string
+          confidence: number
+          created_at?: string
+          estimated_date: string
+          event_type: string
+          historical_comparison?: Json | null
+          id?: string
+          outcome?: string | null
+          outcome_date?: string | null
+          prediction_text: string
+          reasoning_chain?: Json
+          session_id?: string | null
+          severity: string
+          signals?: Json
+          status?: string
+          time_horizon: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string
+          confidence?: number
+          created_at?: string
+          estimated_date?: string
+          event_type?: string
+          historical_comparison?: Json | null
+          id?: string
+          outcome?: string | null
+          outcome_date?: string | null
+          prediction_text?: string
+          reasoning_chain?: Json
+          session_id?: string | null
+          severity?: string
+          signals?: Json
+          status?: string
+          time_horizon?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asha_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1638,6 +1810,54 @@ export type Database = {
           title?: string
           usage_count?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      signal_definitions: {
+        Row: {
+          accuracy_rate: number | null
+          base_weight: number
+          created_at: string
+          detection_frequency: string
+          enabled: boolean
+          event_type: string
+          exclude_keywords: string[] | null
+          false_positive_rate: number | null
+          id: string
+          keywords: string[]
+          search_queries: string[]
+          signal_name: string
+          signal_type: string
+        }
+        Insert: {
+          accuracy_rate?: number | null
+          base_weight: number
+          created_at?: string
+          detection_frequency: string
+          enabled?: boolean
+          event_type: string
+          exclude_keywords?: string[] | null
+          false_positive_rate?: number | null
+          id?: string
+          keywords: string[]
+          search_queries: string[]
+          signal_name: string
+          signal_type: string
+        }
+        Update: {
+          accuracy_rate?: number | null
+          base_weight?: number
+          created_at?: string
+          detection_frequency?: string
+          enabled?: boolean
+          event_type?: string
+          exclude_keywords?: string[] | null
+          false_positive_rate?: number | null
+          id?: string
+          keywords?: string[]
+          search_queries?: string[]
+          signal_name?: string
+          signal_type?: string
         }
         Relationships: []
       }

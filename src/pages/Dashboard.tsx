@@ -36,6 +36,7 @@ import GeospatialView from "@/components/dashboard/GeospatialView";
 import PluginMarketplaceView from "@/components/dashboard/PluginMarketplaceView";
 import TimeSeriesView from "@/components/dashboard/TimeSeriesView";
 import AuditLogView from "@/components/dashboard/AuditLogView";
+import PredictiveIntelligenceView from "@/components/dashboard/PredictiveIntelligenceView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -818,6 +819,10 @@ const Dashboard = () => {
         return hasProAccess(tierKey)
           ? <AuditLogView />
           : <FeatureGate title="Audit Trail" description="Complete access and activity logging for compliance and security. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "predictive":
+        return hasProAccess(tierKey)
+          ? <PredictiveIntelligenceView />
+          : <FeatureGate title="Predictive Intelligence" description="AI-powered event forecasting — detect signals from web sources and predict regulatory actions, executive departures, earnings surprises, and more. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
