@@ -17,6 +17,7 @@ import CodeFilePreview from "../CodeFilePreview";
 import FollowUpSuggestions from "../FollowUpSuggestions";
 import ScrollIntelligence from "../ScrollIntelligence";
 import DecodeView from "../DecodeView";
+import ZaliQuestionOptions, { parseQuestionOptions } from "./ZaliQuestionOptions";
 
 interface Props {
   messages: ZaliMessage[];
@@ -223,12 +224,23 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
                   {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
                     <TypingIndicator mode="thinking" />
                   ) : msg.role === "assistant" ? (
-                    <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_p]:text-xs [&_p]:font-light [&_p]:leading-relaxed [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_li]:text-xs [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_table]:text-[10px] [&_th]:text-[10px] [&_td]:text-[10px]">
-                      <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
-                      {isStreaming && msg === lastMsg && (
-                        <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
-                      )}
-                    </div>
+                    (() => {
+                      const { cleanContent, options } = parseQuestionOptions(msg.content);
+                      const isLastAssistant = msg === lastMsg && !isStreaming;
+                      return (
+                        <>
+                          <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_p]:text-xs [&_p]:font-light [&_p]:leading-relaxed [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_li]:text-xs [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_table]:text-[10px] [&_th]:text-[10px] [&_td]:text-[10px]">
+                            <ReactMarkdown components={markdownComponents}>{cleanContent}</ReactMarkdown>
+                            {isStreaming && msg === lastMsg && (
+                              <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
+                            )}
+                          </div>
+                          {isLastAssistant && options.length > 0 && (
+                            <ZaliQuestionOptions options={options} onSelect={(text) => onSend(text)} />
+                          )}
+                        </>
+                      );
+                    })()
                   ) : (
                     <UserMessageContent content={msg.content} />
                   )}
