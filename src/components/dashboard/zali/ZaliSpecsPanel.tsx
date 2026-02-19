@@ -28,13 +28,13 @@ const ZaliSpecsPanel = ({ project }: Props) => {
   const renderJson = (data: Record<string, unknown>, label: string) => {
     if (Object.keys(data).length === 0) {
       return (
-        <div className="rounded-xl border border-border/10 bg-card/20 p-4">
+        <div className="rounded-xl border border-border/10 bg-card/20 p-3 sm:p-4">
           <p className="text-[10px] text-muted-foreground/40">{label} will populate as ZALI processes your design</p>
         </div>
       );
     }
     return (
-      <div className="rounded-xl border border-border/10 bg-card/20 p-4">
+      <div className="rounded-xl border border-border/10 bg-card/20 p-3 sm:p-4">
         <pre className="text-[10px] font-mono text-muted-foreground whitespace-pre-wrap overflow-x-auto">
           {JSON.stringify(data, null, 2)}
         </pre>
@@ -44,7 +44,7 @@ const ZaliSpecsPanel = ({ project }: Props) => {
 
   return (
     <ScrollArea className="h-full">
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Project Specifications</h3>
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors">
@@ -53,7 +53,7 @@ const ZaliSpecsPanel = ({ project }: Props) => {
           </button>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <FileText className="h-3.5 w-3.5 text-accent" />

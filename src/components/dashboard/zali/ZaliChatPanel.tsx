@@ -29,19 +29,19 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop }: Props
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 px-4 py-3 border-b border-border/20">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-border/20 hidden md:block">
         <h3 className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Conversation</h3>
       </div>
 
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4 space-y-4">
+        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-12">
+            <div className="text-center py-8 sm:py-12">
               <p className="text-sm font-extralight text-muted-foreground">
                 {project ? "Describe what you want to design..." : "Create a project to start designing"}
               </p>
               {project && (
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 space-y-1.5 sm:space-y-2">
                   <p className="text-[10px] text-muted-foreground/50">Example prompts:</p>
                   {[
                     "Design a camera with human eye quality",
@@ -68,7 +68,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop }: Props
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs font-light leading-relaxed ${
+                className={`max-w-[90%] sm:max-w-[85%] rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs font-light leading-relaxed ${
                   msg.role === "user"
                     ? "bg-accent/20 text-foreground"
                     : "bg-card/40 border border-border/10 text-foreground"
@@ -97,7 +97,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop }: Props
         </div>
       </ScrollArea>
 
-      <form onSubmit={handleSubmit} className="flex-shrink-0 p-3 border-t border-border/20">
+      <form onSubmit={handleSubmit} className="flex-shrink-0 p-2.5 sm:p-3 border-t border-border/20">
         <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2">
           <input
             value={input}

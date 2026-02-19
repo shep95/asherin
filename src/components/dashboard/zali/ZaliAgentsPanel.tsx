@@ -61,31 +61,31 @@ const AGENTS = [
 const ZaliAgentsPanel = () => {
   return (
     <ScrollArea className="h-full">
-      <div className="p-6">
-        <h3 className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase mb-4">Specialist Agents</h3>
-        <p className="text-[10px] text-muted-foreground/50 mb-6">
+      <div className="p-4 sm:p-6">
+        <h3 className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase mb-3 sm:mb-4">Specialist Agents</h3>
+        <p className="text-[10px] text-muted-foreground/50 mb-4 sm:mb-6">
           ZALI delegates to specialist agents for deep domain expertise. Reference them in chat: "[OPTIMUS]: analyze the optical system"
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {AGENTS.map((agent) => (
             <div
               key={agent.id}
-              className="rounded-xl border border-border/20 bg-card/20 p-4 hover:bg-card/40 transition-colors group"
+              className="rounded-xl border border-border/20 bg-card/20 p-3 sm:p-4 hover:bg-card/40 transition-colors group"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`${agent.bgColor} rounded-lg p-2`}>
-                  <agent.icon className={`h-4 w-4 ${agent.color}`} />
+              <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                <div className={`${agent.bgColor} rounded-lg p-1.5 sm:p-2`}>
+                  <agent.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${agent.color}`} />
                 </div>
                 <div>
-                  <p className="text-xs font-light text-foreground tracking-wider">{agent.name}</p>
+                  <p className="text-[11px] sm:text-xs font-light text-foreground tracking-wider">{agent.name}</p>
                   <p className="text-[9px] text-muted-foreground/50">{agent.domain}</p>
                 </div>
               </div>
               <p className="text-[10px] font-extralight text-muted-foreground/60 leading-relaxed">
                 {agent.description}
               </p>
-              <div className="mt-3 flex items-center gap-1">
+              <div className="mt-2 sm:mt-3 flex items-center gap-1">
                 <div className="h-1 w-1 rounded-full bg-emerald-500/70" />
                 <span className="text-[9px] text-emerald-500/70">Available</span>
               </div>

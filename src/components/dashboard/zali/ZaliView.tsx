@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Atom, AlertTriangle } from "lucide-react";
+import { Atom, AlertTriangle, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +36,7 @@ class ZaliErrorBoundary extends React.Component<{ children: React.ReactNode }, {
 
 const TABS: { id: ZaliTab; label: string }[] = [
   { id: "workspace", label: "Workspace" },
-  { id: "specs", label: "Specifications" },
+  { id: "specs", label: "Specs" },
   { id: "agents", label: "Agents" },
   { id: "research", label: "Research" },
 ];
@@ -51,6 +51,7 @@ const ZaliView = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeTab, setActiveTab] = useState<ZaliTab>("workspace");
   const [loading, setLoading] = useState(true);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   // Load projects
@@ -109,7 +110,6 @@ const ZaliView = () => {
         })));
       }
 
-      // Load research findings
       const { data: research } = await supabase
         .from("zali_research")
         .select("*")
@@ -157,11 +157,17 @@ const ZaliView = () => {
 
   const createProject = useCallback(async (name: string, designType: string) => {
     if (!user) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("zali_projects")
       .insert({ user_id: user.id, name, design_type: designType })
       .select()
       .single();
+
+    if (error) {
+      console.error("Create project error:", error);
+      toast({ title: "Error creating project", description: error.message, variant: "destructive" });
+      return;
+    }
 
     if (data) {
       const p: ZaliProject = {
@@ -174,7 +180,7 @@ const ZaliView = () => {
       setActiveProject(p);
       setMessages([]);
       setFindings([]);
-      toast({ title: "ZALI project created", description: name });
+      toast({ title: "Project created", description: name });
     }
   }, [user, toast]);
 
@@ -196,7 +202,6 @@ const ZaliView = () => {
   const sendMessage = useCallback(async (content: string) => {
     if (!activeProject || !user || isStreaming) return;
 
-    // Add user message
     const userMsgId = crypto.randomUUID();
     const userMsg: ZaliMessage = {
       id: userMsgId, projectId: activeProject.id, role: "user",
@@ -204,13 +209,11 @@ const ZaliView = () => {
     };
     setMessages((prev) => [...prev, userMsg]);
 
-    // Save user message to DB
     await supabase.from("zali_messages").insert({
       id: userMsgId, project_id: activeProject.id, user_id: user.id,
       role: "user", content,
     });
 
-    // Start streaming
     setIsStreaming(true);
     const assistantId = crypto.randomUUID();
     const assistantMsg: ZaliMessage = {
@@ -223,7 +226,6 @@ const ZaliView = () => {
     abortRef.current = controller;
 
     try {
-      // Build history for context
       const history = [...messages, userMsg].map((m) => ({
         role: m.role, content: m.content,
       }));
@@ -283,13 +285,11 @@ const ZaliView = () => {
         }
       }
 
-      // Save assistant message
       await supabase.from("zali_messages").insert({
         id: assistantId, project_id: activeProject.id, user_id: user.id,
         role: "assistant", content: fullContent,
       });
 
-      // Extract research findings from response (simple heuristic)
       const researchPatterns = [
         { regex: /\[RESEARCH[:\s]*(.*?)\]/gi, domain: "general" },
         { regex: /\[OPTIMUS\]/gi, domain: "physics" },
@@ -323,7 +323,6 @@ const ZaliView = () => {
       if (err.name !== "AbortError") {
         console.error("ZALI chat error:", err);
         toast({ title: "Error", description: err.message, variant: "destructive" });
-        // Remove empty assistant message on error
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
       }
     } finally {
@@ -363,18 +362,18 @@ const ZaliView = () => {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-6 py-4">
+      <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-3 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Atom className="h-5 w-5 text-accent" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Atom className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
             <div>
-              <h1 className="text-lg font-extralight tracking-wide text-foreground">ZALI</h1>
-              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
+              <h1 className="text-base sm:text-lg font-extralight tracking-wide text-foreground">ZALI</h1>
+              <p className="text-[9px] sm:text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">
                 Design Intelligence Lab
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <ZaliProjectSelector
               projects={projects}
               activeProject={activeProject}
@@ -383,17 +382,29 @@ const ZaliView = () => {
               onDelete={deleteProject}
               onRename={renameProject}
             />
-            <EncryptionBadge />
+            {/* Mobile chat toggle */}
+            <button
+              onClick={() => setShowMobileChat(!showMobileChat)}
+              className="md:hidden p-1.5 rounded-lg border border-border/20 text-muted-foreground hover:text-foreground transition-colors relative"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {messages.length > 0 && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-accent" />
+              )}
+            </button>
+            <div className="hidden sm:block">
+              <EncryptionBadge />
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="mt-4 flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+        <div className="mt-3 sm:mt-4 flex gap-1 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-light transition-colors ${
+              className={`whitespace-nowrap rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-light transition-colors ${
                 activeTab === tab.id
                   ? "bg-foreground/10 text-foreground"
                   : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
@@ -405,16 +416,16 @@ const ZaliView = () => {
         </div>
       </div>
 
-      {/* Main content: left panel + right chat */}
-      <div className="flex-1 min-h-0 flex">
-        {/* Left: Tab content (workspace/specs/agents/research) */}
+      {/* Main content */}
+      <div className="flex-1 min-h-0 flex relative">
+        {/* Left: Tab content */}
         <div className="flex-1 min-w-0">
           <ZaliErrorBoundary key={activeTab}>
             {renderTabContent()}
           </ZaliErrorBoundary>
         </div>
 
-        {/* Right: Chat panel */}
+        {/* Desktop: Chat panel */}
         <div className="w-[340px] lg:w-[380px] flex-shrink-0 border-l border-border/20 hidden md:flex flex-col">
           <ZaliErrorBoundary>
             <ZaliChatPanel
@@ -426,6 +437,30 @@ const ZaliView = () => {
             />
           </ZaliErrorBoundary>
         </div>
+
+        {/* Mobile: Chat overlay */}
+        {showMobileChat && (
+          <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-sm flex flex-col md:hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+              <h3 className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Conversation</h3>
+              <button
+                onClick={() => setShowMobileChat(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <ZaliChatPanel
+                messages={messages}
+                project={activeProject}
+                isStreaming={isStreaming}
+                onSend={sendMessage}
+                onStop={stopStreaming}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
