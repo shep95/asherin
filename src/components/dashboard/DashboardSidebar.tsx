@@ -121,8 +121,10 @@ const DashboardSidebar = ({
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
   
-  // Filter nav items based on tier access
+  // Filter nav items based on tier access and email restrictions
   const navItems = allNavItems.filter((item) => {
+    // Security Center is restricted to a specific user
+    if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
     if (!item.access) return true;
     if (item.access === "search") return hasSearchAccess(tierKey);
     if (item.access === "pro") return hasProAccess(tierKey);
