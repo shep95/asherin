@@ -13,6 +13,7 @@ import ZaliResearchPanel from "./ZaliResearchPanel";
 import ZaliProjectSelector from "./ZaliProjectSelector";
 import ZaliAgentsPanel from "./ZaliAgentsPanel";
 import ZaliSpecsPanel from "./ZaliSpecsPanel";
+import CommunityView from "./CommunityView";
 import EncryptionBadge from "../EncryptionBadge";
 import React from "react";
 
@@ -42,6 +43,7 @@ const TABS: { id: ZaliTab; label: string }[] = [
   { id: "specs", label: "Specs" },
   { id: "agents", label: "Agents" },
   { id: "research", label: "Research" },
+  { id: "community", label: "Community" },
 ];
 
 const ZaliView = () => {
@@ -453,6 +455,8 @@ const ZaliView = () => {
         return <ZaliAgentsPanel />;
       case "research":
         return <ZaliResearchPanel project={activeProject} findings={findings} />;
+      case "community":
+        return <CommunityView />;
       default:
         return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} />;
     }
