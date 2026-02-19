@@ -94,6 +94,7 @@ const Dashboard = () => {
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const conversationsRef = useRef<Conversation[]>([]);
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
   const processingQueue = useRef(false);
@@ -193,7 +194,7 @@ const Dashboard = () => {
           setMessageStatuses(prev => ({ ...prev, [msg.id]: "sent" }));
 
           // Trigger AI response for this queued message
-          const conv = conversations.find(c => c.id === msg.conversationId);
+          const conv = conversationsRef.current.find(c => c.id === msg.conversationId);
           if (conv) {
             const assistantId = crypto.randomUUID();
             setConversations(prev => prev.map(c =>
@@ -384,6 +385,9 @@ const Dashboard = () => {
     load();
   }, [user]);
 
+  // Keep ref in sync so sendMessageCore always reads latest conversations
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? conversations[0];
 
   const handleDepthChange = useCallback((newDepth: ResponseDepth) => {
@@ -444,7 +448,7 @@ const Dashboard = () => {
     setSuggestions([]);
 
     const tempMsgId = crypto.randomUUID();
-    const conv = conversations.find(c => c.id === convId);
+    const conv = conversationsRef.current.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date() };
     const isFirst = conv?.messages.length === 0;
     if (isFirst) {
