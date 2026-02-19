@@ -853,6 +853,109 @@ export type Database = {
           },
         ]
       }
+      community_posts: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          replies_count: number
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          votes: number
+        }
+        Insert: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          replies_count?: number
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          votes?: number
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          replies_count?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          votes?: number
+        }
+        Relationships: []
+      }
+      community_replies: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_votes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+          vote_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+          vote_type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           archived: boolean
