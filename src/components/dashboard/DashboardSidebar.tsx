@@ -52,6 +52,7 @@ interface DashboardSidebarProps {
 const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" | "pro" }[] = [
   { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
   { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
+  { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
   { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
   { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
   { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },

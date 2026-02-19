@@ -77,3 +77,9 @@ verify_jwt = false
 
 [functions.asha-scrape]
 verify_jwt = false
+
+[functions.security-gateway]
+verify_jwt = false
+
+[functions.generate-predictions]
+verify_jwt = false

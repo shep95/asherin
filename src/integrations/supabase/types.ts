@@ -1073,6 +1073,84 @@ export type Database = {
         }
         Relationships: []
       }
+      honeypot_logs: {
+        Row: {
+          created_at: string
+          fingerprint: string | null
+          geo_country: string | null
+          id: string
+          request_data: Json
+          source_ip: string | null
+          trap_name: string
+          trap_type: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          fingerprint?: string | null
+          geo_country?: string | null
+          id?: string
+          request_data?: Json
+          source_ip?: string | null
+          trap_name: string
+          trap_type?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string | null
+          geo_country?: string | null
+          id?: string
+          request_data?: Json
+          source_ip?: string | null
+          trap_name?: string
+          trap_type?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      incident_responses: {
+        Row: {
+          action_taken: string
+          auto_resolved: boolean
+          created_at: string
+          details: Json
+          event_ids: string[]
+          id: string
+          incident_type: string
+          resolved_at: string | null
+          severity: string
+          target_ip: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_taken: string
+          auto_resolved?: boolean
+          created_at?: string
+          details?: Json
+          event_ids?: string[]
+          id?: string
+          incident_type: string
+          resolved_at?: string | null
+          severity?: string
+          target_ip?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_taken?: string
+          auto_resolved?: boolean
+          created_at?: string
+          details?: Json
+          event_ids?: string[]
+          id?: string
+          incident_type?: string
+          resolved_at?: string | null
+          severity?: string
+          target_ip?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       installed_plugins: {
         Row: {
           config: Json
@@ -1780,6 +1858,42 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_tracking: {
+        Row: {
+          blocked: boolean
+          created_at: string
+          endpoint: string
+          id: string
+          identifier: string
+          identifier_type: string
+          request_count: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          blocked?: boolean
+          created_at?: string
+          endpoint: string
+          id?: string
+          identifier: string
+          identifier_type?: string
+          request_count?: number
+          window_end?: string
+          window_start?: string
+        }
+        Update: {
+          blocked?: boolean
+          created_at?: string
+          endpoint?: string
+          id?: string
+          identifier?: string
+          identifier_type?: string
+          request_count?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       saved_prompts: {
         Row: {
           content: string
@@ -1810,6 +1924,60 @@ export type Database = {
           title?: string
           usage_count?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          action_taken: string
+          created_at: string
+          detection_rule: string
+          event_type: string
+          fingerprint: string | null
+          geo_city: string | null
+          geo_country: string | null
+          id: string
+          metadata: Json
+          payload_snippet: string | null
+          request_method: string | null
+          request_path: string | null
+          severity: string
+          source_ip: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_taken?: string
+          created_at?: string
+          detection_rule: string
+          event_type?: string
+          fingerprint?: string | null
+          geo_city?: string | null
+          geo_country?: string | null
+          id?: string
+          metadata?: Json
+          payload_snippet?: string | null
+          request_method?: string | null
+          request_path?: string | null
+          severity?: string
+          source_ip?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string
+          detection_rule?: string
+          event_type?: string
+          fingerprint?: string | null
+          geo_city?: string | null
+          geo_country?: string | null
+          id?: string
+          metadata?: Json
+          payload_snippet?: string | null
+          request_method?: string | null
+          request_path?: string | null
+          severity?: string
+          source_ip?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -1964,6 +2132,51 @@ export type Database = {
         }
         Relationships: []
       }
+      threat_intelligence: {
+        Row: {
+          confidence: number
+          created_at: string
+          expires_at: string | null
+          hit_count: number
+          id: string
+          indicator_type: string
+          indicator_value: string
+          is_active: boolean
+          last_seen: string | null
+          metadata: Json
+          source: string
+          threat_category: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          expires_at?: string | null
+          hit_count?: number
+          id?: string
+          indicator_type?: string
+          indicator_value: string
+          is_active?: boolean
+          last_seen?: string | null
+          metadata?: Json
+          source?: string
+          threat_category?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          expires_at?: string | null
+          hit_count?: number
+          id?: string
+          indicator_type?: string
+          indicator_value?: string
+          is_active?: boolean
+          last_seen?: string | null
+          metadata?: Json
+          source?: string
+          threat_category?: string
+        }
+        Relationships: []
+      }
       usage_stats: {
         Row: {
           chat_prompts: number
@@ -2002,6 +2215,57 @@ export type Database = {
           total_prompts?: number
           truth_prompts?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_behavior_analytics: {
+        Row: {
+          anomaly_details: string | null
+          avg_response_time_ms: number | null
+          behavior_type: string
+          created_at: string
+          device_info: Json
+          geo_location: string | null
+          id: string
+          period_end: string
+          period_start: string
+          request_count: number
+          risk_score: number
+          session_fingerprint: string | null
+          unique_endpoints: number
+          user_id: string
+        }
+        Insert: {
+          anomaly_details?: string | null
+          avg_response_time_ms?: number | null
+          behavior_type?: string
+          created_at?: string
+          device_info?: Json
+          geo_location?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          request_count?: number
+          risk_score?: number
+          session_fingerprint?: string | null
+          unique_endpoints?: number
+          user_id: string
+        }
+        Update: {
+          anomaly_details?: string | null
+          avg_response_time_ms?: number | null
+          behavior_type?: string
+          created_at?: string
+          device_info?: Json
+          geo_location?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          request_count?: number
+          risk_score?: number
+          session_fingerprint?: string | null
+          unique_endpoints?: number
           user_id?: string
         }
         Relationships: []
