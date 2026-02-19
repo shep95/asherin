@@ -4,7 +4,7 @@ import {
   Shield, UserMinus, DollarSign, Package, Target,
   ExternalLink, Calendar, Zap, Search, ChevronDown, ChevronUp,
   TrendingUp, AlertTriangle, Sparkles, Eye, History,
-  GitBranch, Scale, BarChart3, Layers, ArrowRight
+  GitBranch, Scale, BarChart3, Layers, ArrowRight, Gauge, Timer
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -106,7 +106,7 @@ const PredictiveIntelligenceView = () => {
       );
       if (res.ok) {
         const result = await res.json();
-        toast({ title: "Analysis Complete", description: `Generated ${result.count} deep predictions for ${companyInput}` });
+        toast({ title: "Analysis Complete", description: `Generated ${result.count} algorithmic predictions for ${companyInput}` });
         await loadPredictions();
         setShowSettings(false);
       } else {
@@ -139,16 +139,32 @@ const PredictiveIntelligenceView = () => {
     );
   }
 
-  // Helper to get historical comparison data
   const getHC = (prediction: Prediction) => prediction.historical_comparison || {};
 
-  // Get the short title from historical_comparison or first line of prediction_text
   const getTitle = (prediction: Prediction) => {
     const hc = getHC(prediction);
     if (hc.prediction_title) return hc.prediction_title;
     const firstLine = prediction.prediction_text.split("\n")[0];
     return firstLine.length > 120 ? firstLine.slice(0, 120) + "…" : firstLine;
   };
+
+  // Helper to render a mini bar
+  const MiniBar = ({ value, color = "purple" }: { value: number; color?: string }) => (
+    <div className="flex items-center gap-2 flex-1">
+      <div className="flex-1 h-1.5 bg-card/30 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            color === "emerald" ? "bg-emerald-400" :
+            color === "amber" ? "bg-amber-400" :
+            color === "red" ? "bg-red-400" :
+            value > 0.7 ? "bg-emerald-400" : value > 0.4 ? "bg-amber-400" : "bg-red-400"
+          }`}
+          style={{ width: `${Math.max(2, value * 100)}%` }}
+        />
+      </div>
+      <span className="text-[10px] font-mono text-muted-foreground/60 w-8 text-right">{(value * 100).toFixed(0)}%</span>
+    </div>
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -164,7 +180,7 @@ const PredictiveIntelligenceView = () => {
                 Predictive Intelligence
               </h2>
               <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
-                Pattern-based forensic forecasting
+                Algorithmic pattern-based forecasting
               </p>
             </div>
           </div>
@@ -177,11 +193,10 @@ const PredictiveIntelligenceView = () => {
           </button>
         </div>
 
-        {/* Generate panel */}
         {showSettings && (
           <div className="rounded-xl border border-purple-500/20 bg-card/30 backdrop-blur-sm p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Enter a company to run deep pattern analysis — scans financial trajectories, historical precedents, executive movements, regulatory exposure, and competitive dynamics.
+              Enter a company to run the full prediction algorithm — signal detection → scoring → Jaccard pattern matching → 5-factor confidence → time estimation → AI briefing.
             </p>
             <div className="flex gap-2">
               <input
@@ -204,13 +219,13 @@ const PredictiveIntelligenceView = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs text-purple-400/70">
                   <Activity className="h-3 w-3 animate-pulse" />
-                  Deep analysis in progress — scanning 7 intelligence categories...
+                  Running prediction algorithm across 5 event types...
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
-                  {["Current Signals", "Historical Patterns", "Financial Data", "Executive Changes", "Legal/Regulatory", "Competitor Moves", "Industry Trends"].map(cat => (
-                    <div key={cat} className="flex items-center gap-1.5 text-muted-foreground/50">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px]">
+                  {["Signal Detection", "Keyword Scoring", "Source Credibility", "Recency Decay", "Jaccard Matching", "5-Factor Confidence", "Time Estimation", "AI Briefing"].map(step => (
+                    <div key={step} className="flex items-center gap-1.5 text-muted-foreground/50">
                       <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-                      {cat}
+                      {step}
                     </div>
                   ))}
                 </div>
@@ -219,7 +234,6 @@ const PredictiveIntelligenceView = () => {
           </div>
         )}
 
-        {/* Search & Filters */}
         {predictions.length > 0 && (
           <>
             <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-2">
@@ -273,13 +287,13 @@ const PredictiveIntelligenceView = () => {
           <div className="text-center max-w-md space-y-3">
             <h3 className="text-lg font-extralight tracking-wide text-foreground">No Predictions Yet</h3>
             <p className="text-xs font-extralight leading-relaxed text-muted-foreground/70">
-              Run a deep analysis to generate pattern-based predictions. The engine scans historical precedents, financial trajectories, executive movements, and regulatory exposure to forecast what will happen — not just what people are talking about.
+              Run the algorithmic prediction engine. It searches for signals, scores them by relevance/credibility/recency, matches patterns against historical precedents using Jaccard similarity, and calculates confidence with a 5-factor weighted model.
             </p>
             <button
               onClick={() => setShowSettings(true)}
               className="mt-4 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-violet-600/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-violet-600/30 text-purple-400 transition-all text-xs font-light"
             >
-              Run Deep Analysis
+              Run Prediction Algorithm
             </button>
           </div>
         </div>
@@ -326,14 +340,14 @@ const PredictiveIntelligenceView = () => {
                           <div className="flex items-center gap-4 text-[10px] text-muted-foreground/60 flex-wrap">
                             <div className="flex items-center gap-1">
                               <Layers className="h-3 w-3" />
-                              <span>{prediction.signals?.length || 0} evidence sources</span>
+                              <span>{prediction.signals?.filter((s: any) => s.signalStrength > 0).length || 0} active signals</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <History className="h-3 w-3" />
                               <span>{hc.precedents?.length || 0} precedents</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
+                              <Timer className="h-3 w-3" />
                               <span>{prediction.time_horizon}</span>
                             </div>
                             <div className="flex items-center gap-1">
@@ -344,7 +358,6 @@ const PredictiveIntelligenceView = () => {
                         </div>
                       </div>
 
-                      {/* Confidence gauge */}
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         <div className="text-right">
                           <div className={`text-2xl font-light font-mono ${
@@ -371,15 +384,16 @@ const PredictiveIntelligenceView = () => {
                   {/* Expanded detail */}
                   {isExpanded && (
                     <div className="border-t border-border/10">
-                      {/* Section tabs */}
                       <div className="flex items-center gap-1 p-3 border-b border-border/10 bg-background/10 overflow-x-auto">
                         {[
-                          { id: "detail", label: "Full Analysis", icon: Eye },
-                          { id: "precedents", label: "Historical Precedents", icon: History },
-                          { id: "patterns", label: "Pattern Analysis", icon: TrendingUp },
+                          { id: "detail", label: "Intelligence Briefing", icon: Eye },
+                          { id: "signals", label: "Signal Scores", icon: Gauge },
+                          { id: "confidence", label: "5-Factor Model", icon: BarChart3 },
+                          { id: "precedents", label: "Historical Matches", icon: History },
+                          { id: "timing", label: "Time Estimation", icon: Timer },
                           { id: "chain", label: "Chain of Events", icon: GitBranch },
-                          { id: "evidence", label: "Evidence", icon: Layers },
-                          { id: "reasoning", label: "Reasoning", icon: Brain },
+                          { id: "evidence", label: "Raw Evidence", icon: Layers },
+                          { id: "reasoning", label: "Algorithm Steps", icon: Brain },
                         ].map(tab => (
                           <button
                             key={tab.id}
@@ -397,7 +411,7 @@ const PredictiveIntelligenceView = () => {
                       </div>
 
                       <div className="p-4 space-y-4 bg-background/20">
-                        {/* Full Analysis */}
+                        {/* Intelligence Briefing */}
                         {expandedSection === "detail" && (
                           <div className="space-y-4">
                             <div className="prose prose-sm prose-invert max-w-none">
@@ -406,11 +420,6 @@ const PredictiveIntelligenceView = () => {
                                   {paragraph}
                                 </p>
                               ))}
-                              {prediction.prediction_text.split("\n\n").length <= 1 && (
-                                <p className="text-xs font-light text-foreground/80 leading-relaxed">
-                                  {prediction.prediction_text}
-                                </p>
-                              )}
                             </div>
                             {hc.counter_arguments && (
                               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
@@ -424,66 +433,243 @@ const PredictiveIntelligenceView = () => {
                           </div>
                         )}
 
-                        {/* Historical Precedents */}
+                        {/* Signal Scores — NEW */}
+                        {expandedSection === "signals" && (
+                          <div className="space-y-3">
+                            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-2">
+                              Each signal scored by: Relevance (keyword match) + Credibility (source tier) + Recency (time decay) = Signal Strength
+                            </p>
+                            {prediction.signals && prediction.signals.length > 0 ? (
+                              prediction.signals.map((signal: any, idx: number) => (
+                                <div key={idx} className={`rounded-lg border p-4 space-y-3 ${
+                                  signal.signalStrength > 0.5 ? "border-emerald-500/20 bg-emerald-500/5" :
+                                  signal.signalStrength > 0.2 ? "border-amber-500/20 bg-amber-500/5" :
+                                  "border-border/10 bg-card/20"
+                                }`}>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Activity className="h-3.5 w-3.5 text-purple-400" />
+                                      <span className="text-xs font-medium text-foreground">{signal.name || signal.type}</span>
+                                      <span className="text-[9px] text-muted-foreground/40 font-mono">w={(signal.weight * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <span className={`text-sm font-mono font-medium ${
+                                      signal.signalStrength > 0.6 ? "text-emerald-400" :
+                                      signal.signalStrength > 0.3 ? "text-amber-400" : "text-red-400"
+                                    }`}>
+                                      {(signal.signalStrength * 100).toFixed(0)}%
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-3 gap-3 text-[10px]">
+                                    <div>
+                                      <span className="text-muted-foreground/50 block mb-1">Relevance</span>
+                                      <MiniBar value={signal.scores?.relevance || 0} />
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground/50 block mb-1">Credibility</span>
+                                      <MiniBar value={signal.scores?.credibility || 0} />
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground/50 block mb-1">Recency</span>
+                                      <MiniBar value={signal.scores?.recency || 0} />
+                                    </div>
+                                  </div>
+
+                                  {signal.source && (
+                                    <div className="border-t border-border/10 pt-2">
+                                      <p className="text-[10px] text-foreground/60 line-clamp-1">{signal.source.title}</p>
+                                      <a href={signal.source.url} target="_blank" rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-[10px] text-purple-400 hover:text-purple-300 mt-0.5">
+                                        {signal.source.domain} <ExternalLink className="h-2.5 w-2.5" />
+                                      </a>
+                                    </div>
+                                  )}
+
+                                  {signal.historicalReliability != null && (
+                                    <div className="text-[10px] text-muted-foreground/40">
+                                      Historical reliability: {(signal.historicalReliability * 100).toFixed(0)}%
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-muted-foreground/50 text-center py-6">No signal data available.</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 5-Factor Model — NEW */}
+                        {expandedSection === "confidence" && (
+                          <div className="space-y-4">
+                            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                              Confidence = Σ(Factor × Weight) × Event Modifier − Uncertainty Penalty
+                            </p>
+
+                            {hc.confidence_factors ? (
+                              <>
+                                <div className="space-y-3">
+                                  {[
+                                    { key: "signalStrength", label: "Signal Strength", desc: "Active signals / expected signals", weight: 0.25, icon: Layers },
+                                    { key: "signalQuality", label: "Signal Quality", desc: "Average signal strength score", weight: 0.25, icon: Gauge },
+                                    { key: "historicalAccuracy", label: "Historical Accuracy", desc: "Past success rate for similar patterns", weight: 0.25, icon: History },
+                                    { key: "recency", label: "Recency", desc: "Average temporal freshness of signals", weight: 0.15, icon: Clock },
+                                    { key: "credibility", label: "Source Credibility", desc: "Average source tier score", weight: 0.10, icon: Shield },
+                                  ].map(factor => {
+                                    const value = hc.confidence_factors[factor.key] || 0;
+                                    return (
+                                      <div key={factor.key} className="rounded-lg border border-border/10 bg-card/20 p-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <div className="flex items-center gap-2">
+                                            <factor.icon className="h-3.5 w-3.5 text-purple-400" />
+                                            <span className="text-xs font-medium text-foreground">{factor.label}</span>
+                                            <span className="text-[9px] font-mono text-muted-foreground/40">×{factor.weight}</span>
+                                          </div>
+                                          <span className="text-sm font-mono text-foreground">{(value * 100).toFixed(0)}%</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground/40 mb-2">{factor.desc}</p>
+                                        <MiniBar value={value} />
+                                        <div className="text-[9px] font-mono text-muted-foreground/30 mt-1">
+                                          Contribution: {(value * factor.weight * 100).toFixed(1)}%
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-medium text-purple-400">Final Confidence</span>
+                                    <span className="text-xl font-mono text-purple-400">{(prediction.confidence * 100).toFixed(0)}%</span>
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground/50 mt-1">
+                                    After event-type modifier and uncertainty penalty applied
+                                  </p>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="space-y-3">
+                                {prediction.reasoning_chain?.filter((s: any) => s.description?.includes("Factor") || s.description?.includes("Confidence")).map((step: any, idx: number) => (
+                                  <div key={idx} className="rounded-lg border border-border/10 bg-card/20 p-3">
+                                    <p className="text-xs text-foreground mb-1">{step.description}</p>
+                                    <p className="text-[10px] text-muted-foreground/60">{step.output}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Historical Matches (Jaccard) */}
                         {expandedSection === "precedents" && (
                           <div className="space-y-3">
+                            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-2">
+                              Jaccard Similarity: |Intersection| / |Union| of signal types between current and historical patterns
+                            </p>
                             {hc.precedents && hc.precedents.length > 0 ? (
                               hc.precedents.map((prec: any, idx: number) => (
                                 <div key={idx} className="rounded-lg border border-border/10 bg-card/20 p-4 space-y-2">
-                                  <div className="flex items-center gap-2">
-                                    <History className="h-3.5 w-3.5 text-purple-400" />
-                                    <span className="text-xs font-medium text-foreground">{prec.event}</span>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <History className="h-3.5 w-3.5 text-purple-400" />
+                                      <span className="text-xs font-medium text-foreground">{prec.event}</span>
+                                    </div>
                                     {prec.date && (
-                                      <span className="text-[10px] text-muted-foreground/50 ml-auto">{prec.date}</span>
+                                      <span className="text-[10px] text-muted-foreground/50">{prec.date}</span>
                                     )}
                                   </div>
+                                  {prec.relevance && (
+                                    <div className="pl-5 text-[10px]">
+                                      <span className="text-purple-400 font-medium">{prec.relevance}</span>
+                                    </div>
+                                  )}
                                   {prec.outcome && (
                                     <div className="pl-5">
                                       <span className="text-[10px] font-medium text-muted-foreground/60 uppercase">Outcome: </span>
                                       <span className="text-xs text-foreground/70">{prec.outcome}</span>
                                     </div>
                                   )}
-                                  {prec.relevance && (
-                                    <div className="pl-5">
-                                      <span className="text-[10px] font-medium text-muted-foreground/60 uppercase">Why this matters: </span>
-                                      <span className="text-xs text-foreground/70">{prec.relevance}</span>
+                                  {prec.signals_matched && (
+                                    <div className="pl-5 flex flex-wrap gap-1 mt-1">
+                                      {prec.signals_matched.map((sig: string, i: number) => (
+                                        <span key={i} className="px-2 py-0.5 rounded-full text-[9px] bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                          {sig.replace(/_/g, " ")}
+                                        </span>
+                                      ))}
                                     </div>
                                   )}
                                 </div>
                               ))
                             ) : (
-                              <p className="text-xs text-muted-foreground/50 text-center py-6">No historical precedents identified for this prediction.</p>
+                              <p className="text-xs text-muted-foreground/50 text-center py-6">No historical precedents with sufficient similarity found.</p>
                             )}
                           </div>
                         )}
 
-                        {/* Pattern Analysis */}
-                        {expandedSection === "patterns" && (
-                          <div className="space-y-3">
-                            {hc.pattern_analysis ? (
-                              Object.entries(hc.pattern_analysis)
-                                .filter(([_, v]) => v && typeof v === "string" && (v as string).length > 5)
-                                .map(([key, value]) => {
-                                  const labelMap: Record<string, { label: string; icon: React.ElementType }> = {
-                                    financial_trajectory: { label: "Financial Trajectory", icon: BarChart3 },
-                                    structural_signals: { label: "Structural Signals", icon: Layers },
-                                    regulatory_exposure: { label: "Regulatory Exposure", icon: Shield },
-                                    competitive_pressure: { label: "Competitive Pressure", icon: Target },
-                                    industry_context: { label: "Industry Context", icon: TrendingUp },
-                                  };
-                                  const cfg = labelMap[key] || { label: key.replace(/_/g, " "), icon: Activity };
-                                  return (
-                                    <div key={key} className="rounded-lg border border-border/10 bg-card/20 p-4">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <cfg.icon className="h-3.5 w-3.5 text-purple-400" />
-                                        <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">{cfg.label}</span>
-                                      </div>
-                                      <p className="text-xs font-light text-foreground/80 leading-relaxed">{value as string}</p>
+                        {/* Time Estimation — NEW */}
+                        {expandedSection === "timing" && (
+                          <div className="space-y-4">
+                            <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
+                              Estimated date = Today + Average Historical Lead Time | Confidence Interval = ±1 Standard Deviation
+                            </p>
+
+                            {hc.timing ? (
+                              <>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                  <div className="rounded-lg border border-border/10 bg-card/20 p-3 text-center">
+                                    <div className="text-xl font-mono text-foreground">{hc.timing.avgLeadTime}d</div>
+                                    <div className="text-[9px] text-muted-foreground/40 uppercase">Avg Lead Time</div>
+                                  </div>
+                                  <div className="rounded-lg border border-border/10 bg-card/20 p-3 text-center">
+                                    <div className="text-xl font-mono text-foreground">±{hc.timing.stdDev}d</div>
+                                    <div className="text-[9px] text-muted-foreground/40 uppercase">Std Deviation</div>
+                                  </div>
+                                  <div className="rounded-lg border border-border/10 bg-card/20 p-3 text-center">
+                                    <div className="text-xl font-mono text-foreground">{hc.timing.patternsUsed}</div>
+                                    <div className="text-[9px] text-muted-foreground/40 uppercase">Patterns Used</div>
+                                  </div>
+                                  <div className="rounded-lg border border-border/10 bg-card/20 p-3 text-center">
+                                    <div className="text-xl font-mono text-purple-400">
+                                      {new Date(prediction.estimated_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                                     </div>
-                                  );
-                                })
+                                    <div className="text-[9px] text-muted-foreground/40 uppercase">Est. Date</div>
+                                  </div>
+                                </div>
+
+                                <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4">
+                                  <div className="text-[10px] text-muted-foreground/50 mb-3">Confidence Interval</div>
+                                  <div className="relative h-8 bg-card/30 rounded-full overflow-hidden">
+                                    <div
+                                      className="absolute h-full bg-purple-500/20 rounded-full"
+                                      style={{
+                                        left: `${(hc.timing.confidenceInterval[0] / (hc.timing.confidenceInterval[1] * 1.3)) * 100}%`,
+                                        width: `${((hc.timing.confidenceInterval[1] - hc.timing.confidenceInterval[0]) / (hc.timing.confidenceInterval[1] * 1.3)) * 100}%`,
+                                      }}
+                                    />
+                                    <div
+                                      className="absolute h-full w-0.5 bg-purple-400"
+                                      style={{ left: `${(hc.timing.avgLeadTime / (hc.timing.confidenceInterval[1] * 1.3)) * 100}%` }}
+                                    />
+                                  </div>
+                                  <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1">
+                                    <span>
+                                      Earliest: {hc.timing.earliestDate ? new Date(hc.timing.earliestDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : `${hc.timing.confidenceInterval[0]}d`}
+                                    </span>
+                                    <span className="text-purple-400 font-medium">
+                                      Most likely: {new Date(prediction.estimated_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </span>
+                                    <span>
+                                      Latest: {hc.timing.latestDate ? new Date(hc.timing.latestDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : `${hc.timing.confidenceInterval[1]}d`}
+                                    </span>
+                                  </div>
+                                </div>
+                              </>
                             ) : (
-                              <p className="text-xs text-muted-foreground/50 text-center py-6">No pattern analysis available.</p>
+                              <div className="rounded-lg border border-border/10 bg-card/20 p-4 text-center">
+                                <p className="text-sm font-mono text-foreground mb-1">{prediction.time_horizon}</p>
+                                <p className="text-[10px] text-muted-foreground/40">
+                                  Est. {new Date(prediction.estimated_date).toLocaleDateString()}
+                                </p>
+                              </div>
                             )}
                           </div>
                         )}
@@ -505,9 +691,6 @@ const PredictiveIntelligenceView = () => {
                                   <div className="flex-1 pt-1">
                                     <p className="text-xs font-light text-foreground/80 leading-relaxed">{step}</p>
                                   </div>
-                                  {idx < hc.chain_of_events.length - 1 && (
-                                    <ArrowRight className="h-3 w-3 text-purple-400/30 mt-2 flex-shrink-0" />
-                                  )}
                                 </div>
                               ))
                             ) : (
@@ -516,29 +699,22 @@ const PredictiveIntelligenceView = () => {
                           </div>
                         )}
 
-                        {/* Evidence (Signals) */}
+                        {/* Raw Evidence */}
                         {expandedSection === "evidence" && (
                           <div className="space-y-2">
-                            {prediction.signals && prediction.signals.length > 0 ? (
-                              prediction.signals.slice(0, 12).map((signal: any, idx: number) => (
-                                <div key={idx} className="flex items-start gap-3 p-3 rounded-lg border border-border/10 bg-card/20 hover:bg-card/30 transition-colors">
+                            {prediction.signals && prediction.signals.filter((s: any) => s.source).length > 0 ? (
+                              prediction.signals.filter((s: any) => s.source).map((signal: any, idx: number) => (
+                                <div key={idx} className="flex items-start gap-3 p-3 rounded-lg border border-border/10 bg-card/20">
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs font-light text-foreground mb-1">
                                       {signal.name || signal.type?.replace(/_/g, " ")}
                                     </p>
-                                    {signal.source && (
-                                      <>
-                                        <p className="text-[10px] text-foreground/70 line-clamp-1 mb-0.5">{signal.source.title}</p>
-                                        <p className="text-[10px] text-muted-foreground/50 line-clamp-2 mb-1.5">{signal.source.snippet}</p>
-                                        {signal.source.url && (
-                                          <a href={signal.source.url} target="_blank" rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-[10px] text-purple-400 hover:text-purple-300 transition-colors">
-                                            <span>{signal.source.domain}</span>
-                                            <ExternalLink className="h-2.5 w-2.5" />
-                                          </a>
-                                        )}
-                                      </>
-                                    )}
+                                    <p className="text-[10px] text-foreground/70 line-clamp-1 mb-0.5">{signal.source.title}</p>
+                                    <p className="text-[10px] text-muted-foreground/50 line-clamp-2 mb-1.5">{signal.source.snippet}</p>
+                                    <a href={signal.source.url} target="_blank" rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-[10px] text-purple-400 hover:text-purple-300">
+                                      {signal.source.domain} <ExternalLink className="h-2.5 w-2.5" />
+                                    </a>
                                   </div>
                                   <div className="flex flex-col gap-1 text-[10px] text-muted-foreground/40 flex-shrink-0">
                                     <div className="flex items-center gap-1">
@@ -552,12 +728,12 @@ const PredictiveIntelligenceView = () => {
                                 </div>
                               ))
                             ) : (
-                              <p className="text-xs text-muted-foreground/50 text-center py-6">No evidence sources available.</p>
+                              <p className="text-xs text-muted-foreground/50 text-center py-6">No raw evidence available.</p>
                             )}
                           </div>
                         )}
 
-                        {/* Reasoning Chain */}
+                        {/* Algorithm Steps */}
                         {expandedSection === "reasoning" && prediction.reasoning_chain && (
                           <div className="space-y-3">
                             {prediction.reasoning_chain.map((step: any, idx: number) => (
@@ -569,18 +745,7 @@ const PredictiveIntelligenceView = () => {
                                   <p className="text-xs font-light text-foreground mb-0.5">{step.description}</p>
                                   <p className="text-[10px] text-muted-foreground/50 leading-relaxed">{step.output}</p>
                                   <div className="flex items-center gap-2 mt-1.5">
-                                    <div className="flex-1 h-0.5 bg-card/30 rounded-full overflow-hidden">
-                                      <div
-                                        className={`h-full transition-all ${
-                                          step.confidence > 0.8 ? "bg-emerald-400" :
-                                          step.confidence > 0.6 ? "bg-amber-400" : "bg-red-400"
-                                        }`}
-                                        style={{ width: `${(step.confidence || 0) * 100}%` }}
-                                      />
-                                    </div>
-                                    <span className="text-[9px] font-mono text-muted-foreground/40">
-                                      {((step.confidence || 0) * 100).toFixed(0)}%
-                                    </span>
+                                    <MiniBar value={step.confidence || 0} />
                                   </div>
                                 </div>
                               </div>
