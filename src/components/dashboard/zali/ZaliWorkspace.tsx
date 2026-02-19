@@ -32,12 +32,12 @@ const ZaliWorkspace = ({ project }: Props) => {
 
   if (!project) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-6">
+      <div className="flex flex-col items-center justify-center h-full gap-6 p-6">
         <div className="relative">
-          <div className="h-24 w-24 rounded-full border border-border/20 flex items-center justify-center">
-            <Atom className="h-10 w-10 text-muted-foreground/20 animate-spin" style={{ animationDuration: "8s" }} />
+          <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full border border-border/20 flex items-center justify-center">
+            <Atom className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground/20 animate-spin" style={{ animationDuration: "8s" }} />
           </div>
-          <div className="absolute inset-0 h-24 w-24 rounded-full border border-accent/10 animate-ping" style={{ animationDuration: "3s" }} />
+          <div className="absolute inset-0 h-20 w-20 sm:h-24 sm:w-24 rounded-full border border-accent/10 animate-ping" style={{ animationDuration: "3s" }} />
         </div>
         <div className="text-center">
           <p className="text-sm font-extralight text-muted-foreground">Design Workspace</p>
@@ -50,20 +50,20 @@ const ZaliWorkspace = ({ project }: Props) => {
   return (
     <div className="flex flex-col h-full">
       {/* Phase indicator */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-border/20 flex items-center justify-between">
+      <div className="flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 border-b border-border/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <div className={`h-2 w-2 rounded-full ${phaseConfig.color} bg-current animate-pulse`} />
           <div>
             <span className={`text-[10px] font-light tracking-[0.2em] ${phaseConfig.color}`}>{phaseConfig.label}</span>
-            <p className="text-[9px] text-muted-foreground/50">{phaseConfig.description}</p>
+            <p className="text-[9px] text-muted-foreground/50 hidden sm:block">{phaseConfig.description}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
           {(["assembled", "exploded", "crosssection", "simulation"] as const).map((vm) => (
             <button
               key={vm}
               onClick={() => setViewMode(vm)}
-              className={`px-2 py-1 rounded text-[9px] transition-colors ${
+              className={`px-2 py-1 rounded text-[9px] whitespace-nowrap transition-colors ${
                 viewMode === vm ? "bg-foreground/10 text-foreground" : "text-muted-foreground/40 hover:text-foreground"
               }`}
             >
@@ -90,25 +90,23 @@ const ZaliWorkspace = ({ project }: Props) => {
         {/* Animated holographic element */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
-            {/* Orbiting rings */}
-            <div className="h-48 w-48 rounded-full border border-accent/20 animate-spin" style={{ animationDuration: "12s" }}>
+            <div className="h-32 w-32 sm:h-48 sm:w-48 rounded-full border border-accent/20 animate-spin" style={{ animationDuration: "12s" }}>
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-accent/60" />
             </div>
-            <div className="absolute inset-4 rounded-full border border-border/20 animate-spin" style={{ animationDuration: "8s", animationDirection: "reverse" }}>
+            <div className="absolute inset-3 sm:inset-4 rounded-full border border-border/20 animate-spin" style={{ animationDuration: "8s", animationDirection: "reverse" }}>
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 h-1.5 w-1.5 rounded-full bg-emerald-400/60" />
             </div>
-            <div className="absolute inset-8 rounded-full border border-border/10 animate-spin" style={{ animationDuration: "15s" }}>
+            <div className="absolute inset-6 sm:inset-8 rounded-full border border-border/10 animate-spin" style={{ animationDuration: "15s" }}>
               <div className="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-blue-400/60" />
             </div>
 
-            {/* Center element */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <Atom className="h-8 w-8 text-accent/40 mx-auto animate-pulse" />
-                <p className="text-[10px] font-extralight text-muted-foreground/50 mt-2 tracking-wider">
+                <Atom className="h-6 w-6 sm:h-8 sm:w-8 text-accent/40 mx-auto animate-pulse" />
+                <p className="text-[9px] sm:text-[10px] font-extralight text-muted-foreground/50 mt-2 tracking-wider">
                   {viewMode.toUpperCase()} VIEW
                 </p>
-                <p className="text-[9px] text-muted-foreground/30">
+                <p className="text-[8px] sm:text-[9px] text-muted-foreground/30">
                   Scale: {SCALE_LEVELS[activeScale].scale}
                 </p>
               </div>
@@ -117,21 +115,21 @@ const ZaliWorkspace = ({ project }: Props) => {
         </div>
 
         {/* Scale info overlay */}
-        <div className="absolute top-4 left-4 space-y-1">
+        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 space-y-1">
           <p className="text-[9px] text-muted-foreground/40 tracking-wider">SCALE</p>
-          <p className="text-xs font-light text-foreground">{SCALE_LEVELS[activeScale].label}</p>
-          <p className="text-[10px] text-muted-foreground/60">{SCALE_LEVELS[activeScale].scale}</p>
+          <p className="text-[11px] sm:text-xs font-light text-foreground">{SCALE_LEVELS[activeScale].label}</p>
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground/60">{SCALE_LEVELS[activeScale].scale}</p>
         </div>
 
         {/* Project info */}
-        <div className="absolute top-4 right-4 text-right">
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-4 text-right">
           <p className="text-[9px] text-muted-foreground/40 tracking-wider">PROJECT</p>
-          <p className="text-xs font-light text-foreground truncate max-w-[180px]">{project.name}</p>
-          <p className="text-[10px] text-muted-foreground/60">{project.designType}</p>
+          <p className="text-[11px] sm:text-xs font-light text-foreground truncate max-w-[120px] sm:max-w-[180px]">{project.name}</p>
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground/60">{project.designType}</p>
         </div>
 
         {/* View controls */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-xl border border-border/20 bg-card/60 backdrop-blur-sm px-2 py-1">
+        <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-xl border border-border/20 bg-card/60 backdrop-blur-sm px-2 py-1">
           <button className="p-1.5 rounded text-muted-foreground/50 hover:text-foreground transition-colors">
             <RotateCw className="h-3.5 w-3.5" />
           </button>
@@ -149,19 +147,19 @@ const ZaliWorkspace = ({ project }: Props) => {
       </div>
 
       {/* Scale selector bar */}
-      <div className="flex-shrink-0 px-4 py-2 border-t border-border/20 flex items-center gap-1 overflow-x-auto">
+      <div className="flex-shrink-0 px-2 sm:px-4 py-2 border-t border-border/20 flex items-center gap-1 overflow-x-auto scrollbar-none">
         {SCALE_LEVELS.map((level, i) => (
           <button
             key={level.label}
             onClick={() => setActiveScale(i)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[9px] sm:text-[10px] whitespace-nowrap transition-colors ${
               activeScale === i
                 ? "bg-accent/20 text-accent"
                 : "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/5"
             }`}
           >
             <level.icon className="h-3 w-3" />
-            {level.label}
+            <span className="hidden xs:inline">{level.label}</span>
           </button>
         ))}
       </div>
