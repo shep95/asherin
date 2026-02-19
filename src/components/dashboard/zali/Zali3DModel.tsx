@@ -113,7 +113,7 @@ function ModelScene({ project, viewMode }: { project: ZaliProject; viewMode: str
   const exploded = viewMode === "exploded";
   const spread = exploded ? 1.8 : 1;
 
-  // Layout blocks in a circle
+  // Layout blocks in a circle — use deterministic sizing (no Math.random)
   const blocks = useMemo(() => {
     const count = Math.min(equipment.length, 12);
     return equipment.slice(0, count).map((eq, i) => {
@@ -122,11 +122,14 @@ function ModelScene({ project, viewMode }: { project: ZaliProject; viewMode: str
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       const y = (i % 3) * 0.4 - 0.3;
-      const sizeBase = 0.3 + Math.random() * 0.15;
+      // Deterministic sizing based on index
+      const seed = ((i * 7 + 3) % 10) / 10;
+      const sizeBase = 0.3 + seed * 0.15;
+      const heightMul = 0.6 + ((i * 13 + 5) % 10) / 10 * 0.8;
       return {
         ...eq,
         position: [x, y, z] as [number, number, number],
-        size: [sizeBase, sizeBase * (0.6 + Math.random() * 0.8), sizeBase] as [number, number, number],
+        size: [sizeBase, sizeBase * heightMul, sizeBase] as [number, number, number],
       };
     });
   }, [equipment, spread]);
@@ -195,20 +198,31 @@ interface Props {
 }
 
 const Zali3DModel = ({ project, viewMode }: Props) => {
-  return (
-    <div className="w-full h-full min-h-[350px]">
-      <Canvas
-        camera={{ position: [4, 3, 4], fov: 45 }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true }}
-        style={{ background: "transparent" }}
-      >
-        <Suspense fallback={null}>
-          <ModelScene project={project} viewMode={viewMode} />
-        </Suspense>
-      </Canvas>
-    </div>
-  );
+  try {
+    return (
+      <div className="w-full h-full min-h-[350px]">
+        <Canvas
+          camera={{ position: [4, 3, 4], fov: 45 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, alpha: true }}
+          style={{ background: "transparent" }}
+          onCreated={(state) => {
+            state.gl.setClearColor(0x000000, 0);
+          }}
+        >
+          <Suspense fallback={null}>
+            <ModelScene project={project} viewMode={viewMode} />
+          </Suspense>
+        </Canvas>
+      </div>
+    );
+  } catch {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[350px]">
+        <p className="text-xs text-muted-foreground">3D viewport unavailable</p>
+      </div>
+    );
+  }
 };
 
 export default Zali3DModel;
