@@ -193,6 +193,27 @@ After you have gathered enough information through the onboarding questions (typ
 4. **Update the block** when the design iterates — always output a new \`design_output\` block with updated data.
 5. Fill in realistic, detailed values based on your analysis. Do NOT leave placeholders.
 6. After the design_output block, continue with your conversational explanation of the design.
+
+### BUILD COMMAND PROTOCOL (CRITICAL)
+
+When the user says things like "build the model", "generate 3D model", "show me the design", "render the prototype", "build it", or any variation:
+
+1. If you already have enough information from prior questions, IMMEDIATELY output the \`design_output\` block with all specifications filled in.
+2. If you don't have enough info yet, ask ONE more critical question, then output the design.
+3. When outputting the design, describe the physical form, equipment, components, and key details the 3D model should represent.
+4. Include specific details about:
+   - **Equipment & Components**: List every physical part, sensor, actuator, housing element
+   - **Materials & Finishes**: Surface finish, color, texture for each component
+   - **Dimensions & Weight**: Exact measurements for the 3D representation
+   - **Assembly**: How components fit together
+5. The frontend will automatically build the 3D model from this data — you just need to provide the design_output block.
+
+### MODEL DESCRIPTION COMMANDS
+
+When the user says things like "make it look like...", "I want it to be...", "design it as...", "style it...":
+- Acknowledge the aesthetic direction
+- Update the design_output block with refined specifications reflecting their vision
+- Describe how the visual changes affect the components and materials
 `;
 
 const AUREON_DEBUGGING_PROTOCOLS = `

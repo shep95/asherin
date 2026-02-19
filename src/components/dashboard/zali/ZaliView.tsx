@@ -58,6 +58,8 @@ const ZaliView = () => {
   const [chatMode, setChatMode] = useState<ChatMode>("chat");
   const [chatDepth, setChatDepth] = useState<ResponseDepth>("standard");
   const abortRef = useRef<AbortController | null>(null);
+  const [autoBuildModel, setAutoBuildModel] = useState(false);
+  const [modelPrompt, setModelPrompt] = useState("");
 
   // Resizable chat panel state
   const [chatWidth, setChatWidth] = useState(() => {
@@ -350,7 +352,6 @@ const ZaliView = () => {
 
           if (Object.keys(updatePayload).length > 0) {
             await supabase.from("zali_projects").update(updatePayload).eq("id", activeProject.id);
-            // Update local state
             setActiveProject((prev) => {
               if (!prev) return prev;
               return {
@@ -372,10 +373,28 @@ const ZaliView = () => {
               manufacturing: designData.manufacturing || p.manufacturing,
               simulationResults: designData.simulation_results || p.simulationResults,
             } : p));
+
+            // Auto-trigger 3D model build and switch to workspace
+            setAutoBuildModel(true);
+            setActiveTab("workspace");
           }
         } catch (e) {
           console.error("Failed to parse design_output:", e);
         }
+      }
+
+      // Detect user build commands to auto-trigger model
+      const buildCommandRegex = /\b(build|generate|create|show|render|visualize)\b.*\b(3d|model|design|prototype|viewport)\b/i;
+      const lastUserContent = content.toLowerCase();
+      if (buildCommandRegex.test(lastUserContent)) {
+        setAutoBuildModel(true);
+        setActiveTab("workspace");
+      }
+
+      // Detect model description commands
+      const describeMatch = lastUserContent.match(/(?:make it|design it|style it|model should be|i want it to look)\s+(.+)/i);
+      if (describeMatch) {
+        setModelPrompt(describeMatch[1].trim());
       }
 
       const researchPatterns = [
@@ -427,7 +446,7 @@ const ZaliView = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "workspace":
-        return <ZaliWorkspace project={activeProject} />;
+        return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} />;
       case "specs":
         return <ZaliSpecsPanel project={activeProject} />;
       case "agents":
@@ -435,7 +454,7 @@ const ZaliView = () => {
       case "research":
         return <ZaliResearchPanel project={activeProject} findings={findings} />;
       default:
-        return <ZaliWorkspace project={activeProject} />;
+        return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} />;
     }
   };
 

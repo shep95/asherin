@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Atom, Box, Layers, Microscope, Cpu, Activity, Grid3x3, CheckCircle2, AlertTriangle, Zap, Shield, Sparkles, Send, RotateCw } from "lucide-react";
 import type { ZaliPhase, ZaliProject } from "./types";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,9 +26,11 @@ const SCALE_LEVELS = [
 
 interface Props {
   project: ZaliProject | null;
+  autoBuild?: boolean;
+  modelPrompt?: string;
 }
 
-const ZaliWorkspace = ({ project }: Props) => {
+const ZaliWorkspace = ({ project, autoBuild, modelPrompt }: Props) => {
   const [activeScale, setActiveScale] = useState(0);
   const [viewMode, setViewMode] = useState<"assembled" | "exploded" | "crosssection" | "simulation">("assembled");
   const [showModel, setShowModel] = useState(false);
@@ -43,6 +45,21 @@ const ZaliWorkspace = ({ project }: Props) => {
   const hasMfg = project && Object.keys(project.manufacturing).length > 0;
   const hasSims = project && Object.keys(project.simulationResults).length > 0;
   const hasDesignData = hasSpecs || hasCost || hasMfg || hasSims;
+
+  // Auto-build when triggered from chat commands
+  useEffect(() => {
+    if (autoBuild && hasDesignData && !showModel) {
+      setShowModel(true);
+    }
+  }, [autoBuild, hasDesignData]);
+
+  // Apply model prompt from chat
+  useEffect(() => {
+    if (modelPrompt && modelPrompt !== appliedDescription) {
+      setModelDescription(modelPrompt);
+      setAppliedDescription(modelPrompt);
+    }
+  }, [modelPrompt]);
 
   if (!project) {
     return (
