@@ -49,6 +49,7 @@ const plans: {
     features: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
+      "Predictive Intelligence — AI event forecasting",
       "ZALI Design Intelligence Lab",
       "ZALI Community — questions, requests & feature votes",
       "Asha Data Intelligence Platform",

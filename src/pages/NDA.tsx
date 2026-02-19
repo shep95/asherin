@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import { useEffect } from "react";
-import { Shield, FileText, Lock } from "lucide-react";
+import { Shield, FileText, Lock, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const NDA = () => {
@@ -13,7 +13,14 @@ const NDA = () => {
     <LandingBackground overlayOpacity="bg-black/85">
       <Header />
 
-      <div className="relative z-10 pt-32 pb-16 px-6">
+      <div className="relative z-10 pt-24 px-6">
+        <Link to="/" className="inline-flex items-center gap-2 text-xs font-light tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Home
+        </Link>
+      </div>
+
+      <div className="relative z-10 pt-8 pb-16 px-6">
         <div className="mx-auto max-w-3xl">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1.5 mb-6">

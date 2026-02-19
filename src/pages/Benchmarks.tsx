@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Trophy, Target, Shield, Code, Database, AlertTriangle, FileCode, Lock, Cpu, Twitter } from "lucide-react";
+import { ArrowRight, Trophy, Target, Shield, Code, Database, AlertTriangle, FileCode, Lock, Cpu, Twitter, ArrowLeft } from "lucide-react";
 
 // ── Benchmark Data ──────────────────────────────────────────────────────────
 
@@ -162,8 +162,15 @@ const Benchmarks = () => {
     <LandingBackground>
       <Header />
 
+      <div className="relative z-10 pt-24 px-6">
+        <Link to="/" className="inline-flex items-center gap-2 text-xs font-light tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Home
+        </Link>
+      </div>
+
       {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <div className="relative z-10 pt-32 pb-16 px-6 text-center">
+      <div className="relative z-10 pt-8 pb-16 px-6 text-center">
         <p className="text-sm font-light tracking-[0.3em] text-muted-foreground uppercase mb-4">Technical Benchmark</p>
         <h1 className="max-w-4xl mx-auto text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
           Aureon vs Claude Opus 4.6
