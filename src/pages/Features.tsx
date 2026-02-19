@@ -6,7 +6,7 @@ import {
   Brain, Code, Shield, Search, Eye, Newspaper, Users, Server,
   Lock, Zap, ArrowRight, MessageSquare, Layers, Database,
   Globe, Target, Download, RefreshCw, Check, Sparkles, FileText,
-  Activity, Puzzle, ClipboardList, MapPin,
+  Activity, Puzzle, ClipboardList, MapPin, TrendingUp, ArrowLeft,
 } from "lucide-react";
 
 /* ─── Tier config ─── */
@@ -141,6 +141,21 @@ const features: Feature[] = [
     tier: "aureon",
   },
   /* ─── Pro tier ─── */
+  {
+    icon: TrendingUp,
+    title: "Predictive Intelligence",
+    description:
+      "AI-powered event forecasting that scans 100+ web sources for early signals — regulatory filings, insider activity, executive movements — and generates predictions with confidence scoring, reasoning chains, and estimated timelines.",
+    details: [
+      "Real-time signal detection across 100+ web sources",
+      "19+ pre-configured signal definitions per event type",
+      "Multi-factor confidence scoring model",
+      "Full reasoning chain transparency for every prediction",
+      "Event categories: regulatory, M&A, earnings, personnel, legal",
+      "Historical backtesting for accuracy measurement",
+    ],
+    tier: "pro",
+  },
   {
     icon: Newspaper,
     title: "Daily Intelligence Briefings",
@@ -419,6 +434,13 @@ const Features = () => {
 
       <Header />
 
+      <div className="relative z-10 pt-24 px-6">
+        <Link to="/" className="inline-flex items-center gap-2 text-xs font-light tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Home
+        </Link>
+      </div>
+
       {/* JSON-LD */}
       <script
         type="application/ld+json"
@@ -441,7 +463,7 @@ const Features = () => {
       />
 
       {/* Hero */}
-      <header className="relative z-10 flex flex-col items-center justify-center pt-32 pb-20 px-6 text-center">
+      <header className="relative z-10 flex flex-col items-center justify-center pt-8 pb-20 px-6 text-center">
         <p className="text-xs font-extralight tracking-[0.35em] text-muted-foreground/50 uppercase mb-5">
           Platform Capabilities
         </p>

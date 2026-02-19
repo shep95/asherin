@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Crosshair, Shield, Globe, Users, FileText, Network, Eye,
-  ArrowRight, Check, AlertTriangle, Search, BarChart3,
+  ArrowRight, Check, AlertTriangle, Search, BarChart3, ArrowLeft,
 } from "lucide-react";
 
 const capabilities = [
@@ -69,6 +69,13 @@ const FeatureNomad = () => {
   return (
     <LandingBackground>
       <Header />
+
+      <div className="relative z-10 pt-24 px-6">
+        <Link to="/" className="inline-flex items-center gap-2 text-xs font-light tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Home
+        </Link>
+      </div>
 
       {/* Hero */}
       <section className="relative z-10 flex min-h-[70vh] flex-col items-center justify-center px-6 pt-24 text-center">

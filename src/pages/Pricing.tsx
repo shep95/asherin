@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
-import { Check, ArrowRight, Zap, Search, Brain, Code, Shield, Users, Globe, BarChart3, Lock, Server, Cpu, Database, Network, Eye, Newspaper } from "lucide-react";
+import { Check, ArrowRight, Zap, Search, Brain, Code, Shield, Users, Globe, BarChart3, Lock, Server, Cpu, Database, Network, Eye, Newspaper, TrendingUp, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
 
@@ -34,12 +34,13 @@ const tiers = [
     tagline: "Full Dashboard Access",
     price: "$399",
     period: "/ month",
-    description: "Complete access to every tool in the dashboard — Asha Intelligence, NOMAD OSINT, Daily Briefings, Web Intelligence, and more.",
+    description: "Complete access to every tool in the dashboard — Asha Intelligence, NOMAD OSINT, Daily Briefings, Predictive Intelligence, and more.",
     cta: "Get Pro Access",
     highlight: false,
     features: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
+      "Predictive Intelligence — AI event forecasting",
       "Asha Data Intelligence Platform",
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
@@ -88,8 +89,15 @@ const Pricing = () => {
 
       <Header />
 
+      <div className="relative z-10 pt-24 px-6">
+        <Link to="/" className="inline-flex items-center gap-2 text-xs font-light tracking-wide text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Home
+        </Link>
+      </div>
+
       {/* Hero */}
-      <div className="relative z-10 pt-32 pb-16 px-6 text-center">
+      <div className="relative z-10 pt-8 pb-16 px-6 text-center">
         <p className="text-sm font-light tracking-[0.3em] text-muted-foreground uppercase mb-4">Pricing</p>
         <h1 className="max-w-3xl mx-auto text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
           Choose Your Intelligence Level.
@@ -177,6 +185,7 @@ const Pricing = () => {
               { icon: Code, label: "Elite Coding", desc: "Multi-file architecture, debugging, and production-grade output.", tier: "All tiers" },
               { icon: Shield, label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
               { icon: Search, label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
+              { icon: TrendingUp, label: "Predictive Intelligence", desc: "AI-powered event forecasting with signal detection and confidence scoring.", tier: "Pro & Advisor" },
               { icon: Eye, label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro & Advisor" },
               { icon: BarChart3, label: "Asha Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro & Advisor" },
               { icon: Newspaper, label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro & Advisor" },
