@@ -37,6 +37,7 @@ import PluginMarketplaceView from "@/components/dashboard/PluginMarketplaceView"
 import TimeSeriesView from "@/components/dashboard/TimeSeriesView";
 import AuditLogView from "@/components/dashboard/AuditLogView";
 import PredictiveIntelligenceView from "@/components/dashboard/PredictiveIntelligenceView";
+import ElionView from "@/components/dashboard/ElionView";
 import SecurityDashboardView from "@/components/dashboard/SecurityDashboardView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
@@ -781,6 +782,10 @@ const Dashboard = () => {
         return hasProAccess(tierKey) 
           ? <AshaView /> 
           : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "elion":
+        return hasProAccess(tierKey)
+          ? <ElionView />
+          : <FeatureGate title="Elion / Zohar Toolkit" description="Forensic-grade OSINT toolkit — 20+ DeepDive phases, HiveMind orchestration, Ghost Mode, and identity recon. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "nomad": 
         return hasProAccess(tierKey) 
           ? <NomadView /> 
