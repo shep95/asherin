@@ -5,8 +5,9 @@ import LandingBackground from "@/components/LandingBackground";
 import {
   Brain, TrendingUp, AlertTriangle, Search, BarChart3, Shield,
   ArrowRight, Check, Zap, Activity, Target, Globe, FileText,
-  ArrowLeft,
+  ArrowLeft, Cpu, Database, Network, Users,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const capabilities = [
   {
@@ -125,6 +126,45 @@ const FeaturePredictive = () => {
           ))}
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="Predictive Intelligence Architecture"
+        subtitle="A continuous signal detection pipeline. Web-crawling agents feed raw signals into a multi-factor reasoning engine that produces predictions with full confidence scoring and transparent reasoning chains."
+        layers={[
+          {
+            label: "Signal Collection",
+            nodes: [
+              { id: "s1", label: "Web Crawler Network", sublabel: "100+ sources — news, filings, social, patents", type: "input", icon: Globe },
+              { id: "s2", label: "Event Target Definition", sublabel: "Company · sector · 19+ event categories", type: "input", icon: Target },
+            ],
+          },
+          {
+            label: "Specialist Signal Agents",
+            nodes: [
+              { id: "a1", label: "Regulatory Agent", sublabel: "Policy filings, enforcement signals", type: "agent", icon: Shield, accent: "text-accent/70" },
+              { id: "a2", label: "Market Agent", sublabel: "Financial anomalies & insider patterns", type: "agent", icon: TrendingUp, accent: "text-accent/70" },
+              { id: "a3", label: "Leadership Agent", sublabel: "Executive movement & org change signals", type: "agent", icon: Users, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Reasoning & Scoring Core",
+            nodes: [
+              { id: "e1", label: "Confidence Engine", sublabel: "Signal strength × source credibility × recency", type: "engine", icon: Brain, accent: "text-accent/60" },
+              { id: "e2", label: "Reasoning Chain Builder", sublabel: "Transparent multi-step inference trail", type: "engine", icon: Cpu, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Prediction Output",
+            nodes: [
+              { id: "o1", label: "Event Prediction", sublabel: "Typed event with confidence score & timeline", type: "output", icon: AlertTriangle },
+              { id: "o2", label: "Reasoning Transcript", sublabel: "Full signal-to-conclusion chain", type: "output", icon: FileText },
+              { id: "o3", label: "Historical Accuracy", sublabel: "Backtested against confirmed events", type: "output", icon: BarChart3 },
+            ],
+          },
+        ]}
+        features={["continuous scanning", "confidence scoring", "full reasoning chain", "19+ event types", "backtested accuracy"]}
+      />
 
       {/* Capabilities */}
       <section className="relative z-10 px-6 py-24">

@@ -4,8 +4,9 @@ import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Search, Shield, Globe, FileText, Filter, Layers, Eye,
-  ArrowRight, Check, Zap, BookOpen, Lock, BarChart3, ArrowLeft,
+  ArrowRight, Check, Zap, BookOpen, Lock, BarChart3, ArrowLeft, Cpu, Database,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const capabilities = [
   {
@@ -115,6 +116,45 @@ const FeatureZophiel = () => {
           </div>
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="Zophiel Search Architecture"
+        subtitle="A privacy-first search pipeline that grades every source before surfacing results. No query logging. No ad profiling. Every result earns its rank."
+        layers={[
+          {
+            label: "Query Layer",
+            nodes: [
+              { id: "q1", label: "Query Parser", sublabel: "Boolean operators, filters, intent detection", type: "input", icon: Search },
+              { id: "q2", label: "Mode Router", sublabel: "Web · Academic · News · Code", type: "input", icon: Layers },
+            ],
+          },
+          {
+            label: "Multi-Index Retrieval",
+            nodes: [
+              { id: "r1", label: "Web Index", sublabel: "Real-time crawled results", type: "agent", icon: Globe, accent: "text-accent/70" },
+              { id: "r2", label: "Academic Index", sublabel: "Peer-reviewed & verified sources", type: "agent", icon: BookOpen, accent: "text-accent/70" },
+              { id: "r3", label: "Domain Filter", sublabel: "Custom site & exclusion rules", type: "agent", icon: Filter, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Credibility Engine",
+            nodes: [
+              { id: "e1", label: "Source Tier Grader", sublabel: "Verified → Established → Community → Unverified", type: "engine", icon: Shield, accent: "text-accent/60" },
+              { id: "e2", label: "Synthesis Core", sublabel: "Instant answer card generation", type: "engine", icon: Cpu, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Delivery",
+            nodes: [
+              { id: "o1", label: "Ranked Results", sublabel: "Truth-first ordering", type: "output", icon: BarChart3 },
+              { id: "o2", label: "Page Preview", sublabel: "In-app full document view", type: "output", icon: Eye },
+              { id: "o3", label: "Instant Answer", sublabel: "Synthesized top-of-results card", type: "output", icon: Zap },
+            ],
+          },
+        ]}
+        features={["no query logging", "source credibility tiers", "privacy-first", "multi-mode", "zero ad tracking"]}
+      />
 
       {/* Use Cases */}
       <section className="relative z-10 px-6 py-24">

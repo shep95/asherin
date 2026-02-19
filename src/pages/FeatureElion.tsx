@@ -5,8 +5,9 @@ import LandingBackground from "@/components/LandingBackground";
 import {
   ScanLine, Shield, Globe, Network, Search, Lock,
   ArrowRight, ArrowLeft, MessageSquare, Zap, Database,
-  Eye, AlertTriangle, ServerCrash, Wifi, Code2,
+  Eye, AlertTriangle, ServerCrash, Wifi, Code2, Cpu, Filter,
 } from "lucide-react";
+import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
 
 const capabilities = [
   {
@@ -199,6 +200,45 @@ const FeatureElion = () => {
           </div>
         </div>
       </section>
+
+      {/* Architecture */}
+      <AgentArchitectureDiagram
+        title="Elion Agent Architecture"
+        subtitle="A multi-layer reconnaissance engine. Input propagates through parallel forensic modules — each operating independently before results converge in the intelligence layer."
+        layers={[
+          {
+            label: "Input Gateway",
+            nodes: [
+              { id: "in1", label: "Domain Input", sublabel: "Any target domain or IP", type: "input", icon: Globe },
+              { id: "in2", label: "Query Intent", sublabel: "Module selection & scope definition", type: "input", icon: Filter },
+            ],
+          },
+          {
+            label: "Parallel Forensic Modules",
+            nodes: [
+              { id: "m1", label: "Security Scorer", sublabel: "HTTPS, SSL, header audit", type: "agent", icon: Shield, accent: "text-accent/70" },
+              { id: "m2", label: "Subdomain Recon", sublabel: "Attack surface enumeration", type: "agent", icon: Network, accent: "text-accent/70" },
+              { id: "m3", label: "OSINT Correlator", sublabel: "WHOIS, DNS, cert transparency", type: "agent", icon: Eye, accent: "text-accent/70" },
+            ],
+          },
+          {
+            label: "Intelligence Engine",
+            nodes: [
+              { id: "e1", label: "Zophiel Reasoning Core", sublabel: "Cross-module synthesis & threat correlation", type: "engine", icon: Cpu, accent: "text-accent/60" },
+              { id: "e2", label: "Ghost Routing Layer", sublabel: "Privacy-preserving query anonymization", type: "engine", icon: Lock, accent: "text-accent/60" },
+            ],
+          },
+          {
+            label: "Output Interface",
+            nodes: [
+              { id: "o1", label: "Security Score Report", sublabel: "0–100 posture rating", type: "output", icon: ScanLine },
+              { id: "o2", label: "Subdomain Map", sublabel: "Full attack surface visualization", type: "output", icon: Network },
+              { id: "o3", label: "Aureon Chat", sublabel: "Live interrogation of findings", type: "output", icon: MessageSquare },
+            ],
+          },
+        ]}
+        features={["parallel execution", "ghost mode", "zero data retention", "end-to-end encrypted", "forensic grade"]}
+      />
 
       {/* Tier badge */}
       <section className="relative z-10 px-6 py-24">
