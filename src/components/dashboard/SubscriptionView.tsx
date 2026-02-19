@@ -49,6 +49,8 @@ const plans: {
     features: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
+      "ZALI Design Intelligence Lab",
+      "ZALI Community — questions, requests & feature votes",
       "Asha Data Intelligence Platform",
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
@@ -75,6 +77,7 @@ const plans: {
     purple: true,
     features: [
       "Everything in Pro — unlimited",
+      "ZALI Design Lab — unlimited projects & community",
       "Direct advisor access to Asher",
       "Limited to 8 clients worldwide",
       "NDA required upon purchase",

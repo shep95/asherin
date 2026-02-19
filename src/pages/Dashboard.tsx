@@ -762,7 +762,7 @@ const Dashboard = () => {
       case "zali":
         return hasProAccess(tierKey)
           ? <ZaliView />
-          : <FeatureGate title="ZALI Design Lab" description="Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+          : <FeatureGate title="ZALI Design Lab" description="Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents, plus a Community hub for questions, requests, and feature voting. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "asha": 
         return hasProAccess(tierKey) 
           ? <AshaView /> 
