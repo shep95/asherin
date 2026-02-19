@@ -310,8 +310,8 @@ const Dashboard = () => {
     const load = async () => {
       const [convResult, profileResult, settingsResult] = await Promise.all([
         supabase.from("conversations").select("*").eq("user_id", user.id).eq("archived", false).order("created_at", { ascending: false }),
-        supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).single(),
-        supabase.from("user_settings").select("*").eq("user_id", user.id).single(),
+        supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
       ]);
 
       if (profileResult.data) {
@@ -422,7 +422,7 @@ const Dashboard = () => {
   const handleCalibrationFeedback = useCallback(async (messageId: string, feedback: FeedbackType) => {
     if (!user) return;
     await supabase.from("calibration_feedback").insert({ user_id: user.id, message_id: messageId, feedback });
-    const { data: profile } = await supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).single();
+    const { data: profile } = await supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).maybeSingle();
     if (profile) {
       const updates: Record<string, any> = { total_calibrations: (profile.total_calibrations ?? 0) + 1 };
       if (feedback === "too_shallow") {
