@@ -13,11 +13,14 @@ interface ZaliQuestionOptionsProps {
 
 /** Parse ```options blocks from assistant messages */
 export function parseQuestionOptions(content: string): { cleanContent: string; options: QuestionOption[] } {
-  const optionsRegex = /```options\n([\s\S]*?)```/;
-  const match = content.match(optionsRegex);
-  if (!match) return { cleanContent: content, options: [] };
+  // Remove design_output blocks from display
+  let cleaned = content.replace(/```design_output\n[\s\S]*?```/g, "").trim();
 
-  const cleanContent = content.replace(optionsRegex, "").trim();
+  const optionsRegex = /```options\n([\s\S]*?)```/;
+  const match = cleaned.match(optionsRegex);
+  if (!match) return { cleanContent: cleaned, options: [] };
+
+  const cleanContent = cleaned.replace(optionsRegex, "").trim();
   const lines = match[1].trim().split("\n").filter(Boolean);
 
   const options: QuestionOption[] = lines.map((line) => {

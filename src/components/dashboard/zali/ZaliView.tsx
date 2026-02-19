@@ -335,6 +335,49 @@ const ZaliView = () => {
         role: "assistant", content: fullContent,
       });
 
+      // Parse design_output blocks and update project
+      const designOutputMatch = fullContent.match(/```design_output\n([\s\S]*?)```/);
+      if (designOutputMatch) {
+        try {
+          const designData = JSON.parse(designOutputMatch[1]);
+          const updatePayload: Record<string, unknown> = {};
+          if (designData.phase) updatePayload.phase = designData.phase;
+          if (designData.design_type) updatePayload.design_type = designData.design_type;
+          if (designData.specifications) updatePayload.specifications = designData.specifications;
+          if (designData.cost_analysis) updatePayload.cost_analysis = designData.cost_analysis;
+          if (designData.manufacturing) updatePayload.manufacturing = designData.manufacturing;
+          if (designData.simulation_results) updatePayload.simulation_results = designData.simulation_results;
+
+          if (Object.keys(updatePayload).length > 0) {
+            await supabase.from("zali_projects").update(updatePayload).eq("id", activeProject.id);
+            // Update local state
+            setActiveProject((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                phase: (designData.phase as ZaliProject["phase"]) || prev.phase,
+                designType: designData.design_type || prev.designType,
+                specifications: designData.specifications || prev.specifications,
+                costAnalysis: designData.cost_analysis || prev.costAnalysis,
+                manufacturing: designData.manufacturing || prev.manufacturing,
+                simulationResults: designData.simulation_results || prev.simulationResults,
+              };
+            });
+            setProjects((prev) => prev.map((p) => p.id === activeProject.id ? {
+              ...p,
+              phase: (designData.phase as ZaliProject["phase"]) || p.phase,
+              designType: designData.design_type || p.designType,
+              specifications: designData.specifications || p.specifications,
+              costAnalysis: designData.cost_analysis || p.costAnalysis,
+              manufacturing: designData.manufacturing || p.manufacturing,
+              simulationResults: designData.simulation_results || p.simulationResults,
+            } : p));
+          }
+        } catch (e) {
+          console.error("Failed to parse design_output:", e);
+        }
+      }
+
       const researchPatterns = [
         { regex: /\[RESEARCH[:\s]*(.*?)\]/gi, domain: "general" },
         { regex: /\[OPTIMUS\]/gi, domain: "physics" },
