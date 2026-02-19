@@ -1761,6 +1761,139 @@ export type Database = {
         }
         Relationships: []
       }
+      zali_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          project_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zali_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zali_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zali_projects: {
+        Row: {
+          cost_analysis: Json | null
+          created_at: string
+          description: string | null
+          design_type: string | null
+          id: string
+          manufacturing: Json | null
+          name: string
+          phase: string | null
+          research_domains: Json | null
+          simulation_results: Json | null
+          specifications: Json | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cost_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          design_type?: string | null
+          id?: string
+          manufacturing?: Json | null
+          name: string
+          phase?: string | null
+          research_domains?: Json | null
+          simulation_results?: Json | null
+          specifications?: Json | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cost_analysis?: Json | null
+          created_at?: string
+          description?: string | null
+          design_type?: string | null
+          id?: string
+          manufacturing?: Json | null
+          name?: string
+          phase?: string | null
+          research_domains?: Json | null
+          simulation_results?: Json | null
+          specifications?: Json | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      zali_research: {
+        Row: {
+          confidence: number | null
+          content: string | null
+          created_at: string
+          domain: string
+          id: string
+          project_id: string
+          sources: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          content?: string | null
+          created_at?: string
+          domain: string
+          id?: string
+          project_id: string
+          sources?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          content?: string | null
+          created_at?: string
+          domain?: string
+          id?: string
+          project_id?: string
+          sources?: Json | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zali_research_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zali_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
