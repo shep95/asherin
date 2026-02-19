@@ -26,6 +26,7 @@ import SettingsView from "@/components/dashboard/SettingsView";
 import SubscriptionView from "@/components/dashboard/SubscriptionView";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
 import AshaView from "@/components/dashboard/asha/AshaView";
+import ZaliView from "@/components/dashboard/zali/ZaliView";
 import NomadView from "@/components/dashboard/NomadView";
 import BriefingView from "@/components/dashboard/BriefingView";
 import TeamsView from "@/components/dashboard/TeamsView";
@@ -758,6 +759,10 @@ const Dashboard = () => {
         return hasSearchAccess(tierKey) 
           ? <ZophielEngineView /> 
           : <FeatureGate title="Zophiel Engine" description="The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "zali":
+        return hasProAccess(tierKey)
+          ? <ZaliView />
+          : <FeatureGate title="ZALI Design Lab" description="Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "asha": 
         return hasProAccess(tierKey) 
           ? <AshaView /> 
