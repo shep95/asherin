@@ -49,28 +49,58 @@ interface DashboardSidebarProps {
   onAddCustomPersona?: (persona: Persona) => void;
 }
 
-const allNavItems: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" | "pro" }[] = [
-  { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-  { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
-  { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
-  { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
-  { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
-  { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
-  { id: "asha", icon: Database, label: "Asha Intelligence", access: "pro" },
-  { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
-  { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
-  { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
-  { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
-  { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
-  { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
-  { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
-  { id: "library", icon: FolderOpen, label: "Library" },
-  { id: "snippets", icon: Code2, label: "Code Snippets" },
-  { id: "projects", icon: Layers, label: "Projects" },
-  { id: "memory", icon: Brain, label: "Memory Center" },
-  { id: "stats", icon: BarChart3, label: "My Stats" },
-  { id: "subscription", icon: CreditCard, label: "Subscription" },
-  { id: "settings", icon: Settings, label: "Settings" },
+interface NavGroup {
+  label: string;
+  items: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" | "pro" }[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Intelligence",
+    items: [
+      { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
+      { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
+      { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
+      { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
+    ],
+  },
+  {
+    label: "Data & Analysis",
+    items: [
+      { id: "asha", icon: Database, label: "Asha Intelligence", access: "pro" },
+      { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
+      { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
+      { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
+    ],
+  },
+  {
+    label: "Creation",
+    items: [
+      { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
+      { id: "snippets", icon: Code2, label: "Code Snippets" },
+      { id: "projects", icon: Layers, label: "Projects" },
+    ],
+  },
+  {
+    label: "Workspace",
+    items: [
+      { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
+      { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
+      { id: "library", icon: FolderOpen, label: "Library" },
+      { id: "memory", icon: Brain, label: "Memory Center" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
+      { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
+      { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
+      { id: "stats", icon: BarChart3, label: "My Stats" },
+      { id: "subscription", icon: CreditCard, label: "Subscription" },
+      { id: "settings", icon: Settings, label: "Settings" },
+    ],
+  },
 ];
 
 function groupByDate(convs: Conversation[]) {
@@ -121,15 +151,27 @@ const DashboardSidebar = ({
   const personaId = externalPersonaId ?? null;
   const setPersonaId = onPersonaChange ?? (() => {});
   
-  // Filter nav items based on tier access and email restrictions
-  const navItems = allNavItems.filter((item) => {
-    // Security Center is restricted to a specific user
-    if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
-    if (!item.access) return true;
-    if (item.access === "search") return hasSearchAccess(tierKey);
-    if (item.access === "pro") return hasProAccess(tierKey);
-    return true;
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    navGroups.forEach((g, i) => { init[g.label] = i < 2; });
+    return init;
   });
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  // Filter nav groups based on tier access and email restrictions
+  const filteredGroups = navGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
+      if (!item.access) return true;
+      if (item.access === "search") return hasSearchAccess(tierKey);
+      if (item.access === "pro") return hasProAccess(tierKey);
+      return true;
+    }),
+  })).filter(group => group.items.length > 0);
 
   // Load archived conversations
   const loadArchived = useCallback(async () => {
@@ -395,19 +437,41 @@ const DashboardSidebar = ({
                 <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} />
               </div>
 
-              <div className="px-2 py-2 border-t border-border/20 space-y-0.5">
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
-                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
-                      activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                    }`}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </button>
-                ))}
+              <div className="px-2 py-2 border-t border-border/20 space-y-1">
+                {filteredGroups.map((group) => {
+                  const isOpen = expandedGroups[group.label] ?? false;
+                  const hasActive = group.items.some(item => activeView === item.id);
+
+                  return (
+                    <div key={group.label}>
+                      <button
+                        onClick={() => toggleGroup(group.label)}
+                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-1.5 text-[10px] font-medium tracking-[0.12em] uppercase transition-colors ${
+                          hasActive ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"
+                        }`}
+                      >
+                        {group.label}
+                        <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="space-y-0.5 mt-0.5 mb-1">
+                          {group.items.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => { onViewChange(item.id); onToggleSidebar(); }}
+                              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-light transition-colors ${
+                                activeView === item.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                              }`}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="p-3 pb-5 border-t border-border/20 space-y-1">
