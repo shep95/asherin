@@ -8,29 +8,30 @@ const COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"
 function getMaterialMeta(label: string, index: number) {
   const priceBase = [12.49, 34.99, 8.75, 22.30, 45.00, 15.60, 28.90, 19.99];
   const unitOptions = ["/kg", "/m²", "/L", "/sheet", "/roll", "/bar", "/unit", "/pack"];
+  const searchTerm = encodeURIComponent(label);
+
   const suppliers = [
-    { name: "McMaster-Carr", base: "https://www.mcmaster.com" },
-    { name: "Digi-Key", base: "https://www.digikey.com" },
-    { name: "Amazon Industrial", base: "https://www.amazon.com" },
-    { name: "Alibaba", base: "https://www.alibaba.com" },
-    { name: "Grainger", base: "https://www.grainger.com" },
-    { name: "Mouser", base: "https://www.mouser.com" },
-    { name: "RS Components", base: "https://www.rs-online.com" },
-    { name: "Uline", base: "https://www.uline.com" },
+    { name: "McMaster-Carr", base: `https://www.mcmaster.com/#${searchTerm}` },
+    { name: "Digi-Key", base: `https://www.digikey.com/en/products/result?keywords=${searchTerm}` },
+    { name: "Amazon", base: `https://www.amazon.com/s?k=${searchTerm}` },
+    { name: "Alibaba", base: `https://www.alibaba.com/trade/search?SearchText=${searchTerm}` },
+    { name: "Grainger", base: `https://www.grainger.com/search?searchQuery=${searchTerm}` },
+    { name: "Mouser", base: `https://www.mouser.com/Search/Refine?Keyword=${searchTerm}` },
+    { name: "RS Components", base: `https://www.rs-online.com/web/c/?searchTerm=${searchTerm}` },
+    { name: "Uline", base: `https://www.uline.com/BL/Search?keywords=${searchTerm}` },
   ];
 
   const price = priceBase[index % priceBase.length] + (index * 3.17) % 20;
   const unit = unitOptions[index % unitOptions.length];
   const supplier = suppliers[index % suppliers.length];
   const altSupplier = suppliers[(index + 3) % suppliers.length];
-  const searchTerm = encodeURIComponent(label.toLowerCase().replace(/\s+/g, "+"));
 
   return {
     price: price.toFixed(2),
     unit,
     suppliers: [
-      { ...supplier, url: `${supplier.base}/s?q=${searchTerm}` },
-      { ...altSupplier, url: `${altSupplier.base}/s?q=${searchTerm}` },
+      { name: supplier.name, url: supplier.base },
+      { name: altSupplier.name, url: altSupplier.base },
     ],
   };
 }
