@@ -178,8 +178,8 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
       </div>
 
       {/* Messages */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0">
-        <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
+        <div className="p-2.5 sm:p-4 space-y-2.5 sm:space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-8 sm:py-12 animate-fade-in">
               <div className="flex items-center justify-center gap-1.5 mb-2">
@@ -306,14 +306,14 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex-shrink-0 p-2.5 sm:p-3 border-t border-border/20">
-          <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2">
+        <form onSubmit={handleSubmit} className="flex-shrink-0 p-2 sm:p-3 border-t border-border/20">
+          <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2.5 sm:py-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={project ? "Describe your design concept..." : "Create a project first"}
               disabled={!project || isStreaming}
-              className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
+              className="flex-1 bg-transparent text-[11px] sm:text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
             />
             {isStreaming ? (
               <button type="button" onClick={onStop} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors">

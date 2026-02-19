@@ -332,7 +332,7 @@ function MaterialExpanded({ label, color, index }: { label: string; color: strin
   return (
     <div className="flex flex-col h-full">
       {/* Large 3D visualization */}
-      <div className="relative h-[260px] flex items-center justify-center overflow-hidden">
+      <div className="relative h-[180px] sm:h-[260px] flex items-center justify-center overflow-hidden">
         <div className="absolute w-48 h-48 rounded-full blur-3xl" style={{ backgroundColor: color + "12" }} />
         <div className="absolute w-56 h-56 rounded-full border" style={{ borderColor: color + "08", animation: "spin 20s linear infinite" }} />
         <div className="absolute w-40 h-40 rounded-full border" style={{ borderColor: color + "10", animation: "spin 14s linear infinite reverse" }} />
@@ -398,7 +398,7 @@ function MaterialExpanded({ label, color, index }: { label: string; color: strin
         </div>
 
         {/* Properties grid */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2">
           {properties.map((p) => (
             <div key={p.key} className="px-3 py-2 rounded-lg border border-border/15 bg-card/20">
               <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider">{p.key}</p>
@@ -529,7 +529,7 @@ const ZaliMaterialsView = ({ project }: Props) => {
         <span className="ml-auto text-[9px] text-muted-foreground/40">{materials.length} materials</span>
       </button>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-2">
         {materials.map((mat, i) => (
           <MaterialCard
             key={i}
