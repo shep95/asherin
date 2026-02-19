@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Brain, Activity, Clock, Loader2,
   Shield, UserMinus, DollarSign, Package, Target,
   ExternalLink, Calendar, Zap, Search, ChevronDown, ChevronUp,
   TrendingUp, AlertTriangle, Sparkles, Eye, History,
-  GitBranch, Scale, BarChart3, Layers, ArrowRight, Gauge, Timer
+  GitBranch, Scale, BarChart3, Layers, ArrowRight, Gauge, Timer,
+  XCircle, CheckCircle2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 
 interface Prediction {
   id: string;
@@ -25,6 +27,17 @@ interface Prediction {
   historical_comparison: any;
   status: string;
   created_at: string;
+}
+
+interface ProgressEvent {
+  type: string;
+  step?: string;
+  message?: string;
+  progress?: number;
+  total?: number;
+  eventType?: string;
+  signals?: { name: string; strength: number }[];
+  count?: number;
 }
 
 const eventIcons: Record<string, React.ElementType> = {
@@ -64,6 +77,10 @@ const PredictiveIntelligenceView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [companyInput, setCompanyInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [progressData, setProgressData] = useState<ProgressEvent | null>(null);
+  const [progressLog, setProgressLog] = useState<string[]>([]);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -90,6 +107,13 @@ const PredictiveIntelligenceView = () => {
       return;
     }
     setGenerating(true);
+    setGenerationError(null);
+    setProgressData(null);
+    setProgressLog([]);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const { data: session } = await supabase.auth.getSession();
       const res = await fetch(
@@ -102,22 +126,76 @@ const PredictiveIntelligenceView = () => {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({ company: companyInput.trim() }),
+          signal: controller.signal,
         }
       );
-      if (res.ok) {
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Generation failed (HTTP ${res.status})`);
+      }
+
+      // Check if response is SSE stream or JSON
+      const contentType = res.headers.get("Content-Type") || "";
+      if (contentType.includes("text/event-stream") && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let newlineIdx;
+          while ((newlineIdx = buffer.indexOf("\n\n")) !== -1) {
+            const chunk = buffer.slice(0, newlineIdx);
+            buffer = buffer.slice(newlineIdx + 2);
+
+            if (!chunk.startsWith("data: ")) continue;
+            const jsonStr = chunk.slice(6).trim();
+            if (!jsonStr) continue;
+
+            try {
+              const event: ProgressEvent = JSON.parse(jsonStr);
+              setProgressData(event);
+
+              if (event.message) {
+                setProgressLog(prev => [...prev.slice(-20), event.message!]);
+              }
+
+              if (event.type === "complete") {
+                toast({ title: "Analysis Complete", description: event.message || `Generated ${event.count} predictions` });
+                await loadPredictions();
+                setShowSettings(false);
+              }
+            } catch { /* ignore parse errors */ }
+          }
+        }
+      } else {
+        // Fallback: non-streaming JSON response
         const result = await res.json();
-        toast({ title: "Analysis Complete", description: `Generated ${result.count} algorithmic predictions for ${companyInput}` });
+        if (result.error) throw new Error(result.error);
+        toast({ title: "Analysis Complete", description: `Generated ${result.count} predictions for ${companyInput}` });
         await loadPredictions();
         setShowSettings(false);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Generation failed");
       }
     } catch (e: any) {
-      toast({ title: "Generation Failed", description: e.message || "Could not generate predictions.", variant: "destructive" });
+      if (e.name === "AbortError") {
+        setGenerationError("Analysis cancelled.");
+      } else {
+        const msg = e.message || "Could not generate predictions.";
+        setGenerationError(msg);
+        toast({ title: "Generation Failed", description: msg, variant: "destructive" });
+      }
     } finally {
       setGenerating(false);
+      abortRef.current = null;
     }
+  };
+
+  const cancelGeneration = () => {
+    abortRef.current?.abort();
   };
 
   let filtered = selectedCategory === "all" ? predictions : predictions.filter(p => p.event_type === selectedCategory);
@@ -148,7 +226,6 @@ const PredictiveIntelligenceView = () => {
     return firstLine.length > 120 ? firstLine.slice(0, 120) + "…" : firstLine;
   };
 
-  // Helper to render a mini bar
   const MiniBar = ({ value, color = "purple" }: { value: number; color?: string }) => (
     <div className="flex items-center gap-2 flex-1">
       <div className="flex-1 h-1.5 bg-card/30 rounded-full overflow-hidden">
@@ -166,6 +243,10 @@ const PredictiveIntelligenceView = () => {
     </div>
   );
 
+  const progressPercent = progressData?.progress && progressData?.total
+    ? Math.round((progressData.progress / progressData.total) * 100)
+    : 0;
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -177,10 +258,10 @@ const PredictiveIntelligenceView = () => {
             </div>
             <div>
               <h2 className="text-lg font-extralight tracking-wide text-foreground">
-                Predictive Intelligence
+                Aureon Predictive Intelligence
               </h2>
               <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase">
-                Algorithmic pattern-based forecasting
+                Algorithmic pattern-based forecasting engine
               </p>
             </div>
           </div>
@@ -196,7 +277,7 @@ const PredictiveIntelligenceView = () => {
         {showSettings && (
           <div className="rounded-xl border border-purple-500/20 bg-card/30 backdrop-blur-sm p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Enter a company to run the full prediction algorithm — signal detection → scoring → Jaccard pattern matching → 5-factor confidence → time estimation → AI briefing.
+              Aureon's prediction algorithm: signal detection → scoring → Jaccard pattern matching → 5-factor confidence → time estimation → AI intelligence briefing.
             </p>
             <div className="flex gap-2">
               <input
@@ -204,30 +285,70 @@ const PredictiveIntelligenceView = () => {
                 onChange={e => setCompanyInput(e.target.value)}
                 placeholder="e.g., Tesla, Meta, Apple..."
                 className="flex-1 bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-purple-500/40"
-                onKeyDown={e => { if (e.key === "Enter") generatePredictions(); }}
+                onKeyDown={e => { if (e.key === "Enter" && !generating) generatePredictions(); }}
+                disabled={generating}
               />
-              <button
-                onClick={generatePredictions}
-                disabled={generating || !companyInput.trim()}
-                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 transition-all text-sm disabled:opacity-40"
-              >
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {generating ? "Analyzing..." : "Run Analysis"}
-              </button>
+              {generating ? (
+                <button
+                  onClick={cancelGeneration}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-all text-sm"
+                >
+                  <XCircle className="h-4 w-4" />
+                  Cancel
+                </button>
+              ) : (
+                <button
+                  onClick={generatePredictions}
+                  disabled={!companyInput.trim()}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 hover:bg-purple-500/30 transition-all text-sm disabled:opacity-40"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Run Analysis
+                </button>
+              )}
             </div>
+
+            {/* Progress Bar & Status */}
             {generating && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs text-purple-400/70">
-                  <Activity className="h-3 w-3 animate-pulse" />
-                  Running prediction algorithm across 5 event types...
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-purple-400 font-medium flex items-center gap-1.5">
+                      <Activity className="h-3 w-3 animate-pulse" />
+                      {progressData?.message || "Initializing Aureon prediction engine..."}
+                    </span>
+                    <span className="text-muted-foreground/50 font-mono">{progressPercent}%</span>
+                  </div>
+                  <Progress value={progressPercent} className="h-2 bg-card/30" />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px]">
-                  {["Signal Detection", "Keyword Scoring", "Source Credibility", "Recency Decay", "Jaccard Matching", "5-Factor Confidence", "Time Estimation", "AI Briefing"].map(step => (
-                    <div key={step} className="flex items-center gap-1.5 text-muted-foreground/50">
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-                      {step}
-                    </div>
-                  ))}
+                
+                {/* Live Log */}
+                {progressLog.length > 0 && (
+                  <div className="max-h-28 overflow-y-auto rounded-lg bg-background/30 border border-border/10 p-2 space-y-0.5">
+                    {progressLog.map((log, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+                        <div className={`w-1 h-1 rounded-full flex-shrink-0 ${idx === progressLog.length - 1 ? "bg-purple-400 animate-pulse" : "bg-muted-foreground/30"}`} />
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error State */}
+            {generationError && !generating && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-red-400">Generation Failed</p>
+                  <p className="text-[10px] text-red-400/70 mt-0.5">{generationError}</p>
+                  <button
+                    onClick={generatePredictions}
+                    className="mt-2 text-[10px] text-red-400 underline hover:text-red-300"
+                  >
+                    Retry Analysis
+                  </button>
                 </div>
               </div>
             )}
@@ -285,15 +406,15 @@ const PredictiveIntelligenceView = () => {
             <Brain className="h-16 w-16 text-purple-400/40" />
           </div>
           <div className="text-center max-w-md space-y-3">
-            <h3 className="text-lg font-extralight tracking-wide text-foreground">No Predictions Yet</h3>
+            <h3 className="text-lg font-extralight tracking-wide text-foreground">Aureon Prediction Engine</h3>
             <p className="text-xs font-extralight leading-relaxed text-muted-foreground/70">
-              Run the algorithmic prediction engine. It searches for signals, scores them by relevance/credibility/recency, matches patterns against historical precedents using Jaccard similarity, and calculates confidence with a 5-factor weighted model.
+              Aureon searches for corporate signals, scores them by relevance/credibility/recency, matches patterns against historical precedents using Jaccard similarity, and calculates confidence with a 5-factor weighted model.
             </p>
             <button
               onClick={() => setShowSettings(true)}
               className="mt-4 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/20 to-violet-600/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-violet-600/30 text-purple-400 transition-all text-xs font-light"
             >
-              Run Prediction Algorithm
+              Run Aureon Prediction Algorithm
             </button>
           </div>
         </div>
@@ -433,7 +554,7 @@ const PredictiveIntelligenceView = () => {
                           </div>
                         )}
 
-                        {/* Signal Scores — NEW */}
+                        {/* Signal Scores */}
                         {expandedSection === "signals" && (
                           <div className="space-y-3">
                             <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-2">
@@ -459,7 +580,6 @@ const PredictiveIntelligenceView = () => {
                                       {(signal.signalStrength * 100).toFixed(0)}%
                                     </span>
                                   </div>
-
                                   <div className="grid grid-cols-3 gap-3 text-[10px]">
                                     <div>
                                       <span className="text-muted-foreground/50 block mb-1">Relevance</span>
@@ -474,7 +594,6 @@ const PredictiveIntelligenceView = () => {
                                       <MiniBar value={signal.scores?.recency || 0} />
                                     </div>
                                   </div>
-
                                   {signal.source && (
                                     <div className="border-t border-border/10 pt-2">
                                       <p className="text-[10px] text-foreground/60 line-clamp-1">{signal.source.title}</p>
@@ -484,7 +603,6 @@ const PredictiveIntelligenceView = () => {
                                       </a>
                                     </div>
                                   )}
-
                                   {signal.historicalReliability != null && (
                                     <div className="text-[10px] text-muted-foreground/40">
                                       Historical reliability: {(signal.historicalReliability * 100).toFixed(0)}%
@@ -498,13 +616,12 @@ const PredictiveIntelligenceView = () => {
                           </div>
                         )}
 
-                        {/* 5-Factor Model — NEW */}
+                        {/* 5-Factor Model */}
                         {expandedSection === "confidence" && (
                           <div className="space-y-4">
                             <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
                               Confidence = Σ(Factor × Weight) × Event Modifier − Uncertainty Penalty
                             </p>
-
                             {hc.confidence_factors ? (
                               <>
                                 <div className="space-y-3">
@@ -535,15 +652,12 @@ const PredictiveIntelligenceView = () => {
                                     );
                                   })}
                                 </div>
-
                                 <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-xs font-medium text-purple-400">Final Confidence</span>
                                     <span className="text-xl font-mono text-purple-400">{(prediction.confidence * 100).toFixed(0)}%</span>
                                   </div>
-                                  <p className="text-[10px] text-muted-foreground/50 mt-1">
-                                    After event-type modifier and uncertainty penalty applied
-                                  </p>
+                                  <p className="text-[10px] text-muted-foreground/50 mt-1">After event-type modifier and uncertainty penalty</p>
                                 </div>
                               </>
                             ) : (
@@ -559,11 +673,11 @@ const PredictiveIntelligenceView = () => {
                           </div>
                         )}
 
-                        {/* Historical Matches (Jaccard) */}
+                        {/* Historical Matches */}
                         {expandedSection === "precedents" && (
                           <div className="space-y-3">
                             <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-2">
-                              Jaccard Similarity: |Intersection| / |Union| of signal types between current and historical patterns
+                              Jaccard Similarity: |Intersection| / |Union| of signal types
                             </p>
                             {hc.precedents && hc.precedents.length > 0 ? (
                               hc.precedents.map((prec: any, idx: number) => (
@@ -573,14 +687,10 @@ const PredictiveIntelligenceView = () => {
                                       <History className="h-3.5 w-3.5 text-purple-400" />
                                       <span className="text-xs font-medium text-foreground">{prec.event}</span>
                                     </div>
-                                    {prec.date && (
-                                      <span className="text-[10px] text-muted-foreground/50">{prec.date}</span>
-                                    )}
+                                    {prec.date && <span className="text-[10px] text-muted-foreground/50">{prec.date}</span>}
                                   </div>
                                   {prec.relevance && (
-                                    <div className="pl-5 text-[10px]">
-                                      <span className="text-purple-400 font-medium">{prec.relevance}</span>
-                                    </div>
+                                    <div className="pl-5 text-[10px]"><span className="text-purple-400 font-medium">{prec.relevance}</span></div>
                                   )}
                                   {prec.outcome && (
                                     <div className="pl-5">
@@ -605,13 +715,12 @@ const PredictiveIntelligenceView = () => {
                           </div>
                         )}
 
-                        {/* Time Estimation — NEW */}
+                        {/* Time Estimation */}
                         {expandedSection === "timing" && (
                           <div className="space-y-4">
                             <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
-                              Estimated date = Today + Average Historical Lead Time | Confidence Interval = ±1 Standard Deviation
+                              Estimated date = Today + Average Historical Lead Time | Confidence Interval = ±1σ
                             </p>
-
                             {hc.timing ? (
                               <>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -634,41 +743,30 @@ const PredictiveIntelligenceView = () => {
                                     <div className="text-[9px] text-muted-foreground/40 uppercase">Est. Date</div>
                                   </div>
                                 </div>
-
                                 <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4">
                                   <div className="text-[10px] text-muted-foreground/50 mb-3">Confidence Interval</div>
                                   <div className="relative h-8 bg-card/30 rounded-full overflow-hidden">
-                                    <div
-                                      className="absolute h-full bg-purple-500/20 rounded-full"
+                                    <div className="absolute h-full bg-purple-500/20 rounded-full"
                                       style={{
                                         left: `${(hc.timing.confidenceInterval[0] / (hc.timing.confidenceInterval[1] * 1.3)) * 100}%`,
                                         width: `${((hc.timing.confidenceInterval[1] - hc.timing.confidenceInterval[0]) / (hc.timing.confidenceInterval[1] * 1.3)) * 100}%`,
                                       }}
                                     />
-                                    <div
-                                      className="absolute h-full w-0.5 bg-purple-400"
+                                    <div className="absolute h-full w-0.5 bg-purple-400"
                                       style={{ left: `${(hc.timing.avgLeadTime / (hc.timing.confidenceInterval[1] * 1.3)) * 100}%` }}
                                     />
                                   </div>
                                   <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1">
-                                    <span>
-                                      Earliest: {hc.timing.earliestDate ? new Date(hc.timing.earliestDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : `${hc.timing.confidenceInterval[0]}d`}
-                                    </span>
-                                    <span className="text-purple-400 font-medium">
-                                      Most likely: {new Date(prediction.estimated_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                    </span>
-                                    <span>
-                                      Latest: {hc.timing.latestDate ? new Date(hc.timing.latestDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : `${hc.timing.confidenceInterval[1]}d`}
-                                    </span>
+                                    <span>Earliest: {hc.timing.earliestDate ? new Date(hc.timing.earliestDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : `${hc.timing.confidenceInterval[0]}d`}</span>
+                                    <span className="text-purple-400 font-medium">Most likely: {new Date(prediction.estimated_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                    <span>Latest: {hc.timing.latestDate ? new Date(hc.timing.latestDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : `${hc.timing.confidenceInterval[1]}d`}</span>
                                   </div>
                                 </div>
                               </>
                             ) : (
                               <div className="rounded-lg border border-border/10 bg-card/20 p-4 text-center">
                                 <p className="text-sm font-mono text-foreground mb-1">{prediction.time_horizon}</p>
-                                <p className="text-[10px] text-muted-foreground/40">
-                                  Est. {new Date(prediction.estimated_date).toLocaleDateString()}
-                                </p>
+                                <p className="text-[10px] text-muted-foreground/40">Est. {new Date(prediction.estimated_date).toLocaleDateString()}</p>
                               </div>
                             )}
                           </div>
@@ -684,9 +782,7 @@ const PredictiveIntelligenceView = () => {
                                     <div className="w-7 h-7 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 text-[10px] font-medium">
                                       {idx + 1}
                                     </div>
-                                    {idx < hc.chain_of_events.length - 1 && (
-                                      <div className="w-px h-6 bg-purple-500/20" />
-                                    )}
+                                    {idx < hc.chain_of_events.length - 1 && <div className="w-px h-6 bg-purple-500/20" />}
                                   </div>
                                   <div className="flex-1 pt-1">
                                     <p className="text-xs font-light text-foreground/80 leading-relaxed">{step}</p>
@@ -706,9 +802,7 @@ const PredictiveIntelligenceView = () => {
                               prediction.signals.filter((s: any) => s.source).map((signal: any, idx: number) => (
                                 <div key={idx} className="flex items-start gap-3 p-3 rounded-lg border border-border/10 bg-card/20">
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-light text-foreground mb-1">
-                                      {signal.name || signal.type?.replace(/_/g, " ")}
-                                    </p>
+                                    <p className="text-xs font-light text-foreground mb-1">{signal.name || signal.type?.replace(/_/g, " ")}</p>
                                     <p className="text-[10px] text-foreground/70 line-clamp-1 mb-0.5">{signal.source.title}</p>
                                     <p className="text-[10px] text-muted-foreground/50 line-clamp-2 mb-1.5">{signal.source.snippet}</p>
                                     <a href={signal.source.url} target="_blank" rel="noopener noreferrer"
