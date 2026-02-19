@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import ReactMarkdown from "react-markdown";
@@ -13,6 +13,7 @@ import ContextHealthIndicator from "./ContextHealthIndicator";
 import TruthScore from "./TruthScore";
 import FollowUpSuggestions from "./FollowUpSuggestions";
 import DecodeView from "./DecodeView";
+import ChainOfThoughtPanel from "./ChainOfThoughtPanel";
 import CalibrationFeedback from "./CalibrationFeedback";
 import type { FeedbackType } from "./CalibrationFeedback";
 import AdaptiveInputBar from "./AdaptiveInputBar";
@@ -176,6 +177,7 @@ const markdownComponents = {
 const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
+  const [cotId, setCotId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -315,6 +317,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                         <>
                           <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
                           <button
+                            onClick={() => setCotId(cotId === msg.id ? null : msg.id)}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <Brain className="h-3 w-3" />
+                            Show Work
+                          </button>
+                          <button
                             onClick={() => setDecodeId(decodeId === msg.id ? null : msg.id)}
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                           >
@@ -328,6 +337,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                         </>
                       )}
                     </div>
+                  )}
+                  {msg.role === "assistant" && cotId === msg.id && (
+                    <ChainOfThoughtPanel
+                      open={true}
+                      content={msg.content}
+                      query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content}
+                    />
                   )}
                   {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
                 </div>
