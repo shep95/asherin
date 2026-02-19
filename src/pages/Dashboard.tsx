@@ -892,7 +892,7 @@ const Dashboard = () => {
           />
         )}
 
-        <main className="flex flex-1 flex-col min-w-0">
+        <main className="flex flex-1 flex-col min-w-0 overflow-hidden h-full">
           {renderView()}
         </main>
       </div>

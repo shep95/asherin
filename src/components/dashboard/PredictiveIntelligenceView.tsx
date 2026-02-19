@@ -248,7 +248,7 @@ const PredictiveIntelligenceView = () => {
     : 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border/20 bg-card/20 backdrop-blur-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
