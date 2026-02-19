@@ -374,14 +374,6 @@ const ZaliView = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <ZaliProjectSelector
-              projects={projects}
-              activeProject={activeProject}
-              onSelect={setActiveProject}
-              onCreate={createProject}
-              onDelete={deleteProject}
-              onRename={renameProject}
-            />
             {/* Mobile chat toggle */}
             <button
               onClick={() => setShowMobileChat(!showMobileChat)}
@@ -415,6 +407,16 @@ const ZaliView = () => {
           ))}
         </div>
       </div>
+
+      {/* Project selector - inline below header */}
+      <ZaliProjectSelector
+        projects={projects}
+        activeProject={activeProject}
+        onSelect={setActiveProject}
+        onCreate={createProject}
+        onDelete={deleteProject}
+        onRename={renameProject}
+      />
 
       {/* Main content */}
       <div className="flex-1 min-h-0 flex relative">
