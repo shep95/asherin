@@ -1,10 +1,27 @@
-import { useState, useEffect, Suspense, Component } from "react";
+import { useState, useEffect, Suspense, Component, lazy } from "react";
 import React from "react";
 import { Atom, Box, Layers, Microscope, Cpu, Activity, Grid3x3, CheckCircle2, AlertTriangle, Zap, Shield, Sparkles, Send, RotateCw } from "lucide-react";
 import type { ZaliPhase, ZaliProject } from "./types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ModelDetailsPanel from "./ModelDetailsPanel";
-import Zali3DModel from "./Zali3DModel";
+
+// Fallback component when 3D fails to load
+const Model3DFallback = (_props: any) => (
+  <div className="flex items-center justify-center h-full min-h-[350px]">
+    <div className="text-center">
+      <Atom className="h-8 w-8 text-accent/30 mx-auto mb-3 animate-pulse" />
+      <p className="text-xs text-muted-foreground/50">3D viewport unavailable</p>
+      <p className="text-[10px] text-muted-foreground/30 mt-1">WebGL may not be supported</p>
+    </div>
+  </div>
+);
+
+// Safe lazy import with catch — if module fails to load, render fallback
+const Zali3DModel = lazy(() =>
+  import("./Zali3DModel").catch(() => ({
+    default: Model3DFallback,
+  }))
+);
 
 // Local error boundary for 3D canvas crashes
 class Model3DErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
