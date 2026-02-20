@@ -62,6 +62,7 @@ const ZaliView = () => {
   const abortRef = useRef<AbortController | null>(null);
   const [autoBuildModel, setAutoBuildModel] = useState(false);
   const [modelPrompt, setModelPrompt] = useState("");
+  const [codeFiles, setCodeFiles] = useState<Array<{ filename: string; language: string; content: string }>>([]);
 
   // Resizable chat panel state
   const [chatWidth, setChatWidth] = useState(() => {
@@ -339,6 +340,26 @@ const ZaliView = () => {
         role: "assistant", content: fullContent,
       });
 
+      // Parse code_output blocks for software projects
+      const codeOutputMatches = [...fullContent.matchAll(/```code_output\n([\s\S]*?)```/g)];
+      if (codeOutputMatches.length > 0) {
+        try {
+          const allFiles: Array<{ filename: string; language: string; content: string }> = [];
+          for (const match of codeOutputMatches) {
+            const parsed = JSON.parse(match[1]);
+            if (Array.isArray(parsed.files)) {
+              allFiles.push(...parsed.files);
+            }
+          }
+          if (allFiles.length > 0) {
+            setCodeFiles(allFiles);
+            setActiveTab("workspace");
+          }
+        } catch (e) {
+          console.error("Failed to parse code_output:", e);
+        }
+      }
+
       // Parse design_output blocks and update project
       const designOutputMatch = fullContent.match(/```design_output\n([\s\S]*?)```/);
       if (designOutputMatch) {
@@ -448,7 +469,7 @@ const ZaliView = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "workspace":
-        return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} />;
+        return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} codeFiles={codeFiles} />;
       case "specs":
         return <ZaliSpecsPanel project={activeProject} />;
       case "agents":
@@ -458,7 +479,7 @@ const ZaliView = () => {
       case "community":
         return <CommunityView />;
       default:
-        return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} />;
+        return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} codeFiles={codeFiles} />;
     }
   };
 
