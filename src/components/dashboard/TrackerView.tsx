@@ -107,11 +107,15 @@ function LocationMap({ lat, lon, address }: { lat: number; lon: number; address?
 function OnboardingLinkCard({
   device,
   onCopy,
+  onRegenerate,
 }: {
   device: TrackerDevice;
   onCopy: (t: string) => void;
+  onRegenerate: (deviceId: string) => void;
 }) {
   const link = device.onboardingLink;
+  // A link is "bad" if it's missing or still uses the old aureon:// scheme
+  const isBadLink = !link || link.startsWith("aureon://");
   const expired = device.onboardingExpiresAt
     ? new Date(device.onboardingExpiresAt).getTime() < Date.now()
     : true;
@@ -121,9 +125,9 @@ function OnboardingLinkCard({
       <div className="flex items-center gap-2">
         <Key className="h-4 w-4 text-accent" />
         <p className="text-xs font-light tracking-[0.12em] text-accent uppercase">Awaiting Registration</p>
-        {expired ? (
+        {expired || isBadLink ? (
           <span className="ml-auto text-[10px] text-destructive flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" /> Expired
+            <AlertCircle className="h-3 w-3" /> {isBadLink ? "Invalid link" : "Expired"}
           </span>
         ) : (
           <span className="ml-auto text-[10px] text-muted-foreground">
@@ -132,7 +136,7 @@ function OnboardingLinkCard({
         )}
       </div>
 
-      {link && (
+      {!isBadLink && link ? (
         <div className="space-y-1.5">
           <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Signed Onboarding Link</p>
           <div className="rounded-lg border border-border/20 bg-card/20 px-3 py-2 space-y-2">
@@ -149,6 +153,16 @@ function OnboardingLinkCard({
             </div>
             <p className="text-[9px] text-muted-foreground/40 pl-5">Full signed link copied to clipboard — token hidden for security</p>
           </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 space-y-2">
+          <p className="text-[10px] text-destructive/80">This link uses an outdated format and cannot be used.</p>
+          <button
+            onClick={() => onRegenerate(device.id)}
+            className="flex items-center gap-1.5 text-[10px] text-accent hover:text-accent/80 transition-colors"
+          >
+            <RefreshCw className="h-3 w-3" /> Regenerate Link
+          </button>
         </div>
       )}
 
@@ -321,6 +335,26 @@ export default function TrackerView() {
       }
       toast({ title: "Device removed" });
     }
+  };
+
+  // ── Regenerate Onboarding Link ────────────────────────────────────────────
+
+  const regenerateLink = async (deviceId: string) => {
+    if (!user) return;
+    const device = devices.find(d => d.id === deviceId);
+    if (!device) return;
+    const label = device.device_name || "Device";
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const { data: session } = await supabase.auth.getSession();
+    const userToken = session?.session?.access_token;
+    const onboardingLink = `https://aureonai.app/pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
+    setDevices(prev => prev.map(d =>
+      d.id === deviceId ? { ...d, onboardingLink, onboardingExpiresAt: expiresAt } : d
+    ));
+    setSelectedDevice(prev =>
+      prev?.id === deviceId ? { ...prev, onboardingLink, onboardingExpiresAt: expiresAt } : prev
+    );
+    toast({ title: "Link regenerated", description: "A fresh signed link has been created." });
   };
 
   // ── Log Location Ping ─────────────────────────────────────────────────────
@@ -621,7 +655,7 @@ export default function TrackerView() {
                 <div className="p-6 space-y-5">
                   {/* Show onboarding card if device not yet registered */}
                   {!isRegistered(selectedDevice) ? (
-                    <OnboardingLinkCard device={selectedDevice} onCopy={copyToClipboard} />
+                    <OnboardingLinkCard device={selectedDevice} onCopy={copyToClipboard} onRegenerate={regenerateLink} />
                   ) : (
                     <>
                       {/* Manual Location Logger */}
