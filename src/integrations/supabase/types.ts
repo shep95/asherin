@@ -1109,6 +1109,42 @@ export type Database = {
         }
         Relationships: []
       }
+      imagine_sessions: {
+        Row: {
+          aureon_messages: Json
+          created_at: string
+          grid_h: number
+          grid_w: number
+          id: string
+          name: string
+          pixels: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aureon_messages?: Json
+          created_at?: string
+          grid_h?: number
+          grid_w?: number
+          id?: string
+          name?: string
+          pixels?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aureon_messages?: Json
+          created_at?: string
+          grid_h?: number
+          grid_w?: number
+          id?: string
+          name?: string
+          pixels?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       incident_responses: {
         Row: {
           action_taken: string
