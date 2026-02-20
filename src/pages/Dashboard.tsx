@@ -40,6 +40,7 @@ import PredictiveIntelligenceView from "@/components/dashboard/PredictiveIntelli
 import ElionView from "@/components/dashboard/ElionView";
 import SecurityDashboardView from "@/components/dashboard/SecurityDashboardView";
 import ImagineToCodeView from "@/components/dashboard/ImagineToCodeView";
+import TrackerView from "@/components/dashboard/TrackerView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -838,6 +839,7 @@ const Dashboard = () => {
         return hasProAccess(tierKey)
           ? <ImagineToCodeView />
           : <FeatureGate title="Imagine To Code" description="AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Created by ZALI Software. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "tracker": return <TrackerView />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}

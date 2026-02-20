@@ -2213,6 +2213,74 @@ export type Database = {
         }
         Relationships: []
       }
+      tracker_devices: {
+        Row: {
+          created_at: string
+          device_name: string
+          id: string
+          last_seen: string | null
+          pairing_token: string | null
+          pairing_token_expires_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name?: string
+          id?: string
+          last_seen?: string | null
+          pairing_token?: string | null
+          pairing_token_expires_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string
+          id?: string
+          last_seen?: string | null
+          pairing_token?: string | null
+          pairing_token_expires_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tracker_locations: {
+        Row: {
+          accuracy: number | null
+          device_id: string
+          id: string
+          latitude: number
+          longitude: number
+          recorded_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          device_id: string
+          id?: string
+          latitude: number
+          longitude: number
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          device_id?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracker_locations_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "tracker_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_stats: {
         Row: {
           chat_prompts: number
