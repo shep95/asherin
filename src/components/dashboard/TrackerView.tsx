@@ -2,16 +2,18 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Smartphone, Plus, Trash2, RefreshCw, Copy, Clock, Navigation, Wifi, WifiOff, Activity } from "lucide-react";
+import {
+  MapPin, Phone, Plus, Trash2, RefreshCw, Copy, Clock,
+  Navigation, Wifi, WifiOff, Activity, Signal, Search, X
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface TrackerDevice {
   id: string;
   device_name: string;
+  phone_number: string | null;
   last_seen: string | null;
   created_at: string;
-  pairing_token: string | null;
-  pairing_token_expires_at: string | null;
 }
 
 interface TrackerLocation {
@@ -36,7 +38,15 @@ const formatRelativeTime = (isoString: string | null) => {
 
 const isOnline = (lastSeen: string | null) => {
   if (!lastSeen) return false;
-  return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000; // 5 min threshold
+  return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
+};
+
+const formatPhone = (raw: string) => {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return `+${digits.slice(0, digits.length - 10)} (${digits.slice(-10, -7)}) ${digits.slice(-7, -4)}-${digits.slice(-4)}`;
 };
 
 export default function TrackerView() {
@@ -47,11 +57,13 @@ export default function TrackerView() {
   const [locations, setLocations] = useState<TrackerLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [locLoading, setLocLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [pairingInfo, setPairingInfo] = useState<{ token: string; expiresAt: string; deviceId: string } | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [logLat, setLogLat] = useState("");
   const [logLon, setLogLon] = useState("");
-  const [logDeviceId, setLogDeviceId] = useState("");
   const [logLoading, setLogLoading] = useState(false);
 
   const loadDevices = useCallback(async () => {
@@ -61,7 +73,6 @@ export default function TrackerView() {
       .from("tracker_devices" as any)
       .select("*")
       .eq("user_id", user.id)
-      .is("pairing_token", null)
       .order("created_at", { ascending: false });
     if (!error && data) setDevices(data as unknown as TrackerDevice[]);
     setLoading(false);
@@ -86,44 +97,40 @@ export default function TrackerView() {
     else setLocations([]);
   }, [selectedDevice, loadLocations]);
 
-  const generatePairingToken = async () => {
+  const addTarget = async () => {
     if (!user) return;
-    setGenerating(true);
-    const token = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const digits = phoneInput.replace(/\D/g, "");
+    if (digits.length < 7) {
+      toast({ title: "Enter a valid phone number", variant: "destructive" });
+      return;
+    }
+    const label = nameInput.trim() || `+${digits}`;
+    setAdding(true);
+
+    // Check for duplicate phone number
+    const duplicate = devices.find(d => d.phone_number?.replace(/\D/g, "") === digits);
+    if (duplicate) {
+      toast({ title: "Phone number already tracked", variant: "destructive" });
+      setAdding(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("tracker_devices" as any)
-      .insert({ user_id: user.id, pairing_token: token, pairing_token_expires_at: expiresAt, device_name: "Pending…" })
+      .insert({ user_id: user.id, device_name: label, phone_number: `+${digits}` })
       .select()
       .single();
 
     if (error) {
-      toast({ title: "Failed to generate token", variant: "destructive" });
-    } else if (data) {
-      setPairingInfo({ token, expiresAt, deviceId: (data as any).id });
-    }
-    setGenerating(false);
-  };
-
-  const completeDevicePairing = async () => {
-    if (!pairingInfo || !user) return;
-    const name = prompt("Enter a name for this device (e.g. 'iPhone 15'):");
-    if (!name || name.trim().length < 2) return;
-
-    const { error } = await supabase
-      .from("tracker_devices" as any)
-      .update({ device_name: name.trim(), pairing_token: null, pairing_token_expires_at: null, last_seen: new Date().toISOString() })
-      .eq("id", pairingInfo.deviceId)
-      .eq("user_id", user.id);
-
-    if (error) {
-      toast({ title: "Failed to register device", variant: "destructive" });
+      toast({ title: "Failed to add target", variant: "destructive" });
     } else {
-      toast({ title: "Device registered", description: `${name.trim()} added successfully.` });
-      setPairingInfo(null);
+      toast({ title: "Target added", description: `${label} is now being tracked.` });
+      setShowAddForm(false);
+      setPhoneInput("");
+      setNameInput("");
       loadDevices();
     }
+    setAdding(false);
   };
 
   const deleteDevice = async (deviceId: string) => {
@@ -136,33 +143,8 @@ export default function TrackerView() {
     if (!error) {
       setDevices(prev => prev.filter(d => d.id !== deviceId));
       if (selectedDevice?.id === deviceId) { setSelectedDevice(null); setLocations([]); }
-      toast({ title: "Device removed" });
+      toast({ title: "Target removed" });
     }
-  };
-
-  const logManualLocation = async () => {
-    if (!user || !logLat || !logLon || !logDeviceId) return;
-    const lat = parseFloat(logLat), lon = parseFloat(logLon);
-    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      toast({ title: "Invalid coordinates", variant: "destructive" }); return;
-    }
-    setLogLoading(true);
-    const { error } = await supabase
-      .from("tracker_locations" as any)
-      .insert({ device_id: logDeviceId, user_id: user.id, latitude: lat, longitude: lon });
-
-    // Update last_seen on device
-    await supabase.from("tracker_devices" as any).update({ last_seen: new Date().toISOString() }).eq("id", logDeviceId);
-
-    if (!error) {
-      toast({ title: "Location logged" });
-      setLogLat(""); setLogLon("");
-      if (selectedDevice?.id === logDeviceId) loadLocations(logDeviceId);
-      loadDevices();
-    } else {
-      toast({ title: "Failed to log location", variant: "destructive" });
-    }
-    setLogLoading(false);
   };
 
   const useCurrentLocation = () => {
@@ -171,6 +153,28 @@ export default function TrackerView() {
       (pos) => { setLogLat(pos.coords.latitude.toFixed(6)); setLogLon(pos.coords.longitude.toFixed(6)); },
       () => toast({ title: "Could not get location", variant: "destructive" })
     );
+  };
+
+  const logManualLocation = async () => {
+    if (!user || !selectedDevice || !logLat || !logLon) return;
+    const lat = parseFloat(logLat), lon = parseFloat(logLon);
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      toast({ title: "Invalid coordinates", variant: "destructive" }); return;
+    }
+    setLogLoading(true);
+    const { error } = await supabase
+      .from("tracker_locations" as any)
+      .insert({ device_id: selectedDevice.id, user_id: user.id, latitude: lat, longitude: lon });
+    await supabase.from("tracker_devices" as any).update({ last_seen: new Date().toISOString() }).eq("id", selectedDevice.id);
+    if (!error) {
+      toast({ title: "Location logged" });
+      setLogLat(""); setLogLon("");
+      loadLocations(selectedDevice.id);
+      loadDevices();
+    } else {
+      toast({ title: "Failed to log location", variant: "destructive" });
+    }
+    setLogLoading(false);
   };
 
   const copyToClipboard = (text: string) => {
@@ -182,15 +186,20 @@ export default function TrackerView() {
     window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
   };
 
+  const filteredDevices = devices.filter(d =>
+    d.device_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d.phone_number || "").includes(searchQuery)
+  );
+
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-border/20">
         <div className="flex items-center gap-3">
-          <MapPin className="h-5 w-5 text-accent" />
+          <Signal className="h-5 w-5 text-accent" />
           <div>
             <h1 className="text-sm font-extralight tracking-[0.2em] text-foreground">LOCATION TRACKER</h1>
-            <p className="text-xs text-muted-foreground font-extralight">Device management & location history</p>
+            <p className="text-xs text-muted-foreground font-extralight">Track targets by phone number</p>
           </div>
         </div>
         <button
@@ -203,38 +212,61 @@ export default function TrackerView() {
       </div>
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* LEFT PANEL: Devices */}
+        {/* LEFT PANEL: Targets */}
         <div className="w-72 flex-shrink-0 flex flex-col border-r border-border/20">
-          <div className="flex-shrink-0 px-4 py-3 border-b border-border/10">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Devices</span>
+          <div className="flex-shrink-0 px-4 py-3 border-b border-border/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Targets</span>
               <button
-                onClick={generatePairingToken}
-                disabled={generating}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-light bg-accent text-accent-foreground hover:bg-accent/90 transition-colors disabled:opacity-50"
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-light bg-accent text-accent-foreground hover:bg-accent/90 transition-colors"
               >
-                <Plus className="h-3.5 w-3.5" />
-                {generating ? "Generating…" : "Add Device"}
+                {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                {showAddForm ? "Cancel" : "Add Target"}
               </button>
             </div>
 
-            {/* Pairing Token Display */}
-            {pairingInfo && (
-              <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 space-y-2">
-                <p className="text-[10px] font-light tracking-[0.1em] text-accent uppercase">Pairing Token</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs font-mono text-foreground break-all">{pairingInfo.token}</code>
-                  <button onClick={() => copyToClipboard(pairingInfo.token)} className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Copy className="h-3.5 w-3.5" />
-                  </button>
+            {/* Add Target Form */}
+            {showAddForm && (
+              <div className="rounded-xl border border-accent/20 bg-accent/5 p-3 space-y-2">
+                <p className="text-[10px] font-light tracking-[0.1em] text-accent uppercase">New Target</p>
+                <div className="relative">
+                  <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                  <input
+                    type="tel"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                    className="w-full rounded-lg border border-border/20 bg-card/20 pl-8 pr-3 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/50"
+                  />
                 </div>
-                <p className="text-[10px] text-muted-foreground">Expires in 15 minutes. Use this token in your mobile app to pair.</p>
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Label (e.g. John's iPhone)"
+                  className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/50"
+                />
                 <button
-                  onClick={completeDevicePairing}
-                  className="w-full rounded-lg py-1.5 text-xs font-light bg-foreground/10 hover:bg-foreground/20 text-foreground transition-colors"
+                  onClick={addTarget}
+                  disabled={adding || !phoneInput.trim()}
+                  className="w-full rounded-lg py-1.5 text-xs font-light bg-accent text-accent-foreground hover:bg-accent/90 transition-colors disabled:opacity-50"
                 >
-                  Complete Pairing Manually
+                  {adding ? "Adding…" : "Track Target"}
                 </button>
+              </div>
+            )}
+
+            {/* Search */}
+            {devices.length > 0 && (
+              <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-1.5">
+                <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search targets…"
+                  className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                />
               </div>
             )}
           </div>
@@ -242,15 +274,15 @@ export default function TrackerView() {
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-1">
               {loading ? (
-                <p className="px-3 py-4 text-xs text-muted-foreground animate-pulse">Loading devices…</p>
-              ) : devices.length === 0 ? (
+                <p className="px-3 py-4 text-xs text-muted-foreground animate-pulse">Loading targets…</p>
+              ) : filteredDevices.length === 0 ? (
                 <div className="px-3 py-8 text-center space-y-2">
-                  <Smartphone className="h-8 w-8 text-muted-foreground/30 mx-auto" />
-                  <p className="text-xs text-muted-foreground font-extralight">No devices registered yet.</p>
-                  <p className="text-[10px] text-muted-foreground/50">Click "Add Device" to generate a pairing token.</p>
+                  <Phone className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                  <p className="text-xs text-muted-foreground font-extralight">No targets tracked yet.</p>
+                  <p className="text-[10px] text-muted-foreground/50">Click "Add Target" and enter a phone number.</p>
                 </div>
               ) : (
-                devices.map(device => (
+                filteredDevices.map(device => (
                   <div
                     key={device.id}
                     onClick={() => setSelectedDevice(selectedDevice?.id === device.id ? null : device)}
@@ -261,14 +293,14 @@ export default function TrackerView() {
                     }`}
                   >
                     <div className="relative flex-shrink-0">
-                      <Smartphone className="h-4 w-4" />
+                      <Phone className="h-4 w-4" />
                       <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background ${
                         isOnline(device.last_seen) ? "bg-emerald-500" : "bg-muted-foreground/40"
                       }`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-light truncate">{device.device_name}</p>
-                      <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(device.last_seen)}</p>
+                      <p className="text-[10px] text-muted-foreground/60 font-mono">{device.phone_number || "—"}</p>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteDevice(device.id); }}
@@ -297,12 +329,25 @@ export default function TrackerView() {
                     }
                     <span className="text-sm font-light text-foreground">{selectedDevice.device_name}</span>
                   </div>
+                  {selectedDevice.phone_number && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => copyToClipboard(selectedDevice.phone_number!)}
+                        className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+                        title="Copy phone number"
+                      >
+                        <Phone className="h-3 w-3" />
+                        {selectedDevice.phone_number}
+                        <Copy className="h-3 w-3 opacity-50" />
+                      </button>
+                    </div>
+                  )}
                   <span className={`text-[10px] font-light px-2 py-0.5 rounded-full border ${
                     isOnline(selectedDevice.last_seen)
                       ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
                       : "border-border/30 text-muted-foreground bg-muted/20"
                   }`}>
-                    {isOnline(selectedDevice.last_seen) ? "Online" : "Offline"}
+                    {isOnline(selectedDevice.last_seen) ? "Active" : "Inactive"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -313,32 +358,22 @@ export default function TrackerView() {
 
               {/* Manual Location Logger */}
               <div className="flex-shrink-0 px-6 py-3 border-b border-border/10 bg-card/10">
-                <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase mb-2">Log Location</p>
+                <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase mb-2">Log Location Ping</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   <input
                     type="text"
                     value={logLat}
                     onChange={(e) => setLogLat(e.target.value)}
-                    placeholder="Latitude (e.g. 40.712776)"
+                    placeholder="Latitude"
                     className="flex-1 min-w-24 rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/50"
                   />
                   <input
                     type="text"
                     value={logLon}
                     onChange={(e) => setLogLon(e.target.value)}
-                    placeholder="Longitude (e.g. -74.005974)"
+                    placeholder="Longitude"
                     className="flex-1 min-w-24 rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/50"
                   />
-                  <select
-                    value={logDeviceId}
-                    onChange={(e) => setLogDeviceId(e.target.value)}
-                    className="rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-xs font-light text-foreground outline-none focus:border-accent/50"
-                  >
-                    <option value={selectedDevice.id}>{selectedDevice.device_name}</option>
-                    {devices.filter(d => d.id !== selectedDevice.id).map(d => (
-                      <option key={d.id} value={d.id}>{d.device_name}</option>
-                    ))}
-                  </select>
                   <button
                     onClick={useCurrentLocation}
                     className="rounded-lg border border-border/20 bg-card/20 px-2.5 py-1.5 text-xs font-light text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors"
@@ -351,7 +386,7 @@ export default function TrackerView() {
                     disabled={logLoading || !logLat || !logLon}
                     className="rounded-lg bg-accent text-accent-foreground px-3 py-1.5 text-xs font-light hover:bg-accent/90 transition-colors disabled:opacity-50"
                   >
-                    {logLoading ? "…" : "Log"}
+                    {logLoading ? "…" : "Ping"}
                   </button>
                 </div>
               </div>
@@ -362,7 +397,7 @@ export default function TrackerView() {
                   <div className="flex items-center gap-2 mb-4">
                     <Activity className="h-4 w-4 text-muted-foreground" />
                     <span className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Location History</span>
-                    <span className="text-[10px] text-muted-foreground/50">({locations.length} entries)</span>
+                    <span className="text-[10px] text-muted-foreground/50">({locations.length} pings)</span>
                   </div>
 
                   {locLoading ? (
@@ -370,8 +405,8 @@ export default function TrackerView() {
                   ) : locations.length === 0 ? (
                     <div className="text-center py-12 space-y-3">
                       <MapPin className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-                      <p className="text-sm font-extralight text-muted-foreground">No location data yet.</p>
-                      <p className="text-xs text-muted-foreground/50">Use the logger above or connect a device.</p>
+                      <p className="text-sm font-extralight text-muted-foreground">No pings recorded yet.</p>
+                      <p className="text-xs text-muted-foreground/50">Log a location ping above to begin tracking.</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -381,33 +416,31 @@ export default function TrackerView() {
                           className="group flex items-center gap-4 rounded-xl border border-border/10 bg-card/20 px-4 py-3 hover:border-border/30 hover:bg-card/30 transition-all"
                         >
                           <div className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-lg bg-accent/10 text-accent text-[10px] font-light">
-                            {idx + 1}
+                            #{idx + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs font-light text-foreground font-mono">
-                                {parseFloat(String(loc.latitude)).toFixed(6)}°, {parseFloat(String(loc.longitude)).toFixed(6)}°
-                              </span>
-                              {loc.accuracy && (
-                                <span className="text-[10px] text-muted-foreground/60">±{parseFloat(String(loc.accuracy)).toFixed(0)}m</span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-muted-foreground/50 mt-0.5">{new Date(loc.recorded_at).toLocaleString()}</p>
+                            <p className="text-xs font-mono text-foreground">
+                              {loc.latitude.toFixed(6)}, {loc.longitude.toFixed(6)}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/60">
+                              {new Date(loc.recorded_at).toLocaleString()}
+                              {loc.accuracy ? ` · ±${loc.accuracy}m` : ""}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => copyToClipboard(`${loc.latitude},${loc.longitude}`)}
-                              className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors"
-                              title="Copy coordinates"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </button>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => openInMaps(loc.latitude, loc.longitude)}
-                              className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors"
-                              title="Open in Google Maps"
+                              className="rounded-lg px-2 py-1 text-[10px] font-light border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors"
+                              title="Open in Maps"
                             >
                               <MapPin className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => copyToClipboard(`${loc.latitude},${loc.longitude}`)}
+                              className="rounded-lg px-2 py-1 text-[10px] font-light border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors"
+                              title="Copy coords"
+                            >
+                              <Copy className="h-3 w-3" />
                             </button>
                           </div>
                         </div>
@@ -418,26 +451,25 @@ export default function TrackerView() {
               </ScrollArea>
             </>
           ) : (
-            /* No device selected */
-            <div className="flex flex-1 items-center justify-center">
-              <div className="text-center space-y-4 max-w-sm px-6">
-                <div className="flex items-center justify-center gap-2 mb-6">
-                  <div className="h-px flex-1 bg-border/20" />
-                  <MapPin className="h-8 w-8 text-muted-foreground/30" />
-                  <div className="h-px flex-1 bg-border/20" />
-                </div>
-                <h2 className="text-sm font-extralight tracking-[0.2em] text-foreground">SELECT A DEVICE</h2>
-                <p className="text-xs font-extralight leading-relaxed text-muted-foreground">
-                  Choose a device from the sidebar to view its location history, or add a new device using a pairing token.
-                </p>
-                <div className="rounded-xl border border-border/10 bg-card/10 p-4 text-left space-y-2 mt-4">
-                  <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">API Endpoint</p>
-                  <code className="block text-[10px] font-mono text-accent break-all">
-                    POST /tracker/location
-                  </code>
-                  <p className="text-[10px] text-muted-foreground/60">Connect mobile apps or IoT devices to push location data directly.</p>
-                </div>
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-12">
+              <div className="h-16 w-16 rounded-2xl border border-border/20 bg-card/20 flex items-center justify-center">
+                <Signal className="h-8 w-8 text-muted-foreground/30" />
               </div>
+              <div className="space-y-1.5">
+                <p className="text-sm font-extralight text-foreground">Select a target to view location history</p>
+                <p className="text-xs text-muted-foreground/60">
+                  Add targets by phone number using the panel on the left.
+                </p>
+              </div>
+              {devices.length === 0 && (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="mt-2 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2.5 text-xs font-light text-accent hover:bg-accent/20 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add your first target
+                </button>
+              )}
             </div>
           )}
         </div>

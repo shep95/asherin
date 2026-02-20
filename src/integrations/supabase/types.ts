@@ -2221,6 +2221,7 @@ export type Database = {
           last_seen: string | null
           pairing_token: string | null
           pairing_token_expires_at: string | null
+          phone_number: string | null
           user_id: string
         }
         Insert: {
@@ -2230,6 +2231,7 @@ export type Database = {
           last_seen?: string | null
           pairing_token?: string | null
           pairing_token_expires_at?: string | null
+          phone_number?: string | null
           user_id: string
         }
         Update: {
@@ -2239,6 +2241,7 @@ export type Database = {
           last_seen?: string | null
           pairing_token?: string | null
           pairing_token_expires_at?: string | null
+          phone_number?: string | null
           user_id?: string
         }
         Relationships: []

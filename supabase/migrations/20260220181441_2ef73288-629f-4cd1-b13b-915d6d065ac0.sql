@@ -1,0 +1,1 @@
+ALTER TABLE public.tracker_devices ADD COLUMN IF NOT EXISTS phone_number TEXT;
