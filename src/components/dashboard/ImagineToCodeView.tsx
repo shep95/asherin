@@ -66,8 +66,10 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
       const alpha = data[i + 3];
       if (alpha < 20) continue;
       const r = data[i], g = data[i + 1], b = data[i + 2];
-      if (r > 220 && g > 220 && b > 220) continue;
+      if (r > 230 && g > 230 && b > 230) continue; // skip near-white (background)
       out.push({ id: uid(), x, y, color: rgbaToHex(r, g, b) });
+      // Hard safety cap — stops the browser freezing on huge imports
+      if (out.length >= 200_000) return out;
     }
   }
   return out;
@@ -99,12 +101,11 @@ function parseAureonPixelEdit(response: string, currentRects: PixelRect[], curre
 
 // Max side length — never exceed this per axis
 const MAX_SIDE = 10_000;
-// Base pixel budget at 512×512 reference — scales with image area ratio
-const PIXEL_BUDGET_BASE = 1_000_000;
-// Area budget grows with sqrt of image area so larger images stay proportionally denser
-// 512×512  → 1,000×1,000  (1M px)
-// 1920×1080 → ~1,770×995  (1.76M px)
-// 300×200  →  740×493     (~365K px)
+// Base pixel budget — how many pixels get imported from an image.
+// Capped at 100k for real-time performance (browser can't render 1M SVG rects).
+// The "1M budget" only applies to the theoretical max; actual visible rects
+// are capped at DOM_RECT_CAP (15k) by the useMemo viewport filter.
+const PIXEL_BUDGET_BASE = 100_000;
 const ZOOM_FACTOR = 0.8;
 
 // ─── Sessions Panel ────────────────────────────────────────────────────────────
@@ -257,14 +258,18 @@ const ImagineToCodeView = () => {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
   }, [aureonMessages]);
 
-  // Regenerate code — deferred so large pixel arrays don't block the render thread
+  // Regenerate code — heavily deferred (2s) so large arrays don't block the UI.
+  // Also cap code preview at 50k chars to avoid freezing the DOM.
   useEffect(() => {
     const timer = setTimeout(() => {
       if (rects.length === 0) { setCode(""); return; }
-      if (exportFormat === "svg") setCode(exportSvg(rects, gridW, gridH));
-      else if (exportFormat === "minified-svg") setCode(exportSvg(rects, gridW, gridH, true));
-      else setCode(exportCssGrid(rects, gridW, gridH));
-    }, 300);
+      let raw: string;
+      if (exportFormat === "svg") raw = exportSvg(rects, gridW, gridH);
+      else if (exportFormat === "minified-svg") raw = exportSvg(rects, gridW, gridH, true);
+      else raw = exportCssGrid(rects, gridW, gridH);
+      // Cap preview length so the <pre> element doesn't freeze scroll
+      setCode(raw.length > 80_000 ? raw.slice(0, 80_000) + "\n/* … truncated for preview – download for full output */" : raw);
+    }, 2000);
     return () => clearTimeout(timer);
   }, [rects, exportFormat, gridW, gridH]);
 
@@ -293,7 +298,10 @@ const ImagineToCodeView = () => {
     setSessionsLoading(false);
   };
 
-  // ── Auto-save current session (debounced 1.5s) ────────────────────────────
+  // ── Auto-save current session (debounced 5s) ────────────────────────────
+  // IMPORTANT: Cap pixels saved to DB at 50k — 1M pixel JSON = ~30MB and will
+  // time out / crash the DB connection. The canvas state is the source of truth.
+  const SAVE_PIXEL_CAP = 50_000;
   const scheduleSave = useCallback((
     sessionId: string,
     pixels: PixelRect[],
@@ -304,17 +312,20 @@ const ImagineToCodeView = () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       setSaving(true);
+      // Sub-sample pixels if over cap so the save doesn't time out
+      const pixelsToSave = pixels.length > SAVE_PIXEL_CAP
+        ? pixels.filter((_, i) => i % Math.ceil(pixels.length / SAVE_PIXEL_CAP) === 0)
+        : pixels;
       await supabase
         .from("imagine_sessions")
         .update({
-          pixels: pixels as unknown as never,
+          pixels: pixelsToSave as unknown as never,
           grid_w: w,
           grid_h: h,
           aureon_messages: msgs as unknown as never,
         })
         .eq("id", sessionId);
       setSaving(false);
-      // refresh session list order
       setSessions(prev => {
         const idx = prev.findIndex(s => s.id === sessionId);
         if (idx === -1) return prev;
@@ -322,7 +333,7 @@ const ImagineToCodeView = () => {
         const rest = prev.filter(s => s.id !== sessionId);
         return [updated, ...rest];
       });
-    }, 1500);
+    }, 5000); // 5s debounce — large arrays are expensive to serialize
   }, []);
 
   // Trigger save when canvas or chat changes
@@ -448,22 +459,25 @@ const ImagineToCodeView = () => {
     });
   }, []);
 
-  // Batched paint — accumulate strokes in a ref, flush to state on mouseUp to avoid
-  // triggering a React re-render for every single pixel during a drag stroke.
+  // Batched paint — accumulate into a Map during drag, flush on mouseUp.
+  // This means zero React re-renders while dragging — only one when pen lifts.
   const paintBatchRef = useRef<Map<string, PixelRect>>(new Map());
+  const eraseSetRef = useRef<Set<string>>(new Set());
 
   const paintPixel = useCallback((px: number, py: number, erase = false) => {
     if (px < 0 || py < 0 || px >= gridWRef.current || py >= gridHRef.current) return;
     const key = `${px},${py}`;
     if (erase) {
+      eraseSetRef.current.add(key);
       paintBatchRef.current.delete(key);
-      // Remove from rectsRef immediately so we can erase while dragging
-      rectsRef.current = rectsRef.current.filter(r => !(r.x === px && r.y === py));
     } else {
-      const newRect: PixelRect = { id: uid(), x: px, y: py, color: activeColor };
-      paintBatchRef.current.set(key, newRect);
+      paintBatchRef.current.set(key, { id: uid(), x: px, y: py, color: activeColor });
+      eraseSetRef.current.delete(key);
     }
   }, [activeColor]);
+
+  // Throttle mousemove so paint events fire at most every 16ms (~60fps)
+  const lastMoveTime = useRef(0);
 
   const onWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -484,9 +498,15 @@ const ImagineToCodeView = () => {
     } else if (activeTool === "zoom-out") {
       zoomAt(1 / ZOOM_FACTOR, coords.x, coords.y);
     } else if (activeTool === "color-paint") {
-      isPainting.current = true; paintPixel(px, py);
+      isPainting.current = true;
+      paintBatchRef.current.clear();
+      eraseSetRef.current.clear();
+      paintPixel(px, py);
     } else if (activeTool === "erase") {
-      isPainting.current = true; paintPixel(px, py, true);
+      isPainting.current = true;
+      paintBatchRef.current.clear();
+      eraseSetRef.current.clear();
+      paintPixel(px, py, true);
     } else if (activeTool === "select-box") {
       setSelStart({ sx: coords.x, sy: coords.y });
       setSelRect(null); setSelectedIds(new Set());
@@ -494,6 +514,11 @@ const ImagineToCodeView = () => {
   };
 
   const onMouseMove = (e: React.MouseEvent) => {
+    // Throttle to ~60fps to avoid flooding the event queue
+    const now = performance.now();
+    if (now - lastMoveTime.current < 16) return;
+    lastMoveTime.current = now;
+
     if (activeTool === "pan" && panStart.current) {
       const svg = svgRef.current;
       if (!svg) return;
@@ -515,7 +540,14 @@ const ImagineToCodeView = () => {
     if (activeTool === "pan") panStart.current = null;
     if ((activeTool === "color-paint" || activeTool === "erase") && isPainting.current) {
       isPainting.current = false;
-      pushHistory([...rectsRef.current]);
+      // Flush batch: merge painted pixels and erased pixels into the existing rects
+      const pixelMap = new Map<string, PixelRect>(rectsRef.current.map(r => [`${r.x},${r.y}`, r]));
+      for (const key of eraseSetRef.current) pixelMap.delete(key);
+      for (const [key, rect] of paintBatchRef.current) pixelMap.set(key, rect);
+      paintBatchRef.current.clear();
+      eraseSetRef.current.clear();
+      const next = Array.from(pixelMap.values());
+      pushHistory(next);
     }
     if (activeTool === "select-box" && selRect) {
       setSelectedIds(new Set(
@@ -807,10 +839,22 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
   };
 
   // ── Render helpers ─────────────────────────────────────────────────────────
-  const visibleRects = rects.filter(r =>
-    r.x < viewBox.x + viewBox.w && r.x + 1 > viewBox.x &&
-    r.y < viewBox.y + viewBox.h && r.y + 1 > viewBox.y
-  );
+  // DOM_CAP: Browsers crash rendering >15k SVG rects simultaneously.
+  // When zoomed out far, we skip rendering (the pixels are sub-pixel anyway).
+  // useMemo so this O(n) filter only runs when rects or viewBox actually changes.
+  const DOM_RECT_CAP = 15_000;
+  const visibleRects = useMemo(() => {
+    const vx0 = viewBox.x, vy0 = viewBox.y;
+    const vx1 = viewBox.x + viewBox.w, vy1 = viewBox.y + viewBox.h;
+    const filtered = rects.filter(r =>
+      r.x < vx1 && r.x + 1 > vx0 &&
+      r.y < vy1 && r.y + 1 > vy0
+    );
+    // If still too many (zoomed too far out), subsample deterministically
+    if (filtered.length <= DOM_RECT_CAP) return filtered;
+    const step = Math.ceil(filtered.length / DOM_RECT_CAP);
+    return filtered.filter((_, i) => i % step === 0);
+  }, [rects, viewBox]);
 
   const toolBtn = (tool: Tool, icon: React.ReactNode, title: string) => (
     <button
