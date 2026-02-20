@@ -66,7 +66,7 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
       const alpha = data[i + 3];
       if (alpha < 20) continue;
       const r = data[i], g = data[i + 1], b = data[i + 2];
-      if (r > 245 && g > 245 && b > 245) continue;
+      if (r > 220 && g > 220 && b > 220) continue;
       out.push({ id: uid(), x, y, color: rgbaToHex(r, g, b) });
     }
   }
