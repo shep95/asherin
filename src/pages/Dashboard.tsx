@@ -39,6 +39,7 @@ import AuditLogView from "@/components/dashboard/AuditLogView";
 import PredictiveIntelligenceView from "@/components/dashboard/PredictiveIntelligenceView";
 import ElionView from "@/components/dashboard/ElionView";
 import SecurityDashboardView from "@/components/dashboard/SecurityDashboardView";
+import ImagineToCodeView from "@/components/dashboard/ImagineToCodeView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -833,6 +834,8 @@ const Dashboard = () => {
         return hasProAccess(tierKey)
           ? <SecurityDashboardView />
           : <FeatureGate title="Security Command Center" description="8-system defense suite — WAF, IDS, automated incident response, honeypots, threat intelligence, behavior analytics, and real-time monitoring. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "imagine-to-code":
+        return <ImagineToCodeView />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
