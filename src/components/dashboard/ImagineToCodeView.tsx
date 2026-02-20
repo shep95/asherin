@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Bot, Wand2 } from "lucide-react";
+import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface PixelRect {
   id: string;
   x: number;
@@ -13,7 +13,7 @@ interface PixelRect {
   color: string;
 }
 
-type Tool = "pan" | "zoom-in" | "zoom-out" | "select-box" | "color-paint";
+type Tool = "pan" | "zoom-in" | "zoom-out" | "select-box" | "color-paint" | "erase";
 interface ViewBox { x: number; y: number; w: number; h: number; }
 type ExportFormat = "svg" | "minified-svg" | "css-grid";
 
@@ -21,18 +21,19 @@ interface AureonMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  canvasEdit?: PixelRect[];  // if AUREON proposes canvas changes
+  canvasEdit?: PixelRect[];
   timestamp: Date;
 }
 
-// ─── Utils ───────────────────────────────────────────────────────────────────
+// ─── Utils ────────────────────────────────────────────────────────────────────
 function uid() { return Math.random().toString(36).slice(2, 9); }
 function rgbaToHex(r: number, g: number, b: number): string {
   return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-// ─── SVG Export ──────────────────────────────────────────────────────────────
+// ─── SVG Export ───────────────────────────────────────────────────────────────
 function exportSvg(rects: PixelRect[], w: number, h: number, minify = false): string {
+  if (rects.length === 0) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"></svg>`;
   const body = rects.map(r =>
     `<rect x="${r.x}" y="${r.y}" width="1" height="1" fill="${r.color}"/>`
   ).join(minify ? "" : "\n  ");
@@ -41,65 +42,81 @@ function exportSvg(rects: PixelRect[], w: number, h: number, minify = false): st
 }
 
 function exportCssGrid(rects: PixelRect[], w: number, h: number): string {
+  const pixelMap = new Map<string, string>();
+  for (const r of rects) pixelMap.set(`${r.x},${r.y}`, r.color);
   const colorMap: string[] = [];
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const r = rects.find(r => r.x === x && r.y === y);
-      colorMap.push(r ? r.color : "#FFFFFF");
-    }
-  }
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++)
+      colorMap.push(pixelMap.get(`${x},${y}`) ?? "transparent");
   const css = `.pixel-grid{display:grid;grid-template-columns:repeat(${w},1fr);width:${w * 4}px;height:${h * 4}px;gap:0}\n.pixel-grid div{width:4px;height:4px}`;
   return `<!DOCTYPE html><html><head><style>${css}</style></head><body>\n<div class="pixel-grid">\n${colorMap.map(c => `  <div style="background:${c}"></div>`).join("\n")}\n</div></body></html>`;
 }
 
+// Skip near-white and fully-transparent pixels to keep the SVG lean
 function imageDataToRects(imageData: ImageData): PixelRect[] {
   const { width, height, data } = imageData;
   const out: PixelRect[] = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      out.push({ id: uid(), x, y, color: rgbaToHex(data[i], data[i + 1], data[i + 2]) });
+      const alpha = data[i + 3];
+      if (alpha < 20) continue; // transparent
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      if (r > 245 && g > 245 && b > 245) continue; // near-white background
+      out.push({ id: uid(), x, y, color: rgbaToHex(r, g, b) });
     }
   }
   return out;
 }
 
-// Parse AUREON pixel edit commands from its response
-// Looks for JSON blocks like: {"pixels":[{"x":0,"y":0,"color":"#FF0000"},...],"gridW":64,"gridH":64}
-function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
+// Parse AUREON pixel edit commands — looks for ```json {"pixels":[...]} ```
+function parseAureonPixelEdit(
+  response: string,
+  currentRects: PixelRect[],
+  currentW: number,
+  currentH: number
+): PixelRect[] | null {
   try {
-    // Look for JSON code block
     const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
     if (!jsonMatch) return null;
     const parsed = JSON.parse(jsonMatch[1]);
     if (!parsed.pixels || !Array.isArray(parsed.pixels)) return null;
-    
-    // Start with existing canvas, apply changes
-    let updated = [...currentRects];
+
+    // Build a mutable map: "x,y" → PixelRect for O(1) updates
+    const pixelMap = new Map<string, PixelRect>();
+    for (const r of currentRects) pixelMap.set(`${r.x},${r.y}`, { ...r });
+
     for (const edit of parsed.pixels) {
       if (typeof edit.x !== "number" || typeof edit.y !== "number" || !edit.color) continue;
       if (edit.x < 0 || edit.y < 0 || edit.x >= currentW || edit.y >= currentH) continue;
-      // Remove existing pixel at position, then add new one
-      updated = updated.filter(r => !(r.x === edit.x && r.y === edit.y));
-      if (edit.color !== "transparent" && edit.color !== "erase") {
-        updated.push({ id: uid(), x: edit.x, y: edit.y, color: edit.color });
+      const key = `${edit.x},${edit.y}`;
+      if (edit.color === "transparent" || edit.color === "erase") {
+        pixelMap.delete(key);
+      } else {
+        pixelMap.set(key, { id: uid(), x: edit.x, y: edit.y, color: edit.color });
       }
     }
-    return updated;
+    return Array.from(pixelMap.values());
   } catch {
     return null;
   }
 }
 
 const MAX_DIM = 128;
+const ZOOM_FACTOR = 0.8; // consistent zoom step for both wheel and toolbar buttons
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main Component ────────────────────────────────────────────────────────────
 const ImagineToCodeView = () => {
+  // Canvas state stored in a ref-based history stack
+  const historyStack = useRef<PixelRect[][]>([[]]);
+  const histIdx = useRef(0);
+
   const [rects, setRects] = useState<PixelRect[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
   const [gridW, setGridW] = useState(64);
   const [gridH, setGridH] = useState(64);
-  const [history, setHistory] = useState<PixelRect[][]>([[]]);
-  const [histIdx, setHistIdx] = useState(0);
   const [activeTool, setActiveTool] = useState<Tool>("pan");
   const [activeColor, setActiveColor] = useState("#7C3AED");
   const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: 64, h: 64 });
@@ -110,11 +127,10 @@ const ImagineToCodeView = () => {
   const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // AUREON Conversational AI
+  // AUREON
   const [aureonMessages, setAureonMessages] = useState<AureonMessage[]>([]);
   const [aureonInput, setAureonInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [pendingCanvasEdit, setPendingCanvasEdit] = useState<PixelRect[] | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -123,141 +139,210 @@ const ImagineToCodeView = () => {
   const panStart = useRef<{ mx: number; my: number; vb: ViewBox } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll chat to bottom
+  // Keep latest rects accessible from async callbacks without stale closure
+  const rectsRef = useRef<PixelRect[]>([]);
+  useEffect(() => { rectsRef.current = rects; }, [rects]);
+  const gridWRef = useRef(64);
+  const gridHRef = useRef(64);
+  useEffect(() => { gridWRef.current = gridW; gridHRef.current = gridH; }, [gridW, gridH]);
+
+  // Auto-scroll AUREON chat
   useEffect(() => {
-    if (chatScrollRef.current) {
+    if (chatScrollRef.current)
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
   }, [aureonMessages]);
 
+  // Regenerate code whenever canvas or format changes
   useEffect(() => {
-    if (rects.length === 0) { setCode("// Upload an image or paint pixels to generate code"); return; }
+    if (rects.length === 0) { setCode(""); return; }
     if (exportFormat === "svg") setCode(exportSvg(rects, gridW, gridH));
     else if (exportFormat === "minified-svg") setCode(exportSvg(rects, gridW, gridH, true));
     else setCode(exportCssGrid(rects, gridW, gridH));
   }, [rects, exportFormat, gridW, gridH]);
 
+  // ── History (ref-based, no stale closure) ────────────────────────────────
+  const syncUndoRedo = () => {
+    setCanUndo(histIdx.current > 0);
+    setCanRedo(histIdx.current < historyStack.current.length - 1);
+  };
+
   const pushHistory = useCallback((next: PixelRect[]) => {
-    setHistory(h => [...h.slice(0, histIdx + 1), next]);
-    setHistIdx(i => i + 1);
+    // Truncate any forward history
+    historyStack.current = historyStack.current.slice(0, histIdx.current + 1);
+    historyStack.current.push(next);
+    histIdx.current = historyStack.current.length - 1;
     setRects(next);
-  }, [histIdx]);
+    syncUndoRedo();
+  }, []);
 
-  const undo = () => {
-    if (histIdx <= 0) return;
-    setHistIdx(i => i - 1);
-    setRects(history[histIdx - 1]);
+  const undo = useCallback(() => {
+    if (histIdx.current <= 0) return;
+    histIdx.current -= 1;
+    setRects(historyStack.current[histIdx.current]);
+    syncUndoRedo();
+  }, []);
+
+  const redo = useCallback(() => {
+    if (histIdx.current >= historyStack.current.length - 1) return;
+    histIdx.current += 1;
+    setRects(historyStack.current[histIdx.current]);
+    syncUndoRedo();
+  }, []);
+
+  const clearCanvas = () => {
+    pushHistory([]);
+    setSelRect(null);
+    setSelectedIds(new Set());
   };
 
-  const redo = () => {
-    if (histIdx >= history.length - 1) return;
-    setHistIdx(i => i + 1);
-    setRects(history[histIdx + 1]);
-  };
-
-  const svgCoords = (e: React.MouseEvent) => {
+  // ── SVG coordinate mapping ────────────────────────────────────────────────
+  const svgCoords = (e: React.MouseEvent | React.WheelEvent) => {
     const svg = svgRef.current;
     if (!svg) return null;
-    const rect = svg.getBoundingClientRect();
+    const r = svg.getBoundingClientRect();
     return {
-      x: (e.clientX - rect.left) / rect.width * viewBox.w + viewBox.x,
-      y: (e.clientY - rect.top) / rect.height * viewBox.h + viewBox.y,
+      x: ((e as React.MouseEvent).clientX - r.left) / r.width * viewBox.w + viewBox.x,
+      y: ((e as React.MouseEvent).clientY - r.top) / r.height * viewBox.h + viewBox.y,
     };
   };
 
-  const zoom = (factor: number) => {
+  const zoomAt = useCallback((factor: number, cx?: number, cy?: number) => {
     setViewBox(vb => {
-      const nw = vb.w * factor; const nh = vb.h * factor;
-      const cx = vb.x + vb.w / 2; const cy = vb.y + vb.h / 2;
-      return { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
+      const nw = vb.w * factor;
+      const nh = vb.h * factor;
+      const pivotX = cx ?? (vb.x + vb.w / 2);
+      const pivotY = cy ?? (vb.y + vb.h / 2);
+      return {
+        x: pivotX - (pivotX - vb.x) * factor,
+        y: pivotY - (pivotY - vb.y) * factor,
+        w: nw,
+        h: nh,
+      };
     });
-  };
+  }, []);
 
-  const paintPixel = (px: number, py: number) => {
-    if (px < 0 || py < 0 || px >= gridW || py >= gridH) return;
+  // ── Paint helpers ─────────────────────────────────────────────────────────
+  const paintPixel = useCallback((px: number, py: number, erase = false) => {
+    if (px < 0 || py < 0 || px >= gridWRef.current || py >= gridHRef.current) return;
     setRects(prev => {
-      const next = prev.filter(r => !(r.x === px && r.y === py));
-      next.push({ id: uid(), x: px, y: py, color: activeColor });
-      return next;
+      const filtered = prev.filter(r => !(r.x === px && r.y === py));
+      if (!erase) filtered.push({ id: uid(), x: px, y: py, color: activeColor });
+      rectsRef.current = filtered;
+      return filtered;
     });
-  };
+  }, [activeColor]);
 
+  // ── Mouse events ──────────────────────────────────────────────────────────
   const onWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const factor = e.deltaY < 0 ? 0.85 : 1 / 0.85;
-    const coords = svgCoords(e as unknown as React.MouseEvent);
-    if (!coords) { zoom(factor); return; }
-    setViewBox(vb => {
-      const nw = vb.w * factor; const nh = vb.h * factor;
-      const nx = coords.x - (coords.x - vb.x) * factor;
-      const ny = coords.y - (coords.y - vb.y) * factor;
-      return { x: nx, y: ny, w: nw, h: nh };
-    });
+    const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+    const coords = svgCoords(e);
+    zoomAt(factor, coords?.x, coords?.y);
   };
 
   const onMouseDown = (e: React.MouseEvent) => {
     const coords = svgCoords(e);
     if (!coords) return;
-    const px = Math.floor(coords.x); const py = Math.floor(coords.y);
-    if (activeTool === "pan") panStart.current = { mx: e.clientX, my: e.clientY, vb: { ...viewBox } };
-    else if (activeTool === "zoom-in") zoom(1 / 1.5);
-    else if (activeTool === "zoom-out") zoom(1.5);
-    else if (activeTool === "color-paint") { isPainting.current = true; paintPixel(px, py); }
-    else if (activeTool === "select-box") { setSelStart({ sx: coords.x, sy: coords.y }); setSelRect(null); setSelectedIds(new Set()); }
+    const px = Math.floor(coords.x);
+    const py = Math.floor(coords.y);
+
+    if (activeTool === "pan") {
+      panStart.current = { mx: e.clientX, my: e.clientY, vb: { ...viewBox } };
+    } else if (activeTool === "zoom-in") {
+      zoomAt(ZOOM_FACTOR, coords.x, coords.y);
+    } else if (activeTool === "zoom-out") {
+      zoomAt(1 / ZOOM_FACTOR, coords.x, coords.y);
+    } else if (activeTool === "color-paint") {
+      isPainting.current = true;
+      paintPixel(px, py);
+    } else if (activeTool === "erase") {
+      isPainting.current = true;
+      paintPixel(px, py, true);
+    } else if (activeTool === "select-box") {
+      setSelStart({ sx: coords.x, sy: coords.y });
+      setSelRect(null);
+      setSelectedIds(new Set());
+    }
   };
 
   const onMouseMove = (e: React.MouseEvent) => {
     if (activeTool === "pan" && panStart.current) {
-      const svg = svgRef.current; if (!svg) return;
+      const svg = svgRef.current;
+      if (!svg) return;
       const r = svg.getBoundingClientRect();
       const dx = (e.clientX - panStart.current.mx) / r.width * panStart.current.vb.w;
       const dy = (e.clientY - panStart.current.my) / r.height * panStart.current.vb.h;
       setViewBox({ ...panStart.current.vb, x: panStart.current.vb.x - dx, y: panStart.current.vb.y - dy });
-    } else if (activeTool === "color-paint" && isPainting.current) {
-      const c = svgCoords(e); if (c) paintPixel(Math.floor(c.x), Math.floor(c.y));
+    } else if ((activeTool === "color-paint" || activeTool === "erase") && isPainting.current) {
+      const c = svgCoords(e);
+      if (c) paintPixel(Math.floor(c.x), Math.floor(c.y), activeTool === "erase");
     } else if (activeTool === "select-box" && selStart) {
-      const c = svgCoords(e); if (!c) return;
-      setSelRect({ x: Math.min(selStart.sx, c.x), y: Math.min(selStart.sy, c.y), w: Math.abs(c.x - selStart.sx), h: Math.abs(c.y - selStart.sy) });
+      const c = svgCoords(e);
+      if (!c) return;
+      setSelRect({
+        x: Math.min(selStart.sx, c.x),
+        y: Math.min(selStart.sy, c.y),
+        w: Math.abs(c.x - selStart.sx),
+        h: Math.abs(c.y - selStart.sy),
+      });
     }
   };
 
   const onMouseUp = () => {
     if (activeTool === "pan") panStart.current = null;
-    if (activeTool === "color-paint" && isPainting.current) { isPainting.current = false; pushHistory([...rects]); }
+    if ((activeTool === "color-paint" || activeTool === "erase") && isPainting.current) {
+      isPainting.current = false;
+      pushHistory([...rectsRef.current]); // commit to history using latest ref
+    }
     if (activeTool === "select-box" && selRect) {
-      setSelectedIds(new Set(rects.filter(r => r.x >= selRect.x && r.x < selRect.x + selRect.w && r.y >= selRect.y && r.y < selRect.y + selRect.h).map(r => r.id)));
+      setSelectedIds(new Set(
+        rectsRef.current
+          .filter(r => r.x >= selRect.x && r.x < selRect.x + selRect.w && r.y >= selRect.y && r.y < selRect.y + selRect.h)
+          .map(r => r.id)
+      ));
       setSelStart(null);
     }
   };
 
   const fillSelection = () => {
     if (selectedIds.size === 0) return;
-    pushHistory(rects.map(r => selectedIds.has(r.id) ? { ...r, color: activeColor } : r));
-    setSelectedIds(new Set()); setSelRect(null);
+    pushHistory(rectsRef.current.map(r => selectedIds.has(r.id) ? { ...r, color: activeColor } : r));
+    setSelectedIds(new Set());
+    setSelRect(null);
   };
 
   const deleteSelection = () => {
     if (selectedIds.size === 0) return;
-    pushHistory(rects.filter(r => !selectedIds.has(r.id)));
-    setSelectedIds(new Set()); setSelRect(null);
+    pushHistory(rectsRef.current.filter(r => !selectedIds.has(r.id)));
+    setSelectedIds(new Set());
+    setSelRect(null);
   };
 
+  // ── Image upload ──────────────────────────────────────────────────────────
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
         const ratio = Math.min(MAX_DIM / width, MAX_DIM / height, 1);
-        width = Math.floor(width * ratio); height = Math.floor(height * ratio);
+        width = Math.floor(width * ratio);
+        height = Math.floor(height * ratio);
         const canvas = document.createElement("canvas");
         canvas.width = width; canvas.height = height;
-        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-        const newRects = imageDataToRects(canvas.getContext("2d")!.getImageData(0, 0, width, height));
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, width, height);
+        const newRects = imageDataToRects(ctx.getImageData(0, 0, width, height));
         setGridW(width); setGridH(height);
+        gridWRef.current = width; gridHRef.current = height;
         setViewBox({ x: 0, y: 0, w: width, h: height });
-        pushHistory(newRects);
+        // Reset history for new image
+        historyStack.current = [[], newRects];
+        histIdx.current = 1;
+        setRects(newRects);
+        syncUndoRedo();
       };
       img.src = ev.target?.result as string;
     };
@@ -266,20 +351,27 @@ const ImagineToCodeView = () => {
   };
 
   const copyCode = () => {
-    navigator.clipboard.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); });
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
   };
 
   const downloadCode = () => {
+    if (!code) return;
     const ext = exportFormat === "css-grid" ? "html" : "svg";
     const blob = new Blob([code], { type: "text/plain" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = `pixel-art.${ext}`; a.click(); URL.revokeObjectURL(a.href);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `pixel-art.${ext}`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   // ── AUREON Conversational AI ───────────────────────────────────────────────
   const sendToAureon = async () => {
     const inputText = aureonInput.trim();
-    if (!inputText && rects.length === 0) return;
     if (!inputText) return;
 
     const userMsg: AureonMessage = {
@@ -288,52 +380,60 @@ const ImagineToCodeView = () => {
       content: inputText,
       timestamp: new Date(),
     };
-    setAureonMessages(prev => [...prev, userMsg]);
+
+    // Capture latest message list for the API call (avoid stale closure)
+    const currentMessages = [...aureonMessages, userMsg];
+    setAureonMessages(currentMessages);
     setAureonInput("");
     setIsAnalyzing(true);
 
-    // Build conversation history for the API
-    const history = [...aureonMessages, userMsg].map(m => ({
+    // Use ref values so AUREON always sees the live canvas
+    const currentRects = rectsRef.current;
+    const currentW = gridWRef.current;
+    const currentH = gridHRef.current;
+
+    const apiMessages = currentMessages.map(m => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
 
-    // Build context about the current canvas
-    const canvasContext = rects.length > 0
-      ? `[Canvas State: ${gridW}×${gridH} grid, ${rects.length} colored pixels. Sample pixels: ${rects.slice(0, 5).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${rects.length > 5 ? "..." : ""}. Current export code (first 1000 chars): ${code.slice(0, 1000)}]`
-      : "[Canvas State: Empty canvas, no pixels drawn yet. Grid: 64×64]";
+    const canvasContext = currentRects.length > 0
+      ? `[Canvas: ${currentW}×${currentH} grid, ${currentRects.length} pixels. Dominant colors: ${
+          [...new Set(currentRects.map(r => r.color))].slice(0, 6).join(", ")
+        }. Sample pixels: ${currentRects.slice(0, 8).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${currentRects.length > 8 ? "..." : ""}]`
+      : `[Canvas: Empty ${currentW}×${currentH} grid]`;
 
-    const systemPrompt = `You are AUREON, an elite AI assistant embedded in a pixel art and SVG design tool called "Imagine To Code" (created by ZALI Software).
+    const systemPrompt = `You are AUREON, an elite AI assistant embedded in a pixel art and SVG editor called "Imagine To Code" (created by ZALI Software).
 
-You can:
-1. Analyze and describe the current pixel art design
+Your capabilities:
+1. Analyze and describe the current pixel art
 2. Suggest creative ideas, color palettes, and design improvements
-3. Ask clarifying questions to understand what the user wants to create
-4. DIRECTLY EDIT the canvas by outputting pixel coordinates in a JSON code block
+3. Ask 1-2 focused clarifying questions when the user's intent is unclear
+4. DIRECTLY EDIT the canvas by outputting a JSON code block
 
-When the user asks you to draw, create, edit, or modify the pixel art, ALWAYS respond with:
-- A brief explanation of what you're doing
-- One or more clarifying questions IF needed (e.g. "Should I use a specific color palette?")
-- A JSON code block with pixel edits in this EXACT format:
+When you want to edit the canvas, respond with a JSON block in this EXACT format:
 \`\`\`json
-{"pixels":[{"x":0,"y":0,"color":"#FF0000"},{"x":1,"y":0,"color":"#FF0000"}]}
+{"pixels":[{"x":5,"y":3,"color":"#FF4400"},{"x":6,"y":3,"color":"#FF4400"}]}
 \`\`\`
 
-Rules for pixel edits:
-- x ranges 0 to ${gridW - 1}, y ranges 0 to ${gridH - 1}
-- Colors must be valid hex like #FF0000
-- Use "erase" as color value to remove a pixel
-- Only include pixels that need to change, not the entire grid
-- Keep edits practical and focused
+Pixel edit rules:
+- x: 0 to ${currentW - 1}, y: 0 to ${currentH - 1}
+- Colors: valid hex strings like #FF4400
+- Use color "erase" to remove a pixel
+- Only include pixels that CHANGE — do not send the full grid
+- For drawing shapes, calculate exact pixel coordinates mathematically
 
-Current canvas context: ${canvasContext}
+Current canvas: ${canvasContext}
 
-If you don't have enough information to edit, ask 1-2 focused clarifying questions before proceeding.`;
+When drawing, be precise and systematic. For example, to draw a 10×10 red square at position (5,5):
+compute every (x,y) from x=5..14, y=5..14 and emit them all.
+
+If the request is ambiguous, ask one focused clarifying question first, then draw.`;
 
     try {
       const { data, error } = await supabase.functions.invoke("chat", {
         body: {
-          messages: history,
+          messages: apiMessages,
           mode: "standard",
           systemPrompt,
         },
@@ -342,9 +442,7 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
       if (error) throw error;
 
       const responseText = data?.content || data?.message || "No response received.";
-      
-      // Try to parse any pixel edit commands
-      const editedRects = parseAureonPixelEdit(responseText, rects, gridW, gridH);
+      const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
 
       const assistantMsg: AureonMessage = {
         id: uid(),
@@ -354,20 +452,14 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
         timestamp: new Date(),
       };
       setAureonMessages(prev => [...prev, assistantMsg]);
-
-      // If AUREON proposed canvas edits, store as pending for user to apply
-      if (editedRects) {
-        setPendingCanvasEdit(editedRects);
-      }
-    } catch (err) {
-      toast({ title: "AUREON error", description: "Could not connect to AUREON.", variant: "destructive" });
-      const errMsg: AureonMessage = {
+    } catch {
+      toast({ title: "AUREON error", description: "Could not connect to AUREON. Please try again.", variant: "destructive" });
+      setAureonMessages(prev => [...prev, {
         id: uid(),
         role: "assistant",
         content: "I couldn't connect to the AUREON intelligence engine. Please try again.",
         timestamp: new Date(),
-      };
-      setAureonMessages(prev => [...prev, errMsg]);
+      }]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -375,10 +467,10 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
 
   const applyCanvasEdit = (newRects: PixelRect[]) => {
     pushHistory(newRects);
-    setPendingCanvasEdit(null);
-    toast({ title: "Canvas updated", description: "AUREON's edits have been applied." });
+    toast({ title: "Canvas updated", description: "AUREON's edits applied." });
   };
 
+  // ── Render helpers ────────────────────────────────────────────────────────
   const visibleRects = rects.filter(r =>
     r.x < viewBox.x + viewBox.w && r.x + 1 > viewBox.x &&
     r.y < viewBox.y + viewBox.h && r.y + 1 > viewBox.y
@@ -386,9 +478,10 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
 
   const toolBtn = (tool: Tool, icon: React.ReactNode, title: string) => (
     <button
+      key={tool}
       title={title}
       onClick={() => setActiveTool(tool)}
-      className={`p-2.5 rounded-xl border transition-all text-xs ${
+      className={`p-2.5 rounded-xl border transition-all ${
         activeTool === tool
           ? "bg-accent/20 border-accent/40 text-accent"
           : "border-border/20 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
@@ -398,30 +491,48 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
     </button>
   );
 
+  const cursorStyle =
+    activeTool === "pan" ? "grab" :
+    activeTool === "color-paint" ? "crosshair" :
+    activeTool === "erase" ? "cell" :
+    activeTool === "zoom-in" ? "zoom-in" :
+    activeTool === "zoom-out" ? "zoom-out" :
+    "default";
+
   return (
     <div className="flex h-full overflow-hidden bg-background/30 backdrop-blur-sm flex-col">
-      {/* ── Beta Banner ─────────────────────────────────────────────────────── */}
+      {/* ── Beta Banner ── */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-border/20 bg-accent/5">
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/70 border border-accent/20 rounded-lg px-1.5 py-0.5">Beta</span>
-          <span className="text-[10px] font-light text-muted-foreground/50 tracking-wide">This Software Was Created By ZALI Software</span>
+          <span className="text-[10px] font-light text-muted-foreground/50 tracking-wide">Created by ZALI Software</span>
         </div>
         <div className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/30">Imagine to Code</div>
       </div>
 
-      {/* ── Main Layout ─────────────────────────────────────────────────────── */}
+      {/* ── Main Layout ── */}
       <div className="flex flex-1 overflow-hidden">
+
         {/* ── Left Toolbar ── */}
         <aside className="flex-shrink-0 w-52 flex flex-col gap-3 p-3 border-r border-border/20 overflow-y-auto bg-card/10">
-          {/* Upload */}
+
+          {/* Upload / Clear */}
           <div className="space-y-1.5">
-            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Input</p>
+            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Canvas</p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-accent/10 hover:border-accent/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-accent transition-all"
             >
               <Upload className="h-3.5 w-3.5" />
               Upload Image
+            </button>
+            <button
+              onClick={clearCanvas}
+              disabled={rects.length === 0}
+              className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-destructive transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Clear Canvas
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
           </div>
@@ -430,24 +541,25 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Tools</p>
             <div className="grid grid-cols-3 gap-1">
-              {toolBtn("pan", <Hand className="h-3.5 w-3.5" />, "Pan")}
-              {toolBtn("zoom-in", <ZoomIn className="h-3.5 w-3.5" />, "Zoom In")}
-              {toolBtn("zoom-out", <ZoomOut className="h-3.5 w-3.5" />, "Zoom Out")}
+              {toolBtn("pan", <Hand className="h-3.5 w-3.5" />, "Pan (drag to move)")}
+              {toolBtn("zoom-in", <ZoomIn className="h-3.5 w-3.5" />, "Zoom In (or scroll up)")}
+              {toolBtn("zoom-out", <ZoomOut className="h-3.5 w-3.5" />, "Zoom Out (or scroll down)")}
               {toolBtn("select-box", <Square className="h-3.5 w-3.5" />, "Select Box")}
-              {toolBtn("color-paint", <Paintbrush className="h-3.5 w-3.5" />, "Paint")}
-              <button
-                title="Fit view"
-                onClick={() => setViewBox({ x: 0, y: 0, w: gridW, h: gridH })}
-                className="p-2.5 rounded-xl border border-border/20 text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all"
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-              </button>
+              {toolBtn("color-paint", <Paintbrush className="h-3.5 w-3.5" />, "Paint pixels")}
+              {toolBtn("erase", <Eraser className="h-3.5 w-3.5" />, "Erase pixels")}
             </div>
+            <button
+              title="Fit entire grid to view"
+              onClick={() => setViewBox({ x: 0, y: 0, w: gridW, h: gridH })}
+              className="w-full flex items-center gap-2 rounded-xl border border-border/20 px-3 py-2 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all"
+            >
+              <Maximize2 className="h-3 w-3" /> Fit to View
+            </button>
           </div>
 
           {/* Color picker */}
           <div className="space-y-1.5">
-            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Active Color</p>
+            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Paint Color</p>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -457,12 +569,24 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
               />
               <span className="text-[10px] font-mono text-muted-foreground/70">{activeColor.toUpperCase()}</span>
             </div>
+            {/* Quick palette */}
+            <div className="grid grid-cols-6 gap-1 mt-1">
+              {["#EF4444","#F97316","#EAB308","#22C55E","#3B82F6","#8B5CF6","#EC4899","#000000","#FFFFFF","#6B7280","#7C3AED","#06B6D4"].map(c => (
+                <button
+                  key={c}
+                  title={c}
+                  onClick={() => setActiveColor(c)}
+                  className={`w-6 h-6 rounded-lg border-2 transition-all ${activeColor === c ? "border-foreground scale-110" : "border-transparent hover:scale-105"}`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Selection actions */}
           {selectedIds.size > 0 && (
             <div className="space-y-1.5">
-              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Selection ({selectedIds.size}px)</p>
+              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Selection ({selectedIds.size} px)</p>
               <button onClick={fillSelection} className="w-full rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/20 px-3 py-2 text-xs font-light text-accent transition-all">
                 Fill with color
               </button>
@@ -476,10 +600,18 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">History</p>
             <div className="flex gap-1">
-              <button onClick={undo} disabled={histIdx <= 0} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
+              <button
+                onClick={undo}
+                disabled={!canUndo}
+                className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed"
+              >
                 <Undo2 className="h-3 w-3" /> Undo
               </button>
-              <button onClick={redo} disabled={histIdx >= history.length - 1} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed"
+              >
                 <Undo2 className="h-3 w-3 scale-x-[-1]" /> Redo
               </button>
             </div>
@@ -489,7 +621,7 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
           <div className="mt-auto text-[9px] text-muted-foreground/30 font-mono space-y-0.5 border-t border-border/10 pt-3">
             <p>Grid: {gridW} × {gridH}</p>
             <p>Pixels: {rects.length.toLocaleString()}</p>
-            <p>Tool: {activeTool}</p>
+            <p>Zoom: {Math.round(gridW / viewBox.w * 100)}%</p>
           </div>
         </aside>
 
@@ -500,7 +632,7 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
               <div className="h-16 w-16 rounded-full border border-accent/20 flex items-center justify-center bg-accent/5">
                 <Paintbrush className="h-7 w-7 text-accent/30 animate-pulse" />
               </div>
-              <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image or paint pixels directly</p>
+              <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image or paint pixels</p>
               <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
             </div>
           )}
@@ -508,18 +640,28 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
             ref={svgRef}
             viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
             className="w-full h-full"
-            style={{ cursor: activeTool === "pan" ? "grab" : activeTool === "color-paint" ? "crosshair" : "default", imageRendering: "pixelated" }}
+            style={{ cursor: cursorStyle, imageRendering: "pixelated" }}
             onMouseDown={onMouseDown}
             onMouseMove={onMouseMove}
             onMouseUp={onMouseUp}
             onMouseLeave={onMouseUp}
             onWheel={onWheel}
           >
-            <rect x={0} y={0} width={gridW} height={gridH} fill="hsl(var(--card))" />
+            {/* Checkerboard background to show transparency */}
+            <defs>
+              <pattern id="checker" width="2" height="2" patternUnits="userSpaceOnUse">
+                <rect width="1" height="1" fill="#e5e7eb" />
+                <rect x="1" y="1" width="1" height="1" fill="#e5e7eb" />
+                <rect x="1" y="0" width="1" height="1" fill="#f9fafb" />
+                <rect x="0" y="1" width="1" height="1" fill="#f9fafb" />
+              </pattern>
+            </defs>
+            <rect x={0} y={0} width={gridW} height={gridH} fill="url(#checker)" />
             {visibleRects.map(r => (
               <rect
                 key={r.id}
-                x={r.x} y={r.y} width={1} height={1} fill={r.color}
+                x={r.x} y={r.y} width={1} height={1}
+                fill={r.color}
                 stroke={selectedIds.has(r.id) ? "hsl(var(--accent))" : "none"}
                 strokeWidth={selectedIds.has(r.id) ? 0.05 : 0}
               />
@@ -538,6 +680,7 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
 
         {/* ── Right Panel ── */}
         <aside className="flex-shrink-0 w-80 flex flex-col border-l border-border/20 bg-card/10">
+
           {/* Code Output */}
           <div className="flex-shrink-0 px-4 py-3 border-b border-border/20">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50 mb-2">Code Output</p>
@@ -551,37 +694,44 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
                 <option value="minified-svg">Minified SVG</option>
                 <option value="css-grid">CSS Grid (HTML)</option>
               </select>
-              <button onClick={copyCode} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
+              <button
+                onClick={copyCode}
+                disabled={!code}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
                 {copied ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
                 {copied ? "Copied" : "Copy"}
               </button>
-              <button onClick={downloadCode} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
+              <button
+                onClick={downloadCode}
+                disabled={!code}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
                 <Download className="h-3 w-3" />
               </button>
             </div>
           </div>
-          <ScrollArea className="flex-shrink-0 max-h-32">
+
+          <ScrollArea className="flex-shrink-0 max-h-28">
             <pre className="p-3 text-[10px] font-mono text-muted-foreground leading-relaxed whitespace-pre-wrap break-all">
-              {code}
+              {code || "// Draw something to generate code"}
             </pre>
           </ScrollArea>
-          <div className="flex-shrink-0 px-4 py-1 border-b border-border/20 text-[9px] text-muted-foreground/30 font-mono">
-            {code.length.toLocaleString()} chars
-          </div>
+          {code && (
+            <div className="flex-shrink-0 px-4 py-1 border-b border-border/20 text-[9px] text-muted-foreground/30 font-mono">
+              {code.length.toLocaleString()} chars
+            </div>
+          )}
 
           {/* ── AUREON Conversational Panel ── */}
-          <div className="flex-1 flex flex-col min-h-0">
-            {/* Header */}
+          <div className="flex-1 flex flex-col min-h-0 border-t border-border/20">
             <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border/10 bg-accent/5">
               <Sparkles className="h-3 w-3 text-accent animate-pulse" />
               <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/80">AUREON — Design Intelligence</p>
             </div>
 
-            {/* Chat Messages */}
-            <div
-              ref={chatScrollRef}
-              className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3"
-            >
+            {/* Messages */}
+            <div ref={chatScrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
               {aureonMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3 py-6">
                   <div className="h-10 w-10 rounded-xl border border-accent/20 bg-accent/5 flex items-center justify-center">
@@ -591,13 +741,13 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
                     Ask AUREON to design, edit, or analyze your pixel art. It will ask questions and draw directly on the canvas.
                   </p>
                   <div className="flex flex-col gap-1.5 w-full">
-                    {["Draw a simple house", "Analyze this design", "Suggest a color palette"].map(suggestion => (
+                    {["Draw a simple house", "Add a sunset sky background", "Suggest a color palette", "Analyze this design"].map(s => (
                       <button
-                        key={suggestion}
-                        onClick={() => setAureonInput(suggestion)}
+                        key={s}
+                        onClick={() => setAureonInput(s)}
                         className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-border/10 hover:border-accent/20 rounded-xl px-3 py-2 transition-all hover:bg-accent/5"
                       >
-                        {suggestion}
+                        {s}
                       </button>
                     ))}
                   </div>
@@ -605,7 +755,6 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
               ) : (
                 aureonMessages.map(msg => (
                   <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                    {/* Avatar */}
                     <div className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center ${
                       msg.role === "user"
                         ? "bg-foreground/10 border border-border/20"
@@ -613,15 +762,12 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
                     }`}>
                       {msg.role === "user"
                         ? <User className="h-3 w-3 text-muted-foreground" />
-                        : <Sparkles className="h-3 w-3 text-accent" />
-                      }
+                        : <Sparkles className="h-3 w-3 text-accent" />}
                     </div>
-
-                    {/* Bubble */}
                     <div className={`flex-1 min-w-0 space-y-2 ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
                       <div className={`rounded-xl px-3 py-2 text-[10px] font-light leading-relaxed max-w-full ${
                         msg.role === "user"
-                          ? "bg-accent/15 border border-accent/20 text-foreground/90 text-right"
+                          ? "bg-accent/15 border border-accent/20 text-foreground/90"
                           : "bg-card/30 border border-border/20 text-muted-foreground"
                       }`}>
                         {msg.role === "assistant" ? (
@@ -640,7 +786,6 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
                                 p: ({ children }) => <p className="mb-1 last:mb-0 text-muted-foreground">{children}</p>,
                               }}
                             >
-                              {/* Hide the json pixel block from display, show edit button instead */}
                               {msg.content.replace(/```json[\s\S]*?```/g, "[Canvas edit ready ↓]")}
                             </ReactMarkdown>
                           </div>
@@ -649,8 +794,8 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
                         )}
                       </div>
 
-                      {/* Apply Canvas Edit button */}
-                      {msg.role === "assistant" && msg.canvasEdit && pendingCanvasEdit && (
+                      {/* Apply canvas edit — always shown for messages that have edits */}
+                      {msg.role === "assistant" && msg.canvasEdit && (
                         <button
                           onClick={() => applyCanvasEdit(msg.canvasEdit!)}
                           className="flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/20 px-3 py-1.5 text-[10px] font-light text-accent transition-all"
@@ -664,7 +809,6 @@ If you don't have enough information to edit, ask 1-2 focused clarifying questio
                 ))
               )}
 
-              {/* Thinking indicator */}
               {isAnalyzing && (
                 <div className="flex gap-2">
                   <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-accent/15 border border-accent/20 flex items-center justify-center">
