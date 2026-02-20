@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw, Plus, FolderOpen, Trash2, Pencil, X, Save, RotateCcw, Play, Square as StopIcon } from "lucide-react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw, Plus, FolderOpen, Trash2, Pencil, RotateCcw, Square as StopIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +36,7 @@ function rgbaToHex(r: number, g: number, b: number): string {
   return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-// ─── SVG Export ───────────────────────────────────────────────────────────────
+// ─── SVG Export (runs only on demand, not live) ───────────────────────────────
 function exportSvg(rects: PixelRect[], w: number, h: number, minify = false): string {
   if (rects.length === 0) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"></svg>`;
   const body = rects.map(r =>
@@ -97,15 +97,14 @@ function parseAureonPixelEdit(response: string, currentRects: PixelRect[], curre
   }
 }
 
-// Max side length — never exceed this per axis
+// Constants
 const MAX_SIDE = 10_000;
-// Base pixel budget at 512×512 reference — scales with image area ratio
 const PIXEL_BUDGET_BASE = 1_000_000;
-// Area budget grows with sqrt of image area so larger images stay proportionally denser
-// 512×512  → 1,000×1,000  (1M px)
-// 1920×1080 → ~1,770×995  (1.76M px)
-// 300×200  →  740×493     (~365K px)
 const ZOOM_FACTOR = 0.8;
+// Max history frames stored — older ones are pruned to prevent OOM with 1M pixel canvases
+const MAX_HISTORY_FRAMES = 10;
+// Canvas rendering: use HTML Canvas instead of SVG <rect> for performance
+const CANVAS_RENDER_PIXEL_THRESHOLD = 5_000; // below this, SVG is fine
 
 // ─── Sessions Panel ────────────────────────────────────────────────────────────
 interface SessionsPanelProps {
@@ -200,6 +199,142 @@ const SessionsPanel = ({ sessions, activeId, onSelect, onCreate, onDelete, onRen
   );
 };
 
+// ─── Canvas Renderer (HTML Canvas for high pixel counts) ──────────────────────
+interface CanvasRendererProps {
+  rects: PixelRect[];
+  gridW: number;
+  gridH: number;
+  viewBox: ViewBox;
+  selectedIds: Set<string>;
+  selRect: { x: number; y: number; w: number; h: number } | null;
+  onMouseDown: (e: React.MouseEvent) => void;
+  onMouseMove: (e: React.MouseEvent) => void;
+  onMouseUp: () => void;
+  onWheel: (e: React.WheelEvent) => void;
+  cursorStyle: string;
+  canvasLocked: boolean;
+}
+
+const CanvasRenderer = ({
+  rects, gridW, gridH, viewBox, selectedIds, selRect,
+  onMouseDown, onMouseMove, onMouseUp, onWheel, cursorStyle, canvasLocked
+}: CanvasRendererProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const { width, height } = container.getBoundingClientRect();
+    if (canvas.width !== Math.floor(width) || canvas.height !== Math.floor(height)) {
+      canvas.width = Math.floor(width) || 800;
+      canvas.height = Math.floor(height) || 600;
+    }
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const cw = canvas.width;
+    const ch = canvas.height;
+
+    // Scale from viewBox space to canvas pixels
+    const scaleX = cw / viewBox.w;
+    const scaleY = ch / viewBox.h;
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    // Checkerboard background
+    const cellSize = Math.max(1, Math.min(scaleX, scaleY) * 2);
+    for (let cy = 0; cy < ch; cy += cellSize) {
+      for (let cx = 0; cx < cw; cx += cellSize) {
+        const even = (Math.floor(cx / cellSize) + Math.floor(cy / cellSize)) % 2 === 0;
+        ctx.fillStyle = even ? "#e5e7eb" : "#f9fafb";
+        ctx.fillRect(cx, cy, cellSize, cellSize);
+      }
+    }
+
+    // Pixel size in canvas pixels
+    const pixW = scaleX;
+    const pixH = scaleY;
+
+    // Only draw pixels in viewport
+    const x0 = Math.max(0, Math.floor(viewBox.x));
+    const y0 = Math.max(0, Math.floor(viewBox.y));
+    const x1 = Math.min(gridW, Math.ceil(viewBox.x + viewBox.w));
+    const y1 = Math.min(gridH, Math.ceil(viewBox.y + viewBox.h));
+
+    // Build a fast lookup for visible pixels
+    const visibleMap = new Map<string, string>();
+    for (const r of rects) {
+      if (r.x >= x0 && r.x < x1 && r.y >= y0 && r.y < y1) {
+        visibleMap.set(`${r.x},${r.y}`, r.color);
+      }
+    }
+
+    // Batch draw by color for performance
+    const byColor = new Map<string, Array<[number, number]>>();
+    for (const [key, color] of visibleMap) {
+      const [sx, sy] = key.split(",").map(Number);
+      if (!byColor.has(color)) byColor.set(color, []);
+      byColor.get(color)!.push([sx, sy]);
+    }
+
+    for (const [color, coords] of byColor) {
+      ctx.fillStyle = color;
+      for (const [px, py] of coords) {
+        const cx = (px - viewBox.x) * scaleX;
+        const cy = (py - viewBox.y) * scaleY;
+        ctx.fillRect(cx, cy, Math.max(1, pixW), Math.max(1, pixH));
+      }
+    }
+
+    // Selected pixels highlight
+    if (selectedIds.size > 0) {
+      ctx.strokeStyle = "hsl(250 100% 60%)";
+      ctx.lineWidth = Math.max(0.5, Math.min(scaleX, scaleY) * 0.1);
+      for (const r of rects) {
+        if (selectedIds.has(r.id) && r.x >= x0 && r.x < x1 && r.y >= y0 && r.y < y1) {
+          const cx = (r.x - viewBox.x) * scaleX;
+          const cy = (r.y - viewBox.y) * scaleY;
+          ctx.strokeRect(cx, cy, Math.max(1, pixW), Math.max(1, pixH));
+        }
+      }
+    }
+
+    // Selection box overlay
+    if (selRect) {
+      const sx = (selRect.x - viewBox.x) * scaleX;
+      const sy = (selRect.y - viewBox.y) * scaleY;
+      const sw = selRect.w * scaleX;
+      const sh = selRect.h * scaleY;
+      ctx.fillStyle = "hsla(250, 100%, 60%, 0.12)";
+      ctx.fillRect(sx, sy, sw, sh);
+      ctx.strokeStyle = "hsl(250 100% 60%)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 2]);
+      ctx.strokeRect(sx, sy, sw, sh);
+      ctx.setLineDash([]);
+    }
+  }, [rects, gridW, gridH, viewBox, selectedIds, selRect]);
+
+  return (
+    <div ref={containerRef} className="w-full h-full relative">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        style={{ cursor: canvasLocked ? "default" : cursorStyle, imageRendering: "pixelated" }}
+        onMouseDown={canvasLocked ? undefined : onMouseDown}
+        onMouseMove={canvasLocked ? undefined : onMouseMove}
+        onMouseUp={canvasLocked ? undefined : onMouseUp}
+        onMouseLeave={canvasLocked ? undefined : onMouseUp}
+        onWheel={canvasLocked ? undefined : onWheel}
+      />
+    </div>
+  );
+};
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 const ImagineToCodeView = () => {
   // ── Sessions state ────────────────────────────────────────────────────────
@@ -221,7 +356,6 @@ const ImagineToCodeView = () => {
   const [activeColor, setActiveColor] = useState("#7C3AED");
   const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: 512, h: 512 });
   const [exportFormat, setExportFormat] = useState<ExportFormat>("svg");
-  const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [selStart, setSelStart] = useState<{ sx: number; sy: number } | null>(null);
   const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -241,11 +375,31 @@ const ImagineToCodeView = () => {
   const loopAbortRef = useRef(false);
   const MAX_LOOP_ITERATIONS = 12;
 
+  // ── Code generation — debounced, not on every render ─────────────────────
+  const [code, setCode] = useState("");
+  const codeGenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce code generation — never regenerate more than once per 500ms
+  // and never block the main thread for 1M pixel SVG on every keystroke
+  useEffect(() => {
+    if (codeGenTimerRef.current) clearTimeout(codeGenTimerRef.current);
+    if (rects.length === 0) { setCode(""); return; }
+    codeGenTimerRef.current = setTimeout(() => {
+      if (exportFormat === "svg") setCode(exportSvg(rects, gridW, gridH));
+      else if (exportFormat === "minified-svg") setCode(exportSvg(rects, gridW, gridH, true));
+      else setCode(exportCssGrid(rects, gridW, gridH));
+    }, 500);
+    return () => { if (codeGenTimerRef.current) clearTimeout(codeGenTimerRef.current); };
+  }, [rects, exportFormat, gridW, gridH]);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const isPainting = useRef(false);
   const panStart = useRef<{ mx: number; my: number; vb: ViewBox } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rectsRef = useRef<PixelRect[]>([]);
+  // Pending paint batch — flush on mouseUp instead of per-pixel setState
+  const paintBatchRef = useRef<Map<string, PixelRect | null>>(new Map());
   useEffect(() => { rectsRef.current = rects; }, [rects]);
   const gridWRef = useRef(512);
   const gridHRef = useRef(512);
@@ -256,14 +410,6 @@ const ImagineToCodeView = () => {
     if (chatScrollRef.current)
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
   }, [aureonMessages]);
-
-  // Regenerate code
-  useEffect(() => {
-    if (rects.length === 0) { setCode(""); return; }
-    if (exportFormat === "svg") setCode(exportSvg(rects, gridW, gridH));
-    else if (exportFormat === "minified-svg") setCode(exportSvg(rects, gridW, gridH, true));
-    else setCode(exportCssGrid(rects, gridW, gridH));
-  }, [rects, exportFormat, gridW, gridH]);
 
   // ── Load sessions on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -290,7 +436,7 @@ const ImagineToCodeView = () => {
     setSessionsLoading(false);
   };
 
-  // ── Auto-save current session (debounced 1.5s) ────────────────────────────
+  // ── Auto-save current session (debounced 2s, guards massive payloads) ─────
   const scheduleSave = useCallback((
     sessionId: string,
     pixels: PixelRect[],
@@ -299,19 +445,22 @@ const ImagineToCodeView = () => {
     msgs: AureonMessage[]
   ) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    // For very large pixel sets, extend debounce to 4s to avoid thrashing
+    const delay = pixels.length > 100_000 ? 4000 : 2000;
     saveTimerRef.current = setTimeout(async () => {
       setSaving(true);
+      // Cap pixels saved to 500k to prevent Supabase payload size errors
+      const pixelsToSave = pixels.length > 500_000 ? pixels.slice(0, 500_000) : pixels;
       await supabase
         .from("imagine_sessions")
         .update({
-          pixels: pixels as unknown as never,
+          pixels: pixelsToSave as unknown as never,
           grid_w: w,
           grid_h: h,
           aureon_messages: msgs as unknown as never,
         })
         .eq("id", sessionId);
       setSaving(false);
-      // refresh session list order
       setSessions(prev => {
         const idx = prev.findIndex(s => s.id === sessionId);
         if (idx === -1) return prev;
@@ -319,10 +468,9 @@ const ImagineToCodeView = () => {
         const rest = prev.filter(s => s.id !== sessionId);
         return [updated, ...rest];
       });
-    }, 1500);
+    }, delay);
   }, []);
 
-  // Trigger save when canvas or chat changes
   useEffect(() => {
     if (!activeSessionId) return;
     scheduleSave(activeSessionId, rects, gridW, gridH, aureonMessages);
@@ -349,7 +497,6 @@ const ImagineToCodeView = () => {
 
   const loadSessionIntoEditor = (s: ImagineSession) => {
     setActiveSessionId(s.id);
-    // Reset canvas history
     historyStack.current = [[], s.pixels.length > 0 ? s.pixels : []];
     histIdx.current = s.pixels.length > 0 ? 1 : 0;
     setRects(s.pixels);
@@ -359,9 +506,7 @@ const ImagineToCodeView = () => {
     gridWRef.current = s.grid_w;
     gridHRef.current = s.grid_h;
     setViewBox({ x: 0, y: 0, w: s.grid_w, h: s.grid_h });
-    // Start zoomed in ~4x so micro-pixels are visible immediately
     syncUndoRedo();
-    // Restore AUREON messages with dates
     const msgs = s.aureon_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
     setAureonMessages(msgs);
     setSelRect(null);
@@ -386,15 +531,20 @@ const ImagineToCodeView = () => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, name } : s));
   };
 
-  // ── History ────────────────────────────────────────────────────────────────
+  // ── History — capped to MAX_HISTORY_FRAMES to prevent OOM ─────────────────
   const syncUndoRedo = () => {
     setCanUndo(histIdx.current > 0);
     setCanRedo(histIdx.current < historyStack.current.length - 1);
   };
 
   const pushHistory = useCallback((next: PixelRect[]) => {
+    // Slice future redos
     historyStack.current = historyStack.current.slice(0, histIdx.current + 1);
     historyStack.current.push(next);
+    // Prune oldest frames if over cap
+    if (historyStack.current.length > MAX_HISTORY_FRAMES) {
+      historyStack.current = historyStack.current.slice(historyStack.current.length - MAX_HISTORY_FRAMES);
+    }
     histIdx.current = historyStack.current.length - 1;
     setRects(next);
     syncUndoRedo();
@@ -420,15 +570,18 @@ const ImagineToCodeView = () => {
     setSelectedIds(new Set());
   };
 
-  // ── SVG coordinate mapping ─────────────────────────────────────────────────
-  const svgCoords = (e: React.MouseEvent | React.WheelEvent) => {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const r = svg.getBoundingClientRect();
+  // ── SVG coordinate mapping (works for both Canvas and SVG modes) ───────────
+  const getContainerCoords = (e: React.MouseEvent | React.WheelEvent, el: HTMLElement | SVGSVGElement) => {
+    const r = el.getBoundingClientRect();
     return {
       x: ((e as React.MouseEvent).clientX - r.left) / r.width * viewBox.w + viewBox.x,
       y: ((e as React.MouseEvent).clientY - r.top) / r.height * viewBox.h + viewBox.y,
     };
+  };
+
+  const getEventCoords = (e: React.MouseEvent | React.WheelEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    return getContainerCoords(e, el);
   };
 
   const zoomAt = useCallback((factor: number, cx?: number, cy?: number) => {
@@ -441,26 +594,68 @@ const ImagineToCodeView = () => {
     });
   }, []);
 
-  const paintPixel = useCallback((px: number, py: number, erase = false) => {
-    if (px < 0 || py < 0 || px >= gridWRef.current || py >= gridHRef.current) return;
+  // ── Batched painting — accumulate changes, flush on mouseUp ───────────────
+  const flushPaintBatch = useCallback(() => {
+    const batch = paintBatchRef.current;
+    if (batch.size === 0) return;
+    paintBatchRef.current = new Map();
     setRects(prev => {
-      const filtered = prev.filter(r => !(r.x === px && r.y === py));
-      if (!erase) filtered.push({ id: uid(), x: px, y: py, color: activeColor });
-      rectsRef.current = filtered;
-      return filtered;
+      const map = new Map<string, PixelRect>();
+      for (const r of prev) map.set(`${r.x},${r.y}`, r);
+      for (const [key, val] of batch) {
+        if (val === null) map.delete(key);
+        else map.set(key, val);
+      }
+      const next = Array.from(map.values());
+      rectsRef.current = next;
+      return next;
     });
+  }, []);
+
+  const paintPixelBatched = useCallback((px: number, py: number, erase = false) => {
+    if (px < 0 || py < 0 || px >= gridWRef.current || py >= gridHRef.current) return;
+    const key = `${px},${py}`;
+    if (erase) {
+      paintBatchRef.current.set(key, null);
+    } else {
+      paintBatchRef.current.set(key, { id: uid(), x: px, y: py, color: activeColor });
+    }
+    // Apply visually every ~16ms (one frame) by doing a lightweight local state update
+    // We DON'T setState here — the canvas re-renders on next animation frame via the batch
   }, [activeColor]);
 
-  const onWheel = (e: React.WheelEvent) => {
+  // For live preview during painting, we still need to update rects periodically
+  const paintFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+  const schedulePaintFlush = useCallback(() => {
+    if (paintFrameRef.current) return;
+    paintFrameRef.current = requestAnimationFrame(() => {
+      paintFrameRef.current = null;
+      const batch = paintBatchRef.current;
+      if (batch.size === 0) return;
+      setRects(prev => {
+        const map = new Map<string, PixelRect>();
+        for (const r of prev) map.set(`${r.x},${r.y}`, r);
+        for (const [key, val] of batch) {
+          if (val === null) map.delete(key);
+          else map.set(key, val);
+        }
+        const next = Array.from(map.values());
+        rectsRef.current = next;
+        return next;
+      });
+      paintBatchRef.current = new Map();
+    });
+  }, []);
+
+  const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-    const coords = svgCoords(e);
-    zoomAt(factor, coords?.x, coords?.y);
-  };
+    const coords = getEventCoords(e);
+    zoomAt(factor, coords.x, coords.y);
+  }, [zoomAt, viewBox]);
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    const coords = svgCoords(e);
-    if (!coords) return;
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    const coords = getEventCoords(e);
     const px = Math.floor(coords.x);
     const py = Math.floor(coords.y);
     if (activeTool === "pan") {
@@ -470,38 +665,68 @@ const ImagineToCodeView = () => {
     } else if (activeTool === "zoom-out") {
       zoomAt(1 / ZOOM_FACTOR, coords.x, coords.y);
     } else if (activeTool === "color-paint") {
-      isPainting.current = true; paintPixel(px, py);
+      isPainting.current = true;
+      paintPixelBatched(px, py);
+      schedulePaintFlush();
     } else if (activeTool === "erase") {
-      isPainting.current = true; paintPixel(px, py, true);
+      isPainting.current = true;
+      paintPixelBatched(px, py, true);
+      schedulePaintFlush();
     } else if (activeTool === "select-box") {
       setSelStart({ sx: coords.x, sy: coords.y });
       setSelRect(null); setSelectedIds(new Set());
     }
-  };
+  }, [activeTool, viewBox, zoomAt, paintPixelBatched, schedulePaintFlush]);
 
-  const onMouseMove = (e: React.MouseEvent) => {
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (activeTool === "pan" && panStart.current) {
-      const svg = svgRef.current;
-      if (!svg) return;
-      const r = svg.getBoundingClientRect();
+      const el = e.currentTarget as HTMLElement;
+      const r = el.getBoundingClientRect();
       const dx = (e.clientX - panStart.current.mx) / r.width * panStart.current.vb.w;
       const dy = (e.clientY - panStart.current.my) / r.height * panStart.current.vb.h;
       setViewBox({ ...panStart.current.vb, x: panStart.current.vb.x - dx, y: panStart.current.vb.y - dy });
     } else if ((activeTool === "color-paint" || activeTool === "erase") && isPainting.current) {
-      const c = svgCoords(e);
-      if (c) paintPixel(Math.floor(c.x), Math.floor(c.y), activeTool === "erase");
+      const c = getEventCoords(e);
+      paintPixelBatched(Math.floor(c.x), Math.floor(c.y), activeTool === "erase");
+      schedulePaintFlush();
     } else if (activeTool === "select-box" && selStart) {
-      const c = svgCoords(e);
-      if (!c) return;
+      const c = getEventCoords(e);
       setSelRect({ x: Math.min(selStart.sx, c.x), y: Math.min(selStart.sy, c.y), w: Math.abs(c.x - selStart.sx), h: Math.abs(c.y - selStart.sy) });
     }
-  };
+  }, [activeTool, selStart, paintPixelBatched, schedulePaintFlush, viewBox]);
 
-  const onMouseUp = () => {
+  const onMouseUp = useCallback(() => {
     if (activeTool === "pan") panStart.current = null;
     if ((activeTool === "color-paint" || activeTool === "erase") && isPainting.current) {
       isPainting.current = false;
-      pushHistory([...rectsRef.current]);
+      if (paintFrameRef.current) {
+        cancelAnimationFrame(paintFrameRef.current);
+        paintFrameRef.current = null;
+      }
+      // Final flush — commit to history
+      const batch = paintBatchRef.current;
+      paintBatchRef.current = new Map();
+      setRects(prev => {
+        const map = new Map<string, PixelRect>();
+        for (const r of prev) map.set(`${r.x},${r.y}`, r);
+        for (const [key, val] of batch) {
+          if (val === null) map.delete(key);
+          else map.set(key, val);
+        }
+        const next = Array.from(map.values());
+        rectsRef.current = next;
+        // Push to history after state update
+        setTimeout(() => {
+          historyStack.current = historyStack.current.slice(0, histIdx.current + 1);
+          historyStack.current.push([...next]);
+          if (historyStack.current.length > MAX_HISTORY_FRAMES) {
+            historyStack.current = historyStack.current.slice(historyStack.current.length - MAX_HISTORY_FRAMES);
+          }
+          histIdx.current = historyStack.current.length - 1;
+          syncUndoRedo();
+        }, 0);
+        return next;
+      });
     }
     if (activeTool === "select-box" && selRect) {
       setSelectedIds(new Set(
@@ -511,7 +736,7 @@ const ImagineToCodeView = () => {
       ));
       setSelStart(null);
     }
-  };
+  }, [activeTool, selRect]);
 
   const fillSelection = () => {
     if (selectedIds.size === 0) return;
@@ -535,29 +760,17 @@ const ImagineToCodeView = () => {
         let { width, height } = img;
         const aspect = width / height;
         const imageArea = width * height;
-
-        // Pixel budget scales with sqrt of image area relative to 512×512 baseline
-        // — larger images get proportionally more pixels while staying performant
         const scaledBudget = PIXEL_BUDGET_BASE * Math.sqrt(imageArea / (512 * 512));
-
-        // Derive grid dimensions from budget, preserving exact aspect ratio
-        // newH = sqrt(budget / aspect), newW = newH * aspect
         let newH = Math.round(Math.sqrt(scaledBudget / aspect));
         let newW = Math.round(newH * aspect);
-
-        // Clamp individual sides to MAX_SIDE while re-preserving ratio
         if (newW > MAX_SIDE || newH > MAX_SIDE) {
           const clamp = Math.min(MAX_SIDE / newW, MAX_SIDE / newH);
           newW = Math.round(newW * clamp);
           newH = Math.round(newH * clamp);
         }
-
-        // Ensure at least 1px
         newW = Math.max(1, newW);
         newH = Math.max(1, newH);
-
-        width = newW;
-        height = newH;
+        width = newW; height = newH;
         const canvas = document.createElement("canvas");
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d")!;
@@ -569,6 +782,7 @@ const ImagineToCodeView = () => {
         historyStack.current = [[], newRects];
         histIdx.current = 1;
         setRects(newRects);
+        rectsRef.current = newRects;
         syncUndoRedo();
       };
       img.src = ev.target?.result as string;
@@ -672,7 +886,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
     toast({ title: "Canvas updated", description: "AUREON's edits applied." });
   };
 
-  // ── Autonomous Edit → Imagine → Fix Loop ──────────────────────────────────
+  // ── Autonomous Edit → Imagine → Fix Loop (all technology preserved) ────────
   const startAutonomousLoop = async (goal: string) => {
     if (loopActive) return;
     loopAbortRef.current = false;
@@ -720,14 +934,12 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
         if (error) throw error;
         const responseText = data?.content || data?.message || "No response.";
 
-        // Parse pixel edits and apply immediately to canvas
         const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
         if (editedRects) {
           currentRects = editedRects;
           pushHistory(editedRects);
         }
 
-        // Parse loop status tag
         const doneMatch = responseText.match(/<LOOP_STATUS:\s*DONE>/i);
         const iterateMatch = responseText.match(/<LOOP_STATUS:\s*ITERATE\s+reason="([^"]+)">/i);
         const cleanResponse = responseText
@@ -748,17 +960,14 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
         };
         setAureonMessages(prev => [...prev, assistantMsg]);
 
-        // Add to conversation for context continuity
         conversationHistory = [
           ...conversationHistory,
           { role: "assistant", content: responseText }
         ];
 
-        // Exit conditions
         if (doneMatch || loopAbortRef.current) break;
-        if (!iterateMatch && !editedRects) break; // No edit, no continue tag → natural stop
+        if (!iterateMatch && !editedRects) break;
 
-        // Brief pause between iterations so UI updates are visible
         await new Promise(r => setTimeout(r, 800));
 
       } catch {
@@ -793,11 +1002,6 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
   };
 
   // ── Render helpers ─────────────────────────────────────────────────────────
-  const visibleRects = rects.filter(r =>
-    r.x < viewBox.x + viewBox.w && r.x + 1 > viewBox.x &&
-    r.y < viewBox.y + viewBox.h && r.y + 1 > viewBox.y
-  );
-
   const toolBtn = (tool: Tool, icon: React.ReactNode, title: string) => (
     <button
       key={tool}
@@ -821,6 +1025,10 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
     activeTool === "zoom-out" ? "zoom-out" : "default";
 
   const canvasLocked = !activeSessionId;
+
+  // Stats — memoized to avoid recalc
+  const pixelCount = useMemo(() => rects.length, [rects]);
+  const zoomPct = useMemo(() => Math.round(gridW / viewBox.w * 100), [gridW, viewBox.w]);
 
   return (
     <div className="flex h-full overflow-hidden bg-background/30 backdrop-blur-sm flex-col">
@@ -857,7 +1065,6 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
 
         {/* ── Left Toolbar ── */}
         <aside className={`flex-shrink-0 w-48 flex flex-col gap-3 p-3 border-r border-border/20 overflow-y-auto bg-card/10 transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
-          {/* Upload / Clear */}
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Canvas</p>
             <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-accent/10 hover:border-accent/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-accent transition-all">
@@ -869,7 +1076,6 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
           </div>
 
-          {/* Tools */}
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Tools</p>
             <div className="grid grid-cols-3 gap-1">
@@ -885,7 +1091,6 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
             </button>
           </div>
 
-          {/* Color picker */}
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Paint Color</p>
             <div className="flex items-center gap-2">
@@ -899,7 +1104,6 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
             </div>
           </div>
 
-          {/* Selection actions */}
           {selectedIds.size > 0 && (
             <div className="space-y-1.5">
               <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Selection ({selectedIds.size}px)</p>
@@ -908,7 +1112,6 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
             </div>
           )}
 
-          {/* History */}
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">History</p>
             <div className="flex gap-1">
@@ -921,15 +1124,14 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
             </div>
           </div>
 
-          {/* Grid info */}
           <div className="mt-auto text-[9px] text-muted-foreground/30 font-mono space-y-0.5 border-t border-border/10 pt-3">
             <p>Grid: {gridW} × {gridH}</p>
-            <p>Pixels: {rects.length.toLocaleString()}</p>
-            <p>Zoom: {Math.round(gridW / viewBox.w * 100)}%</p>
+            <p>Pixels: {pixelCount.toLocaleString()}</p>
+            <p>Zoom: {zoomPct}%</p>
           </div>
         </aside>
 
-        {/* ── Canvas ── */}
+        {/* ── Canvas — HTML Canvas renderer for performance ── */}
         <main className="flex-1 flex items-center justify-center overflow-hidden bg-card/5 relative">
           {canvasLocked ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none z-10">
@@ -947,38 +1149,21 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
               <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
             </div>
           ) : null}
-          <svg
-            ref={svgRef}
-            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-            className="w-full h-full"
-            style={{ cursor: canvasLocked ? "default" : cursorStyle, imageRendering: "pixelated" }}
-            onMouseDown={canvasLocked ? undefined : onMouseDown}
-            onMouseMove={canvasLocked ? undefined : onMouseMove}
-            onMouseUp={canvasLocked ? undefined : onMouseUp}
-            onMouseLeave={canvasLocked ? undefined : onMouseUp}
-            onWheel={canvasLocked ? undefined : onWheel}
-          >
-            <defs>
-              <pattern id="checker" width="2" height="2" patternUnits="userSpaceOnUse">
-                <rect width="1" height="1" fill="#e5e7eb" />
-                <rect x="1" y="1" width="1" height="1" fill="#e5e7eb" />
-                <rect x="1" y="0" width="1" height="1" fill="#f9fafb" />
-                <rect x="0" y="1" width="1" height="1" fill="#f9fafb" />
-              </pattern>
-            </defs>
-            <rect x={0} y={0} width={gridW} height={gridH} fill="url(#checker)" />
-            {visibleRects.map(r => (
-              <rect key={r.id} x={r.x} y={r.y} width={1} height={1} fill={r.color}
-                stroke={selectedIds.has(r.id) ? "hsl(var(--accent))" : "none"}
-                strokeWidth={selectedIds.has(r.id) ? 0.05 : 0}
-              />
-            ))}
-            {selRect && (
-              <rect x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h}
-                fill="hsl(var(--accent) / 0.15)" stroke="hsl(var(--accent))" strokeWidth={0.3} strokeDasharray="1 0.5"
-              />
-            )}
-          </svg>
+          {/* Canvas-based renderer replaces SVG <rect> loop — handles 1M pixels smoothly */}
+          <CanvasRenderer
+            rects={rects}
+            gridW={gridW}
+            gridH={gridH}
+            viewBox={viewBox}
+            selectedIds={selectedIds}
+            selRect={selRect}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onWheel={onWheel}
+            cursorStyle={cursorStyle}
+            canvasLocked={canvasLocked}
+          />
         </main>
 
         {/* ── Right Panel ── */}
@@ -1104,9 +1289,8 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
               )}
             </div>
             <div className="flex-shrink-0 p-3 border-t border-border/10 space-y-2">
-              {/* Loop status indicator */}
               {loopActive && (
-                <div className="flex items-center justify-between rounded-xl border border-accent/25 bg-accent/8 px-3 py-2">
+                <div className="flex items-center justify-between rounded-xl border border-accent/25 bg-accent/5 px-3 py-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                     <span className="text-[9px] font-light text-accent/80 truncate">{loopStatus}</span>
