@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Phone, Plus, Trash2, RefreshCw, Copy, Clock,
-  Navigation, Wifi, WifiOff, Activity, Signal, Search, X
+  Navigation, Wifi, WifiOff, Activity, Signal, Search, X, Home
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -22,6 +22,7 @@ interface TrackerLocation {
   longitude: number;
   accuracy: number | null;
   recorded_at: string;
+  address: string | null;
 }
 
 const formatRelativeTime = (isoString: string | null) => {
@@ -41,13 +42,45 @@ const isOnline = (lastSeen: string | null) => {
   return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
 };
 
-const formatPhone = (raw: string) => {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  if (digits.length <= 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  return `+${digits.slice(0, digits.length - 10)} (${digits.slice(-10, -7)}) ${digits.slice(-7, -4)}-${digits.slice(-4)}`;
-};
+async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+      { headers: { "Accept-Language": "en" } }
+    );
+    if (!resp.ok) return "";
+    const data = await resp.json();
+    return data.display_name ?? "";
+  } catch {
+    return "";
+  }
+}
+
+// Map component using OpenStreetMap iframe (zero dependencies)
+function LocationMap({ lat, lon, address }: { lat: number; lon: number; address?: string | null }) {
+  const delta = 0.008;
+  const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
+  return (
+    <div className="rounded-xl overflow-hidden border border-border/20 bg-card/10">
+      <iframe
+        title="Location Map"
+        src={src}
+        width="100%"
+        height="220"
+        style={{ border: 0, display: "block" }}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
+      {address && (
+        <div className="px-4 py-2.5 flex items-start gap-2 border-t border-border/10">
+          <Home className="h-3.5 w-3.5 text-accent mt-0.5 flex-shrink-0" />
+          <p className="text-xs font-light text-muted-foreground leading-relaxed">{address}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TrackerView() {
   const { user } = useAuth();
@@ -65,6 +98,7 @@ export default function TrackerView() {
   const [logLat, setLogLat] = useState("");
   const [logLon, setLogLon] = useState("");
   const [logLoading, setLogLoading] = useState(false);
+  const [selectedPin, setSelectedPin] = useState<TrackerLocation | null>(null);
 
   const loadDevices = useCallback(async () => {
     if (!user) return;
@@ -88,13 +122,17 @@ export default function TrackerView() {
       .eq("device_id", deviceId)
       .order("recorded_at", { ascending: false })
       .limit(100);
-    if (!error && data) setLocations(data as unknown as TrackerLocation[]);
+    if (!error && data) {
+      setLocations(data as unknown as TrackerLocation[]);
+      const first = (data as unknown as TrackerLocation[])[0];
+      if (first) setSelectedPin(first);
+    }
     setLocLoading(false);
   }, []);
 
   useEffect(() => {
     if (selectedDevice) loadLocations(selectedDevice.id);
-    else setLocations([]);
+    else { setLocations([]); setSelectedPin(null); }
   }, [selectedDevice, loadLocations]);
 
   const addTarget = async () => {
@@ -106,16 +144,13 @@ export default function TrackerView() {
     }
     const label = nameInput.trim() || `+${digits}`;
     setAdding(true);
-
-    // Check for duplicate phone number
     const duplicate = devices.find(d => d.phone_number?.replace(/\D/g, "") === digits);
     if (duplicate) {
       toast({ title: "Phone number already tracked", variant: "destructive" });
       setAdding(false);
       return;
     }
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("tracker_devices" as any)
       .insert({ user_id: user.id, device_name: label, phone_number: `+${digits}` })
       .select()
@@ -142,7 +177,7 @@ export default function TrackerView() {
       .eq("user_id", user.id);
     if (!error) {
       setDevices(prev => prev.filter(d => d.id !== deviceId));
-      if (selectedDevice?.id === deviceId) { setSelectedDevice(null); setLocations([]); }
+      if (selectedDevice?.id === deviceId) { setSelectedDevice(null); setLocations([]); setSelectedPin(null); }
       toast({ title: "Target removed" });
     }
   };
@@ -162,12 +197,17 @@ export default function TrackerView() {
       toast({ title: "Invalid coordinates", variant: "destructive" }); return;
     }
     setLogLoading(true);
+
+    // Reverse geocode before saving
+    const address = await reverseGeocode(lat, lon);
+
     const { error } = await supabase
       .from("tracker_locations" as any)
-      .insert({ device_id: selectedDevice.id, user_id: user.id, latitude: lat, longitude: lon });
+      .insert({ device_id: selectedDevice.id, user_id: user.id, latitude: lat, longitude: lon, address: address || null });
     await supabase.from("tracker_devices" as any).update({ last_seen: new Date().toISOString() }).eq("id", selectedDevice.id);
+
     if (!error) {
-      toast({ title: "Location logged" });
+      toast({ title: "Location logged", description: address || `${lat.toFixed(4)}, ${lon.toFixed(4)}` });
       setLogLat(""); setLogLon("");
       loadLocations(selectedDevice.id);
       loadDevices();
@@ -226,7 +266,6 @@ export default function TrackerView() {
               </button>
             </div>
 
-            {/* Add Target Form */}
             {showAddForm && (
               <div className="rounded-xl border border-accent/20 bg-accent/5 p-3 space-y-2">
                 <p className="text-[10px] font-light tracking-[0.1em] text-accent uppercase">New Target</p>
@@ -257,7 +296,6 @@ export default function TrackerView() {
               </div>
             )}
 
-            {/* Search */}
             {devices.length > 0 && (
               <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-3 py-1.5">
                 <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
@@ -330,17 +368,15 @@ export default function TrackerView() {
                     <span className="text-sm font-light text-foreground">{selectedDevice.device_name}</span>
                   </div>
                   {selectedDevice.phone_number && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => copyToClipboard(selectedDevice.phone_number!)}
-                        className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-                        title="Copy phone number"
-                      >
-                        <Phone className="h-3 w-3" />
-                        {selectedDevice.phone_number}
-                        <Copy className="h-3 w-3 opacity-50" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => copyToClipboard(selectedDevice.phone_number!)}
+                      className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+                      title="Copy phone number"
+                    >
+                      <Phone className="h-3 w-3" />
+                      {selectedDevice.phone_number}
+                      <Copy className="h-3 w-3 opacity-50" />
+                    </button>
                   )}
                   <span className={`text-[10px] font-light px-2 py-0.5 rounded-full border ${
                     isOnline(selectedDevice.last_seen)
@@ -386,67 +422,97 @@ export default function TrackerView() {
                     disabled={logLoading || !logLat || !logLon}
                     className="rounded-lg bg-accent text-accent-foreground px-3 py-1.5 text-xs font-light hover:bg-accent/90 transition-colors disabled:opacity-50"
                   >
-                    {logLoading ? "…" : "Ping"}
+                    {logLoading ? "Geocoding…" : "Ping"}
                   </button>
                 </div>
               </div>
 
-              {/* Location History */}
               <ScrollArea className="flex-1">
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Location History</span>
-                    <span className="text-[10px] text-muted-foreground/50">({locations.length} pings)</span>
-                  </div>
-
-                  {locLoading ? (
-                    <p className="text-xs text-muted-foreground animate-pulse">Loading location history…</p>
-                  ) : locations.length === 0 ? (
-                    <div className="text-center py-12 space-y-3">
-                      <MapPin className="h-10 w-10 text-muted-foreground/20 mx-auto" />
-                      <p className="text-sm font-extralight text-muted-foreground">No pings recorded yet.</p>
-                      <p className="text-xs text-muted-foreground/50">Log a location ping above to begin tracking.</p>
-                    </div>
-                  ) : (
+                <div className="p-6 space-y-5">
+                  {/* Map for selected pin */}
+                  {selectedPin && (
                     <div className="space-y-2">
-                      {locations.map((loc, idx) => (
-                        <div
-                          key={loc.id}
-                          className="group flex items-center gap-4 rounded-xl border border-border/10 bg-card/20 px-4 py-3 hover:border-border/30 hover:bg-card/30 transition-all"
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-accent" />
+                        <span className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Live Map</span>
+                        <span className="text-[10px] text-muted-foreground/50 font-mono">
+                          {selectedPin.latitude.toFixed(5)}, {selectedPin.longitude.toFixed(5)}
+                        </span>
+                        <button
+                          onClick={() => openInMaps(selectedPin.latitude, selectedPin.longitude)}
+                          className="ml-auto text-[10px] font-light text-accent hover:underline"
                         >
-                          <div className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-lg bg-accent/10 text-accent text-[10px] font-light">
-                            #{idx + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-mono text-foreground">
-                              {loc.latitude.toFixed(6)}, {loc.longitude.toFixed(6)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground/60">
-                              {new Date(loc.recorded_at).toLocaleString()}
-                              {loc.accuracy ? ` · ±${loc.accuracy}m` : ""}
-                            </p>
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => openInMaps(loc.latitude, loc.longitude)}
-                              className="rounded-lg px-2 py-1 text-[10px] font-light border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors"
-                              title="Open in Maps"
-                            >
-                              <MapPin className="h-3 w-3" />
-                            </button>
-                            <button
-                              onClick={() => copyToClipboard(`${loc.latitude},${loc.longitude}`)}
-                              className="rounded-lg px-2 py-1 text-[10px] font-light border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors"
-                              title="Copy coords"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                          Open in Google Maps ↗
+                        </button>
+                      </div>
+                      <LocationMap lat={selectedPin.latitude} lon={selectedPin.longitude} address={selectedPin.address} />
                     </div>
                   )}
+
+                  {/* Location History */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase">Location History</span>
+                      <span className="text-[10px] text-muted-foreground/50">({locations.length} pings)</span>
+                    </div>
+
+                    {locLoading ? (
+                      <p className="text-xs text-muted-foreground animate-pulse">Loading location history…</p>
+                    ) : locations.length === 0 ? (
+                      <div className="text-center py-10 space-y-3">
+                        <MapPin className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+                        <p className="text-sm font-extralight text-muted-foreground">No pings recorded yet.</p>
+                        <p className="text-xs text-muted-foreground/50">Log a location ping above to begin tracking.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {locations.map((loc, idx) => (
+                          <div
+                            key={loc.id}
+                            onClick={() => setSelectedPin(loc)}
+                            className={`group flex items-start gap-4 rounded-xl border px-4 py-3 cursor-pointer transition-all ${
+                              selectedPin?.id === loc.id
+                                ? "border-accent/30 bg-accent/5"
+                                : "border-border/10 bg-card/20 hover:border-border/30 hover:bg-card/30"
+                            }`}
+                          >
+                            <div className="flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-lg bg-accent/10 text-accent text-[10px] font-light mt-0.5">
+                              #{idx + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-mono text-foreground">
+                                {loc.latitude.toFixed(6)}, {loc.longitude.toFixed(6)}
+                              </p>
+                              {loc.address && (
+                                <p className="text-[10px] text-accent/80 font-light mt-0.5 leading-relaxed line-clamp-1">{loc.address}</p>
+                              )}
+                              <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                                {new Date(loc.recorded_at).toLocaleString()}
+                                {loc.accuracy ? ` · ±${loc.accuracy}m` : ""}
+                              </p>
+                            </div>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openInMaps(loc.latitude, loc.longitude); }}
+                                className="rounded-lg px-2 py-1 text-[10px] font-light border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors"
+                                title="Open in Maps"
+                              >
+                                <MapPin className="h-3 w-3" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); copyToClipboard(`${loc.latitude},${loc.longitude}`); }}
+                                className="rounded-lg px-2 py-1 text-[10px] font-light border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/50 transition-colors"
+                                title="Copy coords"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </ScrollArea>
             </>

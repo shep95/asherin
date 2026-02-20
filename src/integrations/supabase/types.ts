@@ -2249,6 +2249,7 @@ export type Database = {
       tracker_locations: {
         Row: {
           accuracy: number | null
+          address: string | null
           device_id: string
           id: string
           latitude: number
@@ -2258,6 +2259,7 @@ export type Database = {
         }
         Insert: {
           accuracy?: number | null
+          address?: string | null
           device_id: string
           id?: string
           latitude: number
@@ -2267,6 +2269,7 @@ export type Database = {
         }
         Update: {
           accuracy?: number | null
+          address?: string | null
           device_id?: string
           id?: string
           latitude?: number
