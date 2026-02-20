@@ -107,6 +107,7 @@ const MAX_SIDE = 10_000;
 // are capped at DOM_RECT_CAP (15k) by the useMemo viewport filter.
 const PIXEL_BUDGET_BASE = 100_000;
 const ZOOM_FACTOR = 0.8;
+const SAVE_PIXEL_CAP = 50_000;
 
 // ─── Sessions Panel ────────────────────────────────────────────────────────────
 interface SessionsPanelProps {
@@ -301,7 +302,6 @@ const ImagineToCodeView = () => {
   // ── Auto-save current session (debounced 5s) ────────────────────────────
   // IMPORTANT: Cap pixels saved to DB at 50k — 1M pixel JSON = ~30MB and will
   // time out / crash the DB connection. The canvas state is the source of truth.
-  const SAVE_PIXEL_CAP = 50_000;
   const scheduleSave = useCallback((
     sessionId: string,
     pixels: PixelRect[],
@@ -363,9 +363,10 @@ const ImagineToCodeView = () => {
 
   const loadSessionIntoEditor = (s: ImagineSession) => {
     setActiveSessionId(s.id);
-    // Reset canvas history
-    historyStack.current = [[], s.pixels.length > 0 ? s.pixels : []];
-    histIdx.current = s.pixels.length > 0 ? 1 : 0;
+    // Always start history with a single entry (the loaded pixels).
+    // Putting an extra empty [] before caused undo to erase everything unexpectedly.
+    historyStack.current = [s.pixels];
+    histIdx.current = 0;
     setRects(s.pixels);
     rectsRef.current = s.pixels;
     setGridW(s.grid_w);
@@ -373,8 +374,8 @@ const ImagineToCodeView = () => {
     gridWRef.current = s.grid_w;
     gridHRef.current = s.grid_h;
     setViewBox({ x: 0, y: 0, w: s.grid_w, h: s.grid_h });
-    // Start zoomed in ~4x so micro-pixels are visible immediately
-    syncUndoRedo();
+    setCanUndo(false);
+    setCanRedo(false);
     // Restore AUREON messages with dates
     const msgs = s.aureon_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
     setAureonMessages(msgs);
@@ -388,10 +389,12 @@ const ImagineToCodeView = () => {
     if (activeSessionId === id) {
       setActiveSessionId(null);
       setRects([]);
+      rectsRef.current = [];
       setAureonMessages([]);
       historyStack.current = [[]];
       histIdx.current = 0;
-      syncUndoRedo();
+      setCanUndo(false);
+      setCanRedo(false);
     }
   };
 
@@ -401,35 +404,44 @@ const ImagineToCodeView = () => {
   };
 
   // ── History ────────────────────────────────────────────────────────────────
-  const syncUndoRedo = () => {
+  const syncUndoRedo = useCallback(() => {
     setCanUndo(histIdx.current > 0);
     setCanRedo(histIdx.current < historyStack.current.length - 1);
-  };
+  }, []);
 
   const pushHistory = useCallback((next: PixelRect[]) => {
-    // Cap history at 20 entries to prevent memory explosion with large pixel arrays
+    // Truncate any future redo entries first
     historyStack.current = historyStack.current.slice(0, histIdx.current + 1);
+    historyStack.current.push(next);
+    // Cap at 20 entries — drop the oldest so memory stays bounded
     if (historyStack.current.length > 20) {
       historyStack.current = historyStack.current.slice(historyStack.current.length - 20);
     }
-    historyStack.current.push(next);
     histIdx.current = historyStack.current.length - 1;
+    rectsRef.current = next;
     setRects(next);
-    syncUndoRedo();
+    setCanUndo(histIdx.current > 0);
+    setCanRedo(false); // always false right after a push
   }, []);
 
   const undo = useCallback(() => {
     if (histIdx.current <= 0) return;
     histIdx.current -= 1;
-    setRects(historyStack.current[histIdx.current]);
-    syncUndoRedo();
+    const prev = historyStack.current[histIdx.current];
+    rectsRef.current = prev;
+    setRects(prev);
+    setCanUndo(histIdx.current > 0);
+    setCanRedo(true);
   }, []);
 
   const redo = useCallback(() => {
     if (histIdx.current >= historyStack.current.length - 1) return;
     histIdx.current += 1;
-    setRects(historyStack.current[histIdx.current]);
-    syncUndoRedo();
+    const next = historyStack.current[histIdx.current];
+    rectsRef.current = next;
+    setRects(next);
+    setCanUndo(true);
+    setCanRedo(histIdx.current < historyStack.current.length - 1);
   }, []);
 
   const clearCanvas = () => {
@@ -536,19 +548,21 @@ const ImagineToCodeView = () => {
     }
   };
 
-  const onMouseUp = () => {
+  const flushPaintStroke = useCallback(() => {
+    if (!isPainting.current) return;
+    isPainting.current = false;
+    const pixelMap = new Map<string, PixelRect>(rectsRef.current.map(r => [`${r.x},${r.y}`, r]));
+    for (const key of eraseSetRef.current) pixelMap.delete(key);
+    for (const [key, rect] of paintBatchRef.current) pixelMap.set(key, rect);
+    paintBatchRef.current.clear();
+    eraseSetRef.current.clear();
+    const next = Array.from(pixelMap.values());
+    pushHistory(next);
+  }, [pushHistory]);
+
+  const onMouseUp = useCallback(() => {
     if (activeTool === "pan") panStart.current = null;
-    if ((activeTool === "color-paint" || activeTool === "erase") && isPainting.current) {
-      isPainting.current = false;
-      // Flush batch: merge painted pixels and erased pixels into the existing rects
-      const pixelMap = new Map<string, PixelRect>(rectsRef.current.map(r => [`${r.x},${r.y}`, r]));
-      for (const key of eraseSetRef.current) pixelMap.delete(key);
-      for (const [key, rect] of paintBatchRef.current) pixelMap.set(key, rect);
-      paintBatchRef.current.clear();
-      eraseSetRef.current.clear();
-      const next = Array.from(pixelMap.values());
-      pushHistory(next);
-    }
+    if (activeTool === "color-paint" || activeTool === "erase") flushPaintStroke();
     if (activeTool === "select-box" && selRect) {
       setSelectedIds(new Set(
         rectsRef.current
@@ -557,7 +571,7 @@ const ImagineToCodeView = () => {
       ));
       setSelStart(null);
     }
-  };
+  }, [activeTool, flushPaintStroke, selRect]);
 
   const fillSelection = () => {
     if (selectedIds.size === 0) return;
@@ -1013,7 +1027,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
             onMouseDown={canvasLocked ? undefined : onMouseDown}
             onMouseMove={canvasLocked ? undefined : onMouseMove}
             onMouseUp={canvasLocked ? undefined : onMouseUp}
-            onMouseLeave={canvasLocked ? undefined : onMouseUp}
+            onMouseLeave={canvasLocked ? undefined : flushPaintStroke}
             onWheel={canvasLocked ? undefined : onWheel}
           >
             <defs>
@@ -1164,7 +1178,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
             <div className="flex-shrink-0 p-3 border-t border-border/10 space-y-2">
               {/* Loop status indicator */}
               {loopActive && (
-                <div className="flex items-center justify-between rounded-xl border border-accent/25 bg-accent/8 px-3 py-2">
+                <div className="flex items-center justify-between rounded-xl border border-accent/25 bg-accent/10 px-3 py-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                     <span className="text-[9px] font-light text-accent/80 truncate">{loopStatus}</span>
