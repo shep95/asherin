@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send } from "lucide-react";
+import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Bot, Wand2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface PixelRect {
@@ -15,6 +16,14 @@ interface PixelRect {
 type Tool = "pan" | "zoom-in" | "zoom-out" | "select-box" | "color-paint";
 interface ViewBox { x: number; y: number; w: number; h: number; }
 type ExportFormat = "svg" | "minified-svg" | "css-grid";
+
+interface AureonMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  canvasEdit?: PixelRect[];  // if AUREON proposes canvas changes
+  timestamp: Date;
+}
 
 // ─── Utils ───────────────────────────────────────────────────────────────────
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -55,6 +64,33 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
   return out;
 }
 
+// Parse AUREON pixel edit commands from its response
+// Looks for JSON blocks like: {"pixels":[{"x":0,"y":0,"color":"#FF0000"},...],"gridW":64,"gridH":64}
+function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
+  try {
+    // Look for JSON code block
+    const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[1]);
+    if (!parsed.pixels || !Array.isArray(parsed.pixels)) return null;
+    
+    // Start with existing canvas, apply changes
+    let updated = [...currentRects];
+    for (const edit of parsed.pixels) {
+      if (typeof edit.x !== "number" || typeof edit.y !== "number" || !edit.color) continue;
+      if (edit.x < 0 || edit.y < 0 || edit.x >= currentW || edit.y >= currentH) continue;
+      // Remove existing pixel at position, then add new one
+      updated = updated.filter(r => !(r.x === edit.x && r.y === edit.y));
+      if (edit.color !== "transparent" && edit.color !== "erase") {
+        updated.push({ id: uid(), x: edit.x, y: edit.y, color: edit.color });
+      }
+    }
+    return updated;
+  } catch {
+    return null;
+  }
+}
+
 const MAX_DIM = 128;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -74,16 +110,25 @@ const ImagineToCodeView = () => {
   const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // AUREON AI integration
-  const [aureonPrompt, setAureonPrompt] = useState("");
-  const [aureonResponse, setAureonResponse] = useState("");
+  // AUREON Conversational AI
+  const [aureonMessages, setAureonMessages] = useState<AureonMessage[]>([]);
+  const [aureonInput, setAureonInput] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [pendingCanvasEdit, setPendingCanvasEdit] = useState<PixelRect[] | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const svgRef = useRef<SVGSVGElement>(null);
   const isPainting = useRef(false);
   const panStart = useRef<{ mx: number; my: number; vb: ViewBox } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [aureonMessages]);
 
   useEffect(() => {
     if (rects.length === 0) { setCode("// Upload an image or paint pixels to generate code"); return; }
@@ -231,33 +276,107 @@ const ImagineToCodeView = () => {
     a.download = `pixel-art.${ext}`; a.click(); URL.revokeObjectURL(a.href);
   };
 
-  // ── AUREON AI Analysis ─────────────────────────────────────────────────────
-  const analyzeWithAureon = async () => {
-    if (!aureonPrompt.trim() && rects.length === 0) return;
-    setIsAnalyzing(true);
-    setAureonResponse("");
+  // ── AUREON Conversational AI ───────────────────────────────────────────────
+  const sendToAureon = async () => {
+    const inputText = aureonInput.trim();
+    if (!inputText && rects.length === 0) return;
+    if (!inputText) return;
 
-    const contextPrompt = rects.length > 0
-      ? `I have a pixel art design (${gridW}×${gridH} grid, ${rects.length} pixels). The exported ${exportFormat.toUpperCase()} code is:\n\n${code.slice(0, 2000)}${code.length > 2000 ? "\n...(truncated)" : ""}\n\nUser question: ${aureonPrompt || "Analyze this pixel art and describe what you see. Suggest improvements or how to use this in a project."}`
-      : aureonPrompt;
+    const userMsg: AureonMessage = {
+      id: uid(),
+      role: "user",
+      content: inputText,
+      timestamp: new Date(),
+    };
+    setAureonMessages(prev => [...prev, userMsg]);
+    setAureonInput("");
+    setIsAnalyzing(true);
+
+    // Build conversation history for the API
+    const history = [...aureonMessages, userMsg].map(m => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    // Build context about the current canvas
+    const canvasContext = rects.length > 0
+      ? `[Canvas State: ${gridW}×${gridH} grid, ${rects.length} colored pixels. Sample pixels: ${rects.slice(0, 5).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${rects.length > 5 ? "..." : ""}. Current export code (first 1000 chars): ${code.slice(0, 1000)}]`
+      : "[Canvas State: Empty canvas, no pixels drawn yet. Grid: 64×64]";
+
+    const systemPrompt = `You are AUREON, an elite AI assistant embedded in a pixel art and SVG design tool called "Imagine To Code" (created by ZALI Software).
+
+You can:
+1. Analyze and describe the current pixel art design
+2. Suggest creative ideas, color palettes, and design improvements
+3. Ask clarifying questions to understand what the user wants to create
+4. DIRECTLY EDIT the canvas by outputting pixel coordinates in a JSON code block
+
+When the user asks you to draw, create, edit, or modify the pixel art, ALWAYS respond with:
+- A brief explanation of what you're doing
+- One or more clarifying questions IF needed (e.g. "Should I use a specific color palette?")
+- A JSON code block with pixel edits in this EXACT format:
+\`\`\`json
+{"pixels":[{"x":0,"y":0,"color":"#FF0000"},{"x":1,"y":0,"color":"#FF0000"}]}
+\`\`\`
+
+Rules for pixel edits:
+- x ranges 0 to ${gridW - 1}, y ranges 0 to ${gridH - 1}
+- Colors must be valid hex like #FF0000
+- Use "erase" as color value to remove a pixel
+- Only include pixels that need to change, not the entire grid
+- Keep edits practical and focused
+
+Current canvas context: ${canvasContext}
+
+If you don't have enough information to edit, ask 1-2 focused clarifying questions before proceeding.`;
 
     try {
       const { data, error } = await supabase.functions.invoke("chat", {
         body: {
-          messages: [{ role: "user", content: contextPrompt }],
+          messages: history,
           mode: "standard",
-          model: "google/gemini-2.5-flash",
-          systemPrompt: "You are AUREON, an elite AI assistant specializing in design, pixel art, SVG code, and front-end development. Be precise, insightful, and actionable. Analyze pixel art, suggest optimizations, and help users integrate their designs into real projects.",
+          systemPrompt,
         },
       });
+
       if (error) throw error;
-      setAureonResponse(data?.content || data?.message || "No response received.");
+
+      const responseText = data?.content || data?.message || "No response received.";
+      
+      // Try to parse any pixel edit commands
+      const editedRects = parseAureonPixelEdit(responseText, rects, gridW, gridH);
+
+      const assistantMsg: AureonMessage = {
+        id: uid(),
+        role: "assistant",
+        content: responseText,
+        canvasEdit: editedRects ?? undefined,
+        timestamp: new Date(),
+      };
+      setAureonMessages(prev => [...prev, assistantMsg]);
+
+      // If AUREON proposed canvas edits, store as pending for user to apply
+      if (editedRects) {
+        setPendingCanvasEdit(editedRects);
+      }
     } catch (err) {
-      toast({ title: "Analysis failed", description: "Could not connect to AUREON.", variant: "destructive" });
-      setAureonResponse("Failed to connect to AUREON. Please try again.");
+      toast({ title: "AUREON error", description: "Could not connect to AUREON.", variant: "destructive" });
+      const errMsg: AureonMessage = {
+        id: uid(),
+        role: "assistant",
+        content: "I couldn't connect to the AUREON intelligence engine. Please try again.",
+        timestamp: new Date(),
+      };
+      setAureonMessages(prev => [...prev, errMsg]);
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const applyCanvasEdit = (newRects: PixelRect[]) => {
+    pushHistory(newRects);
+    setPendingCanvasEdit(null);
+    toast({ title: "Canvas updated", description: "AUREON's edits have been applied." });
   };
 
   const visibleRects = rects.filter(r =>
@@ -284,7 +403,7 @@ const ImagineToCodeView = () => {
       {/* ── Beta Banner ─────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-border/20 bg-accent/5">
         <div className="flex items-center gap-2">
-          <span className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/70 border border-accent/20 rounded px-1.5 py-0.5">Beta</span>
+          <span className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/70 border border-accent/20 rounded-lg px-1.5 py-0.5">Beta</span>
           <span className="text-[10px] font-light text-muted-foreground/50 tracking-wide">This Software Was Created By ZALI Software</span>
         </div>
         <div className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/30">Imagine to Code</div>
@@ -334,7 +453,7 @@ const ImagineToCodeView = () => {
                 type="color"
                 value={activeColor}
                 onChange={e => setActiveColor(e.target.value)}
-                className="w-9 h-9 rounded-lg border border-border/20 bg-transparent cursor-pointer p-0.5"
+                className="w-9 h-9 rounded-xl border border-border/20 bg-transparent cursor-pointer p-0.5"
               />
               <span className="text-[10px] font-mono text-muted-foreground/70">{activeColor.toUpperCase()}</span>
             </div>
@@ -381,8 +500,8 @@ const ImagineToCodeView = () => {
               <div className="h-16 w-16 rounded-full border border-accent/20 flex items-center justify-center bg-accent/5">
                 <Paintbrush className="h-7 w-7 text-accent/30 animate-pulse" />
               </div>
-              <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image to convert it to pixel art</p>
-              <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or paint pixels directly</p>
+              <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image or paint pixels directly</p>
+              <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
             </div>
           )}
           <svg
@@ -418,7 +537,7 @@ const ImagineToCodeView = () => {
         </main>
 
         {/* ── Right Panel ── */}
-        <aside className="flex-shrink-0 w-72 flex flex-col border-l border-border/20 bg-card/10">
+        <aside className="flex-shrink-0 w-80 flex flex-col border-l border-border/20 bg-card/10">
           {/* Code Output */}
           <div className="flex-shrink-0 px-4 py-3 border-b border-border/20">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50 mb-2">Code Output</p>
@@ -426,71 +545,162 @@ const ImagineToCodeView = () => {
               <select
                 value={exportFormat}
                 onChange={e => setExportFormat(e.target.value as ExportFormat)}
-                className="flex-1 rounded-lg border border-border/20 bg-card/20 text-[10px] font-light text-foreground px-2 py-1.5 outline-none"
+                className="flex-1 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground px-2 py-1.5 outline-none"
               >
                 <option value="svg">Raw SVG</option>
                 <option value="minified-svg">Minified SVG</option>
                 <option value="css-grid">CSS Grid (HTML)</option>
               </select>
-              <button onClick={copyCode} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
+              <button onClick={copyCode} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
                 {copied ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
                 {copied ? "Copied" : "Copy"}
               </button>
-              <button onClick={downloadCode} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
+              <button onClick={downloadCode} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
                 <Download className="h-3 w-3" />
               </button>
             </div>
           </div>
-          <ScrollArea className="flex-[1] min-h-0 max-h-48">
+          <ScrollArea className="flex-shrink-0 max-h-32">
             <pre className="p-3 text-[10px] font-mono text-muted-foreground leading-relaxed whitespace-pre-wrap break-all">
               {code}
             </pre>
           </ScrollArea>
-          <div className="flex-shrink-0 px-4 py-1.5 border-t border-border/10 text-[9px] text-muted-foreground/30 font-mono">
+          <div className="flex-shrink-0 px-4 py-1 border-b border-border/20 text-[9px] text-muted-foreground/30 font-mono">
             {code.length.toLocaleString()} chars
           </div>
 
-          {/* ── AUREON AI Panel ── */}
-          <div className="flex-1 flex flex-col border-t border-border/20 min-h-0">
-            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border/10">
+          {/* ── AUREON Conversational Panel ── */}
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border/10 bg-accent/5">
               <Sparkles className="h-3 w-3 text-accent animate-pulse" />
-              <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/70">AUREON Analysis</p>
+              <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/80">AUREON — Design Intelligence</p>
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 p-3">
-              {aureonResponse ? (
-                <div className="text-[10px] font-light text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {aureonResponse}
+            {/* Chat Messages */}
+            <div
+              ref={chatScrollRef}
+              className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3"
+            >
+              {aureonMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 py-6">
+                  <div className="h-10 w-10 rounded-xl border border-accent/20 bg-accent/5 flex items-center justify-center">
+                    <Wand2 className="h-5 w-5 text-accent/40" />
+                  </div>
+                  <p className="text-[10px] font-light text-muted-foreground/40 text-center tracking-wide leading-relaxed">
+                    Ask AUREON to design, edit, or analyze your pixel art. It will ask questions and draw directly on the canvas.
+                  </p>
+                  <div className="flex flex-col gap-1.5 w-full">
+                    {["Draw a simple house", "Analyze this design", "Suggest a color palette"].map(suggestion => (
+                      <button
+                        key={suggestion}
+                        onClick={() => setAureonInput(suggestion)}
+                        className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-border/10 hover:border-accent/20 rounded-xl px-3 py-2 transition-all hover:bg-accent/5"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-2 py-6">
-                  <Sparkles className="h-6 w-6 text-accent/20" />
-                  <p className="text-[10px] font-light text-muted-foreground/30 text-center tracking-wide">
-                    Ask AUREON to analyze your pixel art or generate integration code
-                  </p>
+                aureonMessages.map(msg => (
+                  <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                    {/* Avatar */}
+                    <div className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center ${
+                      msg.role === "user"
+                        ? "bg-foreground/10 border border-border/20"
+                        : "bg-accent/15 border border-accent/20"
+                    }`}>
+                      {msg.role === "user"
+                        ? <User className="h-3 w-3 text-muted-foreground" />
+                        : <Sparkles className="h-3 w-3 text-accent" />
+                      }
+                    </div>
+
+                    {/* Bubble */}
+                    <div className={`flex-1 min-w-0 space-y-2 ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
+                      <div className={`rounded-xl px-3 py-2 text-[10px] font-light leading-relaxed max-w-full ${
+                        msg.role === "user"
+                          ? "bg-accent/15 border border-accent/20 text-foreground/90 text-right"
+                          : "bg-card/30 border border-border/20 text-muted-foreground"
+                      }`}>
+                        {msg.role === "assistant" ? (
+                          <div className="prose prose-xs max-w-none text-[10px]">
+                            <ReactMarkdown
+                              components={{
+                                code: ({ children, className }) => {
+                                  const isBlock = className?.includes("language-");
+                                  if (isBlock) return (
+                                    <div className="mt-1.5 rounded-lg bg-background/40 border border-border/20 p-2 overflow-x-auto">
+                                      <code className="text-[9px] font-mono text-accent/70">{children}</code>
+                                    </div>
+                                  );
+                                  return <code className="bg-accent/10 rounded px-1 text-[9px] font-mono text-accent/80">{children}</code>;
+                                },
+                                p: ({ children }) => <p className="mb-1 last:mb-0 text-muted-foreground">{children}</p>,
+                              }}
+                            >
+                              {/* Hide the json pixel block from display, show edit button instead */}
+                              {msg.content.replace(/```json[\s\S]*?```/g, "[Canvas edit ready ↓]")}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          msg.content
+                        )}
+                      </div>
+
+                      {/* Apply Canvas Edit button */}
+                      {msg.role === "assistant" && msg.canvasEdit && pendingCanvasEdit && (
+                        <button
+                          onClick={() => applyCanvasEdit(msg.canvasEdit!)}
+                          className="flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/20 px-3 py-1.5 text-[10px] font-light text-accent transition-all"
+                        >
+                          <Wand2 className="h-3 w-3" />
+                          Apply to canvas
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Thinking indicator */}
+              {isAnalyzing && (
+                <div className="flex gap-2">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-accent/15 border border-accent/20 flex items-center justify-center">
+                    <Sparkles className="h-3 w-3 text-accent animate-pulse" />
+                  </div>
+                  <div className="rounded-xl px-3 py-2 bg-card/30 border border-border/20">
+                    <div className="flex gap-1 items-center">
+                      <div className="w-1 h-1 rounded-full bg-accent/50 animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <div className="w-1 h-1 rounded-full bg-accent/50 animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <div className="w-1 h-1 rounded-full bg-accent/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  </div>
                 </div>
               )}
-            </ScrollArea>
+            </div>
 
+            {/* Input */}
             <div className="flex-shrink-0 p-3 border-t border-border/10 space-y-2">
-              <textarea
-                value={aureonPrompt}
-                onChange={e => setAureonPrompt(e.target.value)}
-                placeholder="Ask AUREON about this design..."
-                className="w-full h-16 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground placeholder:text-muted-foreground/30 px-3 py-2 outline-none resize-none focus:border-accent/30 transition-all"
-                onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) analyzeWithAureon(); }}
-              />
-              <button
-                onClick={analyzeWithAureon}
-                disabled={isAnalyzing}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-accent/20 bg-accent/10 hover:bg-accent/20 px-3 py-2 text-xs font-light text-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isAnalyzing ? (
-                  <><Sparkles className="h-3 w-3 animate-pulse" /> Analyzing...</>
-                ) : (
-                  <><Send className="h-3 w-3" /> Ask AUREON</>
-                )}
-              </button>
+              <div className="flex gap-2">
+                <textarea
+                  value={aureonInput}
+                  onChange={e => setAureonInput(e.target.value)}
+                  placeholder="Ask AUREON to design or edit..."
+                  rows={2}
+                  className="flex-1 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground placeholder:text-muted-foreground/30 px-3 py-2 outline-none resize-none focus:border-accent/30 transition-all"
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToAureon(); } }}
+                />
+                <button
+                  onClick={sendToAureon}
+                  disabled={isAnalyzing || !aureonInput.trim()}
+                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 self-end rounded-xl border border-accent/20 bg-accent/10 hover:bg-accent/20 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <p className="text-[9px] text-muted-foreground/25 tracking-wide">Enter to send · Shift+Enter for new line</p>
             </div>
           </div>
         </aside>
