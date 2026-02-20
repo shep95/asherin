@@ -278,12 +278,8 @@ export default function TrackerView() {
         return;
       }
 
-      // The link only contains the owner's token — NO deviceId.
-      // Each person who clicks it gets their own auto-generated visitorId
-      // stored in their browser's localStorage. The edge function auto-creates
-      // a tracker_devices row per unique visitorId on the first ping.
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}`;
+      // Use the clean aureonai.app/track URL so targets see a trustworthy link
+      const onboardingLink = `https://aureonai.app/track?token=${userToken}`;
 
       // Use a transient local entry to display the link — no DB row needed upfront.
       // Real device rows are created automatically when targets click the link.
@@ -339,9 +335,8 @@ export default function TrackerView() {
     if (!user) return;
     const { data: session } = await supabase.auth.getSession();
     const userToken = session?.session?.access_token;
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    // Link only needs token — no deviceId, works for unlimited targets
-    const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}`;
+    // Clean URL — targets see aureonai.app not a raw backend URL
+    const onboardingLink = `https://aureonai.app/track?token=${userToken}`;
     setDevices(prev => prev.map(d =>
       d.id === deviceId ? { ...d, onboardingLink } : d
     ));
