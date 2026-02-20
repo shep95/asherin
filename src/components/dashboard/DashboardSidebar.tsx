@@ -63,7 +63,7 @@ const navGroups: NavGroup[] = [
       { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
       { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
-      { id: "tracker", icon: MapPin, label: "Location Tracker" },
+      { id: "tracker", icon: MapPin, label: "Location Tracker", access: "pro" },
     ],
   },
   {
