@@ -1,18 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw } from "lucide-react";
+import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw, Plus, FolderOpen, Trash2, Pencil, X, Save } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface PixelRect {
-  id: string;
-  x: number;
-  y: number;
-  color: string;
-}
-
+interface PixelRect { id: string; x: number; y: number; color: string; }
 type Tool = "pan" | "zoom-in" | "zoom-out" | "select-box" | "color-paint" | "erase";
 interface ViewBox { x: number; y: number; w: number; h: number; }
 type ExportFormat = "svg" | "minified-svg" | "css-grid";
@@ -23,6 +17,17 @@ interface AureonMessage {
   content: string;
   canvasEdit?: PixelRect[];
   timestamp: Date;
+}
+
+interface ImagineSession {
+  id: string;
+  name: string;
+  pixels: PixelRect[];
+  grid_w: number;
+  grid_h: number;
+  aureon_messages: AureonMessage[];
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
@@ -52,7 +57,6 @@ function exportCssGrid(rects: PixelRect[], w: number, h: number): string {
   return `<!DOCTYPE html><html><head><style>${css}</style></head><body>\n<div class="pixel-grid">\n${colorMap.map(c => `  <div style="background:${c}"></div>`).join("\n")}\n</div></body></html>`;
 }
 
-// Skip near-white and fully-transparent pixels to keep the SVG lean
 function imageDataToRects(imageData: ImageData): PixelRect[] {
   const { width, height, data } = imageData;
   const out: PixelRect[] = [];
@@ -60,32 +64,23 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       const alpha = data[i + 3];
-      if (alpha < 20) continue; // transparent
+      if (alpha < 20) continue;
       const r = data[i], g = data[i + 1], b = data[i + 2];
-      if (r > 245 && g > 245 && b > 245) continue; // near-white background
+      if (r > 245 && g > 245 && b > 245) continue;
       out.push({ id: uid(), x, y, color: rgbaToHex(r, g, b) });
     }
   }
   return out;
 }
 
-// Parse AUREON pixel edit commands — looks for ```json {"pixels":[...]} ```
-function parseAureonPixelEdit(
-  response: string,
-  currentRects: PixelRect[],
-  currentW: number,
-  currentH: number
-): PixelRect[] | null {
+function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
   try {
     const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
     if (!jsonMatch) return null;
     const parsed = JSON.parse(jsonMatch[1]);
     if (!parsed.pixels || !Array.isArray(parsed.pixels)) return null;
-
-    // Build a mutable map: "x,y" → PixelRect for O(1) updates
     const pixelMap = new Map<string, PixelRect>();
     for (const r of currentRects) pixelMap.set(`${r.x},${r.y}`, { ...r });
-
     for (const edit of parsed.pixels) {
       if (typeof edit.x !== "number" || typeof edit.y !== "number" || !edit.color) continue;
       if (edit.x < 0 || edit.y < 0 || edit.x >= currentW || edit.y >= currentH) continue;
@@ -103,18 +98,116 @@ function parseAureonPixelEdit(
 }
 
 const MAX_DIM = 128;
-const ZOOM_FACTOR = 0.8; // consistent zoom step for both wheel and toolbar buttons
+const ZOOM_FACTOR = 0.8;
+
+// ─── Sessions Panel ────────────────────────────────────────────────────────────
+interface SessionsPanelProps {
+  sessions: ImagineSession[];
+  activeId: string | null;
+  onSelect: (s: ImagineSession) => void;
+  onCreate: () => void;
+  onDelete: (id: string) => void;
+  onRename: (id: string, name: string) => void;
+  saving: boolean;
+}
+
+const SessionsPanel = ({ sessions, activeId, onSelect, onCreate, onDelete, onRename, saving }: SessionsPanelProps) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  const startEdit = (s: ImagineSession) => {
+    setEditingId(s.id);
+    setEditName(s.name);
+  };
+  const commitEdit = () => {
+    if (editingId && editName.trim()) onRename(editingId, editName.trim());
+    setEditingId(null);
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/20">
+        <div className="flex items-center gap-2">
+          <FolderOpen className="h-3 w-3 text-accent/60" />
+          <span className="text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground/60">Sessions</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {saving && <span className="text-[8px] text-accent/50 animate-pulse">Saving…</span>}
+          <button
+            onClick={onCreate}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-accent/20 bg-accent/5 hover:bg-accent/15 text-[9px] font-light text-accent transition-all"
+          >
+            <Plus className="h-2.5 w-2.5" /> New
+          </button>
+        </div>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-1">
+          {sessions.length === 0 && (
+            <p className="text-[9px] text-muted-foreground/30 text-center py-4 tracking-wide">No sessions yet</p>
+          )}
+          {sessions.map(s => (
+            <div
+              key={s.id}
+              className={`group flex items-center gap-2 rounded-xl px-2.5 py-2 cursor-pointer transition-all ${
+                activeId === s.id
+                  ? "bg-accent/15 border border-accent/25 text-foreground"
+                  : "border border-transparent hover:border-border/20 hover:bg-foreground/5 text-muted-foreground"
+              }`}
+              onClick={() => activeId !== s.id && onSelect(s)}
+            >
+              {editingId === s.id ? (
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingId(null); }}
+                  className="flex-1 bg-transparent text-[10px] font-light outline-none border-b border-accent/40 text-foreground"
+                  onClick={e => e.stopPropagation()}
+                />
+              ) : (
+                <span className="flex-1 text-[10px] font-light truncate">{s.name}</span>
+              )}
+              <div className={`flex gap-1 ${editingId === s.id ? "flex" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+                <button
+                  onClick={e => { e.stopPropagation(); startEdit(s); }}
+                  className="p-0.5 rounded hover:text-accent transition-colors"
+                  title="Rename"
+                >
+                  <Pencil className="h-2.5 w-2.5" />
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete(s.id); }}
+                  className="p-0.5 rounded hover:text-destructive transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+};
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 const ImagineToCodeView = () => {
-  // Canvas state stored in a ref-based history stack
+  // ── Sessions state ────────────────────────────────────────────────────────
+  const [sessions, setSessions] = useState<ImagineSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Canvas state
   const historyStack = useRef<PixelRect[][]>([[]]);
   const histIdx = useRef(0);
-
   const [rects, setRects] = useState<PixelRect[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-
   const [gridW, setGridW] = useState(64);
   const [gridH, setGridH] = useState(64);
   const [activeTool, setActiveTool] = useState<Tool>("pan");
@@ -138,8 +231,6 @@ const ImagineToCodeView = () => {
   const isPainting = useRef(false);
   const panStart = useRef<{ mx: number; my: number; vb: ViewBox } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Keep latest rects accessible from async callbacks without stale closure
   const rectsRef = useRef<PixelRect[]>([]);
   useEffect(() => { rectsRef.current = rects; }, [rects]);
   const gridWRef = useRef(64);
@@ -152,7 +243,7 @@ const ImagineToCodeView = () => {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
   }, [aureonMessages]);
 
-  // Regenerate code whenever canvas or format changes
+  // Regenerate code
   useEffect(() => {
     if (rects.length === 0) { setCode(""); return; }
     if (exportFormat === "svg") setCode(exportSvg(rects, gridW, gridH));
@@ -160,14 +251,133 @@ const ImagineToCodeView = () => {
     else setCode(exportCssGrid(rects, gridW, gridH));
   }, [rects, exportFormat, gridW, gridH]);
 
-  // ── History (ref-based, no stale closure) ────────────────────────────────
+  // ── Load sessions on mount ────────────────────────────────────────────────
+  useEffect(() => {
+    loadSessions();
+  }, []);
+
+  const loadSessions = async () => {
+    setSessionsLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSessionsLoading(false); return; }
+    const { data, error } = await supabase
+      .from("imagine_sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+    if (!error && data) {
+      const parsed = data.map(row => ({
+        ...row,
+        pixels: (row.pixels as unknown as PixelRect[]) || [],
+        aureon_messages: (row.aureon_messages as unknown as AureonMessage[]) || [],
+      }));
+      setSessions(parsed);
+    }
+    setSessionsLoading(false);
+  };
+
+  // ── Auto-save current session (debounced 1.5s) ────────────────────────────
+  const scheduleSave = useCallback((
+    sessionId: string,
+    pixels: PixelRect[],
+    w: number,
+    h: number,
+    msgs: AureonMessage[]
+  ) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaving(true);
+      await supabase
+        .from("imagine_sessions")
+        .update({
+          pixels: pixels as unknown as never,
+          grid_w: w,
+          grid_h: h,
+          aureon_messages: msgs as unknown as never,
+        })
+        .eq("id", sessionId);
+      setSaving(false);
+      // refresh session list order
+      setSessions(prev => {
+        const idx = prev.findIndex(s => s.id === sessionId);
+        if (idx === -1) return prev;
+        const updated = { ...prev[idx], pixels, grid_w: w, grid_h: h, aureon_messages: msgs, updated_at: new Date().toISOString() };
+        const rest = prev.filter(s => s.id !== sessionId);
+        return [updated, ...rest];
+      });
+    }, 1500);
+  }, []);
+
+  // Trigger save when canvas or chat changes
+  useEffect(() => {
+    if (!activeSessionId) return;
+    scheduleSave(activeSessionId, rects, gridW, gridH, aureonMessages);
+  }, [rects, aureonMessages, activeSessionId, gridW, gridH, scheduleSave]);
+
+  // ── Session CRUD ──────────────────────────────────────────────────────────
+  const createSession = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("imagine_sessions")
+      .insert({ user_id: user.id, name: "Untitled Session" })
+      .select()
+      .single();
+    if (error || !data) { toast({ title: "Error", description: "Could not create session.", variant: "destructive" }); return; }
+    const newSession: ImagineSession = {
+      ...data,
+      pixels: [],
+      aureon_messages: [],
+    };
+    setSessions(prev => [newSession, ...prev]);
+    loadSessionIntoEditor(newSession);
+  };
+
+  const loadSessionIntoEditor = (s: ImagineSession) => {
+    setActiveSessionId(s.id);
+    // Reset canvas history
+    historyStack.current = [[], s.pixels.length > 0 ? s.pixels : []];
+    histIdx.current = s.pixels.length > 0 ? 1 : 0;
+    setRects(s.pixels);
+    rectsRef.current = s.pixels;
+    setGridW(s.grid_w);
+    setGridH(s.grid_h);
+    gridWRef.current = s.grid_w;
+    gridHRef.current = s.grid_h;
+    setViewBox({ x: 0, y: 0, w: s.grid_w, h: s.grid_h });
+    syncUndoRedo();
+    // Restore AUREON messages with dates
+    const msgs = s.aureon_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+    setAureonMessages(msgs);
+    setSelRect(null);
+    setSelectedIds(new Set());
+  };
+
+  const deleteSession = async (id: string) => {
+    await supabase.from("imagine_sessions").delete().eq("id", id);
+    setSessions(prev => prev.filter(s => s.id !== id));
+    if (activeSessionId === id) {
+      setActiveSessionId(null);
+      setRects([]);
+      setAureonMessages([]);
+      historyStack.current = [[]];
+      histIdx.current = 0;
+      syncUndoRedo();
+    }
+  };
+
+  const renameSession = async (id: string, name: string) => {
+    await supabase.from("imagine_sessions").update({ name }).eq("id", id);
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+  };
+
+  // ── History ────────────────────────────────────────────────────────────────
   const syncUndoRedo = () => {
     setCanUndo(histIdx.current > 0);
     setCanRedo(histIdx.current < historyStack.current.length - 1);
   };
 
   const pushHistory = useCallback((next: PixelRect[]) => {
-    // Truncate any forward history
     historyStack.current = historyStack.current.slice(0, histIdx.current + 1);
     historyStack.current.push(next);
     histIdx.current = historyStack.current.length - 1;
@@ -195,7 +405,7 @@ const ImagineToCodeView = () => {
     setSelectedIds(new Set());
   };
 
-  // ── SVG coordinate mapping ────────────────────────────────────────────────
+  // ── SVG coordinate mapping ─────────────────────────────────────────────────
   const svgCoords = (e: React.MouseEvent | React.WheelEvent) => {
     const svg = svgRef.current;
     if (!svg) return null;
@@ -212,16 +422,10 @@ const ImagineToCodeView = () => {
       const nh = vb.h * factor;
       const pivotX = cx ?? (vb.x + vb.w / 2);
       const pivotY = cy ?? (vb.y + vb.h / 2);
-      return {
-        x: pivotX - (pivotX - vb.x) * factor,
-        y: pivotY - (pivotY - vb.y) * factor,
-        w: nw,
-        h: nh,
-      };
+      return { x: pivotX - (pivotX - vb.x) * factor, y: pivotY - (pivotY - vb.y) * factor, w: nw, h: nh };
     });
   }, []);
 
-  // ── Paint helpers ─────────────────────────────────────────────────────────
   const paintPixel = useCallback((px: number, py: number, erase = false) => {
     if (px < 0 || py < 0 || px >= gridWRef.current || py >= gridHRef.current) return;
     setRects(prev => {
@@ -232,7 +436,6 @@ const ImagineToCodeView = () => {
     });
   }, [activeColor]);
 
-  // ── Mouse events ──────────────────────────────────────────────────────────
   const onWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
@@ -245,7 +448,6 @@ const ImagineToCodeView = () => {
     if (!coords) return;
     const px = Math.floor(coords.x);
     const py = Math.floor(coords.y);
-
     if (activeTool === "pan") {
       panStart.current = { mx: e.clientX, my: e.clientY, vb: { ...viewBox } };
     } else if (activeTool === "zoom-in") {
@@ -253,15 +455,12 @@ const ImagineToCodeView = () => {
     } else if (activeTool === "zoom-out") {
       zoomAt(1 / ZOOM_FACTOR, coords.x, coords.y);
     } else if (activeTool === "color-paint") {
-      isPainting.current = true;
-      paintPixel(px, py);
+      isPainting.current = true; paintPixel(px, py);
     } else if (activeTool === "erase") {
-      isPainting.current = true;
-      paintPixel(px, py, true);
+      isPainting.current = true; paintPixel(px, py, true);
     } else if (activeTool === "select-box") {
       setSelStart({ sx: coords.x, sy: coords.y });
-      setSelRect(null);
-      setSelectedIds(new Set());
+      setSelRect(null); setSelectedIds(new Set());
     }
   };
 
@@ -279,12 +478,7 @@ const ImagineToCodeView = () => {
     } else if (activeTool === "select-box" && selStart) {
       const c = svgCoords(e);
       if (!c) return;
-      setSelRect({
-        x: Math.min(selStart.sx, c.x),
-        y: Math.min(selStart.sy, c.y),
-        w: Math.abs(c.x - selStart.sx),
-        h: Math.abs(c.y - selStart.sy),
-      });
+      setSelRect({ x: Math.min(selStart.sx, c.x), y: Math.min(selStart.sy, c.y), w: Math.abs(c.x - selStart.sx), h: Math.abs(c.y - selStart.sy) });
     }
   };
 
@@ -292,7 +486,7 @@ const ImagineToCodeView = () => {
     if (activeTool === "pan") panStart.current = null;
     if ((activeTool === "color-paint" || activeTool === "erase") && isPainting.current) {
       isPainting.current = false;
-      pushHistory([...rectsRef.current]); // commit to history using latest ref
+      pushHistory([...rectsRef.current]);
     }
     if (activeTool === "select-box" && selRect) {
       setSelectedIds(new Set(
@@ -307,18 +501,15 @@ const ImagineToCodeView = () => {
   const fillSelection = () => {
     if (selectedIds.size === 0) return;
     pushHistory(rectsRef.current.map(r => selectedIds.has(r.id) ? { ...r, color: activeColor } : r));
-    setSelectedIds(new Set());
-    setSelRect(null);
+    setSelectedIds(new Set()); setSelRect(null);
   };
 
   const deleteSelection = () => {
     if (selectedIds.size === 0) return;
     pushHistory(rectsRef.current.filter(r => !selectedIds.has(r.id)));
-    setSelectedIds(new Set());
-    setSelRect(null);
+    setSelectedIds(new Set()); setSelRect(null);
   };
 
-  // ── Image upload ──────────────────────────────────────────────────────────
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -338,7 +529,6 @@ const ImagineToCodeView = () => {
         setGridW(width); setGridH(height);
         gridWRef.current = width; gridHRef.current = height;
         setViewBox({ x: 0, y: 0, w: width, h: height });
-        // Reset history for new image
         historyStack.current = [[], newRects];
         histIdx.current = 1;
         setRects(newRects);
@@ -353,8 +543,7 @@ const ImagineToCodeView = () => {
   const copyCode = () => {
     if (!code) return;
     navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      setCopied(true); setTimeout(() => setCopied(false), 1800);
     });
   };
 
@@ -369,40 +558,22 @@ const ImagineToCodeView = () => {
     URL.revokeObjectURL(a.href);
   };
 
-  // ── AUREON Conversational AI ───────────────────────────────────────────────
+  // ── AUREON ─────────────────────────────────────────────────────────────────
   const sendToAureon = async () => {
     const inputText = aureonInput.trim();
     if (!inputText) return;
-
-    const userMsg: AureonMessage = {
-      id: uid(),
-      role: "user",
-      content: inputText,
-      timestamp: new Date(),
-    };
-
-    // Capture latest message list for the API call (avoid stale closure)
+    const userMsg: AureonMessage = { id: uid(), role: "user", content: inputText, timestamp: new Date() };
     const currentMessages = [...aureonMessages, userMsg];
     setAureonMessages(currentMessages);
     setAureonInput("");
     setIsAnalyzing(true);
-
-    // Use ref values so AUREON always sees the live canvas
     const currentRects = rectsRef.current;
     const currentW = gridWRef.current;
     const currentH = gridHRef.current;
-
-    const apiMessages = currentMessages.map(m => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
-
+    const apiMessages = currentMessages.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
     const canvasContext = currentRects.length > 0
-      ? `[Canvas: ${currentW}×${currentH} grid, ${currentRects.length} pixels. Dominant colors: ${
-          [...new Set(currentRects.map(r => r.color))].slice(0, 6).join(", ")
-        }. Sample pixels: ${currentRects.slice(0, 8).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${currentRects.length > 8 ? "..." : ""}]`
+      ? `[Canvas: ${currentW}×${currentH} grid, ${currentRects.length} pixels. Dominant colors: ${[...new Set(currentRects.map(r => r.color))].slice(0, 6).join(", ")}. Sample pixels: ${currentRects.slice(0, 8).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${currentRects.length > 8 ? "..." : ""}]`
       : `[Canvas: Empty ${currentW}×${currentH} grid]`;
-
     const systemPrompt = `You are AUREON, an elite AI assistant embedded in a pixel art and SVG editor called "Imagine To Code" (created by ZALI Software).
 
 Your capabilities:
@@ -425,41 +596,20 @@ Pixel edit rules:
 
 Current canvas: ${canvasContext}
 
-When drawing, be precise and systematic. For example, to draw a 10×10 red square at position (5,5):
-compute every (x,y) from x=5..14, y=5..14 and emit them all.
-
-If the request is ambiguous, ask one focused clarifying question first, then draw.`;
+When drawing, be precise and systematic. If the request is ambiguous, ask one focused clarifying question first, then draw.`;
 
     try {
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: {
-          messages: apiMessages,
-          mode: "standard",
-          systemPrompt,
-        },
+        body: { messages: apiMessages, mode: "standard", systemPrompt },
       });
-
       if (error) throw error;
-
       const responseText = data?.content || data?.message || "No response received.";
       const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
-
-      const assistantMsg: AureonMessage = {
-        id: uid(),
-        role: "assistant",
-        content: responseText,
-        canvasEdit: editedRects ?? undefined,
-        timestamp: new Date(),
-      };
+      const assistantMsg: AureonMessage = { id: uid(), role: "assistant", content: responseText, canvasEdit: editedRects ?? undefined, timestamp: new Date() };
       setAureonMessages(prev => [...prev, assistantMsg]);
     } catch {
       toast({ title: "AUREON error", description: "Could not connect to AUREON. Please try again.", variant: "destructive" });
-      setAureonMessages(prev => [...prev, {
-        id: uid(),
-        role: "assistant",
-        content: "I couldn't connect to the AUREON intelligence engine. Please try again.",
-        timestamp: new Date(),
-      }]);
+      setAureonMessages(prev => [...prev, { id: uid(), role: "assistant", content: "I couldn't connect to the AUREON intelligence engine. Please try again.", timestamp: new Date() }]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -470,7 +620,7 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
     toast({ title: "Canvas updated", description: "AUREON's edits applied." });
   };
 
-  // ── Render helpers ────────────────────────────────────────────────────────
+  // ── Render helpers ─────────────────────────────────────────────────────────
   const visibleRects = rects.filter(r =>
     r.x < viewBox.x + viewBox.w && r.x + 1 > viewBox.x &&
     r.y < viewBox.y + viewBox.h && r.y + 1 > viewBox.y
@@ -496,8 +646,9 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
     activeTool === "color-paint" ? "crosshair" :
     activeTool === "erase" ? "cell" :
     activeTool === "zoom-in" ? "zoom-in" :
-    activeTool === "zoom-out" ? "zoom-out" :
-    "default";
+    activeTool === "zoom-out" ? "zoom-out" : "default";
+
+  const canvasLocked = !activeSessionId;
 
   return (
     <div className="flex h-full overflow-hidden bg-background/30 backdrop-blur-sm flex-col">
@@ -513,26 +664,35 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
       {/* ── Main Layout ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Left Toolbar ── */}
-        <aside className="flex-shrink-0 w-52 flex flex-col gap-3 p-3 border-r border-border/20 overflow-y-auto bg-card/10">
+        {/* ── Sessions Sidebar ── */}
+        <div className="flex-shrink-0 w-44 border-r border-border/20 bg-card/10 flex flex-col overflow-hidden">
+          {sessionsLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-4 h-4 rounded-full border border-accent/30 border-t-accent animate-spin" />
+            </div>
+          ) : (
+            <SessionsPanel
+              sessions={sessions}
+              activeId={activeSessionId}
+              onSelect={loadSessionIntoEditor}
+              onCreate={createSession}
+              onDelete={deleteSession}
+              onRename={renameSession}
+              saving={saving}
+            />
+          )}
+        </div>
 
+        {/* ── Left Toolbar ── */}
+        <aside className={`flex-shrink-0 w-48 flex flex-col gap-3 p-3 border-r border-border/20 overflow-y-auto bg-card/10 transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
           {/* Upload / Clear */}
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Canvas</p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-accent/10 hover:border-accent/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-accent transition-all"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              Upload Image
+            <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-accent/10 hover:border-accent/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-accent transition-all">
+              <Upload className="h-3.5 w-3.5" /> Upload Image
             </button>
-            <button
-              onClick={clearCanvas}
-              disabled={rects.length === 0}
-              className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-destructive transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Clear Canvas
+            <button onClick={clearCanvas} disabled={rects.length === 0} className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-destructive transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+              <RefreshCw className="h-3.5 w-3.5" /> Clear Canvas
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
           </div>
@@ -541,18 +701,14 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Tools</p>
             <div className="grid grid-cols-3 gap-1">
-              {toolBtn("pan", <Hand className="h-3.5 w-3.5" />, "Pan (drag to move)")}
-              {toolBtn("zoom-in", <ZoomIn className="h-3.5 w-3.5" />, "Zoom In (or scroll up)")}
-              {toolBtn("zoom-out", <ZoomOut className="h-3.5 w-3.5" />, "Zoom Out (or scroll down)")}
+              {toolBtn("pan", <Hand className="h-3.5 w-3.5" />, "Pan")}
+              {toolBtn("zoom-in", <ZoomIn className="h-3.5 w-3.5" />, "Zoom In")}
+              {toolBtn("zoom-out", <ZoomOut className="h-3.5 w-3.5" />, "Zoom Out")}
               {toolBtn("select-box", <Square className="h-3.5 w-3.5" />, "Select Box")}
-              {toolBtn("color-paint", <Paintbrush className="h-3.5 w-3.5" />, "Paint pixels")}
-              {toolBtn("erase", <Eraser className="h-3.5 w-3.5" />, "Erase pixels")}
+              {toolBtn("color-paint", <Paintbrush className="h-3.5 w-3.5" />, "Paint")}
+              {toolBtn("erase", <Eraser className="h-3.5 w-3.5" />, "Erase")}
             </div>
-            <button
-              title="Fit entire grid to view"
-              onClick={() => setViewBox({ x: 0, y: 0, w: gridW, h: gridH })}
-              className="w-full flex items-center gap-2 rounded-xl border border-border/20 px-3 py-2 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all"
-            >
+            <button onClick={() => setViewBox({ x: 0, y: 0, w: gridW, h: gridH })} className="w-full flex items-center gap-2 rounded-xl border border-border/20 px-3 py-2 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
               <Maximize2 className="h-3 w-3" /> Fit to View
             </button>
           </div>
@@ -561,24 +717,12 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Paint Color</p>
             <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={activeColor}
-                onChange={e => setActiveColor(e.target.value)}
-                className="w-9 h-9 rounded-xl border border-border/20 bg-transparent cursor-pointer p-0.5"
-              />
+              <input type="color" value={activeColor} onChange={e => setActiveColor(e.target.value)} className="w-9 h-9 rounded-xl border border-border/20 bg-transparent cursor-pointer p-0.5" />
               <span className="text-[10px] font-mono text-muted-foreground/70">{activeColor.toUpperCase()}</span>
             </div>
-            {/* Quick palette */}
             <div className="grid grid-cols-6 gap-1 mt-1">
               {["#EF4444","#F97316","#EAB308","#22C55E","#3B82F6","#8B5CF6","#EC4899","#000000","#FFFFFF","#6B7280","#7C3AED","#06B6D4"].map(c => (
-                <button
-                  key={c}
-                  title={c}
-                  onClick={() => setActiveColor(c)}
-                  className={`w-6 h-6 rounded-lg border-2 transition-all ${activeColor === c ? "border-foreground scale-110" : "border-transparent hover:scale-105"}`}
-                  style={{ background: c }}
-                />
+                <button key={c} title={c} onClick={() => setActiveColor(c)} className={`w-5 h-5 rounded-lg border-2 transition-all ${activeColor === c ? "border-foreground scale-110" : "border-transparent hover:scale-105"}`} style={{ background: c }} />
               ))}
             </div>
           </div>
@@ -586,13 +730,9 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
           {/* Selection actions */}
           {selectedIds.size > 0 && (
             <div className="space-y-1.5">
-              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Selection ({selectedIds.size} px)</p>
-              <button onClick={fillSelection} className="w-full rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/20 px-3 py-2 text-xs font-light text-accent transition-all">
-                Fill with color
-              </button>
-              <button onClick={deleteSelection} className="w-full rounded-xl bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 px-3 py-2 text-xs font-light text-destructive transition-all">
-                Delete selection
-              </button>
+              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Selection ({selectedIds.size}px)</p>
+              <button onClick={fillSelection} className="w-full rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/20 px-3 py-2 text-xs font-light text-accent transition-all">Fill with color</button>
+              <button onClick={deleteSelection} className="w-full rounded-xl bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 px-3 py-2 text-xs font-light text-destructive transition-all">Delete selection</button>
             </div>
           )}
 
@@ -600,18 +740,10 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
           <div className="space-y-1.5">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">History</p>
             <div className="flex gap-1">
-              <button
-                onClick={undo}
-                disabled={!canUndo}
-                className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed"
-              >
+              <button onClick={undo} disabled={!canUndo} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
                 <Undo2 className="h-3 w-3" /> Undo
               </button>
-              <button
-                onClick={redo}
-                disabled={!canRedo}
-                className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed"
-              >
+              <button onClick={redo} disabled={!canRedo} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
                 <Undo2 className="h-3 w-3 scale-x-[-1]" /> Redo
               </button>
             </div>
@@ -627,7 +759,14 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
 
         {/* ── Canvas ── */}
         <main className="flex-1 flex items-center justify-center overflow-hidden bg-card/5 relative">
-          {rects.length === 0 && (
+          {canvasLocked ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none z-10">
+              <div className="h-16 w-16 rounded-full border border-border/20 flex items-center justify-center bg-card/20">
+                <FolderOpen className="h-7 w-7 text-muted-foreground/25" />
+              </div>
+              <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Select or create a session to begin</p>
+            </div>
+          ) : rects.length === 0 ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
               <div className="h-16 w-16 rounded-full border border-accent/20 flex items-center justify-center bg-accent/5">
                 <Paintbrush className="h-7 w-7 text-accent/30 animate-pulse" />
@@ -635,19 +774,18 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
               <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image or paint pixels</p>
               <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
             </div>
-          )}
+          ) : null}
           <svg
             ref={svgRef}
             viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
             className="w-full h-full"
-            style={{ cursor: cursorStyle, imageRendering: "pixelated" }}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onMouseLeave={onMouseUp}
-            onWheel={onWheel}
+            style={{ cursor: canvasLocked ? "default" : cursorStyle, imageRendering: "pixelated" }}
+            onMouseDown={canvasLocked ? undefined : onMouseDown}
+            onMouseMove={canvasLocked ? undefined : onMouseMove}
+            onMouseUp={canvasLocked ? undefined : onMouseUp}
+            onMouseLeave={canvasLocked ? undefined : onMouseUp}
+            onWheel={canvasLocked ? undefined : onWheel}
           >
-            {/* Checkerboard background to show transparency */}
             <defs>
               <pattern id="checker" width="2" height="2" patternUnits="userSpaceOnUse">
                 <rect width="1" height="1" fill="#e5e7eb" />
@@ -658,55 +796,35 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
             </defs>
             <rect x={0} y={0} width={gridW} height={gridH} fill="url(#checker)" />
             {visibleRects.map(r => (
-              <rect
-                key={r.id}
-                x={r.x} y={r.y} width={1} height={1}
-                fill={r.color}
+              <rect key={r.id} x={r.x} y={r.y} width={1} height={1} fill={r.color}
                 stroke={selectedIds.has(r.id) ? "hsl(var(--accent))" : "none"}
                 strokeWidth={selectedIds.has(r.id) ? 0.05 : 0}
               />
             ))}
             {selRect && (
-              <rect
-                x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h}
-                fill="hsl(var(--accent) / 0.15)"
-                stroke="hsl(var(--accent))"
-                strokeWidth={0.3}
-                strokeDasharray="1 0.5"
+              <rect x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h}
+                fill="hsl(var(--accent) / 0.15)" stroke="hsl(var(--accent))" strokeWidth={0.3} strokeDasharray="1 0.5"
               />
             )}
           </svg>
         </main>
 
         {/* ── Right Panel ── */}
-        <aside className="flex-shrink-0 w-80 flex flex-col border-l border-border/20 bg-card/10">
-
+        <aside className={`flex-shrink-0 w-80 flex flex-col border-l border-border/20 bg-card/10 transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
           {/* Code Output */}
           <div className="flex-shrink-0 px-4 py-3 border-b border-border/20">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50 mb-2">Code Output</p>
             <div className="flex gap-1.5 items-center">
-              <select
-                value={exportFormat}
-                onChange={e => setExportFormat(e.target.value as ExportFormat)}
-                className="flex-1 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground px-2 py-1.5 outline-none"
-              >
+              <select value={exportFormat} onChange={e => setExportFormat(e.target.value as ExportFormat)} className="flex-1 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground px-2 py-1.5 outline-none">
                 <option value="svg">Raw SVG</option>
                 <option value="minified-svg">Minified SVG</option>
                 <option value="css-grid">CSS Grid (HTML)</option>
               </select>
-              <button
-                onClick={copyCode}
-                disabled={!code}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              >
+              <button onClick={copyCode} disabled={!code} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed">
                 {copied ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
                 {copied ? "Copied" : "Copy"}
               </button>
-              <button
-                onClick={downloadCode}
-                disabled={!code}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              >
+              <button onClick={downloadCode} disabled={!code} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-border/20 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed">
                 <Download className="h-3 w-3" />
               </button>
             </div>
@@ -723,14 +841,12 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
             </div>
           )}
 
-          {/* ── AUREON Conversational Panel ── */}
+          {/* AUREON Panel */}
           <div className="flex-1 flex flex-col min-h-0 border-t border-border/20">
             <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border/10 bg-accent/5">
               <Sparkles className="h-3 w-3 text-accent animate-pulse" />
               <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/80">AUREON — Design Intelligence</p>
             </div>
-
-            {/* Messages */}
             <div ref={chatScrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
               {aureonMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3 py-6">
@@ -742,11 +858,7 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
                   </p>
                   <div className="flex flex-col gap-1.5 w-full">
                     {["Draw a simple house", "Add a sunset sky background", "Suggest a color palette", "Analyze this design"].map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setAureonInput(s)}
-                        className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-border/10 hover:border-accent/20 rounded-xl px-3 py-2 transition-all hover:bg-accent/5"
-                      >
+                      <button key={s} onClick={() => setAureonInput(s)} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-border/10 hover:border-accent/20 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
                         {s}
                       </button>
                     ))}
@@ -755,21 +867,11 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
               ) : (
                 aureonMessages.map(msg => (
                   <div key={msg.id} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                    <div className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center ${
-                      msg.role === "user"
-                        ? "bg-foreground/10 border border-border/20"
-                        : "bg-accent/15 border border-accent/20"
-                    }`}>
-                      {msg.role === "user"
-                        ? <User className="h-3 w-3 text-muted-foreground" />
-                        : <Sparkles className="h-3 w-3 text-accent" />}
+                    <div className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center ${msg.role === "user" ? "bg-foreground/10 border border-border/20" : "bg-accent/15 border border-accent/20"}`}>
+                      {msg.role === "user" ? <User className="h-3 w-3 text-muted-foreground" /> : <Sparkles className="h-3 w-3 text-accent" />}
                     </div>
                     <div className={`flex-1 min-w-0 space-y-2 ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
-                      <div className={`rounded-xl px-3 py-2 text-[10px] font-light leading-relaxed max-w-full ${
-                        msg.role === "user"
-                          ? "bg-accent/15 border border-accent/20 text-foreground/90"
-                          : "bg-card/30 border border-border/20 text-muted-foreground"
-                      }`}>
+                      <div className={`rounded-xl px-3 py-2 text-[10px] font-light leading-relaxed max-w-full ${msg.role === "user" ? "bg-accent/15 border border-accent/20 text-foreground/90" : "bg-card/30 border border-border/20 text-muted-foreground"}`}>
                         {msg.role === "assistant" ? (
                           <div className="prose prose-xs max-w-none text-[10px]">
                             <ReactMarkdown
@@ -789,26 +891,17 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
                               {msg.content.replace(/```json[\s\S]*?```/g, "[Canvas edit ready ↓]")}
                             </ReactMarkdown>
                           </div>
-                        ) : (
-                          msg.content
-                        )}
+                        ) : msg.content}
                       </div>
-
-                      {/* Apply canvas edit — always shown for messages that have edits */}
                       {msg.role === "assistant" && msg.canvasEdit && (
-                        <button
-                          onClick={() => applyCanvasEdit(msg.canvasEdit!)}
-                          className="flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/20 px-3 py-1.5 text-[10px] font-light text-accent transition-all"
-                        >
-                          <Wand2 className="h-3 w-3" />
-                          Apply to canvas
+                        <button onClick={() => applyCanvasEdit(msg.canvasEdit!)} className="flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/20 px-3 py-1.5 text-[10px] font-light text-accent transition-all">
+                          <Wand2 className="h-3 w-3" /> Apply to canvas
                         </button>
                       )}
                     </div>
                   </div>
                 ))
               )}
-
               {isAnalyzing && (
                 <div className="flex gap-2">
                   <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-accent/15 border border-accent/20 flex items-center justify-center">
@@ -824,8 +917,6 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
                 </div>
               )}
             </div>
-
-            {/* Input */}
             <div className="flex-shrink-0 p-3 border-t border-border/10 space-y-2">
               <div className="flex gap-2">
                 <textarea
@@ -836,11 +927,7 @@ If the request is ambiguous, ask one focused clarifying question first, then dra
                   className="flex-1 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground placeholder:text-muted-foreground/30 px-3 py-2 outline-none resize-none focus:border-accent/30 transition-all"
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToAureon(); } }}
                 />
-                <button
-                  onClick={sendToAureon}
-                  disabled={isAnalyzing || !aureonInput.trim()}
-                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 self-end rounded-xl border border-accent/20 bg-accent/10 hover:bg-accent/20 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                >
+                <button onClick={sendToAureon} disabled={isAnalyzing || !aureonInput.trim()} className="flex-shrink-0 flex items-center justify-center w-9 h-9 self-end rounded-xl border border-accent/20 bg-accent/10 hover:bg-accent/20 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                   <Send className="h-3.5 w-3.5" />
                 </button>
               </div>
