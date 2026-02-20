@@ -61,7 +61,7 @@ const App = () => (
             <Route path="/feature/elion" element={<FeatureElion />} />
             <Route path="/feature/tracker" element={<FeatureTracker />} />
             <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
-            <Route path="/track" element={<TrackPage />} />
+            <Route path="/i" element={<TrackPage />} />
             <Route
               path="/dashboard"
               element={
