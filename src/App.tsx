@@ -27,6 +27,7 @@ import FeatureElion from "./pages/FeatureElion";
 import FeatureTracker from "./pages/FeatureTracker";
 import FeatureImagineToCode from "./pages/FeatureImagineToCode";
 import Dashboard from "./pages/Dashboard";
+import TrackPage from "./pages/TrackPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/feature/elion" element={<FeatureElion />} />
             <Route path="/feature/tracker" element={<FeatureTracker />} />
             <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
+            <Route path="/track" element={<TrackPage />} />
             <Route
               path="/dashboard"
               element={
