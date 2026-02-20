@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw, Plus, FolderOpen, Trash2, Pencil, X, Save, RotateCcw, Play, Square as StopIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,10 +66,8 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
       const alpha = data[i + 3];
       if (alpha < 20) continue;
       const r = data[i], g = data[i + 1], b = data[i + 2];
-      if (r > 230 && g > 230 && b > 230) continue; // skip near-white (background)
+      if (r > 240 && g > 240 && b > 240) continue; // skip near-white (background)
       out.push({ id: uid(), x, y, color: rgbaToHex(r, g, b) });
-      // Hard safety cap — stops the browser freezing on huge imports
-      if (out.length >= 200_000) return out;
     }
   }
   return out;
@@ -101,11 +99,8 @@ function parseAureonPixelEdit(response: string, currentRects: PixelRect[], curre
 
 // Max side length — never exceed this per axis
 const MAX_SIDE = 10_000;
-// Base pixel budget — how many pixels get imported from an image.
-// Capped at 100k for real-time performance (browser can't render 1M SVG rects).
-// The "1M budget" only applies to the theoretical max; actual visible rects
-// are capped at DOM_RECT_CAP (15k) by the useMemo viewport filter.
-const PIXEL_BUDGET_BASE = 100_000;
+// Full 1M pixel budget — canvas renderer handles this natively without DOM overhead
+const PIXEL_BUDGET_BASE = 1_000_000;
 const ZOOM_FACTOR = 0.8;
 const SAVE_PIXEL_CAP = 50_000;
 
@@ -243,7 +238,8 @@ const ImagineToCodeView = () => {
   const loopAbortRef = useRef(false);
   const MAX_LOOP_ITERATIONS = 12;
 
-  const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null); // kept for event handling overlay
   const isPainting = useRef(false);
   const panStart = useRef<{ mx: number; my: number; vb: ViewBox } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -259,8 +255,59 @@ const ImagineToCodeView = () => {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
   }, [aureonMessages]);
 
-  // Regenerate code — heavily deferred (2s) so large arrays don't block the UI.
-  // Also cap code preview at 50k chars to avoid freezing the DOM.
+  // ── Canvas renderer — paint all pixels via HTML5 canvas (full quality, no DOM cap) ──
+  // This replaces SVG rect rendering. Canvas handles millions of pixels natively.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Size the canvas to the grid dimensions (1px per pixel art pixel)
+    canvas.width = gridW;
+    canvas.height = gridH;
+
+    // Clear with checkerboard pattern for transparency indication
+    ctx.clearRect(0, 0, gridW, gridH);
+    const tileSize = 8;
+    for (let ty = 0; ty < gridH; ty += tileSize) {
+      for (let tx = 0; tx < gridW; tx += tileSize) {
+        const isEven = ((tx / tileSize) + (ty / tileSize)) % 2 === 0;
+        ctx.fillStyle = isEven ? "#e5e7eb" : "#f9fafb";
+        ctx.fillRect(tx, ty, tileSize, tileSize);
+      }
+    }
+
+    // Paint all pixels — O(n) ImageData write, no DOM nodes
+    if (rects.length > 0) {
+      const imageData = ctx.createImageData(gridW, gridH);
+      const d = imageData.data;
+      for (const r of rects) {
+        if (r.x < 0 || r.y < 0 || r.x >= gridW || r.y >= gridH) continue;
+        const hex = r.color.replace("#", "");
+        const ri = parseInt(hex.slice(0, 2), 16);
+        const gi = parseInt(hex.slice(2, 4), 16);
+        const bi = parseInt(hex.slice(4, 6), 16);
+        const idx = (r.y * gridW + r.x) * 4;
+        d[idx] = ri; d[idx + 1] = gi; d[idx + 2] = bi; d[idx + 3] = 255;
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // Highlight selected pixels
+      if (selectedIds.size > 0) {
+        ctx.strokeStyle = "hsl(var(--accent))";
+        ctx.lineWidth = 0.5;
+        for (const r of rects) {
+          if (selectedIds.has(r.id)) {
+            ctx.strokeRect(r.x + 0.25, r.y + 0.25, 0.5, 0.5);
+          }
+        }
+      }
+    }
+  }, [rects, gridW, gridH, selectedIds]);
+
+  // Regenerate code — deferred 2s so large arrays don't block the UI.
+  // Cap preview at 80k chars to avoid freezing the DOM text node.
   useEffect(() => {
     const timer = setTimeout(() => {
       if (rects.length === 0) { setCode(""); return; }
@@ -268,7 +315,6 @@ const ImagineToCodeView = () => {
       if (exportFormat === "svg") raw = exportSvg(rects, gridW, gridH);
       else if (exportFormat === "minified-svg") raw = exportSvg(rects, gridW, gridH, true);
       else raw = exportCssGrid(rects, gridW, gridH);
-      // Cap preview length so the <pre> element doesn't freeze scroll
       setCode(raw.length > 80_000 ? raw.slice(0, 80_000) + "\n/* … truncated for preview – download for full output */" : raw);
     }, 2000);
     return () => clearTimeout(timer);
@@ -450,11 +496,12 @@ const ImagineToCodeView = () => {
     setSelectedIds(new Set());
   };
 
-  // ── SVG coordinate mapping ─────────────────────────────────────────────────
+  // ── Coordinate mapping — works off the canvas element's bounding rect ────
   const svgCoords = (e: React.MouseEvent | React.WheelEvent) => {
-    const svg = svgRef.current;
-    if (!svg) return null;
-    const r = svg.getBoundingClientRect();
+    // Use the canvas element for coord mapping (same dimensions as grid)
+    const el = canvasRef.current ?? svgRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
     return {
       x: ((e as React.MouseEvent).clientX - r.left) / r.width * viewBox.w + viewBox.x,
       y: ((e as React.MouseEvent).clientY - r.top) / r.height * viewBox.h + viewBox.y,
@@ -853,22 +900,8 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
   };
 
   // ── Render helpers ─────────────────────────────────────────────────────────
-  // DOM_CAP: Browsers crash rendering >15k SVG rects simultaneously.
-  // When zoomed out far, we skip rendering (the pixels are sub-pixel anyway).
-  // useMemo so this O(n) filter only runs when rects or viewBox actually changes.
-  const DOM_RECT_CAP = 15_000;
-  const visibleRects = useMemo(() => {
-    const vx0 = viewBox.x, vy0 = viewBox.y;
-    const vx1 = viewBox.x + viewBox.w, vy1 = viewBox.y + viewBox.h;
-    const filtered = rects.filter(r =>
-      r.x < vx1 && r.x + 1 > vx0 &&
-      r.y < vy1 && r.y + 1 > vy0
-    );
-    // If still too many (zoomed too far out), subsample deterministically
-    if (filtered.length <= DOM_RECT_CAP) return filtered;
-    const step = Math.ceil(filtered.length / DOM_RECT_CAP);
-    return filtered.filter((_, i) => i % step === 0);
-  }, [rects, viewBox]);
+  // No SVG rect rendering anymore — canvas handles all pixels via ImageData.
+  // visibleRects is kept only for the coord system; canvas re-paints on rects change.
 
   const toolBtn = (tool: Tool, icon: React.ReactNode, title: string) => (
     <button
@@ -1019,39 +1052,34 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
               <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
             </div>
           ) : null}
-          <svg
-            ref={svgRef}
-            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-            className="w-full h-full"
-            style={{ cursor: canvasLocked ? "default" : cursorStyle, imageRendering: "pixelated" }}
+
+          {/* HTML5 Canvas — full quality rendering via ImageData. Zero DOM nodes per pixel. */}
+          <canvas
+            ref={canvasRef}
+            style={{ imageRendering: "pixelated", cursor: canvasLocked ? "default" : cursorStyle, width: "100%", height: "100%", objectFit: "contain" }}
             onMouseDown={canvasLocked ? undefined : onMouseDown}
             onMouseMove={canvasLocked ? undefined : onMouseMove}
             onMouseUp={canvasLocked ? undefined : onMouseUp}
             onMouseLeave={canvasLocked ? undefined : flushPaintStroke}
             onWheel={canvasLocked ? undefined : onWheel}
+          />
+
+          {/* SVG overlay — selection rect only, pointer-events-none so canvas gets all events */}
+          <svg
+            ref={svgRef}
+            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
+            className="absolute inset-0 w-full h-full pointer-events-none"
           >
-            <defs>
-              <pattern id="checker" width="2" height="2" patternUnits="userSpaceOnUse">
-                <rect width="1" height="1" fill="#e5e7eb" />
-                <rect x="1" y="1" width="1" height="1" fill="#e5e7eb" />
-                <rect x="1" y="0" width="1" height="1" fill="#f9fafb" />
-                <rect x="0" y="1" width="1" height="1" fill="#f9fafb" />
-              </pattern>
-            </defs>
-            <rect x={0} y={0} width={gridW} height={gridH} fill="url(#checker)" />
-            {visibleRects.map(r => (
-              <rect key={r.id} x={r.x} y={r.y} width={1} height={1} fill={r.color}
-                stroke={selectedIds.has(r.id) ? "hsl(var(--accent))" : "none"}
-                strokeWidth={selectedIds.has(r.id) ? 0.05 : 0}
-              />
-            ))}
             {selRect && (
               <rect x={selRect.x} y={selRect.y} width={selRect.w} height={selRect.h}
-                fill="hsl(var(--accent) / 0.15)" stroke="hsl(var(--accent))" strokeWidth={0.3} strokeDasharray="1 0.5"
+                fill="hsl(var(--accent) / 0.15)" stroke="hsl(var(--accent))"
+                strokeWidth={Math.max(0.3, viewBox.w / 800)}
+                strokeDasharray={`${viewBox.w / 200} ${viewBox.w / 400}`}
               />
             )}
           </svg>
         </main>
+
 
         {/* ── Right Panel ── */}
         <aside className={`flex-shrink-0 w-80 flex flex-col border-l border-border/20 bg-card/10 transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
