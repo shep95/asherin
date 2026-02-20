@@ -809,6 +809,72 @@ const ImagineToCodeView = () => {
     URL.revokeObjectURL(a.href);
   };
 
+  // ── AUREON SSE streaming helper ────────────────────────────────────────────
+  const callAureonStream = async (
+    messages: { role: "user" | "assistant"; content: string }[],
+    systemPrompt: string
+  ): Promise<string> => {
+    const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages, mode: "standard", systemPrompt }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+    if (!resp.body) throw new Error("No response body");
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let fullText = "";
+    let streamDone = false;
+
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") { streamDone = true; break; }
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) fullText += content;
+        } catch { /* ignore partial */ }
+      }
+    }
+
+    // Flush remaining buffer
+    for (let raw of textBuffer.split("\n")) {
+      if (!raw || raw.startsWith(":")) continue;
+      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+      if (!raw.startsWith("data: ")) continue;
+      const jsonStr = raw.slice(6).trim();
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) fullText += content;
+      } catch { /* ignore */ }
+    }
+
+    return fullText || "No response received.";
+  };
+
   // ── AUREON ─────────────────────────────────────────────────────────────────
   const buildSystemPrompt = (currentRects: PixelRect[], currentW: number, currentH: number, forLoop = false) => {
     const canvasContext = currentRects.length > 0
@@ -865,11 +931,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
     const systemPrompt = buildSystemPrompt(currentRects, currentW, currentH, false);
 
     try {
-      const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: apiMessages, mode: "standard", systemPrompt },
-      });
-      if (error) throw error;
-      const responseText = data?.content || data?.message || "No response received.";
+      const responseText = await callAureonStream(apiMessages, systemPrompt);
       const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
       const assistantMsg: AureonMessage = { id: uid(), role: "assistant", content: responseText, canvasEdit: editedRects ?? undefined, timestamp: new Date() };
       setAureonMessages(prev => [...prev, assistantMsg]);
@@ -928,11 +990,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
       ];
 
       try {
-        const { data, error } = await supabase.functions.invoke("chat", {
-          body: { messages: messagesPayload, mode: "standard", systemPrompt },
-        });
-        if (error) throw error;
-        const responseText = data?.content || data?.message || "No response.";
+        const responseText = await callAureonStream(messagesPayload, systemPrompt);
 
         const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
         if (editedRects) {
