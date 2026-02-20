@@ -136,17 +136,18 @@ function OnboardingLinkCard({
         <div className="space-y-1.5">
           <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Signed Onboarding Link</p>
           <div className="rounded-lg border border-border/20 bg-card/20 px-3 py-2 space-y-2">
-            <div className="flex items-start gap-2">
-              <Link2 className="h-3.5 w-3.5 text-accent flex-shrink-0 mt-0.5" />
-              <code className="flex-1 text-[11px] font-mono text-foreground/60 break-all whitespace-pre-wrap">{link}</code>
+            <div className="flex items-center gap-2">
+              <Link2 className="h-3.5 w-3.5 text-accent flex-shrink-0" />
+              <code className="flex-1 text-[11px] font-mono text-foreground/80">https://aureonai.app/pair</code>
+              <button
+                onClick={() => onCopy(link)}
+                className="flex items-center gap-1 text-[10px] text-accent hover:text-accent/80 transition-colors flex-shrink-0"
+                title="Copy full link"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </button>
             </div>
-            <button
-              onClick={() => onCopy(link)}
-              className="flex items-center gap-1.5 text-[10px] text-accent hover:text-accent/80 transition-colors"
-              title="Copy link"
-            >
-              <Copy className="h-3 w-3" /> Copy Link
-            </button>
+            <p className="text-[9px] text-muted-foreground/40 pl-5">Full signed link copied to clipboard — token hidden for security</p>
           </div>
         </div>
       )}
@@ -272,9 +273,8 @@ export default function TrackerView() {
       const { data: session } = await supabase.auth.getSession();
       const userToken = session?.session?.access_token;
 
-      // Build the signed onboarding link — the token IS the user's auth JWT
-      // scoped with the deviceId as a query param (mirrors MOBILE_APP_DEEPLINK_BASE pattern)
-      const onboardingLink = `aureon://pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
+      // Build the signed onboarding link using the public domain
+      const onboardingLink = `https://aureonai.app/pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
 
       // Step 3: Store the pending device in local state with the link for display
       const pendingDevice: TrackerDevice = {
