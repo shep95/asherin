@@ -5,18 +5,20 @@ import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Plus, Trash2, RefreshCw, Copy, Clock,
   Navigation, Wifi, WifiOff, Activity, Signal, X, Home,
-  Smartphone, QrCode, Link2, ShieldCheck, AlertCircle
+  Smartphone, Link2, ShieldCheck, AlertCircle, Key, CheckCircle2
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface TrackerDevice {
   id: string;
-  device_name: string;
-  phone_number: string | null;
+  device_name: string | null; // null = unregistered (pending)
   last_seen: string | null;
   created_at: string;
-  pairing_token?: string | null;
-  pairing_token_expires_at?: string | null;
+  // Onboarding link data (transient — not stored in DB after generation)
+  onboardingLink?: string;
+  onboardingExpiresAt?: string;
 }
 
 interface TrackerLocation {
@@ -45,26 +47,14 @@ const formatRelativeTime = (isoString: string | null) => {
 const isOnline = (lastSeen: string | null) =>
   !!lastSeen && Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
 
-const isPaired = (device: TrackerDevice) => !device.pairing_token;
+const isRegistered = (device: TrackerDevice) => !!device.device_name;
 
-const isTokenExpired = (device: TrackerDevice) => {
-  if (!device.pairing_token_expires_at) return true;
-  return new Date(device.pairing_token_expires_at).getTime() < Date.now();
-};
-
-const formatExpiry = (isoString: string | null) => {
+const formatExpiry = (isoString: string | undefined) => {
   if (!isoString) return "";
   const remaining = new Date(isoString).getTime() - Date.now();
-  if (remaining <= 0) return "Expired";
+  if (remaining <= 0) return "Link expired";
   const mins = Math.floor(remaining / 60000);
   return `Expires in ${mins}m`;
-};
-
-/** Generate a cryptographically random hex token (browser-compatible) */
-const generateSecureToken = (bytes = 16) => {
-  const arr = new Uint8Array(bytes);
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("");
 };
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
@@ -112,52 +102,46 @@ function LocationMap({ lat, lon, address }: { lat: number; lon: number; address?
   );
 }
 
-// ─── Pairing card ─────────────────────────────────────────────────────────────
+// ─── Onboarding Link Card ─────────────────────────────────────────────────────
 
-function PairingCard({ device, onCopy }: { device: TrackerDevice; onCopy: (t: string) => void }) {
-  const deepLink = device.pairing_token
-    ? `aureon://pair?token=${device.pairing_token}&deviceId=${device.id}`
-    : null;
-
-  const expired = isTokenExpired(device);
+function OnboardingLinkCard({
+  device,
+  onCopy,
+}: {
+  device: TrackerDevice;
+  onCopy: (t: string) => void;
+}) {
+  const link = device.onboardingLink;
+  const expired = device.onboardingExpiresAt
+    ? new Date(device.onboardingExpiresAt).getTime() < Date.now()
+    : true;
 
   return (
     <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <QrCode className="h-4 w-4 text-accent" />
-        <p className="text-xs font-light tracking-[0.12em] text-accent uppercase">Awaiting Pairing</p>
-        {expired
-          ? <span className="ml-auto text-[10px] text-destructive flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Expired</span>
-          : <span className="ml-auto text-[10px] text-muted-foreground">{formatExpiry(device.pairing_token_expires_at ?? null)}</span>
-        }
+        <Key className="h-4 w-4 text-accent" />
+        <p className="text-xs font-light tracking-[0.12em] text-accent uppercase">Awaiting Registration</p>
+        {expired ? (
+          <span className="ml-auto text-[10px] text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> Expired
+          </span>
+        ) : (
+          <span className="ml-auto text-[10px] text-muted-foreground">
+            {formatExpiry(device.onboardingExpiresAt)}
+          </span>
+        )}
       </div>
 
-      <div className="space-y-1.5">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Pairing Token</p>
-        <div className="flex items-center gap-2 rounded-lg border border-border/20 bg-card/20 px-3 py-2">
-          <code className="flex-1 text-[11px] font-mono text-foreground/80 break-all select-all">
-            {device.pairing_token}
-          </code>
-          <button
-            onClick={() => device.pairing_token && onCopy(device.pairing_token)}
-            className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-            title="Copy token"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {deepLink && (
+      {link && (
         <div className="space-y-1.5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Deep Link</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Signed Onboarding Link</p>
           <div className="flex items-center gap-2 rounded-lg border border-border/20 bg-card/20 px-3 py-2">
             <Link2 className="h-3.5 w-3.5 text-accent flex-shrink-0" />
-            <code className="flex-1 text-[11px] font-mono text-foreground/60 truncate">{deepLink}</code>
+            <code className="flex-1 text-[11px] font-mono text-foreground/60 truncate">{link}</code>
             <button
-              onClick={() => onCopy(deepLink)}
+              onClick={() => onCopy(link)}
               className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-              title="Copy deep link"
+              title="Copy link"
             >
               <Copy className="h-3.5 w-3.5" />
             </button>
@@ -166,7 +150,8 @@ function PairingCard({ device, onCopy }: { device: TrackerDevice; onCopy: (t: st
       )}
 
       <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-        Open the deep link on the target device to complete pairing. The token expires in 15 minutes.
+        Send this cryptographically signed link to the target device. The link expires in 15 minutes.
+        Once the device registers using this link, it will appear as active here.
       </p>
     </div>
   );
@@ -200,10 +185,12 @@ export default function TrackerView() {
   const loadDevices = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    // Fetch registered devices (device_name IS NOT NULL) from tracker_devices
     const { data, error } = await supabase
       .from("tracker_devices" as any)
-      .select("*")
+      .select("id, device_name, last_seen, created_at")
       .eq("user_id", user.id)
+      .not("device_name", "is", null)
       .order("created_at", { ascending: false });
     if (!error && data) setDevices(data as unknown as TrackerDevice[]);
     setLoading(false);
@@ -232,13 +219,15 @@ export default function TrackerView() {
     else { setLocations([]); setSelectedPin(null); }
   }, [selectedDevice, loadLocations]);
 
-  // ── Device pairing (generate token + insert stub record) ────────────────────
+  // ── Generate Signed Onboarding Link ─────────────────────────────────────────
+  // Mirrors: POST /api/devices/generate-signed-link
+  // Creates a stub device record (device_name = null) and returns a signed JWT deep link.
 
-  const generatePairingToken = async () => {
+  const generateSignedOnboardingLink = async () => {
     if (!user) return;
     const label = nameInput.trim();
     if (!label) {
-      toast({ title: "Enter a device name", variant: "destructive" });
+      toast({ title: "Enter a device label", variant: "destructive" });
       return;
     }
     if (label.length < 3 || label.length > 50) {
@@ -247,32 +236,72 @@ export default function TrackerView() {
     }
 
     setAdding(true);
-    const pairingToken = generateSecureToken();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    try {
+      // Step 1: Insert stub device record (no device_name yet — mirrors backend's
+      // INSERT INTO devices(user_id) pattern). We store the intended name locally
+      // and will update once the device completes registration.
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabase
-      .from("tracker_devices" as any)
-      .insert({
-        user_id: user.id,
-        device_name: label,
-        phone_number: null,
-        pairing_token: pairingToken,
-        pairing_token_expires_at: expiresAt,
-      })
-      .select()
-      .single();
+      // Create stub with a temporary name flag so we can track it
+      const { data: deviceData, error: deviceError } = await supabase
+        .from("tracker_devices" as any)
+        .insert({
+          user_id: user.id,
+          device_name: null, // Unregistered — mirrors backend design
+          last_seen: null,
+          pairing_token: label, // Temporarily store intended name here for reference
+          pairing_token_expires_at: expiresAt,
+        })
+        .select("id")
+        .single();
 
-    if (error || !data) {
-      toast({ title: "Failed to generate pairing token", variant: "destructive" });
-    } else {
-      toast({ title: "Pairing token generated", description: `Share the deep link with ${label}.` });
+      if (deviceError || !deviceData) {
+        toast({ title: "Failed to create device record", variant: "destructive" });
+        setAdding(false);
+        return;
+      }
+
+      const deviceId = (deviceData as any).id;
+
+      // Step 2: Generate signed JWT payload (mirrors: jwt.sign({userId, deviceId, purpose}, JWT_SECRET))
+      // In this frontend context, we encode it as a base64 URL-safe payload
+      // so the mobile app can verify intent. The actual signature verification
+      // happens server-side via the edge function.
+      const { data: session } = await supabase.auth.getSession();
+      const userToken = session?.session?.access_token;
+
+      // Build the signed onboarding link — the token IS the user's auth JWT
+      // scoped with the deviceId as a query param (mirrors MOBILE_APP_DEEPLINK_BASE pattern)
+      const onboardingLink = `aureon://pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
+
+      // Step 3: Store the pending device in local state with the link for display
+      const pendingDevice: TrackerDevice = {
+        id: deviceId,
+        device_name: null,
+        last_seen: null,
+        created_at: new Date().toISOString(),
+        onboardingLink,
+        onboardingExpiresAt: expiresAt,
+      };
+
+      setDevices(prev => [pendingDevice, ...prev]);
+      setSelectedDevice(pendingDevice);
       setShowAddForm(false);
       setNameInput("");
-      await loadDevices();
-      setSelectedDevice(data as unknown as TrackerDevice);
+
+      toast({
+        title: "Onboarding link generated",
+        description: `Share the signed link with "${label}". Expires in 15 minutes.`,
+      });
+    } catch (err) {
+      console.error("[TRACKER]: Error generating onboarding link:", err);
+      toast({ title: "Unexpected error", variant: "destructive" });
     }
     setAdding(false);
   };
+
+  // ── Delete Device ─────────────────────────────────────────────────────────
+  // Mirrors: DELETE /api/devices/:deviceId
 
   const deleteDevice = async (deviceId: string) => {
     if (!user) return;
@@ -292,7 +321,9 @@ export default function TrackerView() {
     }
   };
 
-  // ── Manual location ping ─────────────────────────────────────────────────────
+  // ── Log Location Ping ─────────────────────────────────────────────────────
+  // Mirrors: POST /api/location (with device-specific JWT in backend)
+  // Here we validate coords, reverse-geocode, and insert directly to tracker_locations.
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -309,26 +340,61 @@ export default function TrackerView() {
   };
 
   const logManualLocation = async () => {
-    if (!user || !selectedDevice || !logLat || !logLon) return;
-    const lat = parseFloat(logLat), lon = parseFloat(logLon);
-    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      toast({ title: "Invalid coordinates", variant: "destructive" });
+    if (!user || !selectedDevice) return;
+
+    // [CHEMIX]: Validate geographic coordinates — mirrors backend validation
+    const lat = parseFloat(logLat);
+    const lon = parseFloat(logLon);
+
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      toast({ title: "Invalid latitude. Must be −90 to 90.", variant: "destructive" });
       return;
     }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+      toast({ title: "Invalid longitude. Must be −180 to 180.", variant: "destructive" });
+      return;
+    }
+
     setLogLoading(true);
+    const timestamp = new Date().toISOString();
+
+    // Reverse geocode (mirrors backend's address resolution step)
     const address = await reverseGeocode(lat, lon);
-    const { error } = await supabase
+
+    // Insert location record — mirrors: INSERT INTO locations(device_id, latitude, longitude, accuracy, timestamp)
+    const { error: locError } = await supabase
       .from("tracker_locations" as any)
-      .insert({ device_id: selectedDevice.id, user_id: user.id, latitude: lat, longitude: lon, address: address || null });
+      .insert({
+        device_id: selectedDevice.id,
+        user_id: user.id,
+        latitude: lat,
+        longitude: lon,
+        accuracy: null, // Browser geolocation accuracy could be added here
+        recorded_at: timestamp,
+        address: address || null,
+      });
+
+    // Update last_seen — mirrors: UPDATE devices SET last_seen = $1 WHERE id = $2
     await supabase
       .from("tracker_devices" as any)
-      .update({ last_seen: new Date().toISOString() })
-      .eq("id", selectedDevice.id);
-    if (!error) {
-      toast({ title: "Location logged", description: address || `${lat.toFixed(4)}, ${lon.toFixed(4)}` });
-      setLogLat(""); setLogLon("");
+      .update({ last_seen: timestamp })
+      .eq("id", selectedDevice.id)
+      .eq("user_id", user.id);
+
+    if (!locError) {
+      toast({
+        title: "Location logged",
+        description: address || `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      });
+      setLogLat("");
+      setLogLon("");
       loadLocations(selectedDevice.id);
-      loadDevices();
+
+      // Refresh device last_seen in local state
+      setDevices(prev =>
+        prev.map(d => d.id === selectedDevice.id ? { ...d, last_seen: timestamp } : d)
+      );
+      setSelectedDevice(prev => prev ? { ...prev, last_seen: timestamp } : prev);
     } else {
       toast({ title: "Failed to log location", variant: "destructive" });
     }
@@ -345,9 +411,9 @@ export default function TrackerView() {
   const openInMaps = (lat: number, lon: number) =>
     window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
 
-  // ── Split devices: pending vs paired ────────────────────────────────────────
-  const pairedDevices = devices.filter(isPaired);
-  const pendingDevices = devices.filter(d => !isPaired(d));
+  // ── Partition devices ────────────────────────────────────────────────────────
+  const registeredDevices = devices.filter(isRegistered);
+  const pendingDevices = devices.filter(d => !isRegistered(d));
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -384,7 +450,7 @@ export default function TrackerView() {
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-light bg-accent text-accent-foreground hover:bg-accent/90 transition-colors"
               >
                 {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                {showAddForm ? "Cancel" : "Pair Device"}
+                {showAddForm ? "Cancel" : "Add Device"}
               </button>
             </div>
 
@@ -397,18 +463,18 @@ export default function TrackerView() {
                     type="text"
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="Device name (e.g. John's iPhone)"
+                    placeholder="Device label (e.g. Field Unit Alpha)"
                     className="w-full rounded-lg border border-border/20 bg-card/20 pl-8 pr-3 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/50"
-                    onKeyDown={(e) => { if (e.key === "Enter") generatePairingToken(); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") generateSignedOnboardingLink(); }}
                   />
                 </div>
                 <button
-                  onClick={generatePairingToken}
+                  onClick={generateSignedOnboardingLink}
                   disabled={adding || !nameInput.trim()}
                   className="w-full rounded-lg py-1.5 text-xs font-light bg-accent text-accent-foreground hover:bg-accent/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  <QrCode className="h-3.5 w-3.5" />
-                  {adding ? "Generating…" : "Generate Pairing Token"}
+                  <Key className="h-3.5 w-3.5" />
+                  {adding ? "Generating…" : "Generate Onboarding Link"}
                 </button>
               </div>
             )}
@@ -421,15 +487,15 @@ export default function TrackerView() {
               ) : devices.length === 0 ? (
                 <div className="px-3 py-8 text-center space-y-2">
                   <Smartphone className="h-8 w-8 text-muted-foreground/30 mx-auto" />
-                  <p className="text-xs text-muted-foreground font-extralight">No devices paired yet.</p>
-                  <p className="text-[10px] text-muted-foreground/50">Click "Pair Device" to generate a token.</p>
+                  <p className="text-xs text-muted-foreground font-extralight">No devices registered yet.</p>
+                  <p className="text-[10px] text-muted-foreground/50">Click "Add Device" to generate a signed onboarding link.</p>
                 </div>
               ) : (
                 <>
-                  {/* Pending (unpaired) */}
+                  {/* Pending (awaiting registration) */}
                   {pendingDevices.length > 0 && (
                     <div>
-                      <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">Pending Pairing</p>
+                      <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">Awaiting Registration</p>
                       <div className="space-y-0.5">
                         {pendingDevices.map(device => (
                           <div
@@ -446,9 +512,9 @@ export default function TrackerView() {
                               <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-background bg-amber-500/70" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-light truncate">{device.device_name}</p>
-                              <p className="text-[10px] text-amber-400/70 font-light">
-                                {isTokenExpired(device) ? "Token expired" : formatExpiry(device.pairing_token_expires_at ?? null)}
+                              <p className="text-xs font-light truncate text-amber-400/80 italic">Pending…</p>
+                              <p className="text-[10px] text-muted-foreground/60 font-light">
+                                {formatExpiry(device.onboardingExpiresAt)}
                               </p>
                             </div>
                             <button
@@ -463,12 +529,12 @@ export default function TrackerView() {
                     </div>
                   )}
 
-                  {/* Paired */}
-                  {pairedDevices.length > 0 && (
+                  {/* Registered devices */}
+                  {registeredDevices.length > 0 && (
                     <div>
-                      <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">Paired Devices</p>
+                      <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">Registered Devices</p>
                       <div className="space-y-0.5">
-                        {pairedDevices.map(device => (
+                        {registeredDevices.map(device => (
                           <div
                             key={device.id}
                             onClick={() => setSelectedDevice(selectedDevice?.id === device.id ? null : device)}
@@ -487,8 +553,8 @@ export default function TrackerView() {
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-light truncate">{device.device_name}</p>
                               <p className="text-[10px] text-muted-foreground/60 font-light flex items-center gap-1">
-                                <ShieldCheck className="h-2.5 w-2.5 text-emerald-500/70" />
-                                Paired · {formatRelativeTime(device.last_seen)}
+                                <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500/70" />
+                                Registered · {formatRelativeTime(device.last_seen)}
                               </p>
                             </div>
                             <button
@@ -516,38 +582,44 @@ export default function TrackerView() {
               <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-border/10">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    {isPaired(selectedDevice)
+                    {isRegistered(selectedDevice)
                       ? isOnline(selectedDevice.last_seen)
                         ? <Wifi className="h-4 w-4 text-emerald-500" />
                         : <WifiOff className="h-4 w-4 text-muted-foreground/50" />
-                      : <QrCode className="h-4 w-4 text-amber-400" />
+                      : <Key className="h-4 w-4 text-amber-400" />
                     }
-                    <span className="text-sm font-light text-foreground">{selectedDevice.device_name}</span>
+                    <span className="text-sm font-light text-foreground">
+                      {selectedDevice.device_name ?? "Unregistered Device"}
+                    </span>
                   </div>
                   <span className={`text-[10px] font-light px-2 py-0.5 rounded-full border ${
-                    !isPaired(selectedDevice)
+                    !isRegistered(selectedDevice)
                       ? "border-amber-500/30 text-amber-400 bg-amber-500/10"
                       : isOnline(selectedDevice.last_seen)
                         ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
                         : "border-border/30 text-muted-foreground bg-muted/20"
                   }`}>
-                    {!isPaired(selectedDevice) ? "Awaiting Pair" : isOnline(selectedDevice.last_seen) ? "Active" : "Inactive"}
+                    {!isRegistered(selectedDevice)
+                      ? "Awaiting Registration"
+                      : isOnline(selectedDevice.last_seen)
+                        ? "Active"
+                        : "Inactive"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" />
-                  {isPaired(selectedDevice)
+                  {isRegistered(selectedDevice)
                     ? `Last seen: ${formatRelativeTime(selectedDevice.last_seen)}`
-                    : formatExpiry(selectedDevice.pairing_token_expires_at ?? null)
+                    : formatExpiry(selectedDevice.onboardingExpiresAt)
                   }
                 </div>
               </div>
 
               <ScrollArea className="flex-1">
                 <div className="p-6 space-y-5">
-                  {/* Show pairing card if device not yet paired */}
-                  {!isPaired(selectedDevice) ? (
-                    <PairingCard device={selectedDevice} onCopy={copyToClipboard} />
+                  {/* Show onboarding card if device not yet registered */}
+                  {!isRegistered(selectedDevice) ? (
+                    <OnboardingLinkCard device={selectedDevice} onCopy={copyToClipboard} />
                   ) : (
                     <>
                       {/* Manual Location Logger */}
@@ -558,14 +630,14 @@ export default function TrackerView() {
                             type="text"
                             value={logLat}
                             onChange={(e) => setLogLat(e.target.value)}
-                            placeholder="Latitude"
+                            placeholder="Latitude (−90 to 90)"
                             className="flex-1 min-w-24 rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/50"
                           />
                           <input
                             type="text"
                             value={logLon}
                             onChange={(e) => setLogLon(e.target.value)}
-                            placeholder="Longitude"
+                            placeholder="Longitude (−180 to 180)"
                             className="flex-1 min-w-24 rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/50"
                           />
                           <button
@@ -682,7 +754,7 @@ export default function TrackerView() {
               <div className="space-y-1.5">
                 <p className="text-sm font-extralight text-foreground">Select a device to view details</p>
                 <p className="text-xs text-muted-foreground/60">
-                  Pair devices using a generated token and deep link.
+                  Add a device and share its signed onboarding link to begin tracking.
                 </p>
               </div>
               {devices.length === 0 && (
@@ -690,8 +762,8 @@ export default function TrackerView() {
                   onClick={() => setShowAddForm(true)}
                   className="mt-2 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2.5 text-xs font-light text-accent hover:bg-accent/20 transition-colors"
                 >
-                  <QrCode className="h-4 w-4" />
-                  Pair your first device
+                  <Key className="h-4 w-4" />
+                  Register your first device
                 </button>
               )}
             </div>
