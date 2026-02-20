@@ -97,7 +97,7 @@ function parseAureonPixelEdit(response: string, currentRects: PixelRect[], curre
   }
 }
 
-const MAX_DIM = 128;
+const MAX_DIM = 512;
 const ZOOM_FACTOR = 0.8;
 
 // ─── Sessions Panel ────────────────────────────────────────────────────────────
@@ -208,11 +208,11 @@ const ImagineToCodeView = () => {
   const [rects, setRects] = useState<PixelRect[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
-  const [gridW, setGridW] = useState(64);
-  const [gridH, setGridH] = useState(64);
+  const [gridW, setGridW] = useState(256);
+  const [gridH, setGridH] = useState(256);
   const [activeTool, setActiveTool] = useState<Tool>("pan");
   const [activeColor, setActiveColor] = useState("#7C3AED");
-  const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: 64, h: 64 });
+  const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: 256, h: 256 });
   const [exportFormat, setExportFormat] = useState<ExportFormat>("svg");
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
@@ -233,8 +233,8 @@ const ImagineToCodeView = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rectsRef = useRef<PixelRect[]>([]);
   useEffect(() => { rectsRef.current = rects; }, [rects]);
-  const gridWRef = useRef(64);
-  const gridHRef = useRef(64);
+  const gridWRef = useRef(256);
+  const gridHRef = useRef(256);
   useEffect(() => { gridWRef.current = gridW; gridHRef.current = gridH; }, [gridW, gridH]);
 
   // Auto-scroll AUREON chat
@@ -345,6 +345,7 @@ const ImagineToCodeView = () => {
     gridWRef.current = s.grid_w;
     gridHRef.current = s.grid_h;
     setViewBox({ x: 0, y: 0, w: s.grid_w, h: s.grid_h });
+    // Start zoomed in ~4x so micro-pixels are visible immediately
     syncUndoRedo();
     // Restore AUREON messages with dates
     const msgs = s.aureon_messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
