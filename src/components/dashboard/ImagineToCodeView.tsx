@@ -137,6 +137,19 @@ const ImagineToCodeView = () => {
     });
   };
 
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 0.85 : 1 / 0.85;
+    const coords = svgCoords(e as unknown as React.MouseEvent);
+    if (!coords) { zoom(factor); return; }
+    setViewBox(vb => {
+      const nw = vb.w * factor; const nh = vb.h * factor;
+      const nx = coords.x - (coords.x - vb.x) * factor;
+      const ny = coords.y - (coords.y - vb.y) * factor;
+      return { x: nx, y: ny, w: nw, h: nh };
+    });
+  };
+
   const onMouseDown = (e: React.MouseEvent) => {
     const coords = svgCoords(e);
     if (!coords) return;
@@ -381,6 +394,7 @@ const ImagineToCodeView = () => {
             onMouseMove={onMouseMove}
             onMouseUp={onMouseUp}
             onMouseLeave={onMouseUp}
+            onWheel={onWheel}
           >
             <rect x={0} y={0} width={gridW} height={gridH} fill="hsl(var(--card))" />
             {visibleRects.map(r => (
