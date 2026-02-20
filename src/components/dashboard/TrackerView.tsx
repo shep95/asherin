@@ -114,49 +114,49 @@ function OnboardingLinkCard({
   onRegenerate: (deviceId: string) => void;
 }) {
   const link = device.onboardingLink;
-  // A link is "bad" if it's missing or still uses the old aureon:// scheme
   const isBadLink = !link || link.startsWith("aureon://");
-  const expired = device.onboardingExpiresAt
-    ? new Date(device.onboardingExpiresAt).getTime() < Date.now()
-    : true;
 
   return (
     <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Key className="h-4 w-4 text-accent" />
-        <p className="text-xs font-light tracking-[0.12em] text-accent uppercase">Awaiting Registration</p>
-        {expired || isBadLink ? (
-          <span className="ml-auto text-[10px] text-destructive flex items-center gap-1">
-            <AlertCircle className="h-3 w-3" /> {isBadLink ? "Invalid link" : "Expired"}
-          </span>
-        ) : (
-          <span className="ml-auto text-[10px] text-muted-foreground">
-            {formatExpiry(device.onboardingExpiresAt)}
-          </span>
-        )}
+        <p className="text-xs font-light tracking-[0.12em] text-accent uppercase">Target Tracking Link</p>
+      </div>
+
+      {/* WARNING — do not open this yourself */}
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 flex items-start gap-2">
+        <AlertCircle className="h-3.5 w-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+        <p className="text-[10px] text-amber-300/80 leading-relaxed">
+          <strong>Do not open this link yourself.</strong> Send it to the target device only.
+          Opening it in your own browser will track your location instead.
+        </p>
       </div>
 
       {!isBadLink && link ? (
         <div className="space-y-1.5">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Signed Onboarding Link</p>
-          <div className="rounded-lg border border-border/20 bg-card/20 px-3 py-2 space-y-2">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Shareable Tracking Link</p>
+          <div className="rounded-lg border border-border/20 bg-card/20 px-3 py-2.5 space-y-2">
             <div className="flex items-center gap-2">
               <Link2 className="h-3.5 w-3.5 text-accent flex-shrink-0" />
-              <code className="flex-1 text-[11px] font-mono text-foreground/80">https://aureonai.app/pair</code>
+              <code className="flex-1 text-[11px] font-mono text-foreground/60 truncate select-none">
+                [signed tracker link — click copy to share]
+              </code>
               <button
                 onClick={() => onCopy(link)}
-                className="flex items-center gap-1 text-[10px] text-accent hover:text-accent/80 transition-colors flex-shrink-0"
-                title="Copy full link"
+                className="flex items-center gap-1 text-[10px] text-accent hover:text-accent/80 transition-colors flex-shrink-0 border border-accent/30 rounded px-2 py-0.5"
+                title="Copy tracking link"
               >
-                <Copy className="h-3 w-3" /> Copy
+                <Copy className="h-3 w-3" /> Copy Link
               </button>
             </div>
-            <p className="text-[9px] text-muted-foreground/40 pl-5">Full signed link copied to clipboard — token hidden for security</p>
+            <p className="text-[9px] text-muted-foreground/40 pl-5">
+              Each unique device that opens this link is tracked independently. The same link works for unlimited targets.
+            </p>
           </div>
         </div>
       ) : (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 space-y-2">
-          <p className="text-[10px] text-destructive/80">This link uses an outdated format and cannot be used.</p>
+          <p className="text-[10px] text-destructive/80">Link is invalid or outdated.</p>
           <button
             onClick={() => onRegenerate(device.id)}
             className="flex items-center gap-1.5 text-[10px] text-accent hover:text-accent/80 transition-colors"
@@ -167,8 +167,7 @@ function OnboardingLinkCard({
       )}
 
       <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-        Send this cryptographically signed link to the target device. The link expires in 15 minutes.
-        Once the device registers using this link, it will appear as active here.
+        Once a target opens the link and grants location permission, they will appear as a registered device below with live location data.
       </p>
     </div>
   );
@@ -244,8 +243,13 @@ export default function TrackerView() {
   }, []);
 
   useEffect(() => {
-    if (selectedDevice) loadLocations(selectedDevice.id);
-    else { setLocations([]); setSelectedPin(null); }
+    // Don't attempt to load locations for transient pending devices (no real DB id)
+    if (selectedDevice && !selectedDevice.id.startsWith("pending-")) {
+      loadLocations(selectedDevice.id);
+    } else {
+      setLocations([]);
+      setSelectedPin(null);
+    }
   }, [selectedDevice, loadLocations]);
 
   // ── Generate Signed Onboarding Link ─────────────────────────────────────────
