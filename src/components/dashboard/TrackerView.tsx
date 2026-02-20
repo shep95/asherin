@@ -247,9 +247,9 @@ export default function TrackerView() {
         .from("tracker_devices" as any)
         .insert({
           user_id: user.id,
-          device_name: null, // Unregistered — mirrors backend design
+          device_name: label,
           last_seen: null,
-          pairing_token: label, // Temporarily store intended name here for reference
+          pairing_token: expiresAt, // Store expiry reference
           pairing_token_expires_at: expiresAt,
         })
         .select("id")
