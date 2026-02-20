@@ -97,10 +97,14 @@ function parseAureonPixelEdit(response: string, currentRects: PixelRect[], curre
   }
 }
 
-// Max side length before area budget clamps it
+// Max side length — never exceed this per axis
 const MAX_SIDE = 10_000;
-// Target pixel budget — scales with image area so large images stay proportionally denser
-const PIXEL_BUDGET_BASE = 250_000; // ~500×500 for a square image
+// Base pixel budget at 512×512 reference — scales with image area ratio
+const PIXEL_BUDGET_BASE = 1_000_000;
+// Area budget grows with sqrt of image area so larger images stay proportionally denser
+// 512×512  → 1,000×1,000  (1M px)
+// 1920×1080 → ~1,770×995  (1.76M px)
+// 300×200  →  740×493     (~365K px)
 const ZOOM_FACTOR = 0.8;
 
 // ─── Sessions Panel ────────────────────────────────────────────────────────────
@@ -522,23 +526,28 @@ const ImagineToCodeView = () => {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
+        const aspect = width / height;
         const imageArea = width * height;
 
-        // Scale the pixel budget proportionally to image area (larger images get more pixels)
-        // budget = BASE * sqrt(imageArea / (512*512)) — keeps 512×512 at ~250k pixels
+        // Pixel budget scales with sqrt of image area relative to 512×512 baseline
+        // — larger images get proportionally more pixels while staying performant
         const scaledBudget = PIXEL_BUDGET_BASE * Math.sqrt(imageArea / (512 * 512));
 
-        // Scale each side up to MAX_SIDE preserving ratio (allows upscaling small images)
-        const sideRatio = Math.min(MAX_SIDE / width, MAX_SIDE / height);
-        let newW = Math.round(width * sideRatio);
-        let newH = Math.round(height * sideRatio);
+        // Derive grid dimensions from budget, preserving exact aspect ratio
+        // newH = sqrt(budget / aspect), newW = newH * aspect
+        let newH = Math.round(Math.sqrt(scaledBudget / aspect));
+        let newW = Math.round(newH * aspect);
 
-        // Clamp by pixel budget preserving aspect ratio
-        if (newW * newH > scaledBudget) {
-          const budgetScale = Math.sqrt(scaledBudget / (newW * newH));
-          newW = Math.max(1, Math.round(newW * budgetScale));
-          newH = Math.max(1, Math.round(newH * budgetScale));
+        // Clamp individual sides to MAX_SIDE while re-preserving ratio
+        if (newW > MAX_SIDE || newH > MAX_SIDE) {
+          const clamp = Math.min(MAX_SIDE / newW, MAX_SIDE / newH);
+          newW = Math.round(newW * clamp);
+          newH = Math.round(newH * clamp);
         }
+
+        // Ensure at least 1px
+        newW = Math.max(1, newW);
+        newH = Math.max(1, newH);
 
         width = newW;
         height = newH;
