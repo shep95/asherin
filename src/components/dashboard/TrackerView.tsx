@@ -135,15 +135,17 @@ function OnboardingLinkCard({
       {link && (
         <div className="space-y-1.5">
           <p className="text-[10px] text-muted-foreground uppercase tracking-[0.1em]">Signed Onboarding Link</p>
-          <div className="flex items-center gap-2 rounded-lg border border-border/20 bg-card/20 px-3 py-2">
-            <Link2 className="h-3.5 w-3.5 text-accent flex-shrink-0" />
-            <code className="flex-1 text-[11px] font-mono text-foreground/60 truncate">{link}</code>
+          <div className="rounded-lg border border-border/20 bg-card/20 px-3 py-2 space-y-2">
+            <div className="flex items-start gap-2">
+              <Link2 className="h-3.5 w-3.5 text-accent flex-shrink-0 mt-0.5" />
+              <code className="flex-1 text-[11px] font-mono text-foreground/60 break-all whitespace-pre-wrap">{link}</code>
+            </div>
             <button
               onClick={() => onCopy(link)}
-              className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+              className="flex items-center gap-1.5 text-[10px] text-accent hover:text-accent/80 transition-colors"
               title="Copy link"
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-3 w-3" /> Copy Link
             </button>
           </div>
         </div>
