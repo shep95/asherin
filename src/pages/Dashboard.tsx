@@ -835,7 +835,9 @@ const Dashboard = () => {
           ? <SecurityDashboardView />
           : <FeatureGate title="Security Command Center" description="8-system defense suite — WAF, IDS, automated incident response, honeypots, threat intelligence, behavior analytics, and real-time monitoring. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "imagine-to-code":
-        return <ImagineToCodeView />;
+        return hasProAccess(tierKey)
+          ? <ImagineToCodeView />
+          : <FeatureGate title="Imagine To Code" description="AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Created by ZALI Software. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
