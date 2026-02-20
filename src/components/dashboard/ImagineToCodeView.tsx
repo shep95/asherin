@@ -97,7 +97,10 @@ function parseAureonPixelEdit(response: string, currentRects: PixelRect[], curre
   }
 }
 
-const MAX_DIM = 1000;
+// Max side length before area budget clamps it
+const MAX_SIDE = 10_000;
+// Target pixel budget — scales with image area so large images stay proportionally denser
+const PIXEL_BUDGET_BASE = 250_000; // ~500×500 for a square image
 const ZOOM_FACTOR = 0.8;
 
 // ─── Sessions Panel ────────────────────────────────────────────────────────────
@@ -519,9 +522,26 @@ const ImagineToCodeView = () => {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
-        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height, 1);
-        width = Math.floor(width * ratio);
-        height = Math.floor(height * ratio);
+        const imageArea = width * height;
+
+        // Scale the pixel budget proportionally to image area (larger images get more pixels)
+        // budget = BASE * sqrt(imageArea / (512*512)) — keeps 512×512 at ~250k pixels
+        const scaledBudget = PIXEL_BUDGET_BASE * Math.sqrt(imageArea / (512 * 512));
+
+        // Scale each side up to MAX_SIDE preserving ratio (allows upscaling small images)
+        const sideRatio = Math.min(MAX_SIDE / width, MAX_SIDE / height);
+        let newW = Math.round(width * sideRatio);
+        let newH = Math.round(height * sideRatio);
+
+        // Clamp by pixel budget preserving aspect ratio
+        if (newW * newH > scaledBudget) {
+          const budgetScale = Math.sqrt(scaledBudget / (newW * newH));
+          newW = Math.max(1, Math.round(newW * budgetScale));
+          newH = Math.max(1, Math.round(newH * budgetScale));
+        }
+
+        width = newW;
+        height = newH;
         const canvas = document.createElement("canvas");
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d")!;
