@@ -52,6 +52,7 @@ const plans: {
       "Elion / Zohar Toolkit — domain forensics & OSINT",
       "Full Domain Scan — security score + subdomain recon",
       "Predictive Intelligence — AI event forecasting",
+      "Imagine To Code — pixel art & SVG editor with AUREON AI",
       "ZALI Design Intelligence Lab",
       "ZALI Community — questions, requests & feature votes",
       "Asha Data Intelligence Platform",
