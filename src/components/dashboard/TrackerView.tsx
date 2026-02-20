@@ -270,26 +270,37 @@ export default function TrackerView() {
 
     setAdding(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const userToken = session?.session?.access_token;
-      if (!userToken) {
-        toast({ title: "Not authenticated", variant: "destructive" });
+      // Generate a short random code (8 chars) — looks like a normal invite code
+      const shortCode = Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6);
+
+      // Store the short code → user_id mapping in tracker_devices as a pending row
+      const { data: newDevice, error: insertErr } = await supabase
+        .from("tracker_devices" as any)
+        .insert({
+          user_id: user.id,
+          device_name: null, // null = pending / not yet registered
+          pairing_token: shortCode,
+          pairing_token_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (insertErr || !newDevice) {
+        toast({ title: "Failed to create tracker", variant: "destructive" });
         setAdding(false);
         return;
       }
 
-      // Use the clean aureonai.app/track URL so targets see a trustworthy link
-      const onboardingLink = `https://aureonai.app/track?token=${userToken}`;
+      // Clean, short URL — looks like a legitimate invite link
+      const onboardingLink = `https://aureonai.app/track?t=${shortCode}`;
 
-      // Use a transient local entry to display the link — no DB row needed upfront.
-      // Real device rows are created automatically when targets click the link.
       const pendingDevice: TrackerDevice = {
-        id: `pending-${Date.now()}`,
+        id: (newDevice as any).id,
         device_name: null,
         last_seen: null,
         created_at: new Date().toISOString(),
         onboardingLink,
-        onboardingExpiresAt: new Date(Date.now() + 60 * 60 * 1000 * 24 * 365).toISOString(), // effectively permanent
+        onboardingExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
       setDevices(prev => [pendingDevice, ...prev]);
@@ -333,10 +344,14 @@ export default function TrackerView() {
 
   const regenerateLink = async (deviceId: string) => {
     if (!user) return;
-    const { data: session } = await supabase.auth.getSession();
-    const userToken = session?.session?.access_token;
-    // Clean URL — targets see aureonai.app not a raw backend URL
-    const onboardingLink = `https://aureonai.app/track?token=${userToken}`;
+    // Generate a new short code and update the DB row
+    const shortCode = Math.random().toString(36).slice(2, 6) + Math.random().toString(36).slice(2, 6);
+    await supabase
+      .from("tracker_devices" as any)
+      .update({ pairing_token: shortCode })
+      .eq("id", deviceId)
+      .eq("user_id", user.id);
+    const onboardingLink = `https://aureonai.app/track?t=${shortCode}`;
     setDevices(prev => prev.map(d =>
       d.id === deviceId ? { ...d, onboardingLink } : d
     ));

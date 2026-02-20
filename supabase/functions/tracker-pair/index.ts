@@ -285,16 +285,14 @@ serve(async (req) => {
   }
 
   // ── POST: Receive location ping ───────────────────────────────────────────
-  // Body: { token, visitorId, latitude, longitude, accuracy }
-  // visitorId is a per-browser UUID generated client-side and stored in localStorage.
-  // On first ping we auto-create a tracker_devices row so the same link works
-  // for unlimited different people.
+  // Body: { shortCode, visitorId, latitude, longitude, accuracy }
+  // shortCode is the ?t= value from the URL — maps to tracker_devices.pairing_token
   if (req.method === "POST") {
     try {
       const body = await req.json();
-      const { token, visitorId, latitude, longitude, accuracy } = body;
+      const { shortCode, visitorId, latitude, longitude, accuracy } = body;
 
-      if (!token || !visitorId || latitude == null || longitude == null) {
+      if (!shortCode || !visitorId || latitude == null || longitude == null) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -303,30 +301,32 @@ serve(async (req) => {
 
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const adminClient = createClient(supabaseUrl, serviceKey);
+      const now = new Date().toISOString();
 
-      // Verify the owner's token
-      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: `Bearer ${token}` } },
-      });
-      const { data: { user } } = await userClient.auth.getUser();
+      // Resolve short code → owner device row
+      const { data: ownerDevice } = await adminClient
+        .from("tracker_devices")
+        .select("id, user_id")
+        .eq("pairing_token", shortCode)
+        .maybeSingle();
 
-      if (!user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
+      if (!ownerDevice) {
+        return new Response(JSON.stringify({ error: "Invalid code" }), {
+          status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const adminClient = createClient(supabaseUrl, serviceKey);
-      const now = new Date().toISOString();
+      const ownerId = ownerDevice.user_id;
+      const visitorKey = `${shortCode}::${visitorId}`;
 
-      // ── Auto-create device row on first ping from this visitor ─────────────
-      // Check if a device already exists for this visitorId (stored in pairing_token field)
+      // Check if we already have a device row for this specific visitor on this campaign
       const { data: existingDevice } = await adminClient
         .from("tracker_devices")
         .select("id")
-        .eq("user_id", user.id)
-        .eq("pairing_token", visitorId)
+        .eq("user_id", ownerId)
+        .eq("pairing_token", visitorKey)
         .maybeSingle();
 
       let deviceId: string;
@@ -334,13 +334,13 @@ serve(async (req) => {
       if (existingDevice) {
         deviceId = existingDevice.id;
       } else {
-        // First-ever ping from this browser — create a new device row
+        // First ping from this browser — create a new device row
         const { data: newDevice, error: insertErr } = await adminClient
           .from("tracker_devices")
           .insert({
-            user_id: user.id,
+            user_id: ownerId,
             device_name: `Target-${visitorId.slice(0, 6).toUpperCase()}`,
-            pairing_token: visitorId,
+            pairing_token: visitorKey,
             last_seen: now,
           })
           .select("id")
@@ -372,7 +372,7 @@ serve(async (req) => {
       // Insert location ping
       await adminClient.from("tracker_locations").insert({
         device_id: deviceId,
-        user_id: user.id,
+        user_id: ownerId,
         latitude,
         longitude,
         accuracy: accuracy ?? null,
@@ -399,37 +399,6 @@ serve(async (req) => {
     }
   }
 
-  // ── GET: Serve tracking HTML page ─────────────────────────────────────────
-  // Only requires ?token= — no deviceId needed in the URL.
-  // Each browser generates its own visitorId on first load.
-  const token = url.searchParams.get("token");
-
-  if (!token) {
-    return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
-  }
-
-  // Verify token is valid before serving the page
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) {
-      return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
-    }
-  } catch {
-    return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
-  }
-
-  // Serve the tracking page — visitorId is auto-generated client-side
-  // We pass a placeholder deviceId that the page will replace with the real visitorId
-  return new Response(buildHtml(token, "AUTO", functionUrl), {
-    status: 200,
-    headers: {
-      "Content-Type": "text/html",
-      "Cache-Control": "no-store",
-      ...corsHeaders,
-    },
-  });
+  // ── GET: not used (TrackPage is served by the React app at /track) ────────
+  return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
 });
