@@ -401,9 +401,9 @@ serve(async (req) => {
       return softwareKeywords.some((kw) => haystack.includes(kw));
     })();
 
-    // Count prior Q&A rounds to know if onboarding is complete
-    const priorUserMessages = (messages as { role: string; content: string }[]).filter((m) => m.role === "user").length;
-    const onboardingComplete = priorUserMessages >= 3;
+    // Detect if this is a "generate code now" trigger from the button
+    const lastUserMsg = (messages as { role: string; content: string }[]).filter((m) => m.role === "user").slice(-1)[0];
+    const isGenerateTrigger = lastUserMsg?.content?.includes("__GENERATE_CODE_NOW__");
 
     let projectStr = "";
     if (projectContext) {
@@ -418,11 +418,13 @@ serve(async (req) => {
         projectStr += `- This is a SOFTWARE project. NEVER output \`design_output\` blocks.\n`;
         projectStr += `- ALWAYS output \`code_output\` blocks with real, runnable code.\n`;
         projectStr += `- Do NOT show 3D design data, materials, or physical specs.\n`;
-        if (onboardingComplete) {
-          projectStr += `\n🚨 MANDATORY ACTION: You have already asked ${priorUserMessages} questions. THE ONBOARDING IS COMPLETE.\n`;
-          projectStr += `You MUST NOW generate real, working code in a \`\`\`code_output\n{...}\n\`\`\` block.\n`;
-          projectStr += `Do NOT ask more questions. Do NOT say "I need more info". GENERATE THE CODE NOW.\n`;
-          projectStr += `Output at minimum: the main entry file + 2-3 supporting files. Make it production-quality.\n`;
+        projectStr += `- Continue asking questions until the user explicitly triggers code generation.\n`;
+        if (isGenerateTrigger) {
+          projectStr += `\n🚨 THE USER HAS CLICKED "GENERATE CODE" — THIS IS A MANDATORY CODE GENERATION ORDER.\n`;
+          projectStr += `STOP ALL QUESTIONS. Based on ALL the conversation context above, you MUST NOW output a \`\`\`code_output\n{...}\n\`\`\` block.\n`;
+          projectStr += `Output REAL, COMPLETE, RUNNABLE code — at minimum: main entry file + 2-4 supporting files.\n`;
+          projectStr += `Make it production-quality. Typed. Documented. No placeholders. No "TODO" stubs.\n`;
+          projectStr += `Start your response with: "Building your [project name] now..." then output the code block.\n`;
         }
       } else {
         projectStr += `\nApply your design intelligence to this project context. Use the appropriate specialist agents (OPTIMUS, CHEMIX, BIOX, SYNTHIA, ECONIA, ETHICA) based on the design type.`;

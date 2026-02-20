@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Square, Lock, Copy, Check, Eye, Download, ArrowRight } from "lucide-react";
+import { Send, Square, Lock, Copy, Check, Eye, Download, ArrowRight, Sparkles, Code2 } from "lucide-react";
 import type { ZaliMessage, ZaliProject } from "./types";
 import type { ResponseDepth } from "../DepthSelector";
 import type { ChatMode } from "../types";
@@ -18,6 +18,14 @@ import FollowUpSuggestions from "../FollowUpSuggestions";
 import ScrollIntelligence from "../ScrollIntelligence";
 import DecodeView from "../DecodeView";
 import ZaliQuestionOptions, { parseQuestionOptions } from "./ZaliQuestionOptions";
+
+const SOFTWARE_TYPES = ["software", "app", "web", "mobile", "api", "saas", "backend", "frontend", "fullstack", "full-stack", "service", "microservice", "platform", "dashboard", "cli", "library", "plugin", "extension", "bot", "automation", "script", "code"];
+
+function isSoftwareProject(project: ZaliProject | null): boolean {
+  if (!project) return false;
+  const lower = (project.designType + " " + project.name + " " + project.description).toLowerCase();
+  return SOFTWARE_TYPES.some((kw) => lower.includes(kw));
+}
 
 interface Props {
   messages: ZaliMessage[];
@@ -90,31 +98,34 @@ const markdownComponents = {
 const CODE_BLOCK_RE = /```(\w+)?\n([\s\S]*?)```/g;
 
 function UserMessageContent({ content }: { content: string }) {
+  // Clean generate trigger prefix for display
+  const displayContent = content.replace("__GENERATE_CODE_NOW__ ", "").replace("__GENERATE_CODE_NOW__", "");
+
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   const regex = new RegExp(CODE_BLOCK_RE);
   let key = 0;
 
-  while ((match = regex.exec(content)) !== null) {
+  while ((match = regex.exec(displayContent)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(<span key={key++} className="whitespace-pre-wrap">{content.slice(lastIndex, match.index)}</span>);
+      parts.push(<span key={key++} className="whitespace-pre-wrap">{displayContent.slice(lastIndex, match.index)}</span>);
     }
     parts.push(<CodeFilePreview key={key++} code={match[2].trimEnd()} language={match[1]} />);
     lastIndex = match.index + match[0].length;
   }
 
-  if (lastIndex < content.length) {
-    parts.push(<span key={key++} className="whitespace-pre-wrap">{content.slice(lastIndex)}</span>);
+  if (lastIndex < displayContent.length) {
+    parts.push(<span key={key++} className="whitespace-pre-wrap">{displayContent.slice(lastIndex)}</span>);
   }
 
   if (parts.length === 0) {
-    const trimmed = content.trim();
+    const trimmed = displayContent.trim();
     const looksLikeCode = trimmed.split("\n").length >= 3 && (
       /[{};()=>]/.test(trimmed) && /^(import|export|const|let|var|function|def |class |#include|package |fn |pub )/.test(trimmed)
     );
     if (looksLikeCode) return <CodeFilePreview code={trimmed} />;
-    return <span className="whitespace-pre-wrap">{content}</span>;
+    return <span className="whitespace-pre-wrap">{displayContent}</span>;
   }
   return <>{parts}</>;
 }
@@ -306,26 +317,41 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex-shrink-0 p-2 sm:p-3 border-t border-border/20">
-          <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2.5 sm:py-2">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={project ? "Describe your design concept..." : "Create a project first"}
-              disabled={!project || isStreaming}
-              className="flex-1 bg-transparent text-[11px] sm:text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
-            />
-            {isStreaming ? (
-              <button type="button" onClick={onStop} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
-                <Square className="h-3.5 w-3.5" />
+        <div className="flex-shrink-0 border-t border-border/20">
+          {/* Generate Code button for software projects */}
+          {isSoftwareProject(project) && messages.length > 0 && !isStreaming && (
+            <div className="px-2 sm:px-3 pt-2.5 pb-1">
+              <button
+                onClick={() => onSend("__GENERATE_CODE_NOW__ Based on everything we've discussed, generate the complete code for this project now.")}
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/20 py-2.5 text-xs font-light text-accent transition-all group active:scale-[0.98]"
+              >
+                <Code2 className="h-3.5 w-3.5" />
+                <span>Generate Code</span>
+                <Sparkles className="h-3 w-3 opacity-60 group-hover:opacity-100 group-hover:animate-pulse transition-opacity" />
               </button>
-            ) : (
-              <button type="submit" disabled={!input.trim() || !project} className="p-1.5 rounded-lg text-accent hover:bg-accent/10 transition-colors disabled:opacity-30">
-                <Send className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </form>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="p-2 sm:p-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2.5 sm:py-2">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={project ? "Describe your design concept..." : "Create a project first"}
+                disabled={!project || isStreaming}
+                className="flex-1 bg-transparent text-[11px] sm:text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
+              />
+              {isStreaming ? (
+                <button type="button" onClick={onStop} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
+                  <Square className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <button type="submit" disabled={!input.trim() || !project} className="p-1.5 rounded-lg text-accent hover:bg-accent/10 transition-colors disabled:opacity-30">
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );
