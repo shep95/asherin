@@ -202,18 +202,30 @@ export default function TrackerView() {
   const loadDevices = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    // Fetch registered devices (device_name IS NOT NULL) from tracker_devices
+    // Fetch ALL devices (registered and pending) for this user
     const { data, error } = await supabase
       .from("tracker_devices" as any)
-      .select("id, device_name, last_seen, created_at")
+      .select("id, device_name, last_seen, created_at, pairing_token_expires_at")
       .eq("user_id", user.id)
-      .not("device_name", "is", null)
       .order("created_at", { ascending: false });
-    if (!error && data) setDevices(data as unknown as TrackerDevice[]);
+    if (!error && data) {
+      // Reconstruct onboarding state for pending devices
+      const mapped = (data as any[]).map((d: any) => ({
+        ...d,
+        onboardingExpiresAt: d.pairing_token_expires_at ?? undefined,
+      }));
+      setDevices(mapped as TrackerDevice[]);
+    }
     setLoading(false);
   }, [user]);
 
   useEffect(() => { loadDevices(); }, [loadDevices]);
+
+  // Auto-poll every 10 seconds to pick up newly paired devices
+  useEffect(() => {
+    const interval = setInterval(() => { loadDevices(); }, 10000);
+    return () => clearInterval(interval);
+  }, [loadDevices]);
 
   const loadLocations = useCallback(async (deviceId: string) => {
     setLocLoading(true);
@@ -287,8 +299,9 @@ export default function TrackerView() {
       const { data: session } = await supabase.auth.getSession();
       const userToken = session?.session?.access_token;
 
-      // Build the signed onboarding link using the public domain
-      const onboardingLink = `https://aureonai.app/pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
+      // Build the signed onboarding link pointing to the edge function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
 
       // Step 3: Store the pending device in local state with the link for display
       const pendingDevice: TrackerDevice = {
@@ -347,7 +360,8 @@ export default function TrackerView() {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     const { data: session } = await supabase.auth.getSession();
     const userToken = session?.session?.access_token;
-    const onboardingLink = `https://aureonai.app/pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
     setDevices(prev => prev.map(d =>
       d.id === deviceId ? { ...d, onboardingLink, onboardingExpiresAt: expiresAt } : d
     ));
