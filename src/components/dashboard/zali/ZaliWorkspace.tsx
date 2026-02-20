@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ModelDetailsPanel from "./ModelDetailsPanel";
 import Zali3DModel from "./Zali3DModel";
 import ZaliMaterialsView from "./ZaliMaterialsView";
+import ZaliCodeOutputPanel from "./ZaliCodeOutputPanel";
 
 const PHASE_CONFIG: Record<ZaliPhase, { label: string; color: string; description: string }> = {
   understanding: { label: "UNDERSTANDING", color: "text-blue-400", description: "Socratic questioning & first principles" },
@@ -24,13 +25,22 @@ const SCALE_LEVELS = [
   { label: "Quantum", scale: "sub-Å", icon: Cpu },
 ];
 
+const SOFTWARE_TYPES = ["software", "app", "web", "mobile", "api", "saas", "backend", "frontend", "fullstack", "full-stack", "service", "microservice", "platform", "dashboard", "cli", "library", "plugin", "extension", "bot", "automation", "script", "code"];
+
+function isSoftwareProject(project: ZaliProject | null): boolean {
+  if (!project) return false;
+  const lower = (project.designType + " " + project.name + " " + project.description).toLowerCase();
+  return SOFTWARE_TYPES.some((kw) => lower.includes(kw));
+}
+
 interface Props {
   project: ZaliProject | null;
   autoBuild?: boolean;
   modelPrompt?: string;
+  codeFiles?: Array<{ filename: string; language: string; content: string }>;
 }
 
-const ZaliWorkspace = ({ project, autoBuild, modelPrompt }: Props) => {
+const ZaliWorkspace = ({ project, autoBuild, modelPrompt, codeFiles = [] }: Props) => {
   const [activeScale, setActiveScale] = useState(0);
   const [viewMode, setViewMode] = useState<"assembled" | "exploded" | "crosssection" | "simulation">("assembled");
   const [designTab, setDesignTab] = useState<"product" | "materials">("product");
@@ -89,6 +99,20 @@ const ZaliWorkspace = ({ project, autoBuild, modelPrompt }: Props) => {
       setAppliedDescription(modelDescription.trim());
     }
   };
+
+  // ── Software project: show code output instead of 3D workspace ──────────────
+  const isSoftware = isSoftwareProject(project);
+  if (isSoftware) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <ZaliCodeOutputPanel
+          codeFiles={codeFiles}
+          projectName={project.name}
+          projectType={project.designType}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
