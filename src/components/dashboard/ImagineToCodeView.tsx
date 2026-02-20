@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw, Plus, FolderOpen, Trash2, Pencil, X, Save } from "lucide-react";
+import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw, Plus, FolderOpen, Trash2, Pencil, X, Save, RotateCcw, Play, Square as StopIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -233,6 +233,13 @@ const ImagineToCodeView = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // ── Autonomous loop state ─────────────────────────────────────────────────
+  const [loopActive, setLoopActive] = useState(false);
+  const [loopIteration, setLoopIteration] = useState(0);
+  const [loopStatus, setLoopStatus] = useState<string>("");
+  const loopAbortRef = useRef(false);
+  const MAX_LOOP_ITERATIONS = 12;
 
   const svgRef = useRef<SVGSVGElement>(null);
   const isPainting = useRef(false);
@@ -589,22 +596,22 @@ const ImagineToCodeView = () => {
   };
 
   // ── AUREON ─────────────────────────────────────────────────────────────────
-  const sendToAureon = async () => {
-    const inputText = aureonInput.trim();
-    if (!inputText) return;
-    const userMsg: AureonMessage = { id: uid(), role: "user", content: inputText, timestamp: new Date() };
-    const currentMessages = [...aureonMessages, userMsg];
-    setAureonMessages(currentMessages);
-    setAureonInput("");
-    setIsAnalyzing(true);
-    const currentRects = rectsRef.current;
-    const currentW = gridWRef.current;
-    const currentH = gridHRef.current;
-    const apiMessages = currentMessages.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+  const buildSystemPrompt = (currentRects: PixelRect[], currentW: number, currentH: number, forLoop = false) => {
     const canvasContext = currentRects.length > 0
-      ? `[Canvas: ${currentW}×${currentH} grid, ${currentRects.length} pixels. Dominant colors: ${[...new Set(currentRects.map(r => r.color))].slice(0, 6).join(", ")}. Sample pixels: ${currentRects.slice(0, 8).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${currentRects.length > 8 ? "..." : ""}]`
+      ? `[Canvas: ${currentW}×${currentH} grid, ${currentRects.length} pixels. Dominant colors: ${[...new Set(currentRects.map(r => r.color))].slice(0, 6).join(", ")}. Sample pixels: ${currentRects.slice(0, 12).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${currentRects.length > 12 ? `...+${currentRects.length - 12} more` : ""}]`
       : `[Canvas: Empty ${currentW}×${currentH} grid]`;
-    const systemPrompt = `You are AUREON, an elite AI assistant embedded in a pixel art and SVG editor called "Imagine To Code" (created by ZALI Software).
+
+    const loopInstructions = forLoop ? `
+AUTONOMOUS LOOP MODE: You are operating in a self-correcting autonomous loop.
+- After editing, you MUST critically "imagine" the result in your mind and score your confidence: DONE (90%+ satisfied) or ITERATE (needs more work).
+- End your response with one of these two tags on its own line:
+  <LOOP_STATUS: DONE> — you are satisfied with the result
+  <LOOP_STATUS: ITERATE reason="what still needs fixing"> — you will continue improving
+- Always include a pixel edit JSON block to apply changes. Never just describe — always edit.
+- Be systematic: each iteration should address one specific improvement.
+` : "";
+
+    return `You are AUREON, an elite AI assistant embedded in a pixel art and SVG editor called "Imagine To Code" (created by ZALI Software).
 
 Your capabilities:
 1. Analyze and describe the current pixel art
@@ -625,8 +632,23 @@ Pixel edit rules:
 - For drawing shapes, calculate exact pixel coordinates mathematically
 
 Current canvas: ${canvasContext}
-
+${loopInstructions}
 When drawing, be precise and systematic. If the request is ambiguous, ask one focused clarifying question first, then draw.`;
+  };
+
+  const sendToAureon = async () => {
+    const inputText = aureonInput.trim();
+    if (!inputText) return;
+    const userMsg: AureonMessage = { id: uid(), role: "user", content: inputText, timestamp: new Date() };
+    const currentMessages = [...aureonMessages, userMsg];
+    setAureonMessages(currentMessages);
+    setAureonInput("");
+    setIsAnalyzing(true);
+    const currentRects = rectsRef.current;
+    const currentW = gridWRef.current;
+    const currentH = gridHRef.current;
+    const apiMessages = currentMessages.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+    const systemPrompt = buildSystemPrompt(currentRects, currentW, currentH, false);
 
     try {
       const { data, error } = await supabase.functions.invoke("chat", {
@@ -648,6 +670,126 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
   const applyCanvasEdit = (newRects: PixelRect[]) => {
     pushHistory(newRects);
     toast({ title: "Canvas updated", description: "AUREON's edits applied." });
+  };
+
+  // ── Autonomous Edit → Imagine → Fix Loop ──────────────────────────────────
+  const startAutonomousLoop = async (goal: string) => {
+    if (loopActive) return;
+    loopAbortRef.current = false;
+    setLoopActive(true);
+    setLoopIteration(0);
+    setIsAnalyzing(true);
+
+    const goalMsg: AureonMessage = {
+      id: uid(), role: "user",
+      content: `🔄 **AUTONOMOUS LOOP INITIATED**\n\n**Goal:** ${goal}\n\nAUREON will now enter an autonomous edit→imagine→fix cycle until the result is satisfactory.`,
+      timestamp: new Date()
+    };
+    setAureonMessages(prev => [...prev, goalMsg]);
+
+    let iteration = 0;
+    let conversationHistory: { role: "user" | "assistant"; content: string }[] = [
+      { role: "user", content: goal }
+    ];
+    let currentRects = rectsRef.current;
+
+    while (iteration < MAX_LOOP_ITERATIONS && !loopAbortRef.current) {
+      iteration++;
+      setLoopIteration(iteration);
+
+      const phase = iteration === 1 ? "IMAGINE & DRAW" : "RE-IMAGINE & REFINE";
+      setLoopStatus(`[Iteration ${iteration}/${MAX_LOOP_ITERATIONS}] ${phase}...`);
+
+      const currentW = gridWRef.current;
+      const currentH = gridHRef.current;
+      const systemPrompt = buildSystemPrompt(currentRects, currentW, currentH, true);
+
+      const iterationNote = iteration > 1
+        ? `\n\n[LOOP ITERATION ${iteration}]: Re-examine your previous edit. Visually imagine the result pixel by pixel. What is still imperfect? Apply targeted corrections now.`
+        : "";
+
+      const messagesPayload = [
+        ...conversationHistory.slice(0, -1),
+        { role: "user" as const, content: conversationHistory[conversationHistory.length - 1].content + iterationNote }
+      ];
+
+      try {
+        const { data, error } = await supabase.functions.invoke("chat", {
+          body: { messages: messagesPayload, mode: "standard", systemPrompt },
+        });
+        if (error) throw error;
+        const responseText = data?.content || data?.message || "No response.";
+
+        // Parse pixel edits and apply immediately to canvas
+        const editedRects = parseAureonPixelEdit(responseText, currentRects, currentW, currentH);
+        if (editedRects) {
+          currentRects = editedRects;
+          pushHistory(editedRects);
+        }
+
+        // Parse loop status tag
+        const doneMatch = responseText.match(/<LOOP_STATUS:\s*DONE>/i);
+        const iterateMatch = responseText.match(/<LOOP_STATUS:\s*ITERATE\s+reason="([^"]+)">/i);
+        const cleanResponse = responseText
+          .replace(/<LOOP_STATUS:[^>]+>/gi, "")
+          .trim();
+
+        const loopTag = doneMatch
+          ? `\n\n✅ **Loop complete** — AUREON is satisfied after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
+          : iterateMatch
+            ? `\n\n🔁 **Continuing** — ${iterateMatch[1]}`
+            : "";
+
+        const assistantMsg: AureonMessage = {
+          id: uid(), role: "assistant",
+          content: `**[Iteration ${iteration}]** ${cleanResponse}${loopTag}`,
+          canvasEdit: editedRects ?? undefined,
+          timestamp: new Date()
+        };
+        setAureonMessages(prev => [...prev, assistantMsg]);
+
+        // Add to conversation for context continuity
+        conversationHistory = [
+          ...conversationHistory,
+          { role: "assistant", content: responseText }
+        ];
+
+        // Exit conditions
+        if (doneMatch || loopAbortRef.current) break;
+        if (!iterateMatch && !editedRects) break; // No edit, no continue tag → natural stop
+
+        // Brief pause between iterations so UI updates are visible
+        await new Promise(r => setTimeout(r, 800));
+
+      } catch {
+        setAureonMessages(prev => [...prev, {
+          id: uid(), role: "assistant",
+          content: `⚠️ **Loop error at iteration ${iteration}.** Stopping autonomous cycle.`,
+          timestamp: new Date()
+        }]);
+        break;
+      }
+    }
+
+    const finalStatus = loopAbortRef.current
+      ? `🛑 Loop manually stopped after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
+      : iteration >= MAX_LOOP_ITERATIONS
+        ? `⚡ Loop reached maximum depth (${MAX_LOOP_ITERATIONS} iterations). Final state applied.`
+        : null;
+
+    if (finalStatus) {
+      setAureonMessages(prev => [...prev, { id: uid(), role: "assistant", content: finalStatus, timestamp: new Date() }]);
+    }
+
+    setLoopActive(false);
+    setLoopIteration(0);
+    setLoopStatus("");
+    setIsAnalyzing(false);
+  };
+
+  const stopLoop = () => {
+    loopAbortRef.current = true;
+    setLoopStatus("Stopping...");
   };
 
   // ── Render helpers ─────────────────────────────────────────────────────────
@@ -873,9 +1015,16 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
 
           {/* AUREON Panel */}
           <div className="flex-1 flex flex-col min-h-0 border-t border-border/20">
-            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border/10 bg-accent/5">
-              <Sparkles className="h-3 w-3 text-accent animate-pulse" />
-              <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/80">AUREON — Design Intelligence</p>
+            <div className="flex-shrink-0 flex items-center justify-between gap-2 px-4 py-2.5 border-b border-border/10 bg-accent/5">
+              <div className="flex items-center gap-2">
+                <Sparkles className={`h-3 w-3 text-accent ${loopActive ? "animate-spin" : "animate-pulse"}`} />
+                <p className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/80">AUREON — Design Intelligence</p>
+              </div>
+              {loopActive && (
+                <span className="text-[8px] font-mono text-accent/60 border border-accent/20 rounded-md px-1.5 py-0.5 bg-accent/5">
+                  Loop {loopIteration}/{MAX_LOOP_ITERATIONS}
+                </span>
+              )}
             </div>
             <div ref={chatScrollRef} className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
               {aureonMessages.length === 0 ? (
@@ -887,9 +1036,16 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
                     Ask AUREON to design, edit, or analyze your pixel art. It will ask questions and draw directly on the canvas.
                   </p>
                   <div className="flex flex-col gap-1.5 w-full">
-                    {["Draw a simple house", "Add a sunset sky background", "Suggest a color palette", "Analyze this design"].map(s => (
+                    <p className="text-[8px] text-muted-foreground/30 text-center tracking-widest uppercase mt-1">Single shot</p>
+                    {["Draw a simple house", "Suggest a color palette"].map(s => (
                       <button key={s} onClick={() => setAureonInput(s)} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-border/10 hover:border-accent/20 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
                         {s}
+                      </button>
+                    ))}
+                    <p className="text-[8px] text-muted-foreground/30 text-center tracking-widest uppercase mt-1">🔄 Autonomous loop</p>
+                    {["Draw a detailed pixel landscape and refine until perfect", "Create a complex character sprite and self-correct details"].map(s => (
+                      <button key={s} onClick={() => { setAureonInput(""); startAutonomousLoop(s); }} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-accent/10 hover:border-accent/30 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
+                        <span className="text-accent/50 mr-1">↺</span>{s}
                       </button>
                     ))}
                   </div>
@@ -948,6 +1104,21 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
               )}
             </div>
             <div className="flex-shrink-0 p-3 border-t border-border/10 space-y-2">
+              {/* Loop status indicator */}
+              {loopActive && (
+                <div className="flex items-center justify-between rounded-xl border border-accent/25 bg-accent/8 px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                    <span className="text-[9px] font-light text-accent/80 truncate">{loopStatus}</span>
+                  </div>
+                  <button
+                    onClick={stopLoop}
+                    className="flex-shrink-0 flex items-center gap-1 text-[9px] text-destructive/70 hover:text-destructive border border-destructive/20 hover:border-destructive/40 rounded-lg px-2 py-1 transition-all ml-2"
+                  >
+                    <StopIcon className="h-2.5 w-2.5" /> Stop
+                  </button>
+                </div>
+              )}
               <div className="flex gap-2">
                 <textarea
                   value={aureonInput}
@@ -957,11 +1128,28 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
                   className="flex-1 rounded-xl border border-border/20 bg-card/20 text-[10px] font-light text-foreground placeholder:text-muted-foreground/30 px-3 py-2 outline-none resize-none focus:border-accent/30 transition-all"
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendToAureon(); } }}
                 />
-                <button onClick={sendToAureon} disabled={isAnalyzing || !aureonInput.trim()} className="flex-shrink-0 flex items-center justify-center w-9 h-9 self-end rounded-xl border border-accent/20 bg-accent/10 hover:bg-accent/20 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Send className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex flex-col gap-1.5 self-end">
+                  <button
+                    onClick={sendToAureon}
+                    disabled={isAnalyzing || !aureonInput.trim()}
+                    title="Single message"
+                    className="flex items-center justify-center w-9 h-9 rounded-xl border border-accent/20 bg-accent/10 hover:bg-accent/20 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { const goal = aureonInput.trim(); if (goal) { setAureonInput(""); startAutonomousLoop(goal); } }}
+                    disabled={isAnalyzing || !aureonInput.trim() || loopActive}
+                    title="Autonomous loop: AUREON edits → imagines → fixes, unlimited iterations"
+                    className="flex items-center justify-center w-9 h-9 rounded-xl border border-accent/40 bg-accent/20 hover:bg-accent/35 text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
-              <p className="text-[9px] text-muted-foreground/25 tracking-wide">Enter to send · Shift+Enter for new line</p>
+              <p className="text-[9px] text-muted-foreground/25 tracking-wide">
+                Enter / <Send className="inline h-2.5 w-2.5" /> send once · <RotateCcw className="inline h-2.5 w-2.5" /> autonomous loop
+              </p>
             </div>
           </div>
         </aside>
