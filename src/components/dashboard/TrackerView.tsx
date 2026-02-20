@@ -256,61 +256,40 @@ export default function TrackerView() {
     if (!user) return;
     const label = nameInput.trim();
     if (!label) {
-      toast({ title: "Enter a device label", variant: "destructive" });
+      toast({ title: "Enter a campaign label", variant: "destructive" });
       return;
     }
     if (label.length < 3 || label.length > 50) {
-      toast({ title: "Device name must be 3–50 characters", variant: "destructive" });
+      toast({ title: "Label must be 3–50 characters", variant: "destructive" });
       return;
     }
 
     setAdding(true);
     try {
-      // Step 1: Insert stub device record (no device_name yet — mirrors backend's
-      // INSERT INTO devices(user_id) pattern). We store the intended name locally
-      // and will update once the device completes registration.
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-      // Create stub with a temporary name flag so we can track it
-      const { data: deviceData, error: deviceError } = await supabase
-        .from("tracker_devices" as any)
-        .insert({
-          user_id: user.id,
-          device_name: label,
-          last_seen: null,
-          pairing_token: expiresAt, // Store expiry reference
-          pairing_token_expires_at: expiresAt,
-        })
-        .select("id")
-        .single();
-
-      if (deviceError || !deviceData) {
-        toast({ title: "Failed to create device record", variant: "destructive" });
+      const { data: session } = await supabase.auth.getSession();
+      const userToken = session?.session?.access_token;
+      if (!userToken) {
+        toast({ title: "Not authenticated", variant: "destructive" });
         setAdding(false);
         return;
       }
 
-      const deviceId = (deviceData as any).id;
-
-      // Step 2: Generate signed JWT payload (mirrors: jwt.sign({userId, deviceId, purpose}, JWT_SECRET))
-      // In this frontend context, we encode it as a base64 URL-safe payload
-      // so the mobile app can verify intent. The actual signature verification
-      // happens server-side via the edge function.
-      const { data: session } = await supabase.auth.getSession();
-      const userToken = session?.session?.access_token;
-
-      // Build the signed onboarding link pointing to the edge function
+      // The link only contains the owner's token — NO deviceId.
+      // Each person who clicks it gets their own auto-generated visitorId
+      // stored in their browser's localStorage. The edge function auto-creates
+      // a tracker_devices row per unique visitorId on the first ping.
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
+      const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}`;
 
-      // Step 3: Store the pending device in local state with the link for display
+      // Use a transient local entry to display the link — no DB row needed upfront.
+      // Real device rows are created automatically when targets click the link.
       const pendingDevice: TrackerDevice = {
-        id: deviceId,
+        id: `pending-${Date.now()}`,
         device_name: null,
         last_seen: null,
         created_at: new Date().toISOString(),
         onboardingLink,
-        onboardingExpiresAt: expiresAt,
+        onboardingExpiresAt: new Date(Date.now() + 60 * 60 * 1000 * 24 * 365).toISOString(), // effectively permanent
       };
 
       setDevices(prev => [pendingDevice, ...prev]);
@@ -319,11 +298,11 @@ export default function TrackerView() {
       setNameInput("");
 
       toast({
-        title: "Onboarding link generated",
-        description: `Share the signed link with "${label}". Expires in 15 minutes.`,
+        title: "Tracker link generated",
+        description: `Share "${label}" link. Every person who clicks it is tracked separately.`,
       });
     } catch (err) {
-      console.error("[TRACKER]: Error generating onboarding link:", err);
+      console.error("[TRACKER]: Error generating link:", err);
       toast({ title: "Unexpected error", variant: "destructive" });
     }
     setAdding(false);
@@ -354,21 +333,18 @@ export default function TrackerView() {
 
   const regenerateLink = async (deviceId: string) => {
     if (!user) return;
-    const device = devices.find(d => d.id === deviceId);
-    if (!device) return;
-    const label = device.device_name || "Device";
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     const { data: session } = await supabase.auth.getSession();
     const userToken = session?.session?.access_token;
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}&deviceId=${deviceId}&label=${encodeURIComponent(label)}`;
+    // Link only needs token — no deviceId, works for unlimited targets
+    const onboardingLink = `${supabaseUrl}/functions/v1/tracker-pair?token=${userToken}`;
     setDevices(prev => prev.map(d =>
-      d.id === deviceId ? { ...d, onboardingLink, onboardingExpiresAt: expiresAt } : d
+      d.id === deviceId ? { ...d, onboardingLink } : d
     ));
     setSelectedDevice(prev =>
-      prev?.id === deviceId ? { ...prev, onboardingLink, onboardingExpiresAt: expiresAt } : prev
+      prev?.id === deviceId ? { ...prev, onboardingLink } : prev
     );
-    toast({ title: "Link regenerated", description: "A fresh signed link has been created." });
+    toast({ title: "Link regenerated", description: "A fresh link has been created." });
   };
 
   // ── Log Location Ping ─────────────────────────────────────────────────────
