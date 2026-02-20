@@ -4,7 +4,7 @@ import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/Subsc
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -88,6 +88,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
       { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
+      { id: "tracker", icon: MapPin, label: "Location Tracker" },
       { id: "library", icon: FolderOpen, label: "Library" },
       { id: "memory", icon: Brain, label: "Memory Center" },
     ],
