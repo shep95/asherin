@@ -394,6 +394,17 @@ serve(async (req) => {
     }
 
     // ── Build project context ──────────────────────────────────────────────
+    const isSoftwareProject = (() => {
+      if (!projectContext) return false;
+      const softwareKeywords = ["software", "app", "web", "mobile", "api", "saas", "backend", "frontend", "fullstack", "full-stack", "service", "microservice", "platform", "dashboard", "cli", "library", "plugin", "extension", "bot", "automation", "script", "code"];
+      const haystack = ((projectContext.designType || "") + " " + (projectContext.name || "") + " " + (projectContext.description || "")).toLowerCase();
+      return softwareKeywords.some((kw) => haystack.includes(kw));
+    })();
+
+    // Count prior Q&A rounds to know if onboarding is complete
+    const priorUserMessages = (messages as { role: string; content: string }[]).filter((m) => m.role === "user").length;
+    const onboardingComplete = priorUserMessages >= 3;
+
     let projectStr = "";
     if (projectContext) {
       projectStr = `\n\n## CURRENT DESIGN PROJECT CONTEXT\n`;
@@ -401,7 +412,21 @@ serve(async (req) => {
       if (projectContext.description) projectStr += `Description: ${projectContext.description}\n`;
       if (projectContext.phase) projectStr += `Current Phase: ${projectContext.phase}\n`;
       if (projectContext.designType) projectStr += `Design Type: ${projectContext.designType}\n`;
-      projectStr += `\nApply your design intelligence to this project context. Use the appropriate specialist agents (OPTIMUS, CHEMIX, BIOX, SYNTHIA, ECONIA, ETHICA) based on the design type.`;
+
+      if (isSoftwareProject) {
+        projectStr += `\n⚠️ SOFTWARE PROJECT DETECTED — CRITICAL OVERRIDE:\n`;
+        projectStr += `- This is a SOFTWARE project. NEVER output \`design_output\` blocks.\n`;
+        projectStr += `- ALWAYS output \`code_output\` blocks with real, runnable code.\n`;
+        projectStr += `- Do NOT show 3D design data, materials, or physical specs.\n`;
+        if (onboardingComplete) {
+          projectStr += `\n🚨 MANDATORY ACTION: You have already asked ${priorUserMessages} questions. THE ONBOARDING IS COMPLETE.\n`;
+          projectStr += `You MUST NOW generate real, working code in a \`\`\`code_output\n{...}\n\`\`\` block.\n`;
+          projectStr += `Do NOT ask more questions. Do NOT say "I need more info". GENERATE THE CODE NOW.\n`;
+          projectStr += `Output at minimum: the main entry file + 2-3 supporting files. Make it production-quality.\n`;
+        }
+      } else {
+        projectStr += `\nApply your design intelligence to this project context. Use the appropriate specialist agents (OPTIMUS, CHEMIX, BIOX, SYNTHIA, ECONIA, ETHICA) based on the design type.`;
+      }
     }
 
     const responseDepth = depth || "standard";
@@ -437,7 +462,7 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: geminiMessages,
-          generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 16384 },
         }),
       },
     );
