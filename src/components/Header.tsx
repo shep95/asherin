@@ -28,8 +28,7 @@ const Header = () => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-        <Link to="/" className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2.5 hover:bg-card/80 transition-colors">
-          <img src={aureonLogo} alt="Aureon" className="h-7 w-7 object-contain" />
+        <Link to="/" className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-2.5 flex items-center hover:bg-card/80 transition-colors">
           <span className="text-base sm:text-lg font-extralight tracking-[0.25em] text-foreground">
             AUREON
           </span>
