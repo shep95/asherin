@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Download, Copy, Check, Undo2, ZoomIn, ZoomOut, Hand, Square, Paintbrush, Maximize2, Upload, Sparkles, Send, User, Wand2, Eraser, RefreshCw, Plus, FolderOpen, Trash2, Pencil, X, Save, RotateCcw, Play, Square as StopIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -257,12 +257,15 @@ const ImagineToCodeView = () => {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
   }, [aureonMessages]);
 
-  // Regenerate code
+  // Regenerate code — deferred so large pixel arrays don't block the render thread
   useEffect(() => {
-    if (rects.length === 0) { setCode(""); return; }
-    if (exportFormat === "svg") setCode(exportSvg(rects, gridW, gridH));
-    else if (exportFormat === "minified-svg") setCode(exportSvg(rects, gridW, gridH, true));
-    else setCode(exportCssGrid(rects, gridW, gridH));
+    const timer = setTimeout(() => {
+      if (rects.length === 0) { setCode(""); return; }
+      if (exportFormat === "svg") setCode(exportSvg(rects, gridW, gridH));
+      else if (exportFormat === "minified-svg") setCode(exportSvg(rects, gridW, gridH, true));
+      else setCode(exportCssGrid(rects, gridW, gridH));
+    }, 300);
+    return () => clearTimeout(timer);
   }, [rects, exportFormat, gridW, gridH]);
 
   // ── Load sessions on mount ────────────────────────────────────────────────
@@ -393,7 +396,11 @@ const ImagineToCodeView = () => {
   };
 
   const pushHistory = useCallback((next: PixelRect[]) => {
+    // Cap history at 20 entries to prevent memory explosion with large pixel arrays
     historyStack.current = historyStack.current.slice(0, histIdx.current + 1);
+    if (historyStack.current.length > 20) {
+      historyStack.current = historyStack.current.slice(historyStack.current.length - 20);
+    }
     historyStack.current.push(next);
     histIdx.current = historyStack.current.length - 1;
     setRects(next);
@@ -441,14 +448,21 @@ const ImagineToCodeView = () => {
     });
   }, []);
 
+  // Batched paint — accumulate strokes in a ref, flush to state on mouseUp to avoid
+  // triggering a React re-render for every single pixel during a drag stroke.
+  const paintBatchRef = useRef<Map<string, PixelRect>>(new Map());
+
   const paintPixel = useCallback((px: number, py: number, erase = false) => {
     if (px < 0 || py < 0 || px >= gridWRef.current || py >= gridHRef.current) return;
-    setRects(prev => {
-      const filtered = prev.filter(r => !(r.x === px && r.y === py));
-      if (!erase) filtered.push({ id: uid(), x: px, y: py, color: activeColor });
-      rectsRef.current = filtered;
-      return filtered;
-    });
+    const key = `${px},${py}`;
+    if (erase) {
+      paintBatchRef.current.delete(key);
+      // Remove from rectsRef immediately so we can erase while dragging
+      rectsRef.current = rectsRef.current.filter(r => !(r.x === px && r.y === py));
+    } else {
+      const newRect: PixelRect = { id: uid(), x: px, y: py, color: activeColor };
+      paintBatchRef.current.set(key, newRect);
+    }
   }, [activeColor]);
 
   const onWheel = (e: React.WheelEvent) => {
