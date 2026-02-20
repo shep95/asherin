@@ -25,6 +25,7 @@ import FeatureZali from "./pages/FeatureZali";
 import FeaturePredictive from "./pages/FeaturePredictive";
 import FeatureElion from "./pages/FeatureElion";
 import FeatureTracker from "./pages/FeatureTracker";
+import FeatureImagineToCode from "./pages/FeatureImagineToCode";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/feature/predictive" element={<FeaturePredictive />} />
             <Route path="/feature/elion" element={<FeatureElion />} />
             <Route path="/feature/tracker" element={<FeatureTracker />} />
+            <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
             <Route
               path="/dashboard"
               element={
