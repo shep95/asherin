@@ -63,6 +63,7 @@ const navGroups: NavGroup[] = [
       { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
       { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
+      { id: "tracker", icon: MapPin, label: "Location Tracker" },
     ],
   },
   {
@@ -88,7 +89,6 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
       { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
-      { id: "tracker", icon: MapPin, label: "Location Tracker" },
       { id: "library", icon: FolderOpen, label: "Library" },
       { id: "memory", icon: Brain, label: "Memory Center" },
     ],
