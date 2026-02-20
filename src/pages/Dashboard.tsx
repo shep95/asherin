@@ -840,7 +840,7 @@ const Dashboard = () => {
           ? <ImagineToCodeView />
           : <FeatureGate title="Imagine To Code" description="AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Created by ZALI Software. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "tracker":
-        return hasProAccess(tierKey)
+        return (hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com")
           ? <TrackerView />
           : <FeatureGate title="Location Tracker" description="Real-time geolocation tracking with reverse geocoding and interactive maps. Pin locations, log address history, and monitor coordinates with precision. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       default: return activeConv ? (

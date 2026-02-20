@@ -168,7 +168,8 @@ const DashboardSidebar = ({
   const filteredGroups = navGroups.map(group => ({
     ...group,
     items: group.items.filter(item => {
-      if (item.id === "security" || item.id === "tracker") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "tracker") return hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
       if (item.access === "pro") return hasProAccess(tierKey);
