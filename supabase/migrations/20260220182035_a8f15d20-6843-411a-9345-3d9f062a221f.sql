@@ -1,0 +1,1 @@
+ALTER TABLE public.tracker_locations ADD COLUMN IF NOT EXISTS address TEXT;
