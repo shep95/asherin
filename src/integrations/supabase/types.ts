@@ -1198,6 +1198,35 @@ export type Database = {
         }
         Relationships: []
       }
+      installed_personas: {
+        Row: {
+          id: string
+          installed_at: string
+          persona_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          installed_at?: string
+          persona_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          installed_at?: string
+          persona_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installed_personas_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "shared_personas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installed_plugins: {
         Row: {
           config: Json
@@ -2025,6 +2054,54 @@ export type Database = {
           severity?: string
           source_ip?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      shared_personas: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          installs: number
+          is_public: boolean
+          name: string
+          rating: number
+          system_prompt: string
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          installs?: number
+          is_public?: boolean
+          name: string
+          rating?: number
+          system_prompt?: string
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          installs?: number
+          is_public?: boolean
+          name?: string
+          rating?: number
+          system_prompt?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
