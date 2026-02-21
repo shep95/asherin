@@ -14,6 +14,12 @@ import ZaliProjectSelector from "./ZaliProjectSelector";
 import ZaliAgentsPanel from "./ZaliAgentsPanel";
 import ZaliSpecsPanel from "./ZaliSpecsPanel";
 import CommunityView from "./CommunityView";
+import MaterialIntelligencePanel from "./MaterialIntelligencePanel";
+import ComponentLibraryPanel from "./ComponentLibraryPanel";
+import SimulationEnginePanel from "./SimulationEnginePanel";
+import ManufacturingVerifyPanel from "./ManufacturingVerifyPanel";
+import OptimizationPanel from "./OptimizationPanel";
+import GodModePanel from "./GodModePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import React from "react";
 
@@ -41,8 +47,14 @@ class ZaliErrorBoundary extends React.Component<{ children: React.ReactNode }, {
 const TABS: { id: ZaliTab; label: string }[] = [
   { id: "workspace", label: "Workspace" },
   { id: "specs", label: "Specs" },
+  { id: "materials-db", label: "Materials DB" },
+  { id: "components", label: "Components" },
+  { id: "sim-engine", label: "Simulations" },
+  { id: "mfg-verify", label: "Manufacturing" },
+  { id: "optimization", label: "Optimize" },
   { id: "agents", label: "Agents" },
   { id: "research", label: "Research" },
+  { id: "god-mode", label: "God Mode" },
   { id: "community", label: "Community" },
 ];
 
@@ -476,10 +488,22 @@ const ZaliView = () => {
         return <ZaliWorkspace project={activeProject} autoBuild={autoBuildModel} modelPrompt={modelPrompt} codeFiles={codeFiles} />;
       case "specs":
         return <ZaliSpecsPanel project={activeProject} />;
+      case "materials-db":
+        return <MaterialIntelligencePanel />;
+      case "components":
+        return <ComponentLibraryPanel />;
+      case "sim-engine":
+        return <SimulationEnginePanel project={activeProject} />;
+      case "mfg-verify":
+        return <ManufacturingVerifyPanel project={activeProject} />;
+      case "optimization":
+        return <OptimizationPanel project={activeProject} />;
       case "agents":
         return <ZaliAgentsPanel />;
       case "research":
         return <ZaliResearchPanel project={activeProject} findings={findings} />;
+      case "god-mode":
+        return <GodModePanel />;
       case "community":
         return <CommunityView />;
       default:
