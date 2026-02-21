@@ -81,12 +81,12 @@ export function useGoogleApi() {
     await fetchAccounts();
   }, [callOAuth, fetchAccounts]);
 
-  const fetchGoogleData = useCallback(async (service: string, params?: Record<string, any>, accountId?: string) => {
+  const fetchGoogleData = useCallback(async (service: string, params?: Record<string, any>, accountId?: string, aggregate = true) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
 
     const res = await supabase.functions.invoke("google-data", {
-      body: { service, params, account_id: accountId },
+      body: { service, params, account_id: accountId, aggregate: accountId ? false : aggregate },
     });
 
     if (res.error) throw new Error(res.error.message);
