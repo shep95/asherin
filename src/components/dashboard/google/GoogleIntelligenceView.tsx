@@ -4,6 +4,7 @@ import {
   Search, Activity, Globe, Shield, RefreshCw, Network, Zap,
   Heart, CreditCard, Briefcase, Brain, Lock, CheckCircle2,
   Eye, TrendingUp, BarChart3, ChevronRight, Clock,
+  FileText, Camera, Sparkles, Dumbbell,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -17,8 +18,13 @@ import CalendarWizard from "./modules/CalendarWizard";
 import ContactIntelligence from "./modules/ContactIntelligence";
 import CareerPredictor from "./modules/CareerPredictor";
 import AITwin from "./modules/AITwin";
+import ProductivityIntelligence from "./modules/ProductivityIntelligence";
+import ContentIntelligence from "./modules/ContentIntelligence";
+import LifePredictions from "./modules/LifePredictions";
+import AutomationSuite from "./modules/AutomationSuite";
+import SecurityIntelligence from "./modules/SecurityIntelligence";
 
-type GoogleModule = "overview" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
+type GoogleModule = "overview" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
 
 interface ModuleDef {
   id: GoogleModule;
@@ -36,6 +42,11 @@ const nexusModules: ModuleDef[] = [
   { id: "calendar", label: "Calendar Wizard", icon: Calendar, description: "Auto-schedules based on energy levels & patterns" },
   { id: "contacts", label: "Contact Intel", icon: Users, description: "Relationship scoring, social graph, fade detection" },
   { id: "career", label: "Career Predictor", icon: Briefcase, description: "Predicts job changes, salary, and career trajectory" },
+  { id: "productivity", label: "Productivity", icon: BarChart3, description: "Work patterns, focus time, collaboration mapping, context switching" },
+  { id: "content", label: "Content Intel", icon: FileText, description: "Document intelligence, photo analysis, file organization" },
+  { id: "predictions", label: "Life Predictions", icon: Sparkles, description: "Vacation, move, relationship, purchase forecasting" },
+  { id: "automation", label: "Automation", icon: Zap, description: "Email auto-reply, smart calendar, location reminders" },
+  { id: "security", label: "Security", icon: Shield, description: "Breach detection, phishing, file audit, fraud alerts" },
 ];
 
 const dataModules: ModuleDef[] = [
@@ -72,6 +83,11 @@ const GoogleIntelligenceView = () => {
       case "contacts": return <ContactIntelligence />;
       case "career": return <CareerPredictor />;
       case "twin": return <AITwin />;
+      case "productivity": return <ProductivityIntelligence />;
+      case "content": case "drive": case "photos": return <ContentIntelligence />;
+      case "predictions": return <LifePredictions />;
+      case "automation": return <AutomationSuite />;
+      case "security": case "connected": return <SecurityIntelligence />;
       default: return null;
     }
   };
@@ -87,7 +103,7 @@ const GoogleIntelligenceView = () => {
             </div>
             <div>
               <h1 className="text-lg font-extralight tracking-wide text-foreground">Google Intelligence · Nexus</h1>
-              <p className="text-xs font-extralight text-muted-foreground">Full-spectrum intelligence — AI digital twin powered by your Google data</p>
+              <p className="text-xs font-extralight text-muted-foreground">127 features · 12 categories · Full-spectrum personal intelligence</p>
             </div>
           </div>
           <button onClick={handleConnect} disabled={isConnecting} className="flex items-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90 disabled:opacity-50">
@@ -112,6 +128,27 @@ const GoogleIntelligenceView = () => {
             {/* Overview */}
             <TabsContent value="overview" className="mt-6 space-y-6">
               <MultiAccountManager />
+
+              {/* Feature Count Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {[
+                  { label: "Communication", count: 23 },
+                  { label: "Location", count: 14 },
+                  { label: "Health", count: 21 },
+                  { label: "Financial", count: 11 },
+                  { label: "Productivity", count: 9 },
+                  { label: "Social", count: 12 },
+                  { label: "Content", count: 13 },
+                  { label: "Predictive", count: 9 },
+                  { label: "Automation", count: 11 },
+                  { label: "Security", count: 8 },
+                ].map((cat) => (
+                  <div key={cat.label} className="rounded-xl border border-border/20 bg-card/20 p-3 text-center space-y-0.5">
+                    <span className="text-lg font-light text-foreground">{cat.count}</span>
+                    <p className="text-[10px] font-extralight text-muted-foreground">{cat.label}</p>
+                  </div>
+                ))}
+              </div>
 
               {/* Nexus Modules Grid */}
               <div className="space-y-3">
