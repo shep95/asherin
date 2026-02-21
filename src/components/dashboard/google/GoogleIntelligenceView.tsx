@@ -23,8 +23,9 @@ import ContentIntelligence from "./modules/ContentIntelligence";
 import LifePredictions from "./modules/LifePredictions";
 import AutomationSuite from "./modules/AutomationSuite";
 import SecurityIntelligence from "./modules/SecurityIntelligence";
+import ScenarioEngine from "./modules/ScenarioEngine";
 
-type GoogleModule = "overview" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
+type GoogleModule = "overview" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
 
 interface ModuleDef {
   id: GoogleModule;
@@ -47,6 +48,7 @@ const nexusModules: ModuleDef[] = [
   { id: "predictions", label: "Life Predictions", icon: Sparkles, description: "Vacation, move, relationship, purchase forecasting" },
   { id: "automation", label: "Automation", icon: Zap, description: "Email auto-reply, smart calendar, location reminders" },
   { id: "security", label: "Security", icon: Shield, description: "Breach detection, phishing, file audit, fraud alerts" },
+  { id: "scenarios", label: "Scenario Engine", icon: Sparkles, description: "Predictive life simulations — 'What If' scenarios for career, finance, health" },
 ];
 
 const dataModules: ModuleDef[] = [
@@ -88,6 +90,7 @@ const GoogleIntelligenceView = () => {
       case "predictions": return <LifePredictions />;
       case "automation": return <AutomationSuite />;
       case "security": case "connected": return <SecurityIntelligence />;
+      case "scenarios": return <ScenarioEngine />;
       default: return null;
     }
   };
