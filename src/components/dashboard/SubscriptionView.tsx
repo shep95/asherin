@@ -28,7 +28,7 @@ const plans: {
     features: [
       "Uncensored AI responses on any topic",
       "60 messages per 3-hour window",
-      "Elite coding engine — outperforms Claude Opus 4.6",
+      "Elite coding engine",
       "Zophiel Search Engine",
       "Persistent memory across all sessions",
       "Context intelligence & intent detection",
@@ -42,7 +42,7 @@ const plans: {
     id: "pro",
     name: "AUREON PRO",
     tagline: "Full Dashboard Access",
-    price: "$399",
+    price: "$740",
     period: "/ month",
     description: "Complete access to every tool in the dashboard — Asha Intelligence, NOMAD OSINT, Briefings, and unlimited capabilities.",
     highlight: false,
