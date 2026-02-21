@@ -149,11 +149,9 @@ const ZaliProjectSelector = ({ projects, activeProject, onSelect, onCreate, onDe
                         <button onClick={() => { setRenamingId(p.id); setRenameValue(p.name); }} className="p-1 rounded text-muted-foreground/40 hover:text-foreground">
                           <Pencil className="h-3 w-3" />
                         </button>
-                        {activeProject?.id !== p.id && (
-                          <button onClick={() => onDelete(p.id)} className="p-1 rounded text-muted-foreground/40 hover:text-destructive">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
+                        <button onClick={() => onDelete(p.id)} className="p-1 rounded text-muted-foreground/40 hover:text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       </div>
                     </>
                   )}
