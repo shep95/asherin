@@ -24,6 +24,10 @@ import LifePredictions from "./modules/LifePredictions";
 import AutomationSuite from "./modules/AutomationSuite";
 import SecurityIntelligence from "./modules/SecurityIntelligence";
 import ScenarioEngine from "./modules/ScenarioEngine";
+import ConnectedAppsView from "./modules/ConnectedAppsView";
+import YouTubeDataView from "./modules/YouTubeDataView";
+import SearchHistoryView from "./modules/SearchHistoryView";
+import ChromeDataView from "./modules/ChromeDataView";
 
 type GoogleModule = "overview" | "location" | "email" | "subscriptions" | "health" | "calendar" | "contacts" | "career" | "twin" | "productivity" | "content" | "predictions" | "automation" | "security" | "scenarios" | "gmail" | "drive" | "photos" | "youtube" | "search" | "fit" | "chrome" | "connected";
 
@@ -100,8 +104,12 @@ const GoogleIntelligenceView = () => {
       case "content": case "drive": case "photos": return <ContentIntelligence />;
       case "predictions": return <LifePredictions />;
       case "automation": return <AutomationSuite />;
-      case "security": case "connected": return <SecurityIntelligence />;
+      case "security": return <SecurityIntelligence />;
       case "scenarios": return <ScenarioEngine />;
+      case "connected": return <ConnectedAppsView />;
+      case "youtube": return <YouTubeDataView />;
+      case "search": return <SearchHistoryView />;
+      case "chrome": return <ChromeDataView />;
       default: return null;
     }
   };
