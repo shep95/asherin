@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GoogleAccount {
@@ -93,6 +93,11 @@ export function useGoogleApi() {
     if (res.data?.error) throw new Error(res.data.error === "no_account" ? "No Google account connected" : res.data.message || res.data.error);
     return res.data;
   }, []);
+
+  // Auto-fetch accounts on mount
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const isConnected = accounts.some((a) => a.status === "connected");
 
