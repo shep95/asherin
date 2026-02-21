@@ -42,6 +42,7 @@ import SecurityDashboardView from "@/components/dashboard/SecurityDashboardView"
 import ImagineToCodeView from "@/components/dashboard/ImagineToCodeView";
 import TrackerView from "@/components/dashboard/TrackerView";
 import PersonaStoreView from "@/components/dashboard/PersonaStoreView";
+import GoogleIntelligenceView from "@/components/dashboard/google/GoogleIntelligenceView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -898,6 +899,10 @@ const Dashboard = () => {
         return (hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com")
           ? <TrackerView />
           : <FeatureGate title="Location Tracker" description="Real-time geolocation tracking with reverse geocoding and interactive maps. Pin locations, log address history, and monitor coordinates with precision. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "google":
+        return hasProAccess(tierKey)
+          ? <GoogleIntelligenceView />
+          : <FeatureGate title="Google Intelligence" description="Unified intelligence hub — full-spectrum Google account analysis with Gmail, Calendar, Drive, Photos, YouTube, Maps, and more. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
       case "persona-store":
         return <PersonaStoreView />;
       default: return activeConv ? (
