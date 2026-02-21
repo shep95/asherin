@@ -204,12 +204,13 @@ ${pluginInstructions ? `\nPLUGIN-ENHANCED CAPABILITIES:${pluginInstructions}\n\n
     const aiData = await aiResp.json();
     const responseText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response. Please try rephrasing your question.";
 
-    // Save query to history
+    // Save query to history — scoped to session
     await supabase.from("asha_queries").insert({
       user_id: user.id,
       query,
       response: responseText,
       response_type: "text",
+      session_id: sessionId || null,
     });
 
     return new Response(JSON.stringify({ response: responseText, type: "text" }), {

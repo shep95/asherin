@@ -13,6 +13,7 @@ interface QueryHistoryItem {
   response_type: string;
   created_at: string;
   status?: "sending" | "queued" | "sent" | "failed";
+  session_id?: string | null;
 }
 
 interface ActivePlugin {
@@ -67,14 +68,20 @@ const QueryBar = () => {
 
   useEffect(() => {
     if (!user) return;
+    setInitialLoading(true);
+    setHistory([]);
     const load = async () => {
+      let queryBuilder = supabase.from("asha_queries").select("*").eq("user_id", user.id).order("created_at", { ascending: true }).limit(50);
+      if (activeSession?.id) {
+        queryBuilder = queryBuilder.eq("session_id", activeSession.id);
+      }
       const [{ data: queryData }, { data: pluginData }] = await Promise.all([
-        supabase.from("asha_queries").select("*").eq("user_id", user.id).order("created_at", { ascending: true }).limit(50),
+        queryBuilder,
         supabase.from("installed_plugins").select("plugin_id, plugins(name, category)").eq("user_id", user.id),
       ]);
       const dbHistory = (queryData as any[] || []).map((q: any) => ({ ...q, status: "sent" as const }));
-      // Merge with any queued items from localStorage
-      const queued = loadQueue();
+      // Merge with any queued items from localStorage scoped to this session
+      const queued = loadQueue().filter(q => (q as any).session_id === activeSession?.id);
       setHistory([...dbHistory, ...queued]);
       if (pluginData) {
         setActivePlugins(pluginData.map((p: any) => ({ name: p.plugins?.name || "Unknown", category: p.plugins?.category || "" })).filter((p: ActivePlugin) => p.name !== "Unknown"));
@@ -82,7 +89,7 @@ const QueryBar = () => {
       setInitialLoading(false);
     };
     load();
-  }, [user]);
+  }, [user, activeSession?.id]);
 
   // Process queued messages when back online
   const processQueue = async () => {
@@ -132,6 +139,7 @@ const QueryBar = () => {
     const newItem: QueryHistoryItem = {
       id: tempId, query: q, response: "", response_type: "text",
       created_at: new Date().toISOString(), status: "sending",
+      session_id: activeSession?.id || null,
     };
     setHistory(prev => [...prev, newItem]);
 
