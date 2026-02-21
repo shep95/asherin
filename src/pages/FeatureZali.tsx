@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import {
   Zap, Cpu, Layers, MessageSquare, FileText, Lightbulb,
-  ArrowRight, Check, Box, Sparkles, Wrench, Users, ArrowLeft, Search, Database,
+  ArrowRight, Check, Box, Sparkles, Wrench, Users, ArrowLeft, Search, Database, Download, Lock, Shield,
 } from "lucide-react";
 import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiagram";
+import { useAuth } from "@/contexts/AuthContext";
 
 const capabilities = [
   {
@@ -54,10 +55,33 @@ const designTypes = [
   { title: "Electronics & PCB", desc: "Component placement, thermal management, and connector design specifications." },
 ];
 
+const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+
 const FeatureZali = () => {
+  const { user } = useAuth();
+  const [downloading, setDownloading] = useState(false);
+  const isAdmin = user?.email === ADMIN_EMAIL;
+
   useEffect(() => {
     document.title = "ZALI Design Lab — Aureon";
   }, []);
+
+  const handleDownloadBlueprint = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch("/docs/ZALI_BLUEPRINT.md");
+      const text = await res.text();
+      const blob = new Blob([text], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ZALI_BLUEPRINT_INTERNAL.md";
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <LandingBackground>
@@ -168,6 +192,36 @@ const FeatureZali = () => {
           </div>
         </div>
       </section>
+
+      {/* Admin-Only Blueprint Download */}
+      {isAdmin && (
+        <section className="relative z-10 px-6 py-16">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-accent/20 bg-card/20 backdrop-blur-md p-10">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="rounded-full bg-accent/10 p-2.5">
+                <Shield className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <h3 className="text-base font-light tracking-wide text-foreground">Internal Blueprint</h3>
+                <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1">
+                  <Lock className="h-2.5 w-2.5" /> Restricted — Admin only
+                </p>
+              </div>
+            </div>
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground mb-6">
+              Complete system blueprint covering every frontend component, backend edge function, database schema, AI prompt engineering pipeline, specialist agent system, SSE streaming architecture, and full user workflows — no steps skipped.
+            </p>
+            <button
+              onClick={handleDownloadBlueprint}
+              disabled={downloading}
+              className="group flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-6 py-3 text-sm font-light tracking-wide transition-all hover:bg-accent/90 disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              {downloading ? "Downloading..." : "Download ZALI Blueprint"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
