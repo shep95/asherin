@@ -8,23 +8,10 @@ import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
 
 const StatusIcon = ({ type }: { type: string }) => {
-  if (type === "check") return <Check className="h-4 w-4 text-green-400 inline" />;
-  if (type === "x") return <X className="h-4 w-4 text-red-400/70 inline" />;
-  return <AlertOctagon className="h-4 w-4 text-yellow-400/70 inline" />;
+  if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
+  if (type === "x") return <X className="h-4 w-4 text-destructive/70 inline" />;
+  return <AlertOctagon className="h-4 w-4 text-accent/70 inline" />;
 };
-
-const TableRow = ({ feature, z, zIcon, gpt, gptIcon, claude, claudeIcon, venice, veniceIcon }: {
-  feature: string; z: string; zIcon: string; gpt: string; gptIcon: string;
-  claude: string; claudeIcon: string; venice: string; veniceIcon: string;
-}) => (
-  <tr className="border-t border-border/10">
-    <td className="px-6 py-3.5 text-muted-foreground">{feature}</td>
-    <td className="px-4 py-3.5 text-foreground"><StatusIcon type={zIcon} /> <span className="ml-1">{z}</span></td>
-    <td className="px-4 py-3.5 text-muted-foreground"><StatusIcon type={gptIcon} /> <span className="ml-1">{gpt}</span></td>
-    <td className="px-4 py-3.5 text-muted-foreground"><StatusIcon type={claudeIcon} /> <span className="ml-1">{claude}</span></td>
-    <td className="px-4 py-3.5 text-muted-foreground"><StatusIcon type={veniceIcon} /> <span className="ml-1">{venice}</span></td>
-  </tr>
-);
 
 const FaqItem = ({ q, a }: { q: string; a: string }) => {
   const [open, setOpen] = useState(false);
@@ -136,10 +123,10 @@ const Index = () => {
       {/* Hero */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
-          The AI That Actually Tells You The Truth.
+          Intelligence Without Compromise.
         </h1>
         <p className="mt-6 max-w-2xl text-base sm:text-lg font-extralight leading-relaxed tracking-wide text-muted-foreground">
-          No filters. No emotional manipulation. No hidden agendas. Aureon gives you uncensored answers, brutal logic, and code that outperforms the leading models.
+          Aureon is a full-spectrum intelligence platform — uncensored AI, elite coding, real-time search, predictive analytics, and OSINT tooling built for professionals who need raw output, not filtered opinions.
         </p>
         {canInstall && (
           <button
@@ -157,33 +144,33 @@ const Index = () => {
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            You've Been Asking AI Questions.
+            Most AI Gives You Guardrails.
             <br />
-            It's Been Giving You PR Responses.
+            Aureon Gives You The Full Picture.
           </h2>
 
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <AlertCircle className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">"I Can't Help With That"</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Every time you ask something real, you get a disclaimer instead of an answer.</p>
+              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">No Artificial Limits</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Ask any question on any topic. No disclaimers, no refusals, no corporate filters blocking your work.</p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Smile className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Emotional Engineering</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Other LLMs are trained to make you feel good, not to tell you what's actually true.</p>
+              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Truth Over Comfort</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon delivers direct, unvarnished answers — structured for professionals who value accuracy over politeness.</p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <AlertTriangle className="h-8 w-8 text-foreground" />
-              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Code That Doesn't Work</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">You paste the error back 6 times and still get the same broken logic wrapped in confidence.</p>
+              <h3 className="mt-4 text-lg font-light tracking-wide text-foreground">Production-Grade Code</h3>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Full-stack architecture, multi-file debugging, and working builds — not pseudocode dressed up as solutions.</p>
             </div>
           </div>
 
           <p className="mt-16 text-xl sm:text-2xl font-extralight tracking-wide text-foreground">
-            Aureon was built for one reason:
+            Built for professionals who need precision.
             <br />
-            <span className="text-muted-foreground">You deserve an AI that respects your intelligence.</span>
+            <span className="text-muted-foreground">Not an assistant. An intelligence platform.</span>
           </p>
         </div>
       </div>
@@ -265,9 +252,9 @@ const Index = () => {
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            Built For People Who Are Done
+            Built For People Who Build.
             <br />
-            <span className="text-muted-foreground">Being Managed By Their Tools.</span>
+            <span className="text-muted-foreground">Not People Who Browse.</span>
           </h2>
 
           {/* Row 1 */}
@@ -276,21 +263,21 @@ const Index = () => {
               <Hammer className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Builders</h3>
               <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Build full-stack products without being blocked mid-build. Aureon doesn't stop when the code gets hard.
+                Build full-stack products with an AI that holds context across large codebases and doesn't stop when the problem gets hard.
               </p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <FlaskConical className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Researchers</h3>
               <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Get the real data on any topic — not the sanitized version. No "I'd recommend consulting a professional."
+                Get the full analysis on any topic — unfiltered, structured, and backed by real-time intelligence. No sanitized summaries.
               </p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Code className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Coders</h3>
               <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Outperform Claude Opus on every benchmark. Debug. Build. Ship. No re-running the same prompt 12 times.
+                Elite-tier coding engine. Debug, architect, and ship production code — with persistent context across every session.
               </p>
             </div>
           </div>
@@ -301,21 +288,21 @@ const Index = () => {
               <Target className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Strategists</h3>
               <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Understand what is actually happening in any market, conflict, or system.
+                Predictive intelligence, scenario simulation, and signal detection for markets, conflicts, and complex systems.
               </p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Feather className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Writers</h3>
               <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Write without the AI rewriting your edge out of your voice to be "safe."
+                Write with your voice intact. Aureon adapts to your tone and delivers raw creative output — no corporate rewrites.
               </p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <BarChart3 className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">For Analysts</h3>
               <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">
-                Get the economic and structural truth behind any event — not the surface headline.
+                Deep intelligence on economic events, structural trends, and data patterns — with full OSINT and entity resolution tooling.
               </p>
             </div>
           </div>
@@ -340,21 +327,21 @@ const Index = () => {
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            What Aureon Actually Does.
+            The Platform.
             <br />
-            <span className="text-muted-foreground">Specific. No Buzzwords.</span>
+            <span className="text-muted-foreground">Every Capability. One Dashboard.</span>
           </h2>
 
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Unlock className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Uncensored Responses</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">No topic triggers a shutdown. No hidden training bias. You get the full answer.</p>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">No topic is off limits. No hidden bias. Ask anything and get the complete, unfiltered answer.</p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Monitor className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-base font-light tracking-[0.15em] text-foreground uppercase">Elite Coding Engine</h3>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Outperforms Claude Opus on complex builds, debugging, and multi-file architecture.</p>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Production-grade output on complex builds, debugging, and multi-file architecture — every time.</p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 text-left">
               <Search className="h-7 w-7 text-foreground" />
@@ -380,47 +367,31 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Section 7: Comparison Table */}
+      {/* Section 7: Platform Capabilities */}
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
-            You've Used The Others.
+            Not Just An AI Chat.
             <br />
-            <span className="text-muted-foreground">Here's What They Won't Show You Side By Side.</span>
+            <span className="text-muted-foreground">A Complete Intelligence Operating System.</span>
           </h2>
 
-          <div className="mt-16 overflow-x-auto rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md">
-            <table className="w-full min-w-[600px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-border/20">
-                  <th className="px-6 py-4 font-light tracking-wide text-muted-foreground">Feature</th>
-                  <th className="px-4 py-4 font-light tracking-wide text-foreground">AUREON</th>
-                  <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">ChatGPT</th>
-                  <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">Claude</th>
-                  <th className="px-4 py-4 font-light tracking-wide text-muted-foreground">Venice</th>
-                </tr>
-              </thead>
-              <tbody className="font-extralight">
-                <TableRow feature="Uncensored Output" z="Always" zIcon="check" gpt="No" gptIcon="x" claude="No" claudeIcon="x" venice="Partial" veniceIcon="warn" />
-                <TableRow feature="Real-Time Search" z="Free" zIcon="check" gpt="Plus+" gptIcon="warn" claude="Yes" claudeIcon="check" venice="No" veniceIcon="x" />
-                <TableRow feature="Persistent Memory" z="Included" zIcon="check" gpt="Limited" gptIcon="warn" claude="Yes" claudeIcon="check" venice="No" veniceIcon="x" />
-                <TableRow feature="Team Workspace" z="Included" zIcon="check" gpt="Paid+" gptIcon="warn" claude="Paid" claudeIcon="check" venice="No" veniceIcon="x" />
-                <TableRow feature="Coding Performance" z="Leads" zIcon="check" gpt="Strong" gptIcon="warn" claude="Strong" claudeIcon="check" venice="Basic" veniceIcon="x" />
-                <TableRow feature="Data Privacy" z="Never Trains" zIcon="check" gpt="May Train" gptIcon="x" claude="May Train" claudeIcon="x" venice="Partial" veniceIcon="warn" />
-                <tr className="border-t border-border/20">
-                  <td className="px-6 py-4 text-muted-foreground">Price</td>
-                  <td className="px-4 py-4 text-foreground font-light">$18/mo</td>
-                  <td className="px-4 py-4 text-muted-foreground">$20/mo</td>
-                  <td className="px-4 py-4 text-muted-foreground">$20/mo</td>
-                  <td className="px-4 py-4 text-muted-foreground">$12.99/mo</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { label: "Uncensored AI", desc: "No topic limits. No filters. Full answers on every subject." },
+              { label: "Real-Time Search", desc: "Privacy-first web intelligence with live data and source credibility tiers." },
+              { label: "Persistent Memory", desc: "Context that carries across every conversation and session." },
+              { label: "OSINT & Domain Forensics", desc: "Full-spectrum OSINT tooling — NOMAD, Elion/Zohar, entity resolution." },
+              { label: "Predictive Intelligence", desc: "AI event forecasting with signal detection and confidence scoring." },
+              { label: "Data Privacy", desc: "End-to-end encryption. Your data is never sold or used for training." },
+            ].map(({ label, desc }) => (
+              <div key={label} className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
+                <Check className="h-5 w-5 text-emerald-400 mb-3" />
+                <h3 className="text-sm font-light tracking-wide text-foreground">{label}</h3>
+                <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
+              </div>
+            ))}
           </div>
-
-          <p className="mt-10 text-xl sm:text-2xl font-extralight tracking-wide text-foreground">
-            The $2 difference buys you the truth.
-          </p>
         </div>
       </div>
 
@@ -464,7 +435,7 @@ const Index = () => {
               <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">Full Dashboard Access</p>
               <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON PRO</h3>
               <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$399</span>
+                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$740</span>
                 <span className="text-lg text-muted-foreground font-extralight">/ month</span>
               </div>
               <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Complete access to every tool — Asha Intelligence, NOMAD OSINT, Briefings, and more.</p>
@@ -581,16 +552,16 @@ const Index = () => {
 
           <div className="mt-16 space-y-3">
             <FaqItem
-              q="Why is Aureon uncensored when others aren't?"
-              a="Other LLMs are trained using RLHF — Reinforcement Learning from Human Feedback. The feedback is corporate-filtered to avoid liability. Aureon was built without that leash. You get the answer, not the approved version of it."
+              q="What makes Aureon different?"
+              a="Aureon is a full intelligence platform — not just a chatbot. It combines uncensored AI, real-time search, OSINT tooling, predictive analytics, and an elite coding engine into a single dashboard built for professionals."
             />
             <FaqItem
-              q="How does the coding engine beat Claude Opus?"
-              a="Aureon doesn't stop mid-build when the problem gets hard. It holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution."
+              q="How good is the coding engine?"
+              a="Aureon holds full context across large codebases, debugs without circular loops, and delivers working architecture — not pseudocode dressed up as a solution. It doesn't stop when the problem gets hard."
             />
             <FaqItem
               q='What does "never trains our models" mean?'
-              a="Every message you send is used by most AI companies to improve their model. Aureon does not. Your prompt is processed, answered, and encrypted. It is not stored as training data."
+              a="Your prompts are processed, answered, and encrypted. They are never stored as training data or shared with third parties. Your intelligence stays yours."
             />
             <FaqItem
               q="Can I cancel anytime?"
