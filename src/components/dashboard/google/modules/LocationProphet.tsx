@@ -133,11 +133,19 @@ const LocationProphet = () => {
         </div>
       )}
 
-      {!hasLive && (
+      {!hasLive && isConnected && !loading && (
         <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
           <MapPin className="h-10 w-10 text-muted-foreground/20 mx-auto" />
           <p className="text-sm font-extralight text-muted-foreground/50">
-            Connect Google to populate with real location data
+            No location data available — add locations to your calendar events to see insights here.
+          </p>
+        </div>
+      )}
+      {!isConnected && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <MapPin className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to analyze location history and predict where you'll be.
           </p>
         </div>
       )}

@@ -108,33 +108,47 @@ const SubscriptionOracle = () => {
         </div>
       )}
 
-      {/* Insights */}
-      <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
-        <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
-          <TrendingUp className="h-3.5 w-3.5" /> Intelligence
-        </h3>
-        <div className="space-y-1.5">
-          {(hasLive
-            ? [
-                `Found ${emails.length} payment/subscription-related emails`,
-                `${new Set(emails.map((e) => e.from?.match(/@([^\s>]+)/)?.[1]).filter(Boolean)).size} unique payment sources detected`,
-                emails.filter((e) => e.isUnread).length > 0
-                  ? `${emails.filter((e) => e.isUnread).length} unread payment notifications — review now`
-                  : "All payment notifications reviewed",
-              ]
-            : [
-                "Connect Google to scan for subscription emails",
-                "AI will detect recurring payments and predict charges",
-                "Find unused subscriptions wasting money",
-              ]
-          ).map((p, i) => (
-            <div key={i} className="flex items-center gap-2 py-1.5">
-              <Zap className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-              <span className="text-[10px] font-extralight text-muted-foreground">{p}</span>
-            </div>
-          ))}
+      {/* No Data */}
+      {!hasLive && isConnected && !loading && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <CreditCard className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            No subscription or payment emails found in your inbox.
+          </p>
         </div>
-      </div>
+      )}
+
+      {/* Insights */}
+      {hasLive && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
+            <TrendingUp className="h-3.5 w-3.5" /> Intelligence
+          </h3>
+          <div className="space-y-1.5">
+            {[
+              `Found ${emails.length} payment/subscription-related emails`,
+              `${new Set(emails.map((e) => e.from?.match(/@([^\s>]+)/)?.[1]).filter(Boolean)).size} unique payment sources detected`,
+              emails.filter((e) => e.isUnread).length > 0
+                ? `${emails.filter((e) => e.isUnread).length} unread payment notifications — review now`
+                : "All payment notifications reviewed",
+            ].map((p, i) => (
+              <div key={i} className="flex items-center gap-2 py-1.5">
+                <Zap className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <span className="text-[10px] font-extralight text-muted-foreground">{p}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isConnected && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <CreditCard className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to scan for subscription and payment emails.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -119,11 +119,19 @@ const SecurityIntelligence = () => {
         </div>
       )}
 
-      {!hasLive && (
+      {!hasLive && isConnected && !loading && (
         <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
           <Shield className="h-10 w-10 text-muted-foreground/20 mx-auto" />
           <p className="text-sm font-extralight text-muted-foreground/50">
-            Connect Google to scan for security alerts, shared files, and breach notifications
+            No security alerts or shared files detected — your accounts look clean.
+          </p>
+        </div>
+      )}
+      {!isConnected && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Shield className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to scan for security alerts, shared files, and breach notifications.
           </p>
         </div>
       )}
