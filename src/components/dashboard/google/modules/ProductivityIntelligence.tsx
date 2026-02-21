@@ -148,6 +148,65 @@ const ProductivityIntelligence = () => {
         </div>
       )}
 
+      {/* Energy Map – derived from live calendar + email activity */}
+      {hasLive && (() => {
+        const timeBlocks = [
+          { range: "7–9 AM", start: 7, end: 9 },
+          { range: "9–11 AM", start: 9, end: 11 },
+          { range: "11 AM–12 PM", start: 11, end: 12 },
+          { range: "12–2 PM", start: 12, end: 14 },
+          { range: "2–4 PM", start: 14, end: 16 },
+          { range: "4–6 PM", start: 16, end: 18 },
+          { range: "6–9 PM", start: 18, end: 21 },
+        ];
+
+        const blockData = timeBlocks.map((block) => {
+          const blockEvents = todayEvents.filter((e) => {
+            if (e.isAllDay) return false;
+            const h = new Date(e.start).getHours();
+            return h >= block.start && h < block.end;
+          });
+          const meetingCount = blockEvents.length;
+          const collabCount = blockEvents.filter((e) => e.attendees > 1).length;
+          const hasFocus = meetingCount === 0;
+
+          let level: string;
+          let activity: string;
+          if (meetingCount >= 3) { level = "Peak"; activity = blockEvents.map(e => e.summary).join(", "); }
+          else if (meetingCount === 2 || collabCount > 0) { level = "High"; activity = blockEvents.map(e => e.summary).join(", "); }
+          else if (meetingCount === 1) { level = "Medium"; activity = blockEvents[0]?.summary || "Scheduled event"; }
+          else if (hasFocus) { level = "Low"; activity = "Open block — deep work opportunity"; }
+          else { level = "Medium"; activity = "Light activity"; }
+
+          return { ...block, level, activity, meetingCount };
+        });
+
+        return (
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 space-y-3">
+            <h3 className="text-sm font-light tracking-wide text-foreground flex items-center gap-2">
+              <Zap className="h-4 w-4" /> Energy Map (Live Activity)
+            </h3>
+            <div className="space-y-1">
+              {blockData.map((b, i) => (
+                <div key={i} className="flex items-center gap-4 rounded-xl bg-foreground/5 px-4 py-2.5">
+                  <span className="text-[11px] font-light text-muted-foreground w-24 shrink-0">{b.range}</span>
+                  <span className={`text-[11px] font-medium w-14 shrink-0 ${
+                    b.level === "Peak" ? "text-foreground font-bold" :
+                    b.level === "High" ? "text-foreground/80" :
+                    b.level === "Medium" ? "text-muted-foreground" :
+                    "text-muted-foreground/50"
+                  }`}>{b.level}</span>
+                  <span className="text-[11px] font-extralight text-muted-foreground/70 truncate flex-1">{b.activity}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[9px] font-extralight text-muted-foreground/40">
+              Based on {todayEvents.length} calendar event{todayEvents.length !== 1 ? "s" : ""} today · {gmailStats?.unread || 0} unread emails
+            </p>
+          </div>
+        );
+      })()}
+
       {/* AI Insights */}
       {hasLive && (
         <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 space-y-3">
