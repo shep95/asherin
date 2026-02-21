@@ -10,13 +10,18 @@ const ContactIntelligence = () => {
   const [loading, setLoading] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
   const [totalContacts, setTotalContacts] = useState(0);
+  const [recentEmails, setRecentEmails] = useState<any[]>([]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await fetchGoogleData("contacts", { pageSize: 50 });
-      setContacts(data.contacts || []);
-      setTotalContacts(data.totalContacts || 0);
+      const [contactData, emailData] = await Promise.all([
+        fetchGoogleData("contacts", { pageSize: 50 }),
+        fetchGoogleData("gmail_inbox", { maxResults: 20, q: "is:inbox" }),
+      ]);
+      setContacts(contactData.contacts || []);
+      setTotalContacts(contactData.totalContacts || 0);
+      setRecentEmails(emailData.messages || []);
     } catch (err) {
       console.error("Failed to fetch contacts:", err);
     } finally {
@@ -111,18 +116,58 @@ const ContactIntelligence = () => {
         <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5" /> Relationship Alerts
         </h3>
-        <div className="space-y-1.5">
-          {[
-            "Connect Google to detect fading relationships",
-            "AI will analyze contact patterns and warn you",
-            "Frequency tracking identifies who you're losing touch with",
-          ].map((a, i) => (
-            <div key={i} className="flex items-start gap-2 rounded-lg bg-foreground/5 px-3 py-2">
-              <Zap className="h-3 w-3 text-muted-foreground/30 shrink-0 mt-0.5" />
-              <span className="text-[10px] font-extralight text-muted-foreground/60">{a}</span>
+        {isConnected && contacts.length > 0 ? (() => {
+          // Find contacts NOT appearing in recent emails
+          const recentSenders = new Set(recentEmails.map((m: any) => (m.from || "").toLowerCase()));
+          const contactsWithEmail = contacts.filter(c => c.email);
+          const fadingContacts = contactsWithEmail.filter(c => !recentSenders.has(c.email.toLowerCase()) && !recentSenders.has(c.name?.toLowerCase()));
+          const activeContacts = contactsWithEmail.filter(c => recentSenders.has(c.email.toLowerCase()) || [...recentSenders].some(s => s.includes(c.name?.toLowerCase() || "___")));
+
+          const alerts = [
+            ...(fadingContacts.length > 0 ? [{
+              text: `${fadingContacts.length} contact${fadingContacts.length > 1 ? "s" : ""} with no recent email activity: ${fadingContacts.slice(0, 3).map(c => c.name).join(", ")}${fadingContacts.length > 3 ? "…" : ""}`,
+              type: "warning",
+            }] : []),
+            ...(activeContacts.length > 0 ? [{
+              text: `${activeContacts.length} contact${activeContacts.length > 1 ? "s" : ""} active in recent inbox`,
+              type: "ok",
+            }] : []),
+            ...(fadingContacts.length === 0 && activeContacts.length === 0 ? [{
+              text: "No contact pattern data yet — email activity will be analyzed on next sync",
+              type: "info",
+            }] : []),
+          ];
+
+          return (
+            <div className="space-y-1.5">
+              {alerts.map((a, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-lg bg-foreground/5 px-3 py-2">
+                  {a.type === "warning" ? (
+                    <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />
+                  ) : a.type === "ok" ? (
+                    <Heart className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <Zap className="h-3 w-3 text-muted-foreground/30 shrink-0 mt-0.5" />
+                  )}
+                  <span className="text-[10px] font-extralight text-muted-foreground/70">{a.text}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })() : (
+          <div className="space-y-1.5">
+            {[
+              "Connect Google to detect fading relationships",
+              "AI will analyze contact patterns and warn you",
+              "Frequency tracking identifies who you're losing touch with",
+            ].map((a, i) => (
+              <div key={i} className="flex items-start gap-2 rounded-lg bg-foreground/5 px-3 py-2">
+                <Zap className="h-3 w-3 text-muted-foreground/30 shrink-0 mt-0.5" />
+                <span className="text-[10px] font-extralight text-muted-foreground/60">{a}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
