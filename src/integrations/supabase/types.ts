@@ -1054,6 +1054,60 @@ export type Database = {
           },
         ]
       }
+      google_accounts: {
+        Row: {
+          access_token: string
+          avatar_url: string | null
+          created_at: string
+          data_points_count: number
+          display_name: string | null
+          google_email: string
+          id: string
+          is_primary: boolean
+          last_sync_at: string | null
+          refresh_token: string
+          scopes: string[]
+          status: string
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          avatar_url?: string | null
+          created_at?: string
+          data_points_count?: number
+          display_name?: string | null
+          google_email: string
+          id?: string
+          is_primary?: boolean
+          last_sync_at?: string | null
+          refresh_token: string
+          scopes?: string[]
+          status?: string
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          avatar_url?: string | null
+          created_at?: string
+          data_points_count?: number
+          display_name?: string | null
+          google_email?: string
+          id?: string
+          is_primary?: boolean
+          last_sync_at?: string | null
+          refresh_token?: string
+          scopes?: string[]
+          status?: string
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       granted_subscriptions: {
         Row: {
           active: boolean
