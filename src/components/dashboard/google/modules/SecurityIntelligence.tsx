@@ -1,23 +1,41 @@
+import { useState, useEffect } from "react";
 import {
-  Lock, AlertTriangle, Mail, Share2, MapPin, User,
-  Globe, CreditCard, Shield, CheckCircle2, XCircle,
-  ChevronRight,
+  Lock, AlertTriangle, Mail, Share2, Globe, Shield,
+  CheckCircle2, XCircle, ChevronRight, RefreshCw, FileText,
 } from "lucide-react";
-
-const securityFeatures = [
-  { icon: Lock, name: "Password Strength Checker", desc: "Analyzes password security from password-reset emails", severity: "medium", stat: "3 weak passwords found" },
-  { icon: AlertTriangle, name: "Data Breach Detector", desc: "Checks if your email appeared in known breaches", severity: "high", stat: "Your email in 3 breaches" },
-  { icon: Mail, name: "Phishing Detector", desc: "Identifies phishing and scam emails in your inbox", severity: "high", stat: "7 phishing attempts blocked" },
-  { icon: Share2, name: "File Sharing Auditor", desc: "Checks for publicly shared files on Drive", severity: "medium", stat: "12 files shared publicly" },
-  { icon: MapPin, name: "Location Privacy Monitor", desc: "Monitors location data shared in photos and posts", severity: "low", stat: "47 photos with public GPS" },
-  { icon: User, name: "Identity Theft Monitor", desc: "Watches for signs of identity theft", severity: "low", stat: "No threats detected" },
-  { icon: Globe, name: "Account Takeover Detector", desc: "Detects unauthorized login attempts", severity: "medium", stat: "1 unknown device login" },
-  { icon: CreditCard, name: "Fraud Detector", desc: "Identifies fraudulent or unusual charges", severity: "low", stat: "All clear" },
-];
+import { useGoogleApi } from "@/hooks/useGoogleApi";
 
 const SecurityIntelligence = () => {
-  const criticalCount = securityFeatures.filter((f) => f.severity === "high").length;
-  const warningCount = securityFeatures.filter((f) => f.severity === "medium").length;
+  const { fetchGoogleData, isConnected } = useGoogleApi();
+  const [loading, setLoading] = useState(false);
+  const [securityEmails, setSecurityEmails] = useState<any[]>([]);
+  const [sharedFiles, setSharedFiles] = useState<any[]>([]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [emailData, fileData] = await Promise.all([
+        fetchGoogleData("gmail_inbox", {
+          maxResults: 15,
+          q: "subject:(security alert OR password OR breach OR suspicious OR verification OR unauthorized) OR from:(security OR noreply)",
+        }),
+        fetchGoogleData("drive_files", { pageSize: 20 }),
+      ]);
+      setSecurityEmails(emailData.messages || []);
+      setSharedFiles((fileData.files || []).filter((f: any) => f.shared));
+    } catch (err) {
+      console.error("Failed to fetch security data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected) loadData();
+  }, [isConnected]);
+
+  const hasLive = securityEmails.length > 0 || sharedFiles.length > 0;
+  const unreadSecurity = securityEmails.filter((e) => e.isUnread).length;
 
   return (
     <div className="space-y-6">
@@ -27,97 +45,88 @@ const SecurityIntelligence = () => {
           <Shield className="h-7 w-7 text-foreground/70" />
         </div>
         <div className="space-y-1 flex-1">
-          <h3 className="text-sm font-light tracking-wide text-foreground">Security Score</h3>
-          <div className="flex items-center gap-4">
-            <span className="text-3xl font-light text-foreground">72</span>
-            <span className="text-xs text-muted-foreground/60">/100</span>
-            <div className="flex gap-2 ml-4">
-              <span className="text-[10px] px-2 py-0.5 rounded-lg bg-red-500/10 text-red-400">{criticalCount} critical</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-400">{warningCount} warnings</span>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-light tracking-wide text-foreground">Security Intelligence</h3>
+            {isConnected && (
+              <button onClick={loadData} disabled={loading} className="flex items-center gap-1 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all disabled:opacity-50">
+                <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+                Sync
+              </button>
+            )}
+          </div>
+          {hasLive && (
+            <div className="flex items-center gap-4">
+              <div className="flex gap-2">
+                {unreadSecurity > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-lg bg-red-500/10 text-red-400">{unreadSecurity} unread alerts</span>
+                )}
+                {sharedFiles.length > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-400">{sharedFiles.length} shared files</span>
+                )}
+              </div>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Security Alerts from Email */}
+      {securityEmails.length > 0 && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-sm font-light tracking-wide text-foreground flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" /> Security-Related Emails (Live)
+          </h3>
+          <div className="space-y-2">
+            {securityEmails.map((e) => (
+              <div key={e.id} className="flex items-start gap-2 py-1.5 rounded-lg bg-foreground/5 px-3">
+                {e.isUnread ? (
+                  <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-foreground/30 shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] font-light text-foreground truncate block">{e.subject || "(No Subject)"}</span>
+                  <span className="text-[10px] text-muted-foreground/50">{e.from?.replace(/<.*>/, "").trim()}</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground/40 shrink-0">
+                  {e.date ? new Date(e.date).toLocaleDateString([], { month: "short", day: "numeric" }) : ""}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Active Alerts */}
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/5 backdrop-blur-md p-5 space-y-3">
-        <h3 className="text-sm font-light tracking-wide text-red-400 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4" /> Active Alerts
-        </h3>
-        <div className="space-y-2">
-          {[
-            { text: "Your email found in 3 data breaches — change passwords immediately", severity: "critical" },
-            { text: "7 phishing emails detected this month — review flagged messages", severity: "critical" },
-            { text: "Login from unknown device (Moscow, Russia) — was this you?", severity: "warning" },
-            { text: "12 Drive files are shared publicly — review permissions", severity: "warning" },
-          ].map((alert, i) => (
-            <div key={i} className="flex items-start gap-2 py-1">
-              {alert.severity === "critical" ? (
-                <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
-              ) : (
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-              )}
-              <span className="text-[11px] font-extralight text-muted-foreground">{alert.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* All Features */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-light tracking-wide text-foreground">Security Features</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {securityFeatures.map((f) => (
-            <div
-              key={f.name}
-              className="flex items-start gap-3 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-4 hover:bg-foreground/5 transition-all group"
-            >
-              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                f.severity === "high" ? "bg-red-500/10" :
-                f.severity === "medium" ? "bg-amber-500/10" : "bg-foreground/5"
-              }`}>
-                <f.icon className={`h-4 w-4 ${
-                  f.severity === "high" ? "text-red-400" :
-                  f.severity === "medium" ? "text-amber-400" : "text-foreground/70"
-                }`} />
+      {/* Shared Files Audit */}
+      {sharedFiles.length > 0 && (
+        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-sm font-light tracking-wide text-foreground flex items-center gap-2">
+            <Share2 className="h-4 w-4" /> Shared Files Audit (Live)
+          </h3>
+          <p className="text-[10px] font-extralight text-muted-foreground">
+            {sharedFiles.length} files are currently shared — review for potential security risks
+          </p>
+          <div className="space-y-1.5">
+            {sharedFiles.map((f) => (
+              <div key={f.id} className="flex items-center justify-between py-1.5 border-b border-border/10 last:border-0">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <FileText className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                  <span className="text-xs font-light text-foreground truncate">{f.name}</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-400 shrink-0">Shared</span>
               </div>
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <span className="text-xs font-light text-foreground">{f.name}</span>
-                <p className="text-[10px] font-extralight text-muted-foreground">{f.desc}</p>
-                <span className="text-[10px] font-light text-foreground/50">{f.stat}</span>
-              </div>
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-foreground/50 mt-1" />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Connected Apps Audit */}
-      <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 space-y-3">
-        <h3 className="text-sm font-light tracking-wide text-foreground flex items-center gap-2">
-          <Globe className="h-4 w-4" /> Connected Apps Audit
-        </h3>
-        <p className="text-[10px] font-extralight text-muted-foreground">
-          Apps connected via "Sign in with Google" — OAuth scope analysis & risk scoring
-        </p>
-        <div className="space-y-1.5">
-          {[
-            { name: "Spotify", scopes: "Email, Profile", risk: "Low" },
-            { name: "Notion", scopes: "Email, Profile, Drive", risk: "Medium" },
-            { name: "Unknown App", scopes: "Email, Calendar, Contacts", risk: "High" },
-          ].map((app) => (
-            <div key={app.name} className="flex items-center justify-between py-1.5 border-b border-border/10 last:border-0">
-              <span className="text-xs font-light text-foreground">{app.name}</span>
-              <span className="text-[10px] text-muted-foreground">{app.scopes}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-lg ${
-                app.risk === "High" ? "bg-red-500/10 text-red-400" :
-                app.risk === "Medium" ? "bg-amber-500/10 text-amber-400" :
-                "bg-emerald-500/10 text-emerald-400"
-              }`}>{app.risk}</span>
-            </div>
-          ))}
+      {!hasLive && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Shield className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to scan for security alerts, shared files, and breach notifications
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 };

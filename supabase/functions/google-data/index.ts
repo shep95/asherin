@@ -291,6 +291,21 @@ Deno.serve(async (req) => {
       result = await res.json();
     }
 
+    // ── DRIVE ABOUT (storage quota) ──
+    else if (service === "drive_about") {
+      const res = await fetch("https://www.googleapis.com/drive/v3/about?fields=storageQuota,user", { headers });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      result = data;
+    }
+
+    // ── YOUTUBE ──
+    else if (service === "youtube_channels") {
+      const res = await fetch("https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&mine=true", { headers });
+      const data = await res.json();
+      result = data;
+    }
+
     else {
       return new Response(JSON.stringify({ error: `Unknown service: ${service}` }), {
         status: 400,
