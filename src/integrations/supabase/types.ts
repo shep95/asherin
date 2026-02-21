@@ -477,6 +477,7 @@ export type Database = {
           query: string
           response: string
           response_type: string
+          session_id: string | null
           user_id: string
         }
         Insert: {
@@ -485,6 +486,7 @@ export type Database = {
           query: string
           response?: string
           response_type?: string
+          session_id?: string | null
           user_id: string
         }
         Update: {
@@ -493,9 +495,18 @@ export type Database = {
           query?: string
           response?: string
           response_type?: string
+          session_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "asha_queries_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "asha_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       asha_reports: {
         Row: {
