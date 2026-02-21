@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import NexusChatPanel from "./NexusChatPanel";
 import MultiAccountManager from "./MultiAccountManager";
 import LocationProphet from "./modules/LocationProphet";
 import EmailAssistant from "./modules/EmailAssistant";
@@ -51,6 +52,10 @@ const dataModules: ModuleDef[] = [
 const GoogleIntelligenceView = () => {
   const [activeModule, setActiveModule] = useState<GoogleModule>("overview");
   const [isConnecting, setIsConnecting] = useState(false);
+  const [chatOpen, setChatOpen] = useState(true);
+
+  const activeLabel = activeModule === "overview" ? "Overview" :
+    [...nexusModules, ...dataModules].find((m) => m.id === activeModule)?.label ?? activeModule;
 
   const handleConnect = () => {
     setIsConnecting(true);
@@ -178,6 +183,9 @@ const GoogleIntelligenceView = () => {
               </TabsContent>
             ))}
           </Tabs>
+
+          {/* Aureon Chat Panel */}
+          <NexusChatPanel activeModule={activeModule} moduleLabel={activeLabel} />
         </div>
       </ScrollArea>
     </div>
