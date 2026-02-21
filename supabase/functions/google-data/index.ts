@@ -262,6 +262,12 @@ function mergeResults(service: string, results: any[]): any {
     return { files: allFiles };
   }
 
+  // For fitness and other services, DON'T merge — return the first account's data
+  // Fitness data (steps, heart rate) should not be summed across accounts
+  if (service === "fitness") {
+    return results[0] || {};
+  }
+
   // For other services, return array of per-account results
   return { accounts: results };
 }

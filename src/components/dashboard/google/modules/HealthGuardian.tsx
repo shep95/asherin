@@ -13,7 +13,8 @@ const HealthGuardian = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await fetchGoogleData("fitness");
+      // Don't aggregate fitness across accounts — use primary only
+      const data = await fetchGoogleData("fitness", undefined, undefined, false);
       setFitnessData(data.dailyData || []);
     } catch (err) {
       console.error("Failed to fetch fitness:", err);
@@ -108,33 +109,46 @@ const HealthGuardian = () => {
         </div>
       )}
 
-      {/* Smart Insights */}
-      <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
-        <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
-          <Brain className="h-3.5 w-3.5" /> Smart Insights
-        </h3>
-        <div className="space-y-1.5">
-          {(hasLiveData
-            ? [
-                `Average ${avgSteps.toLocaleString()} steps/day this week`,
-                avgHR > 0 ? `Resting heart rate averaging ${avgHR} bpm` : "Heart rate data not available — wear your device more",
-                `Total ${totalCalories.toLocaleString()} calories burned this week`,
-                todayData?.steps > avgSteps ? "Today you're above your daily average — keep it up!" : "Below average today — try a quick walk",
-              ]
-            : [
-                "Connect Google Fit to detect health patterns",
-                "AI anomaly detection for step count, sleep, and heart rate",
-                "Illness prediction based on behavioral changes",
-                "Cycle tracking and fertility window estimation",
-              ]
-          ).map((s, i) => (
-            <div key={i} className="flex items-center gap-2 py-1">
-              <Zap className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-              <span className="text-[10px] font-extralight text-muted-foreground">{s}</span>
-            </div>
-          ))}
+      {/* No Data State */}
+      {isConnected && !loading && !hasLiveData && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Heart className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            No fitness data available — make sure Google Fit is active and syncing on your device.
+          </p>
         </div>
-      </div>
+      )}
+
+      {/* Smart Insights */}
+      {hasLiveData && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
+            <Brain className="h-3.5 w-3.5" /> Smart Insights
+          </h3>
+          <div className="space-y-1.5">
+            {[
+              `Average ${avgSteps.toLocaleString()} steps/day this week`,
+              avgHR > 0 ? `Resting heart rate averaging ${avgHR} bpm` : "Heart rate data not available — wear your device more",
+              `Total ${totalCalories.toLocaleString()} calories burned this week`,
+              todayData?.steps > avgSteps ? "Today you're above your daily average — keep it up!" : "Below average today — try a quick walk",
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-2 py-1">
+                <Zap className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <span className="text-[10px] font-extralight text-muted-foreground">{s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isConnected && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Heart className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to track health metrics, detect anomalies, and predict illness patterns.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -149,37 +149,50 @@ const ProductivityIntelligence = () => {
       )}
 
       {/* AI Insights */}
-      <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 space-y-3">
-        <h3 className="text-sm font-light tracking-wide text-foreground flex items-center gap-2">
-          <Brain className="h-4 w-4" /> AI Productivity Insights
-        </h3>
-        <div className="space-y-2">
-          {(hasLive
-            ? [
-                { type: "strength", text: `${events.length} events this week — ${meetingsWithOthers.length} are collaborative` },
-                { type: "strength", text: `${allDayEvents.length} all-day events (deep work blocks or OOO)` },
-                { type: gmailStats?.unread > 20 ? "warning" : "strength", text: `${gmailStats?.unread || 0} unread emails ${gmailStats?.unread > 20 ? "— inbox overload detected" : "— inbox under control"}` },
-                todayEvents.length > 5
-                  ? { type: "warning", text: `${todayEvents.length} events today — consider blocking focus time` }
-                  : { type: "strength", text: `Light day with ${todayEvents.length} events — use for deep work` },
-              ]
-            : [
-                { type: "strength", text: "Connect Google to detect work patterns" },
-                { type: "strength", text: "AI will analyze calendar density and email load" },
-                { type: "warning", text: "Productivity insights require live data" },
-              ]
-          ).map((ins, i) => (
-            <div key={i} className="flex items-start gap-2 py-1">
-              {ins.type === "strength" ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
-              ) : (
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
-              )}
-              <span className="text-[11px] font-extralight text-muted-foreground">{ins.text}</span>
-            </div>
-          ))}
+      {hasLive && (
+        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-sm font-light tracking-wide text-foreground flex items-center gap-2">
+            <Brain className="h-4 w-4" /> AI Productivity Insights
+          </h3>
+          <div className="space-y-2">
+            {[
+              { type: "strength", text: `${events.length} events this week — ${meetingsWithOthers.length} are collaborative` },
+              { type: "strength", text: `${allDayEvents.length} all-day events (deep work blocks or OOO)` },
+              { type: gmailStats?.unread > 20 ? "warning" : "strength", text: `${gmailStats?.unread || 0} unread emails ${gmailStats?.unread > 20 ? "— inbox overload detected" : "— inbox under control"}` },
+              todayEvents.length > 5
+                ? { type: "warning", text: `${todayEvents.length} events today — consider blocking focus time` }
+                : { type: "strength", text: `Light day with ${todayEvents.length} events — use for deep work` },
+            ].map((ins, i) => (
+              <div key={i} className="flex items-start gap-2 py-1">
+                {ins.type === "strength" ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                )}
+                <span className="text-[11px] font-extralight text-muted-foreground">{ins.text}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {!hasLive && isConnected && !loading && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <BarChart3 className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            No productivity data available — calendar and email data will appear here once synced.
+          </p>
+        </div>
+      )}
+
+      {!isConnected && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <BarChart3 className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to track productivity patterns and optimize your workflow.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -128,32 +128,46 @@ const CareerPredictor = () => {
         </div>
       )}
 
-      {/* Insights */}
-      <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
-        <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
-          <TrendingUp className="h-3.5 w-3.5" /> Career Intelligence
-        </h3>
-        <div className="space-y-1.5">
-          {(hasLive
-            ? [
-                recruiterEmails.length > 5 ? "High recruiter activity — you're in demand" : "Normal recruiter activity",
-                driveFiles.length > 0 ? `${driveFiles.length} resume/CV files found — last updated ${driveFiles[0]?.modifiedTime ? new Date(driveFiles[0].modifiedTime).toLocaleDateString() : "unknown"}` : "No resume files detected in Drive",
-                recruiterEmails.filter((e) => e.isUnread).length > 0 ? `${recruiterEmails.filter((e) => e.isUnread).length} unread career emails — don't miss opportunities` : "All career emails reviewed",
-                `${new Set(recruiterEmails.map((e) => e.from?.match(/@([^\s>]+)/)?.[1]).filter(Boolean)).size} unique companies reaching out`,
-              ]
-            : [
-                "Connect Google to detect career signals",
-                "AI tracks recruiter emails and resume updates",
-                "Predicts job changes based on behavioral patterns",
-              ]
-          ).map((m, i) => (
-            <div key={i} className="flex items-center gap-2 py-1">
-              <Zap className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-              <span className="text-[10px] font-extralight text-muted-foreground">{m}</span>
-            </div>
-          ))}
+      {/* No Data */}
+      {!hasLive && isConnected && !loading && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Briefcase className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            No career-related emails or resume files found.
+          </p>
         </div>
-      </div>
+      )}
+
+      {/* Insights */}
+      {hasLive && (
+        <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
+          <h3 className="text-xs font-light tracking-wide text-foreground flex items-center gap-2">
+            <TrendingUp className="h-3.5 w-3.5" /> Career Intelligence
+          </h3>
+          <div className="space-y-1.5">
+            {[
+              recruiterEmails.length > 5 ? "High recruiter activity — you're in demand" : "Normal recruiter activity",
+              driveFiles.length > 0 ? `${driveFiles.length} resume/CV files found — last updated ${driveFiles[0]?.modifiedTime ? new Date(driveFiles[0].modifiedTime).toLocaleDateString() : "unknown"}` : "No resume files detected in Drive",
+              recruiterEmails.filter((e) => e.isUnread).length > 0 ? `${recruiterEmails.filter((e) => e.isUnread).length} unread career emails — don't miss opportunities` : "All career emails reviewed",
+              `${new Set(recruiterEmails.map((e) => e.from?.match(/@([^\s>]+)/)?.[1]).filter(Boolean)).size} unique companies reaching out`,
+            ].map((m, i) => (
+              <div key={i} className="flex items-center gap-2 py-1">
+                <Zap className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <span className="text-[10px] font-extralight text-muted-foreground">{m}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isConnected && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Briefcase className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to detect career signals, recruiter emails, and resume activity.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

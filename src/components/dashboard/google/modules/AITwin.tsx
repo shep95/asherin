@@ -113,7 +113,6 @@ const AITwin = () => {
         ))}
       </div>
 
-      {/* Data Sources Summary */}
       {hasLive && (
         <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-5 space-y-3">
           <h3 className="text-sm font-light tracking-wide text-foreground flex items-center gap-2">
@@ -133,6 +132,24 @@ const AITwin = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {!hasLive && isConnected && !loading && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Brain className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            No data available yet — your digital twin needs more activity to learn from.
+          </p>
+        </div>
+      )}
+
+      {!isConnected && (
+        <div className="rounded-2xl border border-dashed border-border/30 bg-card/10 p-10 text-center space-y-3">
+          <Brain className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm font-extralight text-muted-foreground/50">
+            Connect Google to create your complete digital replica.
+          </p>
         </div>
       )}
     </div>
