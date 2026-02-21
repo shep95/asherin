@@ -2600,6 +2600,105 @@ export type Database = {
         }
         Relationships: []
       }
+      zali_components: {
+        Row: {
+          compatible_names: string[] | null
+          cost: number | null
+          created_at: string
+          description: string | null
+          id: string
+          lead_days: number | null
+          name: string
+          reused: number | null
+          success_rate: number | null
+          supplier: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          compatible_names?: string[] | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_days?: number | null
+          name: string
+          reused?: number | null
+          success_rate?: number | null
+          supplier?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          compatible_names?: string[] | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_days?: number | null
+          name?: string
+          reused?: number | null
+          success_rate?: number | null
+          supplier?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      zali_materials: {
+        Row: {
+          avg_cost: number | null
+          category: string
+          created_at: string
+          failure_mode: string | null
+          id: string
+          name: string
+          notes: string | null
+          success_rate: number | null
+          sustainability: string | null
+          times_used: number | null
+          top_use: string | null
+          trend: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_cost?: number | null
+          category?: string
+          created_at?: string
+          failure_mode?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          success_rate?: number | null
+          sustainability?: string | null
+          times_used?: number | null
+          top_use?: string | null
+          trend?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_cost?: number | null
+          category?: string
+          created_at?: string
+          failure_mode?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          success_rate?: number | null
+          sustainability?: string | null
+          times_used?: number | null
+          top_use?: string | null
+          trend?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       zali_messages: {
         Row: {
           content: string
@@ -2637,6 +2736,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      zali_mfg_results: {
+        Row: {
+          analysis_type: string
+          created_at: string
+          id: string
+          project_name: string
+          results: Json | null
+          user_id: string
+        }
+        Insert: {
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          project_name?: string
+          results?: Json | null
+          user_id: string
+        }
+        Update: {
+          analysis_type?: string
+          created_at?: string
+          id?: string
+          project_name?: string
+          results?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      zali_optimization_results: {
+        Row: {
+          created_at: string
+          id: string
+          project_name: string
+          results: Json | null
+          user_id: string
+          weights: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_name?: string
+          results?: Json | null
+          user_id: string
+          weights?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_name?: string
+          results?: Json | null
+          user_id?: string
+          weights?: Json | null
+        }
+        Relationships: []
       }
       zali_projects: {
         Row: {
@@ -2732,6 +2885,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      zali_simulation_results: {
+        Row: {
+          created_at: string
+          id: string
+          project_name: string
+          results: Json | null
+          sim_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_name?: string
+          results?: Json | null
+          sim_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_name?: string
+          results?: Json | null
+          sim_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

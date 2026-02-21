@@ -7,6 +7,8 @@ export interface ZaliProject {
   status: string;
   researchDomains: ResearchDomain[];
   specifications: Record<string, unknown>;
+  specs?: Record<string, unknown>;
+  materials?: string[];
   costAnalysis: Record<string, unknown>;
   manufacturing: Record<string, unknown>;
   simulationResults: Record<string, unknown>;
