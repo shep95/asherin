@@ -278,7 +278,7 @@ export default function TrackerView() {
         .from("tracker_devices" as any)
         .insert({
           user_id: user.id,
-          device_name: null, // null = pending / not yet registered
+          device_name: label, // Use campaign label as device name
           pairing_token: shortCode,
           pairing_token_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         })
@@ -296,7 +296,7 @@ export default function TrackerView() {
 
       const pendingDevice: TrackerDevice = {
         id: (newDevice as any).id,
-        device_name: null,
+        device_name: label,
         last_seen: null,
         created_at: new Date().toISOString(),
         onboardingLink,
