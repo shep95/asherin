@@ -40,4 +40,4 @@ export interface ZaliAgent {
 }
 
 export type ZaliPhase = "understanding" | "research" | "design" | "simulation" | "iteration" | "documentation";
-export type ZaliTab = "workspace" | "specs" | "simulations" | "cost" | "manufacturing" | "agents" | "research" | "community";
+export type ZaliTab = "workspace" | "specs" | "simulations" | "cost" | "manufacturing" | "agents" | "research" | "community" | "materials-db" | "components" | "sim-engine" | "mfg-verify" | "optimization" | "god-mode";
