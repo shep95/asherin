@@ -247,7 +247,7 @@ const IngestPanel = () => {
         <p className="text-[10px] text-muted-foreground/30 mt-1">
           Files are validated, uploaded, and analyzed by Asha AI
         </p>
-        <input ref={inputRef} type="file" multiple className="hidden" accept=".csv,.json,.jsonl,.xlsx,.xls,.xml,.pdf,.sql,.parquet,.geojson,.txt,.log,.yaml,.yml,.toml" onChange={(e) => { if (e.target.files) ingestFiles(e.target.files); e.target.value = ""; }} />
+        <input ref={inputRef} type="file" multiple className="hidden" accept=".csv,.json,.jsonl,.xlsx,.xls,.xml,.pdf,.sql,.parquet,.geojson,.txt,.log,.yaml,.yml,.toml,.md,.markdown" onChange={(e) => { if (e.target.files) ingestFiles(e.target.files); e.target.value = ""; }} />
       </div>
 
       {/* File cards */}
