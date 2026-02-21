@@ -28,71 +28,96 @@ const Header = () => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-        <Link to="/" className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-2.5 flex items-center hover:bg-card/80 transition-colors">
-          <span className="text-base sm:text-lg font-extralight tracking-[0.25em] text-foreground">
-            AUREON
-          </span>
+        {/* Left: Logo + Pages dropdown */}
+        <div className="hidden sm:flex items-center gap-2">
+          <Link to="/" className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-2.5 flex items-center hover:bg-card/80 transition-colors">
+            <span className="text-base sm:text-lg font-extralight tracking-[0.25em] text-foreground">
+              AUREON
+            </span>
+          </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger className="rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2 sm:py-2.5 flex items-center gap-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80 outline-none">
+              Pages <ChevronDown className="h-3.5 w-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={8} className="w-72 bg-card/95 backdrop-blur-xl border-border/30 p-3 rounded-2xl shadow-2xl">
+              {/* Intelligence Branch */}
+              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Intelligence</p>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">NOMAD OSINT</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Asha Intelligence</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/predictive" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Predictive Intelligence</Link>
+              </DropdownMenuItem>
+
+              <div className="my-2 border-t border-border/15" />
+
+              {/* Agents & Tools Branch */}
+              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Agents & Tools</p>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">AI Personas</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Daily Briefings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/elion" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Elion / Zohar Toolkit</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/tracker" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Location Tracker</Link>
+              </DropdownMenuItem>
+
+              <div className="my-2 border-t border-border/15" />
+
+              {/* Creation Branch */}
+              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Creation</p>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">ZALI Design Lab</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/imagine-to-code" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Imagine To Code</Link>
+              </DropdownMenuItem>
+
+              <div className="my-2 border-t border-border/15" />
+
+              {/* Company Branch */}
+              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Company</p>
+              <DropdownMenuItem asChild>
+                <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">All Features</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Founder</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Pricing</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Prompt Engineering</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Benchmarks</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/equity" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Equity Ownership</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Mobile: just logo */}
+        <Link to="/" className="sm:hidden rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2 flex items-center hover:bg-card/80 transition-colors">
+          <span className="text-base font-extralight tracking-[0.25em] text-foreground">AUREON</span>
         </Link>
 
+        {/* Right: Auth buttons */}
         <div className="hidden sm:block">
           <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground outline-none">
-                Pages <ChevronDown className="h-3.5 w-3.5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-card border-border/40">
-                <DropdownMenuItem asChild>
-                  <Link to="/features" className="cursor-pointer text-sm font-light tracking-wide">All Features</Link>
-                </DropdownMenuItem>
-                <div className="my-1 border-t border-border/20" />
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide">Zophiel Search</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide">NOMAD OSINT</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide">Asha Intelligence</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/briefings" className="cursor-pointer text-sm font-light tracking-wide">Daily Briefings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/personas" className="cursor-pointer text-sm font-light tracking-wide">AI Personas</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide">ZALI Design Lab</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/predictive" className="cursor-pointer text-sm font-light tracking-wide">Predictive Intelligence</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/elion" className="cursor-pointer text-sm font-light tracking-wide">Elion / Zohar Toolkit</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/tracker" className="cursor-pointer text-sm font-light tracking-wide">Location Tracker</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/feature/imagine-to-code" className="cursor-pointer text-sm font-light tracking-wide">Imagine To Code</Link>
-                </DropdownMenuItem>
-                <div className="my-1 border-t border-border/20" />
-                <DropdownMenuItem asChild>
-                  <Link to="/founder" className="cursor-pointer text-sm font-light tracking-wide">Founder</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/pricing" className="cursor-pointer text-sm font-light tracking-wide">Pricing</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/prompt-engineering" className="cursor-pointer text-sm font-light tracking-wide">Prompt Engineering</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/benchmarks" className="cursor-pointer text-sm font-light tracking-wide">Benchmarks</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/equity" className="cursor-pointer text-sm font-light tracking-wide">Equity Ownership</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             {!loading && user ? (
               <Link to="/dashboard" className="rounded-lg bg-foreground px-5 py-1.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">
                 Go to Dashboard
