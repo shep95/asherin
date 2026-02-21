@@ -46,6 +46,9 @@ const Header = () => {
               {/* Intelligence Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Intelligence</p>
               <DropdownMenuItem asChild>
+                <Link to="/dashboard" onClick={() => {}} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Google Intelligence</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
