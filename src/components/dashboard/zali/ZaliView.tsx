@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Download, Shield } from "lucide-react";
 import { Atom, AlertTriangle, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,9 +46,13 @@ const TABS: { id: ZaliTab; label: string }[] = [
   { id: "community", label: "Community" },
 ];
 
+const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+
 const ZaliView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isAdmin = user?.email === ADMIN_EMAIL;
+  const [downloading, setDownloading] = useState(false);
   const [projects, setProjects] = useState<ZaliProject[]>([]);
   const [activeProject, setActiveProject] = useState<ZaliProject | null>(null);
   const [messages, setMessages] = useState<ZaliMessage[]>([]);
@@ -506,6 +510,34 @@ const ZaliView = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Admin blueprint download */}
+            {isAdmin && (
+              <button
+                onClick={async () => {
+                  setDownloading(true);
+                  try {
+                    const res = await fetch("/docs/ZALI_BLUEPRINT.md");
+                    const text = await res.text();
+                    const blob = new Blob([text], { type: "text/markdown" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "ZALI_BLUEPRINT_INTERNAL.md";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } finally {
+                    setDownloading(false);
+                  }
+                }}
+                disabled={downloading}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-accent/30 bg-accent/10 text-accent text-[10px] sm:text-xs font-light tracking-wide hover:bg-accent/20 transition-colors disabled:opacity-50"
+                title="Download ZALI Blueprint (Admin Only)"
+              >
+                <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="hidden sm:inline">{downloading ? "Downloading..." : "Blueprint"}</span>
+              </button>
+            )}
             {/* Mobile chat toggle */}
             <button
               onClick={() => setShowMobileChat(!showMobileChat)}
