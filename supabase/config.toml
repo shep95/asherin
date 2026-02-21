@@ -86,3 +86,9 @@ verify_jwt = false
 
 [functions.elion-execute]
 verify_jwt = false
+
+[functions.google-oauth]
+verify_jwt = false
+
+[functions.google-data]
+verify_jwt = false

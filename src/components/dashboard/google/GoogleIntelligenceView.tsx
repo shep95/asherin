@@ -70,9 +70,20 @@ const GoogleIntelligenceView = () => {
   const activeLabel = activeModule === "overview" ? "Overview" :
     [...nexusModules, ...dataModules].find((m) => m.id === activeModule)?.label ?? activeModule;
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     setIsConnecting(true);
-    setTimeout(() => setIsConnecting(false), 2000);
+    try {
+      const { useGoogleApi } = await import("@/hooks/useGoogleApi");
+      // Redirect handled by hook - just trigger it inline
+      const { data: { session } } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
+      if (!session) return;
+      const res = await (await import("@/integrations/supabase/client")).supabase.functions.invoke("google-oauth", { body: { action: "get_auth_url" } });
+      if (res.data?.url) window.location.href = res.data.url;
+    } catch (err) {
+      console.error("Connect failed:", err);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const renderModule = () => {

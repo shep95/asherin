@@ -1,60 +1,57 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, X, RefreshCw, Link2, Unlink, Shield, CheckCircle2,
   AlertTriangle, Globe, Zap,
 } from "lucide-react";
-
-interface GoogleAccount {
-  id: string;
-  email: string;
-  name: string;
-  avatar: string;
-  status: "connected" | "pending" | "expired";
-  scopes: string[];
-  lastSync: string;
-  dataPoints: string;
-}
-
-const mockAccounts: GoogleAccount[] = [
-  {
-    id: "1",
-    email: "user@gmail.com",
-    name: "Personal Account",
-    avatar: "U",
-    status: "pending",
-    scopes: ["gmail", "calendar", "drive", "photos", "contacts", "fit"],
-    lastSync: "Never",
-    dataPoints: "—",
-  },
-];
+import { useGoogleApi } from "@/hooks/useGoogleApi";
+import { toast } from "sonner";
 
 const MultiAccountManager = () => {
-  const [accounts, setAccounts] = useState<GoogleAccount[]>(mockAccounts);
-  const [isAddingAccount, setIsAddingAccount] = useState(false);
+  const { accounts, loading, connectGoogle, disconnectAccount, fetchAccounts, exchangeCode, isConnected } = useGoogleApi();
   const [crossCorrelation, setCrossCorrelation] = useState(false);
 
-  const handleAddAccount = () => {
-    setIsAddingAccount(true);
-    setTimeout(() => {
-      setAccounts((prev) => [
-        ...prev,
-        {
-          id: String(prev.length + 1),
-          email: `account${prev.length + 1}@gmail.com`,
-          name: `Account ${prev.length + 1}`,
-          avatar: String(prev.length + 1),
-          status: "pending",
-          scopes: [],
-          lastSync: "Never",
-          dataPoints: "—",
-        },
-      ]);
-      setIsAddingAccount(false);
-    }, 1500);
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
+
+  // Handle OAuth callback code
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+
+    if (code && state === "google_intel") {
+      // Clean URL
+      url.searchParams.delete("code");
+      url.searchParams.delete("state");
+      url.searchParams.delete("scope");
+      window.history.replaceState({}, "", url.pathname);
+
+      exchangeCode(code)
+        .then((data) => {
+          toast.success(`Connected ${data.email || "Google account"} successfully!`);
+        })
+        .catch((err) => {
+          toast.error(`Failed to connect: ${err.message}`);
+        });
+    }
+  }, [exchangeCode]);
+
+  const handleConnect = async () => {
+    try {
+      await connectGoogle();
+    } catch (err: any) {
+      toast.error(`Failed to start connection: ${err.message}`);
+    }
   };
 
-  const handleRemoveAccount = (id: string) => {
-    setAccounts((prev) => prev.filter((a) => a.id !== id));
+  const handleDisconnect = async (id: string) => {
+    try {
+      await disconnectAccount(id);
+      toast.success("Account disconnected");
+    } catch (err: any) {
+      toast.error(`Failed to disconnect: ${err.message}`);
+    }
   };
 
   return (
@@ -64,32 +61,44 @@ const MultiAccountManager = () => {
           <Globe className="h-4 w-4" /> Connected Google Accounts
         </h3>
         <button
-          onClick={handleAddAccount}
-          disabled={isAddingAccount}
+          onClick={handleConnect}
+          disabled={loading}
           className="flex items-center gap-1.5 rounded-xl bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all disabled:opacity-50"
         >
-          {isAddingAccount ? (
+          {loading ? (
             <RefreshCw className="h-3 w-3 animate-spin" />
           ) : (
             <Plus className="h-3 w-3" />
           )}
-          {isAddingAccount ? "Connecting…" : "Add Account"}
+          {loading ? "Connecting…" : "Add Account"}
         </button>
       </div>
 
       {/* Account List */}
       <div className="space-y-2">
+        {accounts.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border/20 bg-foreground/5 p-6 text-center">
+            <p className="text-xs font-extralight text-muted-foreground/50">No Google accounts connected yet</p>
+            <button onClick={handleConnect} disabled={loading} className="mt-3 rounded-xl bg-foreground/10 px-4 py-2 text-[10px] font-light text-foreground hover:bg-foreground/20 transition-all">
+              Connect Google Account
+            </button>
+          </div>
+        )}
         {accounts.map((account) => (
           <div
             key={account.id}
             className="flex items-center gap-3 rounded-xl border border-border/20 bg-foreground/5 px-4 py-3"
           >
-            <div className="h-9 w-9 rounded-full bg-foreground/10 flex items-center justify-center text-xs font-light text-foreground shrink-0">
-              {account.avatar}
+            <div className="h-9 w-9 rounded-full bg-foreground/10 flex items-center justify-center text-xs font-light text-foreground shrink-0 overflow-hidden">
+              {account.avatar_url ? (
+                <img src={account.avatar_url} alt="" className="h-full w-full object-cover rounded-full" />
+              ) : (
+                account.google_email?.charAt(0)?.toUpperCase()
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-light text-foreground truncate">{account.email}</span>
+                <span className="text-xs font-light text-foreground truncate">{account.google_email}</span>
                 <span
                   className={`h-1.5 w-1.5 rounded-full shrink-0 ${
                     account.status === "connected"
@@ -101,14 +110,14 @@ const MultiAccountManager = () => {
                 />
               </div>
               <div className="flex gap-3 text-[10px] text-muted-foreground/50 mt-0.5">
-                <span>{account.name}</span>
-                <span>Scopes: {account.scopes.length || "—"}</span>
-                <span>Sync: {account.lastSync}</span>
-                <span>Data: {account.dataPoints}</span>
+                <span>{account.display_name || "—"}</span>
+                <span>Scopes: {account.scopes?.length || "—"}</span>
+                <span>Sync: {account.last_sync_at ? new Date(account.last_sync_at).toLocaleDateString() : "Never"}</span>
+                <span>Data: {account.data_points_count || "—"}</span>
               </div>
             </div>
             <button
-              onClick={() => handleRemoveAccount(account.id)}
+              onClick={() => handleDisconnect(account.id)}
               className="text-muted-foreground/30 hover:text-red-400 transition-colors p-1"
             >
               <X className="h-3.5 w-3.5" />
