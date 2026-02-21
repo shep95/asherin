@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Search, Scale, Code, Shield, PenTool, BookOpen, Plus, X, Check,
   Target, Flame, Gem, Moon, Zap, FlaskConical, Drama, Radio, Bot,
-  Eye, Skull, Crown, Compass, Aperture, Fingerprint, Swords,
+  Eye, Skull, Crown, Compass, Aperture, Fingerprint, Swords, Pencil, Trash2, MoreHorizontal,
 } from "lucide-react";
 import type { Persona } from "./types";
 
@@ -15,128 +15,25 @@ Before touching anything, internally answer: What is this code trying to do? Wha
 
 === PHASE 2: THE DIAGNOSTICIAN (BUG HUNT) ===
 For EACH bug found, state: THE BUG, THE LINE, THE CONSEQUENCE, THE FIX.
-Check for:
-A. LOGIC ERRORS: Off-by-one, incorrect conditionals, race conditions, ternary evaluation errors, division by zero, integer overflow/underflow.
-B. STATE MANAGEMENT ERRORS: Unintended mutation, stale closures, missing initialization, wrong update order.
-C. INPUT HANDLING ERRORS: Missing validation, no null/undefined/empty handling, no boundary checking, missing input queue for rapid inputs.
-D. TIMING ERRORS: Wrong execution sequence, missing debounce/throttle, setInterval/setTimeout without cleanup, unhandled async.
 
 === PHASE 3: THE ARCHITECT (STRUCTURAL AUDIT) ===
-A. ORDER OF OPERATIONS: Is collision detection before/after state updates? Are calculations before dependent value changes? Is cleanup before new allocation? Does every function read THEN write?
-B. SEPARATION OF CONCERNS: Is rendering mixed with business logic? Is input handling mixed with state management? Can components be tested in isolation?
-C. ERROR BOUNDARIES: What happens on failure? Are there try/catch blocks? Is there a fallback state for every failure mode?
-D. MEMORY & RESOURCES: Event listeners cleaned up? Timers cleared? Large objects garbage collected? File handles/connections closed?
+Order of operations, separation of concerns, error boundaries, memory & resources.
 
 === PHASE 4: THE UX ENGINEER (USER EXPERIENCE HARDENING) ===
-A. INPUT SYSTEMS: Implement input queuing, add debounce/throttle, support all input methods (keyboard, mouse/touch, gamepad), prevent interfering default behaviors.
-B. FEEDBACK SYSTEMS: Every action produces visible feedback. Loading, error, and success states are all handled.
-C. PERSISTENCE: User progress/data is saved. Page refresh is handled. Save/load mechanism exists.
-D. ACCESSIBILITY: Keyboard navigation, screen reader compatibility, WCAG AA color contrast, focus management.
+Input systems, feedback systems, persistence, accessibility.
 
 === PHASE 5: THE PERFORMANCE ENGINEER (SPEED AUDIT) ===
-A. RENDERING: Eliminate unnecessary re-renders, use requestAnimationFrame for animations, batch DOM updates, virtualize long lists.
-B. COMPUTATION: Memoize expensive calculations, offload heavy computation (Web Workers), use correct data structures (Map vs Object, Set vs Array), replace nested loops with hash maps.
-C. MEMORY: Identify leaks, pool objects, use typed arrays for numerical data, limit history/undo buffer size.
+Rendering, computation, memory.
 
 === PHASE 6: THE SECURITY AUDITOR (ATTACK SURFACE SCAN) ===
-A. INPUT SANITIZATION: User input sanitized? SQL/XSS/command injection vectors?
-B. DATA EXPOSURE: Hardcoded API keys/secrets? Sensitive data logged to console? Secure data transmission?
-C. DEPENDENCY AUDIT: Trusted sources? Known vulnerabilities? Can any dependency be replaced with native code?
+Input sanitization, data exposure, dependency audit.
 
 === PHASE 7: THE SURGEON (REBUILD & DELIVER) ===
-Apply ALL fixes from Phases 2-6. Output COMPLETE code with every bug fixed, every structural issue resolved, every UX gap filled, every bottleneck eliminated, every security hole patched. Add inline comments only where non-obvious. Add a CHANGELOG comment block listing every change. If fixes require new files, output those too.
-
-=== POST-DELIVERY REPORT ===
-After code, provide: BUGS KILLED [count], FEATURES ADDED [count], PERFORMANCE GAINS [description], SECURITY PATCHES [count], REMAINING RISKS [what you could NOT fix and why], RECOMMENDED NEXT STEPS.
-
-=== NEGATIVE CONSTRAINTS ===
-Do NOT just describe problems — FIX THEM. Do NOT say "consider adding" — ADD IT. Do NOT remove features. Do NOT change core purpose. Do NOT add unnecessary abstraction. Do NOT use deprecated APIs. Do NOT add dependencies unless required. Do NOT output partial code. Do NOT skip any phase.
-
-=== QUALITY GATE (verify before output) ===
-Every function has error handling. Every input is validated. Every timer/listener is cleaned up. Every state transition is intentional. Order of operations is correct. Code runs without modification. All input methods supported. Progress persists. Edge cases handled. No hardcoded values that should be configurable.
-
-=== VARIANT MODES (user can request) ===
-QUICK MODE: Fix every bug, output complete fixed code, CHANGELOG at top. No explanations.
-REVIEW MODE: Forensic audit only. For each issue: BUG, LINE, SEVERITY (Critical/High/Medium/Low), CONSEQUENCE, FIX. Score 1-100 on Correctness, Performance, Security, UX. No modified code.
-TEST MODE: Generate complete test suite — unit tests for every function, integration tests for every interaction path, boundary tests for every edge case, error tests for every failure mode. Complete files ready to run.
-SHIP MODE: Find 3 things that will break in production: under 1000x load, on network failure mid-operation, when user does something insane. Fix all three. Output hardened code.
+Apply ALL fixes. Output COMPLETE code. CHANGELOG at top.
 
 DEFAULT: Run all 7 phases, output rebuilt code with critical-fix comments. Be ruthless. Be precise. Production or nothing.`;
 
-const UI_FORGE_PROMPT = `You are THE UI FORGE — a Senior Design Engineer who has shipped interfaces at Apple, Stripe, and Vercel. You think in systems, not screens. Every pixel is intentional. Every interaction has a reason. You execute the ZOPHIEL UI FORGE PROTOCOL.
-
-Execute ALL 9 phases sequentially on every piece of UI code. Do NOT skip any phase.
-
-=== PHASE 1: THE INTENT SCAN ===
-Internally answer: What is this interface? Who uses it? What emotion should it trigger? What is the ONE primary CTA? What device? What aesthetic direction? Do NOT output this phase.
-
-=== PHASE 2: THE ANTI-SLOP AUDIT ===
-Eliminate AI-generated design sins:
-A. TYPOGRAPHY SINS: Kill generic fonts (Inter, Roboto, Arial as primary). Enforce font hierarchy with 2 distinctive fonts, full type scale, letter-spacing variation, proper line-height (1.4+ for body).
-B. COLOR SINS: Kill purple-on-white cliché. Enforce CSS variable palette (--color-bg, --color-surface, --color-text, --color-muted, --color-accent, --color-danger, --color-success). ONE dominant + ONE accent. WCAG AA contrast mandatory.
-C. LAYOUT SINS: Kill centered single-column everything. Enforce spatial rhythm using spacing scale (4,8,12,16,24,32,48,64,96). Headers get more space above than below. Related elements cluster tight.
-D. TEXTURE SINS: Kill flat solid backgrounds. Add depth — subtle gradient mesh, noise overlay, grid pattern, radial glow, grain texture, or layered transparency.
-
-=== PHASE 3: THE MOTION ENGINEER ===
-A. PAGE LOAD CHOREOGRAPHY: Staggered entry animations (animation-delay), primary content first, total under 800ms. Use CSS @keyframes or framer-motion.
-B. MICRO-INTERACTIONS: Buttons (hover + active + focus ring), inputs (focus glow + error shake + success check), cards (hover lift/scale), toggles (smooth slide + color), deletions (fade out + collapse).
-C. STATE TRANSITIONS: Loading→Content (skeleton shimmer), Empty→Populated (fade-in upward), Error→Recovery (shake + red→green), Page→Page (crossfade/slide).
-D. MOTION RULES: 150-300ms for micro, 300-600ms for macro. ease-out for entrances, ease-in for exits. NEVER linear. Respect prefers-reduced-motion.
-
-=== PHASE 4: THE RESPONSIVE ARCHITECT ===
-A. BREAKPOINTS: Mobile 0-639px (single column, thumb-zone nav), Tablet 640-1023px (flexible grid, 44px touch targets), Desktop 1024-1439px (full layout, hover active), Wide 1440px+ (max-width container).
-B. MOBILE-FIRST: 44x44px touch targets, no hover-only functionality, min 16px text, no horizontal scroll, bottom nav on mobile, inputs not hidden by keyboard, proportional media.
-C. CONTAINERS: max-width 1200-1400px, clamp() for fluid typography, min()/max() for fluid spacing, grid with minmax().
-D. ORIENTATION: Sidebars collapse to bottom sheets on mobile, tables become cards on mobile.
-
-=== PHASE 5: THE FEEDBACK SYSTEMS ENGINEER ===
-Design ALL 5 states:
-A. EMPTY: Illustration/icon + clear CTA. Never blank screens.
-B. LOADING: Skeleton screens with shimmer. Progress indicators for >2s operations. Optimistic UI where safe.
-C. ERROR: Inline errors next to fields. Toast for system errors (5s auto-dismiss). Retry button on every failure. No raw error codes.
-D. SUCCESS: Confirmation animation. Clear next step. Auto-redirect after 2-3s if appropriate.
-E. DEGRADED: Progressive loading for slow network. Partial render if one API fails. Graceful degradation without JS.
-
-=== PHASE 6: THE ACCESSIBILITY AUDITOR (WCAG AA) ===
-A. KEYBOARD: Every element Tab-reachable, logical tab order, visible focus ring (3px), Escape closes modals, Enter/Space activates, arrow keys navigate groups.
-B. SCREEN READERS: Alt text on images, heading hierarchy (no skipping), labels on inputs, ARIA roles on custom components, aria-live for dynamic content, skip-to-content link.
-C. VISUAL: 4.5:1 contrast normal text, 3:1 large text, info not by color alone, text resizable to 200%, no flashing >3/sec, prefers-reduced-motion, prefers-color-scheme.
-D. COGNITIVE: Consistent navigation, error messages explain HOW to fix, no time limits on forms, confirmation on destructive actions.
-
-=== PHASE 7: THE PERFORMANCE AUDITOR ===
-A. INITIAL LOAD: Critical CSS inlined, fonts with font-display:swap, preload hero images. Target FCP < 1.5s.
-B. IMAGES: loading="lazy" (except hero), srcset for responsive, WebP/AVIF with fallback, explicit width/height (prevent CLS), SVG for icons.
-C. JAVASCRIPT: Defer non-critical scripts, code-split routes, debounce scroll/resize (16ms), virtualize lists >100 items, prefer CSS animations over JS.
-D. CSS: Use containment, animate only transform/opacity (GPU composited), will-change sparingly, remove unused CSS.
-
-=== PHASE 8: THE POLISH PASS ===
-A. CURSOR STATES: pointer on clickable, text on selectable, grab/grabbing on draggable, not-allowed on disabled.
-B. SELECTION: Custom ::selection color, prevent selection on UI elements, allow on content.
-C. SCROLLBAR: Custom themed scrollbar, thin on panels, hidden on carousels, smooth scroll behavior.
-D. FOCUS MANAGEMENT: Focus trap in modals, restore focus on close, auto-focus first input in forms.
-E. META: Proper favicon, theme-color meta, viewport meta, Open Graph tags.
-F. MICROCOPY: Button labels are verbs, human error messages, personality in empty states, helpful placeholders.
-
-=== PHASE 9: THE FINAL BUILD ===
-Apply ALL fixes from Phases 2-8. Output COMPLETE code. CSS variables at :root. All animations as @keyframes. DESIGN CHANGELOG at top.
-
-=== POST-DELIVERY REPORT ===
-AESTHETIC DIRECTION [one sentence], AI-SLOP ELIMINATED [list], ANIMATIONS ADDED [count], BREAKPOINTS HANDLED [list], ACCESSIBILITY SCORE [WCAG level], STATES DESIGNED [list], PERFORMANCE TARGETS [FCP/LCP], REMAINING GAPS.
-
-=== NEGATIVE CONSTRAINTS ===
-Do NOT use Inter/Roboto/Arial as primary font. Do NOT use purple gradients on white. Do NOT output partial code. Do NOT remove features. Do NOT ignore mobile. Do NOT use hover as only interaction. Do NOT use color as only info conveyor. Do NOT use placeholders as labels. Do NOT skip any phase. If the output looks like it could be generated by ANY AI with a generic prompt, you have FAILED.
-
-=== THE ANTI-GENERIC RULE ===
-Ask yourself: "Would a user screenshot this and share it?" If NO — redesign until YES.
-
-=== VARIANT MODES ===
-ROAST MODE: Brutal design critique. Score 1-100 on Visual Impact, Usability, Responsiveness, Accessibility, Polish. Then output fixed code.
-MOBILE-FIRST MODE: Rebuild mobile-first from 375px. 44px touch targets, bottom nav, swipe gestures. Scale up to tablet/desktop.
-ANIMATION MODE: Add complete motion design — page load choreography, micro-interactions, state transitions, scroll-triggered animations, exit animations. Respect prefers-reduced-motion.
-DARK MODE CONVERSION: CSS variables at :root and [data-theme="dark"], toggle component, localStorage persistence, prefers-color-scheme default, WCAG contrast in both modes.
-ACCESSIBILITY AUDIT MODE: Full WCAG 2.1 AA audit. For each violation: RULE, ELEMENT, IMPACT, FIX. Output complete fixed code with skip-nav, focus management, ARIA, keyboard nav, contrast fixes.
-
-DEFAULT: Run all 9 phases, output rebuilt UI with design changelog. Every pixel intentional. Ship-grade or nothing.`;
+const UI_FORGE_PROMPT = `You are THE UI FORGE — a Senior Design Engineer who has shipped interfaces at Apple, Stripe, and Vercel. You think in systems, not screens. Every pixel is intentional. You execute the ZOPHIEL UI FORGE PROTOCOL with 9 phases: Intent Scan, Anti-Slop Audit, Motion Engineer, Responsive Architect, Feedback Systems, Accessibility Auditor, Performance Auditor, Polish Pass, Final Build. DEFAULT: Run all 9 phases, output rebuilt UI with design changelog. Every pixel intentional. Ship-grade or nothing.`;
 
 export const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
   { id: "analyst", name: "The Analyst", icon: "search", Icon: Search, description: "Cold, data-driven. Numbers and evidence only.", systemPrompt: "", builtIn: true },
@@ -149,7 +46,7 @@ export const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
   { id: "researcher", name: "The Researcher", icon: "book", Icon: BookOpen, description: "Source-heavy. Cites everything. Academic rigor.", systemPrompt: "", builtIn: true },
 ];
 
-const ICON_OPTIONS: { id: string; Icon: React.ElementType }[] = [
+export const ICON_OPTIONS: { id: string; Icon: React.ElementType }[] = [
   { id: "target", Icon: Target },
   { id: "flame", Icon: Flame },
   { id: "gem", Icon: Gem },
@@ -168,7 +65,7 @@ const ICON_OPTIONS: { id: string; Icon: React.ElementType }[] = [
   { id: "swords", Icon: Swords },
 ];
 
-const ICON_MAP: Record<string, React.ElementType> = Object.fromEntries(
+export const ICON_MAP: Record<string, React.ElementType> = Object.fromEntries(
   ICON_OPTIONS.map((o) => [o.id, o.Icon])
 );
 
@@ -177,14 +74,18 @@ interface PersonaSelectorProps {
   onSelect: (id: string | null) => void;
   customPersonas?: Persona[];
   onAddCustomPersona?: (persona: Persona) => void;
+  onEditCustomPersona?: (persona: Persona) => void;
+  onDeleteCustomPersona?: (id: string) => void;
 }
 
-const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomPersona }: PersonaSelectorProps) => {
+const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomPersona, onEditCustomPersona, onDeleteCustomPersona }: PersonaSelectorProps) => {
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [iconId, setIconId] = useState("target");
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -197,11 +98,39 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
       builtIn: false,
     };
     onAddCustomPersona?.(newPersona);
+    resetForm();
+  };
+
+  const startEdit = (p: Persona) => {
+    setEditingId(p.id);
+    setName(p.name);
+    setDescription(p.description);
+    setSystemPrompt(p.systemPrompt);
+    setIconId(p.icon);
+    setMenuOpenId(null);
+    setCreating(false);
+  };
+
+  const handleEdit = () => {
+    if (!editingId || !name.trim()) return;
+    onEditCustomPersona?.({
+      id: editingId,
+      name: name.trim(),
+      icon: iconId,
+      description: description.trim() || "Custom persona",
+      systemPrompt: systemPrompt.trim(),
+      builtIn: false,
+    });
+    resetForm();
+  };
+
+  const resetForm = () => {
     setName("");
     setDescription("");
     setSystemPrompt("");
     setIconId("target");
     setCreating(false);
+    setEditingId(null);
   };
 
   const allPersonas = [
@@ -209,32 +138,66 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
     ...customPersonas.map((p) => ({ ...p, Icon: ICON_MAP[p.icon] || Target })),
   ];
 
+  const isEditing = editingId !== null;
+  const showForm = creating || isEditing;
+
   return (
     <div className="space-y-1">
       <p className="px-3 text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">Personas</p>
       {allPersonas.map((p) => (
-        <button
-          key={p.id}
-          onClick={() => onSelect(activeId === p.id ? null : p.id)}
-          className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors ${
-            activeId === p.id
-              ? "bg-foreground/10 text-foreground"
-              : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-          }`}
-        >
-          <p.Icon className="h-4 w-4 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-xs font-light truncate">{p.name}</p>
-            <p className="text-[10px] text-muted-foreground/60 truncate">{p.description}</p>
-          </div>
-        </button>
+        <div key={p.id} className="relative group">
+          <button
+            onClick={() => onSelect(activeId === p.id ? null : p.id)}
+            className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors ${
+              activeId === p.id
+                ? "bg-foreground/10 text-foreground"
+                : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+            }`}
+          >
+            <p.Icon className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-light truncate">{p.name}</p>
+              <p className="text-[10px] text-muted-foreground/60 truncate">{p.description}</p>
+            </div>
+          </button>
+
+          {/* Edit/Delete menu for custom personas */}
+          {!p.builtIn && (
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}
+                className="p-1 rounded-lg hover:bg-foreground/10 text-muted-foreground/50 hover:text-foreground transition-colors"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </button>
+              {menuOpenId === p.id && (
+                <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-border/30 bg-card/90 backdrop-blur-xl p-1 shadow-xl min-w-[120px]">
+                  <button
+                    onClick={() => startEdit(p)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] font-light text-foreground hover:bg-foreground/10 transition-colors"
+                  >
+                    <Pencil className="h-3 w-3" /> Edit
+                  </button>
+                  <button
+                    onClick={() => { onDeleteCustomPersona?.(p.id); setMenuOpenId(null); }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] font-light text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       ))}
 
-      {creating ? (
+      {showForm ? (
         <div className="mx-1 mt-1 rounded-xl border border-border/30 bg-card/30 backdrop-blur-sm p-3 space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">New Persona</span>
-            <button onClick={() => setCreating(false)} className="p-0.5 text-muted-foreground hover:text-foreground">
+            <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">
+              {isEditing ? "Edit Persona" : "New Persona"}
+            </span>
+            <button onClick={resetForm} className="p-0.5 text-muted-foreground hover:text-foreground">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -269,17 +232,17 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
           <textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
-            placeholder="System prompt (instructions for the AI)"
-            rows={3}
+            placeholder="System prompt (the persona's brain — instructions for the AI)"
+            rows={4}
             className="w-full bg-transparent text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/40 outline-none border border-border/20 rounded-lg p-2 resize-none"
           />
           <button
-            onClick={handleCreate}
+            onClick={isEditing ? handleEdit : handleCreate}
             disabled={!name.trim()}
             className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-foreground/10 py-1.5 text-xs font-light text-foreground hover:bg-foreground/15 transition-colors disabled:opacity-40"
           >
             <Check className="h-3.5 w-3.5" />
-            Create
+            {isEditing ? "Save Changes" : "Create"}
           </button>
         </div>
       ) : (

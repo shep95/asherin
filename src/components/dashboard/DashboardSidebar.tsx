@@ -4,7 +4,7 @@ import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/Subsc
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin, Sparkles,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -47,6 +47,8 @@ interface DashboardSidebarProps {
   onPersonaChange?: (id: string | null) => void;
   customPersonas?: Persona[];
   onAddCustomPersona?: (persona: Persona) => void;
+  onEditCustomPersona?: (persona: Persona) => void;
+  onDeleteCustomPersona?: (id: string) => void;
 }
 
 interface NavGroup {
@@ -89,6 +91,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "teams", icon: Users, label: "Team Workspace", access: "pro" },
       { id: "community", icon: MessagesSquare, label: "Community", access: "pro" },
+      { id: "persona-store", icon: Sparkles, label: "Persona Store" },
       { id: "library", icon: FolderOpen, label: "Library" },
       { id: "memory", icon: Brain, label: "Memory Center" },
     ],
@@ -139,7 +142,7 @@ const DashboardSidebar = ({
   conversations, activeConversationId, activeView, onSelectConversation,
   onNewConversation, onDeleteConversation, onArchiveConversation, onRenameConversation, onTogglePin, onViewChange,
   sidebarOpen, onToggleSidebar, personaId: externalPersonaId, onPersonaChange,
-  customPersonas, onAddCustomPersona,
+  customPersonas, onAddCustomPersona, onEditCustomPersona, onDeleteCustomPersona,
 }: DashboardSidebarProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -438,7 +441,7 @@ const DashboardSidebar = ({
               )}
 
               <div className="px-2 py-2 border-t border-border/20">
-                <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} />
+                <PersonaSelector activeId={personaId} onSelect={setPersonaId} customPersonas={customPersonas} onAddCustomPersona={onAddCustomPersona} onEditCustomPersona={onEditCustomPersona} onDeleteCustomPersona={onDeleteCustomPersona} />
               </div>
 
               <div className="px-2 py-2 border-t border-border/20 space-y-1">

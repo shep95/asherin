@@ -41,6 +41,7 @@ import ElionView from "@/components/dashboard/ElionView";
 import SecurityDashboardView from "@/components/dashboard/SecurityDashboardView";
 import ImagineToCodeView from "@/components/dashboard/ImagineToCodeView";
 import TrackerView from "@/components/dashboard/TrackerView";
+import PersonaStoreView from "@/components/dashboard/PersonaStoreView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -275,12 +276,39 @@ const Dashboard = () => {
     });
   }, []);
 
+  const editCustomPersona = useCallback((persona: Persona) => {
+    setCustomPersonas((prev) => {
+      const next = prev.map(p => p.id === persona.id ? persona : p);
+      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const deleteCustomPersona = useCallback((id: string) => {
+    setCustomPersonas((prev) => {
+      const next = prev.filter(p => p.id !== id);
+      localStorage.setItem("aureon_custom_personas", JSON.stringify(next));
+      return next;
+    });
+    if (personaId === id) setPersonaId(null);
+  }, [personaId]);
+
   // Sync custom personas to localStorage on every change (safety net)
   useEffect(() => {
-    if (customPersonas.length > 0) {
-      localStorage.setItem("aureon_custom_personas", JSON.stringify(customPersonas));
-    }
+    localStorage.setItem("aureon_custom_personas", JSON.stringify(customPersonas));
   }, [customPersonas]);
+
+  // Listen for persona changes from store installs
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const stored = localStorage.getItem("aureon_custom_personas");
+        if (stored) setCustomPersonas(JSON.parse(stored));
+      } catch {}
+    };
+    window.addEventListener("aureon-personas-change", handler);
+    return () => window.removeEventListener("aureon-personas-change", handler);
+  }, []);
 
   // CMD+K and CMD+1-4 global shortcuts
   useEffect(() => {
@@ -454,6 +482,33 @@ const Dashboard = () => {
   const sendMessageCore = async (content: string, convId: string, attachments?: FileAttachment[]) => {
     if (!user) return;
     setSuggestions([]);
+
+    // Auto-suggest persona based on task content
+    if (!personaId) {
+      const lower = content.toLowerCase();
+      const TASK_PERSONA_MAP: { keywords: string[]; personaId: string; label: string }[] = [
+        { keywords: ["review code", "debug", "refactor", "fix bug", "code audit", "codebase", "architecture"], personaId: "codeforge", label: "The Code Forge" },
+        { keywords: ["ui", "design", "layout", "css", "responsive", "component", "animation", "pixel"], personaId: "uiforge", label: "The UI Forge" },
+        { keywords: ["research", "sources", "study", "paper", "academic", "citation", "literature"], personaId: "researcher", label: "The Researcher" },
+        { keywords: ["strategy", "plan", "roadmap", "decision", "pros and cons", "trade-off", "long-term"], personaId: "strategist", label: "The Strategist" },
+        { keywords: ["analyze", "data", "metrics", "numbers", "statistics", "trend", "forecast"], personaId: "analyst", label: "The Analyst" },
+        { keywords: ["write", "blog", "article", "copy", "email", "story", "tone", "voice"], personaId: "writer", label: "The Writer" },
+        { keywords: ["truth", "uncensored", "honest", "direct", "raw", "no filter"], personaId: "truth", label: "The Truth Engine" },
+        { keywords: ["code", "function", "api", "implement", "build", "develop", "script", "python", "typescript", "react"], personaId: "engineer", label: "The Engineer" },
+      ];
+      const match = TASK_PERSONA_MAP.find(m => m.keywords.some(k => lower.includes(k)));
+      if (match) {
+        toast({
+          title: `Persona suggestion: ${match.label}`,
+          description: "Aureon detected a task that matches this persona.",
+          action: React.createElement(ToastAction, {
+            altText: "Switch persona",
+            onClick: () => setPersonaId(match.personaId),
+          } as any, "Switch") as any,
+          duration: 6000,
+        });
+      }
+    }
 
     const tempMsgId = crypto.randomUUID();
     const conv = conversationsRef.current.find(c => c.id === convId);
@@ -843,6 +898,8 @@ const Dashboard = () => {
         return (hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com")
           ? <TrackerView />
           : <FeatureGate title="Location Tracker" description="Real-time geolocation tracking with reverse geocoding and interactive maps. Pin locations, log address history, and monitor coordinates with precision. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "persona-store":
+        return <PersonaStoreView />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
@@ -904,6 +961,8 @@ const Dashboard = () => {
             onPersonaChange={setPersonaId}
             customPersonas={customPersonas}
             onAddCustomPersona={addCustomPersona}
+            onEditCustomPersona={editCustomPersona}
+            onDeleteCustomPersona={deleteCustomPersona}
           />
         )}
 
