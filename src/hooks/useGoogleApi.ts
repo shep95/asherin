@@ -43,7 +43,9 @@ export function useGoogleApi() {
   const connectGoogle = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await callOAuth("get_auth_url");
+      const data = await callOAuth("get_auth_url", {
+        redirect_uri: `${window.location.origin}/dashboard`,
+      });
       if (data.url) {
         // Store return path
         sessionStorage.setItem("google_oauth_return", window.location.pathname);

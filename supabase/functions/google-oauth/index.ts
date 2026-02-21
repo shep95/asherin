@@ -36,7 +36,8 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
-    const { action } = await req.json();
+    const body = await req.json();
+    const { action } = body;
 
     const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
     const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
         "https://www.googleapis.com/auth/fitness.body.read",
       ];
 
-      const redirectUri = `${req.headers.get("origin") || "https://ziali-magic-pixels.lovable.app"}/dashboard`;
+      const redirectUri = body.redirect_uri || `${req.headers.get("origin") || "https://ziali-magic-pixels.lovable.app"}/dashboard`;
       const params = new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
         redirect_uri: redirectUri,
@@ -76,10 +77,8 @@ Deno.serve(async (req) => {
 
     // ── EXCHANGE CODE ──
     if (action === "exchange_code") {
-      const { code, redirect_uri } = await req.json().catch(() => ({}));
-      const body = await req.json().catch(() => ({}));
-      const authCode = code || body.code;
-      const rUri = redirect_uri || body.redirect_uri;
+      const authCode = body.code;
+      const rUri = body.redirect_uri;
 
       if (!authCode) {
         return new Response(JSON.stringify({ error: "Missing authorization code" }), {
@@ -164,7 +163,6 @@ Deno.serve(async (req) => {
 
     // ── REFRESH TOKEN ──
     if (action === "refresh_token") {
-      const body = await req.json().catch(() => ({}));
       const accountId = body.account_id;
 
       const adminClient = createClient(
@@ -234,7 +232,6 @@ Deno.serve(async (req) => {
 
     // ── DISCONNECT ──
     if (action === "disconnect") {
-      const body = await req.json().catch(() => ({}));
       const { data } = await supabase
         .from("google_accounts")
         .delete()
