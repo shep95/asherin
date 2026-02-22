@@ -9,7 +9,7 @@ const tiers = [
     id: "aureon",
     name: "AUREON",
     tagline: "AI Intelligence",
-    price: "$199",
+    price: "$18",
     period: "/ month",
     description: "Full access to Aureon AI — uncensored, unfiltered. 300 messages per 3-hour window. Resets automatically.",
     cta: "Get Aureon Access",
@@ -23,6 +23,7 @@ const tiers = [
       "Context intelligence & intent detection",
       "Multi-persona system",
       "Live web search integration",
+      "Code Snippets Vault",
       "End-to-end encryption",
       "Data never sold or used for training",
       "Cancel anytime — one click",
@@ -34,25 +35,34 @@ const tiers = [
     tagline: "Full Dashboard Access",
     price: "$740",
     period: "/ month",
-    description: "Complete access to every tool in the dashboard — Asha Intelligence, NOMAD OSINT, Daily Briefings, Predictive Intelligence, and more.",
+    description: "Complete access to every tool in the dashboard — IDE, Google Intelligence, Asha, NOMAD, Predictive Intelligence, and more.",
     cta: "Get Pro Access",
     highlight: false,
     features: [
       "Everything in Aureon — expanded",
       "200 messages per 3-hour window",
+      "Aureon IDE — full cloud development environment",
+      "Google Intelligence Suite — multi-account analysis",
       "Elion / Zohar Toolkit — domain forensics & OSINT",
       "Full Domain Scan — security score + subdomain recon",
       "Predictive Intelligence — AI event forecasting",
       "Imagine To Code — pixel art & SVG editor with AUREON AI",
+      "ZALI Design Intelligence Lab",
+      "ZALI Community — questions, requests & feature votes",
       "Asha Data Intelligence Platform",
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
-      "Web Intelligence — automated company analysis",
+      "Intelligence Notebooks with versioning",
+      "Team Workspace with RBAC & email invites",
+      "Time-Series Intelligence & forecasting",
+      "Geospatial analysis & location mapping",
+      "Plugin Marketplace (20+ plugins)",
+      "Audit Trail for compliance",
       "Entity resolution & relationship mapping",
       "Scenario Simulator & threat modeling",
+      "Security Dashboard — WAF, honeypots & threat intel",
       "Company & competitor tracking",
       "Priority model access",
-      "Advanced context intelligence",
     ],
   },
   {
@@ -67,6 +77,7 @@ const tiers = [
     purple: true,
     features: [
       "Everything in Pro — unlimited",
+      "ZALI Design Lab — unlimited projects & community",
       "Direct advisor access to Asher",
       "Limited to 8 clients worldwide",
       "NDA required upon purchase",
@@ -79,12 +90,11 @@ const tiers = [
     ],
   },
 ];
-
 const Pricing = () => {
   useEffect(() => {
     document.title = "Pricing — Aureon | Uncensored AI Intelligence";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon pricing: $199/mo Individual, $740/mo Pro, $20,000/mo Advisor. No free tier. Full access from day one.");
+    if (meta) meta.setAttribute("content", "Aureon pricing: $18/mo Individual, $740/mo Pro, $20,000/mo Advisor. No free tier. Full access from day one.");
   }, []);
 
   return (
@@ -188,12 +198,15 @@ const Pricing = () => {
               { icon: Code, label: "Elite Coding", desc: "Multi-file architecture, debugging, and production-grade output.", tier: "All tiers" },
               { icon: Shield, label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
               { icon: Search, label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
+              { icon: Cpu, label: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "Pro & Advisor" },
+              { icon: Globe, label: "Google Intelligence", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome, and more.", tier: "Pro & Advisor" },
               { icon: TrendingUp, label: "Predictive Intelligence", desc: "AI-powered event forecasting with signal detection and confidence scoring.", tier: "Pro & Advisor" },
               { icon: Code, label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask AUREON to design directly on the canvas.", tier: "Pro & Advisor" },
               { icon: Eye, label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro & Advisor" },
               { icon: BarChart3, label: "Asha Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro & Advisor" },
               { icon: Newspaper, label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro & Advisor" },
               { icon: ScanLine, label: "Elion / Zohar Toolkit", desc: "Domain forensics, security scoring, subdomain recon, and full attack surface mapping.", tier: "Pro & Advisor" },
+              { icon: Database, label: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", tier: "Pro & Advisor" },
               { icon: Users, label: "Direct Advisor Access", desc: "Direct access to Asher for custom intelligence operations. NDA required.", tier: "Advisor Only" },
               { icon: Server, label: "Private Deployment", desc: "On-premise or private cloud deployment for maximum control.", tier: "Advisor Only" },
             ].map(({ icon: Icon, label, desc, tier: tierLabel }) => (
@@ -234,7 +247,7 @@ const Pricing = () => {
           <div className="space-y-3">
             {[
               { q: "Can I upgrade from Aureon to Pro or Advisor?", a: "Yes. Upgrade anytime from your dashboard. Changes take effect immediately with prorated billing." },
-              { q: "What are the message limits?", a: "Aureon: 300 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited. Limits reset automatically." },
+              { q: "What are the message limits?", a: "Aureon: 300 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited. All limits reset automatically." },
               { q: "What payment methods do you accept?", a: "All major credit cards and wire transfers for Advisor. Billing is handled securely — we never store card details." },
               { q: "Is there a contract for Advisor?", a: "Monthly or annual billing. NDA required. Cancel anytime with 30 days notice." },
               { q: "What do Daily Intelligence Briefings include?", a: "Personalized morning reports covering your competitors, industry, key markets, regulatory changes, and news — generated from 100+ sources and delivered in-app." },
@@ -264,7 +277,7 @@ const Pricing = () => {
             <p className="mt-4 text-sm font-extralight text-muted-foreground">No free trial. Full access. Day one.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
-                Start With Aureon — $199/mo
+                Start With Aureon — $18/mo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
               <button className="group flex items-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 px-8 py-3 text-sm font-light tracking-wide text-purple-400 hover:bg-purple-500/20 transition-all">
