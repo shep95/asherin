@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Terminal, X, Maximize2, Minimize2, Trash2 } from "lucide-react";
+import { Terminal, Maximize2, Minimize2, Trash2 } from "lucide-react";
 
 interface TerminalLine {
   id: string;
@@ -14,7 +14,7 @@ interface Props {
 
 const WELCOME = [
   { id: "w1", type: "system" as const, text: "AUREON Terminal v1.0 — AI-Powered Development Console", timestamp: new Date() },
-  { id: "w2", type: "system" as const, text: "Type 'help' for available commands or ask AI anything with '? <query>'", timestamp: new Date() },
+  { id: "w2", type: "system" as const, text: "Type 'help' for commands or '? <query>' to ask AI", timestamp: new Date() },
 ];
 
 const COMMANDS: Record<string, string> = {
@@ -54,35 +54,21 @@ const IdeTerminal = ({ onAiCommand }: Props) => {
     e.preventDefault();
     const cmd = input.trim();
     if (!cmd) return;
-
     addLine("input", `$ ${cmd}`);
     setHistory(prev => [cmd, ...prev]);
     setHistIdx(-1);
     setInput("");
-
-    if (cmd === "clear") {
-      setLines([]);
-      return;
-    }
-
+    if (cmd === "clear") { setLines([]); return; }
     if (cmd.startsWith("? ") || cmd.startsWith("ai ")) {
       const query = cmd.replace(/^\?\s*|^ai\s*/i, "");
       addLine("system", `[AI] Sending to Aureon: "${query}"`);
       onAiCommand?.(query);
       return;
     }
-
-    if (cmd.startsWith("echo ")) {
-      addLine("output", cmd.slice(5));
-      return;
-    }
-
+    if (cmd.startsWith("echo ")) { addLine("output", cmd.slice(5)); return; }
     const result = COMMANDS[cmd];
-    if (result) {
-      addLine("output", result);
-    } else {
-      addLine("error", `command not found: ${cmd}. Type 'help' for available commands or '? <query>' to ask AI.`);
-    }
+    if (result) { addLine("output", result); }
+    else { addLine("error", `command not found: ${cmd}. Type 'help' or '? <query>'.`); }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -96,13 +82,8 @@ const IdeTerminal = ({ onAiCommand }: Props) => {
     }
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (histIdx > 0) {
-        setHistIdx(histIdx - 1);
-        setInput(history[histIdx - 1]);
-      } else {
-        setHistIdx(-1);
-        setInput("");
-      }
+      if (histIdx > 0) { setHistIdx(histIdx - 1); setInput(history[histIdx - 1]); }
+      else { setHistIdx(-1); setInput(""); }
     }
   };
 
@@ -115,7 +96,7 @@ const IdeTerminal = ({ onAiCommand }: Props) => {
 
   return (
     <div className={`flex flex-col bg-background/80 border-t border-border/20 ${maximized ? "fixed inset-0 z-50" : "h-full"}`} onClick={() => inputRef.current?.focus()}>
-      <div className="flex items-center justify-between px-3 py-1.5 bg-card/20 border-b border-border/10">
+      <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 bg-card/20 border-b border-border/10">
         <div className="flex items-center gap-2">
           <Terminal className="h-3 w-3 text-accent/60" />
           <span className="text-[10px] font-light tracking-widest text-muted-foreground/50 uppercase">Terminal</span>
@@ -130,23 +111,23 @@ const IdeTerminal = ({ onAiCommand }: Props) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[11px] leading-relaxed min-h-0">
+      <div className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 font-mono text-[10px] sm:text-[11px] leading-relaxed min-h-0">
         {lines.map(line => (
-          <div key={line.id} className={`whitespace-pre-wrap ${colorMap[line.type]}`}>
+          <div key={line.id} className={`whitespace-pre-wrap break-all ${colorMap[line.type]}`}>
             {line.text}
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 px-3 py-2 border-t border-border/10">
-        <span className="text-accent text-[11px] font-mono">$</span>
+      <form onSubmit={handleSubmit} className="flex items-center gap-2 px-2 sm:px-3 py-2 border-t border-border/10">
+        <span className="text-accent text-[11px] font-mono shrink-0">$</span>
         <input
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 bg-transparent font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground/30"
+          className="flex-1 bg-transparent font-mono text-[10px] sm:text-[11px] text-foreground outline-none placeholder:text-muted-foreground/30 min-w-0"
           placeholder="Type command or '? ask AI'..."
           autoFocus
         />

@@ -1,15 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2 } from "lucide-react";
+import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2, Maximize2, Minimize2, Download, Search } from "lucide-react";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
 import IdeChatPanel from "./IdeChatPanel";
 import IdeTerminal from "./IdeTerminal";
 import IdePreviewPanel from "./IdePreviewPanel";
 import IdeSessionManager, { type IdeSession } from "./IdeSessionManager";
+import IdeCommandPalette from "./IdeCommandPalette";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { FeedbackType } from "../CalibrationFeedback";
 
 interface ChatMsg {
@@ -20,6 +22,7 @@ interface ChatMsg {
 }
 
 type CenterTab = "code" | "preview";
+type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
 
 const STARTER_FILES: IdeFile[] = [
   {
@@ -43,9 +46,25 @@ function flattenFiles(files: IdeFile[]): IdeFile[] {
   return result;
 }
 
+// Get breadcrumb path for a file
+function getBreadcrumbs(files: IdeFile[], targetId: string): string[] {
+  const find = (nodes: IdeFile[], path: string[]): string[] | null => {
+    for (const n of nodes) {
+      if (n.id === targetId) return [...path, n.name];
+      if (n.children) {
+        const found = find(n.children, [...path, n.name]);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return find(files, []) ?? [];
+}
+
 const AureonIdeView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Session state
   const [sessions, setSessions] = useState<IdeSession[]>([]);
@@ -59,11 +78,16 @@ const AureonIdeView = () => {
   const [openFileIds, setOpenFileIds] = useState<string[]>(["app"]);
   const [activeFileId, setActiveFileId] = useState<string | null>("app");
 
-  // Panel state
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
-  const [bottomOpen, setBottomOpen] = useState(true);
+  // Panel state — auto-collapse on mobile
+  const [leftOpen, setLeftOpen] = useState(!isMobile);
+  const [rightOpen, setRightOpen] = useState(!isMobile);
+  const [bottomOpen, setBottomOpen] = useState(!isMobile);
   const [centerTab, setCenterTab] = useState<CenterTab>("code");
+  const [zenMode, setZenMode] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Mobile panel switcher
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("editor");
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
@@ -75,6 +99,16 @@ const AureonIdeView = () => {
   const allFiles = flattenFiles(files);
   const openFiles = openFileIds.map(id => allFiles.find(f => f.id === id)).filter(Boolean) as IdeFile[];
   const activeFile = allFiles.find(f => f.id === activeFileId);
+  const breadcrumbs = activeFileId ? getBreadcrumbs(files, activeFileId) : [];
+
+  // Update panel state when screen size changes
+  useEffect(() => {
+    if (isMobile) {
+      setLeftOpen(false);
+      setRightOpen(false);
+      setBottomOpen(false);
+    }
+  }, [isMobile]);
 
   // ── Session CRUD ──
   const loadSessions = useCallback(async () => {
@@ -101,7 +135,7 @@ const AureonIdeView = () => {
       setOpenFileIds(data.open_file_ids ?? []);
       setActiveFileId(data.active_file_id ?? null);
       const cfg = data.panel_config as any;
-      if (cfg) {
+      if (cfg && !isMobile) {
         setLeftOpen(cfg.leftOpen ?? true);
         setRightOpen(cfg.rightOpen ?? true);
         setBottomOpen(cfg.bottomOpen ?? true);
@@ -109,8 +143,9 @@ const AureonIdeView = () => {
       setActiveSessionId(id);
       setChatMessages([]);
       setShowSessions(false);
+      if (isMobile) setMobilePanel("editor");
     }
-  }, []);
+  }, [isMobile]);
 
   const createSession = useCallback(async () => {
     if (!user) return;
@@ -176,23 +211,35 @@ const AureonIdeView = () => {
     return () => clearInterval(interval);
   }, [activeSessionId, files, openFileIds, activeFileId, leftOpen, rightOpen, bottomOpen]);
 
-  // Ctrl+S to save
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
         saveSession();
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "b") {
+        e.preventDefault();
+        setLeftOpen(p => !p);
+      }
+      if (e.key === "Escape" && zenMode) {
+        setZenMode(false);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [saveSession]);
+  }, [saveSession, zenMode]);
 
   // ── File operations ──
   const selectFile = (file: IdeFile) => {
     if (!openFileIds.includes(file.id)) setOpenFileIds(prev => [...prev, file.id]);
     setActiveFileId(file.id);
     setCenterTab("code");
+    if (isMobile) setMobilePanel("editor");
   };
 
   const closeTab = (id: string) => {
@@ -241,6 +288,41 @@ const AureonIdeView = () => {
     setFiles(prev => removeFromTree(prev));
     closeTab(id);
   };
+
+  const renameFile = (id: string, newName: string) => {
+    const renameInTree = (nodes: IdeFile[]): IdeFile[] =>
+      nodes.map(n => {
+        if (n.id === id) return { ...n, name: newName };
+        if (n.children) return { ...n, children: renameInTree(n.children) };
+        return n;
+      });
+    setFiles(prev => renameInTree(prev));
+  };
+
+  // Export project as ZIP
+  const exportProject = useCallback(async () => {
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+    const addToZip = (nodes: IdeFile[], path: string) => {
+      for (const n of nodes) {
+        if (n.type === "file" && n.content !== undefined) {
+          zip.file(`${path}${n.name}`, n.content);
+        }
+        if (n.children) {
+          addToZip(n.children, `${path}${n.name}/`);
+        }
+      }
+    };
+    addToZip(files, "");
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${sessions.find(s => s.id === activeSessionId)?.name ?? "aureon-project"}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exported", description: "Project downloaded as ZIP." });
+  }, [files, sessions, activeSessionId, toast]);
 
   // ── Chat ──
   const sendChatMessage = useCallback(async (content: string) => {
@@ -299,23 +381,162 @@ const AureonIdeView = () => {
 
   const handleTerminalAiCommand = useCallback((query: string) => {
     sendChatMessage(query);
-    if (!rightOpen) setRightOpen(true);
-  }, [sendChatMessage, rightOpen]);
+    if (!rightOpen && !isMobile) setRightOpen(true);
+    if (isMobile) setMobilePanel("chat");
+  }, [sendChatMessage, rightOpen, isMobile]);
 
+  // Command palette actions
+  const commandActions = [
+    { id: "save", label: "Save Session", shortcut: "⌘S", action: saveSession },
+    { id: "export", label: "Export as ZIP", action: exportProject },
+    { id: "zen", label: zenMode ? "Exit Zen Mode" : "Enter Zen Mode", action: () => setZenMode(!zenMode) },
+    { id: "preview", label: "Toggle Preview", action: () => setCenterTab(t => t === "code" ? "preview" : "code") },
+    { id: "terminal", label: "Toggle Terminal", action: () => setBottomOpen(p => !p) },
+    { id: "sidebar", label: "Toggle Sidebar", shortcut: "⌘B", action: () => setLeftOpen(p => !p) },
+    { id: "chat", label: "Toggle AI Chat", action: () => setRightOpen(p => !p) },
+    { id: "sessions", label: "Manage Sessions", action: () => setShowSessions(p => !p) },
+    { id: "new-file", label: "New File", action: () => createFile(null, "untitled.tsx", "file") },
+    { id: "new-folder", label: "New Folder", action: () => createFile(null, "new-folder", "folder") },
+  ];
+
+  // ── Zen Mode ──
+  if (zenMode) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
+        <div className="flex items-center justify-between px-4 py-1 bg-card/10 border-b border-border/10">
+          <div className="flex items-center gap-2">
+            <Code2 className="h-3.5 w-3.5 text-accent/50" />
+            <span className="text-[10px] font-light text-muted-foreground/40">ZEN MODE</span>
+            {activeFile && <span className="text-[10px] text-accent/50">{activeFile.name}</span>}
+          </div>
+          <button onClick={() => setZenMode(false)} className="p-1.5 rounded text-muted-foreground/40 hover:text-foreground transition-colors" title="Exit Zen Mode (Esc)">
+            <Minimize2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0">
+          <IdeCodeEditor
+            openFiles={activeFile ? [activeFile] : []}
+            activeFileId={activeFileId}
+            onSelectTab={setActiveFileId}
+            onCloseTab={closeTab}
+            onContentChange={updateContent}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Mobile Layout ──
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-full w-full overflow-hidden">
+        {/* Mobile top bar */}
+        <div className="flex items-center justify-between px-2 py-1.5 bg-card/20 border-b border-border/20 flex-shrink-0">
+          <div className="flex items-center gap-1.5">
+            <Code2 className="h-3.5 w-3.5 text-accent/70" />
+            <span className="text-[10px] font-light tracking-widest text-foreground/80">IDE</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={saveSession} disabled={!activeSessionId || saving} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            </button>
+            <button onClick={exportProject} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
+              <Download className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile content */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {mobilePanel === "explorer" && (
+            showSessions ? (
+              <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />
+            ) : (
+              <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} />
+            )
+          )}
+          {mobilePanel === "editor" && (
+            centerTab === "code" ? (
+              <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+            ) : (
+              <IdePreviewPanel files={files} />
+            )
+          )}
+          {mobilePanel === "chat" && (
+            <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} />
+          )}
+          {mobilePanel === "terminal" && (
+            <IdeTerminal onAiCommand={handleTerminalAiCommand} />
+          )}
+        </div>
+
+        {/* Mobile bottom tab bar */}
+        <div className="flex items-center border-t border-border/20 bg-card/20 flex-shrink-0">
+          {([
+            { id: "explorer" as MobilePanel, icon: FolderKanban, label: "Files" },
+            { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : "Code" },
+            { id: "chat" as MobilePanel, icon: PanelRightOpen, label: "AI" },
+            { id: "terminal" as MobilePanel, icon: ChevronDown, label: "Term" },
+          ]).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                if (tab.id === "editor" && mobilePanel === "editor") {
+                  setCenterTab(t => t === "code" ? "preview" : "code");
+                } else {
+                  setMobilePanel(tab.id);
+                }
+              }}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[9px] font-light transition-colors ${
+                mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"
+              }`}
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowSessions(p => !p)}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[9px] font-light transition-colors ${
+              showSessions && mobilePanel === "explorer" ? "text-accent" : "text-muted-foreground/50"
+            }`}
+          >
+            <FolderKanban className="h-4 w-4" />
+            Sessions
+          </button>
+        </div>
+
+        <IdeCommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} actions={commandActions} />
+      </div>
+    );
+  }
+
+  // ── Desktop Layout ──
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Top bar */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-card/20 border-b border-border/20 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Code2 className="h-4 w-4 text-accent/70" />
-          <span className="text-xs font-light tracking-widest text-foreground/80">AUREON IDE</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <Code2 className="h-4 w-4 text-accent/70 shrink-0" />
+          <span className="text-xs font-light tracking-widest text-foreground/80 shrink-0">AUREON IDE</span>
           {activeSessionId && (
             <span className="text-[9px] text-muted-foreground/50 bg-muted/10 rounded-full px-2 py-0.5 truncate max-w-[140px]">
               {sessions.find(s => s.id === activeSessionId)?.name ?? ""}
             </span>
           )}
+          {/* Breadcrumbs */}
+          {breadcrumbs.length > 0 && (
+            <div className="hidden md:flex items-center gap-1 text-[9px] text-muted-foreground/40 ml-2">
+              {breadcrumbs.map((b, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  {i > 0 && <span>/</span>}
+                  <span className={i === breadcrumbs.length - 1 ? "text-foreground/60" : ""}>{b}</span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Center tab switcher */}
           <div className="flex items-center rounded-lg border border-border/20 overflow-hidden mr-2">
             <button
@@ -332,6 +553,15 @@ const AureonIdeView = () => {
             </button>
           </div>
 
+          <button onClick={() => setCommandPaletteOpen(true)} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Command Palette (⌘K)">
+            <Search className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => setZenMode(true)} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Zen Mode">
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={exportProject} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Export ZIP">
+            <Download className="h-3.5 w-3.5" />
+          </button>
           <button onClick={() => setShowSessions(!showSessions)} className={`p-1.5 rounded-md transition-colors ${showSessions ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`} title="Sessions">
             <FolderKanban className="h-3.5 w-3.5" />
           </button>
@@ -339,7 +569,7 @@ const AureonIdeView = () => {
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           </button>
           <div className="w-px h-4 bg-border/20 mx-1" />
-          <button onClick={() => setLeftOpen(!leftOpen)} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Toggle explorer">
+          <button onClick={() => setLeftOpen(!leftOpen)} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Toggle explorer (⌘B)">
             {leftOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
           </button>
           <button onClick={() => setBottomOpen(!bottomOpen)} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Toggle terminal">
@@ -353,27 +583,13 @@ const AureonIdeView = () => {
 
       {/* Main content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left panel: Sessions or File explorer */}
+        {/* Left panel */}
         {leftOpen && (
-          <div className="w-[200px] lg:w-[240px] flex-shrink-0 border-r border-border/20 bg-card/10 overflow-hidden flex flex-col">
+          <div className="w-[180px] md:w-[200px] lg:w-[240px] flex-shrink-0 border-r border-border/20 bg-card/10 overflow-hidden flex flex-col">
             {showSessions ? (
-              <IdeSessionManager
-                sessions={sessions}
-                activeSessionId={activeSessionId}
-                loading={sessionsLoading}
-                onSelect={loadSession}
-                onCreate={createSession}
-                onDelete={deleteSession}
-                onRename={renameSession}
-              />
+              <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />
             ) : (
-              <IdeFileTree
-                files={files}
-                activeFileId={activeFileId}
-                onSelectFile={selectFile}
-                onCreateFile={createFile}
-                onDeleteFile={deleteFile}
-              />
+              <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} />
             )}
           </div>
         )}
@@ -382,13 +598,7 @@ const AureonIdeView = () => {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           <div className="flex-1 min-h-0 overflow-hidden">
             {centerTab === "code" ? (
-              <IdeCodeEditor
-                openFiles={openFiles}
-                activeFileId={activeFileId}
-                onSelectTab={setActiveFileId}
-                onCloseTab={closeTab}
-                onContentChange={updateContent}
-              />
+              <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
             ) : (
               <IdePreviewPanel files={files} />
             )}
@@ -396,7 +606,7 @@ const AureonIdeView = () => {
 
           {/* Terminal */}
           {bottomOpen && (
-            <div className="h-[180px] lg:h-[220px] flex-shrink-0 overflow-hidden">
+            <div className="h-[140px] md:h-[180px] lg:h-[220px] flex-shrink-0 overflow-hidden">
               <IdeTerminal onAiCommand={handleTerminalAiCommand} />
             </div>
           )}
@@ -404,19 +614,13 @@ const AureonIdeView = () => {
 
         {/* Right: AI Chat */}
         {rightOpen && (
-          <div className="w-[280px] lg:w-[320px] flex-shrink-0 border-l border-border/20 bg-card/10 overflow-hidden">
-            <IdeChatPanel
-              messages={chatMessages}
-              isStreaming={isStreaming}
-              onSend={sendChatMessage}
-              onStop={stopStreaming}
-              suggestions={suggestions}
-              activeFileName={activeFile?.name}
-              activeFileContent={activeFile?.content}
-            />
+          <div className="w-[240px] md:w-[280px] lg:w-[320px] flex-shrink-0 border-l border-border/20 bg-card/10 overflow-hidden">
+            <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} />
           </div>
         )}
       </div>
+
+      <IdeCommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} actions={commandActions} />
     </div>
   );
 };
