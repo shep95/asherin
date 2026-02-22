@@ -92,3 +92,15 @@ verify_jwt = false
 
 [functions.google-data]
 verify_jwt = false
+
+[functions.github-api]
+verify_jwt = false
+
+[functions.tracker-pair]
+verify_jwt = false
+
+[functions.zali-analyze]
+verify_jwt = false
+
+[functions.zali-chat]
+verify_jwt = false

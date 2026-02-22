@@ -1054,6 +1054,45 @@ export type Database = {
           },
         ]
       }
+      github_connections: {
+        Row: {
+          branch: string
+          created_at: string
+          github_token: string
+          id: string
+          last_sync_at: string | null
+          repo_name: string
+          repo_owner: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch?: string
+          created_at?: string
+          github_token: string
+          id?: string
+          last_sync_at?: string | null
+          repo_name: string
+          repo_owner: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch?: string
+          created_at?: string
+          github_token?: string
+          id?: string
+          last_sync_at?: string | null
+          repo_name?: string
+          repo_owner?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       google_accounts: {
         Row: {
           access_token: string

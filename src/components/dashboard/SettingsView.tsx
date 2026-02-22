@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard } from "lucide-react";
+import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { useGitHub } from "@/hooks/useGitHub";
 import wallpaperDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
@@ -15,6 +16,84 @@ const WALLPAPERS = [
   { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
   { key: "glitch", label: "Glitch", src: wallpaperGlitch },
 ];
+
+const GitHubSettings = () => {
+  const { connection, loading, isConnected, connect, disconnect } = useGitHub();
+  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [token, setToken] = useState("");
+  const [owner, setOwner] = useState("");
+  const [repo, setRepo] = useState("");
+  const [branch, setBranch] = useState("main");
+  const [connecting, setConnecting] = useState(false);
+
+  const handleConnect = async () => {
+    if (!token || !owner || !repo) return;
+    setConnecting(true);
+    try {
+      await connect(token, owner, repo, branch);
+      setShowForm(false);
+      setToken("");
+      toast({ title: "GitHub connected", description: `${owner}/${repo}` });
+    } catch (err: any) {
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    }
+    setConnecting(false);
+  };
+
+  const handleDisconnect = async () => {
+    await disconnect();
+    toast({ title: "GitHub disconnected" });
+  };
+
+  return (
+    <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+      <div className="flex items-center gap-3">
+        <GitBranch className="h-5 w-5 text-muted-foreground" />
+        <h3 className="text-sm font-light text-foreground">GitHub</h3>
+        {isConnected && <span className="text-[10px] text-emerald-500 flex items-center gap-1 ml-auto"><Check className="h-3 w-3" /> Connected</span>}
+      </div>
+
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />
+      ) : isConnected ? (
+        <div className="space-y-3">
+          <div className="rounded-lg border border-border/15 bg-card/10 p-3 space-y-1">
+            <p className="text-xs font-light text-foreground">{connection?.repo_owner}/{connection?.repo_name}</p>
+            <p className="text-[10px] text-muted-foreground/50">Branch: {connection?.branch}</p>
+            {connection?.last_sync_at && <p className="text-[10px] text-muted-foreground/40">Last sync: {new Date(connection.last_sync_at).toLocaleString()}</p>}
+          </div>
+          <button onClick={handleDisconnect} className="inline-flex items-center gap-2 rounded-lg border border-destructive/20 px-3 py-1.5 text-xs font-light text-destructive hover:bg-destructive/10 transition-colors">
+            <X className="h-3 w-3" /> Disconnect
+          </button>
+        </div>
+      ) : !showForm ? (
+        <div className="space-y-2">
+          <p className="text-xs font-extralight text-muted-foreground leading-relaxed">Connect a GitHub repository to import and export code from the IDE.</p>
+          <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 rounded-lg border border-border/20 bg-foreground/5 px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/10 transition-colors">
+            <GitBranch className="h-3.5 w-3.5" /> Connect GitHub
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <input value={token} onChange={e => setToken(e.target.value)} placeholder="Personal Access Token" type="password" className="w-full bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40" />
+          <div className="flex gap-2">
+            <input value={owner} onChange={e => setOwner(e.target.value)} placeholder="Owner" className="flex-1 bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40" />
+            <input value={repo} onChange={e => setRepo(e.target.value)} placeholder="Repo name" className="flex-1 bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40" />
+          </div>
+          <input value={branch} onChange={e => setBranch(e.target.value)} placeholder="Branch (main)" className="w-full bg-background/50 border border-border/20 rounded-lg px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40" />
+          <p className="text-[10px] text-muted-foreground/40">Create a Fine-grained PAT at github.com → Settings → Developer settings → Personal access tokens. Grant "Contents" read/write.</p>
+          <div className="flex gap-2">
+            <button onClick={handleConnect} disabled={!token || !owner || !repo || connecting} className="inline-flex items-center gap-2 rounded-lg bg-foreground/10 px-4 py-2 text-xs font-light text-foreground hover:bg-foreground/15 transition-colors disabled:opacity-30">
+              {connecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Connect
+            </button>
+            <button onClick={() => setShowForm(false)} className="rounded-lg border border-border/20 px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SettingsView = () => {
   const { user } = useAuth();
@@ -296,6 +375,9 @@ const SettingsView = () => {
             </div>
           </div>
         </div>
+
+        {/* GitHub Integration */}
+        <GitHubSettings />
 
         {/* Privacy */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">

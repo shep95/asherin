@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2, Maximize2, Minimize2, Download, Search, Brain, Package, AlertTriangle, Terminal as TerminalIcon, Sparkles, Plug, Zap } from "lucide-react";
+import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2, Maximize2, Minimize2, Download, Search, Brain, Package, AlertTriangle, Terminal as TerminalIcon, Sparkles, Plug, Zap, GitBranch } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
@@ -13,6 +13,7 @@ import IdeProblemsPanel from "./IdeProblemsPanel";
 import IdeAiLogPanel, { type AiLogEntry } from "./IdeAiLogPanel";
 import IdeQuickOpen from "./IdeQuickOpen";
 import IdeIntegrationsPanel from "./IdeIntegrationsPanel";
+import IdeGitPanel from "./IdeGitPanel";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,7 +30,7 @@ interface ChatMsg {
 
 type CenterTab = "code" | "preview";
 type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
-type LeftTab = "files" | "search" | "sessions" | "integrations";
+type LeftTab = "files" | "search" | "sessions" | "integrations" | "git";
 type BottomTab = "terminal" | "problems" | "ai-log";
 
 const STARTER_FILES: IdeFile[] = [
@@ -416,6 +417,7 @@ const AureonIdeView = () => {
     { id: "files", icon: FolderKanban, label: "Explorer" },
     { id: "search", icon: Search, label: "Search" },
     { id: "sessions", icon: Package, label: "Sessions" },
+    { id: "git", icon: GitBranch, label: "Git" },
     { id: "integrations", icon: Plug, label: "Integrations" },
   ];
 
@@ -613,6 +615,7 @@ const AureonIdeView = () => {
                     {leftTab === "files" && <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} />}
                     {leftTab === "search" && <IdeSearchPanel files={files} onOpenFile={selectFile} />}
                     {leftTab === "sessions" && <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />}
+                    {leftTab === "git" && <IdeGitPanel files={files} onImportFiles={(imported) => setFiles(imported)} />}
                     {leftTab === "integrations" && <IdeIntegrationsPanel />}
                   </div>
                 </div>
