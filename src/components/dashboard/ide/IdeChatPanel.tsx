@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Square, Lock, Copy, Check, Eye, Sparkles, ArrowRight } from "lucide-react";
+import { Send, Square, Lock, Copy, Check, Eye, Sparkles, ArrowRight, Brain, Plus, X, ChevronDown, Settings2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import TypingIndicator from "../TypingIndicator";
@@ -9,6 +9,14 @@ import type { FeedbackType } from "../CalibrationFeedback";
 import DecodeView from "../DecodeView";
 import FollowUpSuggestions from "../FollowUpSuggestions";
 import ZaliQuestionOptions, { parseQuestionOptions } from "../zali/ZaliQuestionOptions";
+
+// Custom prompt brain type
+export interface CustomBrain {
+  id: string;
+  name: string;
+  prompt: string;
+  icon?: string;
+}
 
 interface ChatMessage {
   id: string;
@@ -20,7 +28,7 @@ interface ChatMessage {
 interface Props {
   messages: ChatMessage[];
   isStreaming: boolean;
-  onSend: (content: string) => void;
+  onSend: (content: string, customBrainPrompt?: string) => void;
   onStop: () => void;
   suggestions?: string[];
   onCalibrationFeedback?: (messageId: string, feedback: FeedbackType) => void;
@@ -76,11 +84,35 @@ function MessageCopyBtn({ text }: { text: string }) {
   );
 }
 
+const STORAGE_KEY = "aureon-ide-custom-brains";
+
+function loadBrains(): CustomBrain[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveBrains(brains: CustomBrain[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(brains));
+}
+
 const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [], onCalibrationFeedback, activeFileName, activeFileContent, creditsRemaining, maxCredits }: Props) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { subscribed, loading } = useSubscription();
+
+  // Custom brain state
+  const [customBrains, setCustomBrains] = useState<CustomBrain[]>(loadBrains);
+  const [activeBrainId, setActiveBrainId] = useState<string | null>(null);
+  const [showBrainManager, setShowBrainManager] = useState(false);
+  const [newBrainName, setNewBrainName] = useState("");
+  const [newBrainPrompt, setNewBrainPrompt] = useState("");
+  const [editingBrainId, setEditingBrainId] = useState<string | null>(null);
+  const [showBrainDropdown, setShowBrainDropdown] = useState(false);
+
+  const activeBrain = customBrains.find(b => b.id === activeBrainId) ?? null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -89,17 +121,50 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
-    // If there's an active file, auto-attach context
-    let msg = input.trim();
-    onSend(msg);
+    onSend(input.trim(), activeBrain?.prompt);
     setInput("");
+  };
+
+  const addBrain = () => {
+    if (!newBrainName.trim() || !newBrainPrompt.trim()) return;
+    const brain: CustomBrain = { id: crypto.randomUUID(), name: newBrainName.trim(), prompt: newBrainPrompt.trim() };
+    const updated = [...customBrains, brain];
+    setCustomBrains(updated);
+    saveBrains(updated);
+    setNewBrainName("");
+    setNewBrainPrompt("");
+    setEditingBrainId(null);
+  };
+
+  const updateBrain = (id: string) => {
+    if (!newBrainName.trim() || !newBrainPrompt.trim()) return;
+    const updated = customBrains.map(b => b.id === id ? { ...b, name: newBrainName.trim(), prompt: newBrainPrompt.trim() } : b);
+    setCustomBrains(updated);
+    saveBrains(updated);
+    setNewBrainName("");
+    setNewBrainPrompt("");
+    setEditingBrainId(null);
+  };
+
+  const deleteBrain = (id: string) => {
+    const updated = customBrains.filter(b => b.id !== id);
+    setCustomBrains(updated);
+    saveBrains(updated);
+    if (activeBrainId === id) setActiveBrainId(null);
+  };
+
+  const startEditBrain = (brain: CustomBrain) => {
+    setEditingBrainId(brain.id);
+    setNewBrainName(brain.name);
+    setNewBrainPrompt(brain.prompt);
+    setShowBrainManager(true);
   };
 
   const sendWithContext = (text: string) => {
     if (activeFileName && activeFileContent) {
-      onSend(`[Context: ${activeFileName}]\n\`\`\`\n${activeFileContent.slice(0, 2000)}\n\`\`\`\n\n${text}`);
+      onSend(`[Context: ${activeFileName}]\n\`\`\`\n${activeFileContent.slice(0, 2000)}\n\`\`\`\n\n${text}`, activeBrain?.prompt);
     } else {
-      onSend(text);
+      onSend(text, activeBrain?.prompt);
     }
   };
 
@@ -127,16 +192,112 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/20">
-        <Sparkles className="h-3 w-3 text-accent/60" />
-        <span className="text-[10px] font-light tracking-widest text-muted-foreground/50 uppercase">AI Assistant</span>
-        {activeFileName && (
-          <span className="text-[9px] font-light text-accent/60 bg-accent/10 rounded-full px-2 py-0.5 truncate max-w-[140px]">
-            {activeFileName}
-          </span>
-        )}
+      {/* Header with brain selector */}
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/20">
+        <Sparkles className="h-3 w-3 text-accent/60 shrink-0" />
+        <span className="text-[10px] font-light tracking-widest text-muted-foreground/50 uppercase shrink-0">AI</span>
+
+        {/* Brain selector dropdown */}
+        <div className="relative ml-auto flex items-center gap-1">
+          {activeFileName && (
+            <span className="text-[8px] font-light text-accent/50 bg-accent/10 rounded-full px-1.5 py-0.5 truncate max-w-[80px]">
+              {activeFileName}
+            </span>
+          )}
+          <button
+            onClick={() => setShowBrainDropdown(!showBrainDropdown)}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-light transition-colors border ${
+              activeBrain ? "border-accent/30 bg-accent/10 text-accent" : "border-border/20 text-muted-foreground/50 hover:text-foreground"
+            }`}
+          >
+            <Brain className="h-2.5 w-2.5" />
+            <span className="truncate max-w-[60px]">{activeBrain?.name ?? "Default"}</span>
+            <ChevronDown className="h-2 w-2" />
+          </button>
+          <button onClick={() => setShowBrainManager(!showBrainManager)} className="p-1 rounded text-muted-foreground/40 hover:text-foreground transition-colors" title="Manage Brains">
+            <Settings2 className="h-3 w-3" />
+          </button>
+
+          {/* Brain dropdown */}
+          {showBrainDropdown && (
+            <div className="absolute top-full right-0 mt-1 w-48 z-50 rounded-xl border border-border/30 bg-card shadow-2xl py-1 max-h-[200px] overflow-y-auto">
+              <button
+                onClick={() => { setActiveBrainId(null); setShowBrainDropdown(false); }}
+                className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 ${!activeBrainId ? "text-accent" : "text-foreground"}`}
+              >
+                🧠 Default (Aureon Core)
+              </button>
+              {customBrains.map(b => (
+                <button key={b.id}
+                  onClick={() => { setActiveBrainId(b.id); setShowBrainDropdown(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 flex items-center justify-between ${activeBrainId === b.id ? "text-accent" : "text-foreground"}`}
+                >
+                  <span className="truncate">🔧 {b.name}</span>
+                </button>
+              ))}
+              {customBrains.length === 0 && (
+                <p className="px-3 py-2 text-[9px] text-muted-foreground/40">No custom brains yet</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Brain Manager Panel */}
+      {showBrainManager && (
+        <div className="border-b border-border/20 bg-card/30 p-2.5 space-y-2 max-h-[280px] overflow-y-auto">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-light tracking-widest text-muted-foreground/50 uppercase">Custom Brains</span>
+            <button onClick={() => { setShowBrainManager(false); setEditingBrainId(null); setNewBrainName(""); setNewBrainPrompt(""); }} className="p-0.5 text-muted-foreground/40 hover:text-foreground">
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+
+          {/* Existing brains */}
+          {customBrains.map(b => (
+            <div key={b.id} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 ${activeBrainId === b.id ? "border-accent/30 bg-accent/5" : "border-border/15 bg-card/20"}`}>
+              <Brain className="h-3 w-3 text-accent/50 shrink-0" />
+              <span className="flex-1 text-[10px] font-light text-foreground truncate">{b.name}</span>
+              <button onClick={() => startEditBrain(b)} className="text-[8px] text-muted-foreground/50 hover:text-foreground px-1">Edit</button>
+              <button onClick={() => deleteBrain(b.id)} className="text-[8px] text-destructive/60 hover:text-destructive px-1">Del</button>
+            </div>
+          ))}
+
+          {/* Add/Edit form */}
+          <div className="space-y-1.5 pt-1 border-t border-border/10">
+            <input
+              value={newBrainName}
+              onChange={e => setNewBrainName(e.target.value)}
+              placeholder="Brain name (e.g. React Expert)"
+              className="w-full bg-background/50 border border-border/20 rounded-lg px-2 py-1.5 text-[10px] font-light text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30"
+            />
+            <textarea
+              value={newBrainPrompt}
+              onChange={e => setNewBrainPrompt(e.target.value)}
+              placeholder="System prompt... (e.g. Always use TypeScript strict mode, prefer functional components, use Tailwind utility classes...)"
+              rows={3}
+              className="w-full bg-background/50 border border-border/20 rounded-lg px-2 py-1.5 text-[10px] font-light text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30 resize-none"
+            />
+            <button
+              onClick={() => editingBrainId ? updateBrain(editingBrainId) : addBrain()}
+              disabled={!newBrainName.trim() || !newBrainPrompt.trim()}
+              className="w-full flex items-center justify-center gap-1 rounded-lg bg-accent/15 text-accent text-[10px] font-light py-1.5 hover:bg-accent/25 transition-colors disabled:opacity-30"
+            >
+              <Plus className="h-3 w-3" />
+              {editingBrainId ? "Update Brain" : "Add Brain"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Active brain indicator */}
+      {activeBrain && !showBrainManager && (
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-accent/5 border-b border-accent/10">
+          <Brain className="h-2.5 w-2.5 text-accent/60" />
+          <span className="text-[9px] font-light text-accent/70 truncate">Active: {activeBrain.name}</span>
+          <button onClick={() => setActiveBrainId(null)} className="ml-auto text-[8px] text-muted-foreground/40 hover:text-foreground">Clear</button>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto min-h-0 p-2.5 space-y-2.5">
@@ -228,7 +389,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
         <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-2.5 py-2">
           <input
             value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your code..."
+            placeholder={activeBrain ? `Ask with ${activeBrain.name}...` : "Ask about your code..."}
             disabled={isStreaming}
             className="flex-1 bg-transparent text-[11px] font-light text-foreground placeholder:text-muted-foreground/30 outline-none disabled:opacity-40"
           />
