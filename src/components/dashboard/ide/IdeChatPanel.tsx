@@ -207,7 +207,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
           <button
             onClick={() => setShowBrainDropdown(!showBrainDropdown)}
             className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-light transition-colors border ${
-              activeBrain ? "border-accent/30 bg-accent/10 text-accent" : "border-border/20 text-muted-foreground/50 hover:text-foreground"
+              activeBrain ? "border-foreground/20 bg-foreground/5 text-foreground" : "border-border/20 text-muted-foreground/50 hover:text-foreground"
             }`}
           >
             <Brain className="h-2.5 w-2.5" />
@@ -223,14 +223,14 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
             <div className="absolute top-full right-0 mt-1 w-48 z-50 rounded-xl border border-border/30 bg-card shadow-2xl py-1 max-h-[200px] overflow-y-auto">
               <button
                 onClick={() => { setActiveBrainId(null); setShowBrainDropdown(false); }}
-                className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 ${!activeBrainId ? "text-accent" : "text-foreground"}`}
+                className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 ${!activeBrainId ? "text-foreground" : "text-muted-foreground"}`}
               >
                 🧠 Default (Aureon Core)
               </button>
               {customBrains.map(b => (
                 <button key={b.id}
                   onClick={() => { setActiveBrainId(b.id); setShowBrainDropdown(false); }}
-                  className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 flex items-center justify-between ${activeBrainId === b.id ? "text-accent" : "text-foreground"}`}
+                  className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 flex items-center justify-between ${activeBrainId === b.id ? "text-foreground" : "text-muted-foreground"}`}
                 >
                   <span className="truncate">🔧 {b.name}</span>
                 </button>
@@ -255,8 +255,8 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
 
           {/* Existing brains */}
           {customBrains.map(b => (
-            <div key={b.id} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 ${activeBrainId === b.id ? "border-accent/30 bg-accent/5" : "border-border/15 bg-card/20"}`}>
-              <Brain className="h-3 w-3 text-accent/50 shrink-0" />
+            <div key={b.id} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 ${activeBrainId === b.id ? "border-foreground/20 bg-foreground/5" : "border-border/15 bg-card/20"}`}>
+              <Brain className="h-3 w-3 text-muted-foreground/50 shrink-0" />
               <span className="flex-1 text-[10px] font-light text-foreground truncate">{b.name}</span>
               <button onClick={() => startEditBrain(b)} className="text-[8px] text-muted-foreground/50 hover:text-foreground px-1">Edit</button>
               <button onClick={() => deleteBrain(b.id)} className="text-[8px] text-destructive/60 hover:text-destructive px-1">Del</button>
@@ -281,7 +281,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
             <button
               onClick={() => editingBrainId ? updateBrain(editingBrainId) : addBrain()}
               disabled={!newBrainName.trim() || !newBrainPrompt.trim()}
-              className="w-full flex items-center justify-center gap-1 rounded-lg bg-accent/15 text-accent text-[10px] font-light py-1.5 hover:bg-accent/25 transition-colors disabled:opacity-30"
+              className="w-full flex items-center justify-center gap-1 rounded-lg bg-foreground/10 text-foreground text-[10px] font-light py-1.5 hover:bg-foreground/15 transition-colors disabled:opacity-30"
             >
               <Plus className="h-3 w-3" />
               {editingBrainId ? "Update Brain" : "Add Brain"}
@@ -292,9 +292,9 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
 
       {/* Active brain indicator */}
       {activeBrain && !showBrainManager && (
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-accent/5 border-b border-accent/10">
-          <Brain className="h-2.5 w-2.5 text-accent/60" />
-          <span className="text-[9px] font-light text-accent/70 truncate">Active: {activeBrain.name}</span>
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-foreground/5 border-b border-border/15">
+          <Brain className="h-2.5 w-2.5 text-muted-foreground/60" />
+          <span className="text-[9px] font-light text-muted-foreground/70 truncate">Active: {activeBrain.name}</span>
           <button onClick={() => setActiveBrainId(null)} className="ml-auto text-[8px] text-muted-foreground/40 hover:text-foreground">Clear</button>
         </div>
       )}
