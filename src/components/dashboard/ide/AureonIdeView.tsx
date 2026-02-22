@@ -217,7 +217,9 @@ const AureonIdeView = () => {
       const cfg = data.panel_config as any;
       if (cfg && !isMobile) { setLeftOpen(cfg.leftOpen ?? true); setRightOpen(cfg.rightOpen ?? true); setBottomOpen(cfg.bottomOpen ?? true); }
       setActiveSessionId(id);
-      setChatMessages([]);
+      // Restore chat history from saved session
+      const savedChat = cfg?.chatMessages as ChatMsg[] | undefined;
+      setChatMessages(savedChat?.map(m => ({ ...m, timestamp: new Date(m.timestamp) })) ?? []);
       setLeftTab("files");
       addAiLog("scan", `Session loaded — scanning ${flattenFiles(data.files as unknown as IdeFile[]).length} files`);
       if (isMobile) setMobilePanel("editor");
@@ -244,20 +246,20 @@ const AureonIdeView = () => {
   const saveSession = useCallback(async () => {
     if (!activeSessionId || !user) return;
     setSaving(true);
-    await supabase.from("ide_sessions").update({ files: files as any, open_file_ids: openFileIds, active_file_id: activeFileId, panel_config: { leftOpen, rightOpen, bottomOpen } as any }).eq("id", activeSessionId);
+    await supabase.from("ide_sessions").update({ files: files as any, open_file_ids: openFileIds, active_file_id: activeFileId, panel_config: { leftOpen, rightOpen, bottomOpen, chatMessages } as any }).eq("id", activeSessionId);
     setSaving(false);
     toast({ title: "Session saved" });
     addAiLog("scan", "Session saved successfully");
-  }, [activeSessionId, user, files, openFileIds, activeFileId, leftOpen, rightOpen, bottomOpen, toast, addAiLog]);
+  }, [activeSessionId, user, files, openFileIds, activeFileId, leftOpen, rightOpen, bottomOpen, chatMessages, toast, addAiLog]);
 
   // Auto-save
   useEffect(() => {
     if (!activeSessionId) return;
     const interval = setInterval(() => {
-      supabase.from("ide_sessions").update({ files: files as any, open_file_ids: openFileIds, active_file_id: activeFileId, panel_config: { leftOpen, rightOpen, bottomOpen } as any }).eq("id", activeSessionId);
+      supabase.from("ide_sessions").update({ files: files as any, open_file_ids: openFileIds, active_file_id: activeFileId, panel_config: { leftOpen, rightOpen, bottomOpen, chatMessages } as any }).eq("id", activeSessionId);
     }, 30_000);
     return () => clearInterval(interval);
-  }, [activeSessionId, files, openFileIds, activeFileId, leftOpen, rightOpen, bottomOpen]);
+  }, [activeSessionId, files, openFileIds, activeFileId, leftOpen, rightOpen, bottomOpen, chatMessages]);
 
   // Keyboard shortcuts
   useEffect(() => {
