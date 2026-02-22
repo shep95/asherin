@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Plus, Trash2, FileCode, FileText, Image, Database, Settings } from "lucide-react";
+import IdeDeleteConfirm from "./IdeDeleteConfirm";
 
 export interface IdeFile {
   id: string;
@@ -41,9 +42,9 @@ interface Props {
   onDeleteFile: (id: string) => void;
 }
 
-function TreeNode({ node, depth, activeFileId, onSelectFile, onDeleteFile }: {
+function TreeNode({ node, depth, activeFileId, onSelectFile, onRequestDelete }: {
   node: IdeFile; depth: number; activeFileId: string | null;
-  onSelectFile: (f: IdeFile) => void; onDeleteFile: (id: string) => void;
+  onSelectFile: (f: IdeFile) => void; onRequestDelete: (f: IdeFile) => void;
 }) {
   const [expanded, setExpanded] = useState(depth < 2);
   const Icon = node.type === "folder" ? (expanded ? FolderOpen : Folder) : getFileIcon(node.name);
@@ -64,12 +65,12 @@ function TreeNode({ node, depth, activeFileId, onSelectFile, onDeleteFile }: {
         <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-accent" : "text-muted-foreground/60"}`} />
         <span className="truncate flex-1 text-left">{node.name}</span>
         <Trash2
-          onClick={(e) => { e.stopPropagation(); onDeleteFile(node.id); }}
+          onClick={(e) => { e.stopPropagation(); onRequestDelete(node); }}
           className="h-3 w-3 opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-destructive shrink-0 transition-opacity"
         />
       </button>
       {node.type === "folder" && expanded && node.children?.map(child => (
-        <TreeNode key={child.id} node={child} depth={depth + 1} activeFileId={activeFileId} onSelectFile={onSelectFile} onDeleteFile={onDeleteFile} />
+        <TreeNode key={child.id} node={child} depth={depth + 1} activeFileId={activeFileId} onSelectFile={onSelectFile} onRequestDelete={onRequestDelete} />
       ))}
     </div>
   );
@@ -78,6 +79,7 @@ function TreeNode({ node, depth, activeFileId, onSelectFile, onDeleteFile }: {
 const IdeFileTree = ({ files, activeFileId, onSelectFile, onCreateFile, onDeleteFile }: Props) => {
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [newName, setNewName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<IdeFile | null>(null);
 
   const handleCreate = () => {
     if (!newName.trim() || !creating) return;
@@ -119,9 +121,25 @@ const IdeFileTree = ({ files, activeFileId, onSelectFile, onCreateFile, onDelete
         {files.length === 0 ? (
           <p className="px-3 py-4 text-[10px] text-muted-foreground/40 text-center">No files yet. Create one above.</p>
         ) : (
-          files.map(f => <TreeNode key={f.id} node={f} depth={0} activeFileId={activeFileId} onSelectFile={onSelectFile} onDeleteFile={onDeleteFile} />)
+          files.map(f => (
+            <TreeNode
+              key={f.id}
+              node={f}
+              depth={0}
+              activeFileId={activeFileId}
+              onSelectFile={onSelectFile}
+              onRequestDelete={(node) => setDeleteTarget(node)}
+            />
+          ))
         )}
       </div>
+
+      <IdeDeleteConfirm
+        open={!!deleteTarget}
+        fileName={deleteTarget?.name ?? ""}
+        onConfirm={() => { if (deleteTarget) onDeleteFile(deleteTarget.id); setDeleteTarget(null); }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };
