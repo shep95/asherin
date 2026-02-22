@@ -28,6 +28,7 @@ import FeatureTracker from "./pages/FeatureTracker";
 import FeatureImagineToCode from "./pages/FeatureImagineToCode";
 import Dashboard from "./pages/Dashboard";
 import TrackPage from "./pages/TrackPage";
+import ProjAureon from "./pages/ProjAureon";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/feature/tracker" element={<FeatureTracker />} />
             <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
             <Route path="/i" element={<TrackPage />} />
+            <Route path="/proj-aureon" element={<ProjAureon />} />
             <Route
               path="/dashboard"
               element={
