@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2, Maximize2, Minimize2, Download, Search, Brain, Package, AlertTriangle, Terminal as TerminalIcon, Sparkles, Plug, Zap, GitBranch } from "lucide-react";
+import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2, Maximize2, Minimize2, Download, Search, Brain, Package, AlertTriangle, Terminal as TerminalIcon, Sparkles, Plug, Zap, GitBranch, Undo2, Redo2 } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
@@ -108,6 +108,46 @@ const AureonIdeView = () => {
   const [files, setFiles] = useState<IdeFile[]>(STARTER_FILES);
   const [openFileIds, setOpenFileIds] = useState<string[]>(["app"]);
   const [activeFileId, setActiveFileId] = useState<string | null>("app");
+
+  // Undo/Redo history
+  const fileHistoryRef = useRef<IdeFile[][]>([STARTER_FILES]);
+  const historyIndexRef = useRef(0);
+  const skipHistoryRef = useRef(false);
+
+  const pushHistory = useCallback((newFiles: IdeFile[]) => {
+    if (skipHistoryRef.current) { skipHistoryRef.current = false; return; }
+    const next = fileHistoryRef.current.slice(0, historyIndexRef.current + 1);
+    next.push(JSON.parse(JSON.stringify(newFiles)));
+    if (next.length > 100) next.shift(); // cap at 100 snapshots
+    fileHistoryRef.current = next;
+    historyIndexRef.current = next.length - 1;
+  }, []);
+
+  const canUndo = historyIndexRef.current > 0;
+  const canRedo = historyIndexRef.current < fileHistoryRef.current.length - 1;
+
+  const handleUndo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return;
+    historyIndexRef.current -= 1;
+    skipHistoryRef.current = true;
+    setFiles(JSON.parse(JSON.stringify(fileHistoryRef.current[historyIndexRef.current])));
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndexRef.current >= fileHistoryRef.current.length - 1) return;
+    historyIndexRef.current += 1;
+    skipHistoryRef.current = true;
+    setFiles(JSON.parse(JSON.stringify(fileHistoryRef.current[historyIndexRef.current])));
+  }, []);
+
+  // Track file changes into history (debounced)
+  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (skipHistoryRef.current) { skipHistoryRef.current = false; return; }
+    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    historyTimerRef.current = setTimeout(() => pushHistory(files), 1000);
+    return () => { if (historyTimerRef.current) clearTimeout(historyTimerRef.current); };
+  }, [files, pushHistory]);
 
   // Panel state
   const [leftOpen, setLeftOpen] = useState(!isMobile);
@@ -228,11 +268,13 @@ const AureonIdeView = () => {
       if ((e.metaKey || e.ctrlKey) && e.key === "b") { e.preventDefault(); setLeftOpen(p => !p); }
       if ((e.metaKey || e.ctrlKey) && e.key === "j") { e.preventDefault(); setBottomOpen(p => !p); }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "F") { e.preventDefault(); setLeftTab("search"); setLeftOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "z") { e.preventDefault(); handleRedo(); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); handleUndo(); }
       if (e.key === "Escape" && zenMode) setZenMode(false);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [saveSession, zenMode]);
+  }, [saveSession, zenMode, handleUndo, handleRedo]);
 
   // ── File operations ──
   const selectFile = (file: IdeFile) => {
@@ -395,6 +437,8 @@ const AureonIdeView = () => {
   // Command palette actions
   const commandActions = [
     { id: "save", label: "Save Session", shortcut: "⌘S", action: saveSession },
+    { id: "undo", label: "Undo", shortcut: "⌘Z", action: handleUndo },
+    { id: "redo", label: "Redo", shortcut: "⌘⇧Z", action: handleRedo },
     { id: "export", label: "Export as ZIP", action: exportProject },
     { id: "quick-open", label: "Go to File", shortcut: "⌘P", action: () => setQuickOpenOpen(true) },
     { id: "find-in-files", label: "Find in Files", shortcut: "⌘⇧F", action: () => { setLeftTab("search"); setLeftOpen(true); } },
@@ -577,6 +621,12 @@ const AureonIdeView = () => {
           </button>
           <button onClick={exportProject} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Export ZIP">
             <Download className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={handleUndo} disabled={!canUndo} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-20" title="Undo (⌘Z)">
+            <Undo2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={handleRedo} disabled={!canRedo} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-20" title="Redo (⌘⇧Z)">
+            <Redo2 className="h-3.5 w-3.5" />
           </button>
           <button onClick={saveSession} disabled={!activeSessionId || saving} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30" title="Save (⌘S)">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
