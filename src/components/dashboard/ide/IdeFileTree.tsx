@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Plus, Trash2, FileCode, FileText, Image, Database, Settings } from "lucide-react";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Plus, Trash2, FileCode, FileText, Image, Database, Settings, Pencil } from "lucide-react";
 import IdeDeleteConfirm from "./IdeDeleteConfirm";
 
 export interface IdeFile {
@@ -40,43 +40,81 @@ interface Props {
   onSelectFile: (file: IdeFile) => void;
   onCreateFile: (parentId: string | null, name: string, type: "file" | "folder") => void;
   onDeleteFile: (id: string) => void;
+  onRenameFile?: (id: string, newName: string) => void;
 }
 
-function TreeNode({ node, depth, activeFileId, onSelectFile, onRequestDelete }: {
+function TreeNode({ node, depth, activeFileId, onSelectFile, onRequestDelete, onRenameFile }: {
   node: IdeFile; depth: number; activeFileId: string | null;
   onSelectFile: (f: IdeFile) => void; onRequestDelete: (f: IdeFile) => void;
+  onRenameFile?: (id: string, newName: string) => void;
 }) {
   const [expanded, setExpanded] = useState(depth < 2);
+  const [renaming, setRenaming] = useState(false);
+  const [renameName, setRenameName] = useState(node.name);
   const Icon = node.type === "folder" ? (expanded ? FolderOpen : Folder) : getFileIcon(node.name);
   const isActive = node.id === activeFileId;
+
+  const commitRename = () => {
+    if (renameName.trim() && renameName !== node.name) {
+      onRenameFile?.(node.id, renameName.trim());
+    }
+    setRenaming(false);
+  };
 
   return (
     <div>
       <button
         onClick={() => node.type === "folder" ? setExpanded(!expanded) : onSelectFile(node)}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          if (onRenameFile) {
+            setRenameName(node.name);
+            setRenaming(true);
+          }
+        }}
         className={`w-full flex items-center gap-1.5 px-2 py-1 text-[11px] font-light rounded-md transition-colors group ${
           isActive ? "bg-accent/15 text-accent" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
         }`}
-        style={{ paddingLeft: `${depth * 14 + 8}px` }}
+        style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {node.type === "folder" && (
           expanded ? <ChevronDown className="h-3 w-3 shrink-0" /> : <ChevronRight className="h-3 w-3 shrink-0" />
         )}
         <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-accent" : "text-muted-foreground/60"}`} />
-        <span className="truncate flex-1 text-left">{node.name}</span>
-        <Trash2
-          onClick={(e) => { e.stopPropagation(); onRequestDelete(node); }}
-          className="h-3 w-3 opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-destructive shrink-0 transition-opacity"
-        />
+        {renaming ? (
+          <input
+            autoFocus
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenaming(false); }}
+            onBlur={commitRename}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 bg-transparent text-[11px] font-light outline-none border-b border-accent/30 min-w-0"
+          />
+        ) : (
+          <span className="truncate flex-1 text-left">{node.name}</span>
+        )}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {onRenameFile && !renaming && (
+            <Pencil
+              onClick={(e) => { e.stopPropagation(); setRenameName(node.name); setRenaming(true); }}
+              className="h-2.5 w-2.5 text-muted-foreground/50 hover:text-foreground"
+            />
+          )}
+          <Trash2
+            onClick={(e) => { e.stopPropagation(); onRequestDelete(node); }}
+            className="h-3 w-3 hover:text-destructive"
+          />
+        </div>
       </button>
       {node.type === "folder" && expanded && node.children?.map(child => (
-        <TreeNode key={child.id} node={child} depth={depth + 1} activeFileId={activeFileId} onSelectFile={onSelectFile} onRequestDelete={onRequestDelete} />
+        <TreeNode key={child.id} node={child} depth={depth + 1} activeFileId={activeFileId} onSelectFile={onSelectFile} onRequestDelete={onRequestDelete} onRenameFile={onRenameFile} />
       ))}
     </div>
   );
 }
 
-const IdeFileTree = ({ files, activeFileId, onSelectFile, onCreateFile, onDeleteFile }: Props) => {
+const IdeFileTree = ({ files, activeFileId, onSelectFile, onCreateFile, onDeleteFile, onRenameFile }: Props) => {
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [newName, setNewName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<IdeFile | null>(null);
@@ -111,7 +149,7 @@ const IdeFileTree = ({ files, activeFileId, onSelectFile, onCreateFile, onDelete
               onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); if (e.key === "Escape") setCreating(null); }}
               onBlur={handleCreate}
               placeholder={creating === "folder" ? "folder name" : "filename.tsx"}
-              className="flex-1 bg-transparent text-[11px] font-light text-foreground outline-none placeholder:text-muted-foreground/30"
+              className="flex-1 bg-transparent text-[11px] font-light text-foreground outline-none placeholder:text-muted-foreground/30 min-w-0"
             />
           </div>
         </div>
@@ -129,6 +167,7 @@ const IdeFileTree = ({ files, activeFileId, onSelectFile, onCreateFile, onDelete
               activeFileId={activeFileId}
               onSelectFile={onSelectFile}
               onRequestDelete={(node) => setDeleteTarget(node)}
+              onRenameFile={onRenameFile}
             />
           ))
         )}

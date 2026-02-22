@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Globe, RefreshCw, ExternalLink, Smartphone, Monitor, Tablet, Loader2 } from "lucide-react";
+import { Globe, RefreshCw, ExternalLink, Smartphone, Monitor, Tablet, Loader2, RotateCcw } from "lucide-react";
 import type { IdeFile } from "./IdeFileTree";
 
 interface Props {
@@ -26,19 +26,15 @@ function flattenFiles(files: IdeFile[]): IdeFile[] {
 function buildPreviewHtml(files: IdeFile[]): string {
   const flat = flattenFiles(files);
 
-  // Find HTML file or generate one
   const htmlFile = flat.find(f => f.name.endsWith(".html"));
   const cssFiles = flat.filter(f => f.name.endsWith(".css"));
   const tsxFiles = flat.filter(f => f.name.match(/\.(tsx|jsx|ts|js)$/));
 
-  // Collect CSS
   const allCss = cssFiles.map(f => f.content ?? "").join("\n");
 
-  // Build component preview from TSX/JSX
   let componentPreview = "";
   for (const file of tsxFiles) {
     const content = file.content ?? "";
-    // Extract JSX return blocks for preview
     const returnMatch = content.match(/return\s*\(\s*([\s\S]*?)\s*\);/);
     if (returnMatch) {
       componentPreview += `<!-- ${file.name} -->\n${returnMatch[1]}\n`;
@@ -46,19 +42,17 @@ function buildPreviewHtml(files: IdeFile[]): string {
   }
 
   if (htmlFile?.content) {
-    // Inject CSS into existing HTML
     const injectedCss = allCss ? `<style>${allCss}</style>` : "";
     return htmlFile.content.replace("</head>", `${injectedCss}</head>`);
   }
 
-  // Generate a full HTML document
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Preview</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com"><\/script>
   <style>
     body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; }
     ${allCss}
@@ -77,18 +71,23 @@ const IdePreviewPanel = ({ files }: Props) => {
   const [viewport, setViewport] = useState<ViewportSize>("desktop");
   const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState("about:blank");
+  const [error, setError] = useState<string | null>(null);
 
   const refreshPreview = useCallback(() => {
     setLoading(true);
-    const html = buildPreviewHtml(files);
-    const blob = new Blob([html], { type: "text/html" });
-    const blobUrl = URL.createObjectURL(blob);
-    setUrl(blobUrl);
-    // Cleanup old blob URLs
-    return () => URL.revokeObjectURL(blobUrl);
+    setError(null);
+    try {
+      const html = buildPreviewHtml(files);
+      const blob = new Blob([html], { type: "text/html" });
+      const blobUrl = URL.createObjectURL(blob);
+      setUrl(blobUrl);
+      return () => URL.revokeObjectURL(blobUrl);
+    } catch (e: any) {
+      setError(e.message);
+      setLoading(false);
+    }
   }, [files]);
 
-  // Auto-refresh on file changes (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
       refreshPreview();
@@ -108,14 +107,13 @@ const IdePreviewPanel = ({ files }: Props) => {
   return (
     <div className="flex flex-col h-full bg-background/50">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-card/20 border-b border-border/20">
+      <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 bg-card/20 border-b border-border/20">
         <div className="flex items-center gap-2">
-          <Globe className="h-3 w-3 text-accent/60" />
-          <span className="text-[10px] font-light tracking-widest text-muted-foreground/50 uppercase">Preview</span>
+          <Globe className="h-3 w-3 text-accent/60 shrink-0" />
+          <span className="text-[10px] font-light tracking-widest text-muted-foreground/50 uppercase hidden sm:inline">Preview</span>
           {loading && <Loader2 className="h-3 w-3 animate-spin text-accent/40" />}
         </div>
         <div className="flex items-center gap-1">
-          {/* Viewport Switcher */}
           {(["desktop", "tablet", "mobile"] as ViewportSize[]).map(v => {
             const Icon = v === "desktop" ? Monitor : v === "tablet" ? Tablet : Smartphone;
             return (
@@ -129,18 +127,28 @@ const IdePreviewPanel = ({ files }: Props) => {
               </button>
             );
           })}
-          <div className="w-px h-4 bg-border/20 mx-1" />
-          <button onClick={refreshPreview} className="p-1.5 rounded-md text-muted-foreground/40 hover:text-foreground transition-colors" title="Refresh">
+          <div className="w-px h-4 bg-border/20 mx-1 hidden sm:block" />
+          <button onClick={() => refreshPreview()} className="p-1.5 rounded-md text-muted-foreground/40 hover:text-foreground transition-colors" title="Refresh">
             <RefreshCw className="h-3 w-3" />
           </button>
-          <button onClick={openExternal} className="p-1.5 rounded-md text-muted-foreground/40 hover:text-foreground transition-colors" title="Open in new tab">
+          <button onClick={openExternal} className="p-1.5 rounded-md text-muted-foreground/40 hover:text-foreground transition-colors hidden sm:block" title="Open in new tab">
             <ExternalLink className="h-3 w-3" />
           </button>
         </div>
       </div>
 
-      {/* Iframe Container */}
-      <div className="flex-1 flex items-start justify-center overflow-auto bg-[hsl(var(--muted)/0.1)] p-2">
+      {/* Error state */}
+      {error && (
+        <div className="px-4 py-3 bg-destructive/10 border-b border-destructive/20 text-[11px] text-destructive font-light flex items-center gap-2">
+          <span className="flex-1">{error}</span>
+          <button onClick={() => refreshPreview()} className="shrink-0">
+            <RotateCcw className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Iframe Container — centered and responsive */}
+      <div className="flex-1 flex items-start justify-center overflow-auto bg-[hsl(var(--muted)/0.1)] p-1 sm:p-2">
         <div
           className="bg-background border border-border/20 rounded-md overflow-hidden shadow-lg transition-all duration-300"
           style={{
