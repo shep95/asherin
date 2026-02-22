@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2, Maximize2, Minimize2, Download, Search, Brain, Package, AlertTriangle, Terminal as TerminalIcon, Sparkles, Plug, Zap } from "lucide-react";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
 import IdeChatPanel from "./IdeChatPanel";
@@ -587,62 +588,81 @@ const AureonIdeView = () => {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left sidebar */}
-        {leftOpen && (
-          <div className="flex flex-shrink-0 border-r border-border/20 bg-card/10 overflow-hidden">
-            <div className="flex flex-col items-center gap-0.5 py-2 px-1 border-r border-border/10 bg-card/5">
-              {leftSidebarIcons.map(tab => (
-                <button key={tab.id} onClick={() => setLeftTab(tab.id)}
-                  className={`p-2 rounded-md transition-colors ${leftTab === tab.id ? "bg-accent/15 text-accent" : "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/5"}`}
-                  title={tab.label}>
-                  <tab.icon className="h-4 w-4" />
-                </button>
-              ))}
-            </div>
-            <div className="w-[160px] md:w-[180px] lg:w-[220px] overflow-hidden flex flex-col">
-              {leftTab === "files" && <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} />}
-              {leftTab === "search" && <IdeSearchPanel files={files} onOpenFile={selectFile} />}
-              {leftTab === "sessions" && <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />}
-              {leftTab === "integrations" && <IdeIntegrationsPanel />}
-            </div>
-          </div>
-        )}
-
-        {/* Center */}
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />}
-          </div>
-
-          {/* Bottom Panel */}
-          {bottomOpen && (
-            <div className="h-[140px] md:h-[180px] lg:h-[220px] flex-shrink-0 overflow-hidden border-t border-border/20 flex flex-col">
-              <div className="flex items-center gap-0.5 px-2 py-0.5 bg-card/10 border-b border-border/10 shrink-0">
-                {bottomTabs.map(tab => (
-                  <button key={tab.id} onClick={() => setBottomTab(tab.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-light transition-colors ${bottomTab === tab.id ? "bg-accent/15 text-accent" : "text-muted-foreground/40 hover:text-foreground"}`}>
-                    <tab.icon className="h-3 w-3" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="flex-1 min-h-0 overflow-hidden">
-                {bottomTab === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} />}
-                {bottomTab === "problems" && <IdeProblemsPanel files={files} onAiFix={handleAiFix} />}
-                {bottomTab === "ai-log" && <IdeAiLogPanel logs={aiLogs} onClear={() => setAiLogs([])} />}
-              </div>
-            </div>
+      {/* Main content - fully resizable */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Left sidebar */}
+          {leftOpen && (
+            <>
+              <ResizablePanel defaultSize={18} minSize={10} maxSize={35} className="overflow-hidden">
+                <div className="flex h-full border-r border-border/20 bg-card/10 overflow-hidden">
+                  <div className="flex flex-col items-center gap-0.5 py-2 px-1 border-r border-border/10 bg-card/5 shrink-0">
+                    {leftSidebarIcons.map(tab => (
+                      <button key={tab.id} onClick={() => setLeftTab(tab.id)}
+                        className={`p-2 rounded-md transition-colors ${leftTab === tab.id ? "bg-accent/15 text-accent" : "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/5"}`}
+                        title={tab.label}>
+                        <tab.icon className="h-4 w-4" />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+                    {leftTab === "files" && <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} />}
+                    {leftTab === "search" && <IdeSearchPanel files={files} onOpenFile={selectFile} />}
+                    {leftTab === "sessions" && <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />}
+                    {leftTab === "integrations" && <IdeIntegrationsPanel />}
+                  </div>
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+            </>
           )}
-        </div>
 
-        {/* Right: AI Chat */}
-        {rightOpen && (
-          <div className="w-[240px] md:w-[280px] lg:w-[320px] flex-shrink-0 border-l border-border/20 bg-card/10 overflow-hidden">
-            <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} />
-          </div>
-        )}
+          {/* Center */}
+          <ResizablePanel defaultSize={rightOpen ? 58 : 82} minSize={30} className="overflow-hidden">
+            <ResizablePanelGroup direction="vertical" className="h-full">
+              <ResizablePanel defaultSize={bottomOpen ? 70 : 100} minSize={20} className="overflow-hidden">
+                {centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />}
+              </ResizablePanel>
+
+              {/* Bottom Panel */}
+              {bottomOpen && (
+                <>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={30} minSize={10} maxSize={60} className="overflow-hidden">
+                    <div className="flex flex-col h-full border-t border-border/20">
+                      <div className="flex items-center gap-0.5 px-2 py-0.5 bg-card/10 border-b border-border/10 shrink-0">
+                        {bottomTabs.map(tab => (
+                          <button key={tab.id} onClick={() => setBottomTab(tab.id)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-light transition-colors ${bottomTab === tab.id ? "bg-accent/15 text-accent" : "text-muted-foreground/40 hover:text-foreground"}`}>
+                            <tab.icon className="h-3 w-3" />
+                            <span className="hidden sm:inline">{tab.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex-1 min-h-0 overflow-hidden">
+                        {bottomTab === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} />}
+                        {bottomTab === "problems" && <IdeProblemsPanel files={files} onAiFix={handleAiFix} />}
+                        {bottomTab === "ai-log" && <IdeAiLogPanel logs={aiLogs} onClear={() => setAiLogs([])} />}
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+          </ResizablePanel>
+
+          {/* Right: AI Chat */}
+          {rightOpen && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={24} minSize={15} maxSize={40} className="overflow-hidden">
+                <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden">
+                  <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} />
+                </div>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
 
       <IdeCommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} actions={commandActions} />
