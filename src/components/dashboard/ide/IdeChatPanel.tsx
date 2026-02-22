@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Send, Square, Lock, Copy, Check, Eye, Sparkles, ArrowRight, Brain, Plus, X, ChevronDown, Settings2 } from "lucide-react";
+import MessageQueuePanel, { type QueueItem } from "../MessageQueuePanel";
 import ReactMarkdown from "react-markdown";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import TypingIndicator from "../TypingIndicator";
@@ -118,12 +119,47 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const [messageQueue, setMessageQueue] = useState<QueueItem[]>([]);
+  const [queuePaused, setQueuePaused] = useState(false);
+  const processingRef = useRef(false);
+
+  // Process queue: send next queued message when not streaming
+  useEffect(() => {
+    if (isStreaming || queuePaused || messageQueue.length === 0 || processingRef.current) return;
+    processingRef.current = true;
+    const next = messageQueue[0];
+    setMessageQueue(prev => prev.slice(1));
+    onSend(next.content, activeBrain?.prompt);
+    // Reset processing flag after a tick to allow re-triggering
+    setTimeout(() => { processingRef.current = false; }, 100);
+  }, [isStreaming, messageQueue, queuePaused]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming) return;
-    onSend(input.trim(), activeBrain?.prompt);
+    if (!input.trim()) return;
+    const text = input.trim();
     setInput("");
+
+    // If currently streaming, queue the message instead of sending directly
+    if (isStreaming) {
+      setMessageQueue(prev => [...prev, { id: crypto.randomUUID(), content: text }]);
+      return;
+    }
+
+    onSend(text, activeBrain?.prompt);
   };
+
+  const removeFromQueue = useCallback((id: string) => {
+    setMessageQueue(prev => prev.filter(q => q.id !== id));
+  }, []);
+
+  const clearQueue = useCallback(() => {
+    setMessageQueue([]);
+  }, []);
+
+  const processQueueNow = useCallback(() => {
+    setQueuePaused(false);
+  }, []);
 
   const addBrain = () => {
     if (!newBrainName.trim() || !newBrainPrompt.trim()) return;
@@ -384,24 +420,32 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Message Queue Panel */}
+      <MessageQueuePanel
+        items={messageQueue}
+        onRemove={removeFromQueue}
+        onClear={clearQueue}
+        onProcessNow={processQueueNow}
+        paused={queuePaused}
+        onTogglePause={() => setQueuePaused(p => !p)}
+      />
+
+      {/* Input — never disabled, allows queuing while streaming */}
       <form onSubmit={handleSubmit} className="p-2 border-t border-border/20">
-        <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 px-2.5 py-2">
+        <div className={`flex items-center gap-2 rounded-xl border ${isStreaming && messageQueue.length > 0 ? "border-accent/20" : "border-border/20"} bg-card/20 px-2.5 py-2`}>
           <input
             value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder={activeBrain ? `Ask with ${activeBrain.name}...` : "Ask about your code..."}
-            disabled={isStreaming}
-            className="flex-1 bg-transparent text-[11px] font-light text-foreground placeholder:text-muted-foreground/30 outline-none disabled:opacity-40"
+            placeholder={isStreaming ? "Type to queue next message..." : (activeBrain ? `Ask with ${activeBrain.name}...` : "Ask about your code...")}
+            className="flex-1 bg-transparent text-[11px] font-light text-foreground placeholder:text-muted-foreground/30 outline-none"
           />
-          {isStreaming ? (
-            <button type="button" onClick={onStop} className="p-1 rounded text-destructive hover:bg-destructive/10 transition-colors">
+          {isStreaming && (
+            <button type="button" onClick={onStop} className="p-1 rounded text-destructive hover:bg-destructive/10 transition-colors" title="Stop generating">
               <Square className="h-3 w-3" />
             </button>
-          ) : (
-            <button type="submit" disabled={!input.trim()} className="p-1 rounded text-accent hover:bg-accent/10 transition-colors disabled:opacity-30">
-              <Send className="h-3 w-3" />
-            </button>
           )}
+          <button type="submit" disabled={!input.trim()} className="p-1 rounded text-accent hover:bg-accent/10 transition-colors disabled:opacity-30" title={isStreaming ? "Queue message" : "Send"}>
+            <Send className="h-3 w-3" />
+          </button>
         </div>
       </form>
     </div>
