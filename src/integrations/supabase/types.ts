@@ -1174,6 +1174,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ide_sessions: {
+        Row: {
+          active_file_id: string | null
+          created_at: string
+          files: Json
+          id: string
+          name: string
+          open_file_ids: string[]
+          panel_config: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_file_id?: string | null
+          created_at?: string
+          files?: Json
+          id?: string
+          name?: string
+          open_file_ids?: string[]
+          panel_config?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_file_id?: string | null
+          created_at?: string
+          files?: Json
+          id?: string
+          name?: string
+          open_file_ids?: string[]
+          panel_config?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       imagine_sessions: {
         Row: {
           aureon_messages: Json

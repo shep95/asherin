@@ -1,10 +1,15 @@
-import { useState, useRef, useCallback } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Code2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronDown, ChevronUp, Globe, FileCode, FolderKanban, Save, Loader2 } from "lucide-react";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
 import IdeChatPanel from "./IdeChatPanel";
 import IdeTerminal from "./IdeTerminal";
+import IdePreviewPanel from "./IdePreviewPanel";
+import IdeSessionManager, { type IdeSession } from "./IdeSessionManager";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import type { FeedbackType } from "../CalibrationFeedback";
 
 interface ChatMsg {
@@ -14,16 +19,19 @@ interface ChatMsg {
   timestamp: Date;
 }
 
+type CenterTab = "code" | "preview";
+
 const STARTER_FILES: IdeFile[] = [
   {
     id: "src", name: "src", type: "folder", children: [
-      { id: "app", name: "App.tsx", type: "file", content: `import React from "react";\n\nfunction App() {\n  return (\n    <div className="min-h-screen bg-background">\n      <h1>Hello World</h1>\n    </div>\n  );\n}\n\nexport default App;` },
+      { id: "app", name: "App.tsx", type: "file", content: `import React from "react";\n\nfunction App() {\n  return (\n    <div className="min-h-screen bg-gray-950 text-white flex items-center justify-center">\n      <h1 className="text-4xl font-bold">Hello World</h1>\n    </div>\n  );\n}\n\nexport default App;` },
       { id: "main", name: "main.tsx", type: "file", content: `import React from "react";\nimport ReactDOM from "react-dom/client";\nimport App from "./App";\nimport "./index.css";\n\nReactDOM.createRoot(document.getElementById("root")!).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>\n);` },
       { id: "css", name: "index.css", type: "file", content: `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\nbody {\n  margin: 0;\n  font-family: Inter, sans-serif;\n}` },
     ],
   },
   { id: "pkg", name: "package.json", type: "file", content: `{\n  "name": "aureon-project",\n  "version": "1.0.0",\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  }\n}` },
   { id: "tsconfig", name: "tsconfig.json", type: "file", content: `{\n  "compilerOptions": {\n    "target": "ES2020",\n    "jsx": "react-jsx",\n    "strict": true\n  }\n}` },
+  { id: "indexhtml", name: "index.html", type: "file", content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Aureon Project</title>\n</head>\n<body>\n  <div id="root"></div>\n  <script type="module" src="/src/main.tsx"></script>\n</body>\n</html>` },
 ];
 
 function flattenFiles(files: IdeFile[]): IdeFile[] {
@@ -36,6 +44,16 @@ function flattenFiles(files: IdeFile[]): IdeFile[] {
 }
 
 const AureonIdeView = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Session state
+  const [sessions, setSessions] = useState<IdeSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+
   // File state
   const [files, setFiles] = useState<IdeFile[]>(STARTER_FILES);
   const [openFileIds, setOpenFileIds] = useState<string[]>(["app"]);
@@ -45,6 +63,7 @@ const AureonIdeView = () => {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [bottomOpen, setBottomOpen] = useState(true);
+  const [centerTab, setCenterTab] = useState<CenterTab>("code");
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
@@ -52,15 +71,128 @@ const AureonIdeView = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Get flat list and active file
+  // Derived
   const allFiles = flattenFiles(files);
   const openFiles = openFileIds.map(id => allFiles.find(f => f.id === id)).filter(Boolean) as IdeFile[];
   const activeFile = allFiles.find(f => f.id === activeFileId);
 
-  // File operations
+  // ── Session CRUD ──
+  const loadSessions = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("ide_sessions")
+      .select("id, name, updated_at")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+    setSessions((data as IdeSession[]) ?? []);
+    setSessionsLoading(false);
+  }, [user]);
+
+  useEffect(() => { loadSessions(); }, [loadSessions]);
+
+  const loadSession = useCallback(async (id: string) => {
+    const { data } = await supabase
+      .from("ide_sessions")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (data) {
+      setFiles(data.files as unknown as IdeFile[]);
+      setOpenFileIds(data.open_file_ids ?? []);
+      setActiveFileId(data.active_file_id ?? null);
+      const cfg = data.panel_config as any;
+      if (cfg) {
+        setLeftOpen(cfg.leftOpen ?? true);
+        setRightOpen(cfg.rightOpen ?? true);
+        setBottomOpen(cfg.bottomOpen ?? true);
+      }
+      setActiveSessionId(id);
+      setChatMessages([]);
+      setShowSessions(false);
+    }
+  }, []);
+
+  const createSession = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("ide_sessions")
+      .insert({
+        user_id: user.id,
+        name: `Project ${sessions.length + 1}`,
+        files: STARTER_FILES as any,
+        open_file_ids: ["app"],
+        active_file_id: "app",
+      })
+      .select("id, name, updated_at")
+      .single();
+    if (data) {
+      setSessions(prev => [data as IdeSession, ...prev]);
+      loadSession(data.id);
+    }
+  }, [user, sessions.length, loadSession]);
+
+  const deleteSession = useCallback(async (id: string) => {
+    await supabase.from("ide_sessions").delete().eq("id", id);
+    setSessions(prev => prev.filter(s => s.id !== id));
+    if (activeSessionId === id) {
+      setActiveSessionId(null);
+      setFiles(STARTER_FILES);
+      setOpenFileIds(["app"]);
+      setActiveFileId("app");
+    }
+  }, [activeSessionId]);
+
+  const renameSession = useCallback(async (id: string, name: string) => {
+    await supabase.from("ide_sessions").update({ name }).eq("id", id);
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+  }, []);
+
+  const saveSession = useCallback(async () => {
+    if (!activeSessionId || !user) return;
+    setSaving(true);
+    await supabase.from("ide_sessions").update({
+      files: files as any,
+      open_file_ids: openFileIds,
+      active_file_id: activeFileId,
+      panel_config: { leftOpen, rightOpen, bottomOpen } as any,
+    }).eq("id", activeSessionId);
+    setSaving(false);
+    toast({ title: "Session saved", description: "Your project has been saved." });
+  }, [activeSessionId, user, files, openFileIds, activeFileId, leftOpen, rightOpen, bottomOpen, toast]);
+
+  // Auto-save every 30s
+  useEffect(() => {
+    if (!activeSessionId) return;
+    const interval = setInterval(() => {
+      if (activeSessionId) {
+        supabase.from("ide_sessions").update({
+          files: files as any,
+          open_file_ids: openFileIds,
+          active_file_id: activeFileId,
+          panel_config: { leftOpen, rightOpen, bottomOpen } as any,
+        }).eq("id", activeSessionId);
+      }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [activeSessionId, files, openFileIds, activeFileId, leftOpen, rightOpen, bottomOpen]);
+
+  // Ctrl+S to save
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        saveSession();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [saveSession]);
+
+  // ── File operations ──
   const selectFile = (file: IdeFile) => {
     if (!openFileIds.includes(file.id)) setOpenFileIds(prev => [...prev, file.id]);
     setActiveFileId(file.id);
+    setCenterTab("code");
   };
 
   const closeTab = (id: string) => {
@@ -110,7 +242,7 @@ const AureonIdeView = () => {
     closeTab(id);
   };
 
-  // Chat operations — uses same streaming as Aureon main chat
+  // ── Chat ──
   const sendChatMessage = useCallback(async (content: string) => {
     const userMsg: ChatMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date() };
     setChatMessages(prev => [...prev, userMsg]);
@@ -121,8 +253,6 @@ const AureonIdeView = () => {
     let assistantContent = "";
 
     const allMsgs = [...chatMessages, userMsg].map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
-
-    // Add file context as system-level info
     if (activeFile?.content) {
       allMsgs.unshift({
         role: "user" as const,
@@ -151,7 +281,6 @@ const AureonIdeView = () => {
         },
         onDone: () => {
           setIsStreaming(false);
-          // Check if AI response contains code that could be applied
           fetchSuggestions(assistantContent).then(setSuggestions).catch(() => {});
         },
       });
@@ -180,8 +309,36 @@ const AureonIdeView = () => {
         <div className="flex items-center gap-2">
           <Code2 className="h-4 w-4 text-accent/70" />
           <span className="text-xs font-light tracking-widest text-foreground/80">AUREON IDE</span>
+          {activeSessionId && (
+            <span className="text-[9px] text-muted-foreground/50 bg-muted/10 rounded-full px-2 py-0.5 truncate max-w-[140px]">
+              {sessions.find(s => s.id === activeSessionId)?.name ?? ""}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
+          {/* Center tab switcher */}
+          <div className="flex items-center rounded-lg border border-border/20 overflow-hidden mr-2">
+            <button
+              onClick={() => setCenterTab("code")}
+              className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-light transition-colors ${centerTab === "code" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}
+            >
+              <FileCode className="h-3 w-3" /> Code
+            </button>
+            <button
+              onClick={() => setCenterTab("preview")}
+              className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-light transition-colors ${centerTab === "preview" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}
+            >
+              <Globe className="h-3 w-3" /> Preview
+            </button>
+          </div>
+
+          <button onClick={() => setShowSessions(!showSessions)} className={`p-1.5 rounded-md transition-colors ${showSessions ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`} title="Sessions">
+            <FolderKanban className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={saveSession} disabled={!activeSessionId || saving} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30" title="Save (Ctrl+S)">
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          </button>
+          <div className="w-px h-4 bg-border/20 mx-1" />
           <button onClick={() => setLeftOpen(!leftOpen)} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Toggle explorer">
             {leftOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
           </button>
@@ -196,30 +353,45 @@ const AureonIdeView = () => {
 
       {/* Main content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left: File explorer */}
+        {/* Left panel: Sessions or File explorer */}
         {leftOpen && (
-          <div className="w-[200px] lg:w-[240px] flex-shrink-0 border-r border-border/20 bg-card/10 overflow-hidden">
-            <IdeFileTree
-              files={files}
-              activeFileId={activeFileId}
-              onSelectFile={selectFile}
-              onCreateFile={createFile}
-              onDeleteFile={deleteFile}
-            />
+          <div className="w-[200px] lg:w-[240px] flex-shrink-0 border-r border-border/20 bg-card/10 overflow-hidden flex flex-col">
+            {showSessions ? (
+              <IdeSessionManager
+                sessions={sessions}
+                activeSessionId={activeSessionId}
+                loading={sessionsLoading}
+                onSelect={loadSession}
+                onCreate={createSession}
+                onDelete={deleteSession}
+                onRename={renameSession}
+              />
+            ) : (
+              <IdeFileTree
+                files={files}
+                activeFileId={activeFileId}
+                onSelectFile={selectFile}
+                onCreateFile={createFile}
+                onDeleteFile={deleteFile}
+              />
+            )}
           </div>
         )}
 
-        {/* Center: Editor + Terminal */}
+        {/* Center: Editor/Preview + Terminal */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          {/* Code editor */}
-          <div className={`flex-1 min-h-0 overflow-hidden ${bottomOpen ? "" : ""}`}>
-            <IdeCodeEditor
-              openFiles={openFiles}
-              activeFileId={activeFileId}
-              onSelectTab={setActiveFileId}
-              onCloseTab={closeTab}
-              onContentChange={updateContent}
-            />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {centerTab === "code" ? (
+              <IdeCodeEditor
+                openFiles={openFiles}
+                activeFileId={activeFileId}
+                onSelectTab={setActiveFileId}
+                onCloseTab={closeTab}
+                onContentChange={updateContent}
+              />
+            ) : (
+              <IdePreviewPanel files={files} />
+            )}
           </div>
 
           {/* Terminal */}

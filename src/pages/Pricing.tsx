@@ -9,14 +9,14 @@ const tiers = [
     id: "aureon",
     name: "AUREON",
     tagline: "AI Intelligence",
-    price: "$18",
+    price: "$199",
     period: "/ month",
-    description: "Full access to Aureon AI — uncensored, unfiltered. 60 messages per 3-hour window. Resets automatically.",
+    description: "Full access to Aureon AI — uncensored, unfiltered. 300 messages per 3-hour window. Resets automatically.",
     cta: "Get Aureon Access",
     highlight: false,
     features: [
       "Uncensored AI responses on any topic",
-      "60 messages per 3-hour window",
+      "300 messages per 3-hour window",
       "Elite coding engine",
       "Zophiel Search Engine",
       "Persistent memory across all sessions",
@@ -84,7 +84,7 @@ const Pricing = () => {
   useEffect(() => {
     document.title = "Pricing — Aureon | Uncensored AI Intelligence";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon pricing: $18/mo Individual, $399/mo Pro, $20,000/mo Advisor. No free tier. Full access from day one.");
+    if (meta) meta.setAttribute("content", "Aureon pricing: $199/mo Individual, $740/mo Pro, $20,000/mo Advisor. No free tier. Full access from day one.");
   }, []);
 
   return (
@@ -234,7 +234,7 @@ const Pricing = () => {
           <div className="space-y-3">
             {[
               { q: "Can I upgrade from Aureon to Pro or Advisor?", a: "Yes. Upgrade anytime from your dashboard. Changes take effect immediately with prorated billing." },
-              { q: "What are the message limits?", a: "Aureon: 60 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited. Limits reset automatically." },
+              { q: "What are the message limits?", a: "Aureon: 300 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited. Limits reset automatically." },
               { q: "What payment methods do you accept?", a: "All major credit cards and wire transfers for Advisor. Billing is handled securely — we never store card details." },
               { q: "Is there a contract for Advisor?", a: "Monthly or annual billing. NDA required. Cancel anytime with 30 days notice." },
               { q: "What do Daily Intelligence Briefings include?", a: "Personalized morning reports covering your competitors, industry, key markets, regulatory changes, and news — generated from 100+ sources and delivered in-app." },
@@ -264,7 +264,7 @@ const Pricing = () => {
             <p className="mt-4 text-sm font-extralight text-muted-foreground">No free trial. Full access. Day one.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
-                Start With Aureon — $18/mo
+                Start With Aureon — $199/mo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
               <button className="group flex items-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 px-8 py-3 text-sm font-light tracking-wide text-purple-400 hover:bg-purple-500/20 transition-all">
