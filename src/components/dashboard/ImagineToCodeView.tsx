@@ -1005,9 +1005,9 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
           .trim();
 
         const loopTag = doneMatch
-          ? `\n\n✅ **Loop complete** — AUREON is satisfied after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
+          ? `\n\n**Loop complete** — AUREON is satisfied after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
           : iterateMatch
-            ? `\n\n🔁 **Continuing** — ${iterateMatch[1]}`
+            ? `\n\n**Continuing** — ${iterateMatch[1]}`
             : "";
 
         const assistantMsg: AureonMessage = {
@@ -1031,7 +1031,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
       } catch {
         setAureonMessages(prev => [...prev, {
           id: uid(), role: "assistant",
-          content: `⚠️ **Loop error at iteration ${iteration}.** Stopping autonomous cycle.`,
+          content: `**Loop error at iteration ${iteration}.** Stopping autonomous cycle.`,
           timestamp: new Date()
         }]);
         break;
@@ -1039,9 +1039,9 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
     }
 
     const finalStatus = loopAbortRef.current
-      ? `🛑 Loop manually stopped after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
+      ? `Loop manually stopped after ${iteration} iteration${iteration > 1 ? "s" : ""}.`
       : iteration >= MAX_LOOP_ITERATIONS
-        ? `⚡ Loop reached maximum depth (${MAX_LOOP_ITERATIONS} iterations). Final state applied.`
+        ? `Loop reached maximum depth (${MAX_LOOP_ITERATIONS} iterations). Final state applied.`
         : null;
 
     if (finalStatus) {
