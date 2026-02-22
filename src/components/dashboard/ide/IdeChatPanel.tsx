@@ -24,9 +24,10 @@ interface Props {
   onStop: () => void;
   suggestions?: string[];
   onCalibrationFeedback?: (messageId: string, feedback: FeedbackType) => void;
-  /** Current file context for AI awareness */
   activeFileName?: string;
   activeFileContent?: string;
+  creditsRemaining?: number;
+  maxCredits?: number;
 }
 
 function CodeBlockCopyButton({ code }: { code: string }) {
@@ -75,7 +76,7 @@ function MessageCopyBtn({ text }: { text: string }) {
   );
 }
 
-const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [], onCalibrationFeedback, activeFileName, activeFileContent }: Props) => {
+const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [], onCalibrationFeedback, activeFileName, activeFileContent, creditsRemaining, maxCredits }: Props) => {
   const [input, setInput] = useState("");
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
