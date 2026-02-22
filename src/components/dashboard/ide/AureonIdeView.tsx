@@ -314,8 +314,8 @@ const AureonIdeView = () => {
     addAiLog("scan", "Project exported as ZIP");
   }, [files, sessions, activeSessionId, toast, addAiLog]);
 
-  // ── Chat with Aureon personality, credit tracking, terminal context ──
-  const sendChatMessage = useCallback(async (content: string) => {
+  // ── Chat with Aureon personality, credit tracking, terminal context, custom brains ──
+  const sendChatMessage = useCallback(async (content: string, customBrainPrompt?: string) => {
     if (creditsRemaining <= 0) {
       toast({ title: "Credit limit reached", description: `You've used all ${maxCredits} credits this hour. Resets in a few minutes.`, variant: "destructive" });
       return;
@@ -339,6 +339,10 @@ const AureonIdeView = () => {
     }
     if (terminalOutput.length > 0) {
       contextParts.push(`[Terminal Output - Last ${terminalOutput.length} entries]\n${terminalOutput.join("\n")}`);
+    }
+    // Inject custom brain prompt as additional user-level context (does NOT replace Aureon's core personality)
+    if (customBrainPrompt) {
+      contextParts.push(`[Custom Brain Instructions — Apply these coding preferences IN ADDITION to your core behavior]\n${customBrainPrompt}`);
     }
     if (contextParts.length > 0) {
       allMsgs.unshift({ role: "user" as const, content: contextParts.join("\n\n") });
@@ -450,8 +454,8 @@ const AureonIdeView = () => {
   // ── Mobile Layout ──
   if (isMobile) {
     return (
-      <div className="flex flex-col h-full w-full overflow-hidden">
-        <div className="flex items-center justify-between px-2 py-1.5 bg-card/20 border-b border-border/20 flex-shrink-0">
+      <div className="flex flex-col h-full w-full overflow-hidden pt-1">
+        <div className="flex items-center justify-between px-2 py-2 bg-card/20 border-b border-border/20 flex-shrink-0">
           <div className="flex items-center gap-1.5">
             <Code2 className="h-3.5 w-3.5 text-accent/70" />
             <span className="text-[10px] font-light tracking-widest text-foreground/80">IDE</span>
@@ -509,9 +513,9 @@ const AureonIdeView = () => {
 
   // ── Desktop Layout ──
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden pt-1">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-card/20 border-b border-border/20 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-2 bg-card/20 border-b border-border/20 flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Code2 className="h-4 w-4 text-accent/70 shrink-0" />
           <span className="text-xs font-light tracking-widest text-foreground/80 shrink-0">AUREON IDE</span>
