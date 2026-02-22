@@ -1,62 +1,62 @@
 import { useState } from "react";
-import { Search, Check, Plus, ExternalLink, Shield, Database, Rocket, CreditCard, Mail, HardDrive, BarChart3, Bug, Brain, SearchIcon, FileText, ClipboardList } from "lucide-react";
+import { Search, Check, Plus, ExternalLink, Shield, Database, Rocket, CreditCard, Mail, HardDrive, BarChart3, Bug, Brain, SearchIcon, FileText, ClipboardList, Lock, Key, Flame, Server, Zap, Globe, Leaf, CircleDot, Triangle, Train, Plane, Cloud, Citrus, Gamepad2, Send, Smartphone, Package, Image, Activity, TrendingUp, RefreshCw, ScanSearch, PenTool, Layers } from "lucide-react";
 
 interface Integration {
   id: string;
   name: string;
   description: string;
   status: "connected" | "available";
-  icon: string;
+  icon: React.ElementType;
   category: string;
 }
 
 const INTEGRATIONS: Integration[] = [
   // Auth
-  { id: "supabase-auth", name: "Supabase Auth", description: "Email/Password, OAuth, MFA, RLS", status: "connected", icon: "🔐", category: "auth" },
-  { id: "clerk", name: "Clerk", description: "Pre-built UI, 20+ OAuth providers", status: "available", icon: "🔑", category: "auth" },
-  { id: "auth0", name: "Auth0", description: "Enterprise SSO, SAML, LDAP", status: "available", icon: "🛡️", category: "auth" },
-  { id: "firebase-auth", name: "Firebase Auth", description: "Google ecosystem, mobile-first", status: "available", icon: "🔥", category: "auth" },
+  { id: "supabase-auth", name: "Supabase Auth", description: "Email/Password, OAuth, MFA, RLS", status: "connected", icon: Lock, category: "auth" },
+  { id: "clerk", name: "Clerk", description: "Pre-built UI, 20+ OAuth providers", status: "available", icon: Key, category: "auth" },
+  { id: "auth0", name: "Auth0", description: "Enterprise SSO, SAML, LDAP", status: "available", icon: Shield, category: "auth" },
+  { id: "firebase-auth", name: "Firebase Auth", description: "Google ecosystem, mobile-first", status: "available", icon: Flame, category: "auth" },
   // Database
-  { id: "supabase-db", name: "Supabase (PostgreSQL)", description: "Real-time, RLS, Edge Functions", status: "connected", icon: "🐘", category: "database" },
-  { id: "neon", name: "Neon", description: "Serverless Postgres, DB branching", status: "available", icon: "⚡", category: "database" },
-  { id: "planetscale", name: "PlanetScale", description: "MySQL, non-blocking schema changes", status: "available", icon: "🌍", category: "database" },
-  { id: "mongodb", name: "MongoDB Atlas", description: "Document DB, aggregation, search", status: "available", icon: "🍃", category: "database" },
-  { id: "redis", name: "Upstash Redis", description: "Caching, rate limiting, pub/sub", status: "available", icon: "🔴", category: "database" },
+  { id: "supabase-db", name: "Supabase (PostgreSQL)", description: "Real-time, RLS, Edge Functions", status: "connected", icon: Database, category: "database" },
+  { id: "neon", name: "Neon", description: "Serverless Postgres, DB branching", status: "available", icon: Zap, category: "database" },
+  { id: "planetscale", name: "PlanetScale", description: "MySQL, non-blocking schema changes", status: "available", icon: Globe, category: "database" },
+  { id: "mongodb", name: "MongoDB Atlas", description: "Document DB, aggregation, search", status: "available", icon: Leaf, category: "database" },
+  { id: "redis", name: "Upstash Redis", description: "Caching, rate limiting, pub/sub", status: "available", icon: CircleDot, category: "database" },
   // Hosting
-  { id: "vercel", name: "Vercel", description: "Git deploy, Edge Functions, Analytics", status: "available", icon: "▲", category: "hosting" },
-  { id: "netlify", name: "Netlify", description: "Git deploy, forms, split testing", status: "available", icon: "🌐", category: "hosting" },
-  { id: "railway", name: "Railway", description: "Full-stack deploy, Postgres, Redis", status: "available", icon: "🚂", category: "hosting" },
-  { id: "flyio", name: "Fly.io", description: "Global edge, Docker, low latency", status: "available", icon: "✈️", category: "hosting" },
-  { id: "cloudflare", name: "Cloudflare Pages", description: "275+ cities, Workers, D1, R2", status: "available", icon: "☁️", category: "hosting" },
+  { id: "vercel", name: "Vercel", description: "Git deploy, Edge Functions, Analytics", status: "available", icon: Triangle, category: "hosting" },
+  { id: "netlify", name: "Netlify", description: "Git deploy, forms, split testing", status: "available", icon: Globe, category: "hosting" },
+  { id: "railway", name: "Railway", description: "Full-stack deploy, Postgres, Redis", status: "available", icon: Train, category: "hosting" },
+  { id: "flyio", name: "Fly.io", description: "Global edge, Docker, low latency", status: "available", icon: Plane, category: "hosting" },
+  { id: "cloudflare", name: "Cloudflare Pages", description: "275+ cities, Workers, D1, R2", status: "available", icon: Cloud, category: "hosting" },
   // Payments
-  { id: "stripe", name: "Stripe", description: "Subscriptions, invoicing, fraud detection", status: "connected", icon: "💳", category: "payments" },
-  { id: "lemonsqueezy", name: "Lemon Squeezy", description: "All-in-one, handles tax automatically", status: "available", icon: "🍋", category: "payments" },
-  { id: "paddle", name: "Paddle", description: "Merchant of record, global tax", status: "available", icon: "🏓", category: "payments" },
+  { id: "stripe", name: "Stripe", description: "Subscriptions, invoicing, fraud detection", status: "connected", icon: CreditCard, category: "payments" },
+  { id: "lemonsqueezy", name: "Lemon Squeezy", description: "All-in-one, handles tax automatically", status: "available", icon: Citrus, category: "payments" },
+  { id: "paddle", name: "Paddle", description: "Merchant of record, global tax", status: "available", icon: Gamepad2, category: "payments" },
   // Email
-  { id: "resend", name: "Resend", description: "Transactional emails, React templates", status: "available", icon: "📧", category: "email" },
-  { id: "sendgrid", name: "SendGrid", description: "Marketing + transactional email", status: "available", icon: "📨", category: "email" },
-  { id: "twilio", name: "Twilio", description: "SMS, WhatsApp, voice, video", status: "available", icon: "📱", category: "email" },
+  { id: "resend", name: "Resend", description: "Transactional emails, React templates", status: "available", icon: Mail, category: "email" },
+  { id: "sendgrid", name: "SendGrid", description: "Marketing + transactional email", status: "available", icon: Send, category: "email" },
+  { id: "twilio", name: "Twilio", description: "SMS, WhatsApp, voice, video", status: "available", icon: Smartphone, category: "email" },
   // Storage
-  { id: "supabase-storage", name: "Supabase Storage", description: "S3-compatible, CDN, image transforms", status: "connected", icon: "📦", category: "storage" },
-  { id: "cloudinary", name: "Cloudinary", description: "AI cropping, video transcoding, DAM", status: "available", icon: "🖼️", category: "storage" },
-  { id: "aws-s3", name: "AWS S3", description: "Enterprise object storage", status: "available", icon: "☁️", category: "storage" },
+  { id: "supabase-storage", name: "Supabase Storage", description: "S3-compatible, CDN, image transforms", status: "connected", icon: Package, category: "storage" },
+  { id: "cloudinary", name: "Cloudinary", description: "AI cropping, video transcoding, DAM", status: "available", icon: Image, category: "storage" },
+  { id: "aws-s3", name: "AWS S3", description: "Enterprise object storage", status: "available", icon: Cloud, category: "storage" },
   // Analytics
-  { id: "posthog", name: "PostHog", description: "Product analytics, session replay, A/B", status: "available", icon: "🦔", category: "analytics" },
-  { id: "mixpanel", name: "Mixpanel", description: "Event tracking, funnels, retention", status: "available", icon: "📊", category: "analytics" },
-  { id: "plausible", name: "Plausible", description: "Privacy-focused, GDPR, cookie-less", status: "available", icon: "📈", category: "analytics" },
+  { id: "posthog", name: "PostHog", description: "Product analytics, session replay, A/B", status: "available", icon: Activity, category: "analytics" },
+  { id: "mixpanel", name: "Mixpanel", description: "Event tracking, funnels, retention", status: "available", icon: BarChart3, category: "analytics" },
+  { id: "plausible", name: "Plausible", description: "Privacy-focused, GDPR, cookie-less", status: "available", icon: TrendingUp, category: "analytics" },
   // Error tracking
-  { id: "sentry", name: "Sentry", description: "Error tracking, stack traces, performance", status: "available", icon: "🐛", category: "monitoring" },
-  { id: "logrocket", name: "LogRocket", description: "Session replay, console, network", status: "available", icon: "🚀", category: "monitoring" },
+  { id: "sentry", name: "Sentry", description: "Error tracking, stack traces, performance", status: "available", icon: Bug, category: "monitoring" },
+  { id: "logrocket", name: "LogRocket", description: "Session replay, console, network", status: "available", icon: Rocket, category: "monitoring" },
   // AI
-  { id: "openai", name: "OpenAI (GPT)", description: "GPT-4, DALL-E, Whisper, TTS", status: "available", icon: "🤖", category: "ai" },
-  { id: "anthropic", name: "Anthropic Claude", description: "200k context, vision, function calling", status: "available", icon: "🧠", category: "ai" },
-  { id: "replicate", name: "Replicate", description: "Run any AI model via API", status: "available", icon: "🔁", category: "ai" },
+  { id: "openai", name: "OpenAI (GPT)", description: "GPT-4, DALL-E, Whisper, TTS", status: "available", icon: Brain, category: "ai" },
+  { id: "anthropic", name: "Anthropic Claude", description: "200k context, vision, function calling", status: "available", icon: Brain, category: "ai" },
+  { id: "replicate", name: "Replicate", description: "Run any AI model via API", status: "available", icon: RefreshCw, category: "ai" },
   // Search
-  { id: "algolia", name: "Algolia", description: "Instant search, typo tolerance, geo", status: "available", icon: "🔍", category: "search" },
-  { id: "meilisearch", name: "Meilisearch", description: "Open-source instant search", status: "available", icon: "🔎", category: "search" },
+  { id: "algolia", name: "Algolia", description: "Instant search, typo tolerance, geo", status: "available", icon: ScanSearch, category: "search" },
+  { id: "meilisearch", name: "Meilisearch", description: "Open-source instant search", status: "available", icon: SearchIcon, category: "search" },
   // CMS
-  { id: "sanity", name: "Sanity", description: "Structured content, real-time collab", status: "available", icon: "📝", category: "cms" },
-  { id: "strapi", name: "Strapi", description: "Open-source headless CMS", status: "available", icon: "🗂️", category: "cms" },
+  { id: "sanity", name: "Sanity", description: "Structured content, real-time collab", status: "available", icon: PenTool, category: "cms" },
+  { id: "strapi", name: "Strapi", description: "Open-source headless CMS", status: "available", icon: Layers, category: "cms" },
 ];
 
 const CATEGORIES: { id: string; label: string; icon: React.ElementType }[] = [
@@ -116,7 +116,7 @@ const IdeIntegrationsPanel = () => {
             <div className="space-y-1">
               {connected.map(i => (
                 <div key={i.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 group">
-                  <span className="text-sm">{i.icon}</span>
+                  <i.icon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
                       <span className="text-[10px] font-light text-foreground truncate">{i.name}</span>
@@ -139,7 +139,7 @@ const IdeIntegrationsPanel = () => {
             <div className="space-y-1">
               {available.map(i => (
                 <div key={i.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-border/10 hover:border-accent/20 hover:bg-accent/5 group transition-colors cursor-pointer">
-                  <span className="text-sm">{i.icon}</span>
+                  <i.icon className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] font-light text-foreground truncate block">{i.name}</span>
                     <p className="text-[8px] text-muted-foreground/40 truncate">{i.description}</p>

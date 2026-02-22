@@ -225,14 +225,14 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
                 onClick={() => { setActiveBrainId(null); setShowBrainDropdown(false); }}
                 className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 ${!activeBrainId ? "text-foreground" : "text-muted-foreground"}`}
               >
-                🧠 Default (Aureon Core)
+                <Brain className="h-3 w-3 text-muted-foreground/60 inline mr-1" /> Default (Aureon Core)
               </button>
               {customBrains.map(b => (
                 <button key={b.id}
                   onClick={() => { setActiveBrainId(b.id); setShowBrainDropdown(false); }}
                   className={`w-full text-left px-3 py-1.5 text-[10px] font-light transition-colors hover:bg-foreground/5 flex items-center justify-between ${activeBrainId === b.id ? "text-foreground" : "text-muted-foreground"}`}
                 >
-                  <span className="truncate">🔧 {b.name}</span>
+                  <span className="truncate"><Settings2 className="h-2.5 w-2.5 inline mr-0.5 text-muted-foreground/50" />{b.name}</span>
                 </button>
               ))}
               {customBrains.length === 0 && (

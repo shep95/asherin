@@ -95,7 +95,7 @@ const HealthGuardian = () => {
                   )}
                   {day.calories > 0 && (
                     <span className="flex items-center gap-1 text-muted-foreground/50">
-                      🔥 {day.calories.toLocaleString()} cal
+                      {day.calories.toLocaleString()} cal
                     </span>
                   )}
                 </div>

@@ -204,7 +204,7 @@ AI
       const target = args[1] ? resolvePath(term.cwd, args[1]) : term.cwd;
       const entries = listDir(files, target);
       if (entries.length === 0) { addLine(tid, "output", "(empty)"); return; }
-      const output = entries.map(e => e.type === "folder" ? `📁 ${e.name}/` : `📄 ${e.name}`).join("\n");
+      const output = entries.map(e => e.type === "folder" ? `[dir] ${e.name}/` : `[file] ${e.name}`).join("\n");
       addLine(tid, "output", output);
       return;
     }
