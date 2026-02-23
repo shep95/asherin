@@ -390,31 +390,63 @@ const SelfLearningLoopView = () => {
                 };
                 const chartData = bucketRuns(timescale);
 
-                // Calculate cumulative data with version scores
-                let cumB = 0, cumO = 0, cumS = 0;
-                // Max theoretical issues per run (used for scoring)
-                const maxIssuesPerRun = 20;
+                // Realistic scoring: based on bug density, severity weighting, and fix efficiency
+                // Lower bug density per code reviewed = higher score (AI is writing cleaner code)
+                let cumB = 0, cumO = 0, cumS = 0, cumCode = 0, cumFindings = 0;
                 const cumulativeData = chartData.map((d, i) => {
                   cumB += d.bugs; cumO += d.optimizations; cumS += d.security;
                   const totalFixed = cumB + cumO + cumS;
-                  const totalRuns = chartData.slice(0, i + 1).reduce((s, x) => s + x.count, 0);
-                  // Score: starts low, grows as more issues are resolved relative to runs
-                  // Formula: diminishing returns curve capped at 99%
-                  const rawScore = totalRuns > 0 ? Math.min(99, Math.round(10 + (totalFixed / (totalRuns * maxIssuesPerRun * 0.15)) * 90)) : 10;
-                  const score = Math.min(99, rawScore);
-                  return { ...d, cumulative: totalFixed, version: `v${i + 1}`, score };
+
+                  // Count total code reviewed and findings across runs in this bucket
+                  const runsInBucket = sortedRuns.filter(r => {
+                    const rd = new Date(r.created_at);
+                    if (timescale === "hours") return `${rd.getMonth()+1}/${rd.getDate()} ${rd.getHours()}:00` === d.label;
+                    if (timescale === "days") return `${rd.getMonth()+1}/${rd.getDate()}` === d.label;
+                    if (timescale === "months") return `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,"0")}` === d.label;
+                    if (timescale === "years") return `${rd.getFullYear()}` === d.label;
+                    return true;
+                  });
+                  const periodCode = runsInBucket.reduce((s, r) => s + (r.code_reviewed || 0), 0);
+                  const periodFindings = runsInBucket.reduce((s, r) => s + (r.findings?.length || 0), 0);
+                  cumCode += periodCode;
+                  cumFindings += periodFindings;
+
+                  // Bug density: findings per file reviewed (lower = better)
+                  // Severity weights: critical=3, high=2, medium=1, low=0.3
+                  const sevWeights = runsInBucket.flatMap(r => (r.findings || []) as any[]);
+                  const weightedIssues = sevWeights.reduce((sum, f) => {
+                    const w = f.severity === "critical" ? 3 : f.severity === "high" ? 2 : f.severity === "medium" ? 1 : 0.3;
+                    return sum + w;
+                  }, 0);
+
+                  // Score formula: 100 - (weighted_issues / max(code_reviewed, 1)) * scaling
+                  // Capped between 5-99. More code reviewed with fewer weighted issues = higher score
+                  const density = cumCode > 0 ? (weightedIssues / Math.max(cumCode, 1)) : 1;
+                  // Fix ratio: how many issues were resolved vs found (brains cover fixes)
+                  const fixRatio = cumFindings > 0 ? Math.min(1, totalFixed / cumFindings) : 0;
+                  // Combined: density drives the ceiling, fixRatio lifts from the floor
+                  const rawScore = Math.round(
+                    Math.max(5, Math.min(99,
+                      (1 - Math.min(1, density * 0.6)) * 60 + fixRatio * 35 + (d.brains > 0 ? 4 : 0)
+                    ))
+                  );
+
+                  return { ...d, cumulative: totalFixed, version: `v${i + 1}`, score: rawScore, bugDensity: cumCode > 0 ? (cumFindings / cumCode * 100).toFixed(1) : "—", periodFindings, periodCode };
                 });
 
                 const totalImprovements = totalBugs + totalOptimizations + totalSecurityPatches;
                 const firstRunDate = sortedRuns[0]?.created_at ? new Date(sortedRuns[0].created_at) : null;
                 const daysSinceStart = firstRunDate ? Math.max(1, Math.floor((Date.now() - firstRunDate.getTime()) / 86400000)) : 0;
                 const improvementRate = daysSinceStart > 0 ? (totalImprovements / daysSinceStart).toFixed(1) : "0";
-                const codeHealth = Math.round(60 + Math.min(40, totalImprovements * 0.8));
+                const totalCodeReviewed = runs.reduce((s, r) => s + (r.code_reviewed || 0), 0);
+                const totalFindingsCount = runs.reduce((s, r) => s + (r.findings?.length || 0), 0);
+                const bugDensity = totalCodeReviewed > 0 ? (totalFindingsCount / totalCodeReviewed * 100).toFixed(1) : "0";
+                const codeHealth = totalCodeReviewed > 0 ? Math.round(Math.max(10, 100 - parseFloat(bugDensity) * 5)) : 50;
 
-                const currentScore = cumulativeData.length > 0 ? cumulativeData[cumulativeData.length - 1].score : 10;
-                const previousScore = cumulativeData.length > 1 ? cumulativeData[cumulativeData.length - 2].score : 10;
+                const currentScore = cumulativeData.length > 0 ? cumulativeData[cumulativeData.length - 1].score : 0;
+                const previousScore = cumulativeData.length > 1 ? cumulativeData[cumulativeData.length - 2].score : 0;
                 const scoreDelta = currentScore - previousScore;
-                const firstScore = cumulativeData.length > 0 ? cumulativeData[0].score : 10;
+                const firstScore = cumulativeData.length > 0 ? cumulativeData[0].score : 0;
                 const totalGain = currentScore - firstScore;
 
                 return (
@@ -466,11 +498,12 @@ const SelfLearningLoopView = () => {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                       {[
                         { label: "Code Health", value: `${codeHealth}%`, sub: <div className="mt-2 h-1.5 rounded-full bg-muted/20 overflow-hidden"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${codeHealth}%` }} /></div> },
-                        { label: "Total Gain", value: `+${totalGain}%`, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{firstScore}% → {currentScore}%</p> },
-                        { label: "Total Improvements", value: totalImprovements, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{improvementRate} / day avg</p> },
+                        { label: "Bug Density", value: `${bugDensity}%`, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{totalFindingsCount} issues / {totalCodeReviewed} files</p> },
+                        { label: "Total Gain", value: `${totalGain >= 0 ? "+" : ""}${totalGain}%`, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{firstScore}% → {currentScore}%</p> },
+                        { label: "Fixes Applied", value: totalImprovements, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{improvementRate} / day avg</p> },
                         { label: "Learning Cycles", value: runs.length, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">across {daysSinceStart} day{daysSinceStart !== 1 ? "s" : ""}</p> },
                         { label: "Active Brains", value: activeBrains, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{brains.length} total generated</p> },
                       ].map(c => (
@@ -556,18 +589,18 @@ const SelfLearningLoopView = () => {
                             const prevScore = i > 0 ? cumulativeData[i-1].score : d.score;
                             const delta = d.score - prevScore;
                             return (
-                              <div key={d.label} className="flex items-center justify-between px-4 py-2.5 text-xs font-extralight">
-                                <span className="text-accent w-12">{d.version}</span>
-                                <span className="text-foreground w-20">{d.label}</span>
-                                <span className="text-muted-foreground">{d.count} runs</span>
-                                <span className="text-muted-foreground">{d.bugs} bugs</span>
-                                <span className="text-muted-foreground">{d.optimizations} opt</span>
-                                <span className="text-muted-foreground">{d.security} sec</span>
-                                <span className="text-foreground font-light">{d.score}%</span>
+                              <div key={d.label} className="flex items-center justify-between px-4 py-2.5 text-xs font-extralight gap-2">
+                                <span className="text-accent w-10 shrink-0">{d.version}</span>
+                                <span className="text-foreground w-20 shrink-0">{d.label}</span>
+                                <span className="text-muted-foreground shrink-0">{d.count} runs</span>
+                                <span className="text-muted-foreground shrink-0">{d.periodCode} files</span>
+                                <span className="text-muted-foreground shrink-0">{d.periodFindings} issues</span>
+                                <span className="text-muted-foreground shrink-0">{d.bugDensity}% density</span>
+                                <span className="text-foreground font-light shrink-0">{d.score}%</span>
                                 {i > 0 ? (
-                                  <span className={delta >= 0 ? "text-green-400" : "text-destructive"}>{delta >= 0 ? "+" : ""}{delta}%</span>
+                                  <span className={`shrink-0 ${delta >= 0 ? "text-green-400" : "text-destructive"}`}>{delta >= 0 ? "+" : ""}{delta}%</span>
                                 ) : (
-                                  <span className="text-muted-foreground/40">baseline</span>
+                                  <span className="text-muted-foreground/40 shrink-0">baseline</span>
                                 )}
                               </div>
                             );
