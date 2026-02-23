@@ -2186,6 +2186,139 @@ export type Database = {
         }
         Relationships: []
       }
+      self_learning_agent_logs: {
+        Row: {
+          action: string
+          agent_name: string
+          created_at: string
+          details: string | null
+          id: string
+          run_id: string | null
+          severity: string | null
+        }
+        Insert: {
+          action: string
+          agent_name: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          run_id?: string | null
+          severity?: string | null
+        }
+        Update: {
+          action?: string
+          agent_name?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          run_id?: string | null
+          severity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "self_learning_agent_logs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "self_learning_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      self_learning_brains: {
+        Row: {
+          active: boolean | null
+          auto_approved: boolean | null
+          confidence: number | null
+          created_at: string
+          directive: string
+          domain: string
+          findings: Json | null
+          id: string
+          name: string
+          run_id: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          auto_approved?: boolean | null
+          confidence?: number | null
+          created_at?: string
+          directive: string
+          domain: string
+          findings?: Json | null
+          id?: string
+          name: string
+          run_id?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          auto_approved?: boolean | null
+          confidence?: number | null
+          created_at?: string
+          directive?: string
+          domain?: string
+          findings?: Json | null
+          id?: string
+          name?: string
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "self_learning_brains_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "self_learning_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      self_learning_runs: {
+        Row: {
+          brains_generated: number | null
+          bugs_found: number | null
+          code_reviewed: number | null
+          completed_at: string | null
+          created_at: string
+          domains_analyzed: string[] | null
+          duration_ms: number | null
+          error: string | null
+          findings: Json | null
+          id: string
+          optimizations_applied: number | null
+          security_patches: number | null
+          status: string
+        }
+        Insert: {
+          brains_generated?: number | null
+          bugs_found?: number | null
+          code_reviewed?: number | null
+          completed_at?: string | null
+          created_at?: string
+          domains_analyzed?: string[] | null
+          duration_ms?: number | null
+          error?: string | null
+          findings?: Json | null
+          id?: string
+          optimizations_applied?: number | null
+          security_patches?: number | null
+          status?: string
+        }
+        Update: {
+          brains_generated?: number | null
+          bugs_found?: number | null
+          code_reviewed?: number | null
+          completed_at?: string | null
+          created_at?: string
+          domains_analyzed?: string[] | null
+          duration_ms?: number | null
+          error?: string | null
+          findings?: Json | null
+          id?: string
+          optimizations_applied?: number | null
+          security_patches?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       shared_personas: {
         Row: {
           category: string

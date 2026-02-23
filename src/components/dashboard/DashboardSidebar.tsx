@@ -107,6 +107,7 @@ const navGroups: NavGroup[] = [
       { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
       { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
       { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
+      { id: "self-learning", icon: Brain, label: "Self-Learning Loop" },
       { id: "stats", icon: BarChart3, label: "My Stats" },
       { id: "subscription", icon: CreditCard, label: "Subscription" },
       { id: "settings", icon: Settings, label: "Settings" },
@@ -177,6 +178,7 @@ const DashboardSidebar = ({
     ...group,
     items: group.items.filter(item => {
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "self-learning") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "tracker") return hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
