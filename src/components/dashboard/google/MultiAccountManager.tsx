@@ -14,20 +14,21 @@ const MultiAccountManager = () => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // Handle OAuth callback code
+  // [Finding #1/#5] Handle OAuth callback with state validation
   useEffect(() => {
     const url = new URL(window.location.href);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
 
-    if (code && state === "google_intel") {
-      // Clean URL
+    if (code && state) {
+      // Clean URL immediately
       url.searchParams.delete("code");
       url.searchParams.delete("state");
       url.searchParams.delete("scope");
       window.history.replaceState({}, "", url.pathname);
 
-      exchangeCode(code)
+      // Pass state through for server-side CSRF validation
+      exchangeCode(code, state)
         .then((data) => {
           toast.success(`Connected ${data.email || "Google account"} successfully!`);
         })

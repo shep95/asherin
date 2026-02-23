@@ -58,6 +58,27 @@ Deno.serve(async (req) => {
         "https://www.googleapis.com/auth/fitness.body.read",
       ];
 
+      // [Finding #1/#5] Generate a cryptographic state nonce tied to the user
+      const stateNonce = crypto.randomUUID();
+      const statePayload = JSON.stringify({ nonce: stateNonce, userId, ts: Date.now() });
+      const stateB64 = btoa(statePayload);
+
+      // Store the nonce in a short-lived DB record for validation on callback
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      await adminClient.from("google_accounts").upsert({
+        user_id: userId,
+        google_email: `pending_oauth_${stateNonce}`,
+        access_token: "pending",
+        refresh_token: "pending",
+        token_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        status: "pending_oauth",
+        scopes: [],
+        is_primary: false,
+      }, { onConflict: "user_id,google_email" }).select("id").single();
+
       const redirectUri = body.redirect_uri || `${req.headers.get("origin") || "https://ziali-magic-pixels.lovable.app"}/dashboard`;
       const params = new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
@@ -66,11 +87,11 @@ Deno.serve(async (req) => {
         scope: scopes.join(" "),
         access_type: "offline",
         prompt: "consent",
-        state: "google_intel",
+        state: stateB64,
       });
 
       return new Response(
-        JSON.stringify({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` }),
+        JSON.stringify({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}`, state: stateB64 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -79,12 +100,38 @@ Deno.serve(async (req) => {
     if (action === "exchange_code") {
       const authCode = body.code;
       const rUri = body.redirect_uri;
+      const receivedState = body.state;
 
       if (!authCode) {
         return new Response(JSON.stringify({ error: "Missing authorization code" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // [Finding #1/#5] Validate the state parameter to prevent CSRF
+      if (receivedState) {
+        try {
+          const decoded = JSON.parse(atob(receivedState));
+          if (decoded.userId !== userId) {
+            return new Response(JSON.stringify({ error: "State mismatch — possible CSRF" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          // Check state isn't older than 10 minutes
+          if (Date.now() - decoded.ts > 10 * 60 * 1000) {
+            return new Response(JSON.stringify({ error: "OAuth state expired" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } catch {
+          return new Response(JSON.stringify({ error: "Invalid state parameter" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {

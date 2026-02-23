@@ -59,6 +59,7 @@ export function useGoogleApi() {
     }
   }, [callOAuth]);
 
+  // [Finding #1/#5] Store state for CSRF validation on callback
   const connectGoogle = useCallback(async () => {
     setLoading(true);
     try {
@@ -66,6 +67,8 @@ export function useGoogleApi() {
         redirect_uri: `${window.location.origin}/dashboard`,
       });
       if (data.url) {
+        // Store state for validation on return
+        if (data.state) sessionStorage.setItem("google_oauth_state", data.state);
         sessionStorage.setItem("google_oauth_return", window.location.pathname);
         window.location.href = data.url;
       }
@@ -77,12 +80,14 @@ export function useGoogleApi() {
     }
   }, [callOAuth]);
 
-  const exchangeCode = useCallback(async (code: string) => {
+  // [Finding #1/#5] Pass state for CSRF validation
+  const exchangeCode = useCallback(async (code: string, state?: string) => {
     setLoading(true);
     try {
       const data = await callOAuth("exchange_code", {
         code,
         redirect_uri: `${window.location.origin}/dashboard`,
+        state,
       });
       await fetchAccounts();
       return data;
