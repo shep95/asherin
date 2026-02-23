@@ -59,6 +59,8 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   security: Shield,
   architecture: Layers,
   design: Palette,
+  logic: Brain,
+  workflow: ArrowRight,
 };
 
 const SelfAccessLearningView = () => {

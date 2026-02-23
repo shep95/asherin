@@ -210,6 +210,8 @@ const ANALYSIS_AGENTS = [
   { name: "Security Agent", focus: "Red-team the architecture: find injection vectors, auth bypasses, XSS risks, insecure defaults, missing input validation, exposed secrets, CORS misconfigs." },
   { name: "Architecture Agent", focus: "Assess coupling, cohesion, separation of concerns, component size (god-components), circular dependencies, scalability limits, and maintainability." },
   { name: "Design Agent", focus: "Evaluate UI/UX patterns: accessibility gaps, responsive breakpoints, inconsistent theming, missing loading/error states, poor component composition." },
+  { name: "Logic Flaw Agent", focus: "Hunt for logical flaws at every scale: incorrect conditional branches, off-by-one errors, inverted boolean checks, impossible states, default-case omissions, stale closures, filter/map chains that silently drop data, fallthrough switches, enum/union exhaustiveness gaps, comparison operators that should be strict, timezone/locale-naive date logic, edge cases where arrays are empty or objects are missing keys, memoization dependencies that are wrong or incomplete, and any scenario where the code 'works' in the happy path but breaks under real-world variance. Trace every if/else, ternary, and optional chain to verify it handles null, undefined, empty string, 0, NaN, and negative values correctly." },
+  { name: "Workflow Flaw Agent", focus: "Analyze end-to-end user workflows and multi-step feature flows for breakdowns: onboarding sequences that skip steps, form submissions that lose data on error, navigation flows that leave orphaned state, undo/redo paths that corrupt data, multi-panel dashboards where one panel's action doesn't update another, subscription upgrades/downgrades that leave stale UI, file upload pipelines that don't handle partial failures, search-then-act flows where context is lost between steps, session/auth expiration mid-workflow that causes silent data loss, real-time sync conflicts, import/export round-trip data corruption, and any cross-feature interaction where Feature A's state change should propagate to Feature B but doesn't. Check that loading→success→error→retry state machines are complete and that every user-facing action has proper feedback (toast, spinner, disabled state)." },
 ];
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
@@ -297,7 +299,7 @@ CRITICAL RULES:
 Each finding must be:
 {
   "file_path": "exact/path/to/file",
-  "finding_type": "bug"|"optimization"|"security"|"architecture"|"design",
+  "finding_type": "bug"|"optimization"|"security"|"architecture"|"design"|"logic"|"workflow",
   "severity": "critical"|"high"|"medium"|"low",
   "title": "Short descriptive title",
   "finding": "What you found — the specific issue",
