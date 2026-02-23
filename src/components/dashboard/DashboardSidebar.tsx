@@ -89,7 +89,6 @@ const navGroups: NavGroup[] = [
       { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
       { id: "projects", icon: Layers, label: "Projects" },
-      { id: "api", icon: Code2, label: "API", access: "search" },
     ],
   },
   {
