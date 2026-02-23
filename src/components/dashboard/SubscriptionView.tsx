@@ -5,82 +5,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { getPublicPlans } from "@/config/subscriptionPlans";
 
-const plans: {
-  id: TierKey;
-  name: string;
-  tagline: string;
-  price: string;
-  period: string;
-  description: string;
-  highlight: boolean;
-  purple?: boolean;
-  features: string[];
-}[] = [
-  {
-    id: "aureon",
-    name: "AUREON",
-    tagline: "AI Intelligence",
-    price: "$199",
-    period: "/ month",
-    description: "Full access to Aureon AI — uncensored, unfiltered. 200 messages per 3 hours (Chat + IDE shared).",
-    highlight: false,
-    features: [
-      "Uncensored AI responses on any topic",
-      "200 messages per 3-hour window (Chat + IDE shared)",
-      "Aureon IDE — full cloud development environment",
-      "Elite coding engine",
-      "Zophiel Search Engine",
-      "Persistent memory across all sessions",
-      "Context intelligence & intent detection",
-      "Multi-persona system",
-      "Live web search integration",
-      "Code Snippets Vault",
-      "End-to-end encryption",
-      "Data never sold or used for training",
-      "Slideshow Generator",
-      "PDF Generator",
-      "ORACLE-LOCUS — Geo-Intelligence Analysis",
-    ],
-  },
-  {
-    id: "pro",
-    name: "AUREON PRO",
-    tagline: "Full Dashboard Access",
-    price: "$740",
-    period: "/ month",
-    description: "Complete access to every tool — IDE, Google Intelligence, Asha, NOMAD, Predictive Intelligence, and more.",
-    highlight: false,
-    features: [
-      "Everything in Aureon — expanded",
-      "200 messages per 3-hour window (Chat + IDE shared)",
-      "Aureon IDE — full cloud dev environment with AI chat",
-      "Google Intelligence Suite — multi-account analysis",
-      "Elion / Zohar Toolkit — domain forensics & OSINT",
-      "Full Domain Scan — security score + subdomain recon",
-      "Predictive Intelligence — AI event forecasting",
-      "Imagine To Code — pixel art & SVG editor with AUREON AI",
-      "ZALI Design Intelligence Lab",
-      "ZALI Community — questions, requests & feature votes",
-      "Asha Data Intelligence Platform",
-      "NOMAD Public Intelligence Agent",
-      "Daily Intelligence Briefings",
-      "Intelligence Notebooks with versioning",
-      "Team Workspace with RBAC & email invites",
-      "Time-Series Intelligence & forecasting",
-      "Geospatial analysis & location mapping",
-      "Plugin Marketplace (20+ plugins)",
-      "Security Dashboard — WAF, honeypots & threat intel",
-      "Audit Trail for compliance",
-      "Entity resolution & relationship mapping",
-      "Scenario Simulator & threat modeling",
-      "Pattern Analysis Engine",
-      "Company & competitor tracking",
-      "ORACLE-LOCUS — Geo-Intelligence Analysis",
-      "Priority model access",
-    ],
-  },
-];
+const plans = getPublicPlans().map(p => ({
+  id: p.id,
+  name: p.name,
+  tagline: p.tagline,
+  price: p.price,
+  period: p.period,
+  description: p.description,
+  highlight: p.highlight,
+  features: p.featureLabels,
+}));
 
 const SubscriptionView = () => {
   const { subscribed, tierKey, subscriptionEnd, status, cancelAtPeriodEnd, loading, checkSubscription, startCheckout, openPortal, checkoutLoading } = useSubscription();

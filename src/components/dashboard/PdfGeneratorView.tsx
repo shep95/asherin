@@ -127,7 +127,7 @@ Return ONLY the JSON array, no markdown wrapping.`
           </div>
         );
       case "table":
-        return <div style={{ fontSize: 13, fontWeight: 300, color: "#d0d0d0", whiteSpace: "pre-wrap" }} dangerouslySetInnerHTML={{ __html: text.replace(/\|/g, " │ ") }} />;
+        return <div style={{ fontSize: 13, fontWeight: 300, color: "#d0d0d0", whiteSpace: "pre-wrap" }}>{text.replace(/\|/g, " │ ")}</div>;
       case "list":
         return (
           <ul style={{ paddingLeft: 20, margin: "12px 0" }}>

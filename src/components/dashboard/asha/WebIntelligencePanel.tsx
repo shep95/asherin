@@ -247,7 +247,7 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
           const content = result.response;
           const safeName = finalAnswers.company.replace(/[^a-zA-Z0-9]/g, "_");
           const fileName = `webintel_${safeName}_${Date.now()}.txt`;
-          const storagePath = `${user.id}/${fileName}`;
+          const storagePath = `${user.id}/${fileName}`.replace(/\.\./g, "").replace(/\/+/g, "/");
           const blob = new Blob([content], { type: "text/plain" });
 
           const { error: uploadErr } = await supabase.storage.from("asha-data").upload(storagePath, blob);
@@ -494,7 +494,7 @@ INSTRUCTIONS:
 
       // Upload as a text file to storage
       const fileName = `webintel_${activeSession.companyName.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.md`;
-      const storagePath = `${user.id}/${fileName}`;
+      const storagePath = `${user.id}/${fileName}`.replace(/\.\./g, "").replace(/\/+/g, "/");
       const blob = new Blob([fullContent], { type: "text/markdown" });
 
       const { error: uploadErr } = await supabase.storage.from("asha-data").upload(storagePath, blob);

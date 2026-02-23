@@ -189,3 +189,57 @@ export function sanitizeDisplayName(name: string): string {
     .replace(/[<>:"|?*\x00-\x1F]/g, "_")
     .trim();
 }
+
+/**
+ * Sanitize and validate a storage path to prevent directory traversal.
+ * Ensures the path is chrooted to the user's workspace prefix.
+ * 
+ * @param userId - The authenticated user's UUID
+ * @param requestedPath - The path from the client
+ * @returns A safe, normalized path prefixed with the userId
+ * @throws Error if the path attempts traversal outside the user's workspace
+ */
+export function sanitizeStoragePath(userId: string, requestedPath: string): string {
+  if (!userId || !requestedPath) {
+    throw new Error("Invalid userId or path");
+  }
+
+  // Remove null bytes
+  let cleaned = requestedPath.replace(/\0/g, "");
+
+  // Normalize path separators
+  cleaned = cleaned.replace(/\\/g, "/");
+
+  // Remove all ".." sequences (prevent traversal)
+  cleaned = cleaned.replace(/\.\.+/g, "");
+
+  // Remove leading slashes
+  cleaned = cleaned.replace(/^\/+/, "");
+
+  // Remove any protocol prefixes
+  cleaned = cleaned.replace(/^[a-zA-Z]+:\/\//, "");
+
+  // Strip userId prefix if already present (avoid double-prefixing)
+  if (cleaned.startsWith(`${userId}/`)) {
+    cleaned = cleaned.slice(userId.length + 1);
+  }
+
+  // Remove any remaining dangerous characters
+  cleaned = cleaned.replace(/[<>:"|?*\x00-\x1F]/g, "_");
+
+  // Collapse multiple slashes
+  cleaned = cleaned.replace(/\/+/g, "/");
+
+  if (!cleaned) {
+    throw new Error("Path resolved to empty after sanitization");
+  }
+
+  const safePath = `${userId}/${cleaned}`;
+
+  // Final validation: ensure the resolved path still starts with userId prefix
+  if (!safePath.startsWith(`${userId}/`)) {
+    throw new Error("Path traversal detected");
+  }
+
+  return safePath;
+}

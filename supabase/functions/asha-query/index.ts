@@ -22,7 +22,62 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) throw new Error("Unauthorized");
-    const user = { id: claimsData.claims.sub as string };
+    const userId = claimsData.claims.sub as string;
+    const userEmail = claimsData.claims.email as string;
+
+    // ── Server-side tier validation ──────────────────────────────────────
+    // Asha is a Pro+ feature. Verify the user's subscription before proceeding.
+    const adminEmail = "ashernewtonx@gmail.com";
+    const isAdmin = userEmail === adminEmail;
+
+    if (!isAdmin) {
+      const svcClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { persistSession: false } }
+      );
+
+      // Check granted subscriptions
+      const { data: granted } = await svcClient
+        .from("granted_subscriptions")
+        .select("tier")
+        .eq("email", userEmail)
+        .eq("active", true)
+        .maybeSingle();
+
+      const grantedTier = granted?.tier;
+      const hasAccess = grantedTier === "pro" || grantedTier === "advisor_monthly" || grantedTier === "advisor_annual";
+
+      if (!hasAccess) {
+        // Check Stripe subscription via check-subscription pattern
+        const Stripe = (await import("https://esm.sh/stripe@18.5.0")).default;
+        const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+        if (stripeKey) {
+          const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+          const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+          if (customers.data.length > 0) {
+            const subs = await stripe.subscriptions.list({ customer: customers.data[0].id, limit: 10 });
+            const activeSub = subs.data.find((s: any) => s.status === "active" || s.status === "trialing");
+            // Pro product IDs
+            const proProductIds = ["prod_U1PuUztkmieRrE", "prod_TzZlilj5l50ena", "prod_TzZlU2MDFcXG7o"];
+            const productId = activeSub?.items?.data?.[0]?.price?.product;
+            if (!activeSub || !proProductIds.includes(productId as string)) {
+              return new Response(JSON.stringify({ error: "Asha requires a Pro or Advisor subscription." }), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                status: 403,
+              });
+            }
+          } else {
+            return new Response(JSON.stringify({ error: "Asha requires a Pro or Advisor subscription." }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 403,
+            });
+          }
+        }
+      }
+    }
+
+    const user = { id: userId };
 
     const { query, sessionId } = await req.json();
     if (!query?.trim()) throw new Error("Missing query");
