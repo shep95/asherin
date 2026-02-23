@@ -9,12 +9,14 @@ import wallpaperDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
 import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
+import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
   { key: "raven", label: "Raven", src: wallpaperRaven },
   { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
   { key: "glitch", label: "Glitch", src: wallpaperGlitch },
+  { key: "aureon", label: "Aureon", src: wallpaperAureon },
 ];
 
 const GitHubSettings = () => {
