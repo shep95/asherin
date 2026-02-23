@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { MapPin, Layers, Navigation, Target, Search, Loader2, Upload, Database } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,6 +49,10 @@ const GeospatialView = () => {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+
+  // Preserve user pan/zoom across data updates
+  const mapCenterRef = useRef<{ x: number; y: number } | null>(null);
+  const mapZoomRef = useRef<number>(1);
 
   const tabs = [
     { id: "map" as const, label: "Location Map", icon: MapPin },
@@ -102,8 +106,9 @@ const GeospatialView = () => {
   const routeData = analysis?.routes ?? [];
   const territories = analysis?.territories ?? [];
 
-  const filteredLocations = locations.filter(l =>
-    !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredLocations = useMemo(() =>
+    locations.filter(l => !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [locations, searchQuery]
   );
 
   if (loading) return <div className="flex flex-1 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
