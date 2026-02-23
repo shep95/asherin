@@ -126,9 +126,15 @@ const NotificationInbox = ({ onNavigate }: NotificationInboxProps) => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAllRead = () => {
+    const snapshot = [...notifications];
     const updated = notifications.map(n => ({ ...n, read: true }));
     setNotifications(updated);
-    saveNotifications(updated);
+    try {
+      saveNotifications(updated);
+    } catch {
+      // Rollback on failure
+      setNotifications(snapshot);
+    }
   };
 
   const markRead = (id: string) => {
@@ -138,8 +144,13 @@ const NotificationInbox = ({ onNavigate }: NotificationInboxProps) => {
   };
 
   const clearAll = () => {
+    const snapshot = [...notifications];
     setNotifications([]);
-    saveNotifications([]);
+    try {
+      saveNotifications([]);
+    } catch {
+      setNotifications(snapshot);
+    }
   };
 
   const toggleDnd = () => {

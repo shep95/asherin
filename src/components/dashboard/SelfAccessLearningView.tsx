@@ -5,7 +5,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Brain, Play, Clock, FileSearch, Shield, Zap, Bug, Layers, Palette,
   ChevronDown, ChevronRight, Copy, Check, CheckCircle2, XCircle, AlertTriangle,
-  ArrowRight, Loader2, Eye, Filter,
+  ArrowRight, Loader2, Eye, Filter, ClipboardCopy, Download,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -256,9 +256,49 @@ const SelfAccessLearningView = () => {
         {/* Main: Findings */}
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-3">
-            {/* Filters */}
+            {/* Actions bar */}
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+              {filteredFindings.length > 0 && (
+                <>
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const allText = filteredFindings.map((f, i) =>
+                          `[${i + 1}] ${f.title}\nSeverity: ${f.severity} | Type: ${f.finding_type} | File: ${f.file_path}\n\nFinding:\n${f.finding}\n\nReasoning:\n${f.reasoning}\n\nRecommendation:\n${f.recommendation}\n\nWhy This Needs Fixing:\n${f.reason_needs_fix}${f.output_code ? `\n\nCode Fix:\n${f.output_code}` : ""}\n\n${"─".repeat(80)}`
+                        ).join("\n\n");
+                        const header = `AUREON SELF-ACCESS LEARNING — FINDINGS EXPORT\nExported: ${new Date().toISOString()}\nTotal: ${filteredFindings.length}\n${"═".repeat(80)}\n\n`;
+                        navigator.clipboard.writeText(header + allText);
+                        toast({ title: "Copied", description: `${filteredFindings.length} findings copied to clipboard.` });
+                      }}
+                      className="flex items-center gap-1.5 rounded-xl border border-border/20 bg-card/20 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                    >
+                      <ClipboardCopy className="h-3 w-3" />
+                      Copy All ({filteredFindings.length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        const allText = filteredFindings.map((f, i) =>
+                          `[${i + 1}] ${f.title}\nSeverity: ${f.severity} | Type: ${f.finding_type} | File: ${f.file_path}\n\nFinding:\n${f.finding}\n\nReasoning:\n${f.reasoning}\n\nRecommendation:\n${f.recommendation}\n\nWhy This Needs Fixing:\n${f.reason_needs_fix}${f.output_code ? `\n\nCode Fix:\n${f.output_code}` : ""}\n\n${"─".repeat(80)}`
+                        ).join("\n\n");
+                        const header = `AUREON SELF-ACCESS LEARNING — FINDINGS EXPORT\nExported: ${new Date().toISOString()}\nTotal: ${filteredFindings.length}\n${"═".repeat(80)}\n\n`;
+                        const blob = new Blob([header + allText], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `aureon-findings-${new Date().toISOString().slice(0, 10)}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast({ title: "Exported", description: `${filteredFindings.length} findings exported as TXT.` });
+                      }}
+                      className="flex items-center gap-1.5 rounded-xl border border-border/20 bg-card/20 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                    >
+                      <Download className="h-3 w-3" />
+                      Export TXT
+                    </button>
+                  </div>
+                </>
+              )}
               {["pending", "approved", "dismissed"].map(s => (
                 <button
                   key={s}

@@ -208,13 +208,20 @@ serve(async (req) => {
     const totalSources = searchResults.reduce((acc, s) => acc + s.results.length, 0) + instantAnswers.length;
     log("Searches complete", { totalSources, searchSources: searchResults.reduce((acc, s) => acc + s.results.length, 0), instantAnswers: instantAnswers.length });
 
-    // Build intelligence context
-    const contextBlocks = searchResults
-      .filter(s => s.results.length > 0)
-      .map((s) => {
-        const resultText = s.results.map((r) => `- ${r.title}: ${r.snippet} [${r.url}]`).join("\n");
-        return `[${s.category.toUpperCase()}] Query: "${s.query}"\n${resultText}`;
-      }).join("\n\n");
+    // Build intelligence context with token truncation
+    const MAX_CONTEXT_CHARS = 40000; // ~10k tokens safe limit
+    let contextCharsUsed = 0;
+    const contextBlocks: string[] = [];
+
+    for (const s of searchResults.filter(s => s.results.length > 0)) {
+      const resultText = s.results.map((r) => `- ${r.title}: ${r.snippet} [${r.url}]`).join("\n");
+      const block = `[${s.category.toUpperCase()}] Query: "${s.query}"\n${resultText}`;
+      if (contextCharsUsed + block.length > MAX_CONTEXT_CHARS) break;
+      contextBlocks.push(block);
+      contextCharsUsed += block.length;
+    }
+
+    const contextBlocksJoined = contextBlocks.join("\n\n");
 
     const instantBlock = instantAnswers.length
       ? `\n\n[INSTANT INTELLIGENCE]\n${instantAnswers.join("\n")}`
@@ -242,7 +249,7 @@ USER PROFILE:
 - Custom Topics: ${profile.custom_topics?.join(", ") || "None listed"}
 
 RAW INTELLIGENCE DATA (gathered by NOMAD from ${totalSources} sources):
-${contextBlocks}${instantBlock}
+${contextBlocksJoined}${instantBlock}
 
 ${totalSources === 0 ? "NOTE: No search results were returned. Generate the briefing based on your training knowledge of recent events related to the user's profile. Clearly mark items as 'Based on available intelligence' rather than citing specific sources." : ""}
 
