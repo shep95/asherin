@@ -10,6 +10,22 @@ const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const GITHUB_API = "https://api.github.com";
+
+// Fetch live file content from GitHub — ensures analysis always uses latest code
+async function fetchFileFromGitHub(path: string, token: string, owner: string, repo: string, branch: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github.v3+json" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.content) return null;
+    return atob(data.content);
+  } catch {
+    return null;
+  }
+}
 
 // Complete codebase manifest — every file domain-mapped for autonomous analysis
 const CODEBASE_FILES = [
@@ -280,18 +296,52 @@ serve(async (req) => {
       // Pick random subset per run (max 15 files for deeper coverage)
       const selectedFiles = [...files].sort(() => Math.random() - 0.5).slice(0, 15);
 
+      // Attempt to fetch LIVE code from GitHub for each file
+      let githubConn: { github_token: string; repo_owner: string; repo_name: string; branch: string } | null = null;
+      const { data: connRows } = await supabase
+        .from("github_connections")
+        .select("github_token, repo_owner, repo_name, branch")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (connRows && connRows.length > 0) githubConn = connRows[0];
+
+      // Fetch actual code content in parallel (with 8KB cap per file to stay within token limits)
+      const MAX_FILE_CHARS = 8000;
+      const fileContents: Record<string, string> = {};
+      if (githubConn) {
+        const fetchPromises = selectedFiles.map(async (f) => {
+          const content = await fetchFileFromGitHub(f.path, githubConn!.github_token, githubConn!.repo_owner, githubConn!.repo_name, githubConn!.branch);
+          if (content) {
+            fileContents[f.path] = content.length > MAX_FILE_CHARS
+              ? content.slice(0, MAX_FILE_CHARS) + "\n// ... [TRUNCATED — full file is " + content.length + " chars]"
+              : content;
+          }
+        });
+        await Promise.all(fetchPromises);
+      }
+
+      const hasLiveCode = Object.keys(fileContents).length > 0;
+
       // Run 3 random agents across all selected files
       const selectedAgents = [...ANALYSIS_AGENTS].sort(() => Math.random() - 0.5).slice(0, 3);
       const allFindings: any[] = [];
 
       for (const agent of selectedAgents) {
-        const fileList = selectedFiles.map(f => `- ${f.path} (${f.domain}): ${f.desc}`).join("\n");
+        // Build file context — include REAL code when available
+        const fileBlocks = selectedFiles.map(f => {
+          if (fileContents[f.path]) {
+            return `── ${f.path} (${f.domain}: ${f.desc}) ──\n\`\`\`\n${fileContents[f.path]}\n\`\`\``;
+          }
+          return `── ${f.path} (${f.domain}: ${f.desc}) ── [code not available — analyze based on file context]`;
+        }).join("\n\n");
 
         const systemPrompt = `You are the ${agent.name} in AUREON's Self-Access Learning system — an autonomous intelligence that analyzes its own codebase.
 Your focus: ${agent.focus}
 
 CRITICAL RULES:
 - You are analyzing a REAL production codebase (React + TypeScript + Supabase + Tailwind).
+- ${hasLiveCode ? "You have been given the ACTUAL LIVE SOURCE CODE pulled from GitHub seconds ago. Analyze the REAL code, not hypothetical patterns." : "Analyze based on file paths and architecture knowledge."}
 - Generate ACTIONABLE findings with REAL fixes. Not theoretical — production-grade.
 - For each finding, provide the EXACT code change needed.
 - Never auto-apply. You produce recommendations for the human creator.
@@ -303,7 +353,7 @@ Each finding must be:
   "finding_type": "bug"|"optimization"|"security"|"architecture"|"design"|"logic"|"workflow",
   "severity": "critical"|"high"|"medium"|"low",
   "title": "Short descriptive title",
-  "finding": "What you found — the specific issue",
+  "finding": "What you found — the specific issue with line references if possible",
   "reasoning": "Deep analysis of WHY this is a problem, tracing through the code logic",
   "recommendation": "What should be done to fix it",
   "reason_needs_fix": "Impact if left unfixed — production consequences",
@@ -312,11 +362,11 @@ Each finding must be:
 
         const userPrompt = `Analyze these files from the AUREON AI intelligence platform codebase. Generate 2-4 high-quality findings:
 
-${fileList}
+${fileBlocks}
 
 Context: This is a production AI platform with chat, data intelligence (ASHA), engineering design (ZALI), OSINT (NOMAD), predictive intel, IDE, security command center, and self-learning capabilities. It uses React 18, Supabase edge functions, Tailwind CSS, and the Lovable AI gateway.
 
-Focus on REAL issues you'd find in a codebase of this complexity. Be specific about file paths and code patterns.`;
+${hasLiveCode ? "You have the REAL source code above. Reference specific line numbers, variable names, and actual logic paths in your findings." : "Focus on REAL issues you'd find in a codebase of this complexity."}`;
 
         try {
           const raw = await callAI(systemPrompt, userPrompt);
