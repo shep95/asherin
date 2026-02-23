@@ -145,30 +145,31 @@ Return ONLY the JSON array, no markdown wrapping.`
   }, [wallpaperSrc]);
 
   const renderSectionPreview = (section: PdfSection) => {
+    const text = typeof section.content === "string" ? section.content : String(section.content ?? "");
     switch (section.type) {
       case "heading":
-        return <h2 style={{ fontSize: 20, fontWeight: 300, letterSpacing: "0.05em", margin: "24px 0 12px", color: "#f0f0f0" }}>{section.content}</h2>;
+        return <h2 style={{ fontSize: 20, fontWeight: 300, letterSpacing: "0.05em", margin: "24px 0 12px", color: "#f0f0f0" }}>{text}</h2>;
       case "paragraph":
-        return <p style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.8, marginBottom: 16, color: "#d0d0d0" }}>{section.content}</p>;
+        return <p style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.8, marginBottom: 16, color: "#d0d0d0" }}>{text}</p>;
       case "diagram":
         return (
           <div style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 24, margin: "16px 0", background: "rgba(255,255,255,0.03)" }}>
             <div style={{ fontSize: 10, textTransform: "uppercase" as const, letterSpacing: "0.15em", color: "rgba(255,255,255,0.4)", marginBottom: 12 }}>Architecture Diagram</div>
-            <p style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.8, color: "#d0d0d0", whiteSpace: "pre-wrap" }}>{section.content}</p>
+            <p style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.8, color: "#d0d0d0", whiteSpace: "pre-wrap" }}>{text}</p>
           </div>
         );
       case "table":
-        return <div style={{ fontSize: 13, fontWeight: 300, color: "#d0d0d0", whiteSpace: "pre-wrap" }} dangerouslySetInnerHTML={{ __html: section.content.replace(/\|/g, " │ ") }} />;
+        return <div style={{ fontSize: 13, fontWeight: 300, color: "#d0d0d0", whiteSpace: "pre-wrap" }} dangerouslySetInnerHTML={{ __html: text.replace(/\|/g, " │ ") }} />;
       case "list":
         return (
           <ul style={{ paddingLeft: 20, margin: "12px 0" }}>
-            {section.content.split("\n").filter(l => l.trim()).map((item, i) => (
+            {text.split("\n").filter(l => l.trim()).map((item, i) => (
               <li key={i} style={{ fontSize: 13, fontWeight: 300, lineHeight: 1.8, color: "#d0d0d0" }}>{item.replace(/^[-•*]\s*/, "")}</li>
             ))}
           </ul>
         );
       default:
-        return <p style={{ color: "#d0d0d0" }}>{section.content}</p>;
+        return <p style={{ color: "#d0d0d0" }}>{text}</p>;
     }
   };
 
