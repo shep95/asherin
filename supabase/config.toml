@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.zali-chat]
 verify_jwt = false
+
+[functions.self-learning-loop]
+verify_jwt = false
