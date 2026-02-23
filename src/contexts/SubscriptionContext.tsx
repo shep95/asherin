@@ -5,8 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 // Stripe product/price mapping
 export const TIERS = {
   aureon: {
-    product_id: "prod_TypqKDKcRduDQS",
-    price_id: "price_1T0sB1RxgCpmPfiFDF7VtYX8",
+    product_id: "prod_U1rtJ8HXSCtvqO",
+    price_id: "price_1T3o9NRxgCpmPfiFaFDWC8u0",
   },
   pro: {
     product_id: "prod_U1PuUztkmieRrE",

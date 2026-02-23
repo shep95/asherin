@@ -38,6 +38,8 @@ const plans: {
       "Code Snippets Vault",
       "End-to-end encryption",
       "Data never sold or used for training",
+      "Slideshow Generator",
+      "PDF Generator",
     ],
   },
   {
@@ -71,6 +73,7 @@ const plans: {
       "Audit Trail for compliance",
       "Entity resolution & relationship mapping",
       "Scenario Simulator & threat modeling",
+      "Pattern Analysis Engine",
       "Company & competitor tracking",
       "Priority model access",
     ],
