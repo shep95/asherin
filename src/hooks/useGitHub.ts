@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface GitHubConnection {
@@ -37,7 +37,11 @@ export function useGitHub() {
   const [connection, setConnection] = useState<GitHubConnection | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // [Finding #12] — Track fetch generation to discard stale responses
+  const fetchGenRef = useRef(0);
+
   const fetchConnection = useCallback(async () => {
+    const gen = ++fetchGenRef.current;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
 
@@ -49,11 +53,18 @@ export function useGitHub() {
       .limit(1)
       .maybeSingle();
 
-    setConnection(data as GitHubConnection | null);
-    setLoading(false);
+    // Only apply if this is still the latest fetch
+    if (gen === fetchGenRef.current) {
+      setConnection(data as GitHubConnection | null);
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { fetchConnection(); }, [fetchConnection]);
+  useEffect(() => {
+    fetchConnection();
+    // Cleanup: bump generation on unmount to discard inflight
+    return () => { fetchGenRef.current++; };
+  }, [fetchConnection]);
 
   const callGitHub = useCallback(async (action: string, extra?: Record<string, any>) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -72,16 +83,13 @@ export function useGitHub() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
 
-    // Validate token first
     const res = await supabase.functions.invoke("github-api", {
       body: { action: "validate_token", token },
     });
     if (res.data?.error) throw new Error(res.data.error);
 
-    // Delete existing connections
     await supabase.from("github_connections").delete().eq("user_id", session.user.id);
 
-    // Insert new connection
     const { data, error } = await supabase.from("github_connections").insert({
       user_id: session.user.id,
       repo_owner: repoOwner,

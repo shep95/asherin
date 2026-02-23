@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +5,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+// [Finding #2 & #10] — Stream data in batches instead of buffering entire dataset in memory
+const BATCH_SIZE = 500;
+
+async function* fetchTableBatched(supabase: any, table: string, userId: string) {
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .eq("user_id", userId)
+      .range(offset, offset + BATCH_SIZE - 1);
+    if (error || !data || data.length === 0) break;
+    yield data;
+    if (data.length < BATCH_SIZE) break;
+    offset += BATCH_SIZE;
+  }
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -30,59 +47,47 @@ serve(async (req) => {
 
     const userId = user.id;
 
-    // Gather all user data from all tables
-    const [
-      profileRes,
-      settingsRes,
-      statsRes,
-      intelRes,
-      conversationsRes,
-      messagesRes,
-      memoryRes,
-      promptsRes,
-      projectsRes,
-      libraryRes,
-      calibrationRes,
-    ] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", userId),
-      supabase.from("user_settings").select("*").eq("user_id", userId),
-      supabase.from("usage_stats").select("*").eq("user_id", userId),
-      supabase.from("user_intelligence_profile").select("*").eq("user_id", userId),
-      supabase.from("conversations").select("*").eq("user_id", userId),
-      supabase.from("messages").select("*").eq("user_id", userId),
-      supabase.from("memory_entries").select("*").eq("user_id", userId),
-      supabase.from("saved_prompts").select("*").eq("user_id", userId),
-      supabase.from("projects").select("*").eq("user_id", userId),
-      supabase.from("library_files").select("*").eq("user_id", userId),
-      supabase.from("calibration_feedback").select("*").eq("user_id", userId),
-    ]);
+    const tables = [
+      "profiles", "conversations", "messages", "memory_entries",
+      "saved_prompts", "projects", "library_files", "calibration_feedback",
+    ];
 
-    const exportData = {
-      exported_at: new Date().toISOString(),
-      user: {
-        id: user.id,
-        email: user.email,
-        created_at: user.created_at,
+    // Stream NDJSON to avoid memory exhaustion on large exports
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Write header
+          controller.enqueue(encoder.encode(JSON.stringify({
+            exported_at: new Date().toISOString(),
+            user: { id: user.id, email: user.email, created_at: user.created_at },
+            format: "ndjson_stream",
+          }) + "\n"));
+
+          for (const table of tables) {
+            controller.enqueue(encoder.encode(JSON.stringify({ __table: table, __start: true }) + "\n"));
+            for await (const batch of fetchTableBatched(supabase, table, userId)) {
+              for (const row of batch) {
+                controller.enqueue(encoder.encode(JSON.stringify(row) + "\n"));
+              }
+            }
+            controller.enqueue(encoder.encode(JSON.stringify({ __table: table, __end: true }) + "\n"));
+          }
+
+          controller.close();
+        } catch (e) {
+          controller.error(e);
+        }
       },
-      profile: profileRes.data ?? [],
-      settings: settingsRes.data ?? [],
-      usage_stats: statsRes.data ?? [],
-      intelligence_profile: intelRes.data ?? [],
-      conversations: conversationsRes.data ?? [],
-      messages: messagesRes.data ?? [],
-      memory_entries: memoryRes.data ?? [],
-      saved_prompts: promptsRes.data ?? [],
-      projects: projectsRes.data ?? [],
-      library_files: libraryRes.data ?? [],
-      calibration_feedback: calibrationRes.data ?? [],
-    };
+    });
 
-    return new Response(JSON.stringify(exportData, null, 2), {
+    return new Response(stream, {
       status: 200,
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="aureon-data-export-${new Date().toISOString().split("T")[0]}.json"`,
+        "Content-Type": "application/x-ndjson",
+        "Content-Disposition": `attachment; filename="aureon-data-export-${new Date().toISOString().split("T")[0]}.ndjson"`,
+        "Transfer-Encoding": "chunked",
       },
     });
   } catch (err) {

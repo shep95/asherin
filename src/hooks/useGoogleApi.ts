@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface GoogleAccount {
@@ -17,7 +17,26 @@ export function useGoogleApi() {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
 
+  // [Finding #3] — Token refresh promise lock to prevent race conditions
+  const refreshPromiseRef = useRef<Promise<void> | null>(null);
+
   const callOAuth = useCallback(async (action: string, extra?: Record<string, any>) => {
+    // Serialize token-refresh calls
+    if (action === "refresh_token") {
+      if (refreshPromiseRef.current) return refreshPromiseRef.current;
+      const promise = (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+        const res = await supabase.functions.invoke("google-oauth", {
+          body: { action, ...extra },
+        });
+        if (res.error) throw new Error(res.error.message);
+        return res.data;
+      })();
+      refreshPromiseRef.current = promise.finally(() => { refreshPromiseRef.current = null; }) as any;
+      return refreshPromiseRef.current;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
 
@@ -47,7 +66,6 @@ export function useGoogleApi() {
         redirect_uri: `${window.location.origin}/dashboard`,
       });
       if (data.url) {
-        // Store return path
         sessionStorage.setItem("google_oauth_return", window.location.pathname);
         window.location.href = data.url;
       }
@@ -94,7 +112,6 @@ export function useGoogleApi() {
     return res.data;
   }, []);
 
-  // Auto-fetch accounts on mount
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);

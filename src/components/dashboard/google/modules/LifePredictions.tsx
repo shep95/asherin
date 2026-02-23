@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import {
   MapPin, DollarSign, Plane, Briefcase, Heart,
   Stethoscope, ShoppingCart, TrendingUp,
@@ -22,8 +23,11 @@ const LifePredictions = () => {
   const [fitData, setFitData] = useState<any[]>([]);
   const [driveFiles, setDriveFiles] = useState<any[]>([]);
 
-  const loadData = async () => {
+  // [Finding #7] — Wrap data fetches with rollback on failure
+  const loadData = useCallback(async () => {
     setLoading(true);
+    // Save previous state for rollback
+    const prev = { calEvents, gmailStats, emails, contacts, totalContacts, fitData, driveFiles };
     try {
       const [cal, stats, inbox, contactData, fit, drive] = await Promise.all([
         fetchGoogleData("calendar_events", { maxResults: 50 }).catch(() => ({ events: [] })),
@@ -42,10 +46,19 @@ const LifePredictions = () => {
       setDriveFiles(drive.files || []);
     } catch (err) {
       console.error("Failed to fetch prediction data:", err);
+      // Rollback to previous state
+      setCalEvents(prev.calEvents);
+      setGmailStats(prev.gmailStats);
+      setEmails(prev.emails);
+      setContacts(prev.contacts);
+      setTotalContacts(prev.totalContacts);
+      setFitData(prev.fitData);
+      setDriveFiles(prev.driveFiles);
+      toast.error("Failed to sync prediction data — showing previous results.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchGoogleData]);
 
   useEffect(() => {
     if (isConnected) loadData();
