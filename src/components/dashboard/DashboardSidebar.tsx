@@ -182,7 +182,7 @@ const DashboardSidebar = ({
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-learning") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "oracle-locus") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "oracle-locus") return hasSearchAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
       if (item.id === "tracker") return hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);

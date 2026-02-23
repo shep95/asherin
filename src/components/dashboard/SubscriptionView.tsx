@@ -40,6 +40,7 @@ const plans: {
       "Data never sold or used for training",
       "Slideshow Generator",
       "PDF Generator",
+      "ORACLE-LOCUS — Geo-Intelligence Analysis",
     ],
   },
   {
@@ -75,6 +76,7 @@ const plans: {
       "Scenario Simulator & threat modeling",
       "Pattern Analysis Engine",
       "Company & competitor tracking",
+      "ORACLE-LOCUS — Geo-Intelligence Analysis",
       "Priority model access",
     ],
   },
