@@ -108,6 +108,7 @@ const navGroups: NavGroup[] = [
       { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
       { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
       { id: "self-learning", icon: Brain, label: "Self-Learning Loop" },
+      { id: "self-access", icon: FileText, label: "Self-Access Learning" },
       { id: "stats", icon: BarChart3, label: "My Stats" },
       { id: "subscription", icon: CreditCard, label: "Subscription" },
       { id: "settings", icon: Settings, label: "Settings" },
@@ -179,6 +180,7 @@ const DashboardSidebar = ({
     items: group.items.filter(item => {
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-learning") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "tracker") return hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
