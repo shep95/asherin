@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { FolderPlus, Layers, Trash2, Loader2 } from "lucide-react";
+import { FolderPlus, Layers, Trash2, Loader2, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Project {
   id: string;
@@ -38,21 +39,30 @@ const ProjectsView = () => {
   };
 
   if (loading) {
-    return <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+    return (
+      <div className="max-w-3xl mx-auto p-6 space-y-4">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+      </div>
+    );
   }
 
   if (projects.length === 0 && !creating) {
     return (
       <div className="flex h-full items-center justify-center p-8">
         <div className="text-center max-w-md space-y-6">
-          <div className="mx-auto w-16 h-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm flex items-center justify-center">
-            <Layers className="h-7 w-7 text-muted-foreground" />
+          <div className="mx-auto w-20 h-20 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm flex items-center justify-center">
+            <FolderOpen className="h-9 w-9 text-muted-foreground/40" />
           </div>
           <div>
-            <h2 className="text-xl font-extralight tracking-wide text-foreground mb-2">Projects</h2>
-            <p className="text-sm font-extralight text-muted-foreground">Organize your work into dedicated workspaces.</p>
+            <h2 className="text-xl font-extralight tracking-wide text-foreground mb-2">No Projects Yet</h2>
+            <p className="text-sm font-extralight text-muted-foreground leading-relaxed">
+              Projects let you organize conversations, datasets, and investigations into dedicated workspaces. Create your first one to get started.
+            </p>
           </div>
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-2.5 text-sm font-light text-foreground hover:bg-foreground/5 transition-colors">
+          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm px-6 py-3 text-sm font-light text-foreground hover:bg-foreground/5 transition-colors">
             <FolderPlus className="h-4 w-4" /> Create First Project
           </button>
         </div>
