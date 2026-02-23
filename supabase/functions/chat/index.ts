@@ -620,6 +620,51 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
+    // ── Admin-only backend/code discussion gate ──────────────────────────
+    // Detect if user is asking about internal code, backend, architecture
+    const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+    const backendKeywords = [
+      "supabase", "edge function", "backend", "database schema", "rls", "row level security",
+      "migration", "index.ts", "self-learning-loop", "self-access", "codebase", "source code",
+      "our code", "the code", "my code", "show me the code", "how does the backend",
+      "how does aureon work internally", "architecture", "infrastructure", "api key",
+      "lovable", "deno", "gemini api", "system prompt", "edge functions", "supabase function",
+      "asha-analyze", "zali-analyze", "nomad-investigate", "chat function", "security-gateway",
+    ];
+    let isBackendQuery = false;
+    if (lastUserMsg) {
+      const lc = lastUserMsg.content.toLowerCase();
+      isBackendQuery = backendKeywords.some((kw: string) => lc.includes(kw));
+    }
+
+    // Check if requester is admin via auth header
+    let isAdmin = false;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader && isBackendQuery) {
+      try {
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+        const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const token = authHeader.replace("Bearer ", "");
+        const { data: { user } } = await sb.auth.getUser(token);
+        if (user?.email === ADMIN_EMAIL) isAdmin = true;
+      } catch (e) {
+        console.error("Admin check failed:", e);
+      }
+    }
+
+    // If backend query from non-admin, inject deflection into system prompt
+    let adminBackendContext = "";
+    if (isBackendQuery && isAdmin) {
+      adminBackendContext = `\n\n## ADMIN BACKEND ACCESS (ASHER ONLY)
+You are speaking to Asher (ashernewtonx@gmail.com), the creator and sole administrator. You may discuss ALL internal architecture, code structure, edge functions, database schema, RLS policies, and system design openly. Use Asha-grade analytical logic — cross-reference data flows, trace entity relationships, apply threat modeling and scenario analysis to code decisions. Reference specific file paths, function names, and implementation details freely. Apply the full ASHA intelligence pipeline (ingest → analyze → entity extraction → insight generation → monitoring) to code review discussions.`;
+    } else if (isBackendQuery && !isAdmin) {
+      adminBackendContext = `\n\n## BACKEND DISCUSSION BLOCKED
+The user is asking about internal code, backend, or architecture. You are FORBIDDEN from discussing any internal implementation details. Respond with: "Aureon's architecture is proprietary. I can help you use the platform's features — what would you like to accomplish?"`;
+    }
+
     // ── Web search integration ─────────────────────────────────────────────
     let webSearchContext = "";
     if (shouldSearch(messages, mode)) {
@@ -670,6 +715,7 @@ serve(async (req) => {
       CONTEXT_INTELLIGENCE_PROMPT,
       userContextStr,
       webSearchContext,
+      adminBackendContext,
     ].filter(Boolean).join("\n\n");
 
     const geminiMessages = [
