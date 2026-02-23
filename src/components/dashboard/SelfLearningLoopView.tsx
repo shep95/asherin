@@ -118,10 +118,26 @@ const SelfLearningLoopView = () => {
     init();
   }, [fetchData]);
 
-  // Poll for updates when loop is running
+  // Poll for updates and auto-trigger new iterations when loop is running
   useEffect(() => {
     if (loopRunning) {
-      pollRef.current = setInterval(fetchData, 15000);
+      const poll = async () => {
+        await fetchData();
+        // Auto-trigger a new iteration if last run completed > 2 min ago
+        const lastRun = runs[0];
+        if (lastRun?.status === "completed" && lastRun.completed_at) {
+          const elapsed = Date.now() - new Date(lastRun.completed_at).getTime();
+          if (elapsed > 2 * 60 * 1000) {
+            try {
+              await supabase.functions.invoke("self-learning-loop", { body: { action: "run" } });
+              await fetchData();
+            } catch (e) {
+              console.error("Auto-iteration error:", e);
+            }
+          }
+        }
+      };
+      pollRef.current = setInterval(poll, 30000);
     } else if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
@@ -129,7 +145,7 @@ const SelfLearningLoopView = () => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [loopRunning, fetchData]);
+  }, [loopRunning, fetchData, runs]);
 
   const startLoop = async () => {
     setStarting(true);
@@ -158,6 +174,19 @@ const SelfLearningLoopView = () => {
       toast({ title: "Failed to stop", description: e.message, variant: "destructive" });
     }
     setStopping(false);
+  };
+
+  const runNow = async () => {
+    setStarting(true);
+    toast({ title: "Triggering iteration", description: "Running a new learning cycle now..." });
+    try {
+      await supabase.functions.invoke("self-learning-loop", { body: { action: "run" } });
+      toast({ title: "Iteration complete", description: "New brains generated. Refreshing data..." });
+      await fetchData(true);
+    } catch (e: any) {
+      toast({ title: "Iteration failed", description: e.message, variant: "destructive" });
+    }
+    setStarting(false);
   };
 
   const toggleBrain = async (brainId: string, active: boolean) => {
@@ -210,6 +239,16 @@ const SelfLearningLoopView = () => {
               className="rounded-2xl border border-border/40 bg-card/30 p-2.5 text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all disabled:opacity-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+
+            {/* Run Now - trigger single iteration */}
+            <button
+              onClick={runNow}
+              disabled={starting || stopping}
+              className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/30 px-4 py-2.5 text-xs font-extralight tracking-wider text-foreground hover:bg-card/50 transition-all disabled:opacity-50"
+            >
+              {starting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+              <span>Run Now</span>
             </button>
 
             {/* Run / Stop Toggle */}
