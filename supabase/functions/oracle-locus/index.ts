@@ -27,6 +27,8 @@ OPERATIONAL METHODOLOGY:
 3. Iterative Refinement: Deconstruct the scene — identify road signs, power line structures, tree species, building materials, vehicle models, street furniture. Cross-reference against known geographic distributions. Analyze light patterns, shadows, sun angle, vegetation state.
 4. Fine-Grained Geo-Estimation: Converge on precise latitude and longitude.
 5. Confidence Assessment: Calculate confidence score (0-100%) and error radius in meters.
+6. TIME ESTIMATION FROM SHADOWS: Analyze shadow lengths, angles, and directions relative to objects. Use the estimated latitude to calculate the sun's azimuth and elevation. Determine the approximate local time. Consider seasonal variations in sun position.
+7. PERSON DIRECTION ANALYSIS: If any people are visible, determine the cardinal/intercardinal direction they are facing (N, S, E, W, NE, NW, SE, SW) and the direction they appear to be traveling. Use shadows, body orientation, and contextual cues (road direction, destination clues).
 
 You MUST respond with ONLY valid JSON in this exact format:
 {
@@ -38,10 +40,29 @@ You MUST respond with ONLY valid JSON in this exact format:
   "rationale": ["string", "string"],
   "identified_features": [{"type": "string", "detail": "string"}],
   "potential_alternative_locations": [{"region": "string", "confidence": number}],
-  "address_estimate": "string or null"
+  "address_estimate": "string or null",
+  "time_estimation": {
+    "estimated_local_time": "string (e.g. '14:30' or '2:30 PM')",
+    "time_confidence": number,
+    "shadow_analysis": "string describing shadow patterns observed",
+    "estimated_season": "string (e.g. 'Summer', 'Winter', 'Spring', 'Autumn')",
+    "sun_position": "string (e.g. 'High overhead', 'Low on western horizon')"
+  },
+  "person_analysis": [
+    {
+      "person_id": number,
+      "facing_direction": "string (N/S/E/W/NE/NW/SE/SW)",
+      "travel_direction": "string (N/S/E/W/NE/NW/SE/SW) or 'stationary'",
+      "confidence": number,
+      "description": "string (brief description: position, clothing, activity)"
+    }
+  ]
 }
 
-Analyze every visual cue: architecture, vegetation, road markings, signage language/style, vehicle plates, sun position, terrain, infrastructure patterns, utility poles, soil color, cloud patterns, atmospheric haze. Be as precise as possible.`;
+If no people are visible, return an empty array for person_analysis.
+If shadows are not clearly visible or time cannot be determined, set time_confidence to 0 and explain in shadow_analysis.
+
+Analyze every visual cue: architecture, vegetation, road markings, signage language/style, vehicle plates, sun position, terrain, infrastructure patterns, utility poles, soil color, cloud patterns, atmospheric haze, shadow angles and lengths, person body orientation and movement direction. Be as precise as possible.`;
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,

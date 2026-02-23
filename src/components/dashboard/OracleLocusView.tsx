@@ -1,8 +1,24 @@
 import { useState, useRef } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair } from "lucide-react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+interface PersonAnalysis {
+  person_id: number;
+  facing_direction: string;
+  travel_direction: string;
+  confidence: number;
+  description: string;
+}
+
+interface TimeEstimation {
+  estimated_local_time: string;
+  time_confidence: number;
+  shadow_analysis: string;
+  estimated_season: string;
+  sun_position: string;
+}
 
 interface AnalysisResult {
   status: "SUCCESS" | "AMBIGUOUS" | "FAILURE";
@@ -14,6 +30,8 @@ interface AnalysisResult {
   identified_features: { type: string; detail: string }[];
   potential_alternative_locations: { region: string; confidence: number }[];
   address_estimate?: string | null;
+  time_estimation?: TimeEstimation;
+  person_analysis?: PersonAnalysis[];
 }
 
 const statusConfig = {
@@ -261,6 +279,72 @@ const OracleLocusView = () => {
                           <span className="uppercase tracking-wider opacity-60">{f.type}</span>
                           <span className="mx-1.5 opacity-30">·</span>
                           <span>{f.detail}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Time Estimation */}
+                {result.time_estimation && result.time_estimation.time_confidence > 0 && (
+                  <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-accent" />
+                      <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Time & Shadow Analysis</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-xl bg-card/30 p-3 text-center">
+                        <p className="text-lg font-mono font-extralight text-foreground">{result.time_estimation.estimated_local_time}</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">Est. Local Time</p>
+                      </div>
+                      <div className="rounded-xl bg-card/30 p-3 text-center">
+                        <p className="text-lg font-extralight text-foreground">{result.time_estimation.time_confidence}%</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">Time Confidence</p>
+                      </div>
+                      <div className="rounded-xl bg-card/30 p-3 text-center">
+                        <p className="text-lg font-extralight text-foreground">{result.time_estimation.estimated_season}</p>
+                        <p className="text-[9px] text-muted-foreground mt-1">Season</p>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-border/10 bg-card/10 p-3 space-y-1.5">
+                      <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Sun Position</p>
+                      <p className="text-xs font-light text-foreground/80">{result.time_estimation.sun_position}</p>
+                    </div>
+                    <div className="rounded-xl border border-border/10 bg-card/10 p-3 space-y-1.5">
+                      <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Shadow Analysis</p>
+                      <p className="text-xs font-light text-foreground/80 leading-relaxed">{result.time_estimation.shadow_analysis}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Person Direction Analysis */}
+                {result.person_analysis && result.person_analysis.length > 0 && (
+                  <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Compass className="h-3.5 w-3.5 text-accent" />
+                      <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Person Direction Analysis ({result.person_analysis.length})</p>
+                    </div>
+                    <div className="space-y-2">
+                      {result.person_analysis.map((p) => (
+                        <div key={p.person_id} className="rounded-xl border border-border/10 bg-card/10 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <User className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-xs font-light text-foreground">Person {p.person_id}</span>
+                              <span className="text-[10px] text-muted-foreground">{p.confidence}% conf.</span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg bg-card/30 px-3 py-2">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Facing</p>
+                              <p className="text-sm font-mono font-extralight text-foreground">{p.facing_direction}</p>
+                            </div>
+                            <div className="rounded-lg bg-card/30 px-3 py-2">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Traveling</p>
+                              <p className="text-sm font-mono font-extralight text-foreground">{p.travel_direction}</p>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground/70 mt-2">{p.description}</p>
                         </div>
                       ))}
                     </div>
