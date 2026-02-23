@@ -21,13 +21,14 @@ const plans: {
     id: "aureon",
     name: "AUREON",
     tagline: "AI Intelligence",
-    price: "$18",
+    price: "$199",
     period: "/ month",
-    description: "Full access to Aureon AI — uncensored, unfiltered. 300 messages per 3 hours.",
+    description: "Full access to Aureon AI — uncensored, unfiltered. 200 messages per 3 hours (Chat + IDE shared).",
     highlight: false,
     features: [
       "Uncensored AI responses on any topic",
-      "300 messages per 3-hour window",
+      "200 messages per 3-hour window (Chat + IDE shared)",
+      "Aureon IDE — full cloud development environment",
       "Elite coding engine",
       "Zophiel Search Engine",
       "Persistent memory across all sessions",
@@ -49,7 +50,7 @@ const plans: {
     highlight: false,
     features: [
       "Everything in Aureon — expanded",
-      "200 messages per 3-hour window",
+      "200 messages per 3-hour window (Chat + IDE shared)",
       "Aureon IDE — full cloud dev environment with AI chat",
       "Google Intelligence Suite — multi-account analysis",
       "Elion / Zohar Toolkit — domain forensics & OSINT",
@@ -72,29 +73,6 @@ const plans: {
       "Scenario Simulator & threat modeling",
       "Company & competitor tracking",
       "Priority model access",
-    ],
-  },
-  {
-    id: "advisor_monthly",
-    name: "AUREON ADVISOR",
-    tagline: "Direct Access — Limited to 8 Seats",
-    price: "$20,000",
-    period: "/ month",
-    description: "The full intelligence suite plus direct advisor access to Asher. NDA required. Limited to 8 clients worldwide.",
-    highlight: true,
-    purple: true,
-    features: [
-      "Everything in Pro — unlimited",
-      "ZALI Design Lab — unlimited projects & community",
-      "Direct advisor access to Asher",
-      "Limited to 8 clients worldwide",
-      "NDA required upon purchase",
-      "Custom intelligence operations",
-      "Private deployment option",
-      "Dedicated intelligence API endpoints",
-      "Priority model access — zero queue",
-      "24/7 direct support line",
-      "Annual option: $240,000/year",
     ],
   },
 ];
@@ -143,7 +121,7 @@ const SubscriptionView = () => {
     setRefreshing(false);
   };
 
-  const activePlanName = tierKey ? plans.find(p => p.id === tierKey)?.name ?? (tierKey === "advisor_annual" ? "AUREON ADVISOR (Annual)" : "Unknown") : null;
+  const activePlanName = tierKey ? plans.find(p => p.id === tierKey)?.name ?? "Unknown" : null;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -163,11 +141,11 @@ const SubscriptionView = () => {
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${subscribed ? (tierKey === "advisor_monthly" || tierKey === "advisor_annual" ? "bg-purple-500/20" : "bg-accent/20") : "bg-muted/20"}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${subscribed ? "bg-accent/20" : "bg-muted/20"}`}>
                 {loading ? (
                   <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
                 ) : subscribed ? (
-                  <Crown className={`h-5 w-5 ${tierKey === "advisor_monthly" || tierKey === "advisor_annual" ? "text-purple-400" : "text-accent"}`} />
+                  <Crown className="h-5 w-5 text-accent" />
                 ) : (
                   <AlertCircle className="h-5 w-5 text-muted-foreground" />
                 )}
@@ -206,28 +184,18 @@ const SubscriptionView = () => {
         </div>
 
         {/* Plan Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {plans.map((plan) => {
-            const isActive = tierKey === plan.id || (plan.id === "advisor_monthly" && tierKey === "advisor_annual");
-            const isPurple = plan.purple;
+            const isActive = tierKey === plan.id;
             return (
               <div
                 key={plan.id}
                 className={`rounded-xl border backdrop-blur-sm p-4 sm:p-5 transition-all flex flex-col ${
-                  isPurple
-                    ? "border-purple-500/30 bg-purple-500/5"
-                    : plan.highlight
-                      ? "border-accent/30 bg-accent/5"
-                      : "border-border/20 bg-card/20"
-                } ${isActive ? `ring-1 ${isPurple ? "ring-purple-500/50" : "ring-accent/50"}` : ""}`}
+                  plan.highlight
+                    ? "border-accent/30 bg-accent/5"
+                    : "border-border/20 bg-card/20"
+                } ${isActive ? "ring-1 ring-accent/50" : ""}`}
               >
-                {isPurple && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-0.5 mb-3 w-fit">
-                    <Zap className="h-3 w-3 text-purple-400" />
-                    <span className="text-[10px] font-medium tracking-[0.15em] text-purple-400 uppercase">Advisor — 8 Seats Only</span>
-                  </div>
-                )}
-
                 {isActive && (
                   <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 mb-3 w-fit">
                     <Check className="h-3 w-3 text-emerald-400" />
@@ -245,63 +213,28 @@ const SubscriptionView = () => {
 
                 <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">{plan.description}</p>
 
-                {plan.id === "advisor_monthly" ? (
-                  <div className="mt-4 space-y-2">
-                    <button
-                      onClick={() => !isActive && startCheckout("advisor_monthly")}
-                      disabled={isActive || checkoutLoading}
-                      className={`group flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
-                        isActive
-                          ? "bg-muted/20 text-muted-foreground cursor-default"
-                          : "bg-purple-500 text-white hover:bg-purple-500/90"
-                      }`}
-                    >
-                      {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? "Current Plan" : <>$20,000/mo <ArrowRight className="h-3.5 w-3.5" /></>}
-                    </button>
-                    <button
-                      onClick={() => !isActive && startCheckout("advisor_annual")}
-                      disabled={isActive || checkoutLoading}
-                      className="group flex w-full items-center justify-center gap-2 rounded-lg py-2 text-[11px] font-light tracking-wide border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all disabled:opacity-50"
-                    >
-                      $240,000/year (save $0)
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => !isActive && startCheckout(plan.id)}
-                    disabled={isActive || checkoutLoading}
-                    className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
-                      isActive
-                        ? "bg-muted/20 text-muted-foreground cursor-default"
-                        : "bg-foreground text-background hover:bg-foreground/90"
-                    }`}
-                  >
-                    {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? "Current Plan" : <>Subscribe <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></>}
-                  </button>
-                )}
+                <button
+                  onClick={() => !isActive && startCheckout(plan.id)}
+                  disabled={isActive || checkoutLoading}
+                  className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-light tracking-wide transition-all ${
+                    isActive
+                      ? "bg-muted/20 text-muted-foreground cursor-default"
+                      : "bg-foreground text-background hover:bg-foreground/90"
+                  }`}
+                >
+                  {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? "Current Plan" : <>Subscribe <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></>}
+                </button>
 
                 <div className="my-4 h-px bg-border/15" />
 
                 <ul className="space-y-1.5 flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-[11px] font-extralight text-foreground/80">
-                      <Check className={`h-3 w-3 mt-0.5 shrink-0 ${isPurple ? "text-purple-400" : "text-emerald-400"}`} />
+                      <Check className="h-3 w-3 mt-0.5 shrink-0 text-emerald-400" />
                       {feature}
                     </li>
                   ))}
                 </ul>
-
-                {plan.id === "advisor_monthly" && (
-                  <div className="mt-4 rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <FileText className="h-3.5 w-3.5 text-purple-400" />
-                      <span className="text-[10px] text-purple-400 font-light uppercase tracking-wider">NDA Required</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      Advisor clients must sign a Non-Disclosure Agreement upon purchase. <Link to="/nda" className="text-purple-400 underline">Review NDA</Link>
-                    </p>
-                  </div>
-                )}
               </div>
             );
           })}

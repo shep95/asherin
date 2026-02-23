@@ -26,6 +26,7 @@ import FeaturePredictive from "./pages/FeaturePredictive";
 import FeatureElion from "./pages/FeatureElion";
 import FeatureTracker from "./pages/FeatureTracker";
 import FeatureImagineToCode from "./pages/FeatureImagineToCode";
+import FeatureIde from "./pages/FeatureIde";
 import Dashboard from "./pages/Dashboard";
 import TrackPage from "./pages/TrackPage";
 import ProjAureon from "./pages/ProjAureon";
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/feature/elion" element={<FeatureElion />} />
             <Route path="/feature/tracker" element={<FeatureTracker />} />
             <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
+            <Route path="/feature/ide" element={<FeatureIde />} />
             <Route path="/i" element={<TrackPage />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
             <Route

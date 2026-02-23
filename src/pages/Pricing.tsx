@@ -9,14 +9,15 @@ const tiers = [
     id: "aureon",
     name: "AUREON",
     tagline: "AI Intelligence",
-    price: "$18",
+    price: "$199",
     period: "/ month",
-    description: "Full access to Aureon AI — uncensored, unfiltered. 300 messages per 3-hour window. Resets automatically.",
+    description: "Full access to Aureon AI — uncensored, unfiltered. 200 messages per 3-hour window across Chat & IDE. Resets automatically.",
     cta: "Get Aureon Access",
     highlight: false,
     features: [
       "Uncensored AI responses on any topic",
-      "300 messages per 3-hour window",
+      "200 messages per 3-hour window (Chat + IDE shared)",
+      "Aureon IDE — full cloud development environment",
       "Elite coding engine",
       "Zophiel Search Engine",
       "Persistent memory across all sessions",
@@ -40,7 +41,7 @@ const tiers = [
     highlight: false,
     features: [
       "Everything in Aureon — expanded",
-      "200 messages per 3-hour window",
+      "200 messages per 3-hour window (Chat + IDE shared)",
       "Aureon IDE — full cloud development environment",
       "Google Intelligence Suite — multi-account analysis",
       "Elion / Zohar Toolkit — domain forensics & OSINT",
@@ -65,36 +66,12 @@ const tiers = [
       "Priority model access",
     ],
   },
-  {
-    id: "advisor",
-    name: "AUREON ADVISOR",
-    tagline: "Direct Access — 8 Seats Only",
-    price: "$20,000",
-    period: "/ month",
-    description: "The full intelligence suite plus direct advisor access to Asher. NDA required. Limited to 8 clients worldwide. Annual: $240,000/year.",
-    cta: "Apply For Advisor Access",
-    highlight: true,
-    purple: true,
-    features: [
-      "Everything in Pro — unlimited",
-      "ZALI Design Lab — unlimited projects & community",
-      "Direct advisor access to Asher",
-      "Limited to 8 clients worldwide",
-      "NDA required upon purchase",
-      "Custom intelligence operations",
-      "Private deployment option",
-      "Dedicated intelligence API endpoints",
-      "Priority model access — zero queue",
-      "24/7 direct support line",
-      "Annual option: $240,000/year",
-    ],
-  },
 ];
 const Pricing = () => {
   useEffect(() => {
     document.title = "Pricing — Aureon | Uncensored AI Intelligence";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon pricing: $18/mo Individual, $740/mo Pro, $20,000/mo Advisor. No free tier. Full access from day one.");
+    if (meta) meta.setAttribute("content", "Aureon pricing: $199/mo Aureon, $740/mo Pro. No free tier. Full access from day one.");
   }, []);
 
   return (
@@ -122,25 +99,17 @@ const Pricing = () => {
 
       {/* Pricing Cards */}
       <div className="relative z-10 px-6 pb-24">
-        <div className="mx-auto max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+        <div className="mx-auto max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
           {tiers.map((tier) => (
             <div
-              key={tier.id}
+key={tier.id}
               className={`rounded-2xl border backdrop-blur-md p-8 sm:p-10 transition-all flex flex-col ${
-                tier.purple
-                  ? "border-purple-500/30 bg-purple-500/5 shadow-[0_0_60px_-15px_rgba(168,85,247,0.15)]"
-                  : tier.highlight
-                    ? "border-accent/30 bg-accent/5 shadow-[0_0_60px_-15px_hsl(var(--accent)/0.15)]"
-                    : "border-border/20 bg-card/30"
+                tier.highlight
+                  ? "border-accent/30 bg-accent/5 shadow-[0_0_60px_-15px_hsl(var(--accent)/0.15)]"
+                  : "border-border/20 bg-card/30"
               }`}
             >
-              {tier.purple && (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 mb-6 w-fit">
-                  <Zap className="h-3 w-3 text-purple-400" />
-                  <span className="text-[10px] font-medium tracking-[0.2em] text-purple-400 uppercase">Advisor — 8 Seats</span>
-                </div>
-              )}
-              {tier.highlight && !tier.purple && (
+              {tier.highlight && (
                 <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-6 w-fit">
                   <Zap className="h-3 w-3 text-accent" />
                   <span className="text-[10px] font-medium tracking-[0.2em] text-accent uppercase">Full Suite</span>
@@ -159,11 +128,9 @@ const Pricing = () => {
 
               <button
                 className={`group mt-8 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-light tracking-wide transition-all ${
-                  tier.purple
-                    ? "bg-purple-500 text-white hover:bg-purple-500/90"
-                    : tier.highlight
-                      ? "bg-accent text-accent-foreground hover:bg-accent/90"
-                      : "bg-foreground text-background hover:bg-foreground/90"
+                  tier.highlight
+                    ? "bg-accent text-accent-foreground hover:bg-accent/90"
+                    : "bg-foreground text-background hover:bg-foreground/90"
                 }`}
               >
                 {tier.cta}
@@ -175,7 +142,7 @@ const Pricing = () => {
               <ul className="space-y-3 flex-1">
                 {tier.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
-                    <Check className={`h-4 w-4 mt-0.5 shrink-0 ${tier.purple ? "text-purple-400" : tier.highlight ? "text-accent" : "text-emerald-400"}`} />
+                    <Check className={`h-4 w-4 mt-0.5 shrink-0 ${tier.highlight ? "text-accent" : "text-emerald-400"}`} />
                     {feature}
                   </li>
                 ))}
@@ -198,7 +165,7 @@ const Pricing = () => {
               { icon: Code, label: "Elite Coding", desc: "Multi-file architecture, debugging, and production-grade output.", tier: "All tiers" },
               { icon: Shield, label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
               { icon: Search, label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
-              { icon: Cpu, label: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "Pro & Advisor" },
+              { icon: Cpu, label: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "All tiers" },
               { icon: Globe, label: "Google Intelligence", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome, and more.", tier: "Pro & Advisor" },
               { icon: TrendingUp, label: "Predictive Intelligence", desc: "AI-powered event forecasting with signal detection and confidence scoring.", tier: "Pro & Advisor" },
               { icon: Code, label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask AUREON to design directly on the canvas.", tier: "Pro & Advisor" },
@@ -207,8 +174,6 @@ const Pricing = () => {
               { icon: Newspaper, label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro & Advisor" },
               { icon: ScanLine, label: "Elion / Zohar Toolkit", desc: "Domain forensics, security scoring, subdomain recon, and full attack surface mapping.", tier: "Pro & Advisor" },
               { icon: Database, label: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", tier: "Pro & Advisor" },
-              { icon: Users, label: "Direct Advisor Access", desc: "Direct access to Asher for custom intelligence operations. NDA required.", tier: "Advisor Only" },
-              { icon: Server, label: "Private Deployment", desc: "On-premise or private cloud deployment for maximum control.", tier: "Advisor Only" },
             ].map(({ icon: Icon, label, desc, tier: tierLabel }) => (
               <div key={label} className={`rounded-xl border p-5 backdrop-blur-md ${tierLabel === "Advisor Only" ? "border-purple-500/15 bg-purple-500/5" : tierLabel === "Pro & Advisor" ? "border-accent/15 bg-accent/5" : "border-border/20 bg-card/30"}`}>
                 <div className="flex items-center gap-3 mb-2">
@@ -247,11 +212,11 @@ const Pricing = () => {
           <div className="space-y-3">
             {[
               { q: "Can I upgrade from Aureon to Pro or Advisor?", a: "Yes. Upgrade anytime from your dashboard. Changes take effect immediately with prorated billing." },
-              { q: "What are the message limits?", a: "Aureon: 300 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited. All limits reset automatically." },
+              { q: "What are the message limits?", a: "Aureon: 200 messages per 3 hours (shared between Chat & IDE). Pro: 200 per 3 hours. All limits reset automatically." },
               { q: "What payment methods do you accept?", a: "All major credit cards and wire transfers for Advisor. Billing is handled securely — we never store card details." },
-              { q: "Is there a contract for Advisor?", a: "Monthly or annual billing. NDA required. Cancel anytime with 30 days notice." },
+              
               { q: "What do Daily Intelligence Briefings include?", a: "Personalized morning reports covering your competitors, industry, key markets, regulatory changes, and news — generated from 100+ sources and delivered in-app." },
-              { q: "What is the NDA for?", a: "Advisor clients sign a Non-Disclosure Agreement to protect proprietary intelligence methods and platform internals. Review it at /nda." },
+              
             ].map(({ q, a }) => (
               <details key={q} className="group rounded-xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden">
                 <summary className="flex items-center justify-between px-6 py-4 cursor-pointer text-sm font-light tracking-wide text-foreground list-none">
@@ -277,11 +242,11 @@ const Pricing = () => {
             <p className="mt-4 text-sm font-extralight text-muted-foreground">No free trial. Full access. Day one.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
-                Start With Aureon — $18/mo
+                Start With Aureon — $199/mo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
-              <button className="group flex items-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/10 px-8 py-3 text-sm font-light tracking-wide text-purple-400 hover:bg-purple-500/20 transition-all">
-                Advisor Access
+              <button className="group flex items-center gap-2 rounded-xl border border-border/30 bg-card/30 px-8 py-3 text-sm font-light tracking-wide text-foreground hover:bg-card/50 transition-all">
+                Go Pro — $740/mo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
             </div>
