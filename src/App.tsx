@@ -5,32 +5,43 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import Index from "./pages/Index";
-import Pricing from "./pages/Pricing";
-import NotFound from "./pages/NotFound";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Founder from "./pages/Founder";
-import PromptEngineering from "./pages/PromptEngineering";
-import Features from "./pages/Features";
-import Benchmarks from "./pages/Benchmarks";
-import NDA from "./pages/NDA";
-import EquityOwnership from "./pages/EquityOwnership";
-import FeatureZophiel from "./pages/FeatureZophiel";
-import FeatureNomad from "./pages/FeatureNomad";
-import FeatureAsha from "./pages/FeatureAsha";
-import FeatureBriefings from "./pages/FeatureBriefings";
-import FeaturePersonas from "./pages/FeaturePersonas";
-import FeatureZali from "./pages/FeatureZali";
-import FeaturePredictive from "./pages/FeaturePredictive";
-import FeatureElion from "./pages/FeatureElion";
-import FeatureTracker from "./pages/FeatureTracker";
-import FeatureImagineToCode from "./pages/FeatureImagineToCode";
-import FeatureIde from "./pages/FeatureIde";
-import Dashboard from "./pages/Dashboard";
-import TrackPage from "./pages/TrackPage";
-import ProjAureon from "./pages/ProjAureon";
+import { lazy, Suspense } from "react";
+
+// [Finding #9] Route-based code splitting for performance
+const Index = lazy(() => import("./pages/Index"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Founder = lazy(() => import("./pages/Founder"));
+const PromptEngineering = lazy(() => import("./pages/PromptEngineering"));
+const Features = lazy(() => import("./pages/Features"));
+const Benchmarks = lazy(() => import("./pages/Benchmarks"));
+const NDA = lazy(() => import("./pages/NDA"));
+const EquityOwnership = lazy(() => import("./pages/EquityOwnership"));
+const FeatureZophiel = lazy(() => import("./pages/FeatureZophiel"));
+const FeatureNomad = lazy(() => import("./pages/FeatureNomad"));
+const FeatureAsha = lazy(() => import("./pages/FeatureAsha"));
+const FeatureBriefings = lazy(() => import("./pages/FeatureBriefings"));
+const FeaturePersonas = lazy(() => import("./pages/FeaturePersonas"));
+const FeatureZali = lazy(() => import("./pages/FeatureZali"));
+const FeaturePredictive = lazy(() => import("./pages/FeaturePredictive"));
+const FeatureElion = lazy(() => import("./pages/FeatureElion"));
+const FeatureTracker = lazy(() => import("./pages/FeatureTracker"));
+const FeatureImagineToCode = lazy(() => import("./pages/FeatureImagineToCode"));
+const FeatureIde = lazy(() => import("./pages/FeatureIde"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const TrackPage = lazy(() => import("./pages/TrackPage"));
+const ProjAureon = lazy(() => import("./pages/ProjAureon"));
 import ProtectedRoute from "./components/ProtectedRoute";
+
+const PageLoader = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-background">
+    <div className="text-sm font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">
+      AUREON
+    </div>
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -42,6 +53,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/pricing" element={<Pricing />} />
@@ -77,6 +89,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
       </SubscriptionProvider>

@@ -24,11 +24,21 @@ serve(async (req) => {
     if (claimsError || !claimsData?.claims) throw new Error("Unauthorized");
     const userId = claimsData.claims.sub as string;
 
-    const { sessionId, companyName } = await req.json();
+    const { sessionId, companyName, content: rawContent } = await req.json();
     if (!sessionId) throw new Error("Missing sessionId");
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+
+    // [Finding #8/#11] Sanitize and truncate input content to prevent OOM / token waste
+    const MAX_INPUT_CHARS = 50000;
+    const sanitizeContent = (text: string): string => {
+      return text
+        .replace(/<[^>]*>?/gm, "")    // Strip HTML
+        .replace(/\s+/g, " ")          // Collapse whitespace
+        .trim()
+        .slice(0, MAX_INPUT_CHARS);
+    };
 
     // Fetch all ready documents for this session
     const { data: documents } = await supabase
@@ -64,8 +74,9 @@ serve(async (req) => {
       if (unprocessed.length === 0) continue;
 
       // Build combined text for batch extraction
+      // [Finding #8/#11] Sanitize content before sending to LLM
       const combinedText = unprocessed.map(d =>
-        `[DOCUMENT: ${d.file_name} | TYPE: ${d.doc_type} | ID: ${d.id}]\n${d.extracted_text?.slice(0, 3000) || d.summary || ""}\n---`
+        `[DOCUMENT: ${d.file_name} | TYPE: ${d.doc_type} | ID: ${d.id}]\n${sanitizeContent(d.extracted_text?.slice(0, 3000) || d.summary || "")}\n---`
       ).join("\n\n");
 
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -100,8 +111,10 @@ RULES:
       if (!resp.ok) continue;
 
       const data = await resp.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const match = text.match(/\[[\s\S]*\]/);
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      // [Finding #3] Strip markdown fences and preamble before parsing
+      const cleanedText = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const match = cleanedText.match(/\[[\s\S]*\]/);
       if (!match) continue;
 
       try {
@@ -182,8 +195,10 @@ RULES:
 
       if (insightResp.ok) {
         const insightData = await insightResp.json();
-        const insightText = insightData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const insightMatch = insightText.match(/\[[\s\S]*\]/);
+        const rawInsightText = insightData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        // [Finding #3] Strip markdown fences from insight response too
+        const cleanedInsightText = rawInsightText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+        const insightMatch = cleanedInsightText.match(/\[[\s\S]*\]/);
 
         if (insightMatch) {
           const insights = JSON.parse(insightMatch[0]);
