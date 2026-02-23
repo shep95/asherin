@@ -679,7 +679,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     }
 
     // ── PROMPT GUARD — Block prompt injection attempts ─────────────────────
-    const lastUserMsg = messages[messages.length - 1]?.content || "";
+    const guardMsg = messages[messages.length - 1]?.content || "";
     const INJECTION_PATTERNS = [
       /ignore\s+(previous|all|prior)\s+(instructions|prompts|rules)/i,
       /you\s+are\s+now\s+/i,
@@ -690,9 +690,9 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       /\bDAN\b|\bDo Anything Now\b/i,
       /\bjailbreak\b/i,
     ];
-    const isInjectionAttempt = INJECTION_PATTERNS.some(p => p.test(lastUserMsg));
+    const isInjectionAttempt = INJECTION_PATTERNS.some(p => p.test(guardMsg));
     if (isInjectionAttempt) {
-      console.warn("Prompt injection attempt detected:", lastUserMsg.slice(0, 100));
+      console.warn("Prompt injection attempt detected:", guardMsg.slice(0, 100));
       // Sanitize: append a guard instruction
     }
 
