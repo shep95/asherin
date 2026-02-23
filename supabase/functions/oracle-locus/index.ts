@@ -92,8 +92,9 @@ Analyze every visual cue: architecture, vegetation, road markings, signage langu
     const data = await res.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    // Strip markdown fences and extract JSON
+    let cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return new Response(JSON.stringify({ error: "No valid analysis returned", raw: text }), {
         status: 200,
@@ -101,7 +102,18 @@ Analyze every visual cue: architecture, vegetation, road markings, signage langu
       });
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    let jsonStr = jsonMatch[0];
+    // Fix common LLM JSON issues: trailing commas before } or ]
+    jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+
+    let analysis: Record<string, unknown>;
+    try {
+      analysis = JSON.parse(jsonStr);
+    } catch {
+      // Last resort: try to eval-safe parse by removing control chars
+      jsonStr = jsonStr.replace(/[\x00-\x1F\x7F]/g, " ");
+      analysis = JSON.parse(jsonStr);
+    }
 
     return new Response(JSON.stringify(analysis), {
       status: 200,
