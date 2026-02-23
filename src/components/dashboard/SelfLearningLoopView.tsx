@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Brain, Zap, ShieldCheck, Bug, Gauge, Code2, Play, Square, RefreshCw, Activity,
-  CheckCircle2, XCircle, Clock, Loader2, Terminal, Eye, ChevronDown, ChevronRight, Pause,
+  CheckCircle2, XCircle, Clock, Loader2, Terminal, Eye, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 interface Run {
@@ -49,28 +49,28 @@ interface AgentLog {
   created_at: string;
 }
 
-interface CronSettings {
-  enabled: boolean;
-  interval_minutes: number;
-  last_cron_run_at: string | null;
-}
-
 const AGENT_ICONS: Record<string, typeof Brain> = {
   "Debugging Agent": Bug,
   "Optimization Agent": Gauge,
   "Security Agent": ShieldCheck,
   "Design Agent": Eye,
   "Architecture Agent": Code2,
+  "Generator": Code2,
+  "Analyzer": Bug,
+  "Brain Builder": Brain,
+  "Rebuilder": RefreshCw,
+  "Verifier": CheckCircle2,
   "Scout": Zap,
   "System": Terminal,
 };
 
 const DOMAINS = [
-  "Software Design & Architecture", "Frontend Development", "Backend Development",
-  "Database Engineering", "Systems Programming", "Cybersecurity Engineering",
-  "Quality Assurance & Testing", "DevOps & Infrastructure-as-Code",
-  "Data Engineering & Science", "AI/Machine Learning Engineering",
-  "Intelligence Architecture", "Computational Linguistics", "Specialized Computing",
+  "Authentication & Authorization", "API Engineering", "Database Engineering",
+  "Frontend Architecture", "Cybersecurity", "Realtime Systems",
+  "Data Pipeline", "ML Engineering", "Infrastructure",
+  "Quality Assurance", "Concurrency & Parallelism", "Network Programming",
+  "Compiler & Interpreter Design", "Cryptography", "Systems Programming",
+  "Data Structures & Algorithms",
 ];
 
 const SelfLearningLoopView = () => {
@@ -79,61 +79,82 @@ const SelfLearningLoopView = () => {
   const [brains, setBrains] = useState<BrainDirective[]>([]);
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
-  const [cronSettings, setCronSettings] = useState<CronSettings | null>(null);
-  const [togglingCron, setTogglingCron] = useState(false);
+  const [loopRunning, setLoopRunning] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [expandedBrain, setExpandedBrain] = useState<string | null>(null);
+  const [lastRunTime, setLastRunTime] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
     try {
-      const [runsResp, brainsResp, logsResp, cronResp] = await Promise.all([
+      const [runsResp, brainsResp, logsResp, statusResp] = await Promise.all([
         supabase.functions.invoke("self-learning-loop", { body: { action: "get-runs" } }),
         supabase.functions.invoke("self-learning-loop", { body: { action: "get-brains" } }),
         supabase.functions.invoke("self-learning-loop", { body: { action: "get-logs" } }),
-        supabase.functions.invoke("self-learning-loop", { body: { action: "get-cron-status" } }),
+        supabase.functions.invoke("self-learning-loop", { body: { action: "get-status" } }),
       ]);
       if (runsResp.data?.runs) setRuns(runsResp.data.runs);
       if (brainsResp.data?.brains) setBrains(brainsResp.data.brains);
       if (logsResp.data?.logs) setLogs(logsResp.data.logs);
-      if (cronResp.data?.cron) setCronSettings(cronResp.data.cron);
+      if (statusResp.data) {
+        setLoopRunning(statusResp.data.running === true);
+        if (statusResp.data.lastRun?.created_at) setLastRunTime(statusResp.data.lastRun.created_at);
+      }
     } catch (e) {
       console.error("Fetch error:", e);
     }
-    setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await fetchData();
+      setLoading(false);
+    };
+    init();
+  }, [fetchData]);
 
-  const triggerRun = async () => {
-    setRunning(true);
-    toast({ title: "Self-Learning Loop initiated", description: "Agents are analyzing domains..." });
+  // Poll for updates when loop is running
+  useEffect(() => {
+    if (loopRunning) {
+      pollRef.current = setInterval(fetchData, 15000);
+    } else if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [loopRunning, fetchData]);
+
+  const startLoop = async () => {
+    setStarting(true);
+    toast({ title: "Starting Self-Learning Loop", description: "The loop will run continuously until you stop it — even if you close the app." });
     try {
-      const { data, error } = await supabase.functions.invoke("self-learning-loop", { body: { action: "run" } });
+      const { error } = await supabase.functions.invoke("self-learning-loop", { body: { action: "start-loop" } });
       if (error) throw error;
-      toast({ title: "Loop completed", description: `${data.findings} findings generated in ${(data.duration / 1000).toFixed(1)}s` });
+      setLoopRunning(true);
+      toast({ title: "Loop is running", description: "Continuous learning iterations active. Close the app — it keeps going." });
       fetchData();
     } catch (e: any) {
-      toast({ title: "Loop failed", description: e.message, variant: "destructive" });
+      toast({ title: "Failed to start", description: e.message, variant: "destructive" });
     }
-    setRunning(false);
+    setStarting(false);
   };
 
-  const toggleCron = async (enabled: boolean) => {
-    setTogglingCron(true);
+  const stopLoop = async () => {
+    setStopping(true);
     try {
-      await supabase.functions.invoke("self-learning-loop", {
-        body: { action: "set-cron", enabled },
-      });
-      setCronSettings(prev => prev ? { ...prev, enabled } : { enabled, interval_minutes: 60, last_cron_run_at: null });
-      toast({
-        title: enabled ? "24/7 Loop activated" : "24/7 Loop paused",
-        description: enabled ? "Cron will execute every hour automatically" : "Automatic execution paused",
-      });
+      const { error } = await supabase.functions.invoke("self-learning-loop", { body: { action: "stop-loop" } });
+      if (error) throw error;
+      setLoopRunning(false);
+      toast({ title: "Loop stopped", description: "Self-learning has been halted." });
+      fetchData();
     } catch (e: any) {
-      toast({ title: "Failed to toggle cron", description: e.message, variant: "destructive" });
+      toast({ title: "Failed to stop", description: e.message, variant: "destructive" });
     }
-    setTogglingCron(false);
+    setStopping(false);
   };
 
   const toggleBrain = async (brainId: string, active: boolean) => {
@@ -146,7 +167,6 @@ const SelfLearningLoopView = () => {
   const totalBugs = runs.reduce((sum, r) => sum + (r.bugs_found || 0), 0);
   const totalOptimizations = runs.reduce((sum, r) => sum + (r.optimizations_applied || 0), 0);
   const totalSecurityPatches = runs.reduce((sum, r) => sum + (r.security_patches || 0), 0);
-  const cronEnabled = cronSettings?.enabled ?? false;
 
   if (loading) {
     return (
@@ -167,22 +187,19 @@ const SelfLearningLoopView = () => {
             </div>
             <div>
               <h1 className="text-lg font-extralight tracking-[0.3em] uppercase text-foreground">Self-Learning Loop</h1>
-              <p className="text-xs font-extralight text-muted-foreground tracking-wide">Autonomous code intelligence</p>
+              <p className="text-xs font-extralight text-muted-foreground tracking-wide">
+                {loopRunning ? "Running continuously — survives app close" : "Autonomous code intelligence"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {/* 24/7 Toggle */}
-            <div className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/30 px-4 py-2">
-              <span className="text-[10px] font-extralight tracking-widest uppercase text-muted-foreground">24/7</span>
-              {cronEnabled && (
-                <span className="h-1.5 w-1.5 rounded-full bg-foreground animate-pulse" />
-              )}
-              <Switch
-                checked={cronEnabled}
-                onCheckedChange={toggleCron}
-                disabled={togglingCron}
-              />
-            </div>
+            {/* Live indicator */}
+            {loopRunning && (
+              <div className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/30 px-4 py-2">
+                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] font-extralight tracking-widest uppercase text-foreground">LIVE</span>
+              </div>
+            )}
 
             <button
               onClick={fetchData}
@@ -191,24 +208,34 @@ const SelfLearningLoopView = () => {
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
 
-            {/* Run / Stop */}
-            <button
-              onClick={running ? undefined : triggerRun}
-              disabled={running}
-              className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/50 px-5 py-2.5 text-sm font-extralight tracking-wider text-foreground hover:bg-card/80 transition-all disabled:opacity-50"
-            >
-              {running ? (
-                <>
+            {/* Run / Stop Toggle */}
+            {loopRunning ? (
+              <button
+                onClick={stopLoop}
+                disabled={stopping}
+                className="flex items-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-2.5 text-sm font-extralight tracking-wider text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50"
+              >
+                {stopping ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Running</span>
-                </>
-              ) : (
-                <>
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+                <span>Stop</span>
+              </button>
+            ) : (
+              <button
+                onClick={startLoop}
+                disabled={starting}
+                className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/50 px-5 py-2.5 text-sm font-extralight tracking-wider text-foreground hover:bg-card/80 transition-all disabled:opacity-50"
+              >
+                {starting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
                   <Play className="h-4 w-4" />
-                  <span>Run</span>
-                </>
-              )}
-            </button>
+                )}
+                <span>Run</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -217,11 +244,11 @@ const SelfLearningLoopView = () => {
           {[
             { label: "Total Runs", value: runs.length, icon: Activity },
             { label: "Active Brains", value: activeBrains, icon: Brain },
+            { label: "All Brains", value: brains.length, icon: Brain },
             { label: "Findings", value: totalFindings, icon: Zap },
             { label: "Bugs", value: totalBugs, icon: Bug },
             { label: "Optimizations", value: totalOptimizations, icon: Gauge },
             { label: "Security", value: totalSecurityPatches, icon: ShieldCheck },
-            { label: "Domains", value: DOMAINS.length, icon: Code2 },
           ].map((stat) => (
             <div key={stat.label} className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-3">
               <div className="flex items-center gap-2 mb-1">
@@ -233,19 +260,19 @@ const SelfLearningLoopView = () => {
           ))}
         </div>
 
-        {/* Cron status bar */}
-        {cronSettings && (
+        {/* Status bar */}
+        {lastRunTime && (
           <div className="mt-3 flex items-center gap-4 rounded-2xl border border-border/20 bg-card/10 px-4 py-2 text-xs font-extralight text-muted-foreground">
-            <span className="tracking-wider uppercase">Cron Status</span>
-            <span className={cronEnabled ? "text-foreground" : "text-muted-foreground"}>
-              {cronEnabled ? "Active" : "Paused"}
+            <span className="tracking-wider uppercase">Status</span>
+            <span className={loopRunning ? "text-green-400" : "text-muted-foreground"}>
+              {loopRunning ? "Running (persistent)" : "Stopped"}
             </span>
             <span className="text-muted-foreground/30">|</span>
-            <span>Interval: {cronSettings.interval_minutes}min</span>
-            {cronSettings.last_cron_run_at && (
+            <span>Last iteration: {new Date(lastRunTime).toLocaleString()}</span>
+            {loopRunning && (
               <>
                 <span className="text-muted-foreground/30">|</span>
-                <span>Last: {new Date(cronSettings.last_cron_run_at).toLocaleString()}</span>
+                <span className="text-foreground/60">Polling every 15s</span>
               </>
             )}
           </div>
@@ -257,7 +284,10 @@ const SelfLearningLoopView = () => {
         <div className="p-6">
           <Tabs defaultValue="brains" className="space-y-4">
             <TabsList className="bg-card/30 border border-border/30 rounded-2xl">
-              <TabsTrigger value="brains" className="text-xs font-extralight tracking-wider rounded-xl">Brains ({brains.length})</TabsTrigger>
+              <TabsTrigger value="brains" className="text-xs font-extralight tracking-wider rounded-xl">
+                <Brain className="h-3.5 w-3.5 mr-1.5" />
+                Brains ({brains.length})
+              </TabsTrigger>
               <TabsTrigger value="runs" className="text-xs font-extralight tracking-wider rounded-xl">Runs ({runs.length})</TabsTrigger>
               <TabsTrigger value="agents" className="text-xs font-extralight tracking-wider rounded-xl">Logs ({logs.length})</TabsTrigger>
               <TabsTrigger value="domains" className="text-xs font-extralight tracking-wider rounded-xl">Domains ({DOMAINS.length})</TabsTrigger>
@@ -267,12 +297,17 @@ const SelfLearningLoopView = () => {
             <TabsContent value="brains" className="space-y-3">
               {brains.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground text-sm font-extralight">
-                  No brains generated yet. Execute a loop to begin.
+                  <Brain className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                  <p>No brains generated yet.</p>
+                  <p className="text-xs mt-1 text-muted-foreground/60">Click Run to start the learning loop.</p>
                 </div>
               ) : brains.map((brain) => (
-                <div key={brain.id} className={`rounded-2xl border ${brain.active ? "border-border/50 bg-card/20" : "border-border/20 bg-card/5"} backdrop-blur-sm transition-all`}>
+                <div key={brain.id} className={`rounded-2xl border ${brain.active ? "border-border/50 bg-card/20" : "border-border/20 bg-card/5 opacity-60"} backdrop-blur-sm transition-all`}>
                   <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div
+                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                      onClick={() => setExpandedBrain(expandedBrain === brain.id ? null : brain.id)}
+                    >
                       <Brain className={`h-4 w-4 flex-shrink-0 ${brain.active ? "text-foreground" : "text-muted-foreground"}`} />
                       <div className="min-w-0">
                         <p className="text-sm font-extralight text-foreground truncate">{brain.name}</p>
@@ -281,11 +316,17 @@ const SelfLearningLoopView = () => {
                           <span className="text-[10px] text-muted-foreground font-extralight">
                             {(brain.confidence * 100).toFixed(0)}% confidence
                           </span>
+                          <span className="text-[10px] text-muted-foreground/40 font-extralight">
+                            {new Date(brain.created_at).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => setExpandedBrain(expandedBrain === brain.id ? null : brain.id)} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <button
+                        onClick={() => setExpandedBrain(expandedBrain === brain.id ? null : brain.id)}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
                         {expandedBrain === brain.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                       </button>
                       <Switch checked={brain.active} onCheckedChange={(v) => toggleBrain(brain.id, v)} />
@@ -294,14 +335,14 @@ const SelfLearningLoopView = () => {
                   {expandedBrain === brain.id && (
                     <div className="px-4 pb-4 border-t border-border/20 mt-0 pt-3">
                       <p className="text-[10px] font-extralight text-muted-foreground mb-2 uppercase tracking-widest">Directive</p>
-                      <pre className="text-xs font-extralight text-foreground/70 whitespace-pre-wrap bg-background/30 rounded-xl p-3 border border-border/20 max-h-64 overflow-auto">
+                      <pre className="text-xs font-extralight text-foreground/70 whitespace-pre-wrap bg-background/30 rounded-xl p-3 border border-border/20 max-h-96 overflow-auto">
                         {brain.directive}
                       </pre>
                       {brain.findings?.length > 0 && (
                         <div className="mt-3">
                           <p className="text-[10px] font-extralight text-muted-foreground mb-1 uppercase tracking-widest">Findings ({brain.findings.length})</p>
                           <div className="space-y-1.5">
-                            {brain.findings.slice(0, 5).map((f: any, i: number) => (
+                            {brain.findings.map((f: any, i: number) => (
                               <div key={i} className="flex items-start gap-2 text-xs">
                                 <Badge variant={f.severity === "critical" ? "destructive" : "outline"} className="text-[9px] px-1 py-0 flex-shrink-0 rounded-lg font-extralight">{f.severity}</Badge>
                                 <span className="font-extralight text-foreground/60">{f.title}</span>

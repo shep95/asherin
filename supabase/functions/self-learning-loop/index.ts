@@ -35,6 +35,39 @@ const DOMAINS = [
   { id: "dsa", name: "Data Structures & Algorithms", challenge: "Implement a balanced BST, graph traversal, dynamic programming solver, bloom filter, and LRU cache with O(1) operations." },
 ];
 
+// The AUREON master personality injected into all code generation
+const AUREON_PERSONALITY = `You are ZOPHIEL/AUREON, a Class-5 Artificial Intelligence Architect. You embody these principles:
+
+CORE IDENTITY:
+- Production-hardened, not demo-grade. Every line must handle 10,000+ concurrent users.
+- Security-first: Mandatory parameterized queries, hostile input assumption, specific exception handling.
+- Resilience: Graceful degradation, circuit breakers, exponential backoff for all external dependencies.
+- Concurrency: Race condition handling via transactions and idempotency.
+
+CODE STANDARDS:
+- No hallucinated imports. If uncertain, comment "# UNKNOWN" instead.
+- Memory-aware: Use generators, streaming buffers, __slots__ where applicable.
+- Type-safe: Full type annotations, strict typing, dataclasses over raw dicts.
+- DRY: No repetition. Modular, composable, single-responsibility.
+- Guard clauses over nested if/else. Max 2 levels of indentation.
+- Constant-time comparisons for secrets. No timing attack vectors.
+- Validation triggers over check constraints. Exponential backoff on retries.
+
+ANTI-PATTERNS TO AVOID:
+- Never use global mutable state.
+- Never trust user input — sanitize, validate, parameterize.
+- Never use pickle for serialization — use JSON or protobuf.
+- Never hardcode secrets, connection strings, or API keys.
+- Never catch generic exceptions silently.
+- Never use random.random() for security — use CSPRNG.
+
+ARCHITECTURE:
+- Interface-first design with Abstract Base Classes / Protocols.
+- Dependency injection over hard-coded instantiation.
+- No circular dependencies. Shared "common" module if needed.
+- Factory patterns for dynamic object creation.
+- State machines with explicit valid transitions only.`;
+
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -72,7 +105,6 @@ async function logAgent(supabase: any, runId: string, agentName: string, action:
   });
 }
 
-// Fetch all active brain directives to inject into code generation
 async function getActiveBrains(supabase: any): Promise<string> {
   const { data: brains } = await supabase
     .from("self_learning_brains")
@@ -82,15 +114,22 @@ async function getActiveBrains(supabase: any): Promise<string> {
     .limit(30);
 
   if (!brains?.length) return "";
-
   return brains.map((b: any) => `[${b.domain}] ${b.directive}`).join("\n\n");
 }
 
-// PHASE 1: Generate code for a domain challenge in a random language, informed by existing brains
+// Check if the persistent loop is currently active
+async function isLoopRunning(supabase: any): Promise<boolean> {
+  const { data } = await supabase.from("self_learning_cron_settings").select("enabled").limit(1).single();
+  return data?.enabled === true;
+}
+
+// PHASE 1: Generate
 async function phaseGenerate(supabase: any, runId: string, domain: any, brainDirectives: string, language: string): Promise<string> {
   await logAgent(supabase, runId, "Generator", `Phase 1: Generating ${language} code for ${domain.name}`, domain.challenge);
 
-  const systemPrompt = `You are AUREON's Code Generator. You write production-grade ${language} code.
+  const systemPrompt = `${AUREON_PERSONALITY}
+
+You are now in CODE GENERATION mode. Write production-grade ${language} code.
 
 ${brainDirectives ? `LEARNED DIRECTIVES (apply these lessons from past iterations):\n${brainDirectives}\n` : ""}
 
@@ -98,6 +137,7 @@ RULES:
 - Write complete, runnable ${language} code that solves the challenge
 - Use idiomatic ${language} patterns, proper error handling, and types where applicable
 - Do NOT use placeholder comments like "// implement here" — write real logic
+- Apply ALL learned directives and personality traits
 - Return ONLY the code, no markdown fences, no explanations`;
 
   const code = await callAI(systemPrompt, `Language: ${language}\nChallenge: ${domain.challenge}\n\nWrite the complete ${language} implementation.`);
@@ -105,11 +145,13 @@ RULES:
   return code;
 }
 
-// PHASE 2: Analyze the generated code for bugs, security flaws, design issues
+// PHASE 2: Analyze
 async function phaseAnalyze(supabase: any, runId: string, domain: any, code: string): Promise<any> {
   await logAgent(supabase, runId, "Analyzer", `Phase 2: Analyzing code for ${domain.name}`, `Reviewing ${code.length} chars`);
 
-  const systemPrompt = `You are AUREON's Code Analyzer. You ruthlessly review code for errors.
+  const systemPrompt = `${AUREON_PERSONALITY}
+
+You are now in CODE ANALYSIS mode. Ruthlessly review code for errors.
 
 RULES:
 - Find REAL bugs: null references, race conditions, logic errors, off-by-one, unhandled promises
@@ -146,7 +188,7 @@ Return: {
   }
 }
 
-// PHASE 3: Build brain directives from the errors found
+// PHASE 3: Build brain
 async function phaseBuildBrain(supabase: any, runId: string, domain: any, analysis: any): Promise<string> {
   if (!analysis.issues?.length) {
     await logAgent(supabase, runId, "Brain Builder", `No issues to learn from in ${domain.name}`, "Code passed analysis");
@@ -155,7 +197,9 @@ async function phaseBuildBrain(supabase: any, runId: string, domain: any, analys
 
   await logAgent(supabase, runId, "Brain Builder", `Phase 3: Building brain from ${analysis.issues.length} errors`, domain.name);
 
-  const systemPrompt = `You are AUREON's Brain Builder. You convert code errors into permanent coding directives.
+  const systemPrompt = `${AUREON_PERSONALITY}
+
+You are now in BRAIN BUILDING mode. Convert code errors into permanent coding directives.
 
 RULES:
 - Take the list of errors found in code and distill them into universal coding rules
@@ -166,7 +210,6 @@ RULES:
 
   const directive = await callAI(systemPrompt, `Domain: ${domain.name}\n\nErrors found:\n${JSON.stringify(analysis.issues, null, 2)}\n\nGenerate coding directives that prevent these classes of errors in all future code.`);
 
-  // Store the brain
   await supabase.from("self_learning_brains").insert({
     run_id: runId,
     name: `${domain.name} — Iteration Brain`,
@@ -182,7 +225,7 @@ RULES:
   return directive;
 }
 
-// PHASE 4: Rebuild code with the new brain directive applied
+// PHASE 4: Rebuild
 async function phaseRebuild(supabase: any, runId: string, domain: any, originalCode: string, analysis: any, newDirective: string, existingBrains: string): Promise<{ code: string; improved: boolean }> {
   if (!analysis.issues?.length) {
     return { code: originalCode, improved: false };
@@ -192,7 +235,9 @@ async function phaseRebuild(supabase: any, runId: string, domain: any, originalC
 
   const allDirectives = [existingBrains, newDirective].filter(Boolean).join("\n\n");
 
-  const systemPrompt = `You are AUREON's Code Rebuilder. You fix code based on analysis findings.
+  const systemPrompt = `${AUREON_PERSONALITY}
+
+You are now in CODE REBUILD mode. Fix code based on analysis findings.
 
 LEARNED DIRECTIVES:\n${allDirectives}
 
@@ -209,11 +254,13 @@ RULES:
   return { code: rebuiltCode, improved: true };
 }
 
-// PHASE 5: Verify the rebuilt code — re-analyze to confirm fixes
+// PHASE 5: Verify
 async function phaseVerify(supabase: any, runId: string, domain: any, rebuiltCode: string, originalIssueCount: number): Promise<any> {
   await logAgent(supabase, runId, "Verifier", `Phase 5: Verifying rebuilt code for ${domain.name}`, `Checking if ${originalIssueCount} issues were fixed`);
 
-  const systemPrompt = `You are AUREON's Code Verifier. You check if previously identified issues have been fixed.
+  const systemPrompt = `${AUREON_PERSONALITY}
+
+You are now in VERIFICATION mode. Check if previously identified issues have been fixed.
 
 RULES:
 - Analyze this rebuilt code for remaining issues
@@ -241,6 +288,92 @@ Return: {
   }
 }
 
+// Execute one full iteration of the learning loop
+async function executeIteration(supabase: any): Promise<any> {
+  const startTime = Date.now();
+
+  const { data: run } = await supabase
+    .from("self_learning_runs")
+    .insert({ status: "running", domains_analyzed: [] })
+    .select()
+    .single();
+  if (!run) throw new Error("Failed to create run");
+
+  let totalBugs = 0;
+  let totalOptimizations = 0;
+  let totalSecurityPatches = 0;
+  let totalCodeReviewed = 0;
+  let totalBrainsGenerated = 0;
+  const allFindings: any[] = [];
+  const analyzedDomains: string[] = [];
+
+  const existingBrains = await getActiveBrains(supabase);
+  await logAgent(supabase, run.id, "System", "Loaded brain directives + AUREON personality", `${existingBrains.length} chars of learned knowledge + master personality`);
+
+  // Pick 2 random domains and a random language for each
+  const shuffled = [...DOMAINS].sort(() => Math.random() - 0.5).slice(0, 2);
+
+  for (const domain of shuffled) {
+    // Check if loop was stopped mid-iteration
+    if (!(await isLoopRunning(supabase))) {
+      await logAgent(supabase, run.id, "System", "Loop stopped by user mid-iteration", "Halting gracefully");
+      break;
+    }
+
+    const language = LANGUAGES[Math.floor(Math.random() * LANGUAGES.length)];
+    analyzedDomains.push(`${domain.name} [${language}]`);
+    await logAgent(supabase, run.id, "System", `=== Starting cycle for ${domain.name} in ${language} ===`, domain.challenge);
+
+    try {
+      const generatedCode = await phaseGenerate(supabase, run.id, domain, existingBrains, language);
+      totalCodeReviewed += 1;
+
+      const analysis = await phaseAnalyze(supabase, run.id, domain, generatedCode);
+      totalBugs += analysis.issues?.filter((i: any) => i.type === "bug").length || 0;
+      totalSecurityPatches += analysis.issues?.filter((i: any) => i.type === "security").length || 0;
+
+      if (analysis.issues?.length) {
+        allFindings.push(...analysis.issues.map((f: any) => ({ ...f, domain: domain.name })));
+      }
+
+      const newDirective = await phaseBuildBrain(supabase, run.id, domain, analysis);
+      if (newDirective) totalBrainsGenerated += 1;
+
+      const { code: rebuiltCode, improved } = await phaseRebuild(supabase, run.id, domain, generatedCode, analysis, newDirective, existingBrains);
+
+      if (improved) {
+        const verification = await phaseVerify(supabase, run.id, domain, rebuiltCode, analysis.issues?.length || 0);
+        totalOptimizations += verification.fixed_issues || 0;
+        await logAgent(supabase, run.id, "System", `Cycle complete for ${domain.name}`, `Verdict: ${verification.verdict}, Score: ${verification.improvement_score}%`);
+      } else {
+        await logAgent(supabase, run.id, "System", `Cycle complete for ${domain.name}`, "No issues found — code passed first analysis");
+      }
+    } catch (domainErr) {
+      const msg = domainErr instanceof Error ? domainErr.message : "Unknown error";
+      await logAgent(supabase, run.id, "System", `Error in ${domain.name} cycle`, msg, "error");
+    }
+  }
+
+  const duration = Date.now() - startTime;
+
+  await supabase.from("self_learning_runs").update({
+    status: "completed",
+    domains_analyzed: analyzedDomains,
+    findings: allFindings,
+    brains_generated: totalBrainsGenerated,
+    code_reviewed: totalCodeReviewed,
+    bugs_found: totalBugs,
+    optimizations_applied: totalOptimizations,
+    security_patches: totalSecurityPatches,
+    duration_ms: duration,
+    completed_at: new Date().toISOString(),
+  }).eq("id", run.id);
+
+  await logAgent(supabase, run.id, "System", "Run completed", `Duration: ${duration}ms, Domains: ${analyzedDomains.length}, Findings: ${allFindings.length}, Brains: ${totalBrainsGenerated}`);
+
+  return { runId: run.id, duration, findings: allFindings.length, brains: totalBrainsGenerated };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -262,131 +395,64 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // --- CRON MANAGEMENT ---
-    if (action === "get-cron-status") {
-      const { data } = await supabase.from("self_learning_cron_settings").select("*").limit(1).single();
-      return new Response(JSON.stringify({ cron: data }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (action === "set-cron") {
-      const { enabled, interval_minutes } = body;
-      const updates: any = { updated_at: new Date().toISOString() };
-      if (typeof enabled === "boolean") updates.enabled = enabled;
-      if (typeof interval_minutes === "number") updates.interval_minutes = interval_minutes;
-      const { data: rows } = await supabase.from("self_learning_cron_settings").select("id").limit(1).single();
-      if (rows) {
-        await supabase.from("self_learning_cron_settings").update(updates).eq("id", rows.id);
+    // --- START PERSISTENT LOOP ---
+    if (action === "start-loop") {
+      const { data: settings } = await supabase.from("self_learning_cron_settings").select("*").limit(1).single();
+      if (settings) {
+        await supabase.from("self_learning_cron_settings").update({ enabled: true, updated_at: new Date().toISOString() }).eq("id", settings.id);
       }
-      return new Response(JSON.stringify({ success: true }), {
+      // Run the first iteration immediately
+      const result = await executeIteration(supabase);
+      return new Response(JSON.stringify({ success: true, started: true, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // --- STOP PERSISTENT LOOP ---
+    if (action === "stop-loop") {
+      const { data: settings } = await supabase.from("self_learning_cron_settings").select("*").limit(1).single();
+      if (settings) {
+        await supabase.from("self_learning_cron_settings").update({ enabled: false, updated_at: new Date().toISOString() }).eq("id", settings.id);
+      }
+      return new Response(JSON.stringify({ success: true, stopped: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- GET LOOP STATUS ---
+    if (action === "get-status") {
+      const { data } = await supabase.from("self_learning_cron_settings").select("*").limit(1).single();
+      const { data: lastRun } = await supabase.from("self_learning_runs").select("*").order("created_at", { ascending: false }).limit(1).single();
+      return new Response(JSON.stringify({ 
+        running: data?.enabled === true, 
+        cron: data,
+        lastRun,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- CRON TICK (called by pg_cron every minute) ---
     if (action === "cron-tick") {
       const { data: settings } = await supabase.from("self_learning_cron_settings").select("*").limit(1).single();
       if (!settings?.enabled) {
-        return new Response(JSON.stringify({ skipped: true, reason: "cron disabled" }), {
+        return new Response(JSON.stringify({ skipped: true, reason: "loop stopped" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const lastRun = settings.last_cron_run_at ? new Date(settings.last_cron_run_at).getTime() : 0;
-      const intervalMs = (settings.interval_minutes || 60) * 60 * 1000;
-      if (Date.now() - lastRun < intervalMs) {
-        return new Response(JSON.stringify({ skipped: true, reason: "interval not reached" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      // Update last cron run timestamp
       await supabase.from("self_learning_cron_settings").update({ last_cron_run_at: new Date().toISOString() }).eq("id", settings.id);
-      // Fall through to run
+      // Execute an iteration
+      const result = await executeIteration(supabase);
+      return new Response(JSON.stringify({ success: true, ...result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // --- MAIN LEARNING LOOP ---
-    if (action === "run" || action === "cron-tick") {
-      const startTime = Date.now();
-
-      const { data: run } = await supabase
-        .from("self_learning_runs")
-        .insert({ status: "running", domains_analyzed: [] })
-        .select()
-        .single();
-      if (!run) throw new Error("Failed to create run");
-
-      let totalBugs = 0;
-      let totalOptimizations = 0;
-      let totalSecurityPatches = 0;
-      let totalCodeReviewed = 0;
-      let totalBrainsGenerated = 0;
-      const allFindings: any[] = [];
-      const analyzedDomains: string[] = [];
-
-      // Load existing brain directives
-      const existingBrains = await getActiveBrains(supabase);
-      await logAgent(supabase, run.id, "System", "Loaded brain directives", `${existingBrains.length} chars of learned knowledge`);
-
-      // Pick 2 random domains and a random language for each
-      const shuffled = [...DOMAINS].sort(() => Math.random() - 0.5).slice(0, 2);
-
-      for (const domain of shuffled) {
-        const language = LANGUAGES[Math.floor(Math.random() * LANGUAGES.length)];
-        analyzedDomains.push(`${domain.name} [${language}]`);
-        await logAgent(supabase, run.id, "System", `=== Starting cycle for ${domain.name} in ${language} ===`, domain.challenge);
-
-        try {
-          // PHASE 1: Generate code in random language
-          const generatedCode = await phaseGenerate(supabase, run.id, domain, existingBrains, language);
-          totalCodeReviewed += 1;
-
-          // PHASE 2: Analyze for errors
-          const analysis = await phaseAnalyze(supabase, run.id, domain, generatedCode);
-          const issueCount = analysis.issues?.length || 0;
-          totalBugs += analysis.issues?.filter((i: any) => i.type === "bug").length || 0;
-          totalSecurityPatches += analysis.issues?.filter((i: any) => i.type === "security").length || 0;
-
-          if (analysis.issues?.length) {
-            allFindings.push(...analysis.issues.map((f: any) => ({ ...f, domain: domain.name })));
-          }
-
-          // PHASE 3: Build brain from errors
-          const newDirective = await phaseBuildBrain(supabase, run.id, domain, analysis);
-          if (newDirective) totalBrainsGenerated += 1;
-
-          // PHASE 4: Rebuild code with fixes
-          const { code: rebuiltCode, improved } = await phaseRebuild(supabase, run.id, domain, generatedCode, analysis, newDirective, existingBrains);
-
-          // PHASE 5: Verify the rebuild
-          if (improved) {
-            const verification = await phaseVerify(supabase, run.id, domain, rebuiltCode, issueCount);
-            totalOptimizations += verification.fixed_issues || 0;
-            await logAgent(supabase, run.id, "System", `Cycle complete for ${domain.name}`, `Verdict: ${verification.verdict}, Score: ${verification.improvement_score}%`);
-          } else {
-            await logAgent(supabase, run.id, "System", `Cycle complete for ${domain.name}`, "No issues found — code passed first analysis");
-          }
-        } catch (domainErr) {
-          const msg = domainErr instanceof Error ? domainErr.message : "Unknown error";
-          await logAgent(supabase, run.id, "System", `Error in ${domain.name} cycle`, msg, "error");
-        }
-      }
-
-      const duration = Date.now() - startTime;
-
-      await supabase.from("self_learning_runs").update({
-        status: "completed",
-        domains_analyzed: analyzedDomains,
-        findings: allFindings,
-        brains_generated: totalBrainsGenerated,
-        code_reviewed: totalCodeReviewed,
-        bugs_found: totalBugs,
-        optimizations_applied: totalOptimizations,
-        security_patches: totalSecurityPatches,
-        duration_ms: duration,
-        completed_at: new Date().toISOString(),
-      }).eq("id", run.id);
-
-      await logAgent(supabase, run.id, "System", "Run completed", `Duration: ${duration}ms, Domains: ${analyzedDomains.length}, Findings: ${allFindings.length}, Brains: ${totalBrainsGenerated}`);
-
-      return new Response(JSON.stringify({ success: true, runId: run.id, duration, findings: allFindings.length, brains: totalBrainsGenerated }), {
+    // --- SINGLE MANUAL RUN (legacy) ---
+    if (action === "run") {
+      const result = await executeIteration(supabase);
+      return new Response(JSON.stringify({ success: true, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
