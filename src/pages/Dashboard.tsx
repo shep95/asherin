@@ -55,6 +55,7 @@ import AureonIdeView from "@/components/dashboard/ide/AureonIdeView";
 import PdfGeneratorView from "@/components/dashboard/PdfGeneratorView";
 import PatternAnalysisView from "@/components/dashboard/PatternAnalysisView";
 import SlideshowGeneratorView from "@/components/dashboard/SlideshowGeneratorView";
+import ApiView from "@/components/dashboard/ApiView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -927,6 +928,10 @@ const Dashboard = () => {
         return hasProAccess(tierKey)
           ? <PatternAnalysisView />
           : <FeatureGate title="Pattern Analysis Engine" description="Asha + Aureon powered data pattern recognition with visual graph forecasting. Upload historical data and visual patterns to detect trends and predict future outcomes. Available on Pro plans." onUpgrade={() => setActiveView("subscription")} />;
+      case "api":
+        return hasSearchAccess(tierKey)
+          ? <ApiView />
+          : <FeatureGate title="API" description="Bio-Linguistic Entanglement System — explore the ZALI core source code and quantum-linguistic defense architecture. Available on all paid plans." onUpgrade={() => setActiveView("subscription")} />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
