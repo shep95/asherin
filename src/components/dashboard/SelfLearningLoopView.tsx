@@ -514,6 +514,30 @@ const SelfLearningLoopView = () => {
                             <Area type="monotone" dataKey="cumulative" name="Total Fixes" stroke="hsl(var(--primary))" fill="url(#gradCum2)" strokeWidth={1} />
                           </AreaChart>
                         </ResponsiveContainer>
+                        {/* Graph Logic Legend */}
+                        <div className="mt-4 rounded-xl border border-border/20 bg-card/30 p-3 space-y-2">
+                          <p className="text-[10px] font-extralight tracking-[0.2em] text-muted-foreground uppercase mb-2">Graph Logic</p>
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-green-500/80 shrink-0" />
+                            <p className="text-[11px] font-extralight text-foreground/80">
+                              <span className="text-green-400 font-light">Fewer bugs found + fewer fixes needed = AI is improving.</span>
+                              {" "}The system is writing cleaner code. Score rises as the AI learns to avoid mistakes before they happen.
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-destructive/80 shrink-0" />
+                            <p className="text-[11px] font-extralight text-foreground/80">
+                              <span className="text-destructive font-light">More bugs found + more fixes needed = AI is not improving.</span>
+                              {" "}The system is still generating problematic code. Score stalls or drops — more learning cycles are needed.
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-accent/80 shrink-0" />
+                            <p className="text-[11px] font-extralight text-foreground/80">
+                              <span className="text-accent font-light">Score line (accent)</span> = overall intelligence quality. <span className="text-muted-foreground font-light">Fixes line (dim)</span> = cumulative issues resolved. Ideal trend: score ↑ while fixes plateau.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-16 text-muted-foreground text-sm font-extralight">
