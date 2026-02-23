@@ -5,7 +5,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Brain, Play, Clock, FileSearch, Shield, Zap, Bug, Layers, Palette,
   ChevronDown, ChevronRight, Copy, Check, CheckCircle2, XCircle, AlertTriangle,
-  ArrowRight, Loader2, Eye, Filter, ClipboardCopy, Download,
+  ArrowRight, Loader2, Eye, Filter, ClipboardCopy, Download, Lightbulb,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   design: Palette,
   logic: Brain,
   workflow: ArrowRight,
+  recommendation: Lightbulb,
 };
 
 const SelfAccessLearningView = () => {
@@ -132,7 +133,9 @@ const SelfAccessLearningView = () => {
   const filteredFindings = findings.filter(f => {
     if (selectedRun && f.run_id !== selectedRun) return false;
     if (filterStatus && f.status !== filterStatus) return false;
-    if (filterSeverity && f.severity !== filterSeverity) return false;
+    if (filterSeverity === "recommendation") {
+      if (f.finding_type !== "recommendation") return false;
+    } else if (filterSeverity && f.severity !== filterSeverity) return false;
     return true;
   });
 
@@ -310,7 +313,7 @@ const SelfAccessLearningView = () => {
                 </button>
               ))}
               <div className="w-px h-4 bg-border/20 mx-1" />
-              {["critical", "high", "medium", "low"].map(s => (
+              {["critical", "high", "medium", "low", "recommendation"].map(s => (
                 <button
                   key={s}
                   onClick={() => setFilterSeverity(filterSeverity === s ? null : s)}

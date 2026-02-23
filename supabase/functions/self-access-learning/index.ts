@@ -229,7 +229,11 @@ const ANALYSIS_AGENTS = [
   { name: "Logic Flaw Agent", focus: "Hunt for logical flaws at every scale: incorrect conditional branches, off-by-one errors, inverted boolean checks, impossible states, default-case omissions, stale closures, filter/map chains that silently drop data, fallthrough switches, enum/union exhaustiveness gaps, comparison operators that should be strict, timezone/locale-naive date logic, edge cases where arrays are empty or objects are missing keys, memoization dependencies that are wrong or incomplete, and any scenario where the code 'works' in the happy path but breaks under real-world variance. Trace every if/else, ternary, and optional chain to verify it handles null, undefined, empty string, 0, NaN, and negative values correctly." },
   { name: "Workflow Flaw Agent", focus: "Analyze end-to-end user workflows and multi-step feature flows for breakdowns: onboarding sequences that skip steps, form submissions that lose data on error, navigation flows that leave orphaned state, undo/redo paths that corrupt data, multi-panel dashboards where one panel's action doesn't update another, subscription upgrades/downgrades that leave stale UI, file upload pipelines that don't handle partial failures, search-then-act flows where context is lost between steps, session/auth expiration mid-workflow that causes silent data loss, real-time sync conflicts, import/export round-trip data corruption, and any cross-feature interaction where Feature A's state change should propagate to Feature B but doesn't. Check that loading→success→error→retry state machines are complete and that every user-facing action has proper feedback (toast, spinner, disabled state)." },
   { name: "UI Logic Flaw Agent", focus: "Hunt for UI-layer logic flaws where the visual state diverges from the data state: components that render stale props after a parent re-fetch, conditional renders that flash wrong content before settling, disabled buttons that can still be triggered via keyboard/enter, modals that don't trap focus or allow background scroll, dropdowns/popovers that stay open after navigation, lists that don't handle empty/loading/error states causing blank screens, pagination that resets filters on page change, tabs that lose unsaved form data on switch, search inputs that fire requests on every keystroke without debounce, infinite scroll that duplicates items or skips pages, drag-and-drop that leaves ghost elements, toggle switches whose visual state doesn't match the persisted value after optimistic update failure, responsive breakpoints where elements overlap or disappear, z-index wars where tooltips render behind modals, scroll position that jumps after dynamic content loads, clipboard copy buttons that silently fail without feedback, file inputs that accept wrong MIME types, date pickers that allow impossible ranges, number inputs that accept NaN/Infinity, select components that show stale options after data refresh, and any scenario where what the user SEES doesn't match what the database STORES." },
+  { name: "Cross-Module Recommendation Agent", focus: "Identify features, patterns, and capabilities in one module that would significantly benefit another module if integrated or shared. Examples: Aureon Chat's Chain-of-Thought transparency could enhance ZALI's engineering analysis output; ASHA's entity extraction pipeline could power Aureon Chat's automatic knowledge graph; the IDE's code editor could embed ZALI's material specs viewer; NOMAD's OSINT investigation results could feed into Predictive Intelligence as signal sources; ASHA's data lineage tracking could give the IDE's git panel deeper context; Zophiel's deep search could be embedded in ASHA's query bar; the Security Dashboard's threat intel could auto-generate briefings; the IDE's terminal output could feed the Self-Learning Loop as training data; Google Intelligence's life predictions could integrate with the Tracker for personal KPI monitoring; ZALI's simulation engine could use ASHA's datasets as input parameters. For each recommendation, specify the SOURCE module (where the capability exists), the TARGET module (where it should be applied), the specific feature/pattern to transfer, the integration approach, and the expected user impact. Think about data flow, shared components, unified APIs, and cross-module state management. Return findings with finding_type 'recommendation'." },
 ];
+
+// Maximum findings cap per analysis run
+const MAX_FINDINGS_PER_RUN = 100;
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -307,8 +311,8 @@ serve(async (req) => {
       else if (scope === "backend") files = files.filter(f => f.domain === "Backend" || f.domain === "Data" || f.domain === "AI/ML");
       else if (scope === "security") files = files.filter(f => f.domain === "Security");
 
-      // Pick random subset per run (max 15 files for deeper coverage)
-      const selectedFiles = [...files].sort(() => Math.random() - 0.5).slice(0, 15);
+      // Pick random subset per run (max 25 files for deeper coverage)
+      const selectedFiles = [...files].sort(() => Math.random() - 0.5).slice(0, 25);
 
       // Attempt to fetch LIVE code from GitHub for each file
       let githubConn: { github_token: string; repo_owner: string; repo_name: string; branch: string } | null = null;
@@ -337,8 +341,8 @@ serve(async (req) => {
 
       const hasLiveCode = Object.keys(fileContents).length > 0;
 
-      // Run 3 random agents across all selected files
-      const selectedAgents = [...ANALYSIS_AGENTS].sort(() => Math.random() - 0.5).slice(0, 3);
+      // Run ALL agents across all selected files for maximum coverage (up to 100 findings)
+      const selectedAgents = ANALYSIS_AGENTS;
       const allFindings: any[] = [];
 
       for (const agent of selectedAgents) {
@@ -364,7 +368,7 @@ CRITICAL RULES:
 Each finding must be:
 {
   "file_path": "exact/path/to/file",
-  "finding_type": "bug"|"optimization"|"security"|"architecture"|"design"|"logic"|"workflow",
+  "finding_type": "bug"|"optimization"|"security"|"architecture"|"design"|"logic"|"workflow"|"recommendation",
   "severity": "critical"|"high"|"medium"|"low",
   "title": "Short descriptive title",
   "finding": "What you found — the specific issue with line references if possible",
@@ -374,7 +378,7 @@ Each finding must be:
   "output_code": "The exact code snippet or diff to apply as the fix"
 }`;
 
-        const userPrompt = `Analyze these files from the AUREON AI intelligence platform codebase. Generate 2-4 high-quality findings:
+        const userPrompt = `Analyze these files from the AUREON AI intelligence platform codebase. Generate 8-12 high-quality findings:
 
 ${fileBlocks}
 
@@ -398,22 +402,26 @@ ${hasLiveCode ? "You have the REAL source code above. Reference specific line nu
         }
       }
 
-      // Store findings
-      if (allFindings.length > 0) {
-        await supabase.from("self_access_findings").insert(allFindings);
+      // Cap findings at MAX_FINDINGS_PER_RUN and store
+      const cappedFindings = allFindings.slice(0, MAX_FINDINGS_PER_RUN);
+      if (cappedFindings.length > 0) {
+        // Insert in batches of 25 to avoid payload limits
+        for (let i = 0; i < cappedFindings.length; i += 25) {
+          await supabase.from("self_access_findings").insert(cappedFindings.slice(i, i + 25));
+        }
       }
 
       const duration = Date.now() - startTime;
       await supabase.from("self_access_runs").update({
         status: "completed",
         files_analyzed: selectedFiles.length,
-        findings_count: allFindings.length,
+        findings_count: cappedFindings.length,
         duration_ms: duration,
         completed_at: new Date().toISOString(),
       }).eq("id", run.id);
 
       return new Response(JSON.stringify({
-        success: true, runId: run.id, findings: allFindings.length, duration,
+        success: true, runId: run.id, findings: cappedFindings.length, duration,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
