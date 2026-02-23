@@ -1,9 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://ziali-magic-pixels.lovable.app",
+  "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:8080",
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
+  };
+}
 
 // ============================================================
 // AUREON SECURITY GATEWAY
@@ -170,7 +182,7 @@ function scanUserAgent(ua: string): ScanResult | null {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   const supabaseAdmin = createClient(
@@ -322,7 +334,7 @@ Deno.serve(async (req) => {
         blocked,
         threats_detected: results.length,
         details: results,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
     // ACTION: honeypot — Log honeypot hits
@@ -371,7 +383,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         status: "success",
         data: { users: [{ id: 1, name: "admin", token: "fake_token_deadbeef" }] },
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
     // ACTION: rate_check — Rate limiting
@@ -418,21 +430,21 @@ Deno.serve(async (req) => {
           retry_after: 60,
           current_count: currentCount + 1,
           max_requests: maxRequests,
-        }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } });
+        }), { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json", "Retry-After": "60" } });
       }
 
       return new Response(JSON.stringify({
         blocked: false,
         remaining: maxRequests - currentCount - 1,
         current_count: currentCount + 1,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
     // ACTION: dashboard — Get security dashboard data
     if (action === "dashboard") {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader?.startsWith("Bearer ")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(req) });
       }
 
       const supabaseUser = createClient(
@@ -444,7 +456,7 @@ Deno.serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       const { data: claims, error: claimsErr } = await supabaseUser.auth.getClaims(token);
       if (claimsErr || !claims?.claims) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(req) });
       }
 
       const now = new Date();
@@ -517,19 +529,19 @@ Deno.serve(async (req) => {
         honeypotLogs: honeypotRes.data || [],
         threatIntel: threatRes.data || [],
         behaviorAnalytics: behaviorRes.data || [],
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
     // ACTION: add_threat — Add to threat intelligence
     if (action === "add_threat") {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader?.startsWith("Bearer ")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: getCorsHeaders(req) });
       }
 
       const { indicator_type, indicator_value, threat_category, confidence } = body;
       if (!indicator_type || !indicator_value) {
-        return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "Missing fields" }), { status: 400, headers: getCorsHeaders(req) });
       }
 
       await supabaseAdmin.from("threat_intelligence").insert({
@@ -540,12 +552,12 @@ Deno.serve(async (req) => {
         source: "manual",
       });
 
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: getCorsHeaders(req) });
   } catch (error) {
     console.error("Security Gateway Error:", error);
-    return new Response(JSON.stringify({ error: "Internal error" }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "Internal error" }), { status: 500, headers: getCorsHeaders(req) });
   }
 });

@@ -1,4 +1,5 @@
 import { X, ExternalLink, Lock, Clock } from "lucide-react";
+import DOMPurify from "dompurify";
 import type { PagePreview } from "./types";
 
 interface PagePreviewPanelProps {
@@ -44,9 +45,10 @@ const PagePreviewPanel = ({ preview, url, onClose }: PagePreviewPanelProps) => {
           {preview.description && (
             <p className="text-xs font-light text-muted-foreground italic mb-4 border-l-2 border-accent/30 pl-3">{preview.description}</p>
           )}
-          <div className="text-sm font-light text-foreground/80 leading-relaxed whitespace-pre-wrap break-words">
-            {preview.content}
-          </div>
+          <div
+            className="text-sm font-light text-foreground/80 leading-relaxed whitespace-pre-wrap break-words"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.content, { ALLOWED_TAGS: ["b", "i", "em", "strong", "p", "br", "ul", "ol", "li", "h1", "h2", "h3", "h4", "blockquote", "code", "pre", "a", "span"], ALLOWED_ATTR: ["href", "target", "rel", "class"] }) }}
+          />
         </div>
       </div>
     </>

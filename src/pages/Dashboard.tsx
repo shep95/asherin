@@ -17,7 +17,7 @@ const WALLPAPER_MAP: Record<string, string> = {
   prophet: wallpaperProphet,
   nexus: wallpaperNexus,
 };
-import React from "react";
+import React, { Suspense } from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Conversation, ChatMode, DashboardView, Message, Persona, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
@@ -25,39 +25,42 @@ import type { FeedbackType } from "@/components/dashboard/CalibrationFeedback";
 import type { UserProfile } from "@/lib/ai";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ChatView from "@/components/dashboard/ChatView";
-import LibraryView from "@/components/dashboard/LibraryView";
-import CodeSnippetsView from "@/components/dashboard/CodeSnippetsView";
-import ProjectsView from "@/components/dashboard/ProjectsView";
-import MemoryCenterView from "@/components/dashboard/MemoryCenterView";
-import StatsView from "@/components/dashboard/StatsView";
-import SettingsView from "@/components/dashboard/SettingsView";
-import SubscriptionView from "@/components/dashboard/SubscriptionView";
-import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
-import AshaView from "@/components/dashboard/asha/AshaView";
-import ZaliView from "@/components/dashboard/zali/ZaliView";
-import CommunityView from "@/components/dashboard/zali/CommunityView";
-import NomadView from "@/components/dashboard/NomadView";
-import BriefingView from "@/components/dashboard/BriefingView";
-import TeamsView from "@/components/dashboard/TeamsView";
-import NotebooksView from "@/components/dashboard/NotebooksView";
-import GeospatialView from "@/components/dashboard/GeospatialView";
-import PluginMarketplaceView from "@/components/dashboard/PluginMarketplaceView";
-import TimeSeriesView from "@/components/dashboard/TimeSeriesView";
-import AuditLogView from "@/components/dashboard/AuditLogView";
-import PredictiveIntelligenceView from "@/components/dashboard/PredictiveIntelligenceView";
-import ElionView from "@/components/dashboard/ElionView";
-import SecurityDashboardView from "@/components/dashboard/SecurityDashboardView";
-import ImagineToCodeView from "@/components/dashboard/ImagineToCodeView";
-import TrackerView from "@/components/dashboard/TrackerView";
-import PersonaStoreView from "@/components/dashboard/PersonaStoreView";
-import GoogleIntelligenceView from "@/components/dashboard/google/GoogleIntelligenceView";
-import AureonIdeView from "@/components/dashboard/ide/AureonIdeView";
-import PdfGeneratorView from "@/components/dashboard/PdfGeneratorView";
-import PatternAnalysisView from "@/components/dashboard/PatternAnalysisView";
-import SlideshowGeneratorView from "@/components/dashboard/SlideshowGeneratorView";
-import SelfLearningLoopView from "@/components/dashboard/SelfLearningLoopView";
-import SelfAccessLearningView from "@/components/dashboard/SelfAccessLearningView";
-import OracleLocusView from "@/components/dashboard/OracleLocusView";
+import { useAccess } from "@/hooks/useAccess";
+
+// Lazy-load heavy views
+const LibraryView = React.lazy(() => import("@/components/dashboard/LibraryView"));
+const CodeSnippetsView = React.lazy(() => import("@/components/dashboard/CodeSnippetsView"));
+const ProjectsView = React.lazy(() => import("@/components/dashboard/ProjectsView"));
+const MemoryCenterView = React.lazy(() => import("@/components/dashboard/MemoryCenterView"));
+const StatsView = React.lazy(() => import("@/components/dashboard/StatsView"));
+const SettingsView = React.lazy(() => import("@/components/dashboard/SettingsView"));
+const SubscriptionView = React.lazy(() => import("@/components/dashboard/SubscriptionView"));
+const ZophielEngineView = React.lazy(() => import("@/components/dashboard/ZophielEngineView"));
+const AshaView = React.lazy(() => import("@/components/dashboard/asha/AshaView"));
+const ZaliView = React.lazy(() => import("@/components/dashboard/zali/ZaliView"));
+const CommunityView = React.lazy(() => import("@/components/dashboard/zali/CommunityView"));
+const NomadView = React.lazy(() => import("@/components/dashboard/NomadView"));
+const BriefingView = React.lazy(() => import("@/components/dashboard/BriefingView"));
+const TeamsView = React.lazy(() => import("@/components/dashboard/TeamsView"));
+const NotebooksView = React.lazy(() => import("@/components/dashboard/NotebooksView"));
+const GeospatialView = React.lazy(() => import("@/components/dashboard/GeospatialView"));
+const PluginMarketplaceView = React.lazy(() => import("@/components/dashboard/PluginMarketplaceView"));
+const TimeSeriesView = React.lazy(() => import("@/components/dashboard/TimeSeriesView"));
+const AuditLogView = React.lazy(() => import("@/components/dashboard/AuditLogView"));
+const PredictiveIntelligenceView = React.lazy(() => import("@/components/dashboard/PredictiveIntelligenceView"));
+const ElionView = React.lazy(() => import("@/components/dashboard/ElionView"));
+const SecurityDashboardView = React.lazy(() => import("@/components/dashboard/SecurityDashboardView"));
+const ImagineToCodeView = React.lazy(() => import("@/components/dashboard/ImagineToCodeView"));
+const TrackerView = React.lazy(() => import("@/components/dashboard/TrackerView"));
+const PersonaStoreView = React.lazy(() => import("@/components/dashboard/PersonaStoreView"));
+const GoogleIntelligenceView = React.lazy(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
+const AureonIdeView = React.lazy(() => import("@/components/dashboard/ide/AureonIdeView"));
+const PdfGeneratorView = React.lazy(() => import("@/components/dashboard/PdfGeneratorView"));
+const PatternAnalysisView = React.lazy(() => import("@/components/dashboard/PatternAnalysisView"));
+const SlideshowGeneratorView = React.lazy(() => import("@/components/dashboard/SlideshowGeneratorView"));
+const SelfLearningLoopView = React.lazy(() => import("@/components/dashboard/SelfLearningLoopView"));
+const SelfAccessLearningView = React.lazy(() => import("@/components/dashboard/SelfAccessLearningView"));
+const OracleLocusView = React.lazy(() => import("@/components/dashboard/OracleLocusView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -100,10 +103,16 @@ const FeatureGate = ({ title, description, onUpgrade }: { title: string; descrip
   </div>
 );
 
+const LazyFallback = () => (
+  <div className="flex flex-1 items-center justify-center">
+    <div className="text-xs font-extralight tracking-[0.2em] text-muted-foreground animate-pulse">Loading…</div>
+  </div>
+);
+
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { tierKey } = useSubscription();
+  const { canAccess, tierKey } = useAccess();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<DashboardView>("chat");
@@ -838,104 +847,47 @@ const Dashboard = () => {
   };
 
   const renderView = () => {
+    // Gate map: view -> { component, title, description }
+    const gatedView = (view: DashboardView, Component: React.ComponentType, title: string, description: string) => {
+      if (canAccess(view)) return <Suspense fallback={<LazyFallback />}><Component /></Suspense>;
+      return <FeatureGate title={title} description={description} onUpgrade={() => setActiveView("subscription")} />;
+    };
+
     switch (activeView) {
-      case "search": 
-        return hasSearchAccess(tierKey) 
-          ? <ZophielEngineView /> 
-          : <FeatureGate title="Zophiel Engine" description="The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "zali":
-        return hasProAccess(tierKey)
-          ? <ZaliView />
-           : <FeatureGate title="ZALI Design Lab" description="Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents, plus a Community hub for questions, requests, and feature voting. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "community":
-        return hasProAccess(tierKey)
-          ? <CommunityView />
-          : <FeatureGate title="Community" description="Join the community — ask questions, make requests, and vote on future features. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "asha": 
-        return hasProAccess(tierKey) 
-          ? <AshaView /> 
-          : <FeatureGate title="Asha Intelligence" description="The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "elion":
-        return hasProAccess(tierKey)
-          ? <ElionView />
-          : <FeatureGate title="Elion / Zohar Toolkit" description="Forensic-grade OSINT toolkit — 20+ DeepDive phases, HiveMind orchestration, Ghost Mode, and identity recon. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "nomad": 
-        return hasProAccess(tierKey) 
-          ? <NomadView /> 
-          : <FeatureGate title="NOMAD Agent" description="Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation and structured dossier output. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "briefing":
-        return hasProAccess(tierKey)
-          ? <BriefingView />
-          : <FeatureGate title="Intelligence Briefings" description="Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro and Enterprise plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "library": return <LibraryView />;
-      case "snippets": return <CodeSnippetsView />;
-      case "projects": return <ProjectsView />;
-      case "memory": return <MemoryCenterView />;
-      case "stats": return <StatsView />;
-      case "settings": return <SettingsView />;
-      case "subscription": return <SubscriptionView />;
-      case "teams":
-        return hasProAccess(tierKey)
-          ? <TeamsView />
-          : <FeatureGate title="Team Workspace" description="Collaborative intelligence with role-based access, team invites, and shared analysis. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "notebooks":
-        return hasProAccess(tierKey)
-          ? <NotebooksView />
-          : <FeatureGate title="Intelligence Notebooks" description="Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "geospatial":
-        return hasProAccess(tierKey)
-          ? <GeospatialView />
-          : <FeatureGate title="Geospatial Intelligence" description="Spatial-temporal analysis with location mapping, heatmaps, and route optimization. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "plugins":
-        return hasProAccess(tierKey)
-          ? <PluginMarketplaceView />
-          : <FeatureGate title="Plugin Marketplace" description="Extend Asha with data connectors, analysis modules, and visualization plugins. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "timeseries":
-        return hasProAccess(tierKey)
-          ? <TimeSeriesView />
-          : <FeatureGate title="Time-Series Intelligence" description="Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "audit":
-        return hasProAccess(tierKey)
-          ? <AuditLogView />
-          : <FeatureGate title="Audit Trail" description="Complete access and activity logging for compliance and security. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "predictive":
-        return hasProAccess(tierKey)
-          ? <PredictiveIntelligenceView />
-          : <FeatureGate title="Predictive Intelligence" description="AI-powered event forecasting — detect signals from web sources and predict regulatory actions, executive departures, earnings surprises, and more. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "security":
-        return hasProAccess(tierKey)
-          ? <SecurityDashboardView />
-          : <FeatureGate title="Security Command Center" description="8-system defense suite — WAF, IDS, automated incident response, honeypots, threat intelligence, behavior analytics, and real-time monitoring. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "imagine-to-code":
-        return hasProAccess(tierKey)
-          ? <ImagineToCodeView />
-          : <FeatureGate title="Imagine To Code" description="AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Created by ZALI Software. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "tracker":
-        return (hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com")
-          ? <TrackerView />
-          : <FeatureGate title="Location Tracker" description="Real-time geolocation tracking with reverse geocoding and interactive maps. Pin locations, log address history, and monitor coordinates with precision. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "google":
-        return hasProAccess(tierKey)
-          ? <GoogleIntelligenceView />
-          : <FeatureGate title="Google Intelligence" description="Unified intelligence hub — full-spectrum Google account analysis with Gmail, Calendar, Drive, Photos, YouTube, Maps, and more. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "persona-store":
-        return <PersonaStoreView />;
-      case "ide":
-        return <AureonIdeView />;
-      case "pdf-generator":
-        return <PdfGeneratorView />;
-      case "slideshow":
-        return <SlideshowGeneratorView />;
-      case "pattern-analysis":
-        return hasProAccess(tierKey)
-          ? <PatternAnalysisView />
-          : <FeatureGate title="Pattern Analysis Engine" description="Asha + Aureon powered data pattern recognition with visual graph forecasting. Upload historical data and visual patterns to detect trends and predict future outcomes. Available on Pro plans." onUpgrade={() => setActiveView("subscription")} />;
-      case "self-learning":
-        return <SelfLearningLoopView />;
-      case "self-access":
-        return <SelfAccessLearningView />;
-      case "oracle-locus":
-        return <OracleLocusView />;
+      case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
+      case "zali": return gatedView("zali", ZaliView, "ZALI Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro and Advisor plans.");
+      case "community": return gatedView("community", CommunityView, "Community", "Join the community — ask questions, make requests, and vote on future features. Available on Pro and Advisor plans.");
+      case "asha": return gatedView("asha", AshaView, "Asha Intelligence", "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro and Advisor plans.");
+      case "elion": return gatedView("elion", ElionView, "Elion / Zohar Toolkit", "Forensic-grade OSINT toolkit — 20+ DeepDive phases, HiveMind orchestration, Ghost Mode, and identity recon. Available on Pro and Advisor plans.");
+      case "nomad": return gatedView("nomad", NomadView, "NOMAD Agent", "Public intelligence agent — OSINT research across 40+ data sources with AI-powered correlation. Available on Pro and Advisor plans.");
+      case "briefing": return gatedView("briefing", BriefingView, "Intelligence Briefings", "Personalized daily intelligence briefings — competitor tracking, regulatory monitoring, and market signals. Available on Pro plans.");
+      case "teams": return gatedView("teams", TeamsView, "Team Workspace", "Collaborative intelligence with role-based access, team invites, and shared analysis. Available on Pro and Advisor plans.");
+      case "notebooks": return gatedView("notebooks", NotebooksView, "Intelligence Notebooks", "Shared analysis sessions with versioning, scheduling, and collaborative editing. Available on Pro and Advisor plans.");
+      case "geospatial": return gatedView("geospatial", GeospatialView, "Geospatial Intelligence", "Spatial-temporal analysis with location mapping, heatmaps, and route optimization. Available on Pro and Advisor plans.");
+      case "plugins": return gatedView("plugins", PluginMarketplaceView, "Plugin Marketplace", "Extend Asha with data connectors, analysis modules, and visualization plugins. Available on Pro and Advisor plans.");
+      case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro and Advisor plans.");
+      case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro and Advisor plans.");
+      case "predictive": return gatedView("predictive", PredictiveIntelligenceView, "Predictive Intelligence", "AI-powered event forecasting — detect signals and predict regulatory actions, earnings surprises, and more. Available on Pro plans.");
+      case "security": return gatedView("security", SecurityDashboardView, "Security Command Center", "8-system defense suite — WAF, IDS, automated incident response, honeypots, and threat intelligence. Available on Pro and Advisor plans.");
+      case "imagine-to-code": return gatedView("imagine-to-code", ImagineToCodeView, "Imagine To Code", "AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Available on Pro and Advisor plans.");
+      case "tracker": return gatedView("tracker", TrackerView, "Location Tracker", "Real-time geolocation tracking with reverse geocoding and interactive maps. Available on Pro and Advisor plans.");
+      case "google": return gatedView("google", GoogleIntelligenceView, "Google Intelligence", "Unified intelligence hub — full-spectrum Google account analysis. Available on Pro and Advisor plans.");
+      case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Asha + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
+      case "oracle-locus": return gatedView("oracle-locus", OracleLocusView, "Oracle Locus", "Geo-intelligence analysis engine. Available on all paid plans.");
+      // Always-accessible views
+      case "library": return <Suspense fallback={<LazyFallback />}><LibraryView /></Suspense>;
+      case "snippets": return <Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense>;
+      case "projects": return <Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense>;
+      case "memory": return <Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense>;
+      case "stats": return <Suspense fallback={<LazyFallback />}><StatsView /></Suspense>;
+      case "settings": return <Suspense fallback={<LazyFallback />}><SettingsView /></Suspense>;
+      case "subscription": return <Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense>;
+      case "persona-store": return <Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense>;
+      case "ide": return <Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense>;
+      case "pdf-generator": return <Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense>;
+      case "slideshow": return <Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense>;
+      case "self-learning": return <Suspense fallback={<LazyFallback />}><SelfLearningLoopView /></Suspense>;
+      case "self-access": return <Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense>;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}

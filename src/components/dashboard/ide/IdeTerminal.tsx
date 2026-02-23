@@ -573,7 +573,7 @@ AI
       <div className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 font-mono text-[10px] sm:text-[11px] leading-relaxed min-h-0">
         {activeTerm.lines.map(line => (
           <div key={line.id} className={`whitespace-pre-wrap break-all ${colorMap[line.type]}`}>
-            {line.text}
+            {line.text.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/&lt;/g, "<").replace(/&gt;/g, ">") ? line.text : line.text}
           </div>
         ))}
         <div ref={bottomRef} />

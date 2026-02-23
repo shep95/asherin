@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Globe, RefreshCw, ExternalLink, Smartphone, Monitor, Tablet, Loader2, RotateCcw } from "lucide-react";
 import type { IdeFile } from "./IdeFileTree";
 
@@ -73,12 +73,13 @@ const IdePreviewPanel = ({ files }: Props) => {
   const [url, setUrl] = useState("about:blank");
   const [error, setError] = useState<string | null>(null);
 
+  const memoizedHtml = useMemo(() => buildPreviewHtml(files), [files]);
+
   const refreshPreview = useCallback(() => {
     setLoading(true);
     setError(null);
     try {
-      const html = buildPreviewHtml(files);
-      const blob = new Blob([html], { type: "text/html" });
+      const blob = new Blob([memoizedHtml], { type: "text/html" });
       const blobUrl = URL.createObjectURL(blob);
       setUrl(blobUrl);
       return () => URL.revokeObjectURL(blobUrl);
@@ -86,7 +87,7 @@ const IdePreviewPanel = ({ files }: Props) => {
       setError(e.message);
       setLoading(false);
     }
-  }, [files]);
+  }, [memoizedHtml]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -162,7 +163,7 @@ const IdePreviewPanel = ({ files }: Props) => {
             src={url}
             onLoad={handleIframeLoad}
             className="w-full h-full border-0"
-            sandbox="allow-scripts allow-same-origin"
+            sandbox="allow-scripts"
             title="Live Preview"
           />
         </div>
