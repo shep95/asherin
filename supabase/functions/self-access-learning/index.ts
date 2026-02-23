@@ -258,32 +258,46 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     const supabaseAnon = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
+    let authenticatedUser: any = null;
+
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabaseAnon.auth.getUser(token);
-      if (!user || user.email !== ADMIN_EMAIL) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (user && user.email === ADMIN_EMAIL) {
+        authenticatedUser = user;
       }
     }
 
+    // For cron/automated calls: look up admin user ID from profiles
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    let adminUserId: string | null = authenticatedUser?.id || null;
+
+    if (!adminUserId) {
+      // Automated cron call — resolve admin user ID from auth.users
+      const { data: adminUsers } = await supabase.auth.admin.listUsers();
+      const admin = adminUsers?.users?.find((u: any) => u.email === ADMIN_EMAIL);
+      if (!admin) {
+        return new Response(JSON.stringify({ error: "Admin not found" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      adminUserId = admin.id;
+    }
+
     const body = await req.json();
     const { action, scope } = body;
 
     if (action === "analyze") {
       const startTime = Date.now();
 
-      // Get user id from auth
-      const token = authHeader?.replace("Bearer ", "") || "";
-      const { data: { user } } = await supabaseAnon.auth.getUser(token);
-      if (!user) throw new Error("No user");
+      // Use resolved admin user ID
+      const userId = adminUserId;
+      if (!userId) throw new Error("No admin user");
 
       // Create run
       const { data: run } = await supabase
         .from("self_access_runs")
-        .insert({ user_id: user.id, status: "running", scan_scope: scope || "full" })
+        .insert({ user_id: userId, status: "running", scan_scope: scope || "full" })
         .select().single();
       if (!run) throw new Error("Failed to create run");
 
@@ -301,7 +315,7 @@ serve(async (req) => {
       const { data: connRows } = await supabase
         .from("github_connections")
         .select("github_token, repo_owner, repo_name, branch")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(1);
       if (connRows && connRows.length > 0) githubConn = connRows[0];
@@ -375,7 +389,7 @@ ${hasLiveCode ? "You have the REAL source code above. Reference specific line nu
           if (Array.isArray(findings)) {
             allFindings.push(...findings.map((f: any) => ({
               ...f,
-              user_id: user.id,
+              user_id: userId,
               run_id: run.id,
             })));
           }
