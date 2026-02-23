@@ -93,7 +93,57 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { action } = await req.json();
 
-    if (action === "run") {
+    if (action === "get-cron-status") {
+      const { data } = await supabase
+        .from("self_learning_cron_settings")
+        .select("*")
+        .limit(1)
+        .single();
+      return new Response(JSON.stringify({ cron: data }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "set-cron") {
+      const body = await req.json().catch(() => ({}));
+      const { enabled, interval_minutes } = body;
+      const updates: any = { updated_at: new Date().toISOString() };
+      if (typeof enabled === "boolean") updates.enabled = enabled;
+      if (typeof interval_minutes === "number") updates.interval_minutes = interval_minutes;
+      const { data: rows } = await supabase.from("self_learning_cron_settings").select("id").limit(1).single();
+      if (rows) {
+        await supabase.from("self_learning_cron_settings").update(updates).eq("id", rows.id);
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "cron-tick") {
+      // Called by pg_cron every minute — only run if enabled
+      const { data: settings } = await supabase
+        .from("self_learning_cron_settings")
+        .select("*")
+        .limit(1)
+        .single();
+      if (!settings?.enabled) {
+        return new Response(JSON.stringify({ skipped: true, reason: "cron disabled" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const lastRun = settings.last_cron_run_at ? new Date(settings.last_cron_run_at).getTime() : 0;
+      const intervalMs = (settings.interval_minutes || 60) * 60 * 1000;
+      if (Date.now() - lastRun < intervalMs) {
+        return new Response(JSON.stringify({ skipped: true, reason: "interval not reached" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Update last run timestamp
+      await supabase.from("self_learning_cron_settings").update({ last_cron_run_at: new Date().toISOString() }).eq("id", settings.id);
+      // Fall through to run logic below
+    }
+
+    if (action === "run" || action === "cron-tick") {
       const startTime = Date.now();
 
       // Create run record

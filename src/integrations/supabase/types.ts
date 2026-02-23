@@ -2358,6 +2358,30 @@ export type Database = {
           },
         ]
       }
+      self_learning_cron_settings: {
+        Row: {
+          enabled: boolean
+          id: string
+          interval_minutes: number
+          last_cron_run_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          id?: string
+          interval_minutes?: number
+          last_cron_run_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          id?: string
+          interval_minutes?: number
+          last_cron_run_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       self_learning_runs: {
         Row: {
           brains_generated: number | null
