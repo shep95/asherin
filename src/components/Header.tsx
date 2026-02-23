@@ -89,7 +89,7 @@ const Header = () => {
                 <Link to="/feature/imagine-to-code" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Imagine To Code</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/dashboard" onClick={() => window.dispatchEvent(new CustomEvent("aureon:navigate", { detail: "ide" }))} className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
+                <Link to="/feature/ide" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Aureon IDE</Link>
               </DropdownMenuItem>
 
               <div className="my-2 border-t border-border/15" />
@@ -160,7 +160,7 @@ const Header = () => {
                 <Link to="/feature/elion" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Elion / Zohar Toolkit</Link>
                 <Link to="/feature/tracker" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Location Tracker</Link>
                 <Link to="/feature/imagine-to-code" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Imagine To Code</Link>
-                <Link to="/dashboard" onClick={() => { setMobileMenuOpen(false); window.dispatchEvent(new CustomEvent("aureon:navigate", { detail: "ide" })); }} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Aureon IDE</Link>
+                <Link to="/feature/ide" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Aureon IDE</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />
                 <Link to="/founder" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Founder</Link>
                 <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Pricing</Link>

@@ -82,7 +82,7 @@ const navGroups: NavGroup[] = [
     label: "Creation",
     items: [
       { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
-      { id: "ide", icon: Terminal, label: "AUREON IDE", access: "pro" },
+      { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
       { id: "projects", icon: Layers, label: "Projects" },
