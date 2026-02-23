@@ -2186,6 +2186,93 @@ export type Database = {
         }
         Relationships: []
       }
+      self_access_findings: {
+        Row: {
+          created_at: string
+          file_path: string
+          finding: string
+          finding_type: string
+          id: string
+          output_code: string | null
+          reason_needs_fix: string
+          reasoning: string
+          recommendation: string
+          run_id: string
+          severity: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          finding: string
+          finding_type?: string
+          id?: string
+          output_code?: string | null
+          reason_needs_fix: string
+          reasoning: string
+          recommendation: string
+          run_id: string
+          severity?: string
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          finding?: string
+          finding_type?: string
+          id?: string
+          output_code?: string | null
+          reason_needs_fix?: string
+          reasoning?: string
+          recommendation?: string
+          run_id?: string
+          severity?: string
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      self_access_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          files_analyzed: number | null
+          findings_count: number | null
+          id: string
+          scan_scope: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          files_analyzed?: number | null
+          findings_count?: number | null
+          id?: string
+          scan_scope?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          files_analyzed?: number | null
+          findings_count?: number | null
+          id?: string
+          scan_scope?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       self_learning_agent_logs: {
         Row: {
           action: string

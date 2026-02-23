@@ -56,6 +56,7 @@ import PdfGeneratorView from "@/components/dashboard/PdfGeneratorView";
 import PatternAnalysisView from "@/components/dashboard/PatternAnalysisView";
 import SlideshowGeneratorView from "@/components/dashboard/SlideshowGeneratorView";
 import SelfLearningLoopView from "@/components/dashboard/SelfLearningLoopView";
+import SelfAccessLearningView from "@/components/dashboard/SelfAccessLearningView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -930,6 +931,8 @@ const Dashboard = () => {
           : <FeatureGate title="Pattern Analysis Engine" description="Asha + Aureon powered data pattern recognition with visual graph forecasting. Upload historical data and visual patterns to detect trends and predict future outcomes. Available on Pro plans." onUpgrade={() => setActiveView("subscription")} />;
       case "self-learning":
         return <SelfLearningLoopView />;
+      case "self-access":
+        return <SelfAccessLearningView />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
