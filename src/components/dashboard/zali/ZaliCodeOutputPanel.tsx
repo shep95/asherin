@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Code2, Copy, Check, Download, FileCode, Terminal, Layers, Package } from "lucide-react";
+import DOMPurify from "dompurify";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CodeFile {
@@ -202,7 +203,7 @@ const ZaliCodeOutputPanel = ({ codeFiles, projectName, projectType }: Props) => 
             {/* Code */}
             <pre
               className="flex-1 px-3 sm:px-4 pt-3 pb-4 text-muted-foreground overflow-x-auto"
-              dangerouslySetInnerHTML={{ __html: highlight(active.content, active.language) }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlight(active.content, active.language)) }}
               style={{ lineHeight: "1.75", tabSize: 2 }}
             />
           </div>

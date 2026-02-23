@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
@@ -175,15 +176,22 @@ const DashboardSidebar = ({
     setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  // Filter nav groups based on tier access and email restrictions
+  // Filter nav groups based on tier access using centralized config
   const filteredGroups = navGroups.map(group => ({
     ...group,
     items: group.items.filter(item => {
+      // Admin-only views
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-learning") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "oracle-locus") return hasSearchAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "tracker") return hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
+
+      // Use centralized feature map for tier-gated views
+      const featureId = VIEW_FEATURE_MAP[item.id];
+      if (featureId) {
+        return tierHasFeature(tierKey, featureId) || user?.email === "ashernewtonx@gmail.com";
+      }
+
+      // Legacy access field fallback
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
       if (item.access === "pro") return hasProAccess(tierKey);
