@@ -87,7 +87,7 @@ const SelfLearningLoopView = () => {
   const [expandedBrain, setExpandedBrain] = useState<string | null>(null);
   const [lastRunTime, setLastRunTime] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [timescale, setTimescale] = useState<"hours" | "days" | "months" | "years">("days");
+  const [timescale, setTimescale] = useState<"hours" | "days" | "weeks" | "months" | "years">("days");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async (showSpinner = false) => {
@@ -364,15 +364,20 @@ const SelfLearningLoopView = () => {
               {(() => {
                 const sortedRuns = [...runs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                 const bucketRuns = (scale: string) => {
-                  const buckets = new Map<string, { bugs: number; optimizations: number; security: number; brains: number; findings: number; count: number }>();
+                  const buckets = new Map<string, { bugs: number; optimizations: number; security: number; brains: number; findings: number; count: number; firstDate: Date }>();
                   sortedRuns.forEach(r => {
                     const d = new Date(r.created_at);
                     let key: string;
                     if (scale === "hours") key = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:00`;
                     else if (scale === "days") key = `${d.getMonth()+1}/${d.getDate()}`;
+                    else if (scale === "weeks") {
+                      const jan1 = new Date(d.getFullYear(), 0, 1);
+                      const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
+                      key = `W${week} ${d.getFullYear()}`;
+                    }
                     else if (scale === "months") key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
                     else key = `${d.getFullYear()}`;
-                    const b = buckets.get(key) || { bugs: 0, optimizations: 0, security: 0, brains: 0, findings: 0, count: 0 };
+                    const b = buckets.get(key) || { bugs: 0, optimizations: 0, security: 0, brains: 0, findings: 0, count: 0, firstDate: d };
                     b.bugs += r.bugs_found || 0;
                     b.optimizations += r.optimizations_applied || 0;
                     b.security += r.security_patches || 0;
@@ -384,36 +389,103 @@ const SelfLearningLoopView = () => {
                   return Array.from(buckets.entries()).map(([label, v]) => ({ label, ...v }));
                 };
                 const chartData = bucketRuns(timescale);
+
+                // Calculate cumulative data with version scores
                 let cumB = 0, cumO = 0, cumS = 0;
-                const cumulativeData = chartData.map(d => {
+                // Max theoretical issues per run (used for scoring)
+                const maxIssuesPerRun = 20;
+                const cumulativeData = chartData.map((d, i) => {
                   cumB += d.bugs; cumO += d.optimizations; cumS += d.security;
-                  return { ...d, cumulative: cumB + cumO + cumS };
+                  const totalFixed = cumB + cumO + cumS;
+                  const totalRuns = chartData.slice(0, i + 1).reduce((s, x) => s + x.count, 0);
+                  // Score: starts low, grows as more issues are resolved relative to runs
+                  // Formula: diminishing returns curve capped at 99%
+                  const rawScore = totalRuns > 0 ? Math.min(99, Math.round(10 + (totalFixed / (totalRuns * maxIssuesPerRun * 0.15)) * 90)) : 10;
+                  const score = Math.min(99, rawScore);
+                  return { ...d, cumulative: totalFixed, version: `v${i + 1}`, score };
                 });
+
                 const totalImprovements = totalBugs + totalOptimizations + totalSecurityPatches;
                 const firstRunDate = sortedRuns[0]?.created_at ? new Date(sortedRuns[0].created_at) : null;
                 const daysSinceStart = firstRunDate ? Math.max(1, Math.floor((Date.now() - firstRunDate.getTime()) / 86400000)) : 0;
                 const improvementRate = daysSinceStart > 0 ? (totalImprovements / daysSinceStart).toFixed(1) : "0";
                 const codeHealth = Math.round(60 + Math.min(40, totalImprovements * 0.8));
+
+                const currentScore = cumulativeData.length > 0 ? cumulativeData[cumulativeData.length - 1].score : 10;
+                const previousScore = cumulativeData.length > 1 ? cumulativeData[cumulativeData.length - 2].score : 10;
+                const scoreDelta = currentScore - previousScore;
+                const firstScore = cumulativeData.length > 0 ? cumulativeData[0].score : 10;
+                const totalGain = currentScore - firstScore;
+
                 return (
                   <>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {/* Version Improvement Hero */}
+                    <div className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-[10px] font-extralight tracking-[0.3em] text-muted-foreground uppercase">System Intelligence Score</p>
+                        {scoreDelta !== 0 && (
+                          <Badge variant="outline" className={`text-[10px] font-extralight border-border/30 ${scoreDelta > 0 ? "text-green-400" : "text-destructive"}`}>
+                            {scoreDelta > 0 ? "+" : ""}{scoreDelta}% from last {timescale.slice(0, -1)}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-end gap-6">
+                        <div>
+                          <p className="text-6xl font-extralight text-foreground">{currentScore}<span className="text-2xl text-muted-foreground">%</span></p>
+                          <p className="text-xs font-extralight text-muted-foreground mt-1">current version quality</p>
+                        </div>
+                        <div className="flex-1">
+                          <div className="h-3 rounded-full bg-muted/20 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-destructive via-yellow-500 to-green-500 transition-all duration-1000"
+                              style={{ width: `${currentScore}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-[9px] font-extralight text-muted-foreground/50">0%</span>
+                            <span className="text-[9px] font-extralight text-muted-foreground/50">50%</span>
+                            <span className="text-[9px] font-extralight text-muted-foreground/50">100%</span>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Version timeline */}
+                      {cumulativeData.length > 1 && (
+                        <div className="mt-4 flex items-center gap-1 overflow-x-auto pb-1">
+                          {cumulativeData.map((d, i) => (
+                            <div key={d.version} className="flex items-center gap-1 shrink-0">
+                              <div className={`flex flex-col items-center rounded-xl px-2.5 py-1.5 ${i === cumulativeData.length - 1 ? "bg-accent/15 border border-accent/30" : "bg-card/30 border border-border/20"}`}>
+                                <span className="text-[9px] font-extralight text-muted-foreground">{d.version}</span>
+                                <span className={`text-sm font-extralight ${i === cumulativeData.length - 1 ? "text-accent" : "text-foreground"}`}>{d.score}%</span>
+                              </div>
+                              {i < cumulativeData.length - 1 && (
+                                <span className="text-muted-foreground/30 text-[10px]">→</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                       {[
                         { label: "Code Health", value: `${codeHealth}%`, sub: <div className="mt-2 h-1.5 rounded-full bg-muted/20 overflow-hidden"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${codeHealth}%` }} /></div> },
+                        { label: "Total Gain", value: `+${totalGain}%`, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{firstScore}% → {currentScore}%</p> },
                         { label: "Total Improvements", value: totalImprovements, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{improvementRate} / day avg</p> },
                         { label: "Learning Cycles", value: runs.length, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">across {daysSinceStart} day{daysSinceStart !== 1 ? "s" : ""}</p> },
                         { label: "Active Brains", value: activeBrains, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{brains.length} total generated</p> },
                       ].map(c => (
                         <div key={c.label} className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-4">
                           <p className="text-[10px] font-extralight tracking-widest text-muted-foreground uppercase mb-1">{c.label}</p>
-                          <p className="text-3xl font-extralight text-foreground">{c.value}</p>
+                          <p className="text-2xl font-extralight text-foreground">{c.value}</p>
                           {c.sub}
                         </div>
                       ))}
                     </div>
+
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-extralight tracking-wider text-muted-foreground uppercase">Cumulative Improvement Over Time</p>
+                      <p className="text-xs font-extralight tracking-wider text-muted-foreground uppercase">Intelligence Score Over Time</p>
                       <div className="flex items-center gap-1 rounded-2xl border border-border/30 bg-card/30 p-1">
-                        {(["hours", "days", "months", "years"] as const).map(t => (
+                        {(["hours", "days", "weeks", "months", "years"] as const).map(t => (
                           <button key={t} onClick={() => setTimescale(t)} className={`rounded-xl px-3 py-1.5 text-xs font-extralight tracking-wider capitalize transition-all ${timescale === t ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`}>
                             {t}
                           </button>
@@ -425,22 +497,21 @@ const SelfLearningLoopView = () => {
                         <ResponsiveContainer width="100%" height={320}>
                           <AreaChart data={cumulativeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
-                              <linearGradient id="gradCum" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
+                              <linearGradient id="gradScore" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.4} />
                                 <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} />
                               </linearGradient>
-                              <linearGradient id="gradBugsL" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                              <linearGradient id="gradCum2" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
                                 <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.2} />
-                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 11 }} labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 300 }} />
-                            <Area type="monotone" dataKey="cumulative" name="Total Fixes" stroke="hsl(var(--accent))" fill="url(#gradCum)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="bugs" name="Bugs Fixed" stroke="hsl(var(--primary))" fill="url(#gradBugsL)" strokeWidth={1.5} />
-                            <Area type="monotone" dataKey="optimizations" name="Optimizations" stroke="hsl(var(--muted-foreground))" fill="none" strokeWidth={1} strokeDasharray="4 4" />
+                            <XAxis dataKey="version" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                            <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                            <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 11 }} labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 300 }} formatter={(v: number, name: string) => name === "Score" ? [`${v}%`, name] : [v, name]} />
+                            <Area type="monotone" dataKey="score" name="Score" stroke="hsl(var(--accent))" fill="url(#gradScore)" strokeWidth={2.5} dot={{ fill: "hsl(var(--accent))", r: 3, strokeWidth: 0 }} />
+                            <Area type="monotone" dataKey="cumulative" name="Total Fixes" stroke="hsl(var(--primary))" fill="url(#gradCum2)" strokeWidth={1} />
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
@@ -453,25 +524,26 @@ const SelfLearningLoopView = () => {
                     {chartData.length > 0 && (
                       <div className="rounded-2xl border border-border/30 bg-card/10 backdrop-blur-sm overflow-hidden">
                         <div className="p-3 border-b border-border/20">
-                          <p className="text-[10px] font-extralight tracking-widest text-muted-foreground uppercase">Breakdown by {timescale}</p>
+                          <p className="text-[10px] font-extralight tracking-widest text-muted-foreground uppercase">Version Breakdown by {timescale}</p>
                         </div>
                         <div className="divide-y divide-border/10">
-                          {chartData.map((d, i) => {
+                          {cumulativeData.map((d, i) => {
                             const periodTotal = d.bugs + d.optimizations + d.security;
-                            const prevTotal = i > 0 ? (chartData[i-1].bugs + chartData[i-1].optimizations + chartData[i-1].security) : 0;
-                            const change = prevTotal > 0 ? (((periodTotal - prevTotal) / prevTotal) * 100).toFixed(0) : null;
+                            const prevScore = i > 0 ? cumulativeData[i-1].score : d.score;
+                            const delta = d.score - prevScore;
                             return (
                               <div key={d.label} className="flex items-center justify-between px-4 py-2.5 text-xs font-extralight">
-                                <span className="text-foreground w-28">{d.label}</span>
+                                <span className="text-accent w-12">{d.version}</span>
+                                <span className="text-foreground w-20">{d.label}</span>
                                 <span className="text-muted-foreground">{d.count} runs</span>
                                 <span className="text-muted-foreground">{d.bugs} bugs</span>
                                 <span className="text-muted-foreground">{d.optimizations} opt</span>
                                 <span className="text-muted-foreground">{d.security} sec</span>
-                                <span className="text-foreground font-light">{periodTotal} total</span>
-                                {change !== null ? (
-                                  <span className={Number(change) >= 0 ? "text-accent" : "text-destructive"}>{Number(change) >= 0 ? "+" : ""}{change}%</span>
+                                <span className="text-foreground font-light">{d.score}%</span>
+                                {i > 0 ? (
+                                  <span className={delta >= 0 ? "text-green-400" : "text-destructive"}>{delta >= 0 ? "+" : ""}{delta}%</span>
                                 ) : (
-                                  <span className="text-muted-foreground/40">—</span>
+                                  <span className="text-muted-foreground/40">baseline</span>
                                 )}
                               </div>
                             );
