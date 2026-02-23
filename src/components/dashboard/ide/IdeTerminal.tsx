@@ -88,9 +88,22 @@ const IdeTerminal = ({ onAiCommand, files = [], onCreateFile, onDeleteFile, onUp
 
   const activeTerm = terminals.find(t => t.id === activeTermId) ?? terminals[0];
 
+  // [Finding #6] — Auto-scroll to bottom on new output
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeTerm?.lines]);
+
+  // [Finding #6] — Global Ctrl+` hotkey to focus terminal input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "`") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const updateTerm = useCallback((id: string, update: Partial<TerminalInstance>) => {
     setTerminals(prev => prev.map(t => t.id === id ? { ...t, ...update } : t));

@@ -31,8 +31,9 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Step 1: Fetch clarifying questions
+  // [Finding #9] — AbortController to cancel stale searches when query changes
   useEffect(() => {
+    const controller = new AbortController();
     const fetchQuestions = async () => {
       setLoadingQuestions(true);
       try {
@@ -45,8 +46,10 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
             body: JSON.stringify({ query, action: "refine" }),
+            signal: controller.signal,
           }
         );
+        if (controller.signal.aborted) return;
         if (resp.ok) {
           const data = await resp.json();
           if (data.questions && data.questions.length > 0) {
@@ -55,14 +58,17 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
             return;
           }
         }
-      } catch (e) {
+      } catch (e: any) {
+        if (e.name === "AbortError") return;
         console.error("Failed to get clarifying questions:", e);
       }
-      // Fallback: skip to search
-      setLoadingQuestions(false);
-      startDeepSearch({});
+      if (!controller.signal.aborted) {
+        setLoadingQuestions(false);
+        startDeepSearch({});
+      }
     };
     fetchQuestions();
+    return () => controller.abort();
   }, [query]);
 
   const selectAnswer = (questionId: string, option: string) => {

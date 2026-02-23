@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Plus, Trash2, FileCode, FileText, Image, Database, Settings, Pencil } from "lucide-react";
 import IdeDeleteConfirm from "./IdeDeleteConfirm";
 
@@ -43,7 +43,8 @@ interface Props {
   onRenameFile?: (id: string, newName: string) => void;
 }
 
-function TreeNode({ node, depth, activeFileId, onSelectFile, onRequestDelete, onRenameFile }: {
+// [Finding #8] — Memoized TreeNode to prevent recursive re-render stalls on large repos
+const TreeNode = memo(function TreeNode({ node, depth, activeFileId, onSelectFile, onRequestDelete, onRenameFile }: {
   node: IdeFile; depth: number; activeFileId: string | null;
   onSelectFile: (f: IdeFile) => void; onRequestDelete: (f: IdeFile) => void;
   onRenameFile?: (id: string, newName: string) => void;
@@ -112,7 +113,7 @@ function TreeNode({ node, depth, activeFileId, onSelectFile, onRequestDelete, on
       ))}
     </div>
   );
-}
+}, (prev, next) => prev.node.id === next.node.id && prev.node.name === next.node.name && prev.activeFileId === next.activeFileId && prev.depth === next.depth && prev.node.children === next.node.children);
 
 const IdeFileTree = ({ files, activeFileId, onSelectFile, onCreateFile, onDeleteFile, onRenameFile }: Props) => {
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
