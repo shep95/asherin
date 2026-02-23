@@ -99,15 +99,13 @@ const SelfAccessLearningView = () => {
 
   const loadFindings = useCallback(async (runId?: string) => {
     try {
-      const data = await callApi("get-findings", {
-        runId: runId || undefined,
-        status: filterStatus || undefined,
-      });
+      const data = await callApi("get-findings", { runId: runId || undefined });
       setFindings(data.findings || []);
     } catch {}
-  }, [callApi, filterStatus]);
+  }, [callApi]);
 
-  useEffect(() => { loadRuns(); loadFindings(); }, [loadRuns, loadFindings]);
+  // Load once on mount only
+  useEffect(() => { loadRuns(); loadFindings(); }, []);
 
   const runAnalysis = async () => {
     setIsAnalyzing(true);
@@ -133,6 +131,7 @@ const SelfAccessLearningView = () => {
 
   const filteredFindings = findings.filter(f => {
     if (selectedRun && f.run_id !== selectedRun) return false;
+    if (filterStatus && f.status !== filterStatus) return false;
     if (filterSeverity && f.severity !== filterSeverity) return false;
     return true;
   });
@@ -223,7 +222,7 @@ const SelfAccessLearningView = () => {
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-1">
               <button
-                onClick={() => { setSelectedRun(null); loadFindings(); }}
+                onClick={() => setSelectedRun(null)}
                 className={`w-full text-left rounded-lg px-3 py-2 text-xs transition-colors ${
                   !selectedRun ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-foreground/5"
                 }`}
@@ -233,7 +232,7 @@ const SelfAccessLearningView = () => {
               {runs.map(r => (
                 <button
                   key={r.id}
-                  onClick={() => { setSelectedRun(r.id); loadFindings(r.id); }}
+                  onClick={() => setSelectedRun(r.id)}
                   className={`w-full text-left rounded-lg px-3 py-2 text-xs transition-colors ${
                     selectedRun === r.id ? "bg-accent/10 text-accent" : "text-muted-foreground hover:bg-foreground/5"
                   }`}
