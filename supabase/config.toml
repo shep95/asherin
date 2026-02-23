@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.self-access-learning]
 verify_jwt = false
+
+[functions.oracle-locus]
+verify_jwt = false
