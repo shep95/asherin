@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, ClipboardPaste } from "lucide-react";
+import { useState, useRef } from "react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -99,36 +99,6 @@ const OracleLocusView = () => {
     reader.readAsDataURL(file);
   };
 
-  const processBlob = useCallback((blob: Blob) => {
-    setImageType(blob.type || "image/png");
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
-      setImageBase64(dataUrl.split(",")[1]);
-      setResult(null);
-    };
-    reader.readAsDataURL(blob);
-  }, []);
-
-  // Global paste listener
-  useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith("image/")) {
-          e.preventDefault();
-          const blob = item.getAsFile();
-          if (blob) processBlob(blob);
-          return;
-        }
-      }
-    };
-    window.addEventListener("paste", handlePaste);
-    return () => window.removeEventListener("paste", handlePaste);
-  }, [processBlob]);
-
   const analyzeImage = async () => {
     if (!imageBase64) return;
     setAnalyzing(true);
@@ -225,19 +195,11 @@ const OracleLocusView = () => {
                   )}
                 </div>
               ) : (
-              <button onClick={() => fileInputRef.current?.click()} className="w-full py-16 flex flex-col items-center gap-4 cursor-pointer">
+                <button onClick={() => fileInputRef.current?.click()} className="w-full py-20 flex flex-col items-center gap-4 cursor-pointer">
                   <Upload className="h-12 w-12 text-muted-foreground/20" />
                   <div className="text-center">
                     <p className="text-sm font-extralight text-muted-foreground">Drop an image or click to upload</p>
-                    <div className="flex items-center gap-2 justify-center mt-2">
-                      <span className="h-px w-8 bg-border/20" />
-                      <span className="text-[10px] text-muted-foreground/40">or</span>
-                      <span className="h-px w-8 bg-border/20" />
-                    </div>
-                    <p className="text-xs font-extralight text-muted-foreground/60 mt-2 flex items-center justify-center gap-1.5">
-                      <ClipboardPaste className="h-3.5 w-3.5" /> Paste from clipboard <kbd className="ml-1 rounded border border-border/20 bg-card/30 px-1.5 py-0.5 text-[9px] font-mono text-muted-foreground/50">Ctrl+V</kbd>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/40 mt-2">JPG, PNG, WebP · Max 20MB · No metadata required</p>
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">JPG, PNG, WebP · Max 20MB · No metadata required</p>
                   </div>
                 </button>
               )}
