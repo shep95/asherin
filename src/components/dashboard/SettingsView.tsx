@@ -10,6 +10,9 @@ import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
 import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
+import wallpaperProphet from "@/assets/wallpaper-prophet.png";
+import wallpaperNexus from "@/assets/wallpaper-nexus.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
@@ -17,6 +20,9 @@ const WALLPAPERS = [
   { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
   { key: "glitch", label: "Glitch", src: wallpaperGlitch },
   { key: "aureon", label: "Aureon", src: wallpaperAureon },
+  { key: "seraph", label: "Seraph", src: wallpaperSeraph },
+  { key: "prophet", label: "Prophet", src: wallpaperProphet },
+  { key: "nexus", label: "Nexus", src: wallpaperNexus },
 ];
 
 const GitHubSettings = () => {

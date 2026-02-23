@@ -3,6 +3,9 @@ import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
 import wallpaperGlitch from "@/assets/wallpaper-glitch.png";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
+import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
+import wallpaperProphet from "@/assets/wallpaper-prophet.png";
+import wallpaperNexus from "@/assets/wallpaper-nexus.png";
 
 const WALLPAPER_MAP: Record<string, string> = {
   default: heroBgDefault,
@@ -10,6 +13,9 @@ const WALLPAPER_MAP: Record<string, string> = {
   eclipse: wallpaperEclipse,
   glitch: wallpaperGlitch,
   aureon: wallpaperAureon,
+  seraph: wallpaperSeraph,
+  prophet: wallpaperProphet,
+  nexus: wallpaperNexus,
 };
 import React from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
