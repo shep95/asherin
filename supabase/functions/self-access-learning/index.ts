@@ -388,7 +388,14 @@ ${hasLiveCode ? "You have the REAL source code above. Reference specific line nu
 
         try {
           const raw = await callAI(systemPrompt, userPrompt);
-          const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+          // Robust JSON extraction: strip markdown, find the JSON array
+          let cleaned = raw.replace(/```json\n?/gi, "").replace(/```\n?/g, "").trim();
+          // Find the first '[' and last ']' to extract just the JSON array
+          const arrStart = cleaned.indexOf("[");
+          const arrEnd = cleaned.lastIndexOf("]");
+          if (arrStart !== -1 && arrEnd > arrStart) {
+            cleaned = cleaned.slice(arrStart, arrEnd + 1);
+          }
           const findings = JSON.parse(cleaned);
           if (Array.isArray(findings)) {
             allFindings.push(...findings.map((f: any) => ({
