@@ -186,7 +186,7 @@ const QueryBar = () => {
       const result = await res.json();
 
       setHistory(prev => prev.map(h =>
-        h.id === tempId ? { ...h, response: result.response, response_type: result.type, status: "sent" } : h
+        h.id === tempId ? { ...h, response: result.response, response_type: result.type, status: "sent" as const } : h
       ));
     } catch {
       // Queue for retry

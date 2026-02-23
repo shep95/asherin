@@ -18,6 +18,11 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
   );
 
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+  );
+
   try {
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
@@ -30,6 +35,21 @@ serve(async (req) => {
       throw new Error("Missing plugin details");
     }
 
+    // ── Idempotency: Check if user already owns this plugin ──
+    const { data: existingInstall } = await supabaseAdmin
+      .from("installed_plugins")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("plugin_id", pluginId)
+      .maybeSingle();
+
+    if (existingInstall) {
+      return new Response(JSON.stringify({ error: "Plugin already owned", alreadyOwned: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 409,
+      });
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -40,10 +60,30 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://ziali-magic-pixels.lovable.app";
 
+    // ── Idempotency: Check for existing pending Stripe session via client_reference_id ──
+    const clientRefId = `${user.id}_plugin_${pluginId}`;
+    const recentSessions = await stripe.checkout.sessions.list({
+      limit: 5,
+      ...(customerId ? { customer: customerId } : {}),
+    });
+
+    const pendingSession = recentSessions.data.find(
+      (s) => s.client_reference_id === clientRefId && s.status === "open"
+    );
+
+    if (pendingSession?.url) {
+      // Reuse existing open session instead of creating a duplicate
+      return new Response(JSON.stringify({ url: pendingSession.url }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Create a subscription checkout for the plugin
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
+      client_reference_id: clientRefId,
       line_items: [
         {
           price_data: {

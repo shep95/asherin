@@ -276,11 +276,11 @@ serve(async (req) => {
       else if (scope === "backend") files = files.filter(f => f.domain === "Backend" || f.domain === "Data" || f.domain === "AI/ML");
       else if (scope === "security") files = files.filter(f => f.domain === "Security");
 
-      // Pick random subset per run (max 8 files to keep it fast)
-      const selectedFiles = [...files].sort(() => Math.random() - 0.5).slice(0, 8);
+      // Pick random subset per run (max 15 files for deeper coverage)
+      const selectedFiles = [...files].sort(() => Math.random() - 0.5).slice(0, 15);
 
-      // Run 2 random agents across all selected files
-      const selectedAgents = [...ANALYSIS_AGENTS].sort(() => Math.random() - 0.5).slice(0, 2);
+      // Run 3 random agents across all selected files
+      const selectedAgents = [...ANALYSIS_AGENTS].sort(() => Math.random() - 0.5).slice(0, 3);
       const allFindings: any[] = [];
 
       for (const agent of selectedAgents) {
@@ -364,7 +364,7 @@ Focus on REAL issues you'd find in a codebase of this complexity. Be specific ab
     if (action === "get-findings") {
       const { runId, status: filterStatus } = body;
       let query = supabase.from("self_access_findings").select("*")
-        .order("created_at", { ascending: false }).limit(200);
+        .order("created_at", { ascending: false }).limit(1000);
       if (runId) query = query.eq("run_id", runId);
       if (filterStatus) query = query.eq("status", filterStatus);
       const { data } = await query;
