@@ -11,17 +11,28 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const LANGUAGES = [
+  "TypeScript", "Python", "Rust", "Go", "Java", "C++", "C#", "Swift", "Kotlin", "Ruby",
+  "PHP", "Scala", "Elixir", "Haskell", "Lua", "Zig", "Dart", "R", "Julia", "Bash",
+];
+
 const DOMAINS = [
-  { id: "auth", name: "Authentication & Authorization", challenge: "Build a secure JWT-based authentication system with refresh tokens, session management, rate limiting, and RBAC. Include login, signup, password reset, and token rotation." },
-  { id: "api", name: "API Engineering", challenge: "Build a REST API gateway with input validation, error handling, pagination, rate limiting, request queuing, circuit breakers, and retry logic with exponential backoff." },
-  { id: "db", name: "Database Engineering", challenge: "Build a database access layer with connection pooling, parameterized queries, migrations, transaction management, optimistic locking, and query performance monitoring." },
-  { id: "frontend", name: "Frontend Architecture", challenge: "Build a component library with lazy loading, virtual scrolling, state management, error boundaries, accessibility compliance, and responsive design patterns." },
-  { id: "security", name: "Cybersecurity", challenge: "Build a security module with XSS prevention, CSRF tokens, content security policies, input sanitization, encrypted storage, audit logging, and intrusion detection." },
-  { id: "realtime", name: "Realtime Systems", challenge: "Build a WebSocket server with connection heartbeats, reconnection logic, message ordering, pub/sub channels, presence tracking, and graceful degradation." },
-  { id: "data", name: "Data Pipeline", challenge: "Build an ETL pipeline with streaming ingestion, data validation, schema evolution, deduplication, backpressure handling, and checkpoint recovery." },
-  { id: "ml", name: "ML Engineering", challenge: "Build an inference pipeline with model versioning, A/B testing, feature stores, prediction caching, drift detection, and fallback strategies." },
-  { id: "devops", name: "Infrastructure", challenge: "Build a deployment system with health checks, rolling updates, canary deployments, log aggregation, alerting rules, and auto-scaling policies." },
-  { id: "testing", name: "Quality Assurance", challenge: "Build a test framework with unit tests, integration tests, snapshot tests, load tests, mutation testing, and coverage reporting with CI integration." },
+  { id: "auth", name: "Authentication & Authorization", challenge: "Build a secure authentication system with token management, session handling, rate limiting, RBAC, password hashing, and token rotation." },
+  { id: "api", name: "API Engineering", challenge: "Build an API gateway with input validation, error handling, pagination, rate limiting, circuit breakers, and retry logic with exponential backoff." },
+  { id: "db", name: "Database Engineering", challenge: "Build a database access layer with connection pooling, parameterized queries, transaction management, optimistic locking, and query monitoring." },
+  { id: "frontend", name: "Frontend Architecture", challenge: "Build a UI component system with lazy loading, virtual scrolling, state management, error boundaries, and responsive design." },
+  { id: "security", name: "Cybersecurity", challenge: "Build a security module with injection prevention, CSRF tokens, content security policies, input sanitization, encrypted storage, and audit logging." },
+  { id: "realtime", name: "Realtime Systems", challenge: "Build a realtime server with connection heartbeats, reconnection logic, message ordering, pub/sub channels, and graceful degradation." },
+  { id: "data", name: "Data Pipeline", challenge: "Build an ETL pipeline with streaming ingestion, data validation, schema evolution, deduplication, and checkpoint recovery." },
+  { id: "ml", name: "ML Engineering", challenge: "Build an inference pipeline with model versioning, A/B testing, feature stores, prediction caching, and drift detection." },
+  { id: "devops", name: "Infrastructure", challenge: "Build a deployment system with health checks, rolling updates, canary deployments, log aggregation, and auto-scaling." },
+  { id: "testing", name: "Quality Assurance", challenge: "Build a test framework with unit tests, integration tests, load tests, mutation testing, and coverage reporting." },
+  { id: "concurrency", name: "Concurrency & Parallelism", challenge: "Build a concurrent task executor with thread pools, async scheduling, deadlock detection, work stealing, and graceful shutdown." },
+  { id: "networking", name: "Network Programming", challenge: "Build a TCP/UDP server with connection pooling, protocol parsing, TLS handshake, keep-alive, and load balancing." },
+  { id: "compiler", name: "Compiler & Interpreter Design", challenge: "Build a lexer and parser for a small expression language with AST generation, type checking, and code emission." },
+  { id: "crypto", name: "Cryptography", challenge: "Build a crypto library with symmetric/asymmetric encryption, key derivation, digital signatures, hash chains, and secure random generation." },
+  { id: "os", name: "Systems Programming", challenge: "Build a memory allocator with pool allocation, garbage collection hooks, memory-mapped I/O, and fragmentation prevention." },
+  { id: "dsa", name: "Data Structures & Algorithms", challenge: "Implement a balanced BST, graph traversal, dynamic programming solver, bloom filter, and LRU cache with O(1) operations." },
 ];
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
@@ -75,22 +86,22 @@ async function getActiveBrains(supabase: any): Promise<string> {
   return brains.map((b: any) => `[${b.domain}] ${b.directive}`).join("\n\n");
 }
 
-// PHASE 1: Generate code for a domain challenge, informed by existing brains
-async function phaseGenerate(supabase: any, runId: string, domain: any, brainDirectives: string): Promise<string> {
-  await logAgent(supabase, runId, "Generator", `Phase 1: Generating code for ${domain.name}`, domain.challenge);
+// PHASE 1: Generate code for a domain challenge in a random language, informed by existing brains
+async function phaseGenerate(supabase: any, runId: string, domain: any, brainDirectives: string, language: string): Promise<string> {
+  await logAgent(supabase, runId, "Generator", `Phase 1: Generating ${language} code for ${domain.name}`, domain.challenge);
 
-  const systemPrompt = `You are AUREON's Code Generator. You write production-grade TypeScript code.
+  const systemPrompt = `You are AUREON's Code Generator. You write production-grade ${language} code.
 
 ${brainDirectives ? `LEARNED DIRECTIVES (apply these lessons from past iterations):\n${brainDirectives}\n` : ""}
 
 RULES:
-- Write complete, runnable TypeScript code that solves the challenge
-- Use proper error handling, types, and production patterns
+- Write complete, runnable ${language} code that solves the challenge
+- Use idiomatic ${language} patterns, proper error handling, and types where applicable
 - Do NOT use placeholder comments like "// implement here" — write real logic
 - Return ONLY the code, no markdown fences, no explanations`;
 
-  const code = await callAI(systemPrompt, `Challenge: ${domain.challenge}\n\nWrite the complete implementation.`);
-  await logAgent(supabase, runId, "Generator", `Generated ${code.length} chars for ${domain.name}`, code.slice(0, 500));
+  const code = await callAI(systemPrompt, `Language: ${language}\nChallenge: ${domain.challenge}\n\nWrite the complete ${language} implementation.`);
+  await logAgent(supabase, runId, "Generator", `Generated ${code.length} chars of ${language} for ${domain.name}`, code.slice(0, 500));
   return code;
 }
 
@@ -314,16 +325,17 @@ serve(async (req) => {
       const existingBrains = await getActiveBrains(supabase);
       await logAgent(supabase, run.id, "System", "Loaded brain directives", `${existingBrains.length} chars of learned knowledge`);
 
-      // Pick 2 random domains per run (5 phases each = 10 AI calls per domain)
+      // Pick 2 random domains and a random language for each
       const shuffled = [...DOMAINS].sort(() => Math.random() - 0.5).slice(0, 2);
 
       for (const domain of shuffled) {
-        analyzedDomains.push(domain.name);
-        await logAgent(supabase, run.id, "System", `=== Starting cycle for ${domain.name} ===`, domain.challenge);
+        const language = LANGUAGES[Math.floor(Math.random() * LANGUAGES.length)];
+        analyzedDomains.push(`${domain.name} [${language}]`);
+        await logAgent(supabase, run.id, "System", `=== Starting cycle for ${domain.name} in ${language} ===`, domain.challenge);
 
         try {
-          // PHASE 1: Generate code
-          const generatedCode = await phaseGenerate(supabase, run.id, domain, existingBrains);
+          // PHASE 1: Generate code in random language
+          const generatedCode = await phaseGenerate(supabase, run.id, domain, existingBrains, language);
           totalCodeReviewed += 1;
 
           // PHASE 2: Analyze for errors
