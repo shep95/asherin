@@ -44,6 +44,8 @@ import TrackerView from "@/components/dashboard/TrackerView";
 import PersonaStoreView from "@/components/dashboard/PersonaStoreView";
 import GoogleIntelligenceView from "@/components/dashboard/google/GoogleIntelligenceView";
 import AureonIdeView from "@/components/dashboard/ide/AureonIdeView";
+import PdfGeneratorView from "@/components/dashboard/PdfGeneratorView";
+import PatternAnalysisView from "@/components/dashboard/PatternAnalysisView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -907,9 +909,13 @@ const Dashboard = () => {
       case "persona-store":
         return <PersonaStoreView />;
       case "ide":
+        return <AureonIdeView />;
+      case "pdf-generator":
+        return <PdfGeneratorView />;
+      case "pattern-analysis":
         return hasProAccess(tierKey)
-          ? <AureonIdeView />
-          : <FeatureGate title="AUREON IDE" description="AI-powered development environment with integrated chat, file explorer, code editor, terminal, and ZALI question intelligence. Available on Pro and Advisor plans." onUpgrade={() => setActiveView("subscription")} />;
+          ? <PatternAnalysisView />
+          : <FeatureGate title="Pattern Analysis Engine" description="Asha + Aureon powered data pattern recognition with visual graph forecasting. Upload historical data and visual patterns to detect trends and predict future outcomes. Available on Pro plans." onUpgrade={() => setActiveView("subscription")} />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}

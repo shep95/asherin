@@ -73,6 +73,7 @@ const navGroups: NavGroup[] = [
     label: "Data & Analysis",
     items: [
       { id: "asha", icon: Database, label: "Asha Intelligence", access: "pro" },
+      { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
       { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
       { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
       { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
@@ -84,6 +85,7 @@ const navGroups: NavGroup[] = [
       { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
+      { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
       { id: "projects", icon: Layers, label: "Projects" },
     ],

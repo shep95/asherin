@@ -1,11 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
-import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check } from "lucide-react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check, Copy, Brain, Eye, Download, Upload, FileText, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
 import ReactMarkdown from "react-markdown";
 import MessageQueuePanel from "../MessageQueuePanel";
-
+import CalibrationFeedback from "../CalibrationFeedback";
+import type { FeedbackType } from "../CalibrationFeedback";
+import ChainOfThoughtPanel from "../ChainOfThoughtPanel";
+import DecodeView from "../DecodeView";
 interface QueryHistoryItem {
   id: string;
   query: string;
@@ -39,6 +42,17 @@ const EXAMPLE_QUERIES = [
   "Suggest data cleaning steps",
 ];
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+      {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 function StatusBadge({ status }: { status?: string }) {
   if (!status || status === "sent") return <Check className="h-2.5 w-2.5 text-muted-foreground/30 shrink-0" />;
   if (status === "sending") return <Loader2 className="h-2.5 w-2.5 text-accent/60 animate-spin shrink-0" />;
@@ -54,6 +68,8 @@ const QueryBar = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [activePlugins, setActivePlugins] = useState<ActivePlugin[]>([]);
   const [online, setOnline] = useState(navigator.onLine);
+  const [cotId, setCotId] = useState<string | null>(null);
+  const [decodeId, setDecodeId] = useState<string | null>(null);
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
 
@@ -255,9 +271,28 @@ const QueryBar = () => {
                   <Sparkles className="h-3.5 w-3.5 text-accent" />
                   <span className="text-[10px] text-accent font-light">Asha</span>
                 </div>
-                <div className="text-xs font-light text-foreground leading-relaxed prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0.5">
+                <div className="text-xs font-light text-foreground leading-relaxed prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3">
                   <ReactMarkdown>{item.response}</ReactMarkdown>
                 </div>
+                {/* Aureon-style action bar */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <CopyButton text={item.response} />
+                  <CalibrationFeedback messageId={item.id} onFeedback={() => {}} />
+                  <button onClick={() => setCotId(cotId === item.id ? null : item.id)}
+                    className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                    <Brain className="h-3 w-3" /> Show Work
+                  </button>
+                  <button onClick={() => setDecodeId(decodeId === item.id ? null : item.id)}
+                    className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                    <Eye className="h-3 w-3" /> Decode
+                  </button>
+                </div>
+                {cotId === item.id && (
+                  <ChainOfThoughtPanel open content={item.response} query={item.query} />
+                )}
+                {decodeId === item.id && (
+                  <DecodeView open content={item.response} />
+                )}
               </div>
             )}
           </div>
