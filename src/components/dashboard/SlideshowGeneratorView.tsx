@@ -61,7 +61,26 @@ const SlideshowGeneratorView = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are a presentation designer. Take this raw data and structure it into professional slideshow slides. Return ONLY a valid JSON array. Each slide has: title (string), body (string - use \\n for line breaks), layout ("title" | "content" | "two-column" | "bullets" | "quote"). Create 5-12 slides. First slide should be layout "title". Use "bullets" for lists (prefix each line with "- "). Use "quote" for key insights.
+          content: `You are an elite presentation designer who applies cognitive psychology to create maximum-impact slideshows rendered at 1920×1080 (16:9).
+
+PSYCHOLOGY RULES YOU MUST FOLLOW:
+1. **Miller's Law**: Max 7±2 items per slide. Bullet slides must have 3-6 points, never more.
+2. **Picture Superiority**: Titles must be punchy (≤8 words). Body text ≤25 words per block.
+3. **Serial Position Effect**: Put the most important point FIRST and LAST in any list.
+4. **Cognitive Load Theory**: One idea per slide. Never cram two concepts together.
+5. **Contrast Principle**: Use "quote" layout for the single most powerful insight to create contrast.
+6. **Rule of Three**: Group ideas in threes when possible.
+7. **Primacy/Recency**: First slide = bold hook. Last slide = memorable call-to-action or takeaway.
+8. **Progressive Disclosure**: Build complexity gradually across slides.
+
+TEXT FITTING RULES (critical for 16:9 @ 1920×1080):
+- Title slide: title ≤60 chars, subtitle ≤120 chars
+- Content slide: title ≤50 chars, body ≤200 chars (3-4 short sentences)
+- Bullets slide: title ≤50 chars, each bullet ≤80 chars, max 5 bullets
+- Two-column slide: title ≤50 chars, each column 3-4 lines, each line ≤60 chars
+- Quote slide: label ≤30 chars, quote ≤150 chars
+
+Return ONLY a valid JSON array. Each slide: { title: string, body: string (use \\n for line breaks), layout: "title" | "content" | "two-column" | "bullets" | "quote" }. Create 5-12 slides. First slide layout "title". Use "bullets" for lists (prefix "- "). Use "quote" for key insights.
 
 Raw data:
 ${rawData.slice(0, 8000)}
@@ -147,50 +166,53 @@ Return ONLY the JSON array, no markdown wrapping.`
     switch (slide.layout) {
       case "title":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center px-16">
-            <h1 style={{ fontSize: 56, fontWeight: 200, letterSpacing: "0.08em", color: "#fff", marginBottom: 24, lineHeight: 1.2 }}>{title}</h1>
-            <p style={{ fontSize: 22, fontWeight: 300, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, maxWidth: 700 }}>{body}</p>
+          <div className="flex flex-col items-center justify-center h-full text-center" style={{ padding: "0 12%" }}>
+            <h1 style={{ fontSize: "clamp(32px, 4vw, 56px)", fontWeight: 200, letterSpacing: "0.08em", color: "#fff", marginBottom: 28, lineHeight: 1.15, maxWidth: "85%" }}>{title}</h1>
+            <div style={{ width: 60, height: 1, background: "rgba(255,255,255,0.25)", marginBottom: 28 }} />
+            <p style={{ fontSize: "clamp(16px, 1.8vw, 22px)", fontWeight: 300, color: "rgba(255,255,255,0.65)", lineHeight: 1.7, maxWidth: "65%" }}>{body}</p>
           </div>
         );
       case "quote":
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center px-20">
-            <div style={{ fontSize: 14, textTransform: "uppercase", letterSpacing: "0.2em", color: "rgba(255,255,255,0.4)", marginBottom: 32 }}>{title}</div>
-            <blockquote style={{ fontSize: 32, fontWeight: 200, fontStyle: "italic", color: "#fff", lineHeight: 1.6, maxWidth: 800, borderLeft: "3px solid rgba(255,255,255,0.2)", paddingLeft: 32 }}>
+          <div className="flex flex-col items-center justify-center h-full text-center" style={{ padding: "0 14%" }}>
+            <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)", marginBottom: 36, fontWeight: 400 }}>{title}</div>
+            <blockquote style={{ fontSize: "clamp(22px, 2.8vw, 34px)", fontWeight: 200, fontStyle: "italic", color: "#fff", lineHeight: 1.55, maxWidth: "75%", borderLeft: "2px solid rgba(255,255,255,0.2)", paddingLeft: 36 }}>
               "{body}"
             </blockquote>
           </div>
         );
-      case "bullets":
+      case "bullets": {
+        const items = body.split("\n").filter(l => l.trim());
         return (
-          <div className="flex flex-col justify-center h-full px-16">
-            <h2 style={{ fontSize: 36, fontWeight: 200, letterSpacing: "0.05em", color: "#fff", marginBottom: 40 }}>{title}</h2>
-            <ul style={{ paddingLeft: 8, listStyle: "none" }}>
-              {body.split("\n").filter(l => l.trim()).map((item, i) => (
-                <li key={i} style={{ fontSize: 22, fontWeight: 300, lineHeight: 2, color: "rgba(255,255,255,0.85)", display: "flex", alignItems: "baseline", gap: 16 }}>
-                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,0.4)", flexShrink: 0, marginTop: 10 }} />
-                  {item.replace(/^[-•*]\s*/, "")}
+          <div className="flex flex-col justify-center h-full" style={{ padding: "0 10% 0 12%" }}>
+            <h2 style={{ fontSize: "clamp(24px, 3vw, 38px)", fontWeight: 200, letterSpacing: "0.05em", color: "#fff", marginBottom: 44 }}>{title}</h2>
+            <ul style={{ paddingLeft: 0, listStyle: "none", maxWidth: "90%" }}>
+              {items.slice(0, 6).map((item, i) => (
+                <li key={i} style={{ fontSize: "clamp(15px, 1.6vw, 21px)", fontWeight: 300, lineHeight: 1.6, color: "rgba(255,255,255,0.85)", display: "flex", alignItems: "baseline", gap: 18, marginBottom: 16 }}>
+                  <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "rgba(255,255,255,0.35)", flexShrink: 0, marginTop: 10 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{item.replace(/^[-•*]\s*/, "")}</span>
                 </li>
               ))}
             </ul>
           </div>
         );
+      }
       case "two-column": {
         const lines = body.split("\n").filter(l => l.trim());
         const mid = Math.ceil(lines.length / 2);
         return (
-          <div className="flex flex-col justify-center h-full px-16">
-            <h2 style={{ fontSize: 36, fontWeight: 200, letterSpacing: "0.05em", color: "#fff", marginBottom: 40 }}>{title}</h2>
+          <div className="flex flex-col justify-center h-full" style={{ padding: "0 10% 0 12%" }}>
+            <h2 style={{ fontSize: "clamp(24px, 3vw, 38px)", fontWeight: 200, letterSpacing: "0.05em", color: "#fff", marginBottom: 44 }}>{title}</h2>
             <div style={{ display: "flex", gap: 48 }}>
               <div style={{ flex: 1 }}>
                 {lines.slice(0, mid).map((l, i) => (
-                  <p key={i} style={{ fontSize: 18, fontWeight: 300, lineHeight: 1.8, color: "rgba(255,255,255,0.8)", marginBottom: 12 }}>{l}</p>
+                  <p key={i} style={{ fontSize: "clamp(14px, 1.4vw, 18px)", fontWeight: 300, lineHeight: 1.85, color: "rgba(255,255,255,0.8)", marginBottom: 14, overflow: "hidden", textOverflow: "ellipsis" }}>{l}</p>
                 ))}
               </div>
               <div style={{ width: 1, background: "rgba(255,255,255,0.1)" }} />
               <div style={{ flex: 1 }}>
                 {lines.slice(mid).map((l, i) => (
-                  <p key={i} style={{ fontSize: 18, fontWeight: 300, lineHeight: 1.8, color: "rgba(255,255,255,0.8)", marginBottom: 12 }}>{l}</p>
+                  <p key={i} style={{ fontSize: "clamp(14px, 1.4vw, 18px)", fontWeight: 300, lineHeight: 1.85, color: "rgba(255,255,255,0.8)", marginBottom: 14, overflow: "hidden", textOverflow: "ellipsis" }}>{l}</p>
                 ))}
               </div>
             </div>
@@ -199,9 +221,9 @@ Return ONLY the JSON array, no markdown wrapping.`
       }
       default:
         return (
-          <div className="flex flex-col justify-center h-full px-16">
-            <h2 style={{ fontSize: 36, fontWeight: 200, letterSpacing: "0.05em", color: "#fff", marginBottom: 32 }}>{title}</h2>
-            <p style={{ fontSize: 20, fontWeight: 300, lineHeight: 1.8, color: "rgba(255,255,255,0.8)", whiteSpace: "pre-wrap" }}>{body}</p>
+          <div className="flex flex-col justify-center h-full" style={{ padding: "0 10% 0 12%" }}>
+            <h2 style={{ fontSize: "clamp(24px, 3vw, 38px)", fontWeight: 200, letterSpacing: "0.05em", color: "#fff", marginBottom: 36 }}>{title}</h2>
+            <p style={{ fontSize: "clamp(15px, 1.6vw, 20px)", fontWeight: 300, lineHeight: 1.85, color: "rgba(255,255,255,0.8)", whiteSpace: "pre-wrap", maxWidth: "85%" }}>{body}</p>
           </div>
         );
     }
