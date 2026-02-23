@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Brain, Zap, ShieldCheck, Bug, Gauge, Code2, Play, Square, RefreshCw, Activity,
   CheckCircle2, XCircle, Clock, Loader2, Terminal, Eye, ChevronDown, ChevronRight, Download,
+  TrendingUp,
 } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface Run {
   id: string;
@@ -85,6 +87,7 @@ const SelfLearningLoopView = () => {
   const [expandedBrain, setExpandedBrain] = useState<string | null>(null);
   const [lastRunTime, setLastRunTime] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [timescale, setTimescale] = useState<"hours" | "days" | "months" | "years">("days");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async (showSpinner = false) => {
@@ -341,8 +344,12 @@ const SelfLearningLoopView = () => {
       {/* Content */}
       <ScrollArea className="flex-1">
         <div className="p-6">
-          <Tabs defaultValue="brains" className="space-y-4">
+          <Tabs defaultValue="progress" className="space-y-4">
             <TabsList className="bg-card/30 border border-border/30 rounded-2xl">
+              <TabsTrigger value="progress" className="text-xs font-extralight tracking-wider rounded-xl">
+                <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
+                Progress
+              </TabsTrigger>
               <TabsTrigger value="brains" className="text-xs font-extralight tracking-wider rounded-xl">
                 <Brain className="h-3.5 w-3.5 mr-1.5" />
                 Brains ({brains.length})
@@ -351,6 +358,131 @@ const SelfLearningLoopView = () => {
               <TabsTrigger value="agents" className="text-xs font-extralight tracking-wider rounded-xl">Logs ({logs.length})</TabsTrigger>
               <TabsTrigger value="domains" className="text-xs font-extralight tracking-wider rounded-xl">Domains ({DOMAINS.length})</TabsTrigger>
             </TabsList>
+
+            {/* PROGRESS TAB */}
+            <TabsContent value="progress" className="space-y-4">
+              {(() => {
+                const sortedRuns = [...runs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                const bucketRuns = (scale: string) => {
+                  const buckets = new Map<string, { bugs: number; optimizations: number; security: number; brains: number; findings: number; count: number }>();
+                  sortedRuns.forEach(r => {
+                    const d = new Date(r.created_at);
+                    let key: string;
+                    if (scale === "hours") key = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:00`;
+                    else if (scale === "days") key = `${d.getMonth()+1}/${d.getDate()}`;
+                    else if (scale === "months") key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+                    else key = `${d.getFullYear()}`;
+                    const b = buckets.get(key) || { bugs: 0, optimizations: 0, security: 0, brains: 0, findings: 0, count: 0 };
+                    b.bugs += r.bugs_found || 0;
+                    b.optimizations += r.optimizations_applied || 0;
+                    b.security += r.security_patches || 0;
+                    b.brains += r.brains_generated || 0;
+                    b.findings += r.findings?.length || 0;
+                    b.count += 1;
+                    buckets.set(key, b);
+                  });
+                  return Array.from(buckets.entries()).map(([label, v]) => ({ label, ...v }));
+                };
+                const chartData = bucketRuns(timescale);
+                let cumB = 0, cumO = 0, cumS = 0;
+                const cumulativeData = chartData.map(d => {
+                  cumB += d.bugs; cumO += d.optimizations; cumS += d.security;
+                  return { ...d, cumulative: cumB + cumO + cumS };
+                });
+                const totalImprovements = totalBugs + totalOptimizations + totalSecurityPatches;
+                const firstRunDate = sortedRuns[0]?.created_at ? new Date(sortedRuns[0].created_at) : null;
+                const daysSinceStart = firstRunDate ? Math.max(1, Math.floor((Date.now() - firstRunDate.getTime()) / 86400000)) : 0;
+                const improvementRate = daysSinceStart > 0 ? (totalImprovements / daysSinceStart).toFixed(1) : "0";
+                const codeHealth = Math.round(60 + Math.min(40, totalImprovements * 0.8));
+                return (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { label: "Code Health", value: `${codeHealth}%`, sub: <div className="mt-2 h-1.5 rounded-full bg-muted/20 overflow-hidden"><div className="h-full rounded-full bg-accent transition-all" style={{ width: `${codeHealth}%` }} /></div> },
+                        { label: "Total Improvements", value: totalImprovements, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{improvementRate} / day avg</p> },
+                        { label: "Learning Cycles", value: runs.length, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">across {daysSinceStart} day{daysSinceStart !== 1 ? "s" : ""}</p> },
+                        { label: "Active Brains", value: activeBrains, sub: <p className="text-[10px] text-muted-foreground font-extralight mt-1">{brains.length} total generated</p> },
+                      ].map(c => (
+                        <div key={c.label} className="rounded-2xl border border-border/30 bg-card/20 backdrop-blur-sm p-4">
+                          <p className="text-[10px] font-extralight tracking-widest text-muted-foreground uppercase mb-1">{c.label}</p>
+                          <p className="text-3xl font-extralight text-foreground">{c.value}</p>
+                          {c.sub}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-extralight tracking-wider text-muted-foreground uppercase">Cumulative Improvement Over Time</p>
+                      <div className="flex items-center gap-1 rounded-2xl border border-border/30 bg-card/30 p-1">
+                        {(["hours", "days", "months", "years"] as const).map(t => (
+                          <button key={t} onClick={() => setTimescale(t)} className={`rounded-xl px-3 py-1.5 text-xs font-extralight tracking-wider capitalize transition-all ${timescale === t ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`}>
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {cumulativeData.length > 0 ? (
+                      <div className="rounded-2xl border border-border/30 bg-card/10 backdrop-blur-sm p-4">
+                        <ResponsiveContainer width="100%" height={320}>
+                          <AreaChart data={cumulativeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="gradCum" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.3} />
+                                <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} />
+                              </linearGradient>
+                              <linearGradient id="gradBugsL" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.2} />
+                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 11 }} labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 300 }} />
+                            <Area type="monotone" dataKey="cumulative" name="Total Fixes" stroke="hsl(var(--accent))" fill="url(#gradCum)" strokeWidth={2} />
+                            <Area type="monotone" dataKey="bugs" name="Bugs Fixed" stroke="hsl(var(--primary))" fill="url(#gradBugsL)" strokeWidth={1.5} />
+                            <Area type="monotone" dataKey="optimizations" name="Optimizations" stroke="hsl(var(--muted-foreground))" fill="none" strokeWidth={1} strokeDasharray="4 4" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="text-center py-16 text-muted-foreground text-sm font-extralight">
+                        <TrendingUp className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                        <p>No data yet. Run iterations to see progress.</p>
+                      </div>
+                    )}
+                    {chartData.length > 0 && (
+                      <div className="rounded-2xl border border-border/30 bg-card/10 backdrop-blur-sm overflow-hidden">
+                        <div className="p-3 border-b border-border/20">
+                          <p className="text-[10px] font-extralight tracking-widest text-muted-foreground uppercase">Breakdown by {timescale}</p>
+                        </div>
+                        <div className="divide-y divide-border/10">
+                          {chartData.map((d, i) => {
+                            const periodTotal = d.bugs + d.optimizations + d.security;
+                            const prevTotal = i > 0 ? (chartData[i-1].bugs + chartData[i-1].optimizations + chartData[i-1].security) : 0;
+                            const change = prevTotal > 0 ? (((periodTotal - prevTotal) / prevTotal) * 100).toFixed(0) : null;
+                            return (
+                              <div key={d.label} className="flex items-center justify-between px-4 py-2.5 text-xs font-extralight">
+                                <span className="text-foreground w-28">{d.label}</span>
+                                <span className="text-muted-foreground">{d.count} runs</span>
+                                <span className="text-muted-foreground">{d.bugs} bugs</span>
+                                <span className="text-muted-foreground">{d.optimizations} opt</span>
+                                <span className="text-muted-foreground">{d.security} sec</span>
+                                <span className="text-foreground font-light">{periodTotal} total</span>
+                                {change !== null ? (
+                                  <span className={Number(change) >= 0 ? "text-accent" : "text-destructive"}>{Number(change) >= 0 ? "+" : ""}{change}%</span>
+                                ) : (
+                                  <span className="text-muted-foreground/40">—</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </TabsContent>
 
             {/* BRAINS TAB */}
             <TabsContent value="brains" className="space-y-3">
