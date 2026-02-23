@@ -84,9 +84,11 @@ const SelfLearningLoopView = () => {
   const [stopping, setStopping] = useState(false);
   const [expandedBrain, setExpandedBrain] = useState<string | null>(null);
   const [lastRunTime, setLastRunTime] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setRefreshing(true);
     try {
       const [runsResp, brainsResp, logsResp, statusResp] = await Promise.all([
         supabase.functions.invoke("self-learning-loop", { body: { action: "get-runs" } }),
@@ -104,6 +106,7 @@ const SelfLearningLoopView = () => {
     } catch (e) {
       console.error("Fetch error:", e);
     }
+    if (showSpinner) setRefreshing(false);
   }, []);
 
   useEffect(() => {
@@ -202,10 +205,11 @@ const SelfLearningLoopView = () => {
             )}
 
             <button
-              onClick={fetchData}
-              className="rounded-2xl border border-border/40 bg-card/30 p-2.5 text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all"
+              onClick={() => fetchData(true)}
+              disabled={refreshing}
+              className="rounded-2xl border border-border/40 bg-card/30 p-2.5 text-muted-foreground hover:text-foreground hover:bg-card/50 transition-all disabled:opacity-50"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
             </button>
 
             {/* Run / Stop Toggle */}
