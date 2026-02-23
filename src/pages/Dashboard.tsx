@@ -57,6 +57,7 @@ import PatternAnalysisView from "@/components/dashboard/PatternAnalysisView";
 import SlideshowGeneratorView from "@/components/dashboard/SlideshowGeneratorView";
 import SelfLearningLoopView from "@/components/dashboard/SelfLearningLoopView";
 import SelfAccessLearningView from "@/components/dashboard/SelfAccessLearningView";
+import OracleLocusView from "@/components/dashboard/OracleLocusView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -933,6 +934,8 @@ const Dashboard = () => {
         return <SelfLearningLoopView />;
       case "self-access":
         return <SelfAccessLearningView />;
+      case "oracle-locus":
+        return <OracleLocusView />;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}

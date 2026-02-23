@@ -67,6 +67,7 @@ const navGroups: NavGroup[] = [
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
       { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
       { id: "tracker", icon: MapPin, label: "Location Tracker", access: "pro" },
+      { id: "oracle-locus", icon: Crosshair, label: "ORACLE-LOCUS" },
     ],
   },
   {
@@ -181,6 +182,7 @@ const DashboardSidebar = ({
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-learning") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "oracle-locus") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "tracker") return hasProAccess(tierKey) || user?.email === "ashernewtonx@gmail.com";
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
