@@ -46,6 +46,7 @@ import GoogleIntelligenceView from "@/components/dashboard/google/GoogleIntellig
 import AureonIdeView from "@/components/dashboard/ide/AureonIdeView";
 import PdfGeneratorView from "@/components/dashboard/PdfGeneratorView";
 import PatternAnalysisView from "@/components/dashboard/PatternAnalysisView";
+import SlideshowGeneratorView from "@/components/dashboard/SlideshowGeneratorView";
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -912,6 +913,8 @@ const Dashboard = () => {
         return <AureonIdeView />;
       case "pdf-generator":
         return <PdfGeneratorView />;
+      case "slideshow":
+        return <SlideshowGeneratorView />;
       case "pattern-analysis":
         return hasProAccess(tierKey)
           ? <PatternAnalysisView />

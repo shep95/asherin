@@ -86,6 +86,7 @@ const navGroups: NavGroup[] = [
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
       { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
+      { id: "slideshow", icon: Layers, label: "Slideshow Generator" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
       { id: "projects", icon: Layers, label: "Projects" },
     ],
