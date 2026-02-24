@@ -1786,6 +1786,90 @@ export type Database = {
           },
         ]
       }
+      oracle_analyses: {
+        Row: {
+          actual_latitude: number | null
+          actual_longitude: number | null
+          address_estimate: string | null
+          alternative_locations: Json | null
+          calibrated_confidence: number | null
+          confidence_score: number | null
+          created_at: string
+          distance_error_km: number | null
+          error_radius_meters: number | null
+          id: string
+          identified_features: Json | null
+          insufficient_data: boolean | null
+          insufficient_data_reason: string | null
+          latitude: number | null
+          longitude: number | null
+          macro_region: string | null
+          person_analysis: Json | null
+          rationale: Json | null
+          refinement_steps: Json | null
+          status: string
+          time_estimation: Json | null
+          user_correct: boolean | null
+          user_id: string
+          user_notes: string | null
+          user_verified: boolean | null
+        }
+        Insert: {
+          actual_latitude?: number | null
+          actual_longitude?: number | null
+          address_estimate?: string | null
+          alternative_locations?: Json | null
+          calibrated_confidence?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          distance_error_km?: number | null
+          error_radius_meters?: number | null
+          id?: string
+          identified_features?: Json | null
+          insufficient_data?: boolean | null
+          insufficient_data_reason?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          macro_region?: string | null
+          person_analysis?: Json | null
+          rationale?: Json | null
+          refinement_steps?: Json | null
+          status?: string
+          time_estimation?: Json | null
+          user_correct?: boolean | null
+          user_id: string
+          user_notes?: string | null
+          user_verified?: boolean | null
+        }
+        Update: {
+          actual_latitude?: number | null
+          actual_longitude?: number | null
+          address_estimate?: string | null
+          alternative_locations?: Json | null
+          calibrated_confidence?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          distance_error_km?: number | null
+          error_radius_meters?: number | null
+          id?: string
+          identified_features?: Json | null
+          insufficient_data?: boolean | null
+          insufficient_data_reason?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          macro_region?: string | null
+          person_analysis?: Json | null
+          rationale?: Json | null
+          refinement_steps?: Json | null
+          status?: string
+          time_estimation?: Json | null
+          user_correct?: boolean | null
+          user_id?: string
+          user_notes?: string | null
+          user_verified?: boolean | null
+        }
+        Relationships: []
+      }
       plugins: {
         Row: {
           author: string
@@ -2317,36 +2401,63 @@ export type Database = {
           auto_approved: boolean | null
           confidence: number | null
           created_at: string
+          deprecated: boolean | null
+          deprecated_reason: string | null
           directive: string
           domain: string
           findings: Json | null
           id: string
+          is_language_agnostic: boolean | null
+          languages_applicable: string[] | null
           name: string
+          previous_version_id: string | null
           run_id: string | null
+          success_rate: number | null
+          times_applied: number | null
+          times_helped: number | null
+          version: number | null
         }
         Insert: {
           active?: boolean | null
           auto_approved?: boolean | null
           confidence?: number | null
           created_at?: string
+          deprecated?: boolean | null
+          deprecated_reason?: string | null
           directive: string
           domain: string
           findings?: Json | null
           id?: string
+          is_language_agnostic?: boolean | null
+          languages_applicable?: string[] | null
           name: string
+          previous_version_id?: string | null
           run_id?: string | null
+          success_rate?: number | null
+          times_applied?: number | null
+          times_helped?: number | null
+          version?: number | null
         }
         Update: {
           active?: boolean | null
           auto_approved?: boolean | null
           confidence?: number | null
           created_at?: string
+          deprecated?: boolean | null
+          deprecated_reason?: string | null
           directive?: string
           domain?: string
           findings?: Json | null
           id?: string
+          is_language_agnostic?: boolean | null
+          languages_applicable?: string[] | null
           name?: string
+          previous_version_id?: string | null
           run_id?: string | null
+          success_rate?: number | null
+          times_applied?: number | null
+          times_helped?: number | null
+          version?: number | null
         }
         Relationships: [
           {
@@ -2360,24 +2471,42 @@ export type Database = {
       }
       self_learning_cron_settings: {
         Row: {
+          consecutive_failures: number | null
+          cooldown_until: string | null
           enabled: boolean
           id: string
           interval_minutes: number
+          iterations_reset_date: string | null
+          iterations_today: number | null
           last_cron_run_at: string | null
+          max_consecutive_failures: number | null
+          max_iterations_per_day: number | null
           updated_at: string
         }
         Insert: {
+          consecutive_failures?: number | null
+          cooldown_until?: string | null
           enabled?: boolean
           id?: string
           interval_minutes?: number
+          iterations_reset_date?: string | null
+          iterations_today?: number | null
           last_cron_run_at?: string | null
+          max_consecutive_failures?: number | null
+          max_iterations_per_day?: number | null
           updated_at?: string
         }
         Update: {
+          consecutive_failures?: number | null
+          cooldown_until?: string | null
           enabled?: boolean
           id?: string
           interval_minutes?: number
+          iterations_reset_date?: string | null
+          iterations_today?: number | null
           last_cron_run_at?: string | null
+          max_consecutive_failures?: number | null
+          max_iterations_per_day?: number | null
           updated_at?: string
         }
         Relationships: []
