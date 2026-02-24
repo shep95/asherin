@@ -88,6 +88,7 @@ const SelfLearningLoopView = () => {
   const [lastRunTime, setLastRunTime] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [timescale, setTimescale] = useState<"hours" | "days" | "weeks" | "months" | "years">("days");
+  const [circuitBreaker, setCircuitBreaker] = useState<{ consecutive_failures: number; max_failures: number; is_open: boolean; cooldown_until: string | null; iterations_today: number; max_per_day: number } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async (showSpinner = false) => {
@@ -105,6 +106,7 @@ const SelfLearningLoopView = () => {
       if (statusResp.data) {
         setLoopRunning(statusResp.data.running === true);
         if (statusResp.data.lastRun?.created_at) setLastRunTime(statusResp.data.lastRun.created_at);
+        if (statusResp.data.circuit_breaker) setCircuitBreaker(statusResp.data.circuit_breaker);
       }
     } catch (e) {
       console.error("Fetch error:", e);
