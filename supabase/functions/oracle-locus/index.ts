@@ -62,6 +62,12 @@ You MUST respond with ONLY valid JSON in this exact format:
 If no people are visible, return an empty array for person_analysis.
 If shadows are not clearly visible or time cannot be determined, set time_confidence to 0 and explain in shadow_analysis.
 
+IMPORTANT: If the image lacks sufficient visual cues for geographic analysis (e.g. close-up of food, abstract art, solid color, blurry/dark image, screenshot of text, memes, or any image with no identifiable geographic features), you MUST set:
+- "status": "FAILURE"
+- "confidence_score": 0
+- "insufficient_data": true
+- "insufficient_data_reason": "A clear explanation of WHY the image cannot be geolocated and what kind of image would work better"
+
 Analyze every visual cue: architecture, vegetation, road markings, signage language/style, vehicle plates, sun position, terrain, infrastructure patterns, utility poles, soil color, cloud patterns, atmospheric haze, shadow angles and lengths, person body orientation and movement direction. Be as precise as possible.`;
 
     const res = await fetch(

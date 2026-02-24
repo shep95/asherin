@@ -32,6 +32,8 @@ interface AnalysisResult {
   address_estimate?: string | null;
   time_estimation?: TimeEstimation;
   person_analysis?: PersonAnalysis[];
+  insufficient_data?: boolean;
+  insufficient_data_reason?: string;
 }
 
 const statusConfig = {
@@ -62,9 +64,7 @@ const OracleLocusView = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [history, setHistory] = useState<{ image: string; result: AnalysisResult }[]>([]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processImageFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({ title: "Invalid file", description: "Please upload an image file.", variant: "destructive" });
       return;
@@ -84,19 +84,30 @@ const OracleLocusView = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processImageFile(file);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    setImageType(file.type);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
-      setImageBase64(dataUrl.split(",")[1]);
-      setResult(null);
-    };
-    reader.readAsDataURL(file);
+    if (!file) return;
+    processImageFile(file);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) processImageFile(file);
+        return;
+      }
+    }
   };
 
   const analyzeImage = async () => {
@@ -146,8 +157,8 @@ const OracleLocusView = () => {
   const googleMapsUrl = result ? `https://www.google.com/maps?q=${result.estimated_location.latitude},${result.estimated_location.longitude}` : "";
 
   return (
-    <div className="flex flex-1 flex-col h-full">
-      <div className="flex-shrink-0 p-6 border-b border-border/20">
+    <div className="flex flex-1 flex-col h-full" onPaste={handlePaste} tabIndex={0}>
+      <div className="flex-shrink-0 p-6 border-b border-border/20" >
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -198,8 +209,8 @@ const OracleLocusView = () => {
                 <button onClick={() => fileInputRef.current?.click()} className="w-full py-20 flex flex-col items-center gap-4 cursor-pointer">
                   <Upload className="h-12 w-12 text-muted-foreground/20" />
                   <div className="text-center">
-                    <p className="text-sm font-extralight text-muted-foreground">Drop an image or click to upload</p>
-                    <p className="text-[10px] text-muted-foreground/50 mt-1">JPG, PNG, WebP · Max 20MB · No metadata required</p>
+                    <p className="text-sm font-extralight text-muted-foreground">Drop, paste (Ctrl+V), or click to upload an image</p>
+                    <p className="text-[10px] text-muted-foreground/50 mt-1">JPG, PNG, WebP · Max 20MB · Clipboard paste supported</p>
                   </div>
                 </button>
               )}
@@ -209,6 +220,38 @@ const OracleLocusView = () => {
             {/* Results */}
             {result && (
               <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+                {/* Insufficient Data Warning */}
+                {result.insufficient_data && (
+                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm p-5 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl bg-amber-500/10 p-2.5">
+                        <AlertTriangle className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-light text-foreground">Insufficient Geographic Data</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Oracle-Locus could not extract enough visual cues</p>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-card/20 p-4">
+                      <p className="text-xs font-light text-foreground/80 leading-relaxed">{result.insufficient_data_reason || "The uploaded image does not contain enough identifiable geographic features for analysis."}</p>
+                    </div>
+                    <div className="rounded-xl bg-card/10 p-3">
+                      <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-2">For best results, use images containing:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["Buildings", "Street signs", "Roads", "Landscapes", "Vehicles", "Vegetation", "Infrastructure"].map(tip => (
+                          <span key={tip} className="text-[10px] px-2 py-1 rounded-md bg-accent/10 text-accent">{tip}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <button onClick={clearImage} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">
+                      TRY ANOTHER IMAGE
+                    </button>
+                  </div>
+                )}
+
+                {/* Normal Results (only show when sufficient data) */}
+                {!result.insufficient_data && (
+                  <>
                 {/* Status & Coordinates */}
                 <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
                   <div className="flex items-center justify-between">
@@ -370,6 +413,8 @@ const OracleLocusView = () => {
                 <button onClick={clearImage} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">
                   ANALYZE NEW IMAGE
                 </button>
+                </>
+                )}
               </div>
             )}
 
