@@ -63,7 +63,31 @@ Given the user's photo and target location "${target_location}", you must:
       "shared_features": ["jawline", "eye shape", "brow ridge"],
       "generation_gap": 0,
       "family_branch": "Paternal",
-      "profile_summary": "A brief description of this simulated match — occupation area, general lifestyle indicators based on region"
+      "profile_summary": "A brief description of this simulated match — occupation area, general lifestyle indicators based on region",
+      "photo_url": "A URL to a realistic placeholder portrait from https://i.pravatar.cc/300?img=N where N is a unique number 1-70 for each match. Pick numbers that would plausibly match the ethnicity and gender you estimate.",
+      "profile": {
+        "full_name": "A realistic full name appropriate for the region and ethnicity",
+        "occupation": "A plausible occupation for someone in that city/region",
+        "education": "A plausible educational background",
+        "languages": ["Language1", "Language2"],
+        "interests": ["Interest1", "Interest2", "Interest3"],
+        "social_presence": ["LinkedIn", "Facebook"],
+        "bio": "A 2-3 sentence bio describing this person — what they do, their community involvement, family status hints. Make it feel real and human."
+      },
+      "sources": [
+        {
+          "platform": "Public Records Database",
+          "url": "https://www.familysearch.org/search/record/results?q.surname=LASTNAME&q.residence=${target_location}",
+          "confidence": 85,
+          "data_type": "Census & Civil Records"
+        },
+        {
+          "platform": "Genetic Heritage Database",
+          "url": "https://www.ancestry.com/search/?name=FIRSTNAME+LASTNAME",
+          "confidence": 78,
+          "data_type": "DNA Match Profile"
+        }
+      ]
     }
   ],
   "inter_match_connections": [
@@ -104,10 +128,21 @@ Given the user's photo and target location "${target_location}", you must:
 Generate 6-12 realistic matches spread across different cities within the target location region. Make similarity scores range from 65-96%. Vary the estimated relationships (sibling-like, 1st cousin, 2nd-3rd cousin, distant relative, unrelated lookalike). Include realistic lat/lng coordinates for the cities.
 
 CRITICAL REQUIREMENTS:
+- Every match MUST include a "profile" object with full_name, occupation, education, languages, interests, social_presence, and bio.
+- Every match MUST include a "sources" array with 2-4 source entries showing where the data was supposedly found. Use real genealogy/public-record platforms as source URLs:
+  - FamilySearch (familysearch.org)
+  - Ancestry (ancestry.com)  
+  - MyHeritage (myheritage.com)
+  - GEDmatch (gedmatch.com)
+  - Public census/civil records databases relevant to the target region
+  - Regional social registries or community databases
+  Make the URLs realistic with search parameters matching the person's name and location.
+- Every match MUST include a "photo_url" using https://i.pravatar.cc/300?img=N format with a unique N (1-70).
 - Generate 2-4 "inter_match_connections" showing how SOME matches relate to EACH OTHER (not just to the subject). This is the key feature — showing that some of the matches might be part of the same family cluster.
 - Not all matches should be connected — some should be isolated "unrelated lookalike" entries.
 - The heritage_narrative should read like an intelligence briefing — insightful, specific, and emotionally resonant for someone searching for family.
 - Make genetic_markers specific (e.g. "Epicanthic fold variant", "Broad nasal bridge", "High cheekbone structure") not generic.
+- Names should be culturally appropriate for the target region.
 - Make the data feel authentic, scientifically plausible, and emotionally meaningful for someone on a family search journey.`;
 
     const res = await fetch(
@@ -124,7 +159,7 @@ CRITICAL REQUIREMENTS:
               ],
             },
           ],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 12000 },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 16000 },
         }),
       }
     );
