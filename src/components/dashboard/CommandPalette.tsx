@@ -34,6 +34,8 @@ function fuzzyMatch(text: string, query: string): boolean {
   return qi === q.length;
 }
 
+const isMac = typeof navigator !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
 const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onModeChange, onFocusMode }: CommandPaletteProps) => {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,15 +53,15 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
 
   const commands: Command[] = [
     // Actions
-    { id: "new", label: "New Conversation", category: "Actions", icon: Plus, action: wrap("new", onNewConversation), keywords: ["create", "start", "chat"], shortcut: "⌘N" },
+    { id: "new", label: "New Conversation", category: "Actions", icon: Plus, action: wrap("new", onNewConversation), keywords: ["create", "start", "chat"], shortcut: isMac ? "⌘N" : "Ctrl+N" },
     { id: "focus", label: "Toggle Focus Mode", category: "Actions", icon: Focus, action: wrap("focus", () => onFocusMode?.()), keywords: ["distraction", "zen", "minimal"] },
     { id: "export", label: "Export Conversation", category: "Actions", icon: Download, keywords: ["download", "save", "markdown"], action: wrap("export", () => {}) },
     { id: "upload", label: "Upload File", category: "Actions", icon: Upload, keywords: ["file", "attach", "document"], action: wrap("upload", () => {}) },
     // Modes
-    { id: "chat-mode", label: "Switch to Chat Mode", category: "Modes", icon: MessageSquare, action: wrap("chat-mode", () => onModeChange("chat")), shortcut: "⌘1" },
-    { id: "code-mode", label: "Switch to Code Mode", category: "Modes", icon: Code, action: wrap("code-mode", () => onModeChange("code")), shortcut: "⌘2" },
-    { id: "research-mode", label: "Switch to Research Mode", category: "Modes", icon: FlaskConical, action: wrap("research-mode", () => onModeChange("research")), shortcut: "⌘3" },
-    { id: "truth-mode", label: "Switch to Truth Mode", category: "Modes", icon: Shield, action: wrap("truth-mode", () => onModeChange("truth")), shortcut: "⌘4" },
+    { id: "chat-mode", label: "Switch to Chat Mode", category: "Modes", icon: MessageSquare, action: wrap("chat-mode", () => onModeChange("chat")), shortcut: isMac ? "⌘1" : "Ctrl+1" },
+    { id: "code-mode", label: "Switch to Code Mode", category: "Modes", icon: Code, action: wrap("code-mode", () => onModeChange("code")), shortcut: isMac ? "⌘2" : "Ctrl+2" },
+    { id: "research-mode", label: "Switch to Research Mode", category: "Modes", icon: FlaskConical, action: wrap("research-mode", () => onModeChange("research")), shortcut: isMac ? "⌘3" : "Ctrl+3" },
+    { id: "truth-mode", label: "Switch to Truth Mode", category: "Modes", icon: Shield, action: wrap("truth-mode", () => onModeChange("truth")), shortcut: isMac ? "⌘4" : "Ctrl+4" },
     // Navigation
     { id: "search", label: "Zophiel Engine", category: "Navigation", icon: Search, action: wrap("search", () => onViewChange("search")), keywords: ["zophiel", "search", "intelligence"] },
     { id: "asha", label: "Asha Intelligence", category: "Navigation", icon: Database, action: wrap("asha", () => onViewChange("asha")), keywords: ["data", "analysis", "dataset"] },
