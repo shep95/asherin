@@ -109,7 +109,7 @@ const navGroups: NavGroup[] = [
       { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
       { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
       { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
-      { id: "self-learning", icon: Brain, label: "Self-Learning Loop" },
+      { id: "self-learning", icon: Brain, label: "Laws of Coding" },
       { id: "self-access", icon: FileText, label: "Self-Access Learning" },
       { id: "stats", icon: BarChart3, label: "My Stats" },
       { id: "subscription", icon: CreditCard, label: "Subscription" },

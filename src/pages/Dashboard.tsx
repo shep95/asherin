@@ -6,6 +6,11 @@ import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
 import wallpaperProphet from "@/assets/wallpaper-prophet.png";
 import wallpaperNexus from "@/assets/wallpaper-nexus.png";
+import wallpaperSentinel from "@/assets/wallpaper-sentinel.png";
+import wallpaperInferno from "@/assets/wallpaper-inferno.png";
+import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
+import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
+import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
 
 const WALLPAPER_MAP: Record<string, string> = {
   default: heroBgDefault,
@@ -16,6 +21,11 @@ const WALLPAPER_MAP: Record<string, string> = {
   seraph: wallpaperSeraph,
   prophet: wallpaperProphet,
   nexus: wallpaperNexus,
+  sentinel: wallpaperSentinel,
+  inferno: wallpaperInferno,
+  sorrow: wallpaperSorrow,
+  silhouette: wallpaperSilhouette,
+  phantom: wallpaperPhantom,
 };
 import React, { Suspense } from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -58,7 +68,7 @@ const AureonIdeView = React.lazy(() => import("@/components/dashboard/ide/Aureon
 const PdfGeneratorView = React.lazy(() => import("@/components/dashboard/PdfGeneratorView"));
 const PatternAnalysisView = React.lazy(() => import("@/components/dashboard/PatternAnalysisView"));
 const SlideshowGeneratorView = React.lazy(() => import("@/components/dashboard/SlideshowGeneratorView"));
-const SelfLearningLoopView = React.lazy(() => import("@/components/dashboard/SelfLearningLoopView"));
+const CodingLawsView = React.lazy(() => import("@/components/dashboard/CodingLawsView"));
 const SelfAccessLearningView = React.lazy(() => import("@/components/dashboard/SelfAccessLearningView"));
 const OracleLocusView = React.lazy(() => import("@/components/dashboard/OracleLocusView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
@@ -886,7 +896,7 @@ const Dashboard = () => {
       case "ide": return <Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense>;
       case "pdf-generator": return <Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense>;
       case "slideshow": return <Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense>;
-      case "self-learning": return <Suspense fallback={<LazyFallback />}><SelfLearningLoopView /></Suspense>;
+      case "self-learning": return <Suspense fallback={<LazyFallback />}><CodingLawsView /></Suspense>;
       case "self-access": return <Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense>;
       default: return activeConv ? (
         <ChatView
