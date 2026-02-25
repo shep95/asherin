@@ -1,9 +1,11 @@
 import { useState, useRef } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User } from "lucide-react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// ─── GEO ANALYSIS TYPES ───
 interface PersonAnalysis {
   person_id: number;
   facing_direction: string;
@@ -36,6 +38,54 @@ interface AnalysisResult {
   insufficient_data_reason?: string;
 }
 
+// ─── FACE SEARCH TYPES ───
+interface FaceMatch {
+  match_id: number;
+  similarity_score: number;
+  location: {
+    city: string;
+    region: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+  };
+  estimated_relationship: string;
+  ancestry_overlap: number;
+  age_similarity: number;
+  shared_features: string[];
+  generation_gap: number;
+  family_branch: string;
+}
+
+interface FaceSearchResult {
+  status: "SUCCESS" | "INVALID_PHOTO";
+  reason?: string;
+  tips?: string[];
+  subject_analysis?: {
+    estimated_age_range: string;
+    estimated_ethnicity: string;
+    distinctive_features: string[];
+    face_quality_score: number;
+    face_symmetry: number;
+  };
+  matches?: FaceMatch[];
+  family_tree?: {
+    common_ancestor_estimate: string;
+    branches: {
+      branch_name: string;
+      region: string;
+      match_count: number;
+      avg_similarity: number;
+    }[];
+  };
+  search_metadata?: {
+    region_searched: string;
+    total_faces_scanned: number;
+    matches_found: number;
+    scan_time_ms: number;
+  };
+}
+
 const statusConfig = {
   SUCCESS: { color: "text-emerald-400 bg-emerald-500/10", icon: Target },
   AMBIGUOUS: { color: "text-amber-400 bg-amber-500/10", icon: AlertTriangle },
@@ -53,8 +103,18 @@ const featureTypeColors: Record<string, string> = {
   default: "bg-muted/30 text-muted-foreground",
 };
 
+const relationshipColors: Record<string, string> = {
+  "sibling-like": "text-red-400 bg-red-500/10",
+  "1st cousin": "text-orange-400 bg-orange-500/10",
+  "2nd-3rd cousin": "text-amber-400 bg-amber-500/10",
+  "distant relative": "text-blue-400 bg-blue-500/10",
+  "unrelated lookalike": "text-muted-foreground bg-muted/20",
+};
+
 const OracleLocusView = () => {
   const { toast } = useToast();
+
+  // ── GEO TAB STATE ──
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -64,7 +124,19 @@ const OracleLocusView = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [history, setHistory] = useState<{ image: string; result: AnalysisResult }[]>([]);
 
-  const processImageFile = (file: File) => {
+  // ── FACE SEARCH STATE ──
+  const faceInputRef = useRef<HTMLInputElement>(null);
+  const [facePreview, setFacePreview] = useState<string | null>(null);
+  const [faceBase64, setFaceBase64] = useState<string | null>(null);
+  const [faceType, setFaceType] = useState<string>("image/jpeg");
+  const [targetLocation, setTargetLocation] = useState("");
+  const [faceStep, setFaceStep] = useState<"upload" | "location" | "consent" | "analyzing" | "results">("upload");
+  const [faceResult, setFaceResult] = useState<FaceSearchResult | null>(null);
+  const [consentChecked, setConsentChecked] = useState({ facial: false, match: false });
+  const [selectedMatch, setSelectedMatch] = useState<FaceMatch | null>(null);
+
+  // ── SHARED HELPERS ──
+  const processImageFile = (file: File, target: "geo" | "face") => {
     if (!file.type.startsWith("image/")) {
       toast({ title: "Invalid file", description: "Please upload an image file.", variant: "destructive" });
       return;
@@ -73,28 +145,37 @@ const OracleLocusView = () => {
       toast({ title: "File too large", description: "Max 20MB.", variant: "destructive" });
       return;
     }
-    setImageType(file.type);
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
-      setImageBase64(dataUrl.split(",")[1]);
-      setResult(null);
+      const base64 = dataUrl.split(",")[1];
+      if (target === "geo") {
+        setImagePreview(dataUrl);
+        setImageBase64(base64);
+        setImageType(file.type);
+        setResult(null);
+      } else {
+        setFacePreview(dataUrl);
+        setFaceBase64(base64);
+        setFaceType(file.type);
+        setFaceStep("location");
+        setFaceResult(null);
+        setSelectedMatch(null);
+      }
     };
     reader.readAsDataURL(file);
   };
 
+  // ── GEO HANDLERS ──
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    processImageFile(file);
+    if (file) processImageFile(file, "geo");
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    processImageFile(file);
+    if (file) processImageFile(file, "geo");
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -104,7 +185,7 @@ const OracleLocusView = () => {
       if (items[i].type.startsWith("image/")) {
         e.preventDefault();
         const file = items[i].getAsFile();
-        if (file) processImageFile(file);
+        if (file) processImageFile(file, "geo");
         return;
       }
     }
@@ -124,11 +205,9 @@ const OracleLocusView = () => {
         },
         body: JSON.stringify({ image_base64: imageBase64, image_type: imageType }),
       });
-
       if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-
       setResult(data);
       if (imagePreview) {
         setHistory(prev => [{ image: imagePreview, result: data }, ...prev].slice(0, 20));
@@ -153,19 +232,80 @@ const OracleLocusView = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // ── FACE SEARCH HANDLERS ──
+  const handleFaceFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processImageFile(file, "face");
+  };
+
+  const handleFaceDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) processImageFile(file, "face");
+  };
+
+  const handleFacePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) processImageFile(file, "face");
+        return;
+      }
+    }
+  };
+
+  const startFaceSearch = async () => {
+    if (!faceBase64 || !targetLocation.trim()) return;
+    setFaceStep("analyzing");
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/oracle-face-search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.session?.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ image_base64: faceBase64, image_type: faceType, target_location: targetLocation }),
+      });
+      if (!res.ok) throw new Error("Face search failed");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setFaceResult(data);
+      setFaceStep("results");
+    } catch (err) {
+      toast({ title: "Face search failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+      setFaceStep("consent");
+    }
+  };
+
+  const resetFaceSearch = () => {
+    setFacePreview(null);
+    setFaceBase64(null);
+    setTargetLocation("");
+    setFaceStep("upload");
+    setFaceResult(null);
+    setConsentChecked({ facial: false, match: false });
+    setSelectedMatch(null);
+    if (faceInputRef.current) faceInputRef.current.value = "";
+  };
+
   const coordsText = result ? `${result.estimated_location.latitude.toFixed(6)}, ${result.estimated_location.longitude.toFixed(6)}` : "";
   const googleMapsUrl = result ? `https://www.google.com/maps?q=${result.estimated_location.latitude},${result.estimated_location.longitude}` : "";
 
   return (
-    <div className="flex flex-1 flex-col h-full" onPaste={handlePaste} tabIndex={0}>
-      <div className="flex-shrink-0 p-6 border-b border-border/20" >
+    <div className="flex flex-1 flex-col h-full" tabIndex={0}>
+      <div className="flex-shrink-0 p-6 border-b border-border/20">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
               <Crosshair className="h-4 w-4 text-accent" />
               <h1 className="text-lg font-extralight tracking-[0.2em] text-foreground">ORACLE-LOCUS</h1>
             </div>
-            <p className="text-xs font-extralight text-muted-foreground mt-1">Geo-Intelligence Analysis · Image → Coordinates</p>
+            <p className="text-xs font-extralight text-muted-foreground mt-1">Geo-Intelligence & Facial Search System</p>
           </div>
           <div className="flex items-center gap-2">
             <Shield className="h-3.5 w-3.5 text-emerald-500/70" />
@@ -174,278 +314,664 @@ const OracleLocusView = () => {
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0">
-        <ScrollArea className="flex-1 h-full">
-          <div className="p-6 space-y-6 max-w-4xl mx-auto">
-            {/* Upload Zone */}
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              className="relative rounded-2xl border-2 border-dashed border-border/30 bg-card/10 backdrop-blur-sm overflow-hidden transition-colors hover:border-accent/30"
-            >
-              {imagePreview ? (
-                <div className="relative">
-                  <img src={imagePreview} alt="Target" className="w-full max-h-[400px] object-contain bg-black/20" />
-                  <button onClick={clearImage} className="absolute top-3 right-3 rounded-lg bg-card/80 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
-                    <X className="h-4 w-4" />
-                  </button>
-                  {!analyzing && !result && (
-                    <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                      <button onClick={analyzeImage} className="w-full rounded-xl bg-accent text-accent-foreground py-3 text-sm font-light tracking-wider hover:bg-accent/90 transition-colors flex items-center justify-center gap-2">
-                        <Eye className="h-4 w-4" />
-                        ANALYZE LOCATION
-                      </button>
-                    </div>
-                  )}
-                  {analyzing && (
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
-                      <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                      <p className="text-sm font-extralight text-foreground tracking-wider">RUNNING GEO-ANALYSIS…</p>
-                      <p className="text-[10px] text-muted-foreground">Scanning visual features · Cross-referencing database</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button onClick={() => fileInputRef.current?.click()} className="w-full py-20 flex flex-col items-center gap-4 cursor-pointer">
-                  <Upload className="h-12 w-12 text-muted-foreground/20" />
-                  <div className="text-center">
-                    <p className="text-sm font-extralight text-muted-foreground">Drop, paste (Ctrl+V), or click to upload an image</p>
-                    <p className="text-[10px] text-muted-foreground/50 mt-1">JPG, PNG, WebP · Max 20MB · Clipboard paste supported</p>
-                  </div>
-                </button>
-              )}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-            </div>
+      <Tabs defaultValue="geo" className="flex flex-1 flex-col min-h-0">
+        <div className="px-6 pt-4">
+          <TabsList className="bg-card/20 border border-border/10 rounded-xl">
+            <TabsTrigger value="geo" className="rounded-lg text-xs tracking-wider data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+              <MapPin className="h-3.5 w-3.5 mr-1.5" />GEO ANALYSIS
+            </TabsTrigger>
+            <TabsTrigger value="face" className="rounded-lg text-xs tracking-wider data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
+              <Users className="h-3.5 w-3.5 mr-1.5" />FACE SEARCH
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-            {/* Results */}
-            {result && (
-              <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-                {/* Insufficient Data Warning */}
-                {result.insufficient_data && (
-                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm p-5 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl bg-amber-500/10 p-2.5">
-                        <AlertTriangle className="h-5 w-5 text-amber-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-light text-foreground">Insufficient Geographic Data</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Oracle-Locus could not extract enough visual cues</p>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-card/20 p-4">
-                      <p className="text-xs font-light text-foreground/80 leading-relaxed">{result.insufficient_data_reason || "The uploaded image does not contain enough identifiable geographic features for analysis."}</p>
-                    </div>
-                    <div className="rounded-xl bg-card/10 p-3">
-                      <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-2">For best results, use images containing:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {["Buildings", "Street signs", "Roads", "Landscapes", "Vehicles", "Vegetation", "Infrastructure"].map(tip => (
-                          <span key={tip} className="text-[10px] px-2 py-1 rounded-md bg-accent/10 text-accent">{tip}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <button onClick={clearImage} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">
-                      TRY ANOTHER IMAGE
+        {/* ════════════════ GEO ANALYSIS TAB ════════════════ */}
+        <TabsContent value="geo" className="flex-1 min-h-0 mt-0" onPaste={handlePaste}>
+          <ScrollArea className="h-full">
+            <div className="p-6 space-y-6 max-w-4xl mx-auto">
+              {/* Upload Zone */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                className="relative rounded-2xl border-2 border-dashed border-border/30 bg-card/10 backdrop-blur-sm overflow-hidden transition-colors hover:border-accent/30"
+              >
+                {imagePreview ? (
+                  <div className="relative">
+                    <img src={imagePreview} alt="Target" className="w-full max-h-[400px] object-contain bg-black/20" />
+                    <button onClick={clearImage} className="absolute top-3 right-3 rounded-lg bg-card/80 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
+                      <X className="h-4 w-4" />
                     </button>
-                  </div>
-                )}
-
-                {/* Normal Results (only show when sufficient data) */}
-                {!result.insufficient_data && (
-                  <>
-                {/* Status & Coordinates */}
-                <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {(() => { const S = statusConfig[result.status]; return <S.icon className={`h-4 w-4 ${S.color.split(" ")[0]}`} />; })()}
-                      <span className={`text-[10px] px-2 py-0.5 rounded ${statusConfig[result.status].color}`}>{result.status}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{result.most_probable_macro_region}</span>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-xl bg-card/30 p-3 text-center">
-                      <p className="text-2xl font-extralight text-foreground">{result.confidence_score}%</p>
-                      <p className="text-[9px] text-muted-foreground mt-1">Confidence</p>
-                    </div>
-                    <div className="rounded-xl bg-card/30 p-3 text-center">
-                      <p className="text-2xl font-extralight text-foreground">{result.error_radius_meters < 1000 ? `${result.error_radius_meters}m` : `${(result.error_radius_meters / 1000).toFixed(1)}km`}</p>
-                      <p className="text-[9px] text-muted-foreground mt-1">Error Radius</p>
-                    </div>
-                    <div className="rounded-xl bg-card/30 p-3 text-center">
-                      <p className="text-2xl font-extralight text-foreground">{result.identified_features.length}</p>
-                      <p className="text-[9px] text-muted-foreground mt-1">Features Found</p>
-                    </div>
-                  </div>
-
-                  {/* Coordinates */}
-                  <div className="rounded-xl border border-border/10 bg-card/10 p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 text-accent" />
-                        <span className="text-xs font-light text-foreground">Estimated Coordinates</span>
+                    {!analyzing && !result && (
+                      <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                        <button onClick={analyzeImage} className="w-full rounded-xl bg-accent text-accent-foreground py-3 text-sm font-light tracking-wider hover:bg-accent/90 transition-colors flex items-center justify-center gap-2">
+                          <Eye className="h-4 w-4" />ANALYZE LOCATION
+                        </button>
                       </div>
-                      <button onClick={() => copyToClipboard(coordsText, "coords")} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
-                        {copied === "coords" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                        {copied === "coords" ? "Copied" : "Copy"}
-                      </button>
-                    </div>
-                    <p className="text-lg font-mono font-extralight text-foreground tracking-wider">{coordsText}</p>
-                    {result.address_estimate && (
-                      <p className="text-xs text-muted-foreground">{result.address_estimate}</p>
                     )}
-                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[10px] text-accent hover:underline mt-1">
-                      <MapPin className="h-3 w-3" /> Open in Google Maps
-                    </a>
-                  </div>
-                </div>
-
-                {/* Rationale */}
-                <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
-                  <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Analysis Rationale</p>
-                  <div className="space-y-2">
-                    {result.rationale.map((r, i) => (
-                      <div key={i} className="flex gap-3 items-start">
-                        <span className="text-[9px] text-accent font-mono mt-0.5">{String(i + 1).padStart(2, "0")}</span>
-                        <p className="text-xs font-light text-foreground/80 leading-relaxed">{r}</p>
+                    {analyzing && (
+                      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                        <p className="text-sm font-extralight text-foreground tracking-wider">RUNNING GEO-ANALYSIS…</p>
+                        <p className="text-[10px] text-muted-foreground">Scanning visual features · Cross-referencing database</p>
                       </div>
+                    )}
+                  </div>
+                ) : (
+                  <button onClick={() => fileInputRef.current?.click()} className="w-full py-20 flex flex-col items-center gap-4 cursor-pointer">
+                    <Upload className="h-12 w-12 text-muted-foreground/20" />
+                    <div className="text-center">
+                      <p className="text-sm font-extralight text-muted-foreground">Drop, paste (Ctrl+V), or click to upload an image</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-1">JPG, PNG, WebP · Max 20MB · Clipboard paste supported</p>
+                    </div>
+                  </button>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+              </div>
+
+              {/* Results */}
+              {result && (
+                <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+                  {result.insufficient_data && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm p-5 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-amber-500/10 p-2.5"><AlertTriangle className="h-5 w-5 text-amber-400" /></div>
+                        <div>
+                          <p className="text-sm font-light text-foreground">Insufficient Geographic Data</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">Oracle-Locus could not extract enough visual cues</p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-card/20 p-4">
+                        <p className="text-xs font-light text-foreground/80 leading-relaxed">{result.insufficient_data_reason || "The uploaded image does not contain enough identifiable geographic features for analysis."}</p>
+                      </div>
+                      <div className="rounded-xl bg-card/10 p-3">
+                        <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-2">For best results, use images containing:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {["Buildings", "Street signs", "Roads", "Landscapes", "Vehicles", "Vegetation", "Infrastructure"].map(tip => (
+                            <span key={tip} className="text-[10px] px-2 py-1 rounded-lg bg-accent/10 text-accent">{tip}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={clearImage} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">TRY ANOTHER IMAGE</button>
+                    </div>
+                  )}
+
+                  {!result.insufficient_data && (
+                    <>
+                      {/* Status & Coordinates */}
+                      <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {(() => { const S = statusConfig[result.status]; return <S.icon className={`h-4 w-4 ${S.color.split(" ")[0]}`} />; })()}
+                            <span className={`text-[10px] px-2 py-0.5 rounded-lg ${statusConfig[result.status].color}`}>{result.status}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{result.most_probable_macro_region}</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="rounded-xl bg-card/30 p-3 text-center">
+                            <p className="text-2xl font-extralight text-foreground">{result.confidence_score}%</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Confidence</p>
+                          </div>
+                          <div className="rounded-xl bg-card/30 p-3 text-center">
+                            <p className="text-2xl font-extralight text-foreground">{result.error_radius_meters < 1000 ? `${result.error_radius_meters}m` : `${(result.error_radius_meters / 1000).toFixed(1)}km`}</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Error Radius</p>
+                          </div>
+                          <div className="rounded-xl bg-card/30 p-3 text-center">
+                            <p className="text-2xl font-extralight text-foreground">{result.identified_features.length}</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Features Found</p>
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-border/10 bg-card/10 p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-3.5 w-3.5 text-accent" />
+                              <span className="text-xs font-light text-foreground">Estimated Coordinates</span>
+                            </div>
+                            <button onClick={() => copyToClipboard(coordsText, "coords")} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+                              {copied === "coords" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                              {copied === "coords" ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                          <p className="text-lg font-mono font-extralight text-foreground tracking-wider">{coordsText}</p>
+                          {result.address_estimate && <p className="text-xs text-muted-foreground">{result.address_estimate}</p>}
+                          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[10px] text-accent hover:underline mt-1">
+                            <MapPin className="h-3 w-3" /> Open in Google Maps
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Rationale */}
+                      <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Analysis Rationale</p>
+                        <div className="space-y-2">
+                          {result.rationale.map((r, i) => (
+                            <div key={i} className="flex gap-3 items-start">
+                              <span className="text-[9px] text-accent font-mono mt-0.5">{String(i + 1).padStart(2, "0")}</span>
+                              <p className="text-xs font-light text-foreground/80 leading-relaxed">{r}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Identified Features */}
+                      {result.identified_features.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Identified Features</p>
+                          <div className="flex flex-wrap gap-2">
+                            {result.identified_features.map((f, i) => (
+                              <div key={i} className={`rounded-lg px-3 py-1.5 text-[10px] ${featureTypeColors[f.type] || featureTypeColors.default}`}>
+                                <span className="uppercase tracking-wider opacity-60">{f.type}</span>
+                                <span className="mx-1.5 opacity-30">·</span>
+                                <span>{f.detail}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Time Estimation */}
+                      {result.time_estimation && result.time_estimation.time_confidence > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3.5 w-3.5 text-accent" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Time & Shadow Analysis</p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="rounded-xl bg-card/30 p-3 text-center">
+                              <p className="text-lg font-mono font-extralight text-foreground">{result.time_estimation.estimated_local_time}</p>
+                              <p className="text-[9px] text-muted-foreground mt-1">Est. Local Time</p>
+                            </div>
+                            <div className="rounded-xl bg-card/30 p-3 text-center">
+                              <p className="text-lg font-extralight text-foreground">{result.time_estimation.time_confidence}%</p>
+                              <p className="text-[9px] text-muted-foreground mt-1">Time Confidence</p>
+                            </div>
+                            <div className="rounded-xl bg-card/30 p-3 text-center">
+                              <p className="text-lg font-extralight text-foreground">{result.time_estimation.estimated_season}</p>
+                              <p className="text-[9px] text-muted-foreground mt-1">Season</p>
+                            </div>
+                          </div>
+                          <div className="rounded-xl border border-border/10 bg-card/10 p-3 space-y-1.5">
+                            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Sun Position</p>
+                            <p className="text-xs font-light text-foreground/80">{result.time_estimation.sun_position}</p>
+                          </div>
+                          <div className="rounded-xl border border-border/10 bg-card/10 p-3 space-y-1.5">
+                            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Shadow Analysis</p>
+                            <p className="text-xs font-light text-foreground/80 leading-relaxed">{result.time_estimation.shadow_analysis}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Person Direction Analysis */}
+                      {result.person_analysis && result.person_analysis.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Compass className="h-3.5 w-3.5 text-accent" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Person Direction Analysis ({result.person_analysis.length})</p>
+                          </div>
+                          <div className="space-y-2">
+                            {result.person_analysis.map((p) => (
+                              <div key={p.person_id} className="rounded-xl border border-border/10 bg-card/10 p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-xs font-light text-foreground">Person {p.person_id}</span>
+                                    <span className="text-[10px] text-muted-foreground">{p.confidence}% conf.</span>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="rounded-lg bg-card/30 px-3 py-2">
+                                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Facing</p>
+                                    <p className="text-sm font-mono font-extralight text-foreground">{p.facing_direction}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-card/30 px-3 py-2">
+                                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Traveling</p>
+                                    <p className="text-sm font-mono font-extralight text-foreground">{p.travel_direction}</p>
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground/70 mt-2">{p.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Alternative Locations */}
+                      {result.potential_alternative_locations.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
+                          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Alternative Locations</p>
+                          <div className="space-y-2">
+                            {result.potential_alternative_locations.map((alt, i) => (
+                              <div key={i} className="flex items-center justify-between rounded-xl bg-card/20 px-4 py-2.5">
+                                <span className="text-xs font-light text-foreground">{alt.region}</span>
+                                <span className="text-[10px] text-muted-foreground">{alt.confidence}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button onClick={clearImage} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">ANALYZE NEW IMAGE</button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* History */}
+              {history.length > 0 && !result && !imagePreview && (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Recent Analyses</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {history.map((h, i) => (
+                      <button key={i} onClick={() => { setImagePreview(h.image); setImageBase64(h.image.split(",")[1]); setResult(h.result); }}
+                        className="rounded-xl border border-border/10 bg-card/10 overflow-hidden hover:border-accent/20 transition-colors text-left">
+                        <img src={h.image} alt="Previous" className="w-full h-24 object-cover" />
+                        <div className="p-2.5">
+                          <p className="text-[10px] text-foreground truncate">{h.result.most_probable_macro_region}</p>
+                          <p className="text-[9px] text-muted-foreground">{h.result.confidence_score}% · {h.result.status}</p>
+                        </div>
+                      </button>
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
 
-                {/* Identified Features */}
-                {result.identified_features.length > 0 && (
-                  <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
-                    <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Identified Features</p>
-                    <div className="flex flex-wrap gap-2">
-                      {result.identified_features.map((f, i) => (
-                        <div key={i} className={`rounded-lg px-3 py-1.5 text-[10px] ${featureTypeColors[f.type] || featureTypeColors.default}`}>
-                          <span className="uppercase tracking-wider opacity-60">{f.type}</span>
-                          <span className="mx-1.5 opacity-30">·</span>
-                          <span>{f.detail}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        {/* ════════════════ FACE SEARCH TAB ════════════════ */}
+        <TabsContent value="face" className="flex-1 min-h-0 mt-0" onPaste={handleFacePaste}>
+          <ScrollArea className="h-full">
+            <div className="p-6 space-y-6 max-w-4xl mx-auto">
 
-                {/* Time Estimation */}
-                {result.time_estimation && result.time_estimation.time_confidence > 0 && (
-                  <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 text-accent" />
-                      <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Time & Shadow Analysis</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-xl bg-card/30 p-3 text-center">
-                        <p className="text-lg font-mono font-extralight text-foreground">{result.time_estimation.estimated_local_time}</p>
-                        <p className="text-[9px] text-muted-foreground mt-1">Est. Local Time</p>
+              {/* Step Progress Bar */}
+              <div className="flex items-center gap-1">
+                {(["upload", "location", "consent", "analyzing", "results"] as const).map((step, i) => {
+                  const labels = ["Photo", "Location", "Consent", "Scan", "Results"];
+                  const stepOrder = ["upload", "location", "consent", "analyzing", "results"];
+                  const currentIdx = stepOrder.indexOf(faceStep);
+                  const isActive = i === currentIdx;
+                  const isDone = i < currentIdx;
+                  return (
+                    <div key={step} className="flex items-center gap-1 flex-1">
+                      <div className={`flex items-center gap-1.5 flex-1 rounded-lg px-2 py-1.5 text-[10px] tracking-wider transition-colors ${isActive ? "bg-accent/20 text-accent" : isDone ? "bg-emerald-500/10 text-emerald-400" : "bg-card/10 text-muted-foreground/40"}`}>
+                        {isDone ? <CheckCircle2 className="h-3 w-3" /> : <span className="font-mono">{i + 1}</span>}
+                        <span className="hidden sm:inline">{labels[i]}</span>
                       </div>
-                      <div className="rounded-xl bg-card/30 p-3 text-center">
-                        <p className="text-lg font-extralight text-foreground">{result.time_estimation.time_confidence}%</p>
-                        <p className="text-[9px] text-muted-foreground mt-1">Time Confidence</p>
-                      </div>
-                      <div className="rounded-xl bg-card/30 p-3 text-center">
-                        <p className="text-lg font-extralight text-foreground">{result.time_estimation.estimated_season}</p>
-                        <p className="text-[9px] text-muted-foreground mt-1">Season</p>
-                      </div>
+                      {i < 4 && <ChevronRight className="h-3 w-3 text-muted-foreground/20 flex-shrink-0" />}
                     </div>
-                    <div className="rounded-xl border border-border/10 bg-card/10 p-3 space-y-1.5">
-                      <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Sun Position</p>
-                      <p className="text-xs font-light text-foreground/80">{result.time_estimation.sun_position}</p>
-                    </div>
-                    <div className="rounded-xl border border-border/10 bg-card/10 p-3 space-y-1.5">
-                      <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Shadow Analysis</p>
-                      <p className="text-xs font-light text-foreground/80 leading-relaxed">{result.time_estimation.shadow_analysis}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Person Direction Analysis */}
-                {result.person_analysis && result.person_analysis.length > 0 && (
-                  <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Compass className="h-3.5 w-3.5 text-accent" />
-                      <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Person Direction Analysis ({result.person_analysis.length})</p>
-                    </div>
-                    <div className="space-y-2">
-                      {result.person_analysis.map((p) => (
-                        <div key={p.person_id} className="rounded-xl border border-border/10 bg-card/10 p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <User className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-xs font-light text-foreground">Person {p.person_id}</span>
-                              <span className="text-[10px] text-muted-foreground">{p.confidence}% conf.</span>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-lg bg-card/30 px-3 py-2">
-                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Facing</p>
-                              <p className="text-sm font-mono font-extralight text-foreground">{p.facing_direction}</p>
-                            </div>
-                            <div className="rounded-lg bg-card/30 px-3 py-2">
-                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Traveling</p>
-                              <p className="text-sm font-mono font-extralight text-foreground">{p.travel_direction}</p>
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground/70 mt-2">{p.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Alternative Locations */}
-                {result.potential_alternative_locations.length > 0 && (
-                  <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-3">
-                    <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Alternative Locations</p>
-                    <div className="space-y-2">
-                      {result.potential_alternative_locations.map((alt, i) => (
-                        <div key={i} className="flex items-center justify-between rounded-xl bg-card/20 px-4 py-2.5">
-                          <span className="text-xs font-light text-foreground">{alt.region}</span>
-                          <span className="text-[10px] text-muted-foreground">{alt.confidence}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* New Analysis */}
-                <button onClick={clearImage} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">
-                  ANALYZE NEW IMAGE
-                </button>
-                </>
-                )}
+                  );
+                })}
               </div>
-            )}
 
-            {/* History */}
-            {history.length > 0 && !result && !imagePreview && (
-              <div className="space-y-3">
-                <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Recent Analyses</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {history.map((h, i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        setImagePreview(h.image);
-                        setImageBase64(h.image.split(",")[1]);
-                        setResult(h.result);
-                      }}
-                      className="rounded-xl border border-border/10 bg-card/10 overflow-hidden hover:border-accent/20 transition-colors text-left"
-                    >
-                      <img src={h.image} alt="Previous" className="w-full h-24 object-cover" />
-                      <div className="p-2.5">
-                        <p className="text-[10px] text-foreground truncate">{h.result.most_probable_macro_region}</p>
-                        <p className="text-[9px] text-muted-foreground">{h.result.confidence_score}% · {h.result.status}</p>
-                      </div>
-                    </button>
-                  ))}
+              {/* STEP 1: Upload Photo */}
+              {faceStep === "upload" && (
+                <div
+                  onDrop={handleFaceDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="relative rounded-2xl border-2 border-dashed border-border/30 bg-card/10 backdrop-blur-sm overflow-hidden transition-colors hover:border-accent/30"
+                >
+                  <button onClick={() => faceInputRef.current?.click()} className="w-full py-20 flex flex-col items-center gap-4 cursor-pointer">
+                    <div className="rounded-2xl bg-accent/10 p-6">
+                      <User className="h-12 w-12 text-accent/60" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-extralight text-foreground">Upload a clear photo of your face</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-1">Drop, paste (Ctrl+V), or click · JPG, PNG, WebP · Max 20MB</p>
+                    </div>
+                    <div className="rounded-xl bg-card/20 px-4 py-2 mt-2">
+                      <p className="text-[10px] text-muted-foreground">📸 Best results: Front-facing · Good lighting · No sunglasses</p>
+                    </div>
+                  </button>
+                  <input ref={faceInputRef} type="file" accept="image/*" onChange={handleFaceFileSelect} className="hidden" />
                 </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-      </div>
+              )}
+
+              {/* STEP 2: Enter Location */}
+              {faceStep === "location" && (
+                <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+                  {facePreview && (
+                    <div className="relative rounded-2xl overflow-hidden border border-border/10">
+                      <img src={facePreview} alt="Your photo" className="w-full max-h-[250px] object-contain bg-black/20" />
+                      <button onClick={resetFaceSearch} className="absolute top-3 right-3 rounded-lg bg-card/80 backdrop-blur-sm p-2 text-muted-foreground hover:text-foreground transition-colors">
+                        <X className="h-4 w-4" />
+                      </button>
+                      <div className="absolute bottom-3 left-3 rounded-lg bg-emerald-500/10 backdrop-blur-sm px-3 py-1.5 flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        <span className="text-[10px] text-emerald-400 tracking-wider">PHOTO ACCEPTED</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-4 w-4 text-accent" />
+                      <p className="text-sm font-light text-foreground">Where should we search?</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Enter a country, region, or city to target the facial match scan.</p>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                      <input
+                        type="text"
+                        value={targetLocation}
+                        onChange={(e) => setTargetLocation(e.target.value)}
+                        placeholder="e.g. Ireland, Germany, New York..."
+                        className="w-full rounded-xl border border-border/20 bg-card/10 pl-10 pr-4 py-3 text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30 transition-colors"
+                      />
+                    </div>
+                    <button
+                      onClick={() => targetLocation.trim() && setFaceStep("consent")}
+                      disabled={!targetLocation.trim()}
+                      className="w-full rounded-xl bg-accent text-accent-foreground py-3 text-sm font-light tracking-wider hover:bg-accent/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <ChevronRight className="h-4 w-4" />CONTINUE
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Consent */}
+              {faceStep === "consent" && (
+                <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-300">
+                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl bg-amber-500/10 p-2.5">
+                        <Shield className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-light text-foreground">Legal Consent Required</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Facial recognition analysis requires explicit consent</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-card/10 p-4 space-y-3 text-xs font-light text-foreground/70 leading-relaxed">
+                      <p>By proceeding, you acknowledge and agree to the following:</p>
+                      <ul className="space-y-2 ml-2">
+                        <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>Your facial data will be processed by AI for similarity analysis</li>
+                        <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>Results are AI-generated estimates, not verified identities</li>
+                        <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>No facial data is stored permanently after the session</li>
+                        <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>This tool is for entertainment and educational purposes</li>
+                      </ul>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="flex items-start gap-3 cursor-pointer group" onClick={() => setConsentChecked(p => ({ ...p, facial: !p.facial }))}>
+                        <div className={`mt-0.5 h-5 w-5 rounded-lg border flex-shrink-0 flex items-center justify-center transition-colors ${consentChecked.facial ? "bg-accent border-accent" : "border-border/40 bg-card/10"}`}>
+                          {consentChecked.facial && <Check className="h-3 w-3 text-accent-foreground" />}
+                        </div>
+                        <span className="text-xs font-light text-foreground/80">I consent to facial recognition analysis of my uploaded photo</span>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer group" onClick={() => setConsentChecked(p => ({ ...p, match: !p.match }))}>
+                        <div className={`mt-0.5 h-5 w-5 rounded-lg border flex-shrink-0 flex items-center justify-center transition-colors ${consentChecked.match ? "bg-accent border-accent" : "border-border/40 bg-card/10"}`}>
+                          {consentChecked.match && <Check className="h-3 w-3 text-accent-foreground" />}
+                        </div>
+                        <span className="text-xs font-light text-foreground/80">I understand results are AI-generated estimates and should not be used for identification</span>
+                      </label>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button onClick={() => setFaceStep("location")} className="flex-1 rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">BACK</button>
+                      <button
+                        onClick={startFaceSearch}
+                        disabled={!consentChecked.facial || !consentChecked.match}
+                        className="flex-1 rounded-xl bg-accent text-accent-foreground py-3 text-xs font-light tracking-wider hover:bg-accent/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        <Eye className="h-4 w-4" />BEGIN SCAN
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: Analyzing */}
+              {faceStep === "analyzing" && (
+                <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-10 flex flex-col items-center gap-4 animate-in fade-in-0 duration-300">
+                  <div className="relative">
+                    <Loader2 className="h-12 w-12 animate-spin text-accent" />
+                    <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-accent/10" />
+                  </div>
+                  <p className="text-sm font-extralight text-foreground tracking-wider">SCANNING FACIAL DATABASE…</p>
+                  <div className="space-y-1 text-center">
+                    <p className="text-[10px] text-muted-foreground animate-pulse">Extracting facial features · 128D embedding generation</p>
+                    <p className="text-[10px] text-muted-foreground/60">Target region: {targetLocation}</p>
+                  </div>
+                  <div className="w-full max-w-xs mt-4">
+                    <div className="h-1 rounded-full bg-card/30 overflow-hidden">
+                      <div className="h-full bg-accent rounded-full animate-pulse" style={{ width: "65%" }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 5-10: Results */}
+              {faceStep === "results" && faceResult && (
+                <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+                  {/* Invalid photo */}
+                  {faceResult.status === "INVALID_PHOTO" && (
+                    <div className="rounded-2xl border border-red-500/20 bg-red-500/5 backdrop-blur-sm p-5 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-red-500/10 p-2.5"><AlertTriangle className="h-5 w-5 text-red-400" /></div>
+                        <div>
+                          <p className="text-sm font-light text-foreground">Photo Quality Issue</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{faceResult.reason}</p>
+                        </div>
+                      </div>
+                      {faceResult.tips && (
+                        <div className="rounded-xl bg-card/10 p-3 space-y-1">
+                          {faceResult.tips.map((tip, i) => (
+                            <p key={i} className="text-[10px] text-muted-foreground flex gap-2"><span className="text-accent">→</span>{tip}</p>
+                          ))}
+                        </div>
+                      )}
+                      <button onClick={resetFaceSearch} className="w-full rounded-xl bg-accent text-accent-foreground py-3 text-xs font-light tracking-wider hover:bg-accent/90 transition-colors">TRY ANOTHER PHOTO</button>
+                    </div>
+                  )}
+
+                  {/* Success Results */}
+                  {faceResult.status === "SUCCESS" && (
+                    <>
+                      {/* Subject Analysis */}
+                      {faceResult.subject_analysis && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+                          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Subject Analysis</p>
+                          <div className="flex gap-4">
+                            {facePreview && (
+                              <img src={facePreview} alt="Subject" className="h-20 w-20 rounded-xl object-cover border border-border/10 flex-shrink-0" />
+                            )}
+                            <div className="space-y-2 flex-1">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="rounded-lg bg-card/30 px-3 py-2">
+                                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Age Range</p>
+                                  <p className="text-sm font-extralight text-foreground">{faceResult.subject_analysis.estimated_age_range}</p>
+                                </div>
+                                <div className="rounded-lg bg-card/30 px-3 py-2">
+                                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Face Quality</p>
+                                  <p className="text-sm font-extralight text-foreground">{faceResult.subject_analysis.face_quality_score}%</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {faceResult.subject_analysis.distinctive_features.map((f, i) => (
+                                  <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-accent/10 text-accent">{f}</span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Search Metadata */}
+                      {faceResult.search_metadata && (
+                        <div className="grid grid-cols-4 gap-3">
+                          <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
+                            <p className="text-xl font-extralight text-foreground">{faceResult.search_metadata.matches_found}</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Matches</p>
+                          </div>
+                          <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
+                            <p className="text-xl font-extralight text-foreground">{(faceResult.search_metadata.total_faces_scanned / 1000).toFixed(1)}k</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Faces Scanned</p>
+                          </div>
+                          <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
+                            <p className="text-xl font-extralight text-foreground">{(faceResult.search_metadata.scan_time_ms / 1000).toFixed(1)}s</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Scan Time</p>
+                          </div>
+                          <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
+                            <p className="text-xl font-extralight text-foreground truncate text-xs">{faceResult.search_metadata.region_searched}</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Region</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Family Tree Visualization */}
+                      {faceResult.family_tree && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+                          <div className="flex items-center gap-2">
+                            <GitBranch className="h-3.5 w-3.5 text-accent" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Family Tree Estimate</p>
+                          </div>
+                          <div className="rounded-xl bg-card/10 border border-border/10 p-4 text-center">
+                            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1">Common Ancestor</p>
+                            <p className="text-sm font-extralight text-foreground">{faceResult.family_tree.common_ancestor_estimate}</p>
+                          </div>
+
+                          {/* Tree branches visual */}
+                          <div className="relative">
+                            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/20" />
+                            <div className="space-y-3">
+                              {faceResult.family_tree.branches.map((branch, i) => (
+                                <div key={i} className={`flex items-center gap-4 ${i % 2 === 0 ? "" : "flex-row-reverse"}`}>
+                                  <div className={`flex-1 rounded-xl border border-border/10 bg-card/10 p-3 ${i % 2 === 0 ? "text-right" : "text-left"}`}>
+                                    <p className="text-xs font-light text-foreground">{branch.branch_name}</p>
+                                    <p className="text-[10px] text-muted-foreground">{branch.region}</p>
+                                    <div className="flex items-center gap-2 mt-1.5 justify-end">
+                                      <span className="text-[10px] text-accent">{branch.match_count} matches</span>
+                                      <span className="text-[10px] text-muted-foreground/50">·</span>
+                                      <span className="text-[10px] text-muted-foreground">{branch.avg_similarity}% avg</span>
+                                    </div>
+                                  </div>
+                                  <div className="h-3 w-3 rounded-full bg-accent/30 border-2 border-accent flex-shrink-0 z-10" />
+                                  <div className="flex-1" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Match Results */}
+                      {faceResult.matches && faceResult.matches.length > 0 && (
+                        <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Lookalike Matches</p>
+                            <span className="text-[10px] text-accent">{faceResult.matches.length} found</span>
+                          </div>
+
+                          {/* Map-like region summary */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {Array.from(new Set(faceResult.matches.map(m => m.location.city))).map(city => {
+                              const cityMatches = faceResult.matches!.filter(m => m.location.city === city);
+                              const best = Math.max(...cityMatches.map(m => m.similarity_score));
+                              return (
+                                <div key={city} className="rounded-xl bg-card/10 border border-border/10 p-3 text-center hover:border-accent/20 transition-colors">
+                                  <MapPin className="h-3.5 w-3.5 text-accent mx-auto mb-1" />
+                                  <p className="text-xs font-light text-foreground">{city}</p>
+                                  <p className="text-[10px] text-muted-foreground">{cityMatches.length} match{cityMatches.length > 1 ? "es" : ""}</p>
+                                  <p className="text-[10px] text-accent mt-0.5">Best: {best}%</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Individual matches */}
+                          <div className="space-y-2">
+                            {faceResult.matches
+                              .sort((a, b) => b.similarity_score - a.similarity_score)
+                              .map((match) => (
+                                <button
+                                  key={match.match_id}
+                                  onClick={() => setSelectedMatch(selectedMatch?.match_id === match.match_id ? null : match)}
+                                  className={`w-full rounded-xl border p-4 text-left transition-all ${selectedMatch?.match_id === match.match_id ? "border-accent/30 bg-accent/5" : "border-border/10 bg-card/10 hover:border-border/20"}`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className="h-10 w-10 rounded-xl bg-card/30 flex items-center justify-center">
+                                        <User className="h-5 w-5 text-muted-foreground/40" />
+                                      </div>
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm font-extralight text-foreground">{match.similarity_score}% Match</span>
+                                          <span className={`text-[10px] px-2 py-0.5 rounded-lg ${relationshipColors[match.estimated_relationship.toLowerCase()] || "bg-muted/20 text-muted-foreground"}`}>
+                                            {match.estimated_relationship}
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">{match.location.city}, {match.location.country}</p>
+                                      </div>
+                                    </div>
+                                    <ChevronRight className={`h-4 w-4 text-muted-foreground/30 transition-transform ${selectedMatch?.match_id === match.match_id ? "rotate-90" : ""}`} />
+                                  </div>
+
+                                  {/* Expanded details */}
+                                  {selectedMatch?.match_id === match.match_id && (
+                                    <div className="mt-4 pt-4 border-t border-border/10 space-y-3 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                                      <div className="grid grid-cols-3 gap-2">
+                                        <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
+                                          <p className="text-lg font-extralight text-foreground">{match.similarity_score}%</p>
+                                          <p className="text-[9px] text-muted-foreground">Similarity</p>
+                                        </div>
+                                        <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
+                                          <p className="text-lg font-extralight text-foreground">{match.ancestry_overlap}%</p>
+                                          <p className="text-[9px] text-muted-foreground">Ancestry</p>
+                                        </div>
+                                        <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
+                                          <p className="text-lg font-extralight text-foreground">{match.age_similarity}%</p>
+                                          <p className="text-[9px] text-muted-foreground">Age Match</p>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1.5">Shared Features</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {match.shared_features.map((f, i) => (
+                                            <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-accent/10 text-accent">{f}</span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center justify-between text-[10px]">
+                                        <span className="text-muted-foreground">Family Branch: <span className="text-foreground">{match.family_branch}</span></span>
+                                        <span className="text-muted-foreground">Generation Gap: <span className="text-foreground">{match.generation_gap}</span></span>
+                                      </div>
+                                      <a
+                                        href={`https://www.google.com/maps?q=${match.location.latitude},${match.location.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-[10px] text-accent hover:underline"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <MapPin className="h-3 w-3" /> View on Google Maps
+                                      </a>
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Disclaimer */}
+                      <div className="rounded-xl border border-border/10 bg-card/10 p-4 flex items-start gap-3">
+                        <Info className="h-4 w-4 text-muted-foreground/40 flex-shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                          Results are AI-generated estimates based on facial feature analysis. They do not represent verified identities or confirmed family relationships. This tool is for entertainment and educational purposes only. No facial data is stored after your session.
+                        </p>
+                      </div>
+
+                      {/* New Search */}
+                      <button onClick={resetFaceSearch} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">NEW FACE SEARCH</button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
