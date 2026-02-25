@@ -625,6 +625,87 @@ const Index = () => {
 
       <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            {/* Left — Message */}
+            <div>
+              <p className="text-[10px] font-medium tracking-[0.3em] text-muted-foreground/50 uppercase mb-4">Prompt Intelligence</p>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+                Get The Best Out
+                <br />
+                Of Your Prompts.
+              </h2>
+              <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
+                Most people open an AI and immediately ask their question. That's the wrong approach. The difference between average output and elite intelligence is one step most people skip —
+              </p>
+              <p className="mt-4 text-base font-light tracking-wide text-foreground italic">
+                "Ask Aureon what it needs first."
+              </p>
+              <p className="mt-6 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
+                Instead of dumping every war in human history into a prompt and asking "predict the next conflict" — ask Aureon what data points, context, and variables it needs to give you the most accurate prediction. The output transforms from a guess into an intelligence assessment.
+              </p>
+              <p className="mt-4 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
+                This is the same principle behind every serious intelligence operation in history. In warfare, your best asset isn't the technology — it's the intelligence feeding it. You can't win a war without data. That's why the American government built <span className="text-foreground font-light">Palantir</span>. And that's why we built <span className="text-foreground font-light">Aureon</span> for you — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
+              </p>
+
+              <Link to="/prompt-engineering" className="mt-8 inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-5 py-2.5 text-xs font-light tracking-wide text-foreground transition-all hover:bg-foreground/10">
+                Read the Prompt Masterclass <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+            {/* Right — Visual Comparison */}
+            <div className="space-y-6">
+              {/* Bad prompt example */}
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 backdrop-blur-md p-6">
+                <p className="text-[9px] font-medium tracking-[0.2em] text-destructive/60 uppercase mb-3">How most people prompt</p>
+                <div className="rounded-xl bg-background/30 border border-border/20 p-4">
+                  <p className="text-xs font-light text-muted-foreground leading-relaxed">
+                    "Upload all war history data and predict the next war"
+                  </p>
+                </div>
+                <p className="mt-3 text-[11px] font-extralight text-muted-foreground/70">
+                  → Broad, unfocused, missing critical variables. Output will be generic.
+                </p>
+              </div>
+
+              {/* Good prompt example */}
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-md p-6">
+                <p className="text-[9px] font-medium tracking-[0.2em] text-emerald-400/60 uppercase mb-3">The Aureon method</p>
+                <div className="space-y-2">
+                  <div className="rounded-xl bg-background/30 border border-border/20 p-4">
+                    <p className="text-[10px] font-medium text-muted-foreground/50 mb-1">You →</p>
+                    <p className="text-xs font-light text-muted-foreground leading-relaxed">
+                      "I want to predict geopolitical conflicts. What data, variables, and context do you need from me to produce the most accurate forecast?"
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-background/30 border border-border/20 p-4">
+                    <p className="text-[10px] font-medium text-muted-foreground/50 mb-1">Aureon →</p>
+                    <p className="text-xs font-light text-foreground/80 leading-relaxed">
+                      "I need: region of focus, time horizon, economic indicators you're tracking, alliance structures, recent treaty changes, resource dependencies, and any specific actors of interest."
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-[11px] font-extralight text-emerald-400/70">
+                  → Targeted. Structured. Intelligence-grade output.
+                </p>
+              </div>
+
+              {/* Principle */}
+              <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-center">
+                <p className="text-xs font-extralight tracking-wide text-muted-foreground leading-relaxed">
+                  Technology without intelligence is just hardware.
+                  <br />
+                  <span className="text-foreground font-light">Intelligence with the right data is power.</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </ScrollSection>
+
+      <ScrollSection>
+      <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-3xl">
           <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
             The Questions Everyone Has.
