@@ -694,18 +694,18 @@ const OracleLocusView = () => {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="flex items-start gap-3 cursor-pointer group" onClick={() => setConsentChecked(p => ({ ...p, facial: !p.facial }))}>
+                      <button type="button" className="flex items-start gap-3 cursor-pointer group text-left w-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConsentChecked(p => ({ ...p, facial: !p.facial })); }}>
                         <div className={`mt-0.5 h-5 w-5 rounded-lg border flex-shrink-0 flex items-center justify-center transition-colors ${consentChecked.facial ? "bg-accent border-accent" : "border-border/40 bg-card/10"}`}>
                           {consentChecked.facial && <Check className="h-3 w-3 text-accent-foreground" />}
                         </div>
                         <span className="text-xs font-light text-foreground/80">I consent to facial recognition analysis of my uploaded photo</span>
-                      </label>
-                      <label className="flex items-start gap-3 cursor-pointer group" onClick={() => setConsentChecked(p => ({ ...p, match: !p.match }))}>
+                      </button>
+                      <button type="button" className="flex items-start gap-3 cursor-pointer group text-left w-full" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConsentChecked(p => ({ ...p, match: !p.match })); }}>
                         <div className={`mt-0.5 h-5 w-5 rounded-lg border flex-shrink-0 flex items-center justify-center transition-colors ${consentChecked.match ? "bg-accent border-accent" : "border-border/40 bg-card/10"}`}>
                           {consentChecked.match && <Check className="h-3 w-3 text-accent-foreground" />}
                         </div>
                         <span className="text-xs font-light text-foreground/80">I understand results are AI-generated estimates and should not be used for identification</span>
-                      </label>
+                      </button>
                     </div>
 
                     <div className="flex gap-3">
