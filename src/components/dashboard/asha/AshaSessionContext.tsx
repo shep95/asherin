@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export interface AshaSession {
   id: string;
@@ -67,22 +68,37 @@ export const AshaSessionProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const createSession = async (name: string, companyName: string, description = ""): Promise<AshaSession | null> => {
-    if (!user) return null;
-    // Unmark current active
-    await supabase.from("asha_sessions").update({ is_active: false }).eq("user_id", user.id);
+    if (!user) {
+      toast.error("You must be logged in to create a session.");
+      return null;
+    }
+    try {
+      // Unmark current active
+      await supabase.from("asha_sessions").update({ is_active: false }).eq("user_id", user.id);
 
-    const { data } = await supabase.from("asha_sessions").insert({
-      user_id: user.id, name, company_name: companyName, description, is_active: true,
-    }).select().single();
+      const { data, error } = await supabase.from("asha_sessions").insert({
+        user_id: user.id, name, company_name: companyName, description, is_active: true,
+      }).select().single();
 
-    if (data) {
-      const session: AshaSession = {
-        id: data.id, name: data.name, companyName: data.company_name, description: data.description,
-        icon: data.icon, isActive: true, createdAt: data.created_at,
-      };
-      setSessions(prev => [session, ...prev.map(s => ({ ...s, isActive: false }))]);
-      setActiveSessionState(session);
-      return session;
+      if (error) {
+        console.error("ASHA session create error:", error);
+        toast.error(`Failed to create session: ${error.message}`);
+        return null;
+      }
+
+      if (data) {
+        const session: AshaSession = {
+          id: data.id, name: data.name, companyName: data.company_name, description: data.description,
+          icon: data.icon, isActive: true, createdAt: data.created_at,
+        };
+        setSessions(prev => [session, ...prev.map(s => ({ ...s, isActive: false }))]);
+        setActiveSessionState(session);
+        toast.success("Session created");
+        return session;
+      }
+    } catch (err) {
+      console.error("ASHA session create exception:", err);
+      toast.error("Unexpected error creating session.");
     }
     return null;
   };
