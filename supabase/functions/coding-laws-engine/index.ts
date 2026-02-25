@@ -235,16 +235,12 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
       }
     }
 
-    // 5. Auto-resolve detected duplicates — deactivate the newer law
+    // 5. Log detected duplicates & contradictions (DO NOT auto-deactivate — log only for review)
     for (const dup of duplicatesFound) {
-      const newer = dup.law_a > dup.law_b ? dup.law_a : dup.law_b;
-      await supabase.from("coding_laws").update({ active: false }).eq("law_number", newer);
-      console.log(`[CodingLawsEngine] DEACTIVATED duplicate ${newer}: ${dup.explanation}`);
+      console.log(`[CodingLawsEngine] AUDIT-DUPLICATE: ${dup.law_a} ↔ ${dup.law_b}: ${dup.explanation}`);
     }
-
-    // Log contradictions for review
     for (const c of contradictions) {
-      console.log(`[CodingLawsEngine] CONTRADICTION: ${c.law_a} ↔ ${c.law_b}: ${c.explanation}`);
+      console.log(`[CodingLawsEngine] AUDIT-CONTRADICTION: ${c.law_a} ↔ ${c.law_b}: ${c.explanation}`);
     }
 
     // 6. Log the engine run

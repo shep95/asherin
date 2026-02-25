@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Brain, BookOpen, Shield, Code2, Zap, Copy, Check, Download, Search,
   ChevronDown, ChevronRight, Scale, Lock, Bug, Gauge, Eye, RefreshCw, Terminal,
-  Loader2, Sparkles, Clock, GitMerge,
+  Loader2, Sparkles, Clock, GitMerge, Activity, TrendingUp,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from "recharts";
 
 interface CodingLaw {
   id: string;
@@ -247,26 +248,97 @@ const CodingLawsView = () => {
         </div>
       </div>
 
-      {/* Engine History Panel */}
+      {/* Analytics & Engine History Panel */}
       {showHistory && (
-        <div className="flex-shrink-0 border-b border-border/20 bg-card/10 p-4 max-h-48 overflow-auto">
-          <h3 className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground mb-2">Engine Run History</h3>
-          {engineRuns.length === 0 ? (
-            <p className="text-xs font-extralight text-muted-foreground/50">No runs yet. The engine runs every 6 hours automatically.</p>
-          ) : (
-            <div className="space-y-1.5">
+        <div className="flex-shrink-0 border-b border-border/20 bg-card/10 p-4">
+          {/* Status Banner */}
+          <div className="flex items-center gap-2 mb-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-[10px] font-extralight tracking-widest uppercase text-emerald-400">
+              Engine Running 24/7 — Next run at the top of the hour
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Growth Chart */}
+            <div className="rounded-2xl border border-border/20 bg-card/20 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="h-3.5 w-3.5 text-accent" />
+                <h3 className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">Total Laws Over Time</h3>
+              </div>
+              {engineRuns.length === 0 ? (
+                <p className="text-xs font-extralight text-muted-foreground/50 py-8 text-center">Waiting for first engine run...</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={140}>
+                  <AreaChart data={[...engineRuns].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).reduce((acc: any[], run) => {
+                    const prev = acc.length > 0 ? acc[acc.length - 1].total : 20;
+                    acc.push({
+                      date: new Date(run.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                      total: prev + run.laws_created,
+                      created: run.laws_created,
+                    });
+                    return acc;
+                  }, [])}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.1)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', fontSize: '11px' }} />
+                    <Area type="monotone" dataKey="total" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.15)" strokeWidth={2} name="Total Laws" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Per-Run Breakdown */}
+            <div className="rounded-2xl border border-border/20 bg-card/20 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="h-3.5 w-3.5 text-accent" />
+                <h3 className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">Laws Created Per Run</h3>
+              </div>
+              {engineRuns.length === 0 ? (
+                <p className="text-xs font-extralight text-muted-foreground/50 py-8 text-center">No runs yet.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={140}>
+                  <BarChart data={[...engineRuns].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map(run => ({
+                    date: new Date(run.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                    discovered: run.laws_discovered,
+                    synthesized: run.laws_cross_referenced,
+                    created: run.laws_created,
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.1)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} />
+                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', fontSize: '11px' }} />
+                    <Bar dataKey="discovered" fill="hsl(var(--accent))" name="Discovered" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="synthesized" fill="hsl(var(--primary))" name="Synthesized" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Run Log */}
+          <div className="mt-3 rounded-2xl border border-border/20 bg-card/20 p-3 max-h-32 overflow-auto">
+            <h3 className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground mb-2">Run Log (Autonomous — Every Hour)</h3>
+            <div className="space-y-1">
               {engineRuns.map(run => (
                 <div key={run.id} className="flex items-center gap-3 text-xs font-extralight">
-                  <span className={`w-1.5 h-1.5 rounded-full ${run.status === "completed" ? "bg-emerald-400" : "bg-red-400"}`} />
-                  <span className="text-muted-foreground/60 w-36">{new Date(run.created_at).toLocaleString()}</span>
-                  <span className="text-blue-400">+{run.laws_discovered} discovered</span>
-                  <span className="text-purple-400">+{run.laws_cross_referenced} cross-ref</span>
-                  <span className="text-foreground">= {run.laws_created} new laws</span>
-                  {run.status === "failed" && <span className="text-red-400">FAILED</span>}
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${run.status === "completed" ? "bg-emerald-400" : "bg-red-400"}`} />
+                  <span className="text-muted-foreground/60 w-40 flex-shrink-0">{new Date(run.created_at).toLocaleString()}</span>
+                  <span className="text-accent">+{run.laws_discovered} discovered</span>
+                  <span className="text-primary">+{run.laws_cross_referenced} synthesized</span>
+                  <span className="text-foreground">= {run.laws_created} created</span>
+                  {(run.details as any)?.skipped_duplicates > 0 && (
+                    <span className="text-muted-foreground/50">({(run.details as any).skipped_duplicates} skipped dupes)</span>
+                  )}
+                  {run.status === "failed" && <span className="text-destructive">FAILED</span>}
                 </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
       )}
 
