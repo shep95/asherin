@@ -376,7 +376,7 @@ const OracleLocusView = () => {
               <MapPin className="h-3.5 w-3.5 mr-1.5" />GEO ANALYSIS
             </TabsTrigger>
             <TabsTrigger value="face" className="rounded-lg text-xs tracking-wider data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
-              <Users className="h-3.5 w-3.5 mr-1.5" />HERITAGE SEARCH
+              <Users className="h-3.5 w-3.5 mr-1.5" />FACE INTEL
             </TabsTrigger>
           </TabsList>
         </div>
@@ -670,14 +670,14 @@ const OracleLocusView = () => {
                       <User className="h-12 w-12 text-accent/60" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-extralight text-foreground">Upload a clear photo for heritage search</p>
-                      <p className="text-[10px] text-muted-foreground/50 mt-1">Find potential genetic relatives & lookalikes in any region</p>
+                      <p className="text-sm font-extralight text-foreground">Upload a clear photo for facial intelligence scan</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-1">Locate matching profiles & lookalikes in any target region</p>
                     </div>
                     <div className="rounded-xl bg-card/20 px-4 py-2 mt-2">
                       <p className="text-[10px] text-muted-foreground">📸 Best results: Front-facing · Good lighting · No sunglasses</p>
                     </div>
                     <div className="rounded-xl bg-accent/5 border border-accent/10 px-4 py-2 mt-1 max-w-sm">
-                      <p className="text-[10px] text-muted-foreground/70">🧬 Ideal for adopted individuals, ancestry exploration, or finding family connections across regions</p>
+                      <p className="text-[10px] text-muted-foreground/70">🔍 Cross-reference facial features against open-source intelligence databases worldwide</p>
                     </div>
                   </button>
                   <input ref={faceInputRef} type="file" accept="image/*" onChange={handleFaceFileSelect} className="hidden" />
@@ -747,7 +747,7 @@ const OracleLocusView = () => {
                         <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>Your facial data will be processed by AI for similarity analysis</li>
                         <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>Results are AI-generated estimates, not verified identities</li>
                         <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>No facial data is stored permanently after the session</li>
-                        <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>This tool is for entertainment and educational purposes</li>
+                        <li className="flex gap-2"><span className="text-amber-400 flex-shrink-0">•</span>This tool is for intelligence and investigative purposes</li>
                       </ul>
                     </div>
 
@@ -787,9 +787,9 @@ const OracleLocusView = () => {
                     <Loader2 className="h-12 w-12 animate-spin text-accent" />
                     <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-accent/10" />
                   </div>
-                  <p className="text-sm font-extralight text-foreground tracking-wider">HERITAGE SCAN IN PROGRESS…</p>
+                  <p className="text-sm font-extralight text-foreground tracking-wider">FACIAL INTELLIGENCE SCAN IN PROGRESS…</p>
                   <div className="space-y-1 text-center">
-                    <p className="text-[10px] text-muted-foreground animate-pulse">Extracting genetic markers · Cross-referencing heritage databases</p>
+                    <p className="text-[10px] text-muted-foreground animate-pulse">Extracting biometric markers · Cross-referencing OSINT databases</p>
                     <p className="text-[10px] text-muted-foreground/60">Target region: {targetLocation}</p>
                     <p className="text-[10px] text-muted-foreground/40 mt-1">Analyzing inter-match connections…</p>
                   </div>
@@ -867,17 +867,17 @@ const OracleLocusView = () => {
                             </div>
                           )}
 
-                          {/* Heritage Indicators */}
+                          {/* Regional Indicators */}
                           {faceResult.subject_analysis.heritage_indicators && (
                             <div className="space-y-2 pt-2 border-t border-border/10">
-                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Heritage Analysis</p>
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Regional Origin Analysis</p>
                               <p className="text-xs font-light text-foreground/80 leading-relaxed">{faceResult.subject_analysis.heritage_indicators}</p>
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* Heritage Narrative */}
+                      {/* Intelligence Narrative */}
                       {faceResult.heritage_narrative && (
                         <div className="rounded-2xl border border-accent/20 bg-accent/5 backdrop-blur-sm p-5 space-y-3">
                           <div className="flex items-center gap-2">
@@ -927,7 +927,7 @@ const OracleLocusView = () => {
                         <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
                           <div className="flex items-center gap-2">
                             <GitBranch className="h-3.5 w-3.5 text-accent" />
-                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Family Tree Estimate</p>
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Connection Map</p>
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div className="rounded-xl bg-card/10 border border-border/10 p-4 text-center">
@@ -1094,7 +1094,7 @@ const OracleLocusView = () => {
                                         </div>
                                         <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
                                           <p className="text-lg font-extralight text-foreground">{match.ancestry_overlap}%</p>
-                                          <p className="text-[9px] text-muted-foreground">Ancestry</p>
+                                          <p className="text-[9px] text-muted-foreground">Regional</p>
                                         </div>
                                         <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
                                           <p className="text-lg font-extralight text-foreground">{match.age_similarity}%</p>

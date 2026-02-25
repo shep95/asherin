@@ -104,11 +104,11 @@ serve(async (req) => {
     const mimeType = image_type || "image/jpeg";
 
     // ═══════════════════════════════════════════════════════
-    // STEP 1: AI analyzes the face for ethnicity, features, heritage
+    // STEP 1: AI analyzes the face for biometric features and regional indicators
     // ═══════════════════════════════════════════════════════
-    console.log("[HERITAGE] Step 1: Analyzing face...");
+    console.log("[FACE-INTEL] Step 1: Analyzing face...");
 
-    const analysisPrompt = `You are a forensic facial analysis expert. Analyze this person's face and provide a detailed heritage assessment. Respond with ONLY valid JSON:
+    const analysisPrompt = `You are a forensic facial analysis expert. Analyze this person's face and provide a detailed biometric and regional origin assessment. Respond with ONLY valid JSON:
 {
   "estimated_age_range": "25-32",
   "estimated_ethnicity": "Detailed ethnic/racial analysis based on facial features",
@@ -116,9 +116,9 @@ serve(async (req) => {
   "face_quality_score": 85,
   "face_symmetry": 78,
   "genetic_markers": ["Specific marker 1 e.g. Epicanthic fold variant", "Marker 2", "Marker 3", "Marker 4"],
-  "heritage_indicators": "A detailed paragraph about what the face structure suggests about ancestral origins",
+  "heritage_indicators": "A detailed paragraph about what the face structure suggests about regional origins and demographic profile",
   "likely_ancestral_regions": ["Region 1", "Region 2"],
-  "search_keywords": ["specific ethnicity keywords for searching e.g. Tamil family", "regional community keywords", "cultural group keywords"],
+  "search_keywords": ["specific ethnicity keywords for searching e.g. Tamil community", "regional community keywords", "cultural group keywords"],
   "gender": "male or female",
   "skin_tone_description": "brief description for search refinement"
 }
@@ -150,12 +150,12 @@ If the image does NOT contain a clear human face, respond with:
       });
     }
 
-    console.log("[HERITAGE] Face analysis complete:", analysisJson.estimated_ethnicity);
+    console.log("[FACE-INTEL] Face analysis complete:", analysisJson.estimated_ethnicity);
 
     // ═══════════════════════════════════════════════════════
-    // STEP 2: Run real web searches for people, families, communities, and images
+    // STEP 2: Run real web searches for people, communities, and images
     // ═══════════════════════════════════════════════════════
-    console.log("[HERITAGE] Step 2: Running real web searches...");
+    console.log("[FACE-INTEL] Step 2: Running real web searches...");
 
     const ethnicity = analysisJson.estimated_ethnicity || "";
     const searchKeywords = analysisJson.search_keywords || [];
@@ -164,11 +164,11 @@ If the image does NOT contain a clear human face, respond with:
 
     // Build targeted search queries
     const queries = [
-      `${target_location} ${searchKeywords[0] || ethnicity} family genealogy records`,
+      `${target_location} ${searchKeywords[0] || ethnicity} people public records`,
       `${target_location} ${ancestralRegions[0] || ""} people community photos`,
-      `${target_location} family heritage ancestry ${searchKeywords[1] || ""}`,
-      `site:familysearch.org ${target_location} ${searchKeywords[0] || ""}`,
-      `site:myheritage.com ${target_location} family records`,
+      `${target_location} residents demographics ${searchKeywords[1] || ""}`,
+      `${target_location} ${searchKeywords[0] || ""} social profiles community`,
+      `${target_location} ${gender} public directory profiles`,
       `${target_location} ${gender} portrait photo community`,
     ];
 
@@ -191,14 +191,14 @@ If the image does NOT contain a clear human face, respond with:
       return true;
     });
 
-    console.log(`[HERITAGE] Found ${uniqueWebResults.length} web results, ${imageResults.length} images`);
+    console.log(`[FACE-INTEL] Found ${uniqueWebResults.length} web results, ${imageResults.length} images`);
 
     // ═══════════════════════════════════════════════════════
-    // STEP 3: AI synthesizes real search data into heritage matches
+    // STEP 3: AI synthesizes real search data into facial intelligence matches
     // ═══════════════════════════════════════════════════════
-    console.log("[HERITAGE] Step 3: Synthesizing matches from real data...");
+    console.log("[FACE-INTEL] Step 3: Synthesizing matches from real data...");
 
-    const synthesisPrompt = `You are ORACLE-LOCUS HERITAGE INTELLIGENCE. You have analyzed a person's face and run real web searches. Now synthesize the REAL search results into a heritage intelligence report.
+    const synthesisPrompt = `You are ORACLE-LOCUS FACIAL INTELLIGENCE. You have analyzed a person's face and run real web searches. Now synthesize the REAL search results into a facial intelligence report.
 
 FACE ANALYSIS:
 ${JSON.stringify(analysisJson, null, 2)}
@@ -244,7 +244,7 @@ Respond with ONLY valid JSON:
         "latitude": 0.0,
         "longitude": 0.0
       },
-      "estimated_relationship": "2nd-3rd cousin",
+      "estimated_relationship": "high similarity match",
       "ancestry_overlap": 82,
       "age_similarity": 85,
       "estimated_age_range": "30-40",
@@ -296,25 +296,25 @@ Respond with ONLY valid JSON:
       }
     ]
   },
-  "heritage_narrative": "A 4-5 sentence intelligence narrative grounded in the actual search results and face analysis. Reference real sources found.",
+  "heritage_narrative": "A 4-5 sentence forensic intelligence narrative grounded in the actual search results and face analysis. Reference real sources found.",
   "real_sources": [
     {
       "title": "From actual search result title",
       "url": "From actual search result URL",
       "snippet": "From actual search result snippet",
-      "relevance": "Why this source matters for the heritage search"
+      "relevance": "Why this source matters for the intelligence search"
     }
   ],
   "search_metadata": {
     "region_searched": "${target_location}",
     "web_sources_found": ${uniqueWebResults.length},
     "images_found": ${imageResults.length},
-    "databases_checked": ["DuckDuckGo Web", "DuckDuckGo Images", "FamilySearch", "MyHeritage"],
+    "databases_checked": ["DuckDuckGo Web", "DuckDuckGo Images", "Public Records", "OSINT Sources"],
     "search_queries_used": ${JSON.stringify(queries)}
   }
 }
 
-Generate 6-10 matches. Use REAL image URLs from the image results for photo_url — pick ones showing people. Use REAL web URLs for sources. Vary similarity scores 60-94%. Include 2-4 inter_match_connections. Include 5-10 real_sources from the web results.`;
+Generate 6-10 matches. Use REAL image URLs from the image results for photo_url — pick ones showing people. Use REAL web URLs for sources. Vary similarity scores 60-94%. Include 2-4 inter_match_connections. Include 5-10 real_sources from the web results. This is an intelligence tool — do NOT use heritage, ancestry, genealogy, or adoption language.`;
 
     const synthesisRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -341,7 +341,7 @@ Generate 6-10 matches. Use REAL image URLs from the image results for photo_url 
     }
 
     const result = JSON.parse(jsonMatch[0]);
-    console.log("[HERITAGE] Complete. Matches:", result.matches?.length || 0);
+    console.log("[FACE-INTEL] Complete. Matches:", result.matches?.length || 0);
 
     return new Response(JSON.stringify(result), {
       status: 200,
