@@ -3,6 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
+import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link } from "react-router-dom";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
@@ -13,19 +14,35 @@ const StatusIcon = ({ type }: { type: string }) => {
   return <AlertOctagon className="h-4 w-4 text-accent/70 inline" />;
 };
 
+const ScrollSection = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+  const { ref, isVisible } = useScrollFadeIn();
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"} ${className}`}
+    >
+      {children}
+    </div>
+  );
+};
+
 const FaqItem = ({ q, a }: { q: string; a: string }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-6 py-4 text-left">
         <span className="text-sm font-light tracking-wide text-foreground">{q}</span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && (
-        <div className="px-6 pb-5">
-          <p className="text-sm font-extralight leading-relaxed text-muted-foreground">{a}</p>
+      <div
+        className={`grid transition-all duration-300 ease-out ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+      >
+        <div className="overflow-hidden">
+          <div className="px-6 pb-5">
+            <p className="text-sm font-extralight leading-relaxed text-muted-foreground">{a}</p>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -120,7 +137,7 @@ const Index = () => {
       {/* Header */}
       <Header />
 
-      {/* Hero */}
+      <ScrollSection>
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
           Intelligence Without Compromise.
@@ -139,8 +156,9 @@ const Index = () => {
           </button>
         )}
       </div>
+      </ScrollSection>
 
-      {/* Section 2: The Pain Amplifier */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -174,8 +192,9 @@ const Index = () => {
           </p>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Section 3: Live Demo Block */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-4xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -247,8 +266,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Section 4: Use Case Identity Grid */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -308,8 +328,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Section 5: Featured In */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-12">
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-12">
@@ -322,8 +343,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Section 6: Features Breakdown */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -366,8 +388,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Section 7: Platform Capabilities */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -394,8 +417,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Architecture Section — Aureon + Zophiel */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -474,11 +498,13 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Dashboard Preview Section */}
+      <ScrollSection>
       <DashboardPreview />
+      </ScrollSection>
 
-      {/* Section 8: Pricing Block */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-6xl text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -542,8 +568,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Section 9: Trust + Data Privacy */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -594,8 +621,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Section 10: FAQ Block */}
+      <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-3xl">
           <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
@@ -632,8 +660,9 @@ const Index = () => {
           </div>
         </div>
       </div>
+      </ScrollSection>
 
-      {/* Footer */}
+      <ScrollSection>
       <footer className="relative z-10 px-6 pb-8 pt-16">
         <div className="mx-auto max-w-5xl">
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md px-8 py-10 sm:px-12">
@@ -684,6 +713,7 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      </ScrollSection>
     </LandingBackground>
   );
 };
