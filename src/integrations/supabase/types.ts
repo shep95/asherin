@@ -864,6 +864,90 @@ export type Database = {
           },
         ]
       }
+      coding_laws: {
+        Row: {
+          active: boolean
+          created_at: string
+          domain: string
+          era: string
+          generation_method: string | null
+          id: string
+          law: string
+          law_number: string
+          name: string
+          parent_law_ids: string[] | null
+          rationale: string
+          severity: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          domain: string
+          era: string
+          generation_method?: string | null
+          id?: string
+          law: string
+          law_number: string
+          name: string
+          parent_law_ids?: string[] | null
+          rationale: string
+          severity?: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          domain?: string
+          era?: string
+          generation_method?: string | null
+          id?: string
+          law?: string
+          law_number?: string
+          name?: string
+          parent_law_ids?: string[] | null
+          rationale?: string
+          severity?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coding_laws_engine_runs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          laws_created: number
+          laws_cross_referenced: number
+          laws_discovered: number
+          run_type: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          laws_created?: number
+          laws_cross_referenced?: number
+          laws_discovered?: number
+          run_type?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          laws_created?: number
+          laws_cross_referenced?: number
+          laws_discovered?: number
+          run_type?: string
+          status?: string
+        }
+        Relationships: []
+      }
       community_posts: {
         Row: {
           category: string
