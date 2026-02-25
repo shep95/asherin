@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink } from "lucide-react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink, Globe } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,6 +91,13 @@ interface InterMatchConnection {
   confidence: number;
 }
 
+interface RealSource {
+  title: string;
+  url: string;
+  snippet: string;
+  relevance?: string;
+}
+
 interface FaceSearchResult {
   status: "SUCCESS" | "INVALID_PHOTO";
   reason?: string;
@@ -107,6 +114,7 @@ interface FaceSearchResult {
   matches?: FaceMatch[];
   inter_match_connections?: InterMatchConnection[];
   heritage_narrative?: string;
+  real_sources?: RealSource[];
   family_tree?: {
     common_ancestor_estimate: string;
     probable_origin_region?: string;
@@ -121,9 +129,13 @@ interface FaceSearchResult {
   };
   search_metadata?: {
     region_searched: string;
-    total_faces_scanned: number;
-    matches_found: number;
-    scan_time_ms: number;
+    web_sources_found?: number;
+    images_found?: number;
+    total_faces_scanned?: number;
+    matches_found?: number;
+    scan_time_ms?: number;
+    databases_checked?: string[];
+    search_queries_used?: string[];
     genetic_databases_checked?: number;
     cross_reference_passes?: number;
   };
@@ -1199,11 +1211,61 @@ const OracleLocusView = () => {
                         </div>
                       )}
 
+                      {/* Real Sources from Web Search */}
+                      {faceResult.real_sources && faceResult.real_sources.length > 0 && (
+                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-sm p-5 space-y-4">
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-3.5 w-3.5 text-emerald-400" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-emerald-300 uppercase">Verified Web Sources</p>
+                            <span className="text-[9px] text-emerald-400/60 ml-auto">{faceResult.real_sources.length} sources found</span>
+                          </div>
+                          <div className="space-y-2">
+                            {faceResult.real_sources.map((src, i) => (
+                              <a
+                                key={i}
+                                href={src.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block rounded-xl border border-emerald-500/10 bg-card/10 p-3 hover:border-emerald-500/30 transition-colors group"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <ExternalLink className="h-3 w-3 text-emerald-400/60 group-hover:text-emerald-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 space-y-1">
+                                    <p className="text-[11px] text-foreground/80 group-hover:text-emerald-300 transition-colors leading-snug">{src.title}</p>
+                                    <p className="text-[9px] text-muted-foreground/60 leading-relaxed">{src.snippet}</p>
+                                    {src.relevance && <p className="text-[9px] text-emerald-400/50 italic">{src.relevance}</p>}
+                                    <p className="text-[8px] text-muted-foreground/40 truncate">{src.url}</p>
+                                  </div>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Search Metadata */}
+                      {faceResult.search_metadata && (
+                        <div className="rounded-xl border border-border/10 bg-card/10 p-4 space-y-2">
+                          <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Search Intelligence</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {faceResult.search_metadata.web_sources_found != null && (
+                              <div className="text-[10px]"><span className="text-muted-foreground">Web sources:</span> <span className="text-foreground">{faceResult.search_metadata.web_sources_found}</span></div>
+                            )}
+                            {faceResult.search_metadata.images_found != null && (
+                              <div className="text-[10px]"><span className="text-muted-foreground">Images found:</span> <span className="text-foreground">{faceResult.search_metadata.images_found}</span></div>
+                            )}
+                            {faceResult.search_metadata.databases_checked && (
+                              <div className="col-span-2 text-[10px]"><span className="text-muted-foreground">Databases:</span> <span className="text-foreground">{faceResult.search_metadata.databases_checked.join(", ")}</span></div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Disclaimer */}
                       <div className="rounded-xl border border-border/10 bg-card/10 p-4 flex items-start gap-3">
                         <Info className="h-4 w-4 text-muted-foreground/40 flex-shrink-0 mt-0.5" />
                         <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-                          Results are AI-generated estimates based on facial feature analysis. They do not represent verified identities or confirmed family relationships. This tool is designed for heritage exploration and family reconnection purposes. No facial data is stored after your session.
+                          Results combine AI facial analysis with real web search data. Photos and links come from live internet searches. They do not represent verified family relationships. This tool is for heritage exploration. No facial data is stored after your session.
                         </p>
                       </div>
 

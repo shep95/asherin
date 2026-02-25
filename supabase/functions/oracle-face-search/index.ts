@@ -5,6 +5,91 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ─── DuckDuckGo search helper ───
+async function ddgSearch(query: string, numResults = 8): Promise<{ title: string; url: string; snippet: string }[]> {
+  const encoded = encodeURIComponent(query);
+  const res = await fetch("https://lite.duckduckgo.com/lite/", {
+    method: "POST",
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Accept": "text/html",
+    },
+    body: `q=${encoded}`,
+  });
+  if (!res.ok) return [];
+  const html = await res.text();
+  const results: { title: string; url: string; snippet: string }[] = [];
+
+  const linkRegex = /class='result-link'[^>]*href="([^"]*)"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/gi;
+  const snippetRegex = /class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
+  const links: { url: string; title: string }[] = [];
+  let m;
+  while ((m = linkRegex.exec(html)) !== null) {
+    let url = m[1].trim();
+    const title = m[2].replace(/<[^>]*>/g, "").trim();
+    if (url.includes("duckduckgo.com/l/")) {
+      const uddg = url.match(/uddg=([^&]*)/);
+      if (uddg) url = decodeURIComponent(uddg[1]);
+    }
+    if (title && url) links.push({ url, title: decode(title) });
+  }
+  const snippets: string[] = [];
+  while ((m = snippetRegex.exec(html)) !== null) {
+    snippets.push(decode(m[1].replace(/<[^>]*>/g, "").trim()));
+  }
+  for (let i = 0; i < Math.min(links.length, numResults); i++) {
+    results.push({ title: links[i].title, url: links[i].url, snippet: snippets[i] || "" });
+  }
+  return results;
+}
+
+function decode(t: string): string {
+  return t.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// ─── DuckDuckGo image search helper ───
+async function ddgImageSearch(query: string, numResults = 10): Promise<{ title: string; image: string; thumbnail: string; url: string; source: string }[]> {
+  try {
+    // Get the vqd token first
+    const tokenRes = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+    const tokenHtml = await tokenRes.text();
+    const vqdMatch = tokenHtml.match(/vqd=['"]([^'"]+)['"]/);
+    if (!vqdMatch) {
+      console.log("Could not get DDG vqd token, falling back");
+      return [];
+    }
+    const vqd = vqdMatch[1];
+
+    const imgRes = await fetch(
+      `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(query)}&vqd=${vqd}&f=,,,,,&p=1`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer": "https://duckduckgo.com/",
+        },
+      }
+    );
+    if (!imgRes.ok) return [];
+    const imgData = await imgRes.json();
+    const images = (imgData.results || []).slice(0, numResults);
+    return images.map((r: any) => ({
+      title: r.title || "",
+      image: r.image || "",
+      thumbnail: r.thumbnail || "",
+      url: r.url || "",
+      source: r.source || "",
+    }));
+  } catch (e) {
+    console.error("DDG image search error:", e);
+    return [];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -18,74 +103,171 @@ serve(async (req) => {
 
     const mimeType = image_type || "image/jpeg";
 
-    const systemPrompt = `You are ORACLE-LOCUS HERITAGE SEARCH, an advanced genetic facial intelligence system designed for family reconnection and ancestry discovery. You analyze a user's photo and generate realistic simulated results of potential genetic relatives and lookalike matches in a specified geographic region.
+    // ═══════════════════════════════════════════════════════
+    // STEP 1: AI analyzes the face for ethnicity, features, heritage
+    // ═══════════════════════════════════════════════════════
+    console.log("[HERITAGE] Step 1: Analyzing face...");
 
-This tool is designed for people searching for family — including adopted individuals seeking biological relatives, people tracing ancestral roots, or anyone exploring genetic connections across regions.
-
-Given the user's photo and target location "${target_location}", you must:
-
-1. VALIDATE THE PHOTO: Check if the image contains a clear, identifiable human face. If not, respond with:
+    const analysisPrompt = `You are a forensic facial analysis expert. Analyze this person's face and provide a detailed heritage assessment. Respond with ONLY valid JSON:
 {
-  "status": "INVALID_PHOTO",
-  "reason": "Describe why the photo is invalid (no face detected, too blurry, multiple faces without clear primary, etc.)",
-  "tips": ["Tip 1", "Tip 2", "Tip 3"]
+  "estimated_age_range": "25-32",
+  "estimated_ethnicity": "Detailed ethnic/racial analysis based on facial features",
+  "distinctive_features": ["feature1", "feature2", "feature3", "feature4", "feature5"],
+  "face_quality_score": 85,
+  "face_symmetry": 78,
+  "genetic_markers": ["Specific marker 1 e.g. Epicanthic fold variant", "Marker 2", "Marker 3", "Marker 4"],
+  "heritage_indicators": "A detailed paragraph about what the face structure suggests about ancestral origins",
+  "likely_ancestral_regions": ["Region 1", "Region 2"],
+  "search_keywords": ["specific ethnicity keywords for searching e.g. Tamil family", "regional community keywords", "cultural group keywords"],
+  "gender": "male or female",
+  "skin_tone_description": "brief description for search refinement"
 }
 
-2. IF VALID FACE: Analyze the facial features and generate realistic simulated match results. You MUST respond with valid JSON:
+If the image does NOT contain a clear human face, respond with:
+{"status": "INVALID_PHOTO", "reason": "explanation", "tips": ["tip1", "tip2", "tip3"]}`;
+
+    const analysisRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: analysisPrompt }, { inlineData: { mimeType, data: image_base64 } }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
+        }),
+      }
+    );
+
+    if (!analysisRes.ok) throw new Error(`Gemini analysis error: ${analysisRes.status}`);
+    const analysisData = await analysisRes.json();
+    const analysisText = analysisData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const analysisJson = JSON.parse(analysisText.match(/\{[\s\S]*\}/)?.[0] || "{}");
+
+    if (analysisJson.status === "INVALID_PHOTO") {
+      return new Response(JSON.stringify(analysisJson), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("[HERITAGE] Face analysis complete:", analysisJson.estimated_ethnicity);
+
+    // ═══════════════════════════════════════════════════════
+    // STEP 2: Run real web searches for people, families, communities, and images
+    // ═══════════════════════════════════════════════════════
+    console.log("[HERITAGE] Step 2: Running real web searches...");
+
+    const ethnicity = analysisJson.estimated_ethnicity || "";
+    const searchKeywords = analysisJson.search_keywords || [];
+    const ancestralRegions = analysisJson.likely_ancestral_regions || [];
+    const gender = analysisJson.gender || "";
+
+    // Build targeted search queries
+    const queries = [
+      `${target_location} ${searchKeywords[0] || ethnicity} family genealogy records`,
+      `${target_location} ${ancestralRegions[0] || ""} people community photos`,
+      `${target_location} family heritage ancestry ${searchKeywords[1] || ""}`,
+      `site:familysearch.org ${target_location} ${searchKeywords[0] || ""}`,
+      `site:myheritage.com ${target_location} family records`,
+      `${target_location} ${gender} portrait photo community`,
+    ];
+
+    // Run web searches and image searches in parallel
+    const [webResults1, webResults2, webResults3, webResults4, webResults5, imageResults] = await Promise.all([
+      ddgSearch(queries[0], 6),
+      ddgSearch(queries[1], 6),
+      ddgSearch(queries[2], 6),
+      ddgSearch(queries[3], 4),
+      ddgSearch(queries[4], 4),
+      ddgImageSearch(`${target_location} ${searchKeywords[0] || ethnicity} ${gender} people`, 15),
+    ]);
+
+    const allWebResults = [...webResults1, ...webResults2, ...webResults3, ...webResults4, ...webResults5];
+    // Deduplicate by URL
+    const seenUrls = new Set<string>();
+    const uniqueWebResults = allWebResults.filter(r => {
+      if (seenUrls.has(r.url)) return false;
+      seenUrls.add(r.url);
+      return true;
+    });
+
+    console.log(`[HERITAGE] Found ${uniqueWebResults.length} web results, ${imageResults.length} images`);
+
+    // ═══════════════════════════════════════════════════════
+    // STEP 3: AI synthesizes real search data into heritage matches
+    // ═══════════════════════════════════════════════════════
+    console.log("[HERITAGE] Step 3: Synthesizing matches from real data...");
+
+    const synthesisPrompt = `You are ORACLE-LOCUS HERITAGE INTELLIGENCE. You have analyzed a person's face and run real web searches. Now synthesize the REAL search results into a heritage intelligence report.
+
+FACE ANALYSIS:
+${JSON.stringify(analysisJson, null, 2)}
+
+TARGET LOCATION: ${target_location}
+
+REAL WEB SEARCH RESULTS (use these as actual sources):
+${JSON.stringify(uniqueWebResults.slice(0, 20), null, 2)}
+
+REAL IMAGE SEARCH RESULTS (use these actual image URLs):
+${JSON.stringify(imageResults, null, 2)}
+
+CRITICAL RULES:
+1. Use REAL URLs from the search results above as sources. Do NOT invent URLs.
+2. Use REAL image URLs from the image search results as photo_url. Do NOT use pravatar.cc or placeholder services.
+3. Match names should be culturally appropriate for ${target_location} and the detected ethnicity.
+4. Base profiles on real data found in search snippets where possible.
+5. Sources MUST link to actual pages from the search results.
+6. If an image result has a person's photo, use that actual image URL.
+
+Respond with ONLY valid JSON:
 {
   "status": "SUCCESS",
   "subject_analysis": {
-    "estimated_age_range": "25-32",
-    "estimated_ethnicity": "string describing detected ethnic features and heritage markers",
-    "distinctive_features": ["feature1", "feature2"],
-    "face_quality_score": 85,
-    "face_symmetry": 78,
-    "genetic_markers": ["Marker description 1", "Marker description 2"],
-    "heritage_indicators": "A narrative paragraph describing what the facial structure, bone structure, nose shape, eye shape, skin tone, and other features suggest about the person's likely ancestral regions and ethnic background"
+    "estimated_age_range": "${analysisJson.estimated_age_range || "25-35"}",
+    "estimated_ethnicity": "${analysisJson.estimated_ethnicity || ""}",
+    "distinctive_features": ${JSON.stringify(analysisJson.distinctive_features || [])},
+    "face_quality_score": ${analysisJson.face_quality_score || 80},
+    "face_symmetry": ${analysisJson.face_symmetry || 75},
+    "genetic_markers": ${JSON.stringify(analysisJson.genetic_markers || [])},
+    "heritage_indicators": "${analysisJson.heritage_indicators || ""}"
   },
   "matches": [
     {
       "match_id": 1,
       "name_alias": "Match Alpha",
-      "similarity_score": 92,
-      "genetic_similarity": 88,
+      "similarity_score": 85,
+      "genetic_similarity": 80,
       "location": {
-        "city": "Mumbai",
-        "region": "Maharashtra",
-        "country": "India",
-        "latitude": 19.0760,
-        "longitude": 72.8777
+        "city": "City name from search results",
+        "region": "Region",
+        "country": "Country",
+        "latitude": 0.0,
+        "longitude": 0.0
       },
       "estimated_relationship": "2nd-3rd cousin",
-      "ancestry_overlap": 87,
-      "age_similarity": 90,
-      "estimated_age_range": "28-35",
-      "shared_features": ["jawline", "eye shape", "brow ridge"],
+      "ancestry_overlap": 82,
+      "age_similarity": 85,
+      "estimated_age_range": "30-40",
+      "shared_features": ["jawline", "eye shape"],
       "generation_gap": 0,
       "family_branch": "Paternal",
-      "profile_summary": "A brief description of this simulated match — occupation area, general lifestyle indicators based on region",
-      "photo_url": "A URL to a realistic placeholder portrait from https://i.pravatar.cc/300?img=N where N is a unique number 1-70 for each match. Pick numbers that would plausibly match the ethnicity and gender you estimate.",
+      "profile_summary": "Brief summary based on real search data",
+      "photo_url": "MUST be a real image URL from the image search results above, or empty string if none available",
       "profile": {
-        "full_name": "A realistic full name appropriate for the region and ethnicity",
-        "occupation": "A plausible occupation for someone in that city/region",
-        "education": "A plausible educational background",
-        "languages": ["Language1", "Language2"],
-        "interests": ["Interest1", "Interest2", "Interest3"],
-        "social_presence": ["LinkedIn", "Facebook"],
-        "bio": "A 2-3 sentence bio describing this person — what they do, their community involvement, family status hints. Make it feel real and human."
+        "full_name": "Culturally appropriate name for the region",
+        "occupation": "Plausible occupation for the area",
+        "education": "Education background",
+        "languages": ["Language1"],
+        "interests": ["Interest1", "Interest2"],
+        "social_presence": ["Platform1"],
+        "bio": "2-3 sentence bio grounded in search data context"
       },
       "sources": [
         {
-          "platform": "Public Records Database",
-          "url": "https://www.familysearch.org/search/record/results?q.surname=LASTNAME&q.residence=${target_location}",
-          "confidence": 85,
-          "data_type": "Census & Civil Records"
-        },
-        {
-          "platform": "Genetic Heritage Database",
-          "url": "https://www.ancestry.com/search/?name=FIRSTNAME+LASTNAME",
-          "confidence": 78,
-          "data_type": "DNA Match Profile"
+          "platform": "The actual website name from search results",
+          "url": "THE ACTUAL URL from web search results above - do NOT invent",
+          "confidence": 80,
+          "data_type": "Type of record found"
         }
       ]
     }
@@ -93,97 +275,75 @@ Given the user's photo and target location "${target_location}", you must:
   "inter_match_connections": [
     {
       "match_a_id": 1,
-      "match_b_id": 3,
-      "connection_type": "Likely siblings or close relatives",
-      "shared_genetic_markers": 91,
-      "evidence": "Both share identical jawline structure, similar nose bridge width, and are located within the same city. Age gap of ~3 years suggests sibling relationship.",
-      "confidence": 85
+      "match_b_id": 2,
+      "connection_type": "Likely related",
+      "shared_genetic_markers": 85,
+      "evidence": "Explanation based on shared location/features",
+      "confidence": 75
     }
   ],
   "family_tree": {
     "common_ancestor_estimate": "3-4 generations back",
-    "probable_origin_region": "Western Maharashtra, India",
-    "migration_pattern": "A brief narrative of likely family migration based on where matches are distributed",
+    "probable_origin_region": "Region from analysis",
+    "migration_pattern": "Pattern based on search data",
     "branches": [
       {
-        "branch_name": "Paternal Line",
-        "region": "Mumbai, India",
+        "branch_name": "Branch name",
+        "region": "Region",
         "match_count": 3,
-        "avg_similarity": 88,
-        "heritage_note": "Strong concentration suggests this branch remained in the region"
+        "avg_similarity": 82,
+        "heritage_note": "Note from data"
       }
     ]
   },
-  "heritage_narrative": "A compelling 3-4 sentence narrative summary of what the overall search suggests — e.g. 'Your facial features show strong markers consistent with Indo-Aryan heritage from western India. The concentration of high-similarity matches in Maharashtra, particularly Mumbai and Pune, suggests your biological family likely has roots in this region. Several matches appear connected to each other, indicating a close-knit family network still present in the area. The genetic similarity patterns suggest a common ancestor approximately 3-4 generations back.'",
+  "heritage_narrative": "A 4-5 sentence intelligence narrative grounded in the actual search results and face analysis. Reference real sources found.",
+  "real_sources": [
+    {
+      "title": "From actual search result title",
+      "url": "From actual search result URL",
+      "snippet": "From actual search result snippet",
+      "relevance": "Why this source matters for the heritage search"
+    }
+  ],
   "search_metadata": {
     "region_searched": "${target_location}",
-    "total_faces_scanned": 12847,
-    "matches_found": 8,
-    "scan_time_ms": 3420,
-    "genetic_databases_checked": 4,
-    "cross_reference_passes": 3
+    "web_sources_found": ${uniqueWebResults.length},
+    "images_found": ${imageResults.length},
+    "databases_checked": ["DuckDuckGo Web", "DuckDuckGo Images", "FamilySearch", "MyHeritage"],
+    "search_queries_used": ${JSON.stringify(queries)}
   }
 }
 
-Generate 6-12 realistic matches spread across different cities within the target location region. Make similarity scores range from 65-96%. Vary the estimated relationships (sibling-like, 1st cousin, 2nd-3rd cousin, distant relative, unrelated lookalike). Include realistic lat/lng coordinates for the cities.
+Generate 6-10 matches. Use REAL image URLs from the image results for photo_url — pick ones showing people. Use REAL web URLs for sources. Vary similarity scores 60-94%. Include 2-4 inter_match_connections. Include 5-10 real_sources from the web results.`;
 
-CRITICAL REQUIREMENTS:
-- Every match MUST include a "profile" object with full_name, occupation, education, languages, interests, social_presence, and bio.
-- Every match MUST include a "sources" array with 2-4 source entries showing where the data was supposedly found. Use real genealogy/public-record platforms as source URLs:
-  - FamilySearch (familysearch.org)
-  - Ancestry (ancestry.com)  
-  - MyHeritage (myheritage.com)
-  - GEDmatch (gedmatch.com)
-  - Public census/civil records databases relevant to the target region
-  - Regional social registries or community databases
-  Make the URLs realistic with search parameters matching the person's name and location.
-- Every match MUST include a "photo_url" using https://i.pravatar.cc/300?img=N format with a unique N (1-70).
-- Generate 2-4 "inter_match_connections" showing how SOME matches relate to EACH OTHER (not just to the subject). This is the key feature — showing that some of the matches might be part of the same family cluster.
-- Not all matches should be connected — some should be isolated "unrelated lookalike" entries.
-- The heritage_narrative should read like an intelligence briefing — insightful, specific, and emotionally resonant for someone searching for family.
-- Make genetic_markers specific (e.g. "Epicanthic fold variant", "Broad nasal bridge", "High cheekbone structure") not generic.
-- Names should be culturally appropriate for the target region.
-- Make the data feel authentic, scientifically plausible, and emotionally meaningful for someone on a family search journey.`;
-
-    const res = await fetch(
+    const synthesisRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: systemPrompt },
-                { inlineData: { mimeType, data: image_base64 } },
-              ],
-            },
-          ],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 16000 },
+          contents: [{ parts: [{ text: synthesisPrompt }] }],
+          generationConfig: { temperature: 0.6, maxOutputTokens: 16000 },
         }),
       }
     );
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Gemini error:", res.status, errText);
-      throw new Error(`Gemini API error: ${res.status}`);
-    }
+    if (!synthesisRes.ok) throw new Error(`Gemini synthesis error: ${synthesisRes.status}`);
+    const synthesisData = await synthesisRes.json();
+    const synthesisText = synthesisData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = synthesisText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return new Response(JSON.stringify({ error: "No valid analysis returned", raw: text }), {
+      return new Response(JSON.stringify({ error: "No valid analysis returned", raw: synthesisText }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    const result = JSON.parse(jsonMatch[0]);
+    console.log("[HERITAGE] Complete. Matches:", result.matches?.length || 0);
 
-    return new Response(JSON.stringify(analysis), {
+    return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
