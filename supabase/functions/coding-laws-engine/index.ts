@@ -49,6 +49,13 @@ serve(async (req) => {
 EXISTING LAWS (${totalExisting} total):
 ${lawsSummary}
 
+CRITICAL CONSTRAINTS — ABSOLUTE:
+1. **NO DUPLICATES**: Every new law MUST be semantically distinct from ALL existing laws above. If an existing law already covers the principle — even with different wording — DO NOT create it. Check meaning, not just words.
+2. **NO CONTRADICTIONS**: Every new law MUST be logically compatible with ALL existing laws. If a new law would conflict with, negate, or undermine any existing law, DO NOT create it. If you find a genuine improvement, flag it as a "supersede" recommendation instead of creating a contradiction.
+3. **VALIDATION STEP**: Before finalizing each law, explicitly verify:
+   - "Does any existing law already say this?" → If yes, SKIP.
+   - "Does this contradict any existing law?" → If yes, SKIP or flag.
+
 YOUR MISSION — PHASE 1: HISTORICAL DISCOVERY
 Search through the entire history of technology and software engineering to find 2-3 fundamental coding principles that are NOT already in the existing laws above. Look across:
 - Ancient computing (1940s-1960s): Turing, von Neumann, early systems
@@ -69,21 +76,25 @@ For each discovered law, provide:
 - rationale: Why this law exists (historical evidence)
 
 PHASE 2: CROSS-DOMAIN SYNTHESIS
-Take 2-3 PAIRS of existing laws from DIFFERENT domains and synthesize them into NEW hybrid laws that address modern software challenges. For example:
-- Security + Frontend Architecture = new law about client-side security boundaries
-- Performance + Resilience = new law about adaptive load management
-- API Engineering + AI/ML = new law about AI-safe API contracts
+Take 2-3 PAIRS of existing laws from DIFFERENT domains and synthesize them into NEW hybrid laws that address modern software challenges.
 
 For each synthesized law, also provide parent_laws (the law numbers used to create it).
 
+PHASE 3: CONTRADICTION & DUPLICATE AUDIT
+Review ALL existing laws for:
+- Any two laws that contradict each other → list them in "contradictions_found"
+- Any two laws that are semantically redundant → list them in "duplicates_found"
+
 Return JSON:
 {
-  "discovered_laws": [{ "name": "", "domain": "", "law": "", "era": "", "severity": "", "rationale": "" }],
-  "synthesized_laws": [{ "name": "", "domain": "", "law": "", "era": "", "severity": "", "rationale": "", "parent_laws": ["LAW-001", "LAW-008"] }],
+  "discovered_laws": [{ "name": "", "domain": "", "law": "", "era": "", "severity": "", "rationale": "", "duplicate_check": "Verified distinct from LAW-XXX, LAW-YYY", "contradiction_check": "Compatible with all existing laws" }],
+  "synthesized_laws": [{ "name": "", "domain": "", "law": "", "era": "", "severity": "", "rationale": "", "parent_laws": ["LAW-001", "LAW-008"], "duplicate_check": "", "contradiction_check": "" }],
+  "contradictions_found": [{ "law_a": "LAW-XXX", "law_b": "LAW-YYY", "explanation": "" }],
+  "duplicates_found": [{ "law_a": "LAW-XXX", "law_b": "LAW-YYY", "explanation": "" }],
   "research_notes": "Brief summary of historical research performed"
 }
 
-IMPORTANT: Every law must be genuinely useful for code generation. No vague philosophy — concrete, enforceable engineering principles only.`;
+IMPORTANT: Every law must be genuinely useful for code generation. No vague philosophy — concrete, enforceable engineering principles only. If you cannot find truly unique laws, return EMPTY arrays rather than creating duplicates.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -124,11 +135,43 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
 
     const discovered = result.discovered_laws || [];
     const synthesized = result.synthesized_laws || [];
+    const contradictions = result.contradictions_found || [];
+    const duplicatesFound = result.duplicates_found || [];
     let lawCounter = nextNumber;
     let lawsCreated = 0;
+    let lawsSkipped = 0;
 
-    // 3. Insert discovered laws
+    // Server-side deduplication: word-overlap similarity check
+    const existingLawTexts = (existingLaws || []).map((l: any) => ({
+      name: l.name.toLowerCase(),
+      law: l.law.toLowerCase(),
+    }));
+
+    const isDuplicate = (name: string, law: string): boolean => {
+      const cName = name.toLowerCase();
+      const cLaw = law.toLowerCase();
+      return existingLawTexts.some((ex: any) => {
+        const nWords = new Set(cName.split(/\s+/));
+        const eNWords = new Set(ex.name.split(/\s+/));
+        const nOverlap = [...nWords].filter((w: string) => eNWords.has(w)).length;
+        const nScore = nOverlap / Math.max(nWords.size, eNWords.size);
+
+        const lWords = new Set(cLaw.split(/\s+/));
+        const eLWords = new Set(ex.law.split(/\s+/));
+        const lOverlap = [...lWords].filter((w: string) => eLWords.has(w)).length;
+        const lScore = lOverlap / Math.max(lWords.size, eLWords.size);
+
+        return nScore > 0.7 || lScore > 0.6;
+      });
+    };
+
+    // 3. Insert discovered laws (with dedup guard)
     for (const law of discovered) {
+      if (isDuplicate(law.name, law.law)) {
+        console.log(`[CodingLawsEngine] SKIPPED duplicate: ${law.name}`);
+        lawsSkipped++;
+        continue;
+      }
       const lawNum = `LAW-${String(lawCounter).padStart(3, "0")}`;
       const { error: insertErr } = await supabase.from("coding_laws").insert({
         law_number: lawNum,
@@ -145,17 +188,21 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
       if (!insertErr) {
         lawCounter++;
         lawsCreated++;
+        existingLawTexts.push({ name: law.name.toLowerCase(), law: law.law.toLowerCase() });
         console.log(`[CodingLawsEngine] Discovered: ${lawNum} — ${law.name}`);
       } else {
         console.error(`[CodingLawsEngine] Insert error for ${law.name}:`, insertErr.message);
       }
     }
 
-    // 4. Insert synthesized (cross-domain) laws
+    // 4. Insert synthesized laws (with dedup guard)
     for (const law of synthesized) {
+      if (isDuplicate(law.name, law.law)) {
+        console.log(`[CodingLawsEngine] SKIPPED duplicate synth: ${law.name}`);
+        lawsSkipped++;
+        continue;
+      }
       const lawNum = `LAW-${String(lawCounter).padStart(3, "0")}`;
-      
-      // Resolve parent law UUIDs
       const parentNumbers = law.parent_laws || [];
       let parentIds: string[] = [];
       if (parentNumbers.length > 0) {
@@ -165,7 +212,6 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
           .in("law_number", parentNumbers);
         parentIds = (parents || []).map((p: any) => p.id);
       }
-
       const { error: insertErr } = await supabase.from("coding_laws").insert({
         law_number: lawNum,
         name: law.name,
@@ -182,13 +228,26 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
       if (!insertErr) {
         lawCounter++;
         lawsCreated++;
+        existingLawTexts.push({ name: law.name.toLowerCase(), law: law.law.toLowerCase() });
         console.log(`[CodingLawsEngine] Synthesized: ${lawNum} — ${law.name}`);
       } else {
         console.error(`[CodingLawsEngine] Insert error for ${law.name}:`, insertErr.message);
       }
     }
 
-    // 5. Log the engine run
+    // 5. Auto-resolve detected duplicates — deactivate the newer law
+    for (const dup of duplicatesFound) {
+      const newer = dup.law_a > dup.law_b ? dup.law_a : dup.law_b;
+      await supabase.from("coding_laws").update({ active: false }).eq("law_number", newer);
+      console.log(`[CodingLawsEngine] DEACTIVATED duplicate ${newer}: ${dup.explanation}`);
+    }
+
+    // Log contradictions for review
+    for (const c of contradictions) {
+      console.log(`[CodingLawsEngine] CONTRADICTION: ${c.law_a} ↔ ${c.law_b}: ${c.explanation}`);
+    }
+
+    // 6. Log the engine run
     const { error: logErr } = await supabase.from("coding_laws_engine_runs").insert({
       run_type: "scheduled",
       laws_discovered: discovered.length,
@@ -198,11 +257,14 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
       details: {
         research_notes: result.research_notes || "",
         total_laws_after: lawCounter - 1,
+        skipped_duplicates: lawsSkipped,
+        contradictions_found: contradictions.length,
+        existing_duplicates_deactivated: duplicatesFound.length,
       },
     });
     if (logErr) console.error("[CodingLawsEngine] Log error:", logErr.message);
 
-    console.log(`[CodingLawsEngine] Run complete. Created ${lawsCreated} new laws. Total: ${lawCounter - 1}`);
+    console.log(`[CodingLawsEngine] Run complete. Created ${lawsCreated}, skipped ${lawsSkipped} duplicates. Total: ${lawCounter - 1}`);
 
     return new Response(
       JSON.stringify({
@@ -210,6 +272,9 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
         laws_discovered: discovered.length,
         laws_synthesized: synthesized.length,
         laws_created: lawsCreated,
+        laws_skipped_duplicates: lawsSkipped,
+        contradictions_found: contradictions.length,
+        duplicates_deactivated: duplicatesFound.length,
         total_laws: lawCounter - 1,
         research_notes: result.research_notes,
       }),
