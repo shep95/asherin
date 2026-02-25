@@ -41,7 +41,9 @@ interface AnalysisResult {
 // ─── FACE SEARCH TYPES ───
 interface FaceMatch {
   match_id: number;
+  name_alias?: string;
   similarity_score: number;
+  genetic_similarity?: number;
   location: {
     city: string;
     region: string;
@@ -52,9 +54,20 @@ interface FaceMatch {
   estimated_relationship: string;
   ancestry_overlap: number;
   age_similarity: number;
+  estimated_age_range?: string;
   shared_features: string[];
   generation_gap: number;
   family_branch: string;
+  profile_summary?: string;
+}
+
+interface InterMatchConnection {
+  match_a_id: number;
+  match_b_id: number;
+  connection_type: string;
+  shared_genetic_markers: number;
+  evidence: string;
+  confidence: number;
 }
 
 interface FaceSearchResult {
@@ -67,15 +80,22 @@ interface FaceSearchResult {
     distinctive_features: string[];
     face_quality_score: number;
     face_symmetry: number;
+    genetic_markers?: string[];
+    heritage_indicators?: string;
   };
   matches?: FaceMatch[];
+  inter_match_connections?: InterMatchConnection[];
+  heritage_narrative?: string;
   family_tree?: {
     common_ancestor_estimate: string;
+    probable_origin_region?: string;
+    migration_pattern?: string;
     branches: {
       branch_name: string;
       region: string;
       match_count: number;
       avg_similarity: number;
+      heritage_note?: string;
     }[];
   };
   search_metadata?: {
@@ -83,6 +103,8 @@ interface FaceSearchResult {
     total_faces_scanned: number;
     matches_found: number;
     scan_time_ms: number;
+    genetic_databases_checked?: number;
+    cross_reference_passes?: number;
   };
 }
 
@@ -321,7 +343,7 @@ const OracleLocusView = () => {
               <MapPin className="h-3.5 w-3.5 mr-1.5" />GEO ANALYSIS
             </TabsTrigger>
             <TabsTrigger value="face" className="rounded-lg text-xs tracking-wider data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
-              <Users className="h-3.5 w-3.5 mr-1.5" />FACE SEARCH
+              <Users className="h-3.5 w-3.5 mr-1.5" />HERITAGE SEARCH
             </TabsTrigger>
           </TabsList>
         </div>
@@ -615,11 +637,14 @@ const OracleLocusView = () => {
                       <User className="h-12 w-12 text-accent/60" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-extralight text-foreground">Upload a clear photo of your face</p>
-                      <p className="text-[10px] text-muted-foreground/50 mt-1">Drop, paste (Ctrl+V), or click · JPG, PNG, WebP · Max 20MB</p>
+                      <p className="text-sm font-extralight text-foreground">Upload a clear photo for heritage search</p>
+                      <p className="text-[10px] text-muted-foreground/50 mt-1">Find potential genetic relatives & lookalikes in any region</p>
                     </div>
                     <div className="rounded-xl bg-card/20 px-4 py-2 mt-2">
                       <p className="text-[10px] text-muted-foreground">📸 Best results: Front-facing · Good lighting · No sunglasses</p>
+                    </div>
+                    <div className="rounded-xl bg-accent/5 border border-accent/10 px-4 py-2 mt-1 max-w-sm">
+                      <p className="text-[10px] text-muted-foreground/70">🧬 Ideal for adopted individuals, ancestry exploration, or finding family connections across regions</p>
                     </div>
                   </button>
                   <input ref={faceInputRef} type="file" accept="image/*" onChange={handleFaceFileSelect} className="hidden" />
@@ -729,10 +754,11 @@ const OracleLocusView = () => {
                     <Loader2 className="h-12 w-12 animate-spin text-accent" />
                     <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-accent/10" />
                   </div>
-                  <p className="text-sm font-extralight text-foreground tracking-wider">SCANNING FACIAL DATABASE…</p>
+                  <p className="text-sm font-extralight text-foreground tracking-wider">HERITAGE SCAN IN PROGRESS…</p>
                   <div className="space-y-1 text-center">
-                    <p className="text-[10px] text-muted-foreground animate-pulse">Extracting facial features · 128D embedding generation</p>
+                    <p className="text-[10px] text-muted-foreground animate-pulse">Extracting genetic markers · Cross-referencing heritage databases</p>
                     <p className="text-[10px] text-muted-foreground/60">Target region: {targetLocation}</p>
+                    <p className="text-[10px] text-muted-foreground/40 mt-1">Analyzing inter-match connections…</p>
                   </div>
                   <div className="w-full max-w-xs mt-4">
                     <div className="h-1 rounded-full bg-card/30 overflow-hidden">
@@ -795,28 +821,71 @@ const OracleLocusView = () => {
                               </div>
                             </div>
                           </div>
+
+                          {/* Genetic Markers */}
+                          {faceResult.subject_analysis.genetic_markers && faceResult.subject_analysis.genetic_markers.length > 0 && (
+                            <div className="space-y-2 pt-2 border-t border-border/10">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Genetic Markers Detected</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {faceResult.subject_analysis.genetic_markers.map((m, i) => (
+                                  <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">🧬 {m}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Heritage Indicators */}
+                          {faceResult.subject_analysis.heritage_indicators && (
+                            <div className="space-y-2 pt-2 border-t border-border/10">
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Heritage Analysis</p>
+                              <p className="text-xs font-light text-foreground/80 leading-relaxed">{faceResult.subject_analysis.heritage_indicators}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Heritage Narrative */}
+                      {faceResult.heritage_narrative && (
+                        <div className="rounded-2xl border border-accent/20 bg-accent/5 backdrop-blur-sm p-5 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Search className="h-3.5 w-3.5 text-accent" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-accent uppercase">Intelligence Briefing</p>
+                          </div>
+                          <p className="text-sm font-light text-foreground/90 leading-relaxed italic">"{faceResult.heritage_narrative}"</p>
                         </div>
                       )}
 
                       {/* Search Metadata */}
                       {faceResult.search_metadata && (
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                           <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
                             <p className="text-xl font-extralight text-foreground">{faceResult.search_metadata.matches_found}</p>
                             <p className="text-[9px] text-muted-foreground mt-1">Matches</p>
                           </div>
                           <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
                             <p className="text-xl font-extralight text-foreground">{(faceResult.search_metadata.total_faces_scanned / 1000).toFixed(1)}k</p>
-                            <p className="text-[9px] text-muted-foreground mt-1">Faces Scanned</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Scanned</p>
                           </div>
                           <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
                             <p className="text-xl font-extralight text-foreground">{(faceResult.search_metadata.scan_time_ms / 1000).toFixed(1)}s</p>
-                            <p className="text-[9px] text-muted-foreground mt-1">Scan Time</p>
+                            <p className="text-[9px] text-muted-foreground mt-1">Time</p>
                           </div>
                           <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
                             <p className="text-xl font-extralight text-foreground truncate text-xs">{faceResult.search_metadata.region_searched}</p>
                             <p className="text-[9px] text-muted-foreground mt-1">Region</p>
                           </div>
+                          {faceResult.search_metadata.genetic_databases_checked && (
+                            <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
+                              <p className="text-xl font-extralight text-foreground">{faceResult.search_metadata.genetic_databases_checked}</p>
+                              <p className="text-[9px] text-muted-foreground mt-1">Databases</p>
+                            </div>
+                          )}
+                          {faceResult.search_metadata.cross_reference_passes && (
+                            <div className="rounded-xl bg-card/20 border border-border/10 p-3 text-center">
+                              <p className="text-xl font-extralight text-foreground">{faceResult.search_metadata.cross_reference_passes}</p>
+                              <p className="text-[9px] text-muted-foreground mt-1">X-Ref Passes</p>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -827,10 +896,25 @@ const OracleLocusView = () => {
                             <GitBranch className="h-3.5 w-3.5 text-accent" />
                             <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Family Tree Estimate</p>
                           </div>
-                          <div className="rounded-xl bg-card/10 border border-border/10 p-4 text-center">
-                            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1">Common Ancestor</p>
-                            <p className="text-sm font-extralight text-foreground">{faceResult.family_tree.common_ancestor_estimate}</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-xl bg-card/10 border border-border/10 p-4 text-center">
+                              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1">Common Ancestor</p>
+                              <p className="text-sm font-extralight text-foreground">{faceResult.family_tree.common_ancestor_estimate}</p>
+                            </div>
+                            {faceResult.family_tree.probable_origin_region && (
+                              <div className="rounded-xl bg-card/10 border border-border/10 p-4 text-center">
+                                <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1">Probable Origin</p>
+                                <p className="text-sm font-extralight text-foreground">{faceResult.family_tree.probable_origin_region}</p>
+                              </div>
+                            )}
                           </div>
+
+                          {faceResult.family_tree.migration_pattern && (
+                            <div className="rounded-xl bg-card/10 border border-border/10 p-3 space-y-1.5">
+                              <p className="text-[9px] text-muted-foreground/70 uppercase tracking-wider">Migration Pattern</p>
+                              <p className="text-xs font-light text-foreground/80 leading-relaxed">{faceResult.family_tree.migration_pattern}</p>
+                            </div>
+                          )}
 
                           {/* Tree branches visual */}
                           <div className="relative">
@@ -846,6 +930,9 @@ const OracleLocusView = () => {
                                       <span className="text-[10px] text-muted-foreground/50">·</span>
                                       <span className="text-[10px] text-muted-foreground">{branch.avg_similarity}% avg</span>
                                     </div>
+                                    {branch.heritage_note && (
+                                      <p className="text-[9px] text-muted-foreground/60 mt-1 italic">{branch.heritage_note}</p>
+                                    )}
                                   </div>
                                   <div className="h-3 w-3 rounded-full bg-accent/30 border-2 border-accent flex-shrink-0 z-10" />
                                   <div className="flex-1" />
@@ -860,7 +947,7 @@ const OracleLocusView = () => {
                       {faceResult.matches && faceResult.matches.length > 0 && (
                         <div className="rounded-2xl border border-border/10 bg-card/20 backdrop-blur-sm p-5 space-y-4">
                           <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Lookalike Matches</p>
+                            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">Genetic Matches</p>
                             <span className="text-[10px] text-accent">{faceResult.matches.length} found</span>
                           </div>
 
@@ -897,12 +984,14 @@ const OracleLocusView = () => {
                                       </div>
                                       <div>
                                         <div className="flex items-center gap-2">
-                                          <span className="text-sm font-extralight text-foreground">{match.similarity_score}% Match</span>
+                                          <span className="text-sm font-extralight text-foreground">{match.name_alias || `Match #${match.match_id}`}</span>
+                                          <span className="text-[10px] text-muted-foreground/50">·</span>
+                                          <span className="text-xs font-extralight text-accent">{match.similarity_score}%</span>
                                           <span className={`text-[10px] px-2 py-0.5 rounded-lg ${relationshipColors[match.estimated_relationship.toLowerCase()] || "bg-muted/20 text-muted-foreground"}`}>
                                             {match.estimated_relationship}
                                           </span>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground mt-0.5">{match.location.city}, {match.location.country}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">{match.location.city}, {match.location.region}, {match.location.country}{match.estimated_age_range ? ` · Age: ${match.estimated_age_range}` : ""}</p>
                                       </div>
                                     </div>
                                     <ChevronRight className={`h-4 w-4 text-muted-foreground/30 transition-transform ${selectedMatch?.match_id === match.match_id ? "rotate-90" : ""}`} />
@@ -911,10 +1000,14 @@ const OracleLocusView = () => {
                                   {/* Expanded details */}
                                   {selectedMatch?.match_id === match.match_id && (
                                     <div className="mt-4 pt-4 border-t border-border/10 space-y-3 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-                                      <div className="grid grid-cols-3 gap-2">
+                                      <div className="grid grid-cols-4 gap-2">
                                         <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
                                           <p className="text-lg font-extralight text-foreground">{match.similarity_score}%</p>
-                                          <p className="text-[9px] text-muted-foreground">Similarity</p>
+                                          <p className="text-[9px] text-muted-foreground">Facial</p>
+                                        </div>
+                                        <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
+                                          <p className="text-lg font-extralight text-foreground">{match.genetic_similarity || match.similarity_score}%</p>
+                                          <p className="text-[9px] text-muted-foreground">Genetic</p>
                                         </div>
                                         <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
                                           <p className="text-lg font-extralight text-foreground">{match.ancestry_overlap}%</p>
@@ -922,9 +1015,14 @@ const OracleLocusView = () => {
                                         </div>
                                         <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
                                           <p className="text-lg font-extralight text-foreground">{match.age_similarity}%</p>
-                                          <p className="text-[9px] text-muted-foreground">Age Match</p>
+                                          <p className="text-[9px] text-muted-foreground">Age</p>
                                         </div>
                                       </div>
+                                      {match.profile_summary && (
+                                        <div className="rounded-lg bg-card/20 border border-border/10 p-3">
+                                          <p className="text-[10px] text-foreground/70 leading-relaxed italic">{match.profile_summary}</p>
+                                        </div>
+                                      )}
                                       <div>
                                         <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1.5">Shared Features</p>
                                         <div className="flex flex-wrap gap-1.5">
@@ -954,16 +1052,60 @@ const OracleLocusView = () => {
                         </div>
                       )}
 
+                      {/* Inter-Match Connections */}
+                      {faceResult.inter_match_connections && faceResult.inter_match_connections.length > 0 && (
+                        <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 backdrop-blur-sm p-5 space-y-4">
+                          <div className="flex items-center gap-2">
+                            <GitBranch className="h-3.5 w-3.5 text-purple-400" />
+                            <p className="text-[10px] font-light tracking-[0.15em] text-purple-300 uppercase">Cross-Match Connections</p>
+                            <span className="text-[9px] text-purple-400/60 ml-auto">Matches that may know each other</span>
+                          </div>
+                          <div className="space-y-3">
+                            {faceResult.inter_match_connections.map((conn, i) => {
+                              const matchA = faceResult.matches?.find(m => m.match_id === conn.match_a_id);
+                              const matchB = faceResult.matches?.find(m => m.match_id === conn.match_b_id);
+                              return (
+                                <div key={i} className="rounded-xl border border-purple-500/10 bg-card/10 p-4 space-y-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                                        <User className="h-4 w-4 text-purple-400/60" />
+                                      </div>
+                                      <span className="text-xs font-light text-foreground">{matchA?.name_alias || `#${conn.match_a_id}`}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <div className="h-px w-12 bg-purple-500/30" />
+                                      <span className="text-[9px] text-purple-400">{conn.shared_genetic_markers}% genetic</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-1 justify-end">
+                                      <span className="text-xs font-light text-foreground">{matchB?.name_alias || `#${conn.match_b_id}`}</span>
+                                      <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                                        <User className="h-4 w-4 text-purple-400/60" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-lg bg-purple-500/10 text-purple-300`}>{conn.connection_type}</span>
+                                    <span className="text-[10px] text-muted-foreground">{conn.confidence}% confidence</span>
+                                  </div>
+                                  <p className="text-[10px] text-foreground/60 leading-relaxed">{conn.evidence}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Disclaimer */}
                       <div className="rounded-xl border border-border/10 bg-card/10 p-4 flex items-start gap-3">
                         <Info className="h-4 w-4 text-muted-foreground/40 flex-shrink-0 mt-0.5" />
                         <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
-                          Results are AI-generated estimates based on facial feature analysis. They do not represent verified identities or confirmed family relationships. This tool is for entertainment and educational purposes only. No facial data is stored after your session.
+                          Results are AI-generated estimates based on facial feature analysis. They do not represent verified identities or confirmed family relationships. This tool is designed for heritage exploration and family reconnection purposes. No facial data is stored after your session.
                         </p>
                       </div>
 
                       {/* New Search */}
-                      <button onClick={resetFaceSearch} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">NEW FACE SEARCH</button>
+                      <button onClick={resetFaceSearch} className="w-full rounded-xl border border-border/20 bg-card/10 py-3 text-xs font-light text-muted-foreground hover:text-foreground hover:bg-card/20 transition-colors tracking-wider">NEW HERITAGE SEARCH</button>
                     </>
                   )}
                 </div>
