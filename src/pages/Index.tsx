@@ -666,7 +666,7 @@ const Index = () => {
       <footer className="relative z-10 px-6 pb-8 pt-16">
         <div className="mx-auto max-w-5xl">
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md px-8 py-10 sm:px-12">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col gap-8">
               {/* Left — Branding */}
               <div className="text-center sm:text-left">
                 <p className="text-sm font-light tracking-[0.2em] text-foreground">
@@ -677,37 +677,51 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Center — Links */}
-              <div className="flex items-center gap-6 flex-wrap justify-center">
-                <Link to="/pricing" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-                <Link to="/features" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Features</Link>
-                <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
-                <Link to="/founder" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Founder</Link>
-                <Link to="/equity" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Equity</Link>
-                <Link
-                  to="/terms"
-                  className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Terms of Service
-                </Link>
-                <a
-                  href="https://x.com/shep_newton"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Twitter className="h-4 w-4" />
-                </a>
+            {/* Links Grid */}
+              <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6 mt-6 sm:mt-0">
+                <div className="flex flex-col gap-2">
+                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Intelligence</p>
+                  <Link to="/feature/zophiel" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Zophiel Search</Link>
+                  <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD OSINT</Link>
+                  <Link to="/feature/asha" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Asha Intelligence</Link>
+                  <Link to="/feature/predictive" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Predictive Intelligence</Link>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Agents & Tools</p>
+                  <Link to="/feature/personas" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">AI Personas</Link>
+                  <Link to="/feature/briefings" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Daily Briefings</Link>
+                  <Link to="/feature/elion" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Elion / Zohar</Link>
+                  <Link to="/feature/tracker" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Location Tracker</Link>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Creation</p>
+                  <Link to="/feature/zali" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">ZALI Design Lab</Link>
+                  <Link to="/feature/imagine-to-code" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine To Code</Link>
+                  <Link to="/feature/ide" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Aureon IDE</Link>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Company</p>
+                  <Link to="/features" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">All Features</Link>
+                  <Link to="/founder" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Founder</Link>
+                  <Link to="/pricing" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+                  <Link to="/prompt-engineering" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Prompt Engineering</Link>
+                  <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
+                  <Link to="/equity" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Equity Ownership</Link>
+                  <Link to="/terms" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
+                </div>
               </div>
 
-              {/* Right — Copyright */}
-              <div className="text-right">
+              {/* Bottom — Copyright */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-border/15">
                 <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">
                   © {new Date().getFullYear()} Zorak Corp
                 </p>
-                <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30 mt-1">
+                <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30">
                   AUREON — Founded June 28, 2026
                 </p>
+                <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Twitter className="h-4 w-4" />
+                </a>
               </div>
             </div>
           </div>
