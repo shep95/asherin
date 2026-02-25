@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info } from "lucide-react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,24 @@ interface AnalysisResult {
 }
 
 // ─── FACE SEARCH TYPES ───
+interface MatchSource {
+  platform: string;
+  url: string;
+  confidence: number;
+  data_type: string;
+}
+
+interface MatchProfile {
+  full_name?: string;
+  occupation?: string;
+  education?: string;
+  languages?: string[];
+  interests?: string[];
+  social_presence?: string[];
+  bio?: string;
+  photo_description?: string;
+}
+
 interface FaceMatch {
   match_id: number;
   name_alias?: string;
@@ -59,6 +77,9 @@ interface FaceMatch {
   generation_gap: number;
   family_branch: string;
   profile_summary?: string;
+  profile?: MatchProfile;
+  sources?: MatchSource[];
+  photo_url?: string;
 }
 
 interface InterMatchConnection {
@@ -972,19 +993,23 @@ const OracleLocusView = () => {
                             {faceResult.matches
                               .sort((a, b) => b.similarity_score - a.similarity_score)
                               .map((match) => (
-                                <button
+                <button
                                   key={match.match_id}
                                   onClick={() => setSelectedMatch(selectedMatch?.match_id === match.match_id ? null : match)}
                                   className={`w-full rounded-xl border p-4 text-left transition-all ${selectedMatch?.match_id === match.match_id ? "border-accent/30 bg-accent/5" : "border-border/10 bg-card/10 hover:border-border/20"}`}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                      <div className="h-10 w-10 rounded-xl bg-card/30 flex items-center justify-center">
-                                        <User className="h-5 w-5 text-muted-foreground/40" />
-                                      </div>
+                                      {match.photo_url ? (
+                                        <img src={match.photo_url} alt={match.name_alias || "Match"} className="h-11 w-11 rounded-xl object-cover border border-border/20" />
+                                      ) : (
+                                        <div className="h-11 w-11 rounded-xl bg-card/30 flex items-center justify-center">
+                                          <User className="h-5 w-5 text-muted-foreground/40" />
+                                        </div>
+                                      )}
                                       <div>
                                         <div className="flex items-center gap-2">
-                                          <span className="text-sm font-extralight text-foreground">{match.name_alias || `Match #${match.match_id}`}</span>
+                                          <span className="text-sm font-extralight text-foreground">{match.profile?.full_name || match.name_alias || `Match #${match.match_id}`}</span>
                                           <span className="text-[10px] text-muted-foreground/50">·</span>
                                           <span className="text-xs font-extralight text-accent">{match.similarity_score}%</span>
                                           <span className={`text-[10px] px-2 py-0.5 rounded-lg ${relationshipColors[match.estimated_relationship.toLowerCase()] || "bg-muted/20 text-muted-foreground"}`}>
@@ -992,6 +1017,9 @@ const OracleLocusView = () => {
                                           </span>
                                         </div>
                                         <p className="text-[10px] text-muted-foreground mt-0.5">{match.location.city}, {match.location.region}, {match.location.country}{match.estimated_age_range ? ` · Age: ${match.estimated_age_range}` : ""}</p>
+                                        {match.profile?.occupation && (
+                                          <p className="text-[10px] text-accent/70 mt-0.5">{match.profile.occupation}</p>
+                                        )}
                                       </div>
                                     </div>
                                     <ChevronRight className={`h-4 w-4 text-muted-foreground/30 transition-transform ${selectedMatch?.match_id === match.match_id ? "rotate-90" : ""}`} />
@@ -1000,6 +1028,49 @@ const OracleLocusView = () => {
                                   {/* Expanded details */}
                                   {selectedMatch?.match_id === match.match_id && (
                                     <div className="mt-4 pt-4 border-t border-border/10 space-y-3 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+                                      {/* Photo + Bio card */}
+                                      {match.profile && (
+                                        <div className="flex gap-4">
+                                          {match.photo_url && (
+                                            <img src={match.photo_url} alt={match.profile.full_name || "Match"} className="h-24 w-24 rounded-xl object-cover border border-border/20 flex-shrink-0" />
+                                          )}
+                                          <div className="flex-1 space-y-2">
+                                            {match.profile.bio && (
+                                              <p className="text-[11px] text-foreground/80 leading-relaxed italic">"{match.profile.bio}"</p>
+                                            )}
+                                            {match.profile.education && (
+                                              <p className="text-[10px] text-muted-foreground"><span className="text-foreground/60">Education:</span> {match.profile.education}</p>
+                                            )}
+                                            {match.profile.languages && match.profile.languages.length > 0 && (
+                                              <p className="text-[10px] text-muted-foreground"><span className="text-foreground/60">Languages:</span> {match.profile.languages.join(", ")}</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Interests */}
+                                      {match.profile?.interests && match.profile.interests.length > 0 && (
+                                        <div>
+                                          <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1.5">Interests</p>
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {match.profile.interests.map((interest, i) => (
+                                              <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-card/30 text-foreground/70">{interest}</span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Social Presence */}
+                                      {match.profile?.social_presence && match.profile.social_presence.length > 0 && (
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-[10px] text-muted-foreground/70">Found on:</p>
+                                          {match.profile.social_presence.map((platform, i) => (
+                                            <span key={i} className="text-[10px] px-2 py-0.5 rounded-lg bg-accent/10 text-accent">{platform}</span>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* Similarity stats */}
                                       <div className="grid grid-cols-4 gap-2">
                                         <div className="rounded-lg bg-card/30 px-3 py-2 text-center">
                                           <p className="text-lg font-extralight text-foreground">{match.similarity_score}%</p>
@@ -1018,11 +1089,13 @@ const OracleLocusView = () => {
                                           <p className="text-[9px] text-muted-foreground">Age</p>
                                         </div>
                                       </div>
+
                                       {match.profile_summary && (
                                         <div className="rounded-lg bg-card/20 border border-border/10 p-3">
                                           <p className="text-[10px] text-foreground/70 leading-relaxed italic">{match.profile_summary}</p>
                                         </div>
                                       )}
+
                                       <div>
                                         <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider mb-1.5">Shared Features</p>
                                         <div className="flex flex-wrap gap-1.5">
@@ -1031,10 +1104,40 @@ const OracleLocusView = () => {
                                           ))}
                                         </div>
                                       </div>
+
                                       <div className="flex items-center justify-between text-[10px]">
                                         <span className="text-muted-foreground">Family Branch: <span className="text-foreground">{match.family_branch}</span></span>
                                         <span className="text-muted-foreground">Generation Gap: <span className="text-foreground">{match.generation_gap}</span></span>
                                       </div>
+
+                                      {/* Sources / Intelligence Links */}
+                                      {match.sources && match.sources.length > 0 && (
+                                        <div className="rounded-lg border border-accent/10 bg-accent/5 p-3 space-y-2">
+                                          <p className="text-[10px] text-accent uppercase tracking-wider font-light">Intelligence Sources</p>
+                                          <div className="space-y-1.5">
+                                            {match.sources.map((source, i) => (
+                                              <a
+                                                key={i}
+                                                href={source.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-between rounded-lg bg-card/20 border border-border/10 px-3 py-2 hover:border-accent/20 transition-colors group"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  <ExternalLink className="h-3 w-3 text-accent/60 group-hover:text-accent" />
+                                                  <div>
+                                                    <p className="text-[11px] text-foreground/80 group-hover:text-accent transition-colors">{source.platform}</p>
+                                                    <p className="text-[9px] text-muted-foreground">{source.data_type}</p>
+                                                  </div>
+                                                </div>
+                                                <span className="text-[10px] text-accent/60">{source.confidence}%</span>
+                                              </a>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
                                       <a
                                         href={`https://www.google.com/maps?q=${match.location.latitude},${match.location.longitude}`}
                                         target="_blank"
