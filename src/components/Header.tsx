@@ -42,7 +42,7 @@ const Header = () => {
             <DropdownMenuTrigger className="px-4 py-2 sm:py-2.5 flex items-center gap-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80 outline-none rounded-r-xl">
               Pages <ChevronDown className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={8} className="w-72 max-h-[70vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/30 p-3 rounded-2xl shadow-2xl">
+            <DropdownMenuContent align="start" sideOffset={8} className="w-72 max-h-[70vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/30 p-3 rounded-2xl shadow-2xl animate-fade-in">
               {/* Intelligence Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Intelligence</p>
               <DropdownMenuItem asChild>
