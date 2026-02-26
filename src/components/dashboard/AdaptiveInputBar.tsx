@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip } from "lucide-react";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
@@ -59,6 +59,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
   const [intent, setIntent] = useState<InputIntent>("text");
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
+  const isMobile = useMemo(() => /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768, []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -142,7 +143,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
         return;
       }
     }
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !isMobile) {
       e.preventDefault();
       handleSend();
     }
