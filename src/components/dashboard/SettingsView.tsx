@@ -13,6 +13,11 @@ import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import wallpaperSeraph from "@/assets/wallpaper-seraph.png";
 import wallpaperProphet from "@/assets/wallpaper-prophet.png";
 import wallpaperNexus from "@/assets/wallpaper-nexus.png";
+import wallpaperSentinel from "@/assets/wallpaper-sentinel.png";
+import wallpaperInferno from "@/assets/wallpaper-inferno.png";
+import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
+import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
+import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
@@ -23,6 +28,11 @@ const WALLPAPERS = [
   { key: "seraph", label: "Seraph", src: wallpaperSeraph },
   { key: "prophet", label: "Prophet", src: wallpaperProphet },
   { key: "nexus", label: "Nexus", src: wallpaperNexus },
+  { key: "sentinel", label: "Sentinel", src: wallpaperSentinel },
+  { key: "inferno", label: "Inferno", src: wallpaperInferno },
+  { key: "sorrow", label: "Sorrow", src: wallpaperSorrow },
+  { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
+  { key: "phantom", label: "Phantom", src: wallpaperPhantom },
 ];
 
 const GitHubSettings = () => {
