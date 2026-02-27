@@ -49,7 +49,9 @@ const LandingBackground = ({ children, overlayOpacity = "bg-black/80" }: Props) 
         style={{ backgroundImage: `url(${wallpaper})` }}
       />
       <div className={`fixed inset-0 ${overlayOpacity} pointer-events-none`} />
-      {wrappedChildren}
+      <div className="relative z-10">
+        {wrappedChildren}
+      </div>
       <WallpaperSwitcher />
     </div>
   );
