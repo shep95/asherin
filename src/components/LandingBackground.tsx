@@ -36,7 +36,7 @@ const LandingBackground = ({ children, overlayOpacity = "bg-black/80" }: Props) 
     }
 
     return (
-      <ScrollBlurFade key={i} delay={i === 0 ? 0 : 50}>
+      <ScrollBlurFade key={i} delay={i === 0 ? 0 : 120 * i}>
         {child}
       </ScrollBlurFade>
     );
