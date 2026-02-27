@@ -455,7 +455,7 @@ const AureonIdeView = () => {
           </div>
 
           {/* Save */}
-          <button onClick={saveSession} disabled={!activeSessionId || saving} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30" title="Save (⌘S)">
+          <button onClick={saveSession} disabled={!activeSessionId || saving} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30" title="Save (Ctrl+S)">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           </button>
 
@@ -478,7 +478,7 @@ const AureonIdeView = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[180px]">
               <DropdownMenuItem onClick={() => setQuickOpenOpen(true)}>
-                <Search className="h-3.5 w-3.5 mr-2" /> Go to File <span className="ml-auto text-[10px] text-muted-foreground">⌘P</span>
+                <Search className="h-3.5 w-3.5 mr-2" /> Go to File <span className="ml-auto text-[10px] text-muted-foreground">Ctrl+P</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setLeftTab("search"); setLeftOpen(true); }}>
                 <Search className="h-3.5 w-3.5 mr-2" /> Search in Files
@@ -497,11 +497,11 @@ const AureonIdeView = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setLeftOpen(p => !p)}>
                 {leftOpen ? <PanelLeftClose className="h-3.5 w-3.5 mr-2" /> : <PanelLeftOpen className="h-3.5 w-3.5 mr-2" />}
-                {leftOpen ? "Hide" : "Show"} Sidebar <span className="ml-auto text-[10px] text-muted-foreground">⌘B</span>
+                {leftOpen ? "Hide" : "Show"} Sidebar <span className="ml-auto text-[10px] text-muted-foreground">Ctrl+B</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setBottomOpen(p => !p)}>
                 {bottomOpen ? <ChevronDown className="h-3.5 w-3.5 mr-2" /> : <ChevronUp className="h-3.5 w-3.5 mr-2" />}
-                {bottomOpen ? "Hide" : "Show"} Terminal <span className="ml-auto text-[10px] text-muted-foreground">⌘J</span>
+                {bottomOpen ? "Hide" : "Show"} Terminal <span className="ml-auto text-[10px] text-muted-foreground">Ctrl+J</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
