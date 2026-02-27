@@ -87,6 +87,22 @@ Deno.serve(async (req) => {
     const { cellId, cellType, content, datasetId } = await req.json();
     let output = "";
 
+    // ── Fetch Coding Laws for AI-assisted cells ──
+    let codingLawsContext = "";
+    try {
+      const { data: laws } = await supabase
+        .from("coding_laws")
+        .select("law_number, name, domain, law, severity")
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+      if (laws?.length) {
+        const lawDirectives = laws.map((l: any) => `[${l.law_number}] ${l.name} (${l.domain}, ${l.severity}): ${l.law}`).join("\n");
+        codingLawsContext = `\n\n## AUREON LAWS OF CODING (${laws.length} Active Laws)\n${lawDirectives}`;
+      }
+    } catch (e) {
+      console.error("[NOTEBOOK] Failed to fetch coding laws:", e);
+    }
+
     if (cellType === "query" || cellType === "code") {
       if (datasetId) {
         // Try to load dataset and execute query against it
