@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, GitBranch, RotateCcw, Copy, Check, ChevronDown } from "lucide-react";
+import { X, GitBranch, Copy, Check, Brain, Lightbulb, Link2, Layers } from "lucide-react";
 
 interface MessageDiagramPanelProps {
   open: boolean;
@@ -8,126 +8,261 @@ interface MessageDiagramPanelProps {
   onClose: () => void;
 }
 
-type DiagramType = "flow" | "mind" | "timeline" | "entity";
+type DiagramType = "knowledge" | "concepts" | "causal" | "taxonomy";
 
-function generateFlowDiagram(content: string): string {
+/* ── Knowledge extraction helpers ── */
+
+function extractKnowledge(content: string) {
+  const facts: string[] = [];
+  const concepts: string[] = [];
+  const relationships: { from: string; to: string; label: string }[] = [];
+  const categories: Record<string, string[]> = {};
+
   const lines = content.split("\n").filter(l => l.trim());
-  const steps: string[] = [];
+  let currentHeading = "General";
 
-  // Extract headings, bullet points, and key sentences
   for (const line of lines) {
-    const heading = line.match(/^#{1,3}\s+(.+)/);
-    if (heading) { steps.push(heading[1].trim()); continue; }
-    const bullet = line.match(/^[-*]\s+\*?\*?(.+?)\*?\*?\s*$/);
-    if (bullet && bullet[1].length < 80) { steps.push(bullet[1].trim().replace(/\*/g, "")); continue; }
-    const numbered = line.match(/^\d+[\.)]\s+(.+)/);
-    if (numbered && numbered[1].length < 80) { steps.push(numbered[1].trim().replace(/\*/g, "")); continue; }
+    const headingMatch = line.match(/^#{1,3}\s+(.+)/);
+    if (headingMatch) {
+      currentHeading = headingMatch[1].replace(/\*/g, "").trim().slice(0, 40);
+      concepts.push(currentHeading);
+      if (!categories[currentHeading]) categories[currentHeading] = [];
+      continue;
+    }
+
+    const bulletMatch = line.match(/^[-*]\s+\*?\*?(.+?)\*?\*?\s*$/);
+    const numberedMatch = line.match(/^\d+[\.)]\s+(.+)/);
+    const factText = bulletMatch?.[1] || numberedMatch?.[1];
+
+    if (factText) {
+      const clean = factText.replace(/\*/g, "").replace(/\[.*?\]\(.*?\)/g, "").trim();
+      if (clean.length > 8 && clean.length < 120) {
+        facts.push(clean);
+        if (!categories[currentHeading]) categories[currentHeading] = [];
+        categories[currentHeading].push(clean.slice(0, 60));
+      }
+    }
+
+    // Extract cause-effect patterns
+    const causalPatterns = [
+      /(.{10,50})\s+(?:leads to|causes|results in|enables|triggers|creates)\s+(.{10,50})/i,
+      /(.{10,50})\s+(?:because|due to|since)\s+(.{10,50})/i,
+      /(?:if|when)\s+(.{10,50}),?\s+(?:then)?\s*(.{10,50})/i,
+    ];
+    for (const pat of causalPatterns) {
+      const m = line.match(pat);
+      if (m) {
+        relationships.push({
+          from: m[1].replace(/\*/g, "").trim().slice(0, 40),
+          to: m[2].replace(/\*/g, "").trim().slice(0, 40),
+          label: "leads to",
+        });
+      }
+    }
   }
 
-  if (steps.length === 0) {
-    // Fallback: split content into sentence chunks
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10).slice(0, 8);
-    steps.push(...sentences.map(s => s.trim().slice(0, 60)));
-  }
+  // Extract key terms (capitalized multi-word phrases)
+  const termMatches = content.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g) || [];
+  const uniqueTerms = [...new Set(termMatches)].slice(0, 8);
+  uniqueTerms.forEach(t => { if (!concepts.includes(t)) concepts.push(t); });
 
-  const limited = steps.slice(0, 12);
-  const nodes = limited.map((s, i) => {
-    const clean = s.replace(/["\[\](){}]/g, "").slice(0, 50);
-    return `  N${i}["${clean}"]`;
+  // Extract definitions/explanations
+  const defPatterns = content.match(/\*\*(.+?)\*\*\s*[-:]\s*(.+?)(?:\.|$)/gm) || [];
+  defPatterns.slice(0, 6).forEach(d => {
+    const m = d.match(/\*\*(.+?)\*\*\s*[-:]\s*(.+)/);
+    if (m) {
+      relationships.push({
+        from: m[1].trim().slice(0, 35),
+        to: m[2].replace(/\*/g, "").trim().slice(0, 50),
+        label: "means",
+      });
+    }
   });
-  const links = limited.slice(1).map((_, i) => `  N${i} --> N${i + 1}`);
 
-  return `graph TD\n${nodes.join("\n")}\n${links.join("\n")}`;
+  return { facts, concepts, relationships, categories };
 }
 
-function generateMindMap(content: string): string {
-  const lines = content.split("\n").filter(l => l.trim());
-  const headings: string[] = [];
-  const bullets: string[] = [];
-
-  for (const line of lines) {
-    const h = line.match(/^#{1,3}\s+(.+)/);
-    if (h) { headings.push(h[1].trim().replace(/\*/g, "").slice(0, 40)); continue; }
-    const b = line.match(/^[-*]\s+(.+)/);
-    if (b && b[1].length < 60) { bullets.push(b[1].trim().replace(/\*/g, "").replace(/["\[\](){}]/g, "").slice(0, 40)); }
-  }
-
-  const center = headings[0] || "Aureon Analysis";
-  const branches = (headings.length > 1 ? headings.slice(1) : bullets).slice(0, 8);
-
-  if (branches.length === 0) {
-    return `graph TD\n  C["${center}"]\n  C --> A["Key Point 1"]\n  C --> B["Key Point 2"]`;
-  }
-
-  const nodes = branches.map((b, i) => `  C --> N${i}["${b}"]`);
-  return `graph TD\n  C["${center}"]\n${nodes.join("\n")}`;
+function sanitize(s: string): string {
+  return s.replace(/["\[\](){}|<>#&;]/g, "").replace(/\n/g, " ").trim();
 }
 
-function generateTimeline(content: string): string {
-  const lines = content.split("\n").filter(l => l.trim());
-  const events: string[] = [];
+/* ── Diagram generators ── */
 
-  for (const line of lines) {
-    const numbered = line.match(/^\d+[\.)]\s+(.+)/);
-    if (numbered) { events.push(numbered[1].trim().replace(/\*/g, "").replace(/["\[\](){}]/g, "").slice(0, 50)); continue; }
-    const bullet = line.match(/^[-*]\s+(.+)/);
-    if (bullet && bullet[1].length < 60) { events.push(bullet[1].trim().replace(/\*/g, "").replace(/["\[\](){}]/g, "").slice(0, 50)); }
+function generateKnowledgeGraph(content: string): string {
+  const { concepts, relationships, categories } = extractKnowledge(content);
+  const nodes: string[] = [];
+  const edges: string[] = [];
+  let idx = 0;
+  const nodeMap: Record<string, string> = {};
+
+  const getNode = (label: string) => {
+    const clean = sanitize(label).slice(0, 45);
+    if (!clean) return null;
+    if (!nodeMap[clean]) {
+      nodeMap[clean] = `N${idx++}`;
+      nodes.push(`  ${nodeMap[clean]}["${clean}"]`);
+    }
+    return nodeMap[clean];
+  };
+
+  // Add concept nodes from categories
+  const cats = Object.entries(categories).slice(0, 6);
+  for (const [cat, items] of cats) {
+    const catNode = getNode(cat);
+    if (!catNode) continue;
+    for (const item of items.slice(0, 4)) {
+      const itemNode = getNode(item);
+      if (itemNode) edges.push(`  ${catNode} --> ${itemNode}`);
+    }
   }
 
-  const limited = events.slice(0, 10);
-  if (limited.length < 2) {
-    return `graph LR\n  S["Start"] --> E["End"]`;
+  // Add relationship edges
+  for (const rel of relationships.slice(0, 8)) {
+    const from = getNode(rel.from);
+    const to = getNode(rel.to);
+    if (from && to) edges.push(`  ${from} -->|${sanitize(rel.label)}| ${to}`);
   }
-  const nodes = limited.map((e, i) => `  N${i}["${e}"]`);
-  const links = limited.slice(1).map((_, i) => `  N${i} --> N${i + 1}`);
-  return `graph LR\n${nodes.join("\n")}\n${links.join("\n")}`;
+
+  // Fallback: use concepts as star graph
+  if (nodes.length < 3 && concepts.length > 0) {
+    const center = getNode(concepts[0] || "Knowledge");
+    for (const c of concepts.slice(1, 8)) {
+      const n = getNode(c);
+      if (center && n) edges.push(`  ${center} --> ${n}`);
+    }
+  }
+
+  if (nodes.length === 0) return `graph TD\n  C["No knowledge nodes extracted"]`;
+  return `graph TD\n${nodes.join("\n")}\n${edges.join("\n")}`;
 }
 
-function generateEntityDiagram(content: string): string {
-  const entities: { type: string; value: string }[] = [];
-  const emailMatches = content.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || [];
-  const urlMatches = content.match(/https?:\/\/[^\s)]+/g) || [];
-  const orgMatches = content.match(/\b[A-Z][A-Za-z\s&]+(?:Inc\.|LLC|Corp\.|Corporation|Company)\b/g) || [];
+function generateConceptMap(content: string): string {
+  const { concepts, facts, categories } = extractKnowledge(content);
+  const center = sanitize(concepts[0] || "Core Knowledge");
+  const nodes: string[] = [`  C(("${center.slice(0, 30)}"))`];
+  const edges: string[] = [];
+  let idx = 0;
 
-  emailMatches.slice(0, 3).forEach(v => entities.push({ type: "Email", value: v.slice(0, 30) }));
-  urlMatches.slice(0, 3).forEach(v => entities.push({ type: "URL", value: new URL(v).hostname.slice(0, 25) }));
-  orgMatches.slice(0, 3).forEach(v => entities.push({ type: "Org", value: v.trim().slice(0, 25) }));
-
-  // Also extract headings as key topics
-  const headings = (content.match(/^#{1,3}\s+(.+)/gm) || []).slice(0, 4).map(h => h.replace(/^#+\s+/, "").replace(/\*/g, "").slice(0, 30));
-  headings.forEach(h => entities.push({ type: "Topic", value: h }));
-
-  if (entities.length === 0) {
-    const words = content.split(/\s+/).filter(w => w.length > 5 && /^[A-Z]/.test(w)).slice(0, 5);
-    words.forEach(w => entities.push({ type: "Entity", value: w.replace(/[^a-zA-Z]/g, "").slice(0, 20) }));
+  const cats = Object.keys(categories).slice(0, 6);
+  if (cats.length > 1) {
+    for (const cat of cats) {
+      const clean = sanitize(cat).slice(0, 35);
+      if (!clean || clean === center.slice(0, 30)) continue;
+      const nid = `B${idx++}`;
+      nodes.push(`  ${nid}["${clean}"]`);
+      edges.push(`  C --- ${nid}`);
+      const items = (categories[cat] || []).slice(0, 3);
+      items.forEach((item, j) => {
+        const iid = `L${idx}_${j}`;
+        const cleanItem = sanitize(item).slice(0, 40);
+        if (cleanItem) {
+          nodes.push(`  ${iid}["${cleanItem}"]`);
+          edges.push(`  ${nid} --- ${iid}`);
+        }
+      });
+    }
+  } else {
+    // Flat: use facts as branches
+    facts.slice(0, 8).forEach((f, i) => {
+      const clean = sanitize(f).slice(0, 50);
+      if (clean) {
+        nodes.push(`  F${i}["${clean}"]`);
+        edges.push(`  C --- F${i}`);
+      }
+    });
   }
 
-  const limited = entities.slice(0, 10);
-  if (limited.length === 0) return `graph TD\n  C["No entities detected"]`;
-
-  const nodes = limited.map((e, i) => `  N${i}["${e.type}: ${e.value}"]`);
-  const links = limited.map((_, i) => `  C --> N${i}`);
-  return `graph TD\n  C["Analysis"]\n${nodes.join("\n")}\n${links.join("\n")}`;
+  if (edges.length === 0) return `graph TD\n  C["No concepts extracted"]`;
+  return `graph TD\n${nodes.join("\n")}\n${edges.join("\n")}`;
 }
 
-const DIAGRAM_TYPES: { id: DiagramType; label: string; desc: string }[] = [
-  { id: "flow", label: "Flow", desc: "Step-by-step flow" },
-  { id: "mind", label: "Mind Map", desc: "Topic branches" },
-  { id: "timeline", label: "Timeline", desc: "Sequential events" },
-  { id: "entity", label: "Entities", desc: "Key entities & links" },
+function generateCausalDiagram(content: string): string {
+  const { relationships, facts } = extractKnowledge(content);
+  const nodes: string[] = [];
+  const edges: string[] = [];
+  let idx = 0;
+  const nodeMap: Record<string, string> = {};
+
+  const getNode = (label: string) => {
+    const clean = sanitize(label).slice(0, 45);
+    if (!clean) return null;
+    if (!nodeMap[clean]) {
+      nodeMap[clean] = `N${idx++}`;
+      nodes.push(`  ${nodeMap[clean]}["${clean}"]`);
+    }
+    return nodeMap[clean];
+  };
+
+  for (const rel of relationships.slice(0, 10)) {
+    const from = getNode(rel.from);
+    const to = getNode(rel.to);
+    if (from && to) edges.push(`  ${from} ==>|${sanitize(rel.label)}| ${to}`);
+  }
+
+  // Fallback: chain key facts as logical sequence
+  if (edges.length < 2) {
+    const keyFacts = facts.filter(f => f.length > 15).slice(0, 8);
+    keyFacts.forEach((f, i) => {
+      const n = getNode(f.slice(0, 50));
+      if (n && i > 0) {
+        const prev = `N${i - 1}`;
+        edges.push(`  ${prev} ==> ${n}`);
+      }
+    });
+  }
+
+  if (nodes.length === 0) return `graph TD\n  C["No causal links detected"]`;
+  return `graph TD\n${nodes.join("\n")}\n${edges.join("\n")}`;
+}
+
+function generateTaxonomy(content: string): string {
+  const { categories, concepts } = extractKnowledge(content);
+  const root = sanitize(concepts[0] || "Knowledge Base").slice(0, 30);
+  const nodes: string[] = [`  R["${root}"]`];
+  const edges: string[] = [];
+  let idx = 0;
+
+  const cats = Object.entries(categories).slice(0, 6);
+  for (const [cat, items] of cats) {
+    const clean = sanitize(cat).slice(0, 35);
+    if (!clean || clean === root) continue;
+    const cid = `C${idx++}`;
+    nodes.push(`  ${cid}["${clean}"]`);
+    edges.push(`  R --> ${cid}`);
+    items.slice(0, 4).forEach((item, j) => {
+      const iclean = sanitize(item).slice(0, 40);
+      if (iclean) {
+        const iid = `I${idx}_${j}`;
+        nodes.push(`  ${iid}["${iclean}"]`);
+        edges.push(`  ${cid} --> ${iid}`);
+      }
+    });
+  }
+
+  if (edges.length === 0) return `graph TD\n  R["No taxonomy structure found"]`;
+  return `graph TD\n${nodes.join("\n")}\n${edges.join("\n")}`;
+}
+
+/* ── Component ── */
+
+const DIAGRAM_TYPES: { id: DiagramType; label: string; desc: string; icon: typeof Brain }[] = [
+  { id: "knowledge", label: "Knowledge Graph", desc: "Concepts & relationships", icon: Brain },
+  { id: "concepts", label: "Concept Map", desc: "Ideas & connections", icon: Lightbulb },
+  { id: "causal", label: "Causal Chain", desc: "Cause & effect links", icon: Link2 },
+  { id: "taxonomy", label: "Taxonomy", desc: "Categorized knowledge", icon: Layers },
 ];
 
 const MessageDiagramPanel = ({ open, content, onClose }: MessageDiagramPanelProps) => {
-  const [diagramType, setDiagramType] = useState<DiagramType>("flow");
+  const [diagramType, setDiagramType] = useState<DiagramType>("knowledge");
   const [copied, setCopied] = useState(false);
 
   const mermaidCode = useMemo(() => {
     switch (diagramType) {
-      case "flow": return generateFlowDiagram(content);
-      case "mind": return generateMindMap(content);
-      case "timeline": return generateTimeline(content);
-      case "entity": return generateEntityDiagram(content);
-      default: return generateFlowDiagram(content);
+      case "knowledge": return generateKnowledgeGraph(content);
+      case "concepts": return generateConceptMap(content);
+      case "causal": return generateCausalDiagram(content);
+      case "taxonomy": return generateTaxonomy(content);
+      default: return generateKnowledgeGraph(content);
     }
   }, [content, diagramType]);
 
@@ -139,30 +274,37 @@ const MessageDiagramPanel = ({ open, content, onClose }: MessageDiagramPanelProp
 
   if (!open) return null;
 
-  // Simple visual rendering of the mermaid graph (parsed nodes + edges)
+  // Parse mermaid into visual nodes + edges
   const parsedNodes: { id: string; label: string }[] = [];
-  const parsedEdges: { from: string; to: string }[] = [];
+  const parsedEdges: { from: string; to: string; label?: string }[] = [];
 
   for (const line of mermaidCode.split("\n")) {
-    const nodeMatch = line.match(/^\s+(\w+)\["(.+?)"\]/);
-    if (nodeMatch) parsedNodes.push({ id: nodeMatch[1], label: nodeMatch[2] });
-    const edgeMatch = line.match(/^\s+(\w+)\s*-->\s*(\w+)/);
-    if (edgeMatch) parsedEdges.push({ from: edgeMatch[1], to: edgeMatch[2] });
+    const roundNode = line.match(/^\s+(\w+)\(\("(.+?)"\)\)/);
+    if (roundNode) { parsedNodes.push({ id: roundNode[1], label: roundNode[2] }); continue; }
+    const squareNode = line.match(/^\s+(\w+)\["(.+?)"\]/);
+    if (squareNode) parsedNodes.push({ id: squareNode[1], label: squareNode[2] });
+    const labeledEdge = line.match(/^\s+(\w+)\s*(?:-->|==>|---)\|(.+?)\|\s*(\w+)/);
+    if (labeledEdge) { parsedEdges.push({ from: labeledEdge[1], to: labeledEdge[3], label: labeledEdge[2] }); continue; }
+    const simpleEdge = line.match(/^\s+(\w+)\s*(?:-->|==>|---)\s*(\w+)/);
+    if (simpleEdge) parsedEdges.push({ from: simpleEdge[1], to: simpleEdge[2] });
   }
 
-  const isHorizontal = mermaidCode.startsWith("graph LR");
+  // Identify root/center nodes (no incoming edges)
+  const incomingSet = new Set(parsedEdges.map(e => e.to));
+  const rootNodes = parsedNodes.filter(n => !incomingSet.has(n.id));
+  const childNodes = parsedNodes.filter(n => incomingSet.has(n.id));
 
   return (
     <div className="mt-3 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/15">
         <div className="flex items-center gap-2">
-          <GitBranch className="h-3.5 w-3.5 text-accent" />
-          <span className="text-[11px] font-light text-foreground tracking-wide">Visual Diagram</span>
+          <Brain className="h-3.5 w-3.5 text-accent" />
+          <span className="text-[11px] font-light text-foreground tracking-wide">Knowledge Diagram</span>
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={handleCopy} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Copy Mermaid code">
-            {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+            {copied ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
           </button>
           <button onClick={onClose} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
             <X className="h-3 w-3" />
@@ -171,60 +313,36 @@ const MessageDiagramPanel = ({ open, content, onClose }: MessageDiagramPanelProp
       </div>
 
       {/* Type selector */}
-      <div className="flex items-center gap-1 px-4 py-2 border-b border-border/10">
-        {DIAGRAM_TYPES.map(dt => (
-          <button
-            key={dt.id}
-            onClick={() => setDiagramType(dt.id)}
-            title={dt.desc}
-            className={`px-2.5 py-1 rounded-lg text-[10px] font-light transition-all ${
-              diagramType === dt.id
-                ? "bg-accent/15 text-accent border border-accent/20"
-                : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5"
-            }`}
-          >
-            {dt.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-1 px-4 py-2 border-b border-border/10 overflow-x-auto">
+        {DIAGRAM_TYPES.map(dt => {
+          const Icon = dt.icon;
+          return (
+            <button
+              key={dt.id}
+              onClick={() => setDiagramType(dt.id)}
+              title={dt.desc}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-light transition-all whitespace-nowrap ${
+                diagramType === dt.id
+                  ? "bg-accent/15 text-accent border border-accent/20"
+                  : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5"
+              }`}
+            >
+              <Icon className="h-3 w-3" />
+              {dt.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Visual Diagram */}
+      {/* Visual Knowledge Diagram */}
       <div className="p-4 overflow-x-auto">
-        <div className={`flex ${isHorizontal ? "flex-row" : "flex-col"} items-center gap-2 min-w-fit`}>
-          {parsedNodes.map((node, idx) => {
-            const hasOutgoing = parsedEdges.some(e => e.from === node.id);
-            const isCenter = node.id === "C";
-            return (
-              <div key={node.id} className={`flex ${isHorizontal ? "flex-row" : "flex-col"} items-center gap-2`}>
-                <div
-                  className={`rounded-xl border px-3 py-2 text-[11px] font-light text-foreground transition-all whitespace-nowrap ${
-                    isCenter
-                      ? "bg-accent/15 border-accent/30 text-accent"
-                      : "bg-card/50 border-border/25 hover:border-accent/20 hover:bg-card/70"
-                  }`}
-                >
-                  {node.label}
-                </div>
-                {hasOutgoing && !isCenter && idx < parsedNodes.length - 1 && (
-                  <div className={`${isHorizontal ? "w-6 h-px" : "h-4 w-px"} bg-border/40`}>
-                    <ChevronDown className={`h-2.5 w-2.5 text-muted-foreground/30 ${isHorizontal ? "rotate-[-90deg] translate-y-[-4px]" : ""}`} />
-                  </div>
-                )}
-                {isCenter && (
-                  <div className={`${isHorizontal ? "w-6 h-px" : "h-4 w-px"} bg-accent/30`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Mind map layout for branching */}
-        {diagramType === "mind" && parsedNodes.length > 1 && (
-          <div className="mt-4 flex flex-wrap gap-2 justify-center">
-            {parsedNodes.filter(n => n.id !== "C").map(node => (
+        {/* Root / center nodes */}
+        {rootNodes.length > 0 && (
+          <div className="flex flex-wrap gap-2 justify-center mb-3">
+            {rootNodes.map(node => (
               <div
                 key={node.id}
-                className="rounded-xl border border-border/20 bg-card/40 px-3 py-2 text-[10px] font-light text-foreground/80"
+                className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent text-center max-w-[200px]"
               >
                 {node.label}
               </div>
@@ -232,17 +350,40 @@ const MessageDiagramPanel = ({ open, content, onClose }: MessageDiagramPanelProp
           </div>
         )}
 
-        {/* Entity layout for entity type */}
-        {diagramType === "entity" && parsedNodes.length > 1 && (
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {parsedNodes.filter(n => n.id !== "C").map(node => (
-              <div
-                key={node.id}
-                className="rounded-xl border border-border/20 bg-card/40 px-3 py-2 text-[10px] font-light text-foreground/80 text-center"
-              >
-                {node.label}
-              </div>
-            ))}
+        {/* Connection indicators */}
+        {rootNodes.length > 0 && childNodes.length > 0 && (
+          <div className="flex justify-center mb-3">
+            <div className="h-5 w-px bg-accent/30" />
+          </div>
+        )}
+
+        {/* Child knowledge nodes */}
+        {childNodes.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {childNodes.map(node => {
+              const edge = parsedEdges.find(e => e.to === node.id);
+              return (
+                <div
+                  key={node.id}
+                  className="rounded-xl border border-border/20 bg-card/50 px-3 py-2.5 hover:border-accent/20 hover:bg-card/70 transition-all group"
+                >
+                  {edge?.label && (
+                    <div className="text-[9px] text-accent/60 font-light mb-1 uppercase tracking-wider">
+                      {edge.label}
+                    </div>
+                  )}
+                  <div className="text-[11px] font-light text-foreground/90 leading-relaxed">
+                    {node.label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {parsedNodes.length === 0 && (
+          <div className="text-center text-[11px] text-muted-foreground/40 py-6">
+            No knowledge structure detected in this message
           </div>
         )}
       </div>
