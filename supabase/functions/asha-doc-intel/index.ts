@@ -68,8 +68,8 @@ async function processDocument(supabase: any, userId: string, documentId: string
   const text = await fileData.text();
   const truncatedText = text.slice(0, 30000); // Limit for Gemini context
 
-  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
   // Detect document type and extract entities via Gemini
   const aiResp = await fetch(
@@ -225,8 +225,8 @@ async function searchDocuments(supabase: any, userId: string, query: string) {
     supabase.from("asha_document_entities").select("document_id, entity_type, entity_value, entity_label, confidence").eq("user_id", userId).order("confidence", { ascending: false }).limit(500),
   ]);
 
-  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
   // Build document index for Gemini
   const docIndex = (docs || []).map((d: any) => ({

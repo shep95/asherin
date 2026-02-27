@@ -370,8 +370,8 @@ serve(async (req) => {
     const intelligence = await gatherIntelligence(lastUserMessage);
 
     // 2. SYNTHESIZE WITH AI
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
+    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
     const prompt = `
 USER QUERY: "${lastUserMessage}"

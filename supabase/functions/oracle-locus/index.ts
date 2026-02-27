@@ -9,8 +9,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
     const { image_base64, image_type } = await req.json();
     if (!image_base64) throw new Error("No image provided");

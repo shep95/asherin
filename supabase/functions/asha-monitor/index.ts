@@ -28,7 +28,7 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     let alertsCreated = 0;
 
     for (const rule of rules) {

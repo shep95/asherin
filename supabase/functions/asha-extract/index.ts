@@ -27,8 +27,8 @@ serve(async (req) => {
     const { sessionId, companyName, content: rawContent } = await req.json();
     if (!sessionId) throw new Error("Missing sessionId");
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
     // [Finding #8/#11] Sanitize and truncate input content to prevent OOM / token waste
     const MAX_INPUT_CHARS = 50000;
