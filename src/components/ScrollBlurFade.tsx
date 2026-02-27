@@ -25,7 +25,7 @@ const ScrollBlurFade = ({ children, className = "", delay = 0 }: Props) => {
           observer.unobserve(el);
         }
       },
-      { threshold: 0.08, rootMargin: "0px 0px -30px 0px" }
+      { threshold: 0.05, rootMargin: "0px 0px -60px 0px" }
     );
 
     observer.observe(el);
@@ -35,10 +35,10 @@ const ScrollBlurFade = ({ children, className = "", delay = 0 }: Props) => {
   return (
     <div
       ref={ref}
-      className={`transition-all duration-[800ms] ease-out ${
+      className={`transition-all duration-[1400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isVisible
           ? "opacity-100 translate-y-0 blur-0"
-          : "opacity-0 translate-y-6 blur-[6px]"
+          : "opacity-0 translate-y-10 blur-[8px]"
       } ${className}`}
     >
       {children}
