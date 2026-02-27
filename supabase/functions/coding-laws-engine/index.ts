@@ -16,9 +16,9 @@ serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) {
+    return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -96,22 +96,24 @@ Return JSON:
 
 IMPORTANT: Every law must be genuinely useful for code generation. No vague philosophy — concrete, enforceable engineering principles only. If you cannot find truly unique laws, return EMPTY arrays rather than creating duplicates.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "You are the Coding Laws Engine. Return ONLY valid JSON. No markdown fences." },
-          { role: "user", content: discoveryPrompt },
-        ],
-        temperature: 0.4,
-        max_tokens: 4096,
-      }),
-    });
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: "You are the Coding Laws Engine. Return ONLY valid JSON. No markdown fences." }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: discoveryPrompt }],
+            },
+          ],
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
@@ -120,7 +122,7 @@ IMPORTANT: Every law must be genuinely useful for code generation. No vague phil
     }
 
     const aiData = await aiResponse.json();
-    let rawContent = aiData.choices?.[0]?.message?.content || "";
+    let rawContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
     
     // Strip markdown fences if present
     rawContent = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
