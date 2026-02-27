@@ -435,15 +435,15 @@ const SettingsView = () => {
           </div>
           <div className="space-y-1.5">
             {[
-              { keys: "⌘ K", desc: "Open Command Palette" },
-              { keys: "⌘ N", desc: "New Conversation" },
+              { keys: "Ctrl+K", desc: "Open Command Palette" },
+              { keys: "Ctrl+N", desc: "New Conversation" },
               { keys: "Enter", desc: "Send Message" },
-              { keys: "Shift + Enter", desc: "New Line" },
+              { keys: "Shift+Enter", desc: "New Line" },
               { keys: "Tab", desc: "Accept Autocomplete" },
-              { keys: "⌘ 1", desc: "Chat Mode" },
-              { keys: "⌘ 2", desc: "Code Mode" },
-              { keys: "⌘ 3", desc: "Research Mode" },
-              { keys: "⌘ 4", desc: "Truth Mode" },
+              { keys: "Ctrl+1", desc: "Chat Mode" },
+              { keys: "Ctrl+2", desc: "Code Mode" },
+              { keys: "Ctrl+3", desc: "Research Mode" },
+              { keys: "Ctrl+4", desc: "Truth Mode" },
               { keys: "Esc", desc: "Close Modal / Stop" },
               { keys: "↑ ↓", desc: "Navigate Command Palette" },
             ].map((s) => (

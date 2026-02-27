@@ -93,7 +93,7 @@ const IdeQuickOpen = ({ open, onClose, files, onSelectFile }: Props) => {
             placeholder="Go to file..."
             className="flex-1 bg-transparent text-sm font-light text-foreground outline-none placeholder:text-muted-foreground/40"
           />
-          <span className="text-[9px] text-muted-foreground/30">⌘P</span>
+          <span className="text-[9px] text-muted-foreground/30">Ctrl+P</span>
         </div>
         <div className="max-h-[300px] overflow-y-auto py-1">
           {filtered.length === 0 ? (
