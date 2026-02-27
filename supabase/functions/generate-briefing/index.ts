@@ -228,8 +228,8 @@ serve(async (req) => {
       : "";
 
     // Generate briefing with Gemini
-    const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiKey) throw new Error("GEMINI_API_KEY not set");
+    const geminiKey = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!geminiKey) throw new Error("GEMINI_API_KEY_APP not set");
 
     const now = new Date();
     const today = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });

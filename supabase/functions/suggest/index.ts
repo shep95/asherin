@@ -34,8 +34,8 @@ serve(async (req) => {
 
   try {
     const { lastAssistantMessage } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP is not configured");
 
     // ── Inject Coding Laws into suggest prompt ──
     try {

@@ -27,8 +27,8 @@ serve(async (req) => {
     const { companyName, ticker, domain, sessionId, concerns, people, competitors, timeframe } = await req.json();
     if (!companyName?.trim()) throw new Error("Missing companyName");
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
     const results = {
       secFilings: 0,

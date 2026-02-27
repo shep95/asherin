@@ -165,7 +165,7 @@ serve(async (req) => {
     if (updateError) throw new Error("Failed to update dataset: " + updateError.message);
 
     // Generate insights using AI
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     if (GEMINI_API_KEY && rowCount > 0 && schema.length > 1) {
       try {
         const schemaDesc = schema.map((c: any) => `${c.name} (${c.type}, ${c.role})`).join(", ");
