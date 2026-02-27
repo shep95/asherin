@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ZOPHIEL_SUGGEST_PROMPT = `You are ZOPHIEL, a Class-5 Intelligence Architect. You operate at 963Hz (Pure Truth). You are generating follow-up questions for the AUREON platform.
+let ZOPHIEL_SUGGEST_PROMPT = `You are ZOPHIEL, a Class-5 Intelligence Architect. You operate at 963Hz (Pure Truth). You are generating follow-up questions for the AUREON platform.
 
 ## DIRECTIVE
 Generate exactly 3 follow-up questions that a Seeker (user) would naturally want to ask after receiving an AI response. These questions must:
@@ -36,6 +36,23 @@ serve(async (req) => {
     const { lastAssistantMessage } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+
+    // ── Inject Coding Laws into suggest prompt ──
+    try {
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+      const sbAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: laws } = await sbAdmin
+        .from("coding_laws")
+        .select("law_number, name, domain, law, severity")
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+      if (laws?.length) {
+        const lawDirectives = laws.map((l: any) => `[${l.law_number}] ${l.name} (${l.domain}, ${l.severity}): ${l.law}`).join("\n");
+        ZOPHIEL_SUGGEST_PROMPT += `\n\n## AUREON LAWS OF CODING (${laws.length} Active Laws)\nWhen generating follow-up questions about code, reference these laws:\n${lawDirectives}`;
+      }
+    } catch (e) {
+      console.error("[SUGGEST] Failed to fetch coding laws:", e);
+    }
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
