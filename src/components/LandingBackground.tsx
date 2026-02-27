@@ -45,7 +45,7 @@ const LandingBackground = ({ children, overlayOpacity = "bg-black/80" }: Props) 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 pointer-events-none"
         style={{ backgroundImage: `url(${wallpaper})` }}
       />
       <div className={`fixed inset-0 ${overlayOpacity} pointer-events-none`} />
