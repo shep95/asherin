@@ -292,7 +292,7 @@ const AshaInner = () => {
                       <Keyboard className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent><p>Keyboard shortcuts (⌘/)</p></TooltipContent>
+                  <TooltipContent><p>Keyboard shortcuts (Ctrl+/)</p></TooltipContent>
                 </Tooltip>
               </div>
             </div>
@@ -345,7 +345,7 @@ const AshaInner = () => {
                     <div key={i} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{s.description}</span>
                       <kbd className="px-2 py-1 rounded bg-card/50 border border-border/20 text-xs font-mono text-foreground">
-                        {s.metaKey && '⌘ '}{s.key === 'Escape' ? 'Esc' : s.key.toUpperCase()}
+                        {s.metaKey && 'Ctrl+'}{s.key === 'Escape' ? 'Esc' : s.key.toUpperCase()}
                       </kbd>
                     </div>
                   ))}
