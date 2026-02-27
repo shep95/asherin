@@ -18,6 +18,7 @@ import wallpaperInferno from "@/assets/wallpaper-inferno.png";
 import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
 import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
 import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
+import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
@@ -33,6 +34,7 @@ const WALLPAPERS = [
   { key: "sorrow", label: "Sorrow", src: wallpaperSorrow },
   { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
   { key: "phantom", label: "Phantom", src: wallpaperPhantom },
+  { key: "abyss", label: "Abyss", src: wallpaperAbyss },
 ];
 
 const GitHubSettings = () => {

@@ -11,6 +11,7 @@ import wallpaperInferno from "@/assets/wallpaper-inferno.png";
 import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
 import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
 import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
+import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
 
 const WALLPAPER_MAP: Record<string, string> = {
   default: heroBgDefault,
@@ -26,6 +27,7 @@ const WALLPAPER_MAP: Record<string, string> = {
   sorrow: wallpaperSorrow,
   silhouette: wallpaperSilhouette,
   phantom: wallpaperPhantom,
+  abyss: wallpaperAbyss,
 };
 import React, { Suspense } from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
