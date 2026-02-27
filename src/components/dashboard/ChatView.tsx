@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import type { FileAttachment } from "./types";
@@ -22,6 +22,8 @@ import ScrollIntelligence from "./ScrollIntelligence";
 import SmartSelectionMenu from "./SmartSelectionMenu";
 import TypingIndicator from "./TypingIndicator";
 import { renderLinkPreviews } from "./LinkPreview";
+import MessageDiagramPanel from "./MessageDiagramPanel";
+import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -182,6 +184,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const [cotId, setCotId] = useState<string | null>(null);
+  const [diagramId, setDiagramId] = useState<string | null>(null);
+  const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -255,6 +259,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               </button>
             )}
             <ContextHealthIndicator messageCount={conversation.messages.length} />
+            <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
           </div>
         </div>
@@ -351,6 +356,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             <Eye className="h-3 w-3" />
                             Decode
                           </button>
+                          <button
+                            onClick={() => setDiagramId(diagramId === msg.id ? null : msg.id)}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <GitBranch className="h-3 w-3" />
+                            Diagram
+                          </button>
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
@@ -367,6 +379,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     />
                   )}
                   {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
+                  {msg.role === "assistant" && diagramId === msg.id && (
+                    <MessageDiagramPanel
+                      open={true}
+                      content={msg.content}
+                      onClose={() => setDiagramId(null)}
+                    />
+                  )}
                 </div>
               </div>
             ))}

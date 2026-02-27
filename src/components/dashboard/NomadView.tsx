@@ -6,9 +6,11 @@ import ReactMarkdown from "react-markdown";
 import {
   Send, Loader2, Crosshair, Globe, Building2, User, AtSign,
   Fingerprint, MapPin, Phone, Image, Shield, Sparkles,
-  History, X, Download, Clock, Check, WifiOff,
+  History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import MessageDiagramPanel from "./MessageDiagramPanel";
+import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 
 interface NomadInvestigation {
   id: string;
@@ -64,6 +66,9 @@ const NomadView = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [pastInvestigations, setPastInvestigations] = useState<NomadInvestigation[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [diagramId, setDiagramId] = useState<string | null>(null);
+  const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -241,13 +246,16 @@ const NomadView = () => {
               <p className="text-[10px] font-extralight tracking-wider text-muted-foreground">Public Intelligence Agent</p>
             </div>
           </div>
-          <button
-            onClick={loadHistory}
-            className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <History className="h-3 w-3" />
-            History
-          </button>
+          <div className="flex items-center gap-3">
+            <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
+            <button
+              onClick={loadHistory}
+              className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <History className="h-3 w-3" />
+              History
+            </button>
+          </div>
         </div>
       </div>
 
@@ -349,7 +357,8 @@ const NomadView = () => {
             ) : (
               messages.map(msg => (
                 <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-5 py-4 ${
+                <div className="max-w-[85%]">
+                  <div className={`rounded-2xl px-5 py-4 ${
                     msg.role === "user"
                       ? "bg-accent/15 border border-accent/20"
                       : "bg-card/30 border border-border/20"
@@ -375,6 +384,37 @@ const NomadView = () => {
                       </div>
                     )}
                   </div>
+                  {/* Action bar for assistant messages */}
+                  {msg.role === "assistant" && msg.content && !isLoading && (
+                    <div className="flex items-center gap-2 mt-1.5 px-1 animate-fade-in">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(msg.content);
+                          setCopiedId(msg.id);
+                          setTimeout(() => setCopiedId(null), 2000);
+                        }}
+                        className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                      >
+                        {copiedId === msg.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        {copiedId === msg.id ? "Copied" : "Copy"}
+                      </button>
+                      <button
+                        onClick={() => setDiagramId(diagramId === msg.id ? null : msg.id)}
+                        className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                      >
+                        <GitBranch className="h-3 w-3" />
+                        Diagram
+                      </button>
+                    </div>
+                  )}
+                  {msg.role === "assistant" && diagramId === msg.id && (
+                    <MessageDiagramPanel
+                      open={true}
+                      content={msg.content}
+                      onClose={() => setDiagramId(null)}
+                    />
+                  )}
+                </div>
                 </div>
               ))
             )}
