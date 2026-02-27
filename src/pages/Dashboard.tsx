@@ -126,7 +126,9 @@ const Dashboard = () => {
   const { toast } = useToast();
   const { canAccess, tierKey } = useAccess();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [activeConvId, setActiveConvId] = useState<string | null>(() => {
+    try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
+  });
   const [activeView, setActiveView] = useState<DashboardView>("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
@@ -451,12 +453,22 @@ const Dashboard = () => {
         }));
 
         setConversations(convs);
-        setActiveConvId(convs[0]?.id ?? null);
+        // Restore last active conversation if it still exists, otherwise fall back to most recent
+        const savedConvId = localStorage.getItem("aureon_active_conv_id");
+        const restoredConv = savedConvId ? convs.find(c => c.id === savedConvId) : null;
+        setActiveConvId(restoredConv ? restoredConv.id : (convs[0]?.id ?? null));
       }
       setLoaded(true);
     };
     load();
   }, [user]);
+
+  // Persist active conversation id so tab-switching remembers it
+  useEffect(() => {
+    if (activeConvId) {
+      localStorage.setItem("aureon_active_conv_id", activeConvId);
+    }
+  }, [activeConvId]);
 
   // Keep ref in sync so sendMessageCore always reads latest conversations
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
