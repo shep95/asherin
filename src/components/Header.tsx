@@ -143,8 +143,8 @@ const Header = () => {
               </Link>
             ) : (
               <>
-                <button onClick={() => openAuth(true)} className="rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Log in</button>
-                <button onClick={() => openAuth(false)} className="rounded-lg bg-foreground px-5 py-1.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">Sign up</button>
+                <button onClick={() => openAuth(true)} className="cursor-pointer rounded-lg px-5 py-1.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10">Log in</button>
+                <button onClick={() => openAuth(false)} className="cursor-pointer rounded-lg bg-foreground px-5 py-1.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">Sign up</button>
               </>
             )}
           </div>
