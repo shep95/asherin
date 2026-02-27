@@ -791,21 +791,36 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }),
     ];
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: geminiMessages,
-          generationConfig: { temperature: 0.7 },
-        }),
-      },
-    );
+    // Retry with exponential backoff for rate limits
+    const MAX_RETRIES = 4;
+    let response: Response | null = null;
+    let lastError = "";
 
-    if (!response.ok) {
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: geminiMessages,
+            generationConfig: { temperature: 0.7 },
+          }),
+        },
+      );
+
+      if (response.ok) break;
+
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 16000);
+        console.log(`Rate limited (429), retry ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+
+      // Non-retryable error or max retries exhausted
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait a moment and try again." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -814,9 +829,15 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("Gemini API error:", response.status, t);
+      lastError = await response.text();
+      console.error("Gemini API error:", response.status, lastError);
       return new Response(JSON.stringify({ error: "AI gateway error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!response || !response.ok) {
+      return new Response(JSON.stringify({ error: "AI gateway error after retries" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
