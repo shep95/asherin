@@ -1,11 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-import { Brain, ExternalLink, Loader2, Globe, CheckCircle2, Sparkles, ArrowRight, SkipForward } from "lucide-react";
+import { Brain, ExternalLink, Loader2, Globe, CheckCircle2, Sparkles, ArrowRight, SkipForward, Shield, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface DeepSource {
   url: string;
   title: string;
   domain: string;
+  tier?: number;
+  provenanceScore?: number;
+  hostile?: boolean;
+}
+
+interface CrossValidation {
+  totalSources: number;
+  tier1Count: number;
+  tier2Count: number;
+  hostileCount: number;
+  averageProvenance: number;
+  consensusStrength: 'strong' | 'moderate' | 'weak' | 'insufficient';
 }
 
 interface ClarifyQuestion {
@@ -19,11 +31,26 @@ interface DeepSearchPanelProps {
   onClose: () => void;
 }
 
+const TIER_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: 'PRIMARY', color: 'text-emerald-400' },
+  2: { label: 'ESTABLISHED', color: 'text-blue-400' },
+  3: { label: 'INSTITUTIONAL', color: 'text-amber-400' },
+  4: { label: 'GENERAL', color: 'text-muted-foreground/60' },
+};
+
+const CONSENSUS_CONFIG: Record<string, { label: string; color: string; icon: typeof ShieldCheck }> = {
+  strong: { label: 'STRONG', color: 'text-emerald-400', icon: ShieldCheck },
+  moderate: { label: 'MODERATE', color: 'text-blue-400', icon: Shield },
+  weak: { label: 'WEAK', color: 'text-amber-400', icon: ShieldAlert },
+  insufficient: { label: 'INSUFFICIENT', color: 'text-red-400', icon: AlertTriangle },
+};
+
 const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
   const [sources, setSources] = useState<DeepSource[]>([]);
   const [totalFound, setTotalFound] = useState(0);
+  const [validation, setValidation] = useState<CrossValidation | null>(null);
   const [content, setContent] = useState("");
-  const [phase, setPhase] = useState<"clarifying" | "searching" | "analyzing" | "streaming" | "done">("clarifying");
+  const [phase, setPhase] = useState<"clarifying" | "searching" | "validating" | "analyzing" | "streaming" | "done">("clarifying");
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<ClarifyQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -31,7 +58,6 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // [Finding #9] — AbortController to cancel stale searches when query changes
   useEffect(() => {
     const controller = new AbortController();
     const fetchQuestions = async () => {
@@ -60,7 +86,6 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
         }
       } catch (e: any) {
         if (e.name === "AbortError") return;
-        console.error("Failed to get clarifying questions:", e);
       }
       if (!controller.signal.aborted) {
         setLoadingQuestions(false);
@@ -87,6 +112,7 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
     abortRef.current = new AbortController();
     setContent("");
     setSources([]);
+    setValidation(null);
     setError(null);
 
     try {
@@ -133,6 +159,9 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
             if (parsed.type === "sources") {
               setSources(parsed.sources || []);
               setTotalFound(parsed.totalSearchResults || 0);
+              if (parsed.validation) setValidation(parsed.validation);
+              setPhase("validating");
+              await new Promise(r => setTimeout(r, 800));
               setPhase("analyzing");
               await new Promise(r => setTimeout(r, 600));
               setPhase("streaming");
@@ -147,7 +176,6 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
       setPhase("done");
     } catch (e: any) {
       if (e.name === "AbortError") return;
-      console.error("Deep search error:", e);
       setError(e.message || "Deep search failed");
       setPhase("done");
     }
@@ -157,12 +185,13 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
     return () => { abortRef.current?.abort(); };
   }, []);
 
-  // Auto-scroll
   useEffect(() => {
     if (contentRef.current && phase === "streaming") {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
     }
   }, [content, phase]);
+
+  const consensusInfo = validation ? CONSENSUS_CONFIG[validation.consensusStrength] : null;
 
   return (
     <div className="flex flex-col h-full animate-fade-in">
@@ -171,6 +200,7 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-accent" />
           <span className="text-xs font-medium text-foreground tracking-wide">DEEP SEARCH</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-mono">TRUTH GRAPH</span>
         </div>
         <span className="text-[10px] text-muted-foreground/50 truncate flex-1">"{query}"</span>
       </div>
@@ -181,13 +211,13 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
           {loadingQuestions ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Sparkles className="h-6 w-6 text-accent animate-pulse" />
-              <p className="text-xs text-muted-foreground/60">Analyzing your query for precision targeting…</p>
+              <p className="text-xs text-muted-foreground/60">Semantic Intent Engine analyzing query vector…</p>
             </div>
           ) : questions.length > 0 ? (
             <div className="max-w-lg mx-auto space-y-5">
               <div className="text-center space-y-1.5 mb-6">
-                <h3 className="text-sm font-medium text-foreground tracking-wide">REFINE YOUR SEARCH</h3>
-                <p className="text-[11px] text-muted-foreground/60">Answer these to get a laser-focused intelligence report</p>
+                <h3 className="text-sm font-medium text-foreground tracking-wide">SEMANTIC INTENT CALIBRATION</h3>
+                <p className="text-[11px] text-muted-foreground/60">Calibrate the Truth Graph for maximum precision targeting</p>
               </div>
 
               {questions.map((q) => (
@@ -217,7 +247,7 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-all"
                 >
                   <ArrowRight className="h-3.5 w-3.5" />
-                  Search with context
+                  Execute Truth Graph Protocol
                 </button>
                 <button
                   onClick={() => startDeepSearch({})}
@@ -236,9 +266,37 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
       {phase !== "clarifying" && (
         <div className="flex-shrink-0 px-4 py-2.5 border-b border-border/10 bg-card/20">
           <div className="flex items-center gap-4 text-[10px]">
-            <PhaseStep label="Searching web" active={phase === "searching"} done={phase !== "searching"} />
+            <PhaseStep label="Multi-vector search" active={phase === "searching"} done={phase !== "searching"} />
+            <PhaseStep label="Cross-source validation" active={phase === "validating"} done={["analyzing", "streaming", "done"].includes(phase)} />
             <PhaseStep label={`Scraping ${sources.length} sources`} active={phase === "analyzing"} done={phase === "streaming" || phase === "done"} />
-            <PhaseStep label="AI synthesis" active={phase === "streaming"} done={phase === "done"} />
+            <PhaseStep label="Truth Graph synthesis" active={phase === "streaming"} done={phase === "done"} />
+          </div>
+        </div>
+      )}
+
+      {/* Truth Graph Validation Bar */}
+      {validation && (
+        <div className="flex-shrink-0 px-4 py-2 border-b border-border/10 bg-card/10">
+          <div className="flex items-center gap-3 text-[10px]">
+            {consensusInfo && (
+              <div className={`flex items-center gap-1 ${consensusInfo.color}`}>
+                <consensusInfo.icon className="h-3 w-3" />
+                <span className="font-medium">CONSENSUS: {consensusInfo.label}</span>
+              </div>
+            )}
+            <span className="text-muted-foreground/30">|</span>
+            <span className="text-muted-foreground/50">
+              {validation.tier1Count} primary · {validation.tier2Count} established · {validation.averageProvenance > 0 ? `${Math.round(validation.averageProvenance * 100)}% avg provenance` : ''}
+            </span>
+            {validation.hostileCount > 0 && (
+              <>
+                <span className="text-muted-foreground/30">|</span>
+                <span className="text-red-400/70 flex items-center gap-1">
+                  <AlertTriangle className="h-2.5 w-2.5" />
+                  {validation.hostileCount} hostile flagged
+                </span>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -248,20 +306,28 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
         <div className="flex-shrink-0 px-4 py-2 border-b border-border/10 overflow-x-auto scrollbar-none">
           <div className="flex items-center gap-1.5">
             <span className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mr-1 shrink-0">Sources</span>
-            {sources.map((s, i) => (
-              <a
-                key={i}
-                href={s.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground hover:border-accent/30 transition-colors shrink-0"
-                title={s.title}
-              >
-                <Globe className="h-2.5 w-2.5" />
-                {s.domain}
-                <ExternalLink className="h-2 w-2 opacity-40" />
-              </a>
-            ))}
+            {sources.map((s, i) => {
+              const tierInfo = TIER_LABELS[s.tier || 4];
+              return (
+                <a
+                  key={i}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] transition-colors shrink-0 ${
+                    s.hostile
+                      ? 'border-red-500/30 bg-red-500/5 text-red-400 hover:border-red-500/50'
+                      : 'border-border/20 bg-card/30 text-muted-foreground hover:text-foreground hover:border-accent/30'
+                  }`}
+                  title={`${s.title} — ${tierInfo.label} (${s.provenanceScore ? Math.round(s.provenanceScore * 100) : '?'}% provenance)`}
+                >
+                  {s.hostile ? <AlertTriangle className="h-2.5 w-2.5" /> : <Globe className="h-2.5 w-2.5" />}
+                  <span className={`text-[8px] font-mono ${tierInfo.color}`}>{(s.tier || 4) === 1 ? '■' : (s.tier || 4) === 2 ? '◆' : '○'}</span>
+                  {s.domain}
+                  <ExternalLink className="h-2 w-2 opacity-40" />
+                </a>
+              );
+            })}
             {totalFound > sources.length && (
               <span className="text-[9px] text-muted-foreground/30 shrink-0">+{totalFound - sources.length} found</span>
             )}
@@ -282,9 +348,10 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
             <div className="flex flex-col items-center justify-center py-12 gap-3 animate-pulse">
               <Brain className="h-8 w-8 text-accent/40" />
               <p className="text-xs text-muted-foreground/50">
-                {phase === "searching" ? "Searching multiple angles across the web…" :
-                 phase === "analyzing" ? "Scraping and analyzing source content…" :
-                 "Synthesizing intelligence report…"}
+                {phase === "searching" ? "Executing multi-vector search across web intelligence…" :
+                 phase === "validating" ? "Cross-referencing sources against Immutable Truth Graph…" :
+                 phase === "analyzing" ? "Scraping and validating source integrity…" :
+                 "Constructing Causal Chain of Knowledge synthesis…"}
               </p>
             </div>
           )}
