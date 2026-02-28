@@ -7,6 +7,7 @@ import {
   Send, Loader2, Crosshair, Globe, Building2, User, AtSign,
   Fingerprint, MapPin, Phone, Image, Shield, Sparkles,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
+  Brain, TrendingUp, Network, ShieldCheck,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
@@ -47,14 +48,14 @@ interface NomadMessage {
 }
 
 const INVESTIGATION_TYPES = [
-  { id: "person", icon: User, label: "Person", desc: "Name, email, username" },
-  { id: "company", icon: Building2, label: "Company", desc: "Corp records, financials" },
-  { id: "domain", icon: Globe, label: "Domain / IP", desc: "WHOIS, DNS, certs" },
-  { id: "email", icon: AtSign, label: "Email", desc: "Breach checks, linked accounts" },
-  { id: "username", icon: Fingerprint, label: "Username", desc: "Cross-platform search" },
+  { id: "person", icon: User, label: "Person", desc: "Deep profile & predictions" },
+  { id: "company", icon: Building2, label: "Company", desc: "Truth Graph analysis" },
+  { id: "domain", icon: Globe, label: "Domain / IP", desc: "Infrastructure forensics" },
+  { id: "email", icon: AtSign, label: "Email", desc: "Breach & identity fusion" },
+  { id: "username", icon: Fingerprint, label: "Username", desc: "Cross-platform resolution" },
   { id: "address", icon: MapPin, label: "Address", desc: "Property, ownership" },
   { id: "phone", icon: Phone, label: "Phone", desc: "Carrier, reverse lookup" },
-  { id: "image", icon: Image, label: "Image", desc: "Reverse image search", comingSoon: true },
+  { id: "predictive", icon: TrendingUp, label: "Predictive", desc: "Behavioral trajectories" },
 ];
 
 const NomadView = () => {
@@ -201,10 +202,6 @@ const NomadView = () => {
   };
 
   const handleQuickInvestigate = (type: typeof INVESTIGATION_TYPES[0]) => {
-    if (type.comingSoon) {
-      toast({ title: "Coming Soon", description: `${type.label} investigation is in development.` });
-      return;
-    }
     setInput(`Investigate ${type.label.toLowerCase()}: `);
     inputRef.current?.focus();
   };
@@ -305,10 +302,15 @@ const NomadView = () => {
                   <div className="h-16 w-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto">
                     <Crosshair className="h-7 w-7 text-accent" />
                   </div>
-                  <h2 className="text-xl font-extralight tracking-wide text-foreground">NOMAD Intelligence</h2>
-                  <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    Describe your target. NOMAD queries 40+ public sources and generates a structured intelligence dossier.
-                  </p>
+                 <h2 className="text-xl font-extralight tracking-wide text-foreground">NOMAD v2.0</h2>
+                   <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
+                     Trans-Dimensional Intelligence Engine with Predictive Behavioral Modeling. Describe your target — NOMAD builds a Truth Graph from 40+ attested sources.
+                   </p>
+                   <div className="flex items-center justify-center gap-4 text-[9px] font-extralight tracking-wider text-muted-foreground/50">
+                     <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> PROVENANCE ATTESTED</span>
+                     <span className="flex items-center gap-1"><Brain className="h-3 w-3" /> PREDICTIVE ENGINE</span>
+                     <span className="flex items-center gap-1"><Network className="h-3 w-3" /> ENTITY RESOLUTION</span>
+                   </div>
                 </div>
 
                 {/* Investigation type grid */}
@@ -317,15 +319,8 @@ const NomadView = () => {
                     <button
                       key={type.id}
                       onClick={() => handleQuickInvestigate(type)}
-                      className={`group relative flex flex-col items-center gap-2.5 rounded-2xl border p-4 text-center transition-all ${
-                        type.comingSoon
-                          ? "border-border/10 bg-card/10 opacity-40 cursor-not-allowed"
-                          : "border-border/20 bg-card/20 hover:bg-card/40 hover:border-accent/20"
-                      }`}
+                      className="group relative flex flex-col items-center gap-2.5 rounded-2xl border border-border/20 bg-card/20 hover:bg-card/40 hover:border-accent/20 p-4 text-center transition-all"
                     >
-                      {type.comingSoon && (
-                        <span className="absolute top-2 right-2 text-[8px] font-extralight tracking-wider text-muted-foreground bg-card/60 rounded-lg px-1.5 py-0.5">SOON</span>
-                      )}
                       <type.icon className="h-5 w-5 text-accent/60 group-hover:text-accent transition-colors" />
                       <span className="text-[11px] font-light text-foreground">{type.label}</span>
                       <span className="text-[9px] font-extralight text-muted-foreground leading-tight">{type.desc}</span>
@@ -338,10 +333,10 @@ const NomadView = () => {
                   <p className="text-[10px] font-extralight tracking-wider text-muted-foreground/40 text-center uppercase">Examples</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {[
-                      "Investigate company: SpaceX — corporate structure and key personnel",
-                      "Deep dive on domain: example.com — full infrastructure analysis",
-                      "Research person: Elon Musk — public records and affiliations",
-                      "Email investigation: test@example.com — breach exposure check",
+                      "Investigate company: SpaceX — Truth Graph analysis with predictive trajectories",
+                      "Deep dive on domain: example.com — infrastructure forensics & provenance attestation",
+                      "Research person: Elon Musk — entity resolution, network mapping & behavioral predictions",
+                      "Predictive analysis: What is the probability Tesla acquires a lithium mining company?",
                     ].map(ex => (
                       <button
                         key={ex}
@@ -395,7 +390,7 @@ const NomadView = () => {
                         }}
                         className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                       >
-                        {copiedId === msg.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                        {copiedId === msg.id ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
                         {copiedId === msg.id ? "Copied" : "Copy"}
                       </button>
                       <button
