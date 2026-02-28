@@ -1106,11 +1106,34 @@ ${intelSections || 'No intelligence gathered from available sources.'}
 INSTRUCTIONS:
 Produce a NOMAD v3.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then a 2-paragraph intelligence summary. Be concise and direct — no tables, no headers, no filler. Include Bradley-Terry confidence and provenance data inline.`;
 
+    // Build conversation history for memory continuity
+    const conversationHistory: { role: string; parts: { text: string }[] }[] = [
+      { role: 'user', parts: [{ text: NOMAD_SYSTEM_PROMPT }] },
+    ];
+
+    // Inject prior conversation turns (skip the last user message — it's in `prompt`)
+    const priorMessages = messages.slice(0, -1);
+    if (priorMessages.length > 0) {
+      // Summarize prior turns to stay within context limits (last 10 exchanges max)
+      const recentHistory = priorMessages.slice(-20);
+      const historyBlock = recentHistory.map((m: { role: string; content: string }) => 
+        `[${m.role.toUpperCase()}]: ${m.content.slice(0, 2000)}`
+      ).join('\n\n');
+      
+      conversationHistory.push({
+        role: 'user',
+        parts: [{ text: `═══ CONVERSATION HISTORY (${recentHistory.length} prior messages) ═══\nThe user has been in an ongoing NOMAD session. Here is the conversation so far. Use this context to maintain continuity, resolve pronouns (e.g. "he", "they", "that company"), and build on previous findings.\n\n${historyBlock}\n\n═══ END CONVERSATION HISTORY ═══` }],
+      });
+      conversationHistory.push({
+        role: 'model',
+        parts: [{ text: 'Understood. I have full context of the prior conversation and will maintain continuity in my analysis.' }],
+      });
+    }
+
+    conversationHistory.push({ role: 'user', parts: [{ text: prompt }] });
+
     const geminiBody = JSON.stringify({
-      contents: [
-        { role: 'user', parts: [{ text: NOMAD_SYSTEM_PROMPT }] },
-        { role: 'user', parts: [{ text: prompt }] },
-      ],
+      contents: conversationHistory,
       generationConfig: { temperature: 0.2, maxOutputTokens: 16000 },
     });
 
