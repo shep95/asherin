@@ -3,15 +3,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// ── Source Credibility Tiers ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// IMMUTABLE TRUTH GRAPH — Source Credibility & Provenance System
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Tier 1: Primary Sources — direct government, scientific, regulatory bodies
 const TIER_1_DOMAINS = new Set([
   'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nature.com', 'science.org',
   'who.int', 'nih.gov', 'cdc.gov', 'nasa.gov', 'sec.gov', 'federalreserve.gov',
   'supremecourt.gov', 'congress.gov', 'whitehouse.gov', 'europa.eu',
   'worldbank.org', 'imf.org', 'un.org', 'arxiv.org', 'pubmed.ncbi.nlm.nih.gov',
   'scholar.google.com', 'jstor.org', 'ncbi.nlm.nih.gov', 'ieee.org',
+  'ecb.europa.eu', 'bis.org', 'wto.org', 'iaea.org', 'patents.google.com',
 ]);
 
+// Tier 2: Established Sources — major journalism, vetted tech documentation
 const TIER_2_DOMAINS = new Set([
   'nytimes.com', 'washingtonpost.com', 'theguardian.com', 'economist.com',
   'wsj.com', 'ft.com', 'bloomberg.com', 'cnbc.com', 'techcrunch.com',
@@ -22,9 +28,24 @@ const TIER_2_DOMAINS = new Set([
   'wikipedia.org', 'britannica.com', 'statista.com',
 ]);
 
-const TIER_3_PATTERNS = ['.gov', '.edu', '.ac.uk', '.ac.jp', '.edu.au'];
+const TIER_3_PATTERNS = ['.gov', '.edu', '.ac.uk', '.ac.jp', '.edu.au', '.mil'];
+
+// Hostile Source Indicators — domains known for manipulation, clickbait, or disinfo
+const HOSTILE_INDICATORS = new Set([
+  'infowars.com', 'naturalnews.com', 'beforeitsnews.com', 'globalresearch.ca',
+  'zerohedge.com', 'breitbart.com', 'dailycaller.com',
+]);
 
 type SourceTier = 1 | 2 | 3 | 4;
+
+interface TruthGraphNode {
+  tier: SourceTier;
+  tierLabel: string;
+  provenanceScore: number;  // 0-1: how traceable to primary sources
+  freshnessScore: number;   // 0-1: temporal relevance
+  hostileFlag: boolean;     // flagged as potentially manipulative
+  consensusWeight: number;  // how many other sources corroborate
+}
 
 function getSourceTier(domain: string): SourceTier {
   const clean = domain.replace(/^www\./, '');
@@ -43,6 +64,139 @@ function getTierLabel(tier: SourceTier): string {
     case 3: return 'Institutional';
     case 4: return 'General';
   }
+}
+
+function isHostile(domain: string): boolean {
+  const clean = domain.replace(/^www\./, '');
+  return HOSTILE_INDICATORS.has(clean);
+}
+
+// Calculate provenance score based on tier + domain signals
+function calculateProvenance(domain: string, tier: SourceTier, snippet: string): number {
+  let score = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
+  
+  // Boost for citing primary sources within snippet
+  const citationPatterns = /\b(according to|cited by|published in|data from|report by)\b/gi;
+  const citations = (snippet.match(citationPatterns) || []).length;
+  score = Math.min(1, score + citations * 0.05);
+  
+  // Penalize if hostile
+  if (isHostile(domain)) score *= 0.2;
+  
+  return Math.round(score * 100) / 100;
+}
+
+// Calculate freshness score
+function calculateFreshness(publishDate?: string): number {
+  if (!publishDate) return 0.5; // Unknown = neutral
+  try {
+    const pub = new Date(publishDate);
+    if (isNaN(pub.getTime())) return 0.5;
+    const daysSince = (Date.now() - pub.getTime()) / 86400000;
+    if (daysSince <= 1) return 1.0;
+    if (daysSince <= 7) return 0.9;
+    if (daysSince <= 30) return 0.75;
+    if (daysSince <= 90) return 0.6;
+    if (daysSince <= 365) return 0.4;
+    return 0.2;
+  } catch { return 0.5; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SEMANTIC INTENT ENGINE — Understanding the "Why" Behind Queries
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface SemanticIntent {
+  primaryIntent: string;      // what the user ACTUALLY wants
+  queryDomain: string;        // knowledge domain
+  depthRequired: 'surface' | 'analysis' | 'forensic';
+  temporalBias: 'realtime' | 'recent' | 'historical' | 'none';
+  causalInterest: boolean;    // user wants cause-effect chains
+}
+
+function analyzeSemanticIntent(query: string): SemanticIntent {
+  const q = query.toLowerCase().trim();
+  
+  // Detect causal interest
+  const causalPatterns = /\b(impact|effect|cause|why|how does|relationship between|correlation|leads to|results in|consequence|because)\b/i;
+  const causalInterest = causalPatterns.test(q);
+  
+  // Detect temporal bias
+  let temporalBias: SemanticIntent['temporalBias'] = 'none';
+  if (/\b(today|now|current|latest|breaking|real-?time|live)\b/.test(q)) temporalBias = 'realtime';
+  else if (/\b(recent|this week|this month|2025|2026)\b/.test(q)) temporalBias = 'recent';
+  else if (/\b(history|historical|evolution|origin|timeline|past|ancient)\b/.test(q)) temporalBias = 'historical';
+  
+  // Detect depth required
+  let depthRequired: SemanticIntent['depthRequired'] = 'surface';
+  if (/\b(analysis|deep dive|comprehensive|forensic|investigate|detailed|explain|mechanism)\b/.test(q)) depthRequired = 'forensic';
+  else if (/\b(compare|versus|vs|pros cons|advantages|trade-?off|evaluate)\b/.test(q)) depthRequired = 'analysis';
+  
+  // Detect query domain
+  let queryDomain = 'general';
+  if (/\b(stock|market|price|earnings|trading|crypto|bitcoin|financial|economic|gdp|inflation|revenue)\b/.test(q)) queryDomain = 'finance';
+  else if (/\b(health|medical|treatment|symptom|disease|drug|medicine|clinical|diagnosis|therapy)\b/.test(q)) queryDomain = 'medical';
+  else if (/\b(code|programming|api|library|framework|algorithm|software|developer|debug|deploy)\b/.test(q)) queryDomain = 'technology';
+  else if (/\b(law|legal|regulation|compliance|statute|court|ruling|policy|legislation)\b/.test(q)) queryDomain = 'legal';
+  else if (/\b(science|research|study|experiment|hypothesis|theory|quantum|physics|chemistry|biology)\b/.test(q)) queryDomain = 'science';
+  else if (/\b(geopolit|military|defense|intelligence|espionage|conflict|war|sanction|diplomacy)\b/.test(q)) queryDomain = 'geopolitical';
+  
+  // Infer primary intent
+  let primaryIntent = 'information retrieval';
+  if (causalInterest) primaryIntent = 'causal analysis';
+  else if (/\b(how to|tutorial|guide|setup|install|configure)\b/.test(q)) primaryIntent = 'procedural guidance';
+  else if (/\b(compare|vs|versus|better|best|top)\b/.test(q)) primaryIntent = 'comparative analysis';
+  else if (/\b(define|definition|what is|meaning)\b/.test(q)) primaryIntent = 'definition lookup';
+  else if (/\b(predict|forecast|will|future|outlook)\b/.test(q)) primaryIntent = 'predictive analysis';
+  
+  return { primaryIntent, queryDomain, depthRequired, temporalBias, causalInterest };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CONSENSUS ENGINE — Cross-Reference Validation
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface ConsensusAnalysis {
+  consensusScore: number;       // 0-1: how much sources agree
+  corroboratedClaims: number;   // claims verified by 2+ sources
+  contradictions: number;       // claims that conflict across sources
+  uniqueClaims: number;         // claims from only 1 source
+}
+
+function analyzeConsensus(results: SearchResult[]): ConsensusAnalysis {
+  if (results.length < 2) return { consensusScore: 0.5, corroboratedClaims: 0, contradictions: 0, uniqueClaims: results.length };
+  
+  // Extract key phrases from snippets
+  const phraseMap = new Map<string, number>();
+  for (const r of results) {
+    const phrases = extractKeyPhrases(r.snippet);
+    for (const p of phrases) {
+      phraseMap.set(p, (phraseMap.get(p) || 0) + 1);
+    }
+  }
+  
+  let corroborated = 0;
+  let unique = 0;
+  for (const count of phraseMap.values()) {
+    if (count >= 2) corroborated++;
+    else unique++;
+  }
+  
+  const total = corroborated + unique;
+  const consensusScore = total > 0 ? Math.round((corroborated / total) * 100) / 100 : 0.5;
+  
+  return { consensusScore, corroboratedClaims: corroborated, contradictions: 0, uniqueClaims: unique };
+}
+
+function extractKeyPhrases(text: string): string[] {
+  if (!text) return [];
+  // Extract significant 2-3 word phrases
+  const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 3);
+  const phrases: string[] = [];
+  for (let i = 0; i < words.length - 1; i++) {
+    phrases.push(`${words[i]} ${words[i + 1]}`);
+  }
+  return phrases;
 }
 
 // ── Search Mode Configurations ───────────────────────────────────────────────
@@ -77,6 +231,9 @@ interface SearchResult {
   publishDate?: string;
   readingTimeMin?: number;
   category: 'primary' | 'breaking' | 'analysis' | 'background' | 'community' | 'multimedia' | 'general';
+  // Truth Graph fields
+  truthGraph: TruthGraphNode;
+  veracity: number; // composite truth score 0-100
 }
 
 interface SearchFilters {
@@ -123,17 +280,21 @@ function detectInstantAnswerType(query: string): string | null {
 }
 
 // ── Query Builder ────────────────────────────────────────────────────────────
-function buildSearchQuery(query: string, mode: SearchMode, filters?: SearchFilters, operatorOverrides?: string): string {
+function buildSearchQuery(query: string, mode: SearchMode, intent: SemanticIntent, filters?: SearchFilters, operatorOverrides?: string): string {
   let q = query.trim();
 
-  // Apply mode prefix
   const prefix = MODE_QUERY_PREFIX[mode];
   if (prefix) q = prefix + q;
 
-  // Apply operator overrides (raw search operators from the panel)
+  // Semantic Intent augmentation
+  if (intent.causalInterest && !q.includes('cause') && !q.includes('impact')) {
+    q += ' cause effect analysis';
+  }
+  if (intent.temporalBias === 'realtime') q += ' 2026';
+  if (intent.depthRequired === 'forensic') q += ' in-depth analysis';
+
   if (operatorOverrides) q += ' ' + operatorOverrides;
 
-  // Apply filters
   if (filters) {
     if (filters.domainInclude?.length) {
       q += ' ' + filters.domainInclude.map(d => `site:${d}`).join(' OR ');
@@ -155,12 +316,8 @@ function cleanHtml(html: string): string {
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<[^>]*>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -175,7 +332,6 @@ function extractDomain(url: string): string {
 }
 
 function extractDate(block: string): string | undefined {
-  // Try to find dates in various formats
   const datePatterns = [
     /(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{4})/i,
     /(\d{4}-\d{2}-\d{2})/,
@@ -193,11 +349,8 @@ const COMMUNITY_DOMAINS = new Set(['reddit.com', 'news.ycombinator.com', 'lobste
 
 function categorizeResult(result: { url: string; tier: SourceTier; snippet: string; publishDate?: string }): SearchResult['category'] {
   const domain = extractDomain(result.url);
-  
   if (result.tier === 1) return 'primary';
   if (COMMUNITY_DOMAINS.has(domain)) return 'community';
-  
-  // Check if it's recent news (within last 24h based on date)
   if (result.publishDate) {
     try {
       const pubDate = new Date(result.publishDate);
@@ -205,10 +358,7 @@ function categorizeResult(result: { url: string; tier: SourceTier; snippet: stri
       if (pubDate > dayAgo) return 'breaking';
     } catch { /* ignore */ }
   }
-  
-  // Long snippets suggest analysis
   if (result.snippet.length > 200) return 'analysis';
-  
   return 'general';
 }
 
@@ -216,7 +366,6 @@ function categorizeResult(result: { url: string; tier: SourceTier; snippet: stri
 async function searchDDG(query: string, page: number, dateFilter?: string): Promise<SearchResult[]> {
   const startParam = (page - 1) * 10;
   let ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&s=${startParam}`;
-  
   if (dateFilter) {
     const dfMap: Record<string, string> = { day: 'd', week: 'w', month: 'm', year: 'y' };
     if (dfMap[dateFilter]) ddgUrl += `&df=${dfMap[dateFilter]}`;
@@ -231,21 +380,18 @@ async function searchDDG(query: string, page: number, dateFilter?: string): Prom
   });
 
   if (!response.ok) return [];
-
   const html = await response.text();
   const results: SearchResult[] = [];
   const resultBlocks = html.split(/class="result\s/);
 
   for (let i = 1; i < resultBlocks.length && results.length < 20; i++) {
     const block = resultBlocks[i];
-
     const titleMatch = block.match(/class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/);
     if (!titleMatch) continue;
 
     let url = titleMatch[1];
     const uddgMatch = url.match(/uddg=([^&]*)/);
     if (uddgMatch) url = decodeURIComponent(uddgMatch[1]);
-
     const title = titleMatch[2].replace(/<[^>]*>/g, '').trim();
 
     const snippetMatch = block.match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
@@ -260,65 +406,37 @@ async function searchDDG(query: string, page: number, dateFilter?: string): Prom
     const tier = getSourceTier(domain);
     const publishDate = extractDate(block);
     const readingTimeMin = rawSnippet ? estimateReadingTime(rawSnippet) : undefined;
+    const hostile = isHostile(domain);
+    const provenanceScore = calculateProvenance(domain, tier, rawSnippet);
+    const freshnessScore = calculateFreshness(publishDate);
 
-    const result: SearchResult = {
-      title,
-      url,
-      snippet: rawSnippet,
-      source: source || domain,
+    // Composite veracity score: provenance (40%) + freshness (25%) + tier (35%)
+    const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.75 : tier === 3 ? 0.55 : 0.3;
+    const veracity = Math.round(
+      (provenanceScore * 0.4 + freshnessScore * 0.25 + tierScore * 0.35) * 100
+    );
+
+    const truthGraph: TruthGraphNode = {
       tier,
       tierLabel: getTierLabel(tier),
-      publishDate,
-      readingTimeMin,
+      provenanceScore,
+      freshnessScore,
+      hostileFlag: hostile,
+      consensusWeight: 0, // filled after consensus analysis
+    };
+
+    const result: SearchResult = {
+      title, url, snippet: rawSnippet, source: source || domain,
+      tier, tierLabel: getTierLabel(tier),
+      publishDate, readingTimeMin,
       category: 'general',
+      truthGraph, veracity,
     };
     result.category = categorizeResult(result);
     results.push(result);
   }
 
   return results;
-}
-
-// ── Page Content Extraction (Custom Scraper) ─────────────────────────────────
-async function extractPageContent(url: string): Promise<{ content: string; readingTimeMin: number } | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    
-    const resp = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html',
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (!resp.ok) return null;
-    const contentType = resp.headers.get('content-type') || '';
-    if (!contentType.includes('text/html')) return null;
-
-    const html = await resp.text();
-
-    // Extract main content - try article/main tags first, then body
-    let mainHtml = '';
-    const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
-    const mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
-    
-    if (articleMatch) mainHtml = articleMatch[1];
-    else if (mainMatch) mainHtml = mainMatch[1];
-    else {
-      const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-      mainHtml = bodyMatch ? bodyMatch[1] : html;
-    }
-
-    const content = cleanHtml(mainHtml).slice(0, 5000); // Cap at 5k chars
-    const readingTimeMin = estimateReadingTime(content);
-
-    return { content, readingTimeMin };
-  } catch {
-    return null;
-  }
 }
 
 // ── Instant Answer from DDG API ──────────────────────────────────────────────
@@ -329,34 +447,16 @@ async function fetchInstantAnswer(query: string): Promise<InstantAnswer | null> 
     const iaData = await iaResp.json();
 
     if (iaData.AbstractText) {
-      return {
-        type: 'abstract',
-        title: iaData.Heading || query,
-        value: iaData.AbstractText,
-        source: iaData.AbstractSource,
-        details: iaData.AbstractURL ? { url: iaData.AbstractURL } : undefined,
-      };
+      return { type: 'abstract', title: iaData.Heading || query, value: iaData.AbstractText, source: iaData.AbstractSource, details: iaData.AbstractURL ? { url: iaData.AbstractURL } : undefined };
     }
     if (iaData.Answer) {
-      return {
-        type: 'answer',
-        title: query,
-        value: iaData.Answer,
-        source: iaData.AnswerType || 'DuckDuckGo',
-      };
+      return { type: 'answer', title: query, value: iaData.Answer, source: iaData.AnswerType || 'DuckDuckGo' };
     }
     if (iaData.Definition) {
-      return {
-        type: 'definition',
-        title: iaData.Heading || query,
-        value: iaData.Definition,
-        source: iaData.DefinitionSource,
-      };
+      return { type: 'definition', title: iaData.Heading || query, value: iaData.Definition, source: iaData.DefinitionSource };
     }
     return null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 // ── Freshness Detection ──────────────────────────────────────────────────────
@@ -370,34 +470,29 @@ function checkFreshness(query: string, publishDate?: string): FreshnessAlert | n
   try {
     const pub = new Date(publishDate);
     if (isNaN(pub.getTime())) return null;
-    
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - pub.getTime()) / 86400000);
     const q = query.toLowerCase();
 
-    // Finance/markets — stale after 7 days
     if (/\b(stock|market|price|earnings|trading|crypto|bitcoin|eth)\b/.test(q) && diffDays > 7) {
       return { message: `This result is ${diffDays} days old. Financial data may have changed.`, severity: 'warning' };
     }
-    // News — stale after 3 days
     if (/\b(news|breaking|latest|update|today)\b/.test(q) && diffDays > 3) {
       return { message: `Published ${diffDays} days ago. Newer coverage may be available.`, severity: 'info' };
     }
-    // Tech — stale after 180 days
     if (/\b(tutorial|guide|how to|install|setup|config|version)\b/.test(q) && diffDays > 180) {
       return { message: `This article is ${Math.floor(diffDays / 30)} months old. Tech info may be outdated.`, severity: 'warning' };
     }
-    // Medical — stale after 365 days
     if (/\b(health|medical|treatment|symptom|disease|drug|medicine)\b/.test(q) && diffDays > 365) {
       return { message: `Published over a year ago. Medical guidance may have changed.`, severity: 'warning' };
     }
     return null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-// ── Main Handler ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ══════════════════════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -415,9 +510,11 @@ Deno.serve(async (req) => {
     }
 
     const trimmed = query.trim();
-    const builtQuery = buildSearchQuery(trimmed, mode, filters, operatorOverrides);
-
-    // Detect instant answer type
+    
+    // ── Semantic Intent Analysis ──
+    const semanticIntent = analyzeSemanticIntent(trimmed);
+    
+    const builtQuery = buildSearchQuery(trimmed, mode, semanticIntent, filters, operatorOverrides);
     const instantAnswerType = detectInstantAnswerType(trimmed);
 
     // Run search + instant answer in parallel
@@ -432,14 +529,41 @@ Deno.serve(async (req) => {
       filtered = filtered.filter(r => r.tier <= filters.credibilityMin!);
     }
 
-    // Boost mode-relevant domains to the top
+    // ── Consensus Analysis — cross-validate results ──
+    const consensus = analyzeConsensus(filtered);
+    
+    // Inject consensus weights back into truth graph nodes
+    for (const r of filtered) {
+      const phrases = extractKeyPhrases(r.snippet);
+      let corroborations = 0;
+      for (const other of filtered) {
+        if (other.url === r.url) continue;
+        const otherPhrases = new Set(extractKeyPhrases(other.snippet));
+        for (const p of phrases) {
+          if (otherPhrases.has(p)) { corroborations++; break; }
+        }
+      }
+      r.truthGraph.consensusWeight = Math.min(1, corroborations / Math.max(1, filtered.length - 1));
+      // Adjust veracity based on consensus
+      r.veracity = Math.min(100, Math.round(r.veracity * (0.8 + r.truthGraph.consensusWeight * 0.2)));
+    }
+
+    // ── Truth Graph Sorting — prioritize verified, high-provenance results ──
+    // Sort by veracity score (descending), then by tier
+    filtered.sort((a, b) => {
+      // Hostile sources always sink to bottom
+      if (a.truthGraph.hostileFlag !== b.truthGraph.hostileFlag) return a.truthGraph.hostileFlag ? 1 : -1;
+      // Then by veracity
+      if (b.veracity !== a.veracity) return b.veracity - a.veracity;
+      return a.tier - b.tier;
+    });
+
+    // Boost mode-relevant domains (secondary sort)
     const boostDomains = new Set(MODE_DOMAIN_BOOSTS[mode] || []);
     if (boostDomains.size > 0) {
-      filtered.sort((a, b) => {
-        const aBoost = boostDomains.has(extractDomain(a.url)) ? 0 : 1;
-        const bBoost = boostDomains.has(extractDomain(b.url)) ? 0 : 1;
-        return aBoost - bBoost;
-      });
+      const boosted = filtered.filter(r => boostDomains.has(extractDomain(r.url)));
+      const rest = filtered.filter(r => !boostDomains.has(extractDomain(r.url)));
+      filtered = [...boosted, ...rest];
     }
 
     // Group results by category
@@ -450,7 +574,7 @@ Deno.serve(async (req) => {
       grouped[cat].push(r);
     }
 
-    // Add freshness alerts
+    // Freshness alerts
     const freshnessAlerts: Record<string, FreshnessAlert> = {};
     for (const r of filtered) {
       const alert = checkFreshness(trimmed, r.publishDate);
@@ -470,6 +594,9 @@ Deno.serve(async (req) => {
         freshnessAlerts,
         page,
         totalResults: filtered.length,
+        // New Truth Graph metadata
+        semanticIntent,
+        consensus,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

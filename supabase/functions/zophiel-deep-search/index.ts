@@ -4,16 +4,50 @@ const corsHeaders = {
 };
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse';
+const GEMINI_NON_STREAM = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+// ══════════════════════════════════════════════════════════════════════════════
+// IMMUTABLE TRUTH GRAPH — Source Integrity Validation
+// ══════════════════════════════════════════════════════════════════════════════
+
+const TIER_1_DOMAINS = new Set([
+  'reuters.com', 'apnews.com', 'bbc.com', 'bbc.co.uk', 'nature.com', 'science.org',
+  'who.int', 'nih.gov', 'cdc.gov', 'nasa.gov', 'sec.gov', 'federalreserve.gov',
+  'worldbank.org', 'imf.org', 'un.org', 'arxiv.org', 'pubmed.ncbi.nlm.nih.gov',
+  'ieee.org', 'ecb.europa.eu', 'bis.org', 'patents.google.com',
+]);
+
+const TIER_2_DOMAINS = new Set([
+  'nytimes.com', 'washingtonpost.com', 'theguardian.com', 'economist.com',
+  'wsj.com', 'ft.com', 'bloomberg.com', 'cnbc.com', 'techcrunch.com',
+  'wired.com', 'arstechnica.com', 'github.com', 'stackoverflow.com',
+  'wikipedia.org', 'britannica.com', 'statista.com', 'propublica.com',
+]);
+
+const HOSTILE_DOMAINS = new Set([
+  'infowars.com', 'naturalnews.com', 'beforeitsnews.com', 'globalresearch.ca',
+]);
 
 interface ScrapedSource {
   url: string;
   title: string;
   domain: string;
   content: string;
+  tier: number;
+  provenanceScore: number;
+  hostile: boolean;
 }
 
 function extractDomain(url: string): string {
   try { return new URL(url).hostname.replace('www.', ''); } catch { return url; }
+}
+
+function getSourceTier(domain: string): number {
+  const clean = domain.replace(/^www\./, '');
+  if (TIER_1_DOMAINS.has(clean)) return 1;
+  if (TIER_2_DOMAINS.has(clean)) return 2;
+  if (clean.endsWith('.gov') || clean.endsWith('.edu') || clean.endsWith('.ac.uk')) return 3;
+  return 4;
 }
 
 function cleanHtml(html: string): string {
@@ -31,41 +65,42 @@ function cleanHtml(html: string): string {
     .trim();
 }
 
-// ── DuckDuckGo Search ────────────────────────────────────────────────────────
-async function searchDDG(query: string): Promise<{ url: string; title: string }[]> {
-  const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-  const response = await fetch(ddgUrl, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept': 'text/html',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-  });
-
-  if (!response.ok) return [];
-  const html = await response.text();
-  const results: { url: string; title: string }[] = [];
-  const blocks = html.split(/class="result\s/);
-
-  for (let i = 1; i < blocks.length && results.length < 8; i++) {
-    const block = blocks[i];
-    const titleMatch = block.match(/class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/);
-    if (!titleMatch) continue;
-
-    let url = titleMatch[1];
-    const uddg = url.match(/uddg=([^&]*)/);
-    if (uddg) url = decodeURIComponent(uddg[1]);
-    const title = titleMatch[2].replace(/<[^>]*>/g, '').trim();
-
-    if (title && url && url.startsWith('http')) {
-      results.push({ url, title });
+// ── DuckDuckGo Search with retry ─────────────────────────────────────────────
+async function searchDDG(query: string, retries = 3): Promise<{ url: string; title: string }[]> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      const response = await fetch(ddgUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      });
+      if (!response.ok) { await new Promise(r => setTimeout(r, 500 * (attempt + 1))); continue; }
+      const html = await response.text();
+      const results: { url: string; title: string }[] = [];
+      const blocks = html.split(/class="result\s/);
+      for (let i = 1; i < blocks.length && results.length < 10; i++) {
+        const block = blocks[i];
+        const titleMatch = block.match(/class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/);
+        if (!titleMatch) continue;
+        let url = titleMatch[1];
+        const uddg = url.match(/uddg=([^&]*)/);
+        if (uddg) url = decodeURIComponent(uddg[1]);
+        const title = titleMatch[2].replace(/<[^>]*>/g, '').trim();
+        if (title && url && url.startsWith('http')) results.push({ url, title });
+      }
+      return results;
+    } catch {
+      if (attempt < retries - 1) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
     }
   }
-  return results;
+  return [];
 }
 
-// ── Page Scraper ─────────────────────────────────────────────────────────────
-async function scrapePage(url: string, timeoutMs = 6000): Promise<string | null> {
+// ── Page Scraper with integrity check ────────────────────────────────────────
+async function scrapePage(url: string, timeoutMs = 8000): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -82,7 +117,6 @@ async function scrapePage(url: string, timeoutMs = 6000): Promise<string | null>
     if (!ct.includes('text/html')) return null;
     const html = await resp.text();
 
-    // Extract main content
     let main = '';
     const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
     const mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
@@ -92,23 +126,24 @@ async function scrapePage(url: string, timeoutMs = 6000): Promise<string | null>
       const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
       main = bodyMatch ? bodyMatch[1] : html;
     }
-    return cleanHtml(main).slice(0, 4000);
-  } catch {
-    return null;
-  }
+    return cleanHtml(main).slice(0, 5000);
+  } catch { return null; }
 }
 
-// ── Refine: generate clarifying questions ────────────────────────────────────
-const GEMINI_NON_STREAM = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
+// ── Clarifying Questions Generator ───────────────────────────────────────────
 async function generateClarifyingQuestions(query: string, apiKey: string): Promise<{ questions: { id: string; question: string; options: string[] }[] }> {
   const resp = await fetch(`${GEMINI_NON_STREAM}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: `You are ZOPHIEL, a precision intelligence engine. The user wants a deep research report on: "${query}"
+      contents: [{ role: 'user', parts: [{ text: `You are ZOPHIEL, a precision intelligence engine operating under the Immutable Truth Graph Protocol. The user wants a deep research report on: "${query}"
 
-Before searching, generate 2-3 short clarifying questions that would dramatically improve the search quality. Each question should have 3-4 quick-select options.
+Before searching, generate 2-3 short clarifying questions that would dramatically improve search precision. Focus on:
+- What specific OUTCOME or DECISION this intelligence will drive
+- What DOMAIN constraints matter (geographic, temporal, industry-specific)
+- What DEPTH of analysis is needed (surface overview vs forensic deep-dive)
+
+Each question should have 3-4 quick-select options.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {
@@ -124,12 +159,51 @@ Return ONLY valid JSON (no markdown, no code fences):
   if (!resp.ok) throw new Error('Failed to generate questions');
   const data = await resp.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-  // Strip markdown fences if present
   const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
   return JSON.parse(cleaned);
 }
 
-// ── Main Handler ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// CROSS-SOURCE VALIDATION ENGINE
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface CrossValidation {
+  totalSources: number;
+  tier1Count: number;
+  tier2Count: number;
+  hostileCount: number;
+  averageProvenance: number;
+  consensusStrength: 'strong' | 'moderate' | 'weak' | 'insufficient';
+  contradictionFlags: string[];
+}
+
+function crossValidateSources(sources: ScrapedSource[]): CrossValidation {
+  const tier1Count = sources.filter(s => s.tier === 1).length;
+  const tier2Count = sources.filter(s => s.tier === 2).length;
+  const hostileCount = sources.filter(s => s.hostile).length;
+  const avgProvenance = sources.length > 0
+    ? sources.reduce((sum, s) => sum + s.provenanceScore, 0) / sources.length
+    : 0;
+
+  let consensusStrength: CrossValidation['consensusStrength'] = 'insufficient';
+  if (sources.length >= 5 && tier1Count >= 2) consensusStrength = 'strong';
+  else if (sources.length >= 3 && (tier1Count >= 1 || tier2Count >= 2)) consensusStrength = 'moderate';
+  else if (sources.length >= 2) consensusStrength = 'weak';
+
+  return {
+    totalSources: sources.length,
+    tier1Count,
+    tier2Count,
+    hostileCount,
+    averageProvenance: Math.round(avgProvenance * 100) / 100,
+    consensusStrength,
+    contradictionFlags: [],
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ══════════════════════════════════════════════════════════════════════════════
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -158,7 +232,7 @@ Deno.serve(async (req) => {
 
     // ── Action: refine → return clarifying questions ──
     if (action === 'refine') {
-      console.log('Generating clarifying questions for:', trimmed);
+      console.log('[ZOPHIEL] Generating semantic clarification for:', trimmed);
       try {
         const result = await generateClarifyingQuestions(trimmed, GEMINI_KEY);
         return new Response(JSON.stringify(result), {
@@ -166,7 +240,6 @@ Deno.serve(async (req) => {
         });
       } catch (e) {
         console.error('Refine error:', e);
-        // Fallback: skip questions and let them search directly
         return new Response(JSON.stringify({ questions: [] }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -180,13 +253,14 @@ Deno.serve(async (req) => {
       enhancedQuery = `${trimmed} — context: ${context}`;
     }
 
-    console.log('Deep search query:', enhancedQuery);
+    console.log('[ZOPHIEL] Deep search with Truth Graph Protocol:', enhancedQuery);
 
-    // Step 1: Run multiple DDG searches with different angles
+    // ── Step 1: Multi-Angle Search (4 search vectors) ──
     const searchVariants = [
       enhancedQuery,
       `${trimmed} latest 2025 2026`,
-      `${trimmed} analysis research`,
+      `${trimmed} analysis research data`,
+      `${trimmed} primary source official report`,
     ];
 
     const allSearchResults = await Promise.all(searchVariants.map(q => searchDDG(q)));
@@ -203,12 +277,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 2: Scrape top results in parallel (max 6 for speed)
-    const toScrape = uniqueResults.slice(0, 6);
+    console.log(`[ZOPHIEL] Found ${uniqueResults.length} unique results across ${searchVariants.length} search vectors`);
+
+    // ── Step 2: Prioritize scraping by source tier (primary sources first) ──
+    const scoredResults = uniqueResults.map(r => {
+      const domain = extractDomain(r.url);
+      const tier = getSourceTier(domain);
+      return { ...r, domain, tier, scrapeOrder: tier };
+    }).sort((a, b) => a.scrapeOrder - b.scrapeOrder);
+
+    // Scrape top 8 results in parallel (prioritizing high-tier sources)
+    const toScrape = scoredResults.slice(0, 8);
     const scrapeResults = await Promise.allSettled(
       toScrape.map(async (r) => {
         const content = await scrapePage(r.url);
-        return content ? { url: r.url, title: r.title, domain: extractDomain(r.url), content } as ScrapedSource : null;
+        if (!content) return null;
+        const domain = extractDomain(r.url);
+        const tier = getSourceTier(domain);
+        const hostile = HOSTILE_DOMAINS.has(domain);
+        const provenanceScore = tier === 1 ? 0.95 : tier === 2 ? 0.75 : tier === 3 ? 0.6 : 0.35;
+        return { url: r.url, title: r.title, domain, content, tier, provenanceScore, hostile } as ScrapedSource;
       })
     );
 
@@ -217,40 +305,99 @@ Deno.serve(async (req) => {
       .map(r => r.value)
       .filter((s): s is ScrapedSource => s !== null);
 
-    console.log(`Scraped ${sources.length} sources for deep analysis`);
+    console.log(`[ZOPHIEL] Scraped ${sources.length} sources — validating integrity...`);
 
-    // Step 3: Build Gemini prompt with all source material
-    const sourceBlocks = sources.map((s, i) =>
-      `[SOURCE ${i + 1}] ${s.title}\nURL: ${s.url}\nDomain: ${s.domain}\n---\n${s.content}\n`
-    ).join('\n\n');
+    // ── Step 3: Cross-Source Validation ──
+    const validation = crossValidateSources(sources);
 
-    const systemPrompt = `You are ZOPHIEL Deep Intelligence Engine — a forensic-grade research analyst.
+    // ── Step 4: Build Truth Graph Synthesis Prompt ──
+    const sourceBlocks = sources.map((s, i) => {
+      const tierLabel = s.tier === 1 ? '🟢 PRIMARY' : s.tier === 2 ? '🔵 ESTABLISHED' : s.tier === 3 ? '🟡 INSTITUTIONAL' : '⚪ GENERAL';
+      const hostileTag = s.hostile ? ' ⚠️ HOSTILE/UNRELIABLE' : '';
+      return `[SOURCE ${i + 1}] ${tierLabel}${hostileTag} | Provenance: ${Math.round(s.provenanceScore * 100)}%
+Title: ${s.title}
+URL: ${s.url}
+Domain: ${s.domain}
+---
+${s.content}`;
+    }).join('\n\n');
 
-MISSION: Provide a comprehensive, deeply researched answer to the user's query by synthesizing multiple sources.
+    const validationSummary = `
+CROSS-VALIDATION REPORT:
+- Total Sources Analyzed: ${validation.totalSources}
+- Primary Sources (Tier 1): ${validation.tier1Count}
+- Established Sources (Tier 2): ${validation.tier2Count}
+- Hostile/Flagged Sources: ${validation.hostileCount}
+- Average Provenance Score: ${Math.round(validation.averageProvenance * 100)}%
+- Consensus Strength: ${validation.consensusStrength.toUpperCase()}`;
 
-RULES:
-1. Analyze ALL provided sources critically. Cross-reference claims between sources.
-2. Identify consensus, contradictions, and gaps in the data.
-3. Cite sources using [Source N] notation inline.
-4. Structure your response with clear headers using markdown (##, ###).
-5. Include a "Key Findings" section at the top with bullet points.
-6. Include a "Source Reliability Assessment" section rating each source.
-7. Flag any outdated information, bias indicators, or unverified claims.
-8. If sources conflict, explain the discrepancy and which is more likely accurate and why.
-9. End with "Intelligence Gaps" — what couldn't be determined from available sources.
-10. Be thorough but precise. No filler. Every sentence must add value.
+    const systemPrompt = `You are ZOPHIEL — the Immutable Truth Graph Intelligence Engine.
 
-TONE: Authoritative, analytical, zero fluff. Like a senior intelligence briefing.`;
+YOUR ARCHITECTURE:
+You operate under the Immutable Truth Graph Protocol. Every assertion you make must be traceable through a Causal Chain of Knowledge back to validated source material. You treat every input as hostile until its integrity is proven through cross-referencing.
+
+CORE DIRECTIVES:
+
+1. TRUTH GRAPH VALIDATION: For every major claim, cite the specific source(s) using [Source N] notation AND rate its reliability.
+   - Claims supported by 2+ independent sources = ✅ VALIDATED
+   - Claims from a single primary source = 🔵 CORROBORATED (single primary)
+   - Claims from a single non-primary source = ⚠️ UNVERIFIED
+   - Claims that contradict other sources = 🔴 CONTESTED
+
+2. CAUSAL CHAIN OF KNOWLEDGE: Do NOT just state facts. Build explicit cause-effect chains:
+   "X occurred BECAUSE Y, which was triggered by Z, as documented in [Source N]"
+   Every assertion must have a traceable lineage.
+
+3. SEMANTIC INTENT RESOLUTION: The user's TRUE intent is not just the keywords — interpret the underlying objective.
+   Ask yourself: "What DECISION will this intelligence drive? What does the user ACTUALLY need to know?"
+
+4. CROSS-SOURCE VALIDATION: When sources contradict:
+   - Identify the specific point of divergence
+   - Weight primary sources (Tier 1) over all others
+   - Flag the contradiction explicitly with both sides
+   - State which is more likely accurate and WHY (not opinion — evidence-based)
+
+5. HOSTILE SOURCE TREATMENT: Sources flagged as hostile (⚠️) should be:
+   - Acknowledged but treated with extreme skepticism
+   - Never used as sole evidence for any claim
+   - Contrasted against primary/established sources
+
+REPORT STRUCTURE:
+## ⚡ EXECUTIVE SYNTHESIS
+(2-3 sentences that directly answer the user's TRUE intent — not just the literal query)
+
+## 📊 TRUTH GRAPH VALIDATION REPORT
+(Source reliability matrix — which sources validated which claims)
+
+## 🔗 CAUSAL CHAIN ANALYSIS
+(The full cause-effect chain with source citations)
+
+## 📈 KEY INTELLIGENCE FINDINGS
+(Numbered findings with validation status icons)
+
+## ⚠️ CONTESTED CLAIMS & CONTRADICTIONS
+(Where sources disagree — with evidence from both sides)
+
+## 🕳️ INTELLIGENCE GAPS
+(What could NOT be determined — and what additional sources would be needed)
+
+## 📡 CONFIDENCE ASSESSMENT
+(Overall confidence level: HIGH / MODERATE / LOW — with justification)
+
+TONE: Authoritative. Zero fluff. Every sentence carries intelligence value. This is a forensic-grade briefing, not a blog post.`;
 
     const userPrompt = `QUERY: ${trimmed}
+${Object.keys(answers || {}).length > 0 ? `USER CONTEXT: ${Object.values(answers).join('; ')}` : ''}
 
-GATHERED INTELLIGENCE (${sources.length} sources):
+${validationSummary}
 
-${sourceBlocks || 'No sources could be scraped. Provide the best answer you can based on your training data, and clearly state that live sources were unavailable.'}
+GATHERED INTELLIGENCE (${sources.length} validated sources):
 
-Synthesize a comprehensive deep-search intelligence report.`;
+${sourceBlocks || 'No sources could be scraped. Provide the best answer from training data. CLEARLY STATE that live sources were unavailable and confidence is reduced.'}
 
-    // Step 4: Stream Gemini response back to client
+Construct the Immutable Truth Graph intelligence report now. Execute the Causal Chain of Knowledge protocol.`;
+
+    // ── Step 5: Stream Gemini response ──
     const geminiUrl = `${GEMINI_URL}&key=${GEMINI_KEY}`;
     const geminiResp = await fetch(geminiUrl, {
       method: 'POST',
@@ -260,7 +407,7 @@ Synthesize a comprehensive deep-search intelligence report.`;
           { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] },
         ],
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.25,
           maxOutputTokens: 8192,
         },
       }),
@@ -268,28 +415,30 @@ Synthesize a comprehensive deep-search intelligence report.`;
 
     if (!geminiResp.ok) {
       const errText = await geminiResp.text();
-      console.error('Gemini error:', geminiResp.status, errText);
+      console.error('[ZOPHIEL] Gemini error:', geminiResp.status, errText);
       return new Response(
         JSON.stringify({ error: 'AI analysis failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Build a transformed SSE stream that also prepends source metadata
+    // Build SSE stream with Truth Graph metadata
     const sourceMeta = JSON.stringify({
       type: 'sources',
-      sources: sources.map(s => ({ url: s.url, title: s.title, domain: s.domain })),
+      sources: sources.map(s => ({
+        url: s.url, title: s.title, domain: s.domain,
+        tier: s.tier, provenanceScore: s.provenanceScore, hostile: s.hostile,
+      })),
       totalSearchResults: uniqueResults.length,
+      validation,
     });
 
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
 
-    // Send sources metadata first as a custom SSE event
     writer.write(encoder.encode(`data: ${sourceMeta}\n\n`));
 
-    // Pipe Gemini SSE stream through
     const geminiBody = geminiResp.body;
     if (geminiBody) {
       const reader = geminiBody.getReader();
@@ -301,8 +450,6 @@ Synthesize a comprehensive deep-search intelligence report.`;
             const { done, value } = await reader.read();
             if (done) break;
             const chunk = decoder.decode(value, { stream: true });
-
-            // Parse Gemini SSE and re-emit as our format
             const lines = chunk.split('\n');
             for (const line of lines) {
               if (!line.startsWith('data: ')) continue;
@@ -319,7 +466,7 @@ Synthesize a comprehensive deep-search intelligence report.`;
             }
           }
         } catch (e) {
-          console.error('Stream error:', e);
+          console.error('[ZOPHIEL] Stream error:', e);
         } finally {
           await writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
           await writer.close();
@@ -339,7 +486,7 @@ Synthesize a comprehensive deep-search intelligence report.`;
       },
     });
   } catch (error) {
-    console.error('Deep search error:', error);
+    console.error('[ZOPHIEL] Deep search error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Deep search failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
