@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
+import MermaidDigraph from "./MermaidDigraph";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 
 interface NomadInvestigation {
@@ -368,7 +369,20 @@ const NomadView = () => {
                       </div>
                     ) : msg.role === "assistant" ? (
                       <div className="prose prose-invert prose-sm max-w-none font-extralight [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_h1]:text-base [&_h1]:font-light [&_h2]:text-sm [&_h2]:font-light [&_h3]:text-sm [&_h3]:font-light [&_li]:text-sm [&_code]:bg-secondary/50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-lg [&_pre]:bg-secondary/30 [&_pre]:rounded-2xl [&_pre]:p-4 [&_strong]:text-foreground [&_a]:text-accent">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        {(() => {
+                          // Split mermaid blocks and render them as visual digraphs
+                          const parts = msg.content.split(/(```mermaid[\s\S]*?```)/g);
+                          return parts.map((part, idx) => {
+                            const mermaidMatch = part.match(/```mermaid\s*([\s\S]*?)```/);
+                            if (mermaidMatch) {
+                              return <MermaidDigraph key={idx} code={mermaidMatch[1]} />;
+                            }
+                            if (part.trim()) {
+                              return <ReactMarkdown key={idx}>{part}</ReactMarkdown>;
+                            }
+                            return null;
+                          });
+                        })()}
                       </div>
                     ) : (
                       <p className="text-sm font-extralight text-foreground">{msg.content}</p>
