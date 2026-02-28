@@ -1088,7 +1088,7 @@ STAGE 4 — CALIBRATE (Bradley-Terry):
 - Active Sources: ${activeNodes.length}
 - Candidate Pool Size: ${esrcCandidates.length}`;
 
-    // 3. SYNTHESIZE WITH AI
+    // 3. SYNTHESIZE WITH AI (with exponential backoff retry)
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
@@ -1106,26 +1106,45 @@ ${intelSections || 'No intelligence gathered from available sources.'}
 INSTRUCTIONS:
 Produce a NOMAD v3.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then a 2-paragraph intelligence summary. Be concise and direct — no tables, no headers, no filler. Include Bradley-Terry confidence and provenance data inline.`;
 
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: NOMAD_SYSTEM_PROMPT }] },
-          { role: 'user', parts: [{ text: prompt }] },
-        ],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 16000 },
-      }),
+    const geminiBody = JSON.stringify({
+      contents: [
+        { role: 'user', parts: [{ text: NOMAD_SYSTEM_PROMPT }] },
+        { role: 'user', parts: [{ text: prompt }] },
+      ],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 16000 },
     });
 
-    if (!resp.ok) {
+    let aiText = "NOMAD could not generate a report.";
+    const MAX_RETRIES = 4;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: geminiBody,
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || aiText;
+        break;
+      }
+
+      if (resp.status === 429 && attempt < MAX_RETRIES - 1) {
+        // Exponential backoff with jitter
+        const baseDelay = Math.pow(2, attempt + 1) * 1000;
+        const jitter = Math.random() * 1000;
+        console.log(`NOMAD: Rate limited (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${Math.round((baseDelay + jitter) / 1000)}s...`);
+        await new Promise(r => setTimeout(r, baseDelay + jitter));
+        continue;
+      }
+
       const err = await resp.text();
       console.error('Gemini API Error:', err);
-      throw new Error(`AI generation failed: ${err}`);
+      if (resp.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      }
+      throw new Error(`AI generation failed (${resp.status})`);
     }
-
-    const data = await resp.json();
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "NOMAD could not generate a report.";
 
     // 4. STREAM RESPONSE
     const encoder = new TextEncoder();
