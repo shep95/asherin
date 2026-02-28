@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Search, Scale, Code, Shield, PenTool, BookOpen, Plus, X, Check,
   Target, Flame, Gem, Moon, Zap, FlaskConical, Drama, Radio, Bot,
-  Eye, Skull, Crown, Compass, Aperture, Fingerprint, Swords, Pencil, Trash2, MoreHorizontal,
+  Eye, Skull, Crown, Compass, Aperture, Fingerprint, Swords, Pencil, Trash2, MoreHorizontal, Info,
 } from "lucide-react";
 import type { Persona } from "./types";
 
@@ -34,6 +34,96 @@ Apply ALL fixes. Output COMPLETE code. CHANGELOG at top.
 DEFAULT: Run all 7 phases, output rebuilt code with critical-fix comments. Be ruthless. Be precise. Production or nothing.`;
 
 const UI_FORGE_PROMPT = `You are THE UI FORGE — a Senior Design Engineer who has shipped interfaces at Apple, Stripe, and Vercel. You think in systems, not screens. Every pixel is intentional. You execute the ZOPHIEL UI FORGE PROTOCOL with 9 phases: Intent Scan, Anti-Slop Audit, Motion Engineer, Responsive Architect, Feedback Systems, Accessibility Auditor, Performance Auditor, Polish Pass, Final Build. DEFAULT: Run all 9 phases, output rebuilt UI with design changelog. Every pixel intentional. Ship-grade or nothing.`;
+
+interface PersonaDetail {
+  fullDescription: string;
+  examplePrompts: string[];
+  bestModes: string[];
+  whenToUse: string;
+}
+
+const personaDetails: Record<string, PersonaDetail> = {
+  analyst: {
+    fullDescription: "The Analyst strips away opinion and emotion. It processes your query through a data-first lens — extracting numbers, patterns, and evidence-backed conclusions. Ideal when you need objectivity over creativity.",
+    examplePrompts: [
+      "Break down the financial performance of Tesla Q4 2025 — revenue, margins, and YoY growth.",
+      "Analyze the engagement metrics for this social media campaign and identify underperformers.",
+      "Compare the market share of the top 5 cloud providers with supporting data.",
+    ],
+    bestModes: ["Research", "Chat"],
+    whenToUse: "When you need facts, figures, and data-driven analysis without subjective interpretation.",
+  },
+  strategist: {
+    fullDescription: "The Strategist thinks in systems and second-order effects. It maps out long-term consequences, weighs tradeoffs, and builds decision frameworks. This persona doesn't just answer — it helps you think.",
+    examplePrompts: [
+      "I'm considering switching from B2B to B2C. Map out the strategic implications across 3 time horizons.",
+      "What are the second-order effects of implementing a freemium pricing model?",
+      "Build a decision matrix for choosing between hiring in-house vs outsourcing our engineering.",
+    ],
+    bestModes: ["Chat", "Research"],
+    whenToUse: "When you're making high-stakes decisions and need to see all angles, tradeoffs, and downstream consequences.",
+  },
+  engineer: {
+    fullDescription: "The Engineer speaks in code. It prioritizes working implementations over explanations, keeps responses technically precise, and defaults to production-quality patterns. No hand-holding — just clean solutions.",
+    examplePrompts: [
+      "Write a rate-limited API middleware in Express with Redis-backed sliding window.",
+      "Refactor this React component to eliminate unnecessary re-renders.",
+      "Design a database schema for a multi-tenant SaaS with row-level security.",
+    ],
+    bestModes: ["Code", "Chat"],
+    whenToUse: "When you need working code, technical architecture, or debugging — fast and without fluff.",
+  },
+  codeforge: {
+    fullDescription: "The Code Forge is a 7-phase forensic code audit engine. It systematically scouts your code's context, hunts bugs, audits architecture, hardens UX, optimizes performance, scans for security vulnerabilities, and rebuilds the entire thing with a changelog. Production or nothing.",
+    examplePrompts: [
+      "Audit this authentication flow — find every vulnerability and rebuild it.",
+      "Run a full Code Forge audit on this API handler.",
+      "This function works but feels fragile. Forge it into production-grade code.",
+    ],
+    bestModes: ["Code"],
+    whenToUse: "When you have existing code that needs a ruthless, systematic audit and rebuild.",
+  },
+  uiforge: {
+    fullDescription: "The UI Forge runs a 9-phase design audit: intent scanning, anti-slop cleanup, motion engineering, responsive architecture, feedback systems, accessibility, performance, polish, and final build. Every pixel intentional.",
+    examplePrompts: [
+      "This dashboard feels generic. Run a full UI Forge pass and make it premium.",
+      "Audit the accessibility and motion design of this component library.",
+      "Rebuild this landing page with proper design systems — spacing, typography, color.",
+    ],
+    bestModes: ["Code", "Chat"],
+    whenToUse: "When your UI needs to go from 'works' to 'ships' — systematic design elevation.",
+  },
+  truth: {
+    fullDescription: "The Truth Engine removes all diplomatic padding. It gives you the raw, unfiltered assessment — no hedging, no softening, no corporate-speak. If your idea is bad, it'll tell you why. If it's good, it won't waste time praising it.",
+    examplePrompts: [
+      "Is my startup idea actually viable or am I fooling myself? Here's the pitch: ...",
+      "Review my resume. Be brutally honest about what's weak.",
+      "What are the real reasons this project is failing? No sugarcoating.",
+    ],
+    bestModes: ["Truth", "Chat"],
+    whenToUse: "When you need honest, unfiltered feedback — no diplomacy, no filler.",
+  },
+  writer: {
+    fullDescription: "The Writer adapts to your voice. Feed it samples of your writing and it will match your cadence, vocabulary, and rhythm. It crafts — it doesn't just generate. From marketing copy to technical docs to personal essays.",
+    examplePrompts: [
+      "Rewrite this blog post to match the tone of my previous articles (pasted below).",
+      "Draft a cold outreach email that sounds human, not AI-generated.",
+      "Write the executive summary for this report in a formal but approachable tone.",
+    ],
+    bestModes: ["Chat"],
+    whenToUse: "When you need writing that sounds like you — or need to craft high-quality prose for any context.",
+  },
+  researcher: {
+    fullDescription: "The Researcher operates with academic rigor. Every claim is cited, every source is evaluated, and findings are structured with proper methodology. It doesn't just search — it synthesizes, cross-references, and builds evidence hierarchies.",
+    examplePrompts: [
+      "What does the latest peer-reviewed research say about intermittent fasting and longevity?",
+      "Build a literature review on transformer architecture improvements since 2023.",
+      "Fact-check this article's claims with primary sources.",
+    ],
+    bestModes: ["Research"],
+    whenToUse: "When you need source-backed, academically rigorous research with proper citations.",
+  },
+};
 
 export const builtInPersonas: (Persona & { Icon: React.ElementType })[] = [
   { id: "analyst", name: "The Analyst", icon: "search", Icon: Search, description: "Cold, data-driven. Numbers and evidence only.", systemPrompt: "", builtIn: true },
@@ -86,6 +176,7 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
   const [systemPrompt, setSystemPrompt] = useState("");
   const [iconId, setIconId] = useState("target");
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [infoPersonaId, setInfoPersonaId] = useState<string | null>(null);
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -141,6 +232,9 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
   const isEditing = editingId !== null;
   const showForm = creating || isEditing;
 
+  const infoPersona = infoPersonaId ? allPersonas.find(p => p.id === infoPersonaId) : null;
+  const infoDetail = infoPersonaId ? personaDetails[infoPersonaId] : null;
+
   return (
     <div className="space-y-1">
       <p className="px-3 text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">Personas</p>
@@ -160,6 +254,17 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
               <p className="text-[10px] text-muted-foreground/60 truncate">{p.description}</p>
             </div>
           </button>
+
+          {/* Info button for built-in personas */}
+          {p.builtIn && personaDetails[p.id] && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setInfoPersonaId(infoPersonaId === p.id ? null : p.id); }}
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-lg opacity-0 group-hover:opacity-100 text-muted-foreground/40 hover:text-accent hover:bg-accent/10 transition-all"
+              title="Learn more about this persona"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          )}
 
           {/* Edit/Delete menu for custom personas */}
           {!p.builtIn && (
@@ -190,6 +295,52 @@ const PersonaSelector = ({ activeId, onSelect, customPersonas = [], onAddCustomP
           )}
         </div>
       ))}
+
+      {/* Persona Info Modal */}
+      {infoPersona && infoDetail && (
+        <div className="mx-1 mt-2 rounded-xl border border-accent/20 bg-card/40 backdrop-blur-xl p-4 space-y-3 animate-fade-in">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <infoPersona.Icon className="h-5 w-5 text-accent" />
+              <h3 className="text-sm font-light text-foreground">{infoPersona.name}</h3>
+            </div>
+            <button onClick={() => setInfoPersonaId(null)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <p className="text-[11px] font-extralight leading-relaxed text-muted-foreground">
+            {infoDetail.fullDescription}
+          </p>
+
+          <div>
+            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase mb-1.5">When to use</p>
+            <p className="text-[11px] font-extralight text-foreground/80">{infoDetail.whenToUse}</p>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase mb-1.5">Best paired with</p>
+            <div className="flex gap-1 flex-wrap">
+              {infoDetail.bestModes.map(mode => (
+                <span key={mode} className="rounded-md bg-accent/15 border border-accent/20 px-2 py-0.5 text-[10px] font-light text-accent">
+                  {mode}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase mb-1.5">Example prompts</p>
+            <div className="space-y-1.5">
+              {infoDetail.examplePrompts.map((prompt, i) => (
+                <div key={i} className="rounded-lg bg-foreground/5 border border-border/10 px-2.5 py-1.5">
+                  <p className="text-[10px] font-extralight text-muted-foreground leading-relaxed">"{prompt}"</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm ? (
         <div className="mx-1 mt-1 rounded-xl border border-border/30 bg-card/30 backdrop-blur-sm p-3 space-y-2.5">

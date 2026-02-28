@@ -38,11 +38,11 @@ const ContextHealthIndicator = ({ messageCount, maxMessages = 50 }: ContextHealt
 
       {/* Tooltip */}
       <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50">
-        <div className="rounded-lg border border-border/30 bg-card/90 backdrop-blur-xl px-3 py-2 shadow-xl">
+        <div className="rounded-lg border border-border/30 bg-card/90 backdrop-blur-xl px-3 py-2 shadow-xl min-w-[200px]">
           <p className="text-[10px] font-light text-foreground whitespace-nowrap">{label}</p>
-          <p className="text-[10px] font-light text-muted-foreground">{messageCount} messages in context</p>
+          <p className="text-[10px] font-light text-muted-foreground whitespace-nowrap">{messageCount} messages in context</p>
           {isWarning && (
-            <p className="text-[10px] font-light text-amber-500 mt-1">
+            <p className="text-[10px] font-light text-amber-500 mt-1 whitespace-nowrap">
               Consider starting a new conversation for best results.
             </p>
           )}
