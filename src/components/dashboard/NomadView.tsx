@@ -302,13 +302,16 @@ const NomadView = () => {
                   <div className="h-16 w-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto">
                     <Crosshair className="h-7 w-7 text-accent" />
                   </div>
-                 <h2 className="text-xl font-extralight tracking-wide text-foreground">NOMAD v2.0</h2>
+                 <h2 className="text-xl font-extralight tracking-wide text-foreground">NOMAD v3.0</h2>
                    <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
-                     Trans-Dimensional Intelligence Engine with Predictive Behavioral Modeling. Describe your target — NOMAD builds a Truth Graph from 40+ attested sources.
+                     ESRC Deanonymization Framework — Extract, Search, Reason, Calibrate. Built on arXiv:2602.16800v1. Describe your target — NOMAD executes the full ESRC pipeline across 40+ attested sources.
                    </p>
-                   <div className="flex items-center justify-center gap-4 text-[9px] font-extralight tracking-wider text-muted-foreground/50">
-                     <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> PROVENANCE ATTESTED</span>
-                     <span className="flex items-center gap-1"><Brain className="h-3 w-3" /> PREDICTIVE ENGINE</span>
+                   <div className="flex items-center justify-center gap-4 flex-wrap text-[9px] font-extralight tracking-wider text-muted-foreground/50">
+                     <span className="flex items-center gap-1"><Crosshair className="h-3 w-3" /> EXTRACT</span>
+                     <span className="flex items-center gap-1"><Globe className="h-3 w-3" /> SEARCH</span>
+                     <span className="flex items-center gap-1"><Brain className="h-3 w-3" /> REASON</span>
+                     <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> CALIBRATE</span>
+                     <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> BRADLEY-TERRY</span>
                      <span className="flex items-center gap-1"><Network className="h-3 w-3" /> ENTITY RESOLUTION</span>
                    </div>
                 </div>
