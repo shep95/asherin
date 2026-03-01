@@ -18,7 +18,10 @@ const SmartSelectionMenu = ({ containerRef, onAction }: SmartSelectionMenuProps)
   const [menu, setMenu] = useState<MenuState>({ visible: false, x: 0, y: 0, text: "", isCode: false });
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    // Don't intercept right-click — allow native context menu (paste, etc.)
+    if (e.button === 2) return;
+
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.toString().trim()) {
       setMenu((prev) => ({ ...prev, visible: false }));
@@ -59,12 +62,17 @@ const SmartSelectionMenu = ({ containerRef, onAction }: SmartSelectionMenuProps)
     const container = containerRef.current;
     if (!container) return;
     container.addEventListener("mouseup", handleMouseUp);
-    const dismiss = () => setMenu((prev) => ({ ...prev, visible: false }));
-    document.addEventListener("mousedown", (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) dismiss();
-    });
+    const dismiss = (e: MouseEvent) => {
+      // Don't dismiss on right-click so native context menu works
+      if (e.button === 2) return;
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenu((prev) => ({ ...prev, visible: false }));
+      }
+    };
+    document.addEventListener("mousedown", dismiss);
     return () => {
       container.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mousedown", dismiss);
     };
   }, [handleMouseUp, containerRef]);
 
