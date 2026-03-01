@@ -249,22 +249,6 @@ serve(async (req) => {
     let systemPrompt = SYSTEM_PROMPTS[category] || SYSTEM_PROMPTS.deepdive;
     const userPrompt = buildModulePrompt(moduleId, moduleName, query, ghostMode);
 
-    // ── Inject Coding Laws ──
-    try {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-      const sbAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      const { data: laws } = await sbAdmin
-        .from("coding_laws")
-        .select("law_number, name, domain, law, severity")
-        .eq("active", true)
-        .order("created_at", { ascending: true });
-      if (laws?.length) {
-        const lawDirectives = laws.map((l: any) => `[${l.law_number}] ${l.name} (${l.domain}, ${l.severity}): ${l.law}`).join("\n");
-        systemPrompt += `\n\n## AUREON LAWS OF CODING (${laws.length} Active Laws)\nThese are immutable engineering principles. You MUST follow ALL active laws when generating or analyzing code:\n${lawDirectives}`;
-      }
-    } catch (e) {
-      console.error("[ELION] Failed to fetch coding laws:", e);
-    }
 
     console.log(`[ELION] Executing module: ${moduleId} | Target: ${query} | Ghost: ${ghostMode}`);
 

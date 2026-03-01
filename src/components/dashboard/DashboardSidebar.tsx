@@ -109,7 +109,7 @@ const navGroups: NavGroup[] = [
       { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
       { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
       { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
-      { id: "self-learning", icon: Brain, label: "Laws of Coding" },
+      
       { id: "self-access", icon: FileText, label: "Self-Access Learning" },
       { id: "stats", icon: BarChart3, label: "My Stats" },
       { id: "subscription", icon: CreditCard, label: "Subscription" },
@@ -182,7 +182,7 @@ const DashboardSidebar = ({
     items: group.items.filter(item => {
       // Admin-only views
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "self-learning") return user?.email === "ashernewtonx@gmail.com";
+      
       if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
 
       // Use centralized feature map for tier-gated views

@@ -70,7 +70,7 @@ const AureonIdeView = React.lazy(() => import("@/components/dashboard/ide/Aureon
 const PdfGeneratorView = React.lazy(() => import("@/components/dashboard/PdfGeneratorView"));
 const PatternAnalysisView = React.lazy(() => import("@/components/dashboard/PatternAnalysisView"));
 const SlideshowGeneratorView = React.lazy(() => import("@/components/dashboard/SlideshowGeneratorView"));
-const CodingLawsView = React.lazy(() => import("@/components/dashboard/CodingLawsView"));
+
 const SelfAccessLearningView = React.lazy(() => import("@/components/dashboard/SelfAccessLearningView"));
 const OracleLocusView = React.lazy(() => import("@/components/dashboard/OracleLocusView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
@@ -910,7 +910,7 @@ const Dashboard = () => {
       case "ide": return <Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense>;
       case "pdf-generator": return <Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense>;
       case "slideshow": return <Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense>;
-      case "self-learning": return <Suspense fallback={<LazyFallback />}><CodingLawsView /></Suspense>;
+      
       case "self-access": return <Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense>;
       default: return activeConv ? (
         <ChatView
