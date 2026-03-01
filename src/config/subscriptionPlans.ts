@@ -18,7 +18,7 @@ export type FeatureId =
   | "encryption"
   | "slideshow"
   | "pdf_generator"
-  | "oracle_locus"
+  | "imagine_intelligence"
   | "google_intel"
   | "elion"
   | "predictive"
@@ -64,7 +64,7 @@ export interface PlanDefinition {
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
 const AUREON_FEATURES: FeatureId[] = [
   "chat", "ide", "zophiel_search", "memory", "personas", "code_snippets",
-  "encryption", "slideshow", "pdf_generator", "oracle_locus", "imagine_to_code",
+  "encryption", "slideshow", "pdf_generator", "imagine_intelligence", "imagine_to_code",
 ];
 
 const PRO_FEATURES: FeatureId[] = [
@@ -106,7 +106,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Data never sold or used for training",
       "Slideshow Generator",
       "PDF Generator",
-      "ORACLE-LOCUS — Geo-Intelligence Analysis",
+      "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
     ],
   },
   {
@@ -146,7 +146,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Scenario Simulator & threat modeling",
       "Pattern Analysis Engine",
       "Company & competitor tracking",
-      "ORACLE-LOCUS — Geo-Intelligence Analysis",
+      "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
       "Priority model access",
     ],
   },
@@ -219,7 +219,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   briefing: "briefings",
   nomad: "nomad",
   tracker: "tracker",
-  "oracle-locus": "oracle_locus",
+  "imagine-intelligence": "imagine_intelligence",
   asha: "asha",
   "pattern-analysis": "pattern_analysis",
   timeseries: "timeseries",

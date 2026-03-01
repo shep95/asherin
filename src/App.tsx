@@ -30,7 +30,7 @@ const FeatureElion = lazy(() => import("./pages/FeatureElion"));
 const FeatureTracker = lazy(() => import("./pages/FeatureTracker"));
 const FeatureImagineToCode = lazy(() => import("./pages/FeatureImagineToCode"));
 const FeatureIde = lazy(() => import("./pages/FeatureIde"));
-const FeatureOracleLocus = lazy(() => import("./pages/FeatureOracleLocus"));
+const FeatureImagineIntelligence = lazy(() => import("./pages/FeatureOracleLocus"));
 const FeatureGoogleIntelligence = lazy(() => import("./pages/FeatureGoogleIntelligence"));
 const FeatureSecurity = lazy(() => import("./pages/FeatureSecurity"));
 const FeatureNotebooks = lazy(() => import("./pages/FeatureNotebooks"));
@@ -80,7 +80,7 @@ const App = () => (
             <Route path="/feature/tracker" element={<FeatureTracker />} />
             <Route path="/feature/imagine-to-code" element={<FeatureImagineToCode />} />
             <Route path="/feature/ide" element={<FeatureIde />} />
-            <Route path="/feature/oracle-locus" element={<FeatureOracleLocus />} />
+            <Route path="/feature/imagine-intelligence" element={<FeatureImagineIntelligence />} />
             <Route path="/feature/google-intelligence" element={<FeatureGoogleIntelligence />} />
             <Route path="/feature/security" element={<FeatureSecurity />} />
             <Route path="/feature/notebooks" element={<FeatureNotebooks />} />

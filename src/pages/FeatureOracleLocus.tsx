@@ -13,7 +13,7 @@ const capabilities = [
     icon: Crosshair,
     title: "Precision Geolocation",
     description:
-      "Upload any image and Oracle Locus pinpoints the exact coordinates using a two-pass analysis — coarse regional identification followed by fine-grained estimation with error radius.",
+      "Upload any image and Imagine Intelligence pinpoints the exact coordinates using a two-pass analysis — coarse regional identification followed by fine-grained estimation with error radius.",
   },
   {
     icon: Users,
@@ -57,7 +57,7 @@ const useCases = [
 
 const FeatureOracleLocus = () => {
   useEffect(() => {
-    document.title = "Oracle Locus — Aureon";
+    document.title = "Imagine Intelligence — Aureon";
   }, []);
 
   return (
@@ -81,7 +81,7 @@ const FeatureOracleLocus = () => {
           <span className="text-muted-foreground">A Location. We Find It.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
-          Oracle Locus is a dual-mode intelligence engine — pinpoint geographic coordinates from any image, or cross-reference facial biometrics across global open-source databases.
+          Imagine Intelligence is a dual-mode intelligence engine — pinpoint geographic coordinates from any image, or cross-reference facial biometrics across global open-source databases.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link to="/pricing" className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
@@ -114,7 +114,7 @@ const FeatureOracleLocus = () => {
       </section>
 
       <AgentArchitectureDiagram
-        title="Oracle Locus Architecture"
+        title="Imagine Intelligence Architecture"
         subtitle="A dual-mode intelligence pipeline combining precision geolocation with facial biometric cross-referencing across global open-source databases."
         layers={[
           {
@@ -154,7 +154,7 @@ const FeatureOracleLocus = () => {
       <section className="relative z-10 px-6 py-24">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-12 text-center">
-            Who Uses Oracle Locus?
+            Who Uses Imagine Intelligence?
           </h2>
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-8 sm:p-12">
             <ul className="space-y-4">
