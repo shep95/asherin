@@ -767,7 +767,7 @@ const Index = () => {
                   <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD OSINT</Link>
                   <Link to="/feature/asha" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Asha Intelligence</Link>
                   <Link to="/feature/predictive" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Predictive Intelligence</Link>
-                  <Link to="/feature/oracle-locus" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Oracle Locus</Link>
+                  <Link to="/feature/imagine-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine Intelligence</Link>
                   <Link to="/feature/security" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Security Dashboard</Link>
                 </div>
                 <div className="flex flex-col gap-2">

@@ -68,7 +68,7 @@ const navGroups: NavGroup[] = [
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
       { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
       { id: "tracker", icon: MapPin, label: "Location Tracker", access: "pro" },
-      { id: "oracle-locus", icon: Crosshair, label: "ORACLE-LOCUS" },
+      { id: "imagine-intelligence", icon: Crosshair, label: "IMAGINE INTELLIGENCE" },
       { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
     ],
   },

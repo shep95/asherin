@@ -13,7 +13,7 @@ const PRO_VIEWS: DashboardView[] = [
 ];
 
 // Views that require any paid plan (search-tier)
-const SEARCH_VIEWS: DashboardView[] = ["search", "oracle-locus"];
+const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence"];
 
 // Views that are always accessible to authenticated users
 const PUBLIC_VIEWS: DashboardView[] = [
