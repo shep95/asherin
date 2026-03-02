@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
@@ -10,7 +10,7 @@ interface FFmpegState {
   error: string | null;
 }
 
-export function useFFmpeg() {
+export function useFFmpeg(autoLoad = false) {
   const ffmpegRef = useRef<FFmpeg | null>(null);
   const [state, setState] = useState<FFmpegState>({
     loaded: false,
@@ -35,19 +35,48 @@ export function useFFmpeg() {
         console.log("[FFmpeg]", message);
       });
 
+      // Use multi-threaded core for 2-4x speed boost
       await ffmpeg.load({
-        coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js",
-        wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm",
+        coreURL: "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm/ffmpeg-core.js",
+        wasmURL: "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm/ffmpeg-core.wasm",
+        workerURL: "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm/ffmpeg-core.worker.js",
       });
 
       ffmpegRef.current = ffmpeg;
       setState((s) => ({ ...s, loaded: true, loading: false }));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load FFmpeg";
-      setState((s) => ({ ...s, loading: false, error: msg }));
-      throw err;
+      // Fallback to single-threaded if multi-thread fails (SharedArrayBuffer not available)
+      try {
+        const ffmpeg = new FFmpeg();
+        ffmpeg.on("progress", ({ progress }) => {
+          setState((s) => ({ ...s, progress: Math.round(progress * 100) }));
+        });
+        ffmpeg.on("log", ({ message }) => {
+          console.log("[FFmpeg]", message);
+        });
+        await ffmpeg.load({
+          coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js",
+          wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm",
+        });
+        ffmpegRef.current = ffmpeg;
+        setState((s) => ({ ...s, loaded: true, loading: false }));
+        console.log("[FFmpeg] Fell back to single-threaded core");
+      } catch (fallbackErr) {
+        const msg = fallbackErr instanceof Error ? fallbackErr.message : "Failed to load FFmpeg";
+        setState((s) => ({ ...s, loading: false, error: msg }));
+        throw fallbackErr;
+      }
     }
   }, [state.loaded]);
+
+  // Auto-preload FFmpeg in background so it's ready when user submits an edit
+  useEffect(() => {
+    if (autoLoad && !state.loaded && !state.loading) {
+      load().catch(() => {
+        // Silent fail on preload — will retry when user actually edits
+      });
+    }
+  }, [autoLoad, state.loaded, state.loading, load]);
 
   const processVideo = useCallback(
     async (videoUrl: string, ffmpegArgs: string[]): Promise<Blob> => {
@@ -61,7 +90,7 @@ export function useFFmpeg() {
         const videoData = await fetchFile(videoUrl);
         await ffmpeg.writeFile("input.mp4", videoData);
 
-        // Build args: replace "input.mp4" and "output.mp4" as-is since they're in the virtual FS
+        // Determine output extension
         const outputExt = ffmpegArgs[ffmpegArgs.length - 1]?.split(".").pop() || "mp4";
         const outputFile = `output.${outputExt}`;
 

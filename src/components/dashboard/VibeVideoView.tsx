@@ -135,7 +135,7 @@ const ClarifyQuestionsCard = ({
 const VibeVideoView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const ffmpeg = useFFmpeg();
+  const ffmpeg = useFFmpeg(true); // Preload FFmpeg in background for instant edits
 
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [activeProject, setActiveProject] = useState<VideoProject | null>(null);
