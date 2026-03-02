@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import type { FileAttachment } from "./types";
 import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router-dom";
 import type { Conversation, ChatMode, Message } from "./types";
 import MessageStatusIndicator from "./MessageStatusIndicator";
 import CodeFilePreview from "./CodeFilePreview";
@@ -155,9 +156,65 @@ function CodeBlockCopyButton({ code }: { code: string }) {
   );
 }
 
-const markdownComponents = {
+// Valid internal routes for the app
+const VALID_INTERNAL_PATHS = new Set([
+  "/", "/pricing", "/features", "/founder", "/benchmarks", "/dashboard",
+  "/terms", "/privacy", "/nda", "/equity", "/prompt-engineering",
+  "/feature/zophiel", "/feature/nomad", "/feature/asha", "/feature/briefings",
+  "/feature/personas", "/feature/zali", "/feature/predictive", "/feature/elion",
+  "/feature/tracker", "/feature/imagine-to-code", "/feature/ide",
+  "/feature/imagine-intelligence", "/feature/google-intelligence",
+  "/feature/security", "/feature/notebooks", "/feature/vibe-imager",
+  "/feature/vibe-video", "/feature/video-intelligence",
+]);
+
+function isInternalLink(href: string): string | null {
+  try {
+    const url = new URL(href);
+    const isAureonDomain = url.hostname === "aureon.app" || url.hostname === "www.aureon.app" || url.hostname.endsWith(".lovable.app");
+    if (isAureonDomain && VALID_INTERNAL_PATHS.has(url.pathname)) {
+      return url.pathname;
+    }
+  } catch {
+    // relative path
+    if (href.startsWith("/") && VALID_INTERNAL_PATHS.has(href)) {
+      return href;
+    }
+  }
+  return null;
+}
+
+function MarkdownLink({ href, children, navigate }: { href?: string; children?: React.ReactNode; navigate: ReturnType<typeof useNavigate> }) {
+  if (!href) return <>{children}</>;
+
+  const internalPath = isInternalLink(href);
+
+  if (internalPath) {
+    return (
+      <button
+        onClick={() => navigate(internalPath)}
+        className="text-accent hover:text-accent/80 underline underline-offset-2 decoration-accent/40 hover:decoration-accent/70 transition-colors cursor-pointer inline-flex items-center gap-1"
+      >
+        {children}
+      </button>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-accent hover:text-accent/80 underline underline-offset-2 decoration-accent/40 hover:decoration-accent/70 transition-colors inline-flex items-center gap-1"
+    >
+      {children}
+      <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
+    </a>
+  );
+}
+
+const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => ({
   pre({ children, ...props }: any) {
-    // Extract text content from children
     let codeText = "";
     const extractText = (node: any): string => {
       if (typeof node === "string") return node;
@@ -177,9 +234,14 @@ const markdownComponents = {
       </div>
     );
   },
-};
+  a({ href, children }: any) {
+    return <MarkdownLink href={href} navigate={navigate}>{children}</MarkdownLink>;
+  },
+});
 
 const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause }: ChatViewProps) => {
+  const navigate = useNavigate();
+  const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [decodeId, setDecodeId] = useState<string | null>(null);
