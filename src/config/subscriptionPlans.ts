@@ -40,7 +40,8 @@ export type FeatureId =
   | "entity_resolution"
   | "scenario_simulator"
   | "priority_models"
-  | "video_intelligence";
+  | "video_intelligence"
+  | "vibe_imager";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
@@ -66,6 +67,7 @@ export interface PlanDefinition {
 const AUREON_FEATURES: FeatureId[] = [
   "chat", "ide", "zophiel_search", "memory", "personas", "code_snippets",
   "encryption", "slideshow", "pdf_generator", "imagine_intelligence", "imagine_to_code",
+  "vibe_imager",
 ];
 
 const PRO_FEATURES: FeatureId[] = [
@@ -108,6 +110,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Slideshow Generator",
       "PDF Generator",
       "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
+      "Vibe Imager — conversational AI image creation & editing",
     ],
   },
   {
@@ -239,6 +242,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   "pdf-generator": "pdf_generator",
   snippets: "code_snippets",
   "video-intelligence": "video_intelligence",
+  "vibe-imager": "vibe_imager",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
