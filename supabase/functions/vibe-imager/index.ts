@@ -111,17 +111,39 @@ serve(async (req) => {
       const aiData = await aiResponse.json();
       const reply = aiData.choices?.[0]?.message?.content || "";
 
-      // Try to parse JSON response
-      const jsonMatch = reply.match(/```json\s*([\s\S]*?)\s*```/) || reply.match(/\{[\s\S]*"action"[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const jsonStr = jsonMatch[1] || jsonMatch[0];
-          const parsed = JSON.parse(jsonStr);
-          return new Response(
-            JSON.stringify({ type: parsed.action, ...parsed }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        } catch { /* fall through to plain text */ }
+      // Try to parse JSON response — multiple strategies
+      let parsed: any = null;
+
+      // Strategy 1: ```json ... ``` fenced block
+      const fenceMatch = reply.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (fenceMatch) {
+        try { parsed = JSON.parse(fenceMatch[1].trim()); } catch {}
+      }
+
+      // Strategy 2: Raw JSON object with "action" key
+      if (!parsed) {
+        const rawMatch = reply.match(/\{[^{}]*"action"\s*:\s*"[^"]+?"[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/s);
+        if (rawMatch) {
+          try { parsed = JSON.parse(rawMatch[0]); } catch {}
+        }
+      }
+
+      // Strategy 3: Find any JSON object in the reply
+      if (!parsed) {
+        const anyJson = reply.match(/\{[\s\S]*\}/);
+        if (anyJson) {
+          try {
+            const candidate = JSON.parse(anyJson[0]);
+            if (candidate.action) parsed = candidate;
+          } catch {}
+        }
+      }
+
+      if (parsed?.action) {
+        return new Response(
+          JSON.stringify({ type: parsed.action, ...parsed }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Plain text reply (general chat)
