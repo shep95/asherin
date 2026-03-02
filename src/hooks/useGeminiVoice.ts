@@ -181,6 +181,7 @@ export function useGeminiVoice(options: UseGeminiVoiceOptions = {}) {
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
+          console.log("WS message received:", JSON.stringify(msg).slice(0, 300));
 
           // Setup complete
           if (msg.setupComplete) {
@@ -211,13 +212,18 @@ export function useGeminiVoice(options: UseGeminiVoiceOptions = {}) {
         }
       };
 
-      ws.onerror = () => {
+      ws.onerror = (ev) => {
+        console.error("WS error event:", ev);
         setError("Voice connection error");
         setStatus("error");
       };
 
-      ws.onclose = () => {
-        if (status !== "idle") {
+      ws.onclose = (ev) => {
+        console.log("WS closed — code:", ev.code, "reason:", ev.reason, "wasClean:", ev.wasClean);
+        if (!setupCompleteRef.current) {
+          setError(`Connection closed (code ${ev.code}). Check API key or model.`);
+          setStatus("error");
+        } else {
           setStatus("idle");
         }
         cleanup();
