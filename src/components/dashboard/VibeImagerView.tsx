@@ -54,6 +54,7 @@ interface ChatMessage {
   imageUrl?: string;
   versionId?: string;
   clarifyQuestions?: string[];
+  clarifyAnswered?: boolean;
 }
 
 const TEMPLATES = [
@@ -62,6 +63,89 @@ const TEMPLATES = [
   { id: "creative", label: "Creative", icon: Wand2, desc: "Artistic transformations" },
   { id: "free-edit", label: "Free Edit", icon: Wand2, desc: "Start fresh" },
 ];
+
+// ── Clarify Questions Card ────────────────────────────────────
+const ClarifyQuestionsCard = ({
+  questions,
+  context,
+  onSubmit,
+}: {
+  questions: string[];
+  context: string;
+  onSubmit: (answers: string[]) => void;
+}) => {
+  const [answers, setAnswers] = useState<string[]>(questions.map(() => ""));
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const updateAnswer = (i: number, val: string) => {
+    setAnswers((prev) => prev.map((a, idx) => (idx === i ? val : a)));
+  };
+
+  const allAnswered = answers.every((a) => a.trim().length > 0);
+
+  // Extract context text before numbered questions
+  const contextLine = context.split("\n")[0]?.replace(/^🔍\s*/, "") || "";
+
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-1.5 text-accent/80">
+        <HelpCircle className="h-3.5 w-3.5" />
+        <span className="text-[10px] font-medium tracking-wide uppercase">Aureon Needs More Detail</span>
+      </div>
+      {contextLine && (
+        <p className="text-[10px] text-foreground/60 leading-relaxed">{contextLine}</p>
+      )}
+      <div className="space-y-1.5">
+        {questions.map((q, i) => (
+          <div key={i} className="rounded-xl border border-border/20 bg-background/40 overflow-hidden">
+            <button
+              onClick={() => setOpenIndex(openIndex === i ? null : i)}
+              className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-foreground/5 transition-colors"
+            >
+              <span className="text-[10px] text-foreground/80 flex-1 pr-2">{q}</span>
+              <ChevronRight
+                className={`h-3 w-3 text-muted-foreground/50 transition-transform shrink-0 ${openIndex === i ? "rotate-90" : ""}`}
+              />
+            </button>
+            {openIndex === i && (
+              <div className="px-3 pb-2.5">
+                <input
+                  value={answers[i]}
+                  onChange={(e) => updateAnswer(i, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (i < questions.length - 1) setOpenIndex(i + 1);
+                      else if (allAnswered) onSubmit(answers);
+                    }
+                  }}
+                  placeholder="Type your answer…"
+                  autoFocus
+                  className="w-full bg-card/50 border border-border/20 rounded-lg px-2.5 py-1.5 text-[10px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30 transition-colors"
+                />
+                {answers[i].trim() && i < questions.length - 1 && (
+                  <button
+                    onClick={() => setOpenIndex(i + 1)}
+                    className="text-[9px] text-accent/70 hover:text-accent mt-1 transition-colors"
+                  >
+                    Next →
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={() => onSubmit(answers)}
+        disabled={!allAnswered}
+        className="w-full rounded-xl bg-accent/15 hover:bg-accent/25 text-accent text-[10px] font-medium py-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-accent/10"
+      >
+        Submit Answers
+      </button>
+    </div>
+  );
+};
 
 const VibeImagerView = () => {
   const { user } = useAuth();
@@ -584,24 +668,29 @@ const VibeImagerView = () => {
                       : "bg-foreground/5 text-foreground/90 rounded-bl-md"
                   }`}
                 >
-                  {msg.clarifyQuestions ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1.5 text-accent/80 mb-1">
+                  {msg.clarifyQuestions && !msg.clarifyAnswered ? (
+                    <ClarifyQuestionsCard
+                      questions={msg.clarifyQuestions}
+                      context={msg.content}
+                      onSubmit={(answers) => {
+                        // Mark this message as answered
+                        setMessages((prev) =>
+                          prev.map((m) => m.id === msg.id ? { ...m, clarifyAnswered: true } : m)
+                        );
+                        // Send combined answers as a single message
+                        const combined = answers
+                          .map((a, i) => `${msg.clarifyQuestions![i]}\n→ ${a}`)
+                          .join("\n\n");
+                        processMessage(combined);
+                      }}
+                    />
+                  ) : msg.clarifyQuestions && msg.clarifyAnswered ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-accent/60 mb-1">
                         <HelpCircle className="h-3 w-3" />
-                        <span className="text-[10px] font-medium tracking-wide uppercase">Needs More Detail</span>
+                        <span className="text-[10px] tracking-wide">Questions answered ✓</span>
                       </div>
-                      <p className="text-xs text-foreground/70 whitespace-pre-line">{msg.content}</p>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {msg.clarifyQuestions.map((q, i) => (
-                          <button
-                            key={i}
-                            onClick={() => handleQuickAnswer(q)}
-                            className="text-[10px] px-2.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent/80 hover:text-accent transition-colors border border-accent/10"
-                          >
-                            Answer: {q.slice(0, 30)}{q.length > 30 ? "…" : ""}
-                          </button>
-                        ))}
-                      </div>
+                      <p className="text-[10px] text-muted-foreground/50 whitespace-pre-line">{msg.content}</p>
                     </div>
                   ) : (
                     <>
