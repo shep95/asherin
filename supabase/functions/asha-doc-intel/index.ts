@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -19,10 +18,9 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) throw new Error("Unauthorized");
-    const userId = claimsData.claims.sub as string;
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) throw new Error("Unauthorized");
+    const userId = user.id;
 
     const body = await req.json();
     const { action } = body;
@@ -55,10 +53,8 @@ async function processDocument(supabase: any, userId: string, documentId: string
 
   if (docErr || !doc) throw new Error("Document not found");
 
-  // Update status to processing
   await supabase.from("asha_documents").update({ status: "processing" }).eq("id", documentId);
 
-  // Download file
   const { data: fileData, error: dlErr } = await supabase.storage.from("asha-data").download(doc.storage_path);
   if (dlErr || !fileData) {
     await supabase.from("asha_documents").update({ status: "error" }).eq("id", documentId);
@@ -66,12 +62,11 @@ async function processDocument(supabase: any, userId: string, documentId: string
   }
 
   const text = await fileData.text();
-  const truncatedText = text.slice(0, 30000); // Limit for Gemini context
+  const truncatedText = text.slice(0, 30000);
 
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-  // Detect document type and extract entities via Gemini
   const aiResp = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
@@ -127,6 +122,8 @@ ${truncatedText}` }] }],
   );
 
   if (!aiResp.ok) {
+    const errText = await aiResp.text();
+    console.error("Gemini API error:", aiResp.status, errText);
     await supabase.from("asha_documents").update({ status: "error" }).eq("id", documentId);
     throw new Error("AI extraction failed");
   }
@@ -134,7 +131,6 @@ ${truncatedText}` }] }],
   const aiData = await aiResp.json();
   const aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-  // Parse JSON from response
   const jsonMatch = aiText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     await supabase.from("asha_documents").update({ status: "error" }).eq("id", documentId);
@@ -143,7 +139,6 @@ ${truncatedText}` }] }],
 
   const extracted = JSON.parse(jsonMatch[0]);
 
-  // Update document record
   await supabase.from("asha_documents").update({
     status: "ready",
     doc_type: extracted.doc_type || "other",
@@ -151,11 +146,10 @@ ${truncatedText}` }] }],
     language: extracted.language || "en",
     page_count: extracted.page_count_estimate || 0,
     metadata: extracted.metadata || {},
-    extracted_text: truncatedText.slice(0, 10000), // Store first 10k for search
+    extracted_text: truncatedText.slice(0, 10000),
   }).eq("id", documentId);
 
-  // Insert entities
-  const entities = (extracted.entities || []).slice(0, 200); // Cap at 200 entities per doc
+  const entities = (extracted.entities || []).slice(0, 200);
   if (entities.length > 0) {
     const entityRows = entities.map((e: any) => ({
       user_id: userId,
@@ -172,7 +166,6 @@ ${truncatedText}` }] }],
     await supabase.from("asha_document_entities").insert(entityRows);
   }
 
-  // Auto-detect cross-document links by matching entities
   const { data: existingDocs } = await supabase
     .from("asha_documents")
     .select("id, metadata, doc_type")
@@ -219,7 +212,6 @@ ${truncatedText}` }] }],
 async function searchDocuments(supabase: any, userId: string, query: string) {
   if (!query?.trim()) throw new Error("Missing query");
 
-  // Fetch all user's documents and entities for context
   const [{ data: docs }, { data: entities }] = await Promise.all([
     supabase.from("asha_documents").select("id, file_name, doc_type, summary, metadata, tags, created_at").eq("user_id", userId).eq("status", "ready").order("created_at", { ascending: false }).limit(100),
     supabase.from("asha_document_entities").select("document_id, entity_type, entity_value, entity_label, confidence").eq("user_id", userId).order("confidence", { ascending: false }).limit(500),
@@ -228,7 +220,6 @@ async function searchDocuments(supabase: any, userId: string, query: string) {
   const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
   if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-  // Build document index for Gemini
   const docIndex = (docs || []).map((d: any) => ({
     id: d.id,
     name: d.file_name,
@@ -238,7 +229,6 @@ async function searchDocuments(supabase: any, userId: string, query: string) {
     date: d.created_at,
   }));
 
-  // Group entities by document
   const entityMap: Record<string, any[]> = {};
   for (const e of (entities || [])) {
     if (!entityMap[e.document_id]) entityMap[e.document_id] = [];
@@ -285,7 +275,11 @@ Return ONLY valid JSON.` }] }],
     }
   );
 
-  if (!aiResp.ok) throw new Error("AI search failed");
+  if (!aiResp.ok) {
+    const errText = await aiResp.text();
+    console.error("Gemini search error:", aiResp.status, errText);
+    throw new Error("AI search failed");
+  }
 
   const aiData = await aiResp.json();
   const aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
