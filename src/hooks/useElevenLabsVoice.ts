@@ -13,6 +13,11 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
   const [transcript, setTranscript] = useState("");
 
   const conversation = useConversation({
+    overrides: {
+      tts: {
+        voiceId: "nju8YCEndVfEz7rGwcgK",
+      },
+    },
     onConnect: () => {
       console.log("ElevenLabs voice connected");
       setStatus("connected");
