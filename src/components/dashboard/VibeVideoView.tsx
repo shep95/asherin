@@ -147,6 +147,7 @@ const VibeVideoView = () => {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [queuePaused, setQueuePaused] = useState(false);
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -257,13 +258,45 @@ const VibeVideoView = () => {
 
     const ext = file.name.split(".").pop() || "mp4";
     const path = `${user.id}/${activeProject.id}/${crypto.randomUUID()}.${ext}`;
-    const { error: uploadErr } = await supabase.storage
-      .from("vibe-video")
-      .upload(path, file, { contentType: file.type });
-    if (uploadErr) {
-      toast({ title: "Upload failed", description: uploadErr.message, variant: "destructive" });
+
+    setUploadProgress(0);
+
+    try {
+      // Use XMLHttpRequest for progress tracking
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const session = (await supabase.auth.getSession()).data.session;
+      const authToken = session?.access_token || supabaseKey;
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener("progress", (evt) => {
+          if (evt.lengthComputable) {
+            setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+          }
+        });
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Upload failed with status ${xhr.status}`));
+        });
+        xhr.addEventListener("error", () => reject(new Error("Upload network error")));
+        xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
+        xhr.open("POST", `${supabaseUrl}/storage/v1/object/vibe-video/${path}`);
+        xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
+        xhr.setRequestHeader("apikey", supabaseKey);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("x-upsert", "false");
+        xhr.send(file);
+      });
+    } catch (err: unknown) {
+      setUploadProgress(null);
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      toast({ title: "Upload failed", description: msg, variant: "destructive" });
+      e.target.value = "";
       return;
     }
+
+    setUploadProgress(null);
     const { data: urlData } = supabase.storage.from("vibe-video").getPublicUrl(path);
     const vNum = (activeVersion?.version_number || 0) + 1;
 
@@ -550,6 +583,25 @@ const VibeVideoView = () => {
               >
                 <Upload className="h-3.5 w-3.5" /> Choose Video
               </Button>
+            </div>
+          )}
+          {uploadProgress !== null && (
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center rounded-b-2xl z-10">
+              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-card/80 border border-border/20 backdrop-blur-md min-w-[280px]">
+                <Upload className="h-8 w-8 text-accent animate-pulse" />
+                <p className="text-sm font-light text-foreground/80">Uploading video…</p>
+                <div className="w-full">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] text-muted-foreground">{uploadProgress}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all duration-300 ease-out"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {isEditing && (
