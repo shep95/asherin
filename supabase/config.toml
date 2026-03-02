@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.coding-laws-engine]
 verify_jwt = false
+
+[functions.gemini-voice-token]
+verify_jwt = false
