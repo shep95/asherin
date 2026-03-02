@@ -47,17 +47,6 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
     setTranscript("");
 
     try {
-      // Request microphone permission first (must be in click handler)
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }
-      });
-      // Stop the test stream immediately — SDK will create its own
-      stream.getTracks().forEach(t => t.stop());
-
       // Get a signed token from the edge function for authenticated WebRTC
       const { data, error: fnError } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
@@ -68,10 +57,13 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
         throw new Error(fnError?.message || "Failed to get conversation token");
       }
 
-      // Start session with conversationToken (authenticated, reliable WebRTC)
+      // Request mic permission explicitly in click handler context,
+      // then immediately start the session (SDK will use the granted permission)
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Start session with conversationToken (authenticated WebRTC)
       await conversation.startSession({
         conversationToken: data.token,
-        connectionType: "webrtc",
       });
     } catch (e: any) {
       console.error("Voice connect error:", e);
