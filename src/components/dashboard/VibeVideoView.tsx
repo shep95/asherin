@@ -259,10 +259,9 @@ const VibeVideoView = () => {
     const ext = file.name.split(".").pop() || "mp4";
     const path = `${user.id}/${activeProject.id}/${crypto.randomUUID()}.${ext}`;
 
-    setUploadProgress(0);
+    setUploadProgress(1);
 
     try {
-      // Use XMLHttpRequest for progress tracking
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const session = (await supabase.auth.getSession()).data.session;
@@ -270,21 +269,26 @@ const VibeVideoView = () => {
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.upload.addEventListener("progress", (evt) => {
+        xhr.upload.onprogress = (evt) => {
           if (evt.lengthComputable) {
-            setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+            const pct = Math.max(1, Math.round((evt.loaded / evt.total) * 100));
+            setUploadProgress(pct);
           }
-        });
-        xhr.addEventListener("load", () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(`Upload failed with status ${xhr.status}`));
-        });
-        xhr.addEventListener("error", () => reject(new Error("Upload network error")));
-        xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadProgress(100);
+            resolve();
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Upload network error"));
+        xhr.onabort = () => reject(new Error("Upload cancelled"));
         xhr.open("POST", `${supabaseUrl}/storage/v1/object/vibe-video/${path}`);
         xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
         xhr.setRequestHeader("apikey", supabaseKey);
-        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
         xhr.setRequestHeader("x-upsert", "false");
         xhr.send(file);
       });
