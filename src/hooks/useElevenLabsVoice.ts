@@ -155,5 +155,7 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
     disconnect,
     downloadTranscript,
     isConnected: status === "connected",
+    getInputVolume: conversation.getInputVolume,
+    getOutputVolume: conversation.getOutputVolume,
   };
 }
