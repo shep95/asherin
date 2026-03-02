@@ -1,8 +1,14 @@
 import { useConversation } from "@elevenlabs/react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 type VoiceStatus = "idle" | "connecting" | "connected" | "error";
+
+interface TranscriptEntry {
+  role: "user" | "agent";
+  text: string;
+  timestamp: number;
+}
 
 interface UseElevenLabsVoiceOptions {
   agentId: string;
@@ -11,7 +17,10 @@ interface UseElevenLabsVoiceOptions {
 export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState("");
+  const [currentText, setCurrentText] = useState("");
+  const [transcriptLog, setTranscriptLog] = useState<TranscriptEntry[]>([]);
+  const [userSpeechIndicator, setUserSpeechIndicator] = useState(false);
+  const micStreamRef = useRef<MediaStream | null>(null);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -22,16 +31,36 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
     onDisconnect: () => {
       console.log("ElevenLabs voice disconnected");
       setStatus("idle");
+      // Stop mic stream on disconnect
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
     },
     onMessage: (message: any) => {
-      console.log("ElevenLabs message:", message?.type);
-      if (message?.type === "agent_response") {
-        const text = message?.agent_response_event?.agent_response;
-        if (text) setTranscript(text);
-      }
+      console.log("ElevenLabs message:", message?.type, message);
+
       if (message?.type === "user_transcript") {
         const text = message?.user_transcription_event?.user_transcript;
-        if (text) setTranscript(text);
+        if (text) {
+          setCurrentText(text);
+          setUserSpeechIndicator(true);
+          setTranscriptLog((prev) => [
+            ...prev,
+            { role: "user", text, timestamp: Date.now() },
+          ]);
+          // Reset indicator after a beat
+          setTimeout(() => setUserSpeechIndicator(false), 1500);
+        }
+      }
+
+      if (message?.type === "agent_response") {
+        const text = message?.agent_response_event?.agent_response;
+        if (text) {
+          setCurrentText(text);
+          setTranscriptLog((prev) => [
+            ...prev,
+            { role: "agent", text, timestamp: Date.now() },
+          ]);
+        }
       }
     },
     onError: (err) => {
@@ -44,21 +73,32 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
   const connect = useCallback(async () => {
     setError(null);
     setStatus("connecting");
-    setTranscript("");
+    setCurrentText("");
+    setTranscriptLog([]);
 
     try {
-      // Get a signed token from the edge function for authenticated WebRTC
+      // 1. Acquire mic in click-handler context and KEEP the stream alive
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      micStreamRef.current = stream;
+
+      // 2. Get a signed token
       const { data, error: fnError } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
-        { body: { agentId } }
+        { body: { agentId } },
       );
 
       if (fnError || !data?.token) {
+        stream.getTracks().forEach((t) => t.stop());
         throw new Error(fnError?.message || "Failed to get conversation token");
       }
 
-      // Start session — the SDK handles mic access internally.
-      // Pass the voice override so the agent uses the cloned voice.
+      // 3. Start session with the token
       await conversation.startSession({
         conversationToken: data.token,
         overrides: {
@@ -69,6 +109,8 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
       });
     } catch (e: any) {
       console.error("Voice connect error:", e);
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
       if (e.name === "NotAllowedError") {
         setError("Microphone access denied. Check browser permissions.");
       } else {
@@ -80,17 +122,38 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
 
   const disconnect = useCallback(async () => {
     await conversation.endSession();
+    micStreamRef.current?.getTracks().forEach((t) => t.stop());
+    micStreamRef.current = null;
     setStatus("idle");
-    setTranscript("");
   }, [conversation]);
+
+  const downloadTranscript = useCallback(() => {
+    if (transcriptLog.length === 0) return;
+    const lines = transcriptLog.map(
+      (e) =>
+        `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.role === "user" ? "You" : "Aureon"}: ${e.text}`,
+    );
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `aureon-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [transcriptLog]);
 
   return {
     status,
     isSpeaking: conversation.isSpeaking,
-    transcript,
+    currentText,
+    transcriptLog,
+    userSpeechIndicator,
     error,
     connect,
     disconnect,
+    downloadTranscript,
     isConnected: status === "connected",
   };
 }
