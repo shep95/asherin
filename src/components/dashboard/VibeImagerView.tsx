@@ -6,35 +6,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Send,
   Upload,
   ImagePlus,
   History,
   Wand2,
-  Paintbrush,
-  Sparkles,
   Download,
   GitBranch,
   ChevronRight,
   Loader2,
   Plus,
   Trash2,
-  Eye,
   RotateCcw,
-  Palette,
-  Camera,
-  Type,
-  Eraser,
-  Layers,
-  ZoomIn,
+  Save,
   X,
+  Maximize2,
+  Minimize2,
+  ExternalLink,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -66,25 +54,13 @@ interface ChatMessage {
   versionId?: string;
 }
 
-const STYLE_PRESETS = [
-  { value: "none", label: "No Style" },
-  { value: "photorealistic", label: "Photorealistic" },
-  { value: "artistic", label: "Fine Art" },
-  { value: "anime", label: "Anime" },
-  { value: "minimalist", label: "Minimalist" },
-  { value: "cinematic", label: "Cinematic" },
-  { value: "watercolor", label: "Watercolor" },
-  { value: "3d-render", label: "3D Render" },
-  { value: "sketch", label: "Sketch" },
-];
-
 const TEMPLATES = [
-  { id: "logo", label: "Logo", icon: Sparkles, desc: "Brand logo design" },
-  { id: "social", label: "Social Post", icon: Camera, desc: "Social media graphics" },
-  { id: "avatar", label: "Avatar", icon: Paintbrush, desc: "Profile picture" },
-  { id: "product", label: "Product", icon: Layers, desc: "Product mockup" },
-  { id: "hero", label: "Hero Image", icon: ImagePlus, desc: "Website banner" },
-  { id: "editor", label: "Free Edit", icon: Wand2, desc: "Upload & edit anything" },
+  { id: "photo-edit", label: "Photo Edit", icon: ImagePlus, desc: "Upload & edit photos" },
+  { id: "design", label: "Design", icon: Wand2, desc: "Create graphics & layouts" },
+  { id: "retouch", label: "Retouch", icon: Wand2, desc: "Retouch & enhance" },
+  { id: "composite", label: "Composite", icon: Wand2, desc: "Combine multiple images" },
+  { id: "social", label: "Social Media", icon: Wand2, desc: "Social media graphics" },
+  { id: "free-edit", label: "Free Edit", icon: Wand2, desc: "Open editor blank" },
 ];
 
 const VibeImagerView = () => {
@@ -98,14 +74,144 @@ const VibeImagerView = () => {
   const [activeVersion, setActiveVersion] = useState<VibeVersion | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isChatting, setIsChatting] = useState(false);
-  const [stylePreset, setStylePreset] = useState("none");
+  const [isSaving, setIsSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showCompare, setShowCompare] = useState(false);
-  const [compareVersion, setCompareVersion] = useState<VibeVersion | null>(null);
+  const [photopeaReady, setPhotopeaReady] = useState(false);
+  const [editorExpanded, setEditorExpanded] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photopeaRef = useRef<HTMLIFrameElement>(null);
+  const pendingSaveRef = useRef(false);
+
+  // ── Photopea Communication ──────────────────────────────────
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      // Photopea sends "done" when ready or after processing a command
+      if (e.data === "done") {
+        if (!photopeaReady) setPhotopeaReady(true);
+        if (pendingSaveRef.current) {
+          pendingSaveRef.current = false;
+          // "done" after saveToOE means data was already sent
+        }
+        return;
+      }
+
+      // ArrayBuffer = exported image from Photopea (response to saveToOE)
+      if (e.data instanceof ArrayBuffer) {
+        handlePhotopeaExport(e.data);
+        return;
+      }
+
+      // String messages from echoToOE
+      if (typeof e.data === "string") {
+        try {
+          const parsed = JSON.parse(e.data);
+          if (parsed.type === "save") {
+            // Custom save triggered
+            saveCurrentImage();
+          }
+        } catch {
+          // Not JSON, ignore
+        }
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [photopeaReady, activeProject, activeVersion, user]);
+
+  // Send a script command to Photopea
+  const sendToPhotopea = useCallback((script: string) => {
+    if (!photopeaRef.current?.contentWindow) return;
+    photopeaRef.current.contentWindow.postMessage(script, "*");
+  }, []);
+
+  // Send an ArrayBuffer (image file) to Photopea
+  const sendFileToPhotopea = useCallback((buffer: ArrayBuffer) => {
+    if (!photopeaRef.current?.contentWindow) return;
+    photopeaRef.current.contentWindow.postMessage(buffer, "*");
+  }, []);
+
+  // Load an image URL into Photopea
+  const loadImageInPhotopea = useCallback(async (imageUrl: string) => {
+    if (!photopeaRef.current?.contentWindow) return;
+    try {
+      const response = await fetch(imageUrl);
+      const buffer = await response.arrayBuffer();
+      sendFileToPhotopea(buffer);
+    } catch (err) {
+      // Fallback: use app.open with URL
+      sendToPhotopea(`app.open("${imageUrl}");`);
+    }
+  }, [sendFileToPhotopea, sendToPhotopea]);
+
+  // Trigger Photopea to export the current document
+  const saveCurrentImage = useCallback(() => {
+    pendingSaveRef.current = true;
+    sendToPhotopea('app.activeDocument.saveToOE("png");');
+  }, [sendToPhotopea]);
+
+  // Handle the exported ArrayBuffer from Photopea
+  const handlePhotopeaExport = useCallback(async (buffer: ArrayBuffer) => {
+    if (!user || !activeProject) return;
+    setIsSaving(true);
+
+    try {
+      const bytes = new Uint8Array(buffer);
+      const fileName = `${user.id}/${activeProject.id}/${crypto.randomUUID()}.png`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("vibe-imager")
+        .upload(fileName, bytes, { contentType: "image/png", upsert: false });
+      if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+
+      const { data: urlData } = supabase.storage.from("vibe-imager").getPublicUrl(fileName);
+
+      const versionNumber = (activeVersion?.version_number || 0) + 1;
+      const { data: version, error: versionErr } = await supabase
+        .from("vibe_imager_versions")
+        .insert({
+          project_id: activeProject.id,
+          user_id: user.id,
+          parent_id: activeVersion?.id || null,
+          version_number: versionNumber,
+          prompt: "Edited in Photopea",
+          image_url: urlData.publicUrl,
+          is_uploaded: false,
+          metadata: { source: "photopea" },
+        })
+        .select()
+        .single();
+
+      if (versionErr) throw new Error(versionErr.message);
+
+      const v = version as VibeVersion;
+      setVersions((prev) => [...prev, v]);
+      setActiveVersion(v);
+
+      const saveMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `✅ Saved as v${versionNumber}. Your edits are versioned — you can always go back.`,
+        versionId: v.id,
+      };
+      setMessages((prev) => [...prev, saveMsg]);
+
+      await supabase.from("vibe_imager_messages").insert({
+        project_id: activeProject.id,
+        user_id: user.id,
+        role: "assistant",
+        content: saveMsg.content,
+        version_id: v.id,
+      });
+
+      toast({ title: "Saved", description: `Version ${versionNumber} saved` });
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message, variant: "destructive" });
+    }
+    setIsSaving(false);
+  }, [user, activeProject, activeVersion, toast]);
 
   // Load projects
   useEffect(() => {
@@ -165,6 +271,28 @@ const VibeImagerView = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // When activeVersion changes and Photopea is ready, load it
+  useEffect(() => {
+    if (activeVersion && photopeaReady) {
+      loadImageInPhotopea(activeVersion.image_url);
+    }
+  }, [activeVersion?.id, photopeaReady]);
+
+  // ── Photopea iframe URL builder ─────────────────────────────
+  const buildPhotopeaUrl = useCallback((imageUrl?: string) => {
+    const config: Record<string, unknown> = {
+      environment: {
+        customIO: {
+          save: 'app.echoToOE(JSON.stringify({type:"save"}));',
+        },
+      },
+    };
+    if (imageUrl) {
+      config.files = [imageUrl];
+    }
+    return `https://www.photopea.com#${encodeURIComponent(JSON.stringify(config))}`;
+  }, []);
+
   // ── Create Project ──────────────────────────────────────────
   const createProject = async (template?: string) => {
     if (!user) return;
@@ -183,14 +311,12 @@ const VibeImagerView = () => {
     setMessages([]);
     setVersions([]);
     setActiveVersion(null);
+    setPhotopeaReady(false);
 
-    // Add welcome message
     const welcome: ChatMessage = {
       id: crypto.randomUUID(),
       role: "assistant",
-      content: template
-        ? `Welcome to Vibe Imager! 🎨 I see you've chosen the **${template}** template. Describe what you'd like to create and I'll bring it to life. What's your vision?`
-        : `Welcome to Vibe Imager! 🎨 Describe your vision or upload an image to start editing. I'll help you iterate until it's perfect.`,
+      content: `Welcome to Vibe Imager! 🎨 Upload an image to start editing in the built-in Photopea editor. I can also help you with AI-powered suggestions for edits, effects, and techniques.`,
     };
     setMessages([welcome]);
   };
@@ -242,13 +368,19 @@ const VibeImagerView = () => {
       const v = version as VibeVersion;
       setVersions((prev) => [...prev, v]);
       setActiveVersion(v);
+
+      // Load into Photopea
+      if (photopeaReady) {
+        loadImageInPhotopea(urlData.publicUrl);
+      }
+
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "user", content: "📷 Uploaded an image" },
+        { id: crypto.randomUUID(), role: "user", content: `📷 Uploaded: ${file.name}` },
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Got your image! Now tell me what you'd like to change. I can edit, enhance, restyle, or transform it.",
+          content: "Image loaded in the editor! Edit directly in Photopea, then click **💾 Save Version** to create a new version. Ask me for editing tips anytime.",
           versionId: v.id,
         },
       ]);
@@ -256,17 +388,15 @@ const VibeImagerView = () => {
     e.target.value = "";
   };
 
-  // ── Send Message (Chat + Generate/Edit) ─────────────────────
+  // ── Send Chat Message (AI assistant for editing tips) ───────
   const sendMessage = async () => {
-    if (!input.trim() || !user || !activeProject || isGenerating) return;
+    if (!input.trim() || !user || !activeProject || isChatting) return;
     const content = input.trim();
     setInput("");
 
-    // Add user message
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content };
     setMessages((prev) => [...prev, userMsg]);
 
-    // Save user message to DB
     await supabase.from("vibe_imager_messages").insert({
       project_id: activeProject.id,
       user_id: user.id,
@@ -274,7 +404,6 @@ const VibeImagerView = () => {
       content,
     });
 
-    // First, chat to get context/suggestions
     setIsChatting(true);
     try {
       const chatHistory = messages.slice(-10).map((m) => ({
@@ -293,178 +422,37 @@ const VibeImagerView = () => {
       });
 
       if (chatErr) throw chatErr;
-      const reply = chatData?.reply || "";
-      setIsChatting(false);
+      const reply = chatData?.reply || "I can help you with editing tips! Try asking about specific techniques.";
 
-      // Check if AI wants to generate or edit
-      const generateMatch = reply.match(/\[GENERATE:\s*(.*?)\]/s);
-      const editMatch = reply.match(/\[EDIT:\s*(.*?)\]/s);
-      const cleanReply = reply
-        .replace(/\[GENERATE:.*?\]/s, "")
-        .replace(/\[EDIT:.*?\]/s, "")
-        .trim();
-
-      if (cleanReply) {
-        const assistantMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: cleanReply };
-        setMessages((prev) => [...prev, assistantMsg]);
-        await supabase.from("vibe_imager_messages").insert({
-          project_id: activeProject.id,
-          user_id: user.id,
-          role: "assistant",
-          content: cleanReply,
-        });
+      // Check if AI suggests a Photopea script
+      const scriptMatch = reply.match(/\[SCRIPT:\s*(.*?)\]/s);
+      if (scriptMatch && photopeaReady) {
+        sendToPhotopea(scriptMatch[1]);
       }
 
-      // Execute generation/edit if triggered
-      if (generateMatch || editMatch) {
-        setIsGenerating(true);
-        const genMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: generateMatch ? "🎨 Generating your image..." : "✏️ Editing your image...",
-        };
-        setMessages((prev) => [...prev, genMsg]);
+      const cleanReply = reply.replace(/\[SCRIPT:.*?\]/s, "").trim();
 
-        try {
-          let result;
-          if (generateMatch) {
-            const { data, error } = await supabase.functions.invoke("vibe-imager", {
-              body: {
-                action: "generate",
-                prompt: generateMatch[1],
-                projectId: activeProject.id,
-                parentVersionId: activeVersion?.id || null,
-                stylePreset,
-              },
-            });
-            if (error) throw error;
-            result = data;
-          } else if (editMatch && activeVersion) {
-            const { data, error } = await supabase.functions.invoke("vibe-imager", {
-              body: {
-                action: "edit",
-                instruction: editMatch[1],
-                imageUrl: activeVersion.image_url,
-                projectId: activeProject.id,
-                parentVersionId: activeVersion.id,
-              },
-            });
-            if (error) throw error;
-            result = data;
-          }
+      const assistantMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: cleanReply };
+      setMessages((prev) => [...prev, assistantMsg]);
 
-          if (result?.version) {
-            const newVersion = result.version as VibeVersion;
-            setVersions((prev) => [...prev, newVersion]);
-            setActiveVersion(newVersion);
-
-            // Replace generating message with result
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === genMsg.id
-                  ? { ...m, content: "✅ Done! Here's your image. What do you think? Tell me if you'd like any changes.", versionId: newVersion.id }
-                  : m
-              )
-            );
-
-            await supabase.from("vibe_imager_messages").insert({
-              project_id: activeProject.id,
-              user_id: user.id,
-              role: "assistant",
-              content: "Image generated successfully",
-              version_id: newVersion.id,
-            });
-          }
-        } catch (genErr: any) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === genMsg.id ? { ...m, content: `❌ ${genErr.message || "Generation failed. Try again."}` } : m
-            )
-          );
-        }
-        setIsGenerating(false);
-      } else if (!activeVersion && !generateMatch) {
-        // No image yet and AI didn't trigger generation — auto-generate
-        setIsGenerating(true);
-        const genMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "🎨 Generating your image...",
-        };
-        setMessages((prev) => [...prev, genMsg]);
-
-        try {
-          const { data, error } = await supabase.functions.invoke("vibe-imager", {
-            body: {
-              action: "generate",
-              prompt: content,
-              projectId: activeProject.id,
-              parentVersionId: null,
-              stylePreset,
-            },
-          });
-          if (error) throw error;
-
-          if (data?.version) {
-            const newVersion = data.version as VibeVersion;
-            setVersions((prev) => [...prev, newVersion]);
-            setActiveVersion(newVersion);
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === genMsg.id
-                  ? { ...m, content: "✅ Here's your first version! What would you like to change?", versionId: newVersion.id }
-                  : m
-              )
-            );
-          }
-        } catch (genErr: any) {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === genMsg.id ? { ...m, content: `❌ ${genErr.message || "Failed."}` } : m
-            )
-          );
-        }
-        setIsGenerating(false);
-      }
+      await supabase.from("vibe_imager_messages").insert({
+        project_id: activeProject.id,
+        user_id: user.id,
+        role: "assistant",
+        content: cleanReply,
+      });
     } catch (err: any) {
-      setIsChatting(false);
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
+    setIsChatting(false);
   };
 
-  // ── Quick Actions ───────────────────────────────────────────
-  const quickEdit = async (instruction: string) => {
-    if (!activeVersion || !activeProject || !user || isGenerating) return;
-    setIsGenerating(true);
-    const genMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✏️ ${instruction}...` };
-    setMessages((prev) => [...prev, genMsg]);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("vibe-imager", {
-        body: {
-          action: "edit",
-          instruction,
-          imageUrl: activeVersion.image_url,
-          projectId: activeProject.id,
-          parentVersionId: activeVersion.id,
-        },
-      });
-      if (error) throw error;
-
-      if (data?.version) {
-        const v = data.version as VibeVersion;
-        setVersions((prev) => [...prev, v]);
-        setActiveVersion(v);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === genMsg.id ? { ...m, content: "✅ Applied! How does it look?", versionId: v.id } : m))
-        );
-      }
-    } catch (err: any) {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === genMsg.id ? { ...m, content: `❌ ${err.message}` } : m))
-      );
+  // ── Load version into editor ────────────────────────────────
+  const loadVersion = (v: VibeVersion) => {
+    setActiveVersion(v);
+    if (photopeaReady) {
+      loadImageInPhotopea(v.image_url);
     }
-    setIsGenerating(false);
   };
 
   // ── Download ────────────────────────────────────────────────
@@ -482,6 +470,16 @@ const VibeImagerView = () => {
     } catch { toast({ title: "Download failed", variant: "destructive" }); }
   };
 
+  // ── Quick Photopea Scripts ──────────────────────────────────
+  const quickScripts = [
+    { label: "🔄 Flip H", script: 'app.activeDocument.flipCanvas("horizontal");' },
+    { label: "🔃 Flip V", script: 'app.activeDocument.flipCanvas("vertical");' },
+    { label: "↩️ Rotate 90°", script: "app.activeDocument.rotateCanvas(90);" },
+    { label: "🎨 Desaturate", script: 'app.activeDocument.activeLayer.adjustments.desaturate();' },
+    { label: "✨ Auto Levels", script: 'app.activeDocument.activeLayer.adjustments.levels();' },
+    { label: "📐 Flatten", script: "app.activeDocument.flattenImage();" },
+  ];
+
   // ── Landing (no project) ────────────────────────────────────
   if (!activeProject) {
     return (
@@ -492,7 +490,7 @@ const VibeImagerView = () => {
             <h1 className="text-2xl font-extralight tracking-[0.15em] text-foreground">VIBE IMAGER</h1>
           </div>
           <p className="text-sm font-extralight text-muted-foreground max-w-md">
-            Describe your vision, see it live. Iterate through conversation. Version control for images.
+            Upload images, edit with a full Photoshop-class editor powered by Photopea, iterate with AI assistance, and track every version.
           </p>
         </div>
 
@@ -511,7 +509,6 @@ const VibeImagerView = () => {
           ))}
         </div>
 
-        {/* Quick start */}
         <Button onClick={() => createProject()} variant="outline" className="gap-2 text-xs font-light">
           <Plus className="h-3.5 w-3.5" /> Blank Project
         </Button>
@@ -549,7 +546,7 @@ const VibeImagerView = () => {
           </div>
         )}
 
-        <p className="text-[9px] text-muted-foreground/30 tracking-wider">Beta: Created By ZALI Software</p>
+        <p className="text-[9px] text-muted-foreground/30 tracking-wider">Powered by Photopea • Created By ZALI Software</p>
       </div>
     );
   }
@@ -558,149 +555,126 @@ const VibeImagerView = () => {
   return (
     <div className="flex flex-1 h-full overflow-hidden">
       {/* Chat Panel */}
-      <div className="flex flex-col w-80 min-w-[280px] max-w-[360px] border-r border-border/20 bg-card/20 backdrop-blur-md">
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-border/20">
-          <button
-            onClick={() => setActiveProject(null)}
-            className="flex items-center gap-1.5 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Projects
-          </button>
-          <span className="text-[10px] font-light tracking-wider text-foreground/70 truncate max-w-[140px]">
-            {activeProject.name}
-          </span>
-          <div className="flex items-center gap-1">
+      {!editorExpanded && (
+        <div className="flex flex-col w-80 min-w-[280px] max-w-[360px] border-r border-border/20 bg-card/20 backdrop-blur-md">
+          {/* Header */}
+          <div className="flex items-center justify-between p-3 border-b border-border/20">
             <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={`p-1.5 rounded-lg transition-colors ${showHistory ? "bg-accent/20 text-accent" : "text-muted-foreground hover:text-foreground"}`}
-              title="Version history"
+              onClick={() => { setActiveProject(null); setPhotopeaReady(false); }}
+              className="flex items-center gap-1.5 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
             >
-              <History className="h-3.5 w-3.5" />
+              <RotateCcw className="h-3 w-3" />
+              Projects
             </button>
-          </div>
-        </div>
-
-        {/* Style Selector */}
-        <div className="px-3 py-2 border-b border-border/10">
-          <Select value={stylePreset} onValueChange={setStylePreset}>
-            <SelectTrigger className="h-7 text-[10px] bg-transparent border-border/20">
-              <Palette className="h-3 w-3 mr-1.5 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STYLE_PRESETS.map((s) => (
-                <SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Chat Messages */}
-        <ScrollArea className="flex-1">
-          <div className="p-3 space-y-3">
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] rounded-xl px-3 py-2 text-xs font-light ${
-                    msg.role === "user"
-                      ? "bg-accent/20 text-foreground"
-                      : "bg-foreground/5 text-foreground/90"
-                  }`}
-                >
-                  {msg.content}
-                  {msg.versionId && (
-                    <button
-                      onClick={() => {
-                        const v = versions.find((ver) => ver.id === msg.versionId);
-                        if (v) setActiveVersion(v);
-                      }}
-                      className="block mt-1.5 text-[9px] text-accent hover:underline"
-                    >
-                      View image →
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {(isChatting || isGenerating) && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 bg-foreground/5 rounded-xl px-3 py-2">
-                  <Loader2 className="h-3 w-3 animate-spin text-accent" />
-                  <span className="text-[10px] text-muted-foreground">
-                    {isGenerating ? "Creating image..." : "Thinking..."}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-        </ScrollArea>
-
-        {/* Quick Actions */}
-        {activeVersion && (
-          <div className="px-3 py-2 border-t border-border/10 flex flex-wrap gap-1.5">
-            {[
-              { label: "🎨 Restyle", action: "Apply a completely different artistic style" },
-              { label: "🌈 Recolor", action: "Change the color palette dramatically" },
-              { label: "➕ Add element", action: "Add an interesting new element to the composition" },
-              { label: "🗑️ Simplify", action: "Remove clutter and simplify the composition" },
-              { label: "✨ Enhance", action: "Enhance the quality, add more detail and depth" },
-              { label: "🌙 Dark mode", action: "Convert to a dark, moody atmosphere" },
-            ].map((q) => (
+            <span className="text-[10px] font-light tracking-wider text-foreground/70 truncate max-w-[140px]">
+              {activeProject.name}
+            </span>
+            <div className="flex items-center gap-1">
               <button
-                key={q.label}
-                onClick={() => quickEdit(q.action)}
-                disabled={isGenerating}
-                className="text-[9px] px-2 py-1 rounded-md border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/30 transition-all disabled:opacity-40"
+                onClick={() => setShowHistory(!showHistory)}
+                className={`p-1.5 rounded-lg transition-colors ${showHistory ? "bg-accent/20 text-accent" : "text-muted-foreground hover:text-foreground"}`}
+                title="Version history"
               >
-                {q.label}
+                <History className="h-3.5 w-3.5" />
               </button>
-            ))}
+            </div>
           </div>
-        )}
 
-        {/* Input */}
-        <div className="p-3 border-t border-border/20">
-          <div className="flex items-end gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleUpload}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isGenerating}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-40"
-              title="Upload image"
-            >
-              <Upload className="h-4 w-4" />
-            </button>
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder={activeVersion ? "Describe changes…" : "Describe what you want to create…"}
-              className="flex-1 min-h-[36px] max-h-[100px] resize-none text-xs bg-transparent border-border/20 focus:border-accent/30"
-              rows={1}
-              disabled={isGenerating}
-            />
-            <Button
-              size="sm"
-              onClick={sendMessage}
-              disabled={!input.trim() || isGenerating}
-              className="h-9 w-9 p-0 bg-accent hover:bg-accent/80"
-            >
-              {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-            </Button>
+          {/* Chat Messages */}
+          <ScrollArea className="flex-1">
+            <div className="p-3 space-y-3">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[85%] rounded-xl px-3 py-2 text-xs font-light ${
+                      msg.role === "user"
+                        ? "bg-accent/20 text-foreground"
+                        : "bg-foreground/5 text-foreground/90"
+                    }`}
+                  >
+                    {msg.content}
+                    {msg.versionId && (
+                      <button
+                        onClick={() => {
+                          const v = versions.find((ver) => ver.id === msg.versionId);
+                          if (v) loadVersion(v);
+                        }}
+                        className="block mt-1.5 text-[9px] text-accent hover:underline"
+                      >
+                        Load in editor →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {isChatting && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 bg-foreground/5 rounded-xl px-3 py-2">
+                    <Loader2 className="h-3 w-3 animate-spin text-accent" />
+                    <span className="text-[10px] text-muted-foreground">Thinking...</span>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Quick Photopea Scripts */}
+          {photopeaReady && activeVersion && (
+            <div className="px-3 py-2 border-t border-border/10 flex flex-wrap gap-1.5">
+              {quickScripts.map((q) => (
+                <button
+                  key={q.label}
+                  onClick={() => sendToPhotopea(q.script)}
+                  className="text-[9px] px-2 py-1 rounded-md border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/30 transition-all"
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="p-3 border-t border-border/20">
+            <div className="flex items-end gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.psd,.svg,.pdf,.ai,.eps,.xcf,.sketch"
+                className="hidden"
+                onChange={handleUpload}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSaving}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-40"
+                title="Upload image"
+              >
+                <Upload className="h-4 w-4" />
+              </button>
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder="Ask for editing tips, techniques…"
+                className="flex-1 min-h-[36px] max-h-[100px] resize-none text-xs bg-transparent border-border/20 focus:border-accent/30"
+                rows={1}
+                disabled={isChatting}
+              />
+              <Button
+                size="sm"
+                onClick={sendMessage}
+                disabled={!input.trim() || isChatting}
+                className="h-9 w-9 p-0 bg-accent hover:bg-accent/80"
+              >
+                {isChatting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Canvas / Image Display */}
+      {/* Photopea Editor */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border/20 bg-card/10">
@@ -713,19 +687,32 @@ const VibeImagerView = () => {
                 {activeVersion.is_uploaded && " • Uploaded"}
               </span>
             )}
+            {!photopeaReady && (
+              <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" /> Loading editor…
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
-            {activeVersion && versions.length > 1 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => { setShowCompare(!showCompare); if (!showCompare && versions.length > 1) setCompareVersion(versions[versions.length - 2]); }}
-                className="h-7 text-[10px] gap-1"
-              >
-                <Eye className="h-3 w-3" />
-                Compare
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditorExpanded(!editorExpanded)}
+              className="h-7 text-[10px] gap-1"
+              title={editorExpanded ? "Show chat" : "Expand editor"}
+            >
+              {editorExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={saveCurrentImage}
+              disabled={!photopeaReady || isSaving}
+              className="h-7 text-[10px] gap-1 bg-accent hover:bg-accent/80"
+            >
+              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+              Save Version
+            </Button>
             {activeVersion && (
               <Button size="sm" variant="ghost" onClick={downloadImage} className="h-7 text-[10px] gap-1">
                 <Download className="h-3 w-3" />
@@ -735,42 +722,15 @@ const VibeImagerView = () => {
           </div>
         </div>
 
-        {/* Image Area */}
-        <div className="flex-1 flex items-center justify-center p-6 overflow-auto">
-          {activeVersion ? (
-            <div className={`flex gap-4 ${showCompare ? "items-start" : "items-center justify-center"}`}>
-              {showCompare && compareVersion && (
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-[9px] text-muted-foreground/50">v{compareVersion.version_number}</span>
-                  <img
-                    src={compareVersion.image_url}
-                    alt={`Version ${compareVersion.version_number}`}
-                    className="max-w-[400px] max-h-[500px] rounded-xl border border-border/20 shadow-lg object-contain"
-                  />
-                </div>
-              )}
-              <div className="flex flex-col items-center gap-2">
-                {showCompare && <span className="text-[9px] text-accent">v{activeVersion.version_number} (current)</span>}
-                <img
-                  src={activeVersion.image_url}
-                  alt={`Version ${activeVersion.version_number}`}
-                  className="max-w-[600px] max-h-[600px] rounded-xl border border-border/20 shadow-2xl object-contain"
-                />
-                {activeVersion.prompt && (
-                  <p className="text-[10px] text-muted-foreground/40 max-w-md text-center truncate">
-                    {activeVersion.prompt}
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center space-y-4">
-              <ImagePlus className="h-16 w-16 text-muted-foreground/20 mx-auto" />
-              <p className="text-sm font-extralight text-muted-foreground/50">
-                Describe your vision in the chat to generate your first image
-              </p>
-            </div>
-          )}
+        {/* Photopea iframe */}
+        <div className="flex-1 relative">
+          <iframe
+            ref={photopeaRef}
+            src={buildPhotopeaUrl(activeVersion?.image_url)}
+            className="absolute inset-0 w-full h-full border-0"
+            allow="clipboard-read; clipboard-write"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-downloads"
+          />
         </div>
 
         {/* Version Timeline */}
@@ -781,10 +741,10 @@ const VibeImagerView = () => {
               <span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">Version History</span>
             </div>
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {versions.map((v, i) => (
+              {versions.map((v) => (
                 <button
                   key={v.id}
-                  onClick={() => setActiveVersion(v)}
+                  onClick={() => loadVersion(v)}
                   className={`flex-shrink-0 rounded-lg border transition-all overflow-hidden ${
                     activeVersion?.id === v.id
                       ? "border-accent ring-1 ring-accent/30"
@@ -807,7 +767,7 @@ const VibeImagerView = () => {
       </div>
 
       {/* History Panel (overlay) */}
-      {showHistory && (
+      {showHistory && !editorExpanded && (
         <div className="w-64 border-l border-border/20 bg-card/30 backdrop-blur-md flex flex-col">
           <div className="flex items-center justify-between p-3 border-b border-border/20">
             <span className="text-xs font-light text-foreground">Version History</span>
@@ -820,7 +780,7 @@ const VibeImagerView = () => {
               {[...versions].reverse().map((v) => (
                 <button
                   key={v.id}
-                  onClick={() => setActiveVersion(v)}
+                  onClick={() => loadVersion(v)}
                   className={`w-full rounded-lg border p-2 text-left transition-all ${
                     activeVersion?.id === v.id
                       ? "border-accent bg-accent/5"
