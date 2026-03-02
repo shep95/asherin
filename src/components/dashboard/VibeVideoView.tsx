@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useFFmpeg } from "@/hooks/useFFmpeg";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -134,6 +135,7 @@ const ClarifyQuestionsCard = ({
 const VibeVideoView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const ffmpeg = useFFmpeg();
 
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [activeProject, setActiveProject] = useState<VideoProject | null>(null);
@@ -148,6 +150,7 @@ const VibeVideoView = () => {
   const [queuePaused, setQueuePaused] = useState(false);
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [ffmpegProgress, setFfmpegProgress] = useState<number | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -374,32 +377,123 @@ const VibeVideoView = () => {
         return;
       }
 
-      // ── AI says proceed — execute the edit ──────────────────
+      // ── AI says proceed — execute the edit with FFmpeg ─────
       if (responseType === "proceed" && activeVersion) {
         const refinedInstruction = analyzeData.instruction || instruction;
         const summary = analyzeData.summary || "";
+        const ffmpegArgs: string[] = analyzeData.ffmpeg_args || [];
+        const editType = analyzeData.edit_type || "filter";
 
         if (summary) {
-          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✨ ${summary} Analyzing now…` };
+          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✨ ${summary}` };
           setMessages((prev) => [...prev, infoMsg]);
         }
 
-        const { data: editData, error: editErr } = await supabase.functions.invoke("vibe-video", {
-          body: {
-            action: "edit",
-            instruction: refinedInstruction,
-            videoUrl: activeVersion.video_url,
-            projectId: activeProject.id,
-          },
-        });
-        if (editErr) throw editErr;
+        if (ffmpegArgs.length === 0) {
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⚠️ Couldn't determine the exact FFmpeg command for this edit. Try being more specific." };
+          setMessages((prev) => [...prev, errMsg]);
+          setIsEditing(false);
+          return;
+        }
 
-        const reply = editData?.reply || "Analysis complete!";
-        const aMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `🎬 ${reply}` };
-        setMessages((prev) => [...prev, aMsg]);
-        await supabase.from("vibe_video_messages").insert({
-          project_id: activeProject.id, user_id: user.id, role: "assistant", content: aMsg.content,
-        });
+        // Load FFmpeg if needed
+        const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⏳ Loading video engine…" };
+        setMessages((prev) => [...prev, loadMsg]);
+
+        try {
+          await ffmpeg.load();
+        } catch {
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "❌ Failed to load the video engine. Your browser may not support WebAssembly. Try using Chrome or Edge." };
+          setMessages((prev) => [...prev, errMsg]);
+          setIsEditing(false);
+          return;
+        }
+
+        // Process with FFmpeg
+        setMessages((prev) =>
+          prev.map((m) => m.id === loadMsg.id ? { ...m, content: `🎬 Processing edit: "${editType}"… This runs entirely in your browser.` } : m)
+        );
+        setFfmpegProgress(0);
+
+        // Track progress from hook
+        const progressInterval = setInterval(() => {
+          setFfmpegProgress(ffmpeg.progress);
+        }, 200);
+
+        try {
+          const resultBlob = await ffmpeg.processVideo(activeVersion.video_url, ffmpegArgs);
+          clearInterval(progressInterval);
+          setFfmpegProgress(null);
+
+          // Upload processed video
+          const ext = ffmpegArgs[ffmpegArgs.length - 1]?.split(".").pop() || "mp4";
+          const path = `${user!.id}/${activeProject!.id}/${crypto.randomUUID()}.${ext}`;
+
+          setUploadProgress(1);
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          const session = (await supabase.auth.getSession()).data.session;
+          const authToken = session?.access_token || supabaseKey;
+
+          await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = (evt) => {
+              if (evt.lengthComputable) {
+                setUploadProgress(Math.max(1, Math.round((evt.loaded / evt.total) * 100)));
+              }
+            };
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) { setUploadProgress(100); resolve(); }
+              else reject(new Error(`Upload failed: ${xhr.status}`));
+            };
+            xhr.onerror = () => reject(new Error("Upload network error"));
+            xhr.open("POST", `${supabaseUrl}/storage/v1/object/vibe-video/${path}`);
+            xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
+            xhr.setRequestHeader("apikey", supabaseKey);
+            xhr.setRequestHeader("Content-Type", resultBlob.type || "video/mp4");
+            xhr.setRequestHeader("x-upsert", "false");
+            xhr.send(resultBlob);
+          });
+          setUploadProgress(null);
+
+          const { data: urlData } = supabase.storage.from("vibe-video").getPublicUrl(path);
+          const vNum = (activeVersion?.version_number || 0) + 1;
+
+          const { data: version } = await supabase
+            .from("vibe_video_versions")
+            .insert({
+              project_id: activeProject!.id, user_id: user!.id,
+              parent_id: activeVersion?.id || null, version_number: vNum,
+              prompt: refinedInstruction, video_url: urlData.publicUrl, is_uploaded: false,
+              metadata: { ffmpeg_args: ffmpegArgs, edit_type: editType },
+            })
+            .select().single();
+
+          if (version) {
+            const v = version as VideoVersion;
+            setVersions((prev) => [...prev, v]);
+            setActiveVersion(v);
+          }
+
+          const aMsg: ChatMessage = {
+            id: crypto.randomUUID(), role: "assistant",
+            content: `✅ Edit applied! Version ${vNum} created.\n\n**Edit:** ${summary || refinedInstruction}\n**Type:** ${editType}\n\nThe edited video is now playing. You can compare versions using the timeline below.`,
+            versionId: version?.id,
+          };
+          setMessages((prev) => [...prev, aMsg]);
+          await supabase.from("vibe_video_messages").insert({
+            project_id: activeProject!.id, user_id: user!.id, role: "assistant", content: aMsg.content, version_id: version?.id,
+          });
+        } catch (err: any) {
+          clearInterval(progressInterval);
+          setFfmpegProgress(null);
+          setUploadProgress(null);
+          const errMsg: ChatMessage = {
+            id: crypto.randomUUID(), role: "assistant",
+            content: `❌ Processing failed: ${err.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first, or use a smaller file.`,
+          };
+          setMessages((prev) => [...prev, errMsg]);
+        }
         setIsEditing(false);
         return;
       }
@@ -608,11 +702,31 @@ const VibeVideoView = () => {
               </div>
             </div>
           )}
-          {isEditing && (
+          {ffmpegProgress !== null && (
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center rounded-b-2xl z-10">
+              <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-card/80 border border-border/20 backdrop-blur-md min-w-[280px]">
+                <Wand2 className="h-8 w-8 text-accent animate-pulse" />
+                <p className="text-sm font-light text-foreground/80">Processing video edit…</p>
+                <p className="text-[10px] text-muted-foreground/60">Running in your browser via FFmpeg</p>
+                <div className="w-full">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] text-muted-foreground">{ffmpegProgress}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all duration-300 ease-out"
+                      style={{ width: `${ffmpegProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {isEditing && ffmpegProgress === null && (
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-2xl">
               <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card/80 border border-border/20 backdrop-blur-md">
                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                <p className="text-sm font-light text-foreground/70">Aureon is analyzing your video…</p>
+                <p className="text-sm font-light text-foreground/70">Aureon is analyzing your request…</p>
                 <p className="text-[10px] text-muted-foreground/50">This may take a moment</p>
               </div>
             </div>
