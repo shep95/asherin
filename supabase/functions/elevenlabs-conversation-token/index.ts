@@ -30,7 +30,7 @@ serve(async (req) => {
     }
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${agentId}`,
+      `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${agentId}`,
       {
         headers: {
           "xi-api-key": ELEVENLABS_API_KEY,
@@ -49,7 +49,7 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    return new Response(JSON.stringify({ signed_url: data.signed_url }), {
+    return new Response(JSON.stringify({ token: data.token }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

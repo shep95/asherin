@@ -55,12 +55,12 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
         { body: { agentId } }
       );
 
-      if (fnError || !data?.signed_url) {
+      if (fnError || !data?.token) {
         throw new Error(fnError?.message || data?.error || "Failed to get voice session");
       }
 
       await conversation.startSession({
-        signedUrl: data.signed_url,
+        conversationToken: data.token,
       });
     } catch (e: any) {
       console.error("Voice connect error:", e);
