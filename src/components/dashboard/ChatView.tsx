@@ -26,7 +26,7 @@ import { renderLinkPreviews } from "./LinkPreview";
 import MessageDiagramPanel from "./MessageDiagramPanel";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 import VoiceCallOverlay from "./VoiceCallOverlay";
-import { useGeminiVoice } from "@/hooks/useGeminiVoice";
+import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -255,13 +255,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
 
-  const voiceSystemPrompt = personaSystemPrompt
-    ? `${personaSystemPrompt}\n\nIMPORTANT: You are speaking via voice call. Be conversational, concise, and natural. Avoid long lists or code blocks — speak as a human would.`
-    : "You are Aureon, a highly intelligent AI assistant built for deep intelligence work. You are sharp, articulate, and conversational. Speak naturally and concisely. Avoid long lists or code blocks — you are on a voice call.";
-
-  const geminiVoice = useGeminiVoice({
-    systemInstruction: voiceSystemPrompt,
-    voiceName: "Aoede",
+  const elevenLabsVoice = useElevenLabsVoice({
+    agentId: "YOUR_AGENT_ID_HERE",
   });
 
   const handleSend = () => {
@@ -324,12 +319,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     <div className="flex flex-1 flex-col min-w-0 h-full relative">
       {/* Voice Call Overlay */}
       <VoiceCallOverlay
-        isConnected={geminiVoice.isConnected}
-        isConnecting={geminiVoice.status === "connecting"}
-        isSpeaking={geminiVoice.isSpeaking}
-        transcript={geminiVoice.transcript}
-        error={geminiVoice.error}
-        onDisconnect={geminiVoice.disconnect}
+        isConnected={elevenLabsVoice.isConnected}
+        isConnecting={elevenLabsVoice.status === "connecting"}
+        isSpeaking={elevenLabsVoice.isSpeaking}
+        transcript={elevenLabsVoice.transcript}
+        error={elevenLabsVoice.error}
+        onDisconnect={elevenLabsVoice.disconnect}
       />
 
       {/* Top bar — hidden in focus mode */}
@@ -338,13 +333,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           <ModeSelector active={mode} onChange={onModeChange} />
           <div className="flex items-center gap-3">
             <button
-              onClick={geminiVoice.isConnected ? geminiVoice.disconnect : geminiVoice.connect}
+              onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
               className={`p-1.5 rounded-md transition-colors ${
-                geminiVoice.isConnected
+                elevenLabsVoice.isConnected
                   ? "text-accent bg-accent/10 hover:bg-accent/20"
                   : "text-muted-foreground/50 hover:text-foreground"
               }`}
-              title={geminiVoice.isConnected ? "End voice call" : "Start voice call"}
+              title={elevenLabsVoice.isConnected ? "End voice call" : "Start voice call"}
             >
               <Phone className="h-4 w-4" />
             </button>
