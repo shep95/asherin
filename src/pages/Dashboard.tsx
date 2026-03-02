@@ -938,6 +938,9 @@ const Dashboard = () => {
           onProcessQueueNow={forceProcessQueue}
           queuePaused={queuePaused}
           onToggleQueuePause={toggleQueuePause}
+          personaSystemPrompt={
+            (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
+          }
         />
       ) : null;
     }
