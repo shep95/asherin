@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import type { FileAttachment } from "./types";
@@ -25,6 +25,8 @@ import TypingIndicator from "./TypingIndicator";
 import { renderLinkPreviews } from "./LinkPreview";
 import MessageDiagramPanel from "./MessageDiagramPanel";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
+import VoiceCallOverlay from "./VoiceCallOverlay";
+import { useGeminiVoice } from "@/hooks/useGeminiVoice";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -252,6 +254,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
 
+  const geminiVoice = useGeminiVoice({
+    systemInstruction: "You are Aureon, a highly intelligent AI assistant. Be conversational, concise, and helpful. Speak naturally.",
+    voiceName: "Aoede",
+  });
+
   const handleSend = () => {
     if (!input.trim() && attachments.length === 0) return;
     onSendMessage(input.trim(), attachments.length > 0 ? attachments : undefined);
@@ -308,13 +315,34 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const lastMsg = conversation.messages[conversation.messages.length - 1];
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
-  return (
-    <div className="flex flex-1 flex-col min-w-0 h-full">
+    return (
+    <div className="flex flex-1 flex-col min-w-0 h-full relative">
+      {/* Voice Call Overlay */}
+      <VoiceCallOverlay
+        isConnected={geminiVoice.isConnected}
+        isConnecting={geminiVoice.status === "connecting"}
+        isSpeaking={geminiVoice.isSpeaking}
+        transcript={geminiVoice.transcript}
+        error={geminiVoice.error}
+        onDisconnect={geminiVoice.disconnect}
+      />
+
       {/* Top bar — hidden in focus mode */}
       {!focusMode && (
         <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
           <ModeSelector active={mode} onChange={onModeChange} />
           <div className="flex items-center gap-3">
+            <button
+              onClick={geminiVoice.isConnected ? geminiVoice.disconnect : geminiVoice.connect}
+              className={`p-1.5 rounded-md transition-colors ${
+                geminiVoice.isConnected
+                  ? "text-accent bg-accent/10 hover:bg-accent/20"
+                  : "text-muted-foreground/50 hover:text-foreground"
+              }`}
+              title={geminiVoice.isConnected ? "End voice call" : "Start voice call"}
+            >
+              <Phone className="h-4 w-4" />
+            </button>
             {conversation.messages.length > 0 && (
               <button onClick={downloadConversation} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-4 w-4" />
