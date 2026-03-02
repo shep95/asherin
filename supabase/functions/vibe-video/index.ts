@@ -145,11 +145,13 @@ serve(async (req) => {
       );
 
       if (!aiResponse.ok) {
+        const errBody = await aiResponse.text();
+        console.error("AI gateway error:", aiResponse.status, errBody);
         if (aiResponse.status === 429)
           return new Response(JSON.stringify({ error: "Rate limited." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         if (aiResponse.status === 402)
           return new Response(JSON.stringify({ error: "Credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error("Analysis failed");
+        return new Response(JSON.stringify({ error: `Analysis failed (${aiResponse.status}): ${errBody}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const aiData = await aiResponse.json();
