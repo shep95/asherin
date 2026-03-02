@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { getPublicPlans } from "@/config/subscriptionPlans";
+import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
 
 const plans = getPublicPlans().map(p => ({
   id: p.id,
@@ -179,6 +180,12 @@ const SubscriptionView = () => {
               </div>
             );
           })}
+        </div>
+
+        {/* Detailed Feature Breakdown */}
+        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 sm:p-5">
+          <h3 className="text-sm font-light text-foreground mb-4">Feature Breakdown</h3>
+          <TierFeatureTabs compact />
         </div>
 
         {/* Plugin Subscriptions */}

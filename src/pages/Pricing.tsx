@@ -4,6 +4,7 @@ import { Check, ArrowRight, Zap, Search, Brain, Code, Shield, Users, Globe, BarC
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
 import { getPublicPlans, TIER_FEATURE_CARDS } from "@/config/subscriptionPlans";
+import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
 
 const tiers = getPublicPlans().map(p => ({
   id: p.id,
@@ -101,37 +102,13 @@ key={tier.id}
         </div>
       </div>
 
-      {/* What's Included Breakdown */}
+      {/* What's Included — Tier Tabs */}
       <div className="relative z-10 px-6 pb-24">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-16">
+          <h2 className="text-center text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-12">
             What Powers Each Tier.
           </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {TIER_FEATURE_CARDS.map(({ label, desc, tier: tierLabel }) => {
-              const iconMap: Record<string, typeof Brain> = {
-                "Aureon AI": Brain, "Elite Coding": Code, "End-to-End Encryption": Shield,
-                "Zophiel Search": Search, "Aureon IDE": Cpu, "Google Intelligence": Globe,
-                "Predictive Intelligence": TrendingUp, "Imagine To Code": Code,
-                "NOMAD OSINT": Eye, "Asha Intelligence": BarChart3, "Daily Briefings": Newspaper,
-                "Elion / Zohar Toolkit": ScanLine, "Security Dashboard": Database,
-              };
-              const Icon = iconMap[label] || Brain;
-              return (
-                <div key={label} className={`rounded-xl border p-5 backdrop-blur-md ${tierLabel === "Advisor Only" ? "border-purple-500/15 bg-purple-500/5" : tierLabel === "Pro & Advisor" ? "border-accent/15 bg-accent/5" : "border-border/20 bg-card/30"}`}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <Icon className={`h-5 w-5 ${tierLabel === "Advisor Only" ? "text-purple-400" : tierLabel === "Pro & Advisor" ? "text-accent" : "text-foreground"}`} />
-                    <h3 className="text-sm font-light tracking-wide text-foreground">{label}</h3>
-                  </div>
-                  <p className="text-xs font-extralight leading-relaxed text-muted-foreground">{desc}</p>
-                  <div className="mt-3">
-                    <span className={`text-[10px] tracking-wider uppercase ${tierLabel === "Advisor Only" ? "text-purple-400/70" : tierLabel === "Pro & Advisor" ? "text-accent/70" : "text-emerald-400/70"}`}>{tierLabel}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <TierFeatureTabs />
         </div>
       </div>
 
