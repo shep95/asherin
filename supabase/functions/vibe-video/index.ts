@@ -118,22 +118,12 @@ serve(async (req) => {
         }
       }
 
-      if (hasVideo && videoUrl) {
-        messages.push({
-          role: "user",
-          content: [
-            { type: "text", text: `I have a video loaded. My editing request: "${instruction}"` },
-            { type: "video_url", video_url: { url: videoUrl } },
-          ],
-        });
-      } else {
-        messages.push({
-          role: "user",
-          content: hasVideo
-            ? `I have a video loaded. My editing request: "${instruction}"`
-            : `No video loaded yet. User says: "${instruction}"`,
-        });
-      }
+      messages.push({
+        role: "user",
+        content: hasVideo
+          ? `I have a video loaded. My editing request: "${instruction}"`
+          : `No video loaded yet. User says: "${instruction}"`,
+      });
 
       const aiResponse = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
