@@ -1,6 +1,5 @@
 import { useConversation } from "@elevenlabs/react";
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 type VoiceStatus = "idle" | "connecting" | "connected" | "error";
 
@@ -49,18 +48,10 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Get signed URL from edge function
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "elevenlabs-conversation-token",
-        { body: { agentId } }
-      );
-
-      if (fnError || !data?.token) {
-        throw new Error(fnError?.message || data?.error || "Failed to get voice session");
-      }
-
+      // Connect directly using public agent ID (no token needed)
       await conversation.startSession({
-        conversationToken: data.token,
+        agentId,
+        connectionType: "webrtc",
       });
     } catch (e: any) {
       console.error("Voice connect error:", e);
