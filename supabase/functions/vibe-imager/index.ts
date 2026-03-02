@@ -18,7 +18,6 @@ serve(async (req) => {
   );
 
   try {
-    // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Not authenticated");
     const token = authHeader.replace("Bearer ", "");
@@ -29,37 +28,14 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // ── CHAT (AI editing assistant) ───────────────────────────
-    if (action === "chat") {
-      const { messages, projectId, currentImageUrl } = body;
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-      const systemPrompt = `You are AUREON Vibe Imager Assistant — an expert image editing advisor embedded alongside a Photopea editor.
-
-Your role:
-- Help users with editing techniques, tips, and creative direction
-- Suggest Photopea tools and workflows for their needs
-- Explain techniques like masking, blending modes, color correction, retouching
-- Be concise (1-3 sentences unless explaining something complex)
-- Be proactive with suggestions based on what they're working on
-
-If the user wants a specific Photopea automation, you can provide a Photopea script using the tag:
-[SCRIPT: app.activeDocument.someCommand();]
-
-Common useful scripts:
-- Rotate: app.activeDocument.rotateCanvas(90);
-- Flip: app.activeDocument.flipCanvas("horizontal");
-- Resize: app.activeDocument.resizeImage(1920, null);
-- Flatten: app.activeDocument.flattenImage();
-- Desaturate: app.activeDocument.activeLayer.adjustments.desaturate();
-
-Current context: ${currentImageUrl ? "User has an image loaded in the editor." : "No image loaded yet."}`;
-
-      const aiMessages = [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ];
+    // ── EDIT: AI edits an image based on instruction ──────────
+    if (action === "edit") {
+      const { instruction, imageUrl, projectId } = body;
+      if (!imageUrl) throw new Error("No image URL provided");
+      if (!instruction) throw new Error("No instruction provided");
 
       const aiResponse = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -70,8 +46,17 @@ Current context: ${currentImageUrl ? "User has an image loaded in the editor." :
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: aiMessages,
+            model: "google/gemini-2.5-flash-image",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: instruction },
+                  { type: "image_url", image_url: { url: imageUrl } },
+                ],
+              },
+            ],
+            modalities: ["image", "text"],
           }),
         }
       );
@@ -79,7 +64,7 @@ Current context: ${currentImageUrl ? "User has an image loaded in the editor." :
       if (!aiResponse.ok) {
         if (aiResponse.status === 429) {
           return new Response(
-            JSON.stringify({ error: "Rate limited." }),
+            JSON.stringify({ error: "Rate limited. Please wait a moment." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -89,6 +74,84 @@ Current context: ${currentImageUrl ? "User has an image loaded in the editor." :
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+        const errText = await aiResponse.text();
+        console.error("AI image edit error:", aiResponse.status, errText);
+        throw new Error("Image editing failed");
+      }
+
+      const aiData = await aiResponse.json();
+      const editedImageBase64 = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const textReply = aiData.choices?.[0]?.message?.content || "";
+
+      if (!editedImageBase64) {
+        return new Response(
+          JSON.stringify({ reply: textReply || "I couldn't edit the image. Try a different instruction.", editedImageUrl: null }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Upload the edited image to storage
+      const base64Data = editedImageBase64.replace(/^data:image\/\w+;base64,/, "");
+      const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+      const fileName = `${userId}/${projectId}/${crypto.randomUUID()}.png`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("vibe-imager")
+        .upload(fileName, binaryData, { contentType: "image/png", upsert: false });
+
+      if (uploadErr) {
+        console.error("Upload error:", uploadErr);
+        throw new Error("Failed to save edited image");
+      }
+
+      const { data: urlData } = supabase.storage.from("vibe-imager").getPublicUrl(fileName);
+
+      return new Response(
+        JSON.stringify({
+          editedImageUrl: urlData.publicUrl,
+          reply: textReply || "Done! Here's your edited image.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── CHAT: General editing advice (no image edit) ──────────
+    if (action === "chat") {
+      const { messages, currentImageUrl } = body;
+
+      const systemPrompt = `You are AUREON Vibe Imager — an AI image editing assistant. Users upload images and ask you to edit them.
+
+Your role:
+- Help users describe what edits they want
+- Suggest creative directions and improvements
+- Be concise (1-3 sentences)
+- When users describe an edit, tell them you'll apply it
+
+${currentImageUrl ? "The user currently has an image loaded." : "No image loaded yet. Ask them to upload one."}`;
+
+      const aiResponse = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...messages,
+            ],
+          }),
+        }
+      );
+
+      if (!aiResponse.ok) {
+        if (aiResponse.status === 429)
+          return new Response(JSON.stringify({ error: "Rate limited." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (aiResponse.status === 402)
+          return new Response(JSON.stringify({ error: "Credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         throw new Error("Chat failed");
       }
 
