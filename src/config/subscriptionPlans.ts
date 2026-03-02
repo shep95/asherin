@@ -65,6 +65,10 @@ export interface PlanDefinition {
 }
 
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
+const CHAT_FEATURES: FeatureId[] = [
+  "chat", "encryption",
+];
+
 const AUREON_FEATURES: FeatureId[] = [
   "chat", "ide", "zophiel_search", "memory", "personas", "code_snippets",
   "encryption", "slideshow", "pdf_generator", "imagine_intelligence", "imagine_to_code",
@@ -84,6 +88,26 @@ const ADVISOR_FEATURES: FeatureId[] = [...PRO_FEATURES];
 
 // ── Plans Array ──────────────────────────────────────────────────────────────
 export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
+  {
+    id: "chat",
+    name: "AUREON CHAT",
+    tagline: "AI Chat Only",
+    price: "$47",
+    period: "/ month",
+    description: "Aureon AI chat — uncensored, unfiltered. Chat only, no additional agents or tools.",
+    cta: "Get Chat Access",
+    highlight: false,
+    publicVisible: true,
+    features: CHAT_FEATURES,
+    messageLimit: 100,
+    featureLabels: [
+      "Uncensored AI chat on any topic",
+      "100 messages per 3-hour window",
+      "End-to-end encryption",
+      "Data never sold or used for training",
+      "Cancel anytime — one click",
+    ],
+  },
   {
     id: "aureon",
     name: "AUREON",
