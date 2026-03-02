@@ -4,6 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // Stripe product/price mapping
 export const TIERS = {
+  chat: {
+    product_id: "prod_U4YWDDwSXK3SGO",
+    price_id: "price_1T6PPmRxgCpmPfiFoTiBXBzq",
+  },
   aureon: {
     product_id: "prod_U1rtJ8HXSCtvqO",
     price_id: "price_1T3o9NRxgCpmPfiFaFDWC8u0",
@@ -65,7 +69,12 @@ function productToTier(productId: string | null): TierKey | null {
   return null;
 }
 
-/** Check if user has access to Zophiel Search (all paid tiers) */
+/** Check if user has chat-only access */
+export function hasChatAccess(tierKey: TierKey | null): boolean {
+  return tierKey === "chat" || tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+}
+
+/** Check if user has access to Zophiel Search (aureon+ tiers) */
 export function hasSearchAccess(tierKey: TierKey | null): boolean {
   return tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
 }

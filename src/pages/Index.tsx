@@ -513,7 +513,29 @@ const Index = () => {
             <span className="text-muted-foreground">No Free Tiers. No Data Harvesting.</span>
           </h2>
 
-          <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start max-w-4xl mx-auto">
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start max-w-6xl mx-auto">
+            {/* Chat */}
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left">
+              <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">AI Chat Only</p>
+              <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON CHAT</h3>
+              <div className="mt-6 flex items-baseline gap-1">
+                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$47</span>
+                <span className="text-lg text-muted-foreground font-extralight">/ month</span>
+              </div>
+              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon AI chat — uncensored, unfiltered. Chat only, no additional agents or tools.</p>
+              <Link to="/pricing" className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+                Get Chat Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <div className="my-8 h-px bg-border/15" />
+              <ul className="space-y-3 flex-1">
+                {["Uncensored AI chat on any topic", "100 messages per 3-hour window", "End-to-end encryption", "Data never sold or trained on", "Cancel anytime"].map(f => (
+                  <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
+                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             {/* Aureon */}
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left">
               <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">AI Intelligence</p>
@@ -528,7 +550,7 @@ const Index = () => {
               </Link>
               <div className="my-8 h-px bg-border/15" />
               <ul className="space-y-3 flex-1">
-                {["Uncensored AI responses on any topic", "200 messages per 3-hour window (Chat + IDE shared)", "Aureon IDE — full cloud development environment", "Elite coding engine", "Zophiel Search Engine", "Persistent memory across all sessions", "Code Snippets Vault", "End-to-end encryption", "Data never sold or trained on"].map(f => (
+                {["Everything in Chat +", "200 messages per 3-hour window (Chat + IDE shared)", "Aureon IDE — full cloud development environment", "Elite coding engine", "Zophiel Search Engine", "Persistent memory across all sessions", "Code Snippets Vault"].map(f => (
                   <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
                     <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
                   </li>

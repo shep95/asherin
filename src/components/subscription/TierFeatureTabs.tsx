@@ -3,6 +3,23 @@ import { Check, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SUBSCRIPTION_PLANS } from "@/config/subscriptionPlans";
 
+const CHAT_FEATURE_GROUPS = [
+  {
+    category: "AI Chat",
+    features: [
+      { name: "Uncensored AI chat", desc: "No filters, no censorship — raw intelligence on any topic.", link: null },
+      { name: "100 messages per 3-hour window", desc: "Automatic reset every 3 hours.", link: null },
+    ],
+  },
+  {
+    category: "Security",
+    features: [
+      { name: "End-to-end encryption", desc: "Every message encrypted. Your data is never stored as training data.", link: null },
+      { name: "Data sovereignty", desc: "Your data is never sold, shared, or used for model improvement.", link: null },
+    ],
+  },
+];
+
 const AUREON_FEATURE_GROUPS = [
   {
     category: "AI Engine",
@@ -100,15 +117,25 @@ interface TierFeatureTabsProps {
 }
 
 const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
-  const [activeTab, setActiveTab] = useState<"aureon" | "pro">("aureon");
+  const [activeTab, setActiveTab] = useState<"chat" | "aureon" | "pro">("chat");
 
-  const groups = activeTab === "aureon" ? AUREON_FEATURE_GROUPS : PRO_FEATURE_GROUPS;
+  const groups = activeTab === "chat" ? CHAT_FEATURE_GROUPS : activeTab === "aureon" ? AUREON_FEATURE_GROUPS : PRO_FEATURE_GROUPS;
   const plan = SUBSCRIPTION_PLANS.find(p => p.id === activeTab);
 
   return (
     <div className="space-y-6">
       {/* Tab Switcher */}
       <div className="flex rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-1 w-fit mx-auto">
+        <button
+          onClick={() => setActiveTab("chat")}
+          className={`px-5 py-2.5 rounded-lg text-xs font-light tracking-wide transition-all ${
+            activeTab === "chat"
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          CHAT — $47/mo
+        </button>
         <button
           onClick={() => setActiveTab("aureon")}
           className={`px-5 py-2.5 rounded-lg text-xs font-light tracking-wide transition-all ${
@@ -136,6 +163,11 @@ const TierFeatureTabs = ({ compact = false }: TierFeatureTabsProps) => {
         <p className="text-sm font-extralight text-muted-foreground max-w-lg mx-auto">
           {plan?.description}
         </p>
+        {activeTab === "aureon" && (
+          <p className="text-[10px] tracking-wider text-foreground/50 uppercase mt-2">
+            Includes everything in Chat +
+          </p>
+        )}
         {activeTab === "pro" && (
           <p className="text-[10px] tracking-wider text-accent/70 uppercase mt-2">
             Includes everything in Aureon +

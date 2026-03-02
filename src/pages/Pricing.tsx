@@ -21,7 +21,7 @@ const Pricing = () => {
   useEffect(() => {
     document.title = "Pricing — Aureon | Uncensored AI Intelligence";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Aureon pricing: $199/mo Aureon, $740/mo Pro. No free tier. Full access from day one.");
+    if (meta) meta.setAttribute("content", "Aureon pricing: $47/mo Chat, $199/mo Aureon, $740/mo Pro. No free tier. Full access from day one.");
   }, []);
 
   return (
@@ -49,7 +49,7 @@ const Pricing = () => {
 
       {/* Pricing Cards */}
       <div className="relative z-10 px-6 pb-24">
-        <div className="mx-auto max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+        <div className="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
           {tiers.map((tier) => (
             <div
 key={tier.id}
@@ -163,11 +163,15 @@ key={tier.id}
             </h2>
             <p className="mt-4 text-sm font-extralight text-muted-foreground">No free trial. Full access. Day one.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
-                Start With Aureon — $199/mo
+              <button className="group flex items-center gap-2 rounded-xl bg-foreground px-6 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+                Chat — $47/mo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
-              <button className="group flex items-center gap-2 rounded-xl border border-border/30 bg-card/30 px-8 py-3 text-sm font-light tracking-wide text-foreground hover:bg-card/50 transition-all">
+              <button className="group flex items-center gap-2 rounded-xl bg-foreground px-6 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+                Aureon — $199/mo
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </button>
+              <button className="group flex items-center gap-2 rounded-xl border border-border/30 bg-card/30 px-6 py-3 text-sm font-light tracking-wide text-foreground hover:bg-card/50 transition-all">
                 Go Pro — $740/mo
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </button>
