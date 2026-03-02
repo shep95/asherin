@@ -74,6 +74,7 @@ const SlideshowGeneratorView = React.lazy(() => import("@/components/dashboard/S
 const SelfAccessLearningView = React.lazy(() => import("@/components/dashboard/SelfAccessLearningView"));
 const ImagineIntelligenceView = React.lazy(() => import("@/components/dashboard/OracleLocusView"));
 const VideoIntelligenceView = React.lazy(() => import("@/components/dashboard/VideoIntelligenceView"));
+const VibeImagerView = React.lazy(() => import("@/components/dashboard/VibeImagerView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
@@ -900,6 +901,7 @@ const Dashboard = () => {
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Asha + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro and Advisor plans.");
+      case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
       // Always-accessible views
       case "library": return <Suspense fallback={<LazyFallback />}><LibraryView /></Suspense>;
       case "snippets": return <Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense>;

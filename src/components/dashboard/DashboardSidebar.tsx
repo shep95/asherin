@@ -88,6 +88,7 @@ const navGroups: NavGroup[] = [
       { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
+      { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
       { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
       { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
