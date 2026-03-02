@@ -162,7 +162,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
 
     const maxSize = 20 * 1024 * 1024; // 20MB
     const newAttachments: FileAttachment[] = [];
-    const maxSlots = Math.max(0, 10 - attachments.length);
+    const maxSlots = Math.max(0, 3 - attachments.length);
 
     for (const file of Array.from(files).slice(0, maxSlots)) {
       if (file.size > maxSize) {
