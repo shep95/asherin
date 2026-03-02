@@ -36,33 +36,39 @@ When the request is clear enough to execute, respond with:
 {"action":"proceed","instruction":"Refined, precise editing instruction","summary":"What I'll do in one sentence","ffmpeg_args":"The FFmpeg CLI arguments to apply this edit (input is always input.mp4, output is always output.mp4)","edit_type":"One of: trim, speed, color, filter, rotate, flip, crop, audio, format, composite"}
 \`\`\`
 
+SPEED & QUALITY RULES — CRITICAL:
+1. For operations that don't need re-encoding (trim, mute, copy), ALWAYS use "-c copy" for instant processing
+2. For any re-encoding operation, ALWAYS add "-preset ultrafast -threads 0" for maximum speed
+3. When using -vf filters that require re-encoding, always include "-preset ultrafast -threads 0" before the output filename
+4. Prefer "-c:a copy" when audio doesn't need changes to save time
+
 FFMPEG ARGUMENTS GUIDE — you MUST provide valid FFmpeg CLI args:
 - Trim first 3 seconds: ["-ss","3","-i","input.mp4","-c","copy","output.mp4"]
 - Trim to duration 10s: ["-i","input.mp4","-t","10","-c","copy","output.mp4"]
 - Trim from 5s to 15s: ["-ss","5","-to","15","-i","input.mp4","-c","copy","output.mp4"]
-- Speed up 2x: ["-i","input.mp4","-filter_complex","[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]","-map","[v]","-map","[a]","output.mp4"]
-- Slow down 0.5x: ["-i","input.mp4","-filter_complex","[0:v]setpts=2.0*PTS[v];[0:a]atempo=0.5[a]","-map","[v]","-map","[a]","output.mp4"]
-- Warm color grade: ["-i","input.mp4","-vf","colorbalance=rs=0.15:gs=0.05:bs=-0.1:rm=0.1:gm=0.02:bm=-0.08","output.mp4"]
-- Cool/blue tint: ["-i","input.mp4","-vf","colorbalance=rs=-0.1:gs=-0.05:bs=0.15","output.mp4"]
-- Increase brightness: ["-i","input.mp4","-vf","eq=brightness=0.08:contrast=1.1:saturation=1.2","output.mp4"]
-- Black & white: ["-i","input.mp4","-vf","hue=s=0","output.mp4"]
-- Cinematic letterbox (2.35:1): ["-i","input.mp4","-vf","crop=iw:iw/2.35,pad=iw:iw/2.35+(iw-iw/2.35*0.75):0:(oh-ih)/2:black","output.mp4"]
-- Rotate 90° clockwise: ["-i","input.mp4","-vf","transpose=1","output.mp4"]
-- Flip horizontal: ["-i","input.mp4","-vf","hflip","output.mp4"]
-- Flip vertical: ["-i","input.mp4","-vf","vflip","output.mp4"]
-- Reverse video: ["-i","input.mp4","-vf","reverse","-af","areverse","output.mp4"]
+- Speed up 2x: ["-i","input.mp4","-filter_complex","[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]","-map","[v]","-map","[a]","-preset","ultrafast","-threads","0","output.mp4"]
+- Slow down 0.5x: ["-i","input.mp4","-filter_complex","[0:v]setpts=2.0*PTS[v];[0:a]atempo=0.5[a]","-map","[v]","-map","[a]","-preset","ultrafast","-threads","0","output.mp4"]
+- Warm color grade: ["-i","input.mp4","-vf","colorbalance=rs=0.15:gs=0.05:bs=-0.1:rm=0.1:gm=0.02:bm=-0.08","-preset","ultrafast","-threads","0","output.mp4"]
+- Cool/blue tint: ["-i","input.mp4","-vf","colorbalance=rs=-0.1:gs=-0.05:bs=0.15","-preset","ultrafast","-threads","0","output.mp4"]
+- Increase brightness: ["-i","input.mp4","-vf","eq=brightness=0.08:contrast=1.1:saturation=1.2","-preset","ultrafast","-threads","0","output.mp4"]
+- Black & white: ["-i","input.mp4","-vf","hue=s=0","-preset","ultrafast","-threads","0","output.mp4"]
+- Cinematic letterbox (2.35:1): ["-i","input.mp4","-vf","crop=iw:iw/2.35,pad=iw:iw/2.35+(iw-iw/2.35*0.75):0:(oh-ih)/2:black","-preset","ultrafast","-threads","0","output.mp4"]
+- Rotate 90° clockwise: ["-i","input.mp4","-vf","transpose=1","-preset","ultrafast","-threads","0","output.mp4"]
+- Flip horizontal: ["-i","input.mp4","-vf","hflip","-preset","ultrafast","-threads","0","output.mp4"]
+- Flip vertical: ["-i","input.mp4","-vf","vflip","-preset","ultrafast","-threads","0","output.mp4"]
+- Reverse video: ["-i","input.mp4","-vf","reverse","-af","areverse","-preset","ultrafast","-threads","0","output.mp4"]
 - Remove audio: ["-i","input.mp4","-an","-c:v","copy","output.mp4"]
-- Blur effect: ["-i","input.mp4","-vf","boxblur=5:1","output.mp4"]
-- Sharpen: ["-i","input.mp4","-vf","unsharp=5:5:1.0:5:5:0.0","output.mp4"]
-- Vintage/sepia: ["-i","input.mp4","-vf","colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131","output.mp4"]
-- Increase contrast: ["-i","input.mp4","-vf","eq=contrast=1.5","output.mp4"]
-- Reduce noise: ["-i","input.mp4","-vf","nlmeans=s=3.0","output.mp4"]
-- Scale to 720p: ["-i","input.mp4","-vf","scale=-2:720","output.mp4"]
-- Scale to 1080p: ["-i","input.mp4","-vf","scale=-2:1080","output.mp4"]
-- Crop center 50%: ["-i","input.mp4","-vf","crop=iw/2:ih/2","output.mp4"]
-- Fade in (2s): ["-i","input.mp4","-vf","fade=in:0:60","-af","afade=in:0:48000","output.mp4"]
-- Fade out (last 2s): ["-i","input.mp4","-vf","fade=out:st=DURATION-2:d=2","-af","afade=out:st=DURATION-2:d=2","output.mp4"]
-- Combine multiple filters with comma: ["-i","input.mp4","-vf","eq=brightness=0.1:contrast=1.2,unsharp=5:5:0.5","output.mp4"]
+- Blur effect: ["-i","input.mp4","-vf","boxblur=5:1","-preset","ultrafast","-threads","0","output.mp4"]
+- Sharpen: ["-i","input.mp4","-vf","unsharp=5:5:1.0:5:5:0.0","-preset","ultrafast","-threads","0","output.mp4"]
+- Vintage/sepia: ["-i","input.mp4","-vf","colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131","-preset","ultrafast","-threads","0","output.mp4"]
+- Increase contrast: ["-i","input.mp4","-vf","eq=contrast=1.5","-preset","ultrafast","-threads","0","output.mp4"]
+- Reduce noise: ["-i","input.mp4","-vf","nlmeans=s=3.0","-preset","ultrafast","-threads","0","output.mp4"]
+- Scale to 720p: ["-i","input.mp4","-vf","scale=-2:720","-preset","ultrafast","-threads","0","output.mp4"]
+- Scale to 1080p: ["-i","input.mp4","-vf","scale=-2:1080","-preset","ultrafast","-threads","0","output.mp4"]
+- Crop center 50%: ["-i","input.mp4","-vf","crop=iw/2:ih/2","-preset","ultrafast","-threads","0","output.mp4"]
+- Fade in (2s): ["-i","input.mp4","-vf","fade=in:0:60","-af","afade=in:0:48000","-preset","ultrafast","-threads","0","output.mp4"]
+- Fade out (last 2s): ["-i","input.mp4","-vf","fade=out:st=DURATION-2:d=2","-af","afade=out:st=DURATION-2:d=2","-preset","ultrafast","-threads","0","output.mp4"]
+- Combine multiple filters: ["-i","input.mp4","-vf","eq=brightness=0.1:contrast=1.2,unsharp=5:5:0.5","-preset","ultrafast","-threads","0","output.mp4"]
 - Extract audio only: ["-i","input.mp4","-vn","-acodec","libmp3lame","-q:a","2","output.mp3"]
 
 IMPORTANT RULES FOR FFMPEG ARGS:
