@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import MessageQueuePanel, { type QueueItem } from "@/components/dashboard/MessageQueuePanel";
 import {
   Send,
   Upload,
@@ -21,6 +22,7 @@ import {
   X,
   ZoomIn,
   ZoomOut,
+  HelpCircle,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -51,6 +53,7 @@ interface ChatMessage {
   content: string;
   imageUrl?: string;
   versionId?: string;
+  clarifyQuestions?: string[];
 }
 
 const TEMPLATES = [
@@ -73,6 +76,9 @@ const VibeImagerView = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [imageZoom, setImageZoom] = useState(100);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [queuePaused, setQueuePaused] = useState(false);
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,6 +131,25 @@ const VibeImagerView = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ── Queue processing ────────────────────────────────────────
+  useEffect(() => {
+    if (queue.length === 0 || isEditing || queuePaused || isProcessingQueue) return;
+    processNextInQueue();
+  }, [queue, isEditing, queuePaused, isProcessingQueue]);
+
+  const processNextInQueue = async () => {
+    if (queue.length === 0 || isProcessingQueue) return;
+    setIsProcessingQueue(true);
+    const next = queue[0];
+    setQueue((prev) => prev.slice(1));
+    await processMessage(next.content);
+    setIsProcessingQueue(false);
+  };
+
+  const processAllQueue = async () => {
+    setQueuePaused(false);
+  };
+
   // ── Create project ──────────────────────────────────────────
   const createProject = async (template?: string) => {
     if (!user) return;
@@ -139,7 +164,7 @@ const VibeImagerView = () => {
     setActiveProject(project);
     setMessages([{
       id: crypto.randomUUID(), role: "assistant",
-      content: "Welcome to Vibe Imager! 🎨 Upload an image and tell me how you want it edited. I'll use AI to transform it for you.",
+      content: "Welcome to Vibe Imager! 🎨 Upload an image and describe your edit. I'll ask clarifying questions if I need more detail before transforming it.",
     }]);
     setVersions([]);
     setActiveVersion(null);
@@ -186,17 +211,15 @@ const VibeImagerView = () => {
       setMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role: "user", content: `📷 Uploaded: ${file.name}`, imageUrl: urlData.publicUrl },
-        { id: crypto.randomUUID(), role: "assistant", content: "Image uploaded! Now tell me what you'd like to change — e.g. \"make it warmer\", \"remove background\", \"turn it into a painting\".", versionId: v.id },
+        { id: crypto.randomUUID(), role: "assistant", content: "Image uploaded! Now describe your edit — I'll ask for specifics if needed before applying it." },
       ]);
     }
     e.target.value = "";
   };
 
-  // ── Send edit instruction ───────────────────────────────────
-  const sendMessage = async () => {
-    if (!input.trim() || !user || !activeProject || isEditing) return;
-    const instruction = input.trim();
-    setInput("");
+  // ── Process a single message (core logic) ───────────────────
+  const processMessage = async (instruction: string) => {
+    if (!user || !activeProject) return;
 
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: instruction };
     setMessages((prev) => [...prev, userMsg]);
@@ -205,86 +228,136 @@ const VibeImagerView = () => {
       project_id: activeProject.id, user_id: user.id, role: "user", content: instruction,
     });
 
-    // If no image yet, just chat
-    if (!activeVersion) {
-      setIsEditing(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("vibe-imager", {
-          body: {
-            action: "chat",
-            messages: [{ role: "user", content: instruction }],
-            currentImageUrl: null,
-          },
-        });
-        if (error) throw error;
-        const reply = data?.reply || "Upload an image first, then tell me how to edit it!";
-        const aMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: reply };
+    setIsEditing(true);
+
+    try {
+      // Step 1: Ask Aureon to analyze the request
+      const chatHistory = messages.slice(-6).map((m) => ({ role: m.role, content: m.content }));
+      const { data: analyzeData, error: analyzeErr } = await supabase.functions.invoke("vibe-imager", {
+        body: {
+          action: "analyze",
+          instruction,
+          hasImage: !!activeVersion,
+          chatHistory,
+        },
+      });
+      if (analyzeErr) throw analyzeErr;
+
+      const responseType = analyzeData?.type;
+
+      // ── AI needs clarification ──────────────────────────────
+      if (responseType === "clarify") {
+        const questions: string[] = analyzeData.questions || [];
+        const context = analyzeData.context || "";
+        const replyText = context
+          ? `🔍 ${context}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
+          : questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n");
+
+        const aMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: replyText,
+          clarifyQuestions: questions,
+        };
         setMessages((prev) => [...prev, aMsg]);
         await supabase.from("vibe_imager_messages").insert({
-          project_id: activeProject.id, user_id: user.id, role: "assistant", content: reply,
+          project_id: activeProject.id, user_id: user.id, role: "assistant", content: replyText,
         });
-      } catch (err: any) {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        setIsEditing(false);
+        return;
       }
-      setIsEditing(false);
+
+      // ── AI says proceed — execute the edit ──────────────────
+      if (responseType === "proceed" && activeVersion) {
+        const refinedInstruction = analyzeData.instruction || instruction;
+        const summary = analyzeData.summary || "";
+
+        if (summary) {
+          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✨ ${summary} Applying now…` };
+          setMessages((prev) => [...prev, infoMsg]);
+        }
+
+        const { data: editData, error: editErr } = await supabase.functions.invoke("vibe-imager", {
+          body: {
+            action: "edit",
+            instruction: refinedInstruction,
+            imageUrl: activeVersion.image_url,
+            projectId: activeProject.id,
+          },
+        });
+        if (editErr) throw editErr;
+
+        const reply = editData?.reply || "Done!";
+        const editedUrl = editData?.editedImageUrl;
+
+        if (editedUrl) {
+          const vNum = (activeVersion?.version_number || 0) + 1;
+          const { data: version } = await supabase
+            .from("vibe_imager_versions")
+            .insert({
+              project_id: activeProject.id, user_id: user.id,
+              parent_id: activeVersion?.id || null, version_number: vNum,
+              prompt: refinedInstruction, image_url: editedUrl, is_uploaded: false,
+              metadata: { source: "ai-edit" },
+            })
+            .select().single();
+
+          if (version) {
+            const v = version as VibeVersion;
+            setVersions((prev) => [...prev, v]);
+            setActiveVersion(v);
+            const aMsg: ChatMessage = {
+              id: crypto.randomUUID(), role: "assistant",
+              content: `✅ ${reply}`, imageUrl: editedUrl, versionId: v.id,
+            };
+            setMessages((prev) => [...prev, aMsg]);
+            await supabase.from("vibe_imager_messages").insert({
+              project_id: activeProject.id, user_id: user.id,
+              role: "assistant", content: aMsg.content, version_id: v.id,
+            });
+          }
+        } else {
+          const aMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: reply };
+          setMessages((prev) => [...prev, aMsg]);
+          await supabase.from("vibe_imager_messages").insert({
+            project_id: activeProject.id, user_id: user.id, role: "assistant", content: reply,
+          });
+        }
+        setIsEditing(false);
+        return;
+      }
+
+      // ── Plain chat response ─────────────────────────────────
+      const reply = analyzeData?.reply || analyzeData?.instruction || "I'm ready to help. Upload an image or describe your edit!";
+      const aMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: reply };
+      setMessages((prev) => [...prev, aMsg]);
+      await supabase.from("vibe_imager_messages").insert({
+        project_id: activeProject.id, user_id: user.id, role: "assistant", content: reply,
+      });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+    setIsEditing(false);
+  };
+
+  // ── Send message (with queue support) ───────────────────────
+  const sendMessage = async () => {
+    if (!input.trim() || !activeProject) return;
+    const instruction = input.trim();
+    setInput("");
+
+    // If AI is currently processing, queue the message
+    if (isEditing || isProcessingQueue) {
+      setQueue((prev) => [...prev, { id: crypto.randomUUID(), content: instruction }]);
       return;
     }
 
-    // AI image edit
-    setIsEditing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("vibe-imager", {
-        body: {
-          action: "edit",
-          instruction,
-          imageUrl: activeVersion.image_url,
-          projectId: activeProject.id,
-        },
-      });
-      if (error) throw error;
+    await processMessage(instruction);
+  };
 
-      const reply = data?.reply || "Done!";
-      const editedUrl = data?.editedImageUrl;
-
-      if (editedUrl) {
-        // Save as new version
-        const vNum = (activeVersion?.version_number || 0) + 1;
-        const { data: version } = await supabase
-          .from("vibe_imager_versions")
-          .insert({
-            project_id: activeProject.id, user_id: user.id,
-            parent_id: activeVersion?.id || null, version_number: vNum,
-            prompt: instruction, image_url: editedUrl, is_uploaded: false,
-            metadata: { source: "ai-edit" },
-          })
-          .select().single();
-
-        if (version) {
-          const v = version as VibeVersion;
-          setVersions((prev) => [...prev, v]);
-          setActiveVersion(v);
-
-          const aMsg: ChatMessage = {
-            id: crypto.randomUUID(), role: "assistant",
-            content: `✅ ${reply}`, imageUrl: editedUrl, versionId: v.id,
-          };
-          setMessages((prev) => [...prev, aMsg]);
-          await supabase.from("vibe_imager_messages").insert({
-            project_id: activeProject.id, user_id: user.id,
-            role: "assistant", content: aMsg.content, version_id: v.id,
-          });
-        }
-      } else {
-        const aMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: reply };
-        setMessages((prev) => [...prev, aMsg]);
-        await supabase.from("vibe_imager_messages").insert({
-          project_id: activeProject.id, user_id: user.id, role: "assistant", content: reply,
-        });
-      }
-    } catch (err: any) {
-      toast({ title: "Edit failed", description: err.message, variant: "destructive" });
-    }
-    setIsEditing(false);
+  // ── Quick answer a clarifying question ──────────────────────
+  const handleQuickAnswer = (question: string) => {
+    setInput(question);
   };
 
   const loadVersion = (v: VibeVersion) => setActiveVersion(v);
@@ -315,7 +388,7 @@ const VibeImagerView = () => {
             <h1 className="text-2xl sm:text-3xl font-extralight tracking-[0.15em] text-foreground">VIBE IMAGER</h1>
           </div>
           <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Upload an image, describe your edits in plain language, and AI transforms it for you. Every edit is versioned.
+            Upload an image, describe your edits in plain language, and Aureon AI transforms it for you. Every edit is versioned.
           </p>
         </div>
 
@@ -374,6 +447,10 @@ const VibeImagerView = () => {
       </div>
     );
   }
+
+  // ── Get last assistant message's clarify questions ───────────
+  const lastAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant");
+  const lastClarifyQuestions = lastAssistantMsg?.clarifyQuestions;
 
   // ── Editor Layout ───────────────────────────────────────────
   return (
@@ -437,7 +514,7 @@ const VibeImagerView = () => {
             <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-b-2xl">
               <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-card/80 border border-border/20 backdrop-blur-md">
                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                <p className="text-sm font-light text-foreground/70">AI is editing your image…</p>
+                <p className="text-sm font-light text-foreground/70">Aureon is analyzing your request…</p>
                 <p className="text-[10px] text-muted-foreground/50">This may take a few seconds</p>
               </div>
             </div>
@@ -478,7 +555,7 @@ const VibeImagerView = () => {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/10 shrink-0">
           <button
-            onClick={() => { setActiveProject(null); }}
+            onClick={() => { setActiveProject(null); setQueue([]); }}
             className="flex items-center gap-1.5 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
           >
             <RotateCcw className="h-3 w-3" />
@@ -507,20 +584,43 @@ const VibeImagerView = () => {
                       : "bg-foreground/5 text-foreground/90 rounded-bl-md"
                   }`}
                 >
-                  {msg.content}
-                  {msg.imageUrl && (
-                    <img src={msg.imageUrl} alt="" className="mt-2 rounded-xl max-w-full max-h-40 object-cover border border-border/10" />
-                  )}
-                  {msg.versionId && (
-                    <button
-                      onClick={() => {
-                        const v = versions.find((ver) => ver.id === msg.versionId);
-                        if (v) loadVersion(v);
-                      }}
-                      className="block mt-2 text-[10px] text-accent hover:underline"
-                    >
-                      View this version →
-                    </button>
+                  {msg.clarifyQuestions ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5 text-accent/80 mb-1">
+                        <HelpCircle className="h-3 w-3" />
+                        <span className="text-[10px] font-medium tracking-wide uppercase">Needs More Detail</span>
+                      </div>
+                      <p className="text-xs text-foreground/70 whitespace-pre-line">{msg.content}</p>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {msg.clarifyQuestions.map((q, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleQuickAnswer(q)}
+                            className="text-[10px] px-2.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 text-accent/80 hover:text-accent transition-colors border border-accent/10"
+                          >
+                            Answer: {q.slice(0, 30)}{q.length > 30 ? "…" : ""}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {msg.content}
+                      {msg.imageUrl && (
+                        <img src={msg.imageUrl} alt="" className="mt-2 rounded-xl max-w-full max-h-40 object-cover border border-border/10" />
+                      )}
+                      {msg.versionId && (
+                        <button
+                          onClick={() => {
+                            const v = versions.find((ver) => ver.id === msg.versionId);
+                            if (v) loadVersion(v);
+                          }}
+                          className="block mt-2 text-[10px] text-accent hover:underline"
+                        >
+                          View this version →
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -529,7 +629,7 @@ const VibeImagerView = () => {
               <div className="flex justify-start">
                 <div className="flex items-center gap-2 bg-foreground/5 rounded-2xl px-3.5 py-2.5">
                   <Loader2 className="h-3 w-3 animate-spin text-accent" />
-                  <span className="text-[10px] text-muted-foreground">Editing image…</span>
+                  <span className="text-[10px] text-muted-foreground">Aureon is thinking…</span>
                 </div>
               </div>
             )}
@@ -571,6 +671,16 @@ const VibeImagerView = () => {
           </div>
         )}
 
+        {/* Message Queue */}
+        <MessageQueuePanel
+          items={queue}
+          onRemove={(id) => setQueue((prev) => prev.filter((q) => q.id !== id))}
+          onClear={() => setQueue([])}
+          onProcessNow={processAllQueue}
+          paused={queuePaused}
+          onTogglePause={() => setQueuePaused((p) => !p)}
+        />
+
         {/* Input */}
         <div className="p-3 sm:p-4 border-t border-border/10 shrink-0">
           <div className="flex items-end gap-2">
@@ -593,20 +703,22 @@ const VibeImagerView = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder={activeVersion ? "Describe your edit… e.g. \"make it brighter\"" : "Upload an image first…"}
+              placeholder={isEditing ? "Type to queue next edit…" : activeVersion ? "Describe your edit…" : "Upload an image first…"}
               className="flex-1 min-h-[40px] max-h-[100px] resize-none text-xs bg-transparent border-border/20 focus:border-accent/30 rounded-xl"
               rows={1}
-              disabled={isEditing}
             />
             <Button
               size="sm"
               onClick={sendMessage}
-              disabled={!input.trim() || isEditing}
+              disabled={!input.trim()}
               className="h-10 w-10 p-0 rounded-xl bg-accent hover:bg-accent/80"
             >
-              {isEditing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              {isEditing ? <Plus className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
             </Button>
           </div>
+          {isEditing && input.trim() && (
+            <p className="text-[9px] text-muted-foreground/50 mt-1.5 text-center">Press send to add to queue</p>
+          )}
         </div>
       </div>
     </div>
