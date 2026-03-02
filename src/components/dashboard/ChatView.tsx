@@ -322,9 +322,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         isConnected={elevenLabsVoice.isConnected}
         isConnecting={elevenLabsVoice.status === "connecting"}
         isSpeaking={elevenLabsVoice.isSpeaking}
-        transcript={elevenLabsVoice.transcript}
+        currentText={elevenLabsVoice.currentText}
+        transcriptLog={elevenLabsVoice.transcriptLog}
+        userSpeechIndicator={elevenLabsVoice.userSpeechIndicator}
         error={elevenLabsVoice.error}
         onDisconnect={elevenLabsVoice.disconnect}
+        onDownloadTranscript={elevenLabsVoice.downloadTranscript}
       />
 
       {/* Top bar — hidden in focus mode */}
