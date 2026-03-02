@@ -796,19 +796,23 @@ The user is asking about internal code, backend, or architecture. You are FORBID
         const parts: any[] = [];
         if (m.attachments?.length) {
           for (const att of m.attachments) {
-            if (att.type.startsWith("image/")) {
+            if (att.type.startsWith("image/") || att.type === "application/pdf") {
+              // Images and PDFs: send as inline_data — Gemini natively parses both
               parts.push({ inline_data: { mime_type: att.type, data: att.base64 } });
+              parts.push({ text: `[Attached file: ${att.name}]` });
             } else {
+              // Text-based files: decode base64 to string
               try {
                 const decoded = atob(att.base64);
-                // Truncate large documents to prevent exceeding Gemini's token limit
-                const MAX_DOC_CHARS = 80000; // ~20k tokens safe limit per document
+                const MAX_DOC_CHARS = 80000;
                 const truncated = decoded.length > MAX_DOC_CHARS
                   ? decoded.slice(0, MAX_DOC_CHARS) + `\n\n[... Document truncated. Showing first ${MAX_DOC_CHARS} of ${decoded.length} characters.]`
                   : decoded;
                 parts.push({ text: `[File: ${att.name}]\n${truncated}` });
               } catch {
-                parts.push({ text: `[File: ${att.name} — binary content, ${att.type}]` });
+                // Binary file that isn't image/PDF — send as inline_data as fallback
+                parts.push({ inline_data: { mime_type: att.type, data: att.base64 } });
+                parts.push({ text: `[Attached file: ${att.name}]` });
               }
             }
           }
