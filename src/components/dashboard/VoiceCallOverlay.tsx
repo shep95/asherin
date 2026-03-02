@@ -1,5 +1,5 @@
 import { PhoneOff, Mic, Volume2, Download } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface TranscriptEntry {
   role: "user" | "agent";
@@ -17,26 +17,51 @@ interface VoiceCallOverlayProps {
   error: string | null;
   onDisconnect: () => void;
   onDownloadTranscript: () => void;
+  getInputVolume?: () => number;
+  getOutputVolume?: () => number;
 }
 
-function PulseRing({ active }: { active: boolean }) {
+/* ── Audio Wave Bars ── */
+function AudioWave({ label, getVolume, color }: { label: string; getVolume?: () => number; color: string }) {
+  const NUM_BARS = 5;
+  const [levels, setLevels] = useState<number[]>(Array(NUM_BARS).fill(0.08));
+  const rafRef = useRef<number>();
+
+  useEffect(() => {
+    if (!getVolume) return;
+    const tick = () => {
+      const vol = getVolume();
+      setLevels(
+        Array.from({ length: NUM_BARS }, (_, i) => {
+          const jitter = 0.6 + Math.random() * 0.8;
+          const positional = 1 - Math.abs(i - 2) * 0.15;
+          return Math.max(0.08, Math.min(1, vol * jitter * positional * 4));
+        }),
+      );
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [getVolume]);
+
   return (
-    <div className="relative flex items-center justify-center">
-      {active && (
-        <>
-          <div className="absolute h-24 w-24 rounded-full border border-accent/20 animate-ping" style={{ animationDuration: "2s" }} />
-          <div className="absolute h-20 w-20 rounded-full border border-accent/30 animate-ping" style={{ animationDuration: "1.5s", animationDelay: "0.3s" }} />
-        </>
-      )}
-      <div className={`relative z-10 h-16 w-16 rounded-full flex items-center justify-center transition-all ${
-        active ? "bg-accent/20 border-2 border-accent shadow-lg shadow-accent/20" : "bg-muted/20 border-2 border-muted-foreground/20"
-      }`}>
-        {active ? (
-          <Volume2 className="h-7 w-7 text-accent animate-pulse" />
-        ) : (
-          <Mic className="h-7 w-7 text-muted-foreground" />
-        )}
+    <div className="flex flex-col items-center gap-2">
+      <div className="flex items-end gap-[3px] h-10">
+        {levels.map((h, i) => (
+          <div
+            key={i}
+            className="w-[4px] rounded-full transition-all duration-75"
+            style={{
+              height: `${h * 40}px`,
+              backgroundColor: color,
+              opacity: 0.6 + h * 0.4,
+            }}
+          />
+        ))}
       </div>
+      <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70">{label}</span>
     </div>
   );
 }
@@ -65,6 +90,8 @@ const VoiceCallOverlay = ({
   error,
   onDisconnect,
   onDownloadTranscript,
+  getInputVolume,
+  getOutputVolume,
 }: VoiceCallOverlayProps) => {
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -76,29 +103,25 @@ const VoiceCallOverlay = ({
 
   return (
     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-xl animate-fade-in">
-      {/* Visual */}
-      <div className="flex flex-col items-center gap-6">
-        <PulseRing active={isSpeaking} />
+      {/* Status */}
+      <div className="flex flex-col items-center gap-5">
+        <h3 className="text-lg font-light text-foreground">
+          {isConnecting
+            ? "Connecting…"
+            : isSpeaking
+              ? "Aureon is speaking"
+              : userSpeechIndicator
+                ? "Hearing you…"
+                : "Listening…"}
+        </h3>
+        {isConnected && <Timer />}
+        {error && <p className="text-xs text-destructive mt-1">{error}</p>}
 
-        <div className="text-center space-y-1">
-          <h3 className="text-lg font-light text-foreground">
-            {isConnecting
-              ? "Connecting…"
-              : isSpeaking
-                ? "Aureon is speaking"
-                : userSpeechIndicator
-                  ? "Hearing you…"
-                  : "Listening…"}
-          </h3>
-          {isConnected && <Timer />}
-          {error && <p className="text-xs text-destructive mt-1">{error}</p>}
-        </div>
-
-        {/* Voice input indicator */}
-        {userSpeechIndicator && !isSpeaking && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/30">
-            <Mic className="h-3 w-3 text-accent animate-pulse" />
-            <span className="text-xs text-accent font-medium">Voice detected</span>
+        {/* Audio Waves */}
+        {isConnected && (
+          <div className="flex items-center gap-10">
+            <AudioWave label="You" getVolume={getInputVolume} color="hsl(var(--accent))" />
+            <AudioWave label="Aureon" getVolume={getOutputVolume} color="hsl(var(--primary))" />
           </div>
         )}
 
