@@ -256,7 +256,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const messagesRef = useRef<HTMLDivElement>(null);
 
   const elevenLabsVoice = useElevenLabsVoice({
-    agentId: "YOUR_AGENT_ID_HERE",
+    agentId: "nju8YCEndVfEz7rGwcgK",
   });
 
   const handleSend = () => {
