@@ -1,5 +1,6 @@
 import { useConversation } from "@elevenlabs/react";
 import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 type VoiceStatus = "idle" | "connecting" | "connected" | "error";
 
@@ -13,11 +14,6 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
   const [transcript, setTranscript] = useState("");
 
   const conversation = useConversation({
-    overrides: {
-      tts: {
-        voiceId: "nju8YCEndVfEz7rGwcgK",
-      },
-    },
     onConnect: () => {
       console.log("ElevenLabs voice connected");
       setStatus("connected");
@@ -28,6 +24,7 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
       setStatus("idle");
     },
     onMessage: (message: any) => {
+      console.log("ElevenLabs message:", message?.type);
       if (message?.type === "agent_response") {
         const text = message?.agent_response_event?.agent_response;
         if (text) setTranscript(text);
@@ -50,22 +47,39 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
     setTranscript("");
 
     try {
-      // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request microphone permission first (must be in click handler)
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+      // Stop the test stream immediately — SDK will create its own
+      stream.getTracks().forEach(t => t.stop());
 
-      // Connect directly using public agent ID (no token needed)
+      // Get a signed token from the edge function for authenticated WebRTC
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "elevenlabs-conversation-token",
+        { body: { agentId } }
+      );
+
+      if (fnError || !data?.token) {
+        throw new Error(fnError?.message || "Failed to get conversation token");
+      }
+
+      // Start session with conversationToken (authenticated, reliable WebRTC)
       await conversation.startSession({
-        agentId,
+        conversationToken: data.token,
         connectionType: "webrtc",
-        overrides: {
-          tts: {
-            voiceId: "nju8YCEndVfEz7rGwcgK",
-          },
-        },
       });
     } catch (e: any) {
       console.error("Voice connect error:", e);
-      setError(e.message || "Failed to connect");
+      if (e.name === "NotAllowedError") {
+        setError("Microphone access denied. Check browser permissions.");
+      } else {
+        setError(e.message || "Failed to connect");
+      }
       setStatus("error");
     }
   }, [agentId, conversation]);
