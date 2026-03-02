@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/useFFmpeg";
+import { useMediaBunny } from "@/hooks/useMediaBunny";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -135,7 +136,8 @@ const ClarifyQuestionsCard = ({
 const VibeVideoView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const ffmpeg = useFFmpeg(true); // Preload FFmpeg in background for instant edits
+  const ffmpeg = useFFmpeg(false); // Only load FFmpeg when needed (for filter operations)
+  const mediaBunny = useMediaBunny(); // GPU-accelerated engine for trim/speed/resize/crop/rotate
 
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [activeProject, setActiveProject] = useState<VideoProject | null>(null);
@@ -390,51 +392,109 @@ const VibeVideoView = () => {
         }
 
         if (ffmpegArgs.length === 0) {
-          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⚠️ Couldn't determine the exact FFmpeg command for this edit. Try being more specific." };
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⚠️ Couldn't determine the exact command for this edit. Try being more specific." };
           setMessages((prev) => [...prev, errMsg]);
           setIsEditing(false);
           return;
         }
 
-        // Load FFmpeg if needed
-        const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⏳ Loading video engine…" };
+        // Determine which engine to use
+        const useGPU = mediaBunny.canUseMediaBunny(editType);
+        const engineLabel = useGPU ? "⚡ MediaBunny (GPU-accelerated)" : "🔧 FFmpeg (software)";
+
+        const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `⏳ Loading ${engineLabel}…` };
         setMessages((prev) => [...prev, loadMsg]);
 
-        try {
-          await ffmpeg.load();
-        } catch {
-          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "❌ Failed to load the video engine. Your browser may not support WebAssembly. Try using Chrome or Edge." };
-          setMessages((prev) => [...prev, errMsg]);
-          setIsEditing(false);
-          return;
+        let resultBlob: Blob;
+
+        if (useGPU) {
+          // ── GPU-accelerated path (MediaBunny / WebCodecs) ──
+          try {
+            setMessages((prev) =>
+              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `⚡ Processing with GPU acceleration: "${editType}"… Near-instant for supported operations.` } : m)
+            );
+            setFfmpegProgress(0);
+            const progressInterval = setInterval(() => {
+              setFfmpegProgress(mediaBunny.progress);
+            }, 100);
+
+            resultBlob = await mediaBunny.processWithMediaBunny(activeVersion.video_url, editType, ffmpegArgs);
+            clearInterval(progressInterval);
+            setFfmpegProgress(null);
+          } catch (gpuErr: any) {
+            // Fallback to FFmpeg if MediaBunny fails
+            console.warn("[MediaBunny] GPU processing failed, falling back to FFmpeg:", gpuErr.message);
+            setMessages((prev) =>
+              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `🔄 GPU engine failed, falling back to FFmpeg…` } : m)
+            );
+
+            try {
+              await ffmpeg.load();
+              setFfmpegProgress(0);
+              const progressInterval = setInterval(() => {
+                setFfmpegProgress(ffmpeg.progress);
+              }, 200);
+              resultBlob = await ffmpeg.processVideo(activeVersion.video_url, ffmpegArgs);
+              clearInterval(progressInterval);
+              setFfmpegProgress(null);
+            } catch (ffmpegErr: any) {
+              setFfmpegProgress(null);
+              const errMsg: ChatMessage = {
+                id: crypto.randomUUID(), role: "assistant",
+                content: `❌ Processing failed: ${ffmpegErr.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
+              };
+              setMessages((prev) => [...prev, errMsg]);
+              setIsEditing(false);
+              return;
+            }
+          }
+        } else {
+          // ── Software path (FFmpeg WASM) for filters/effects ──
+          try {
+            await ffmpeg.load();
+          } catch {
+            const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "❌ Failed to load the video engine. Try Chrome or Edge." };
+            setMessages((prev) => [...prev, errMsg]);
+            setIsEditing(false);
+            return;
+          }
+
+          setMessages((prev) =>
+            prev.map((m) => m.id === loadMsg.id ? { ...m, content: `🎬 Processing "${editType}" with FFmpeg… This runs in your browser.` } : m)
+          );
+          setFfmpegProgress(0);
+          const progressInterval = setInterval(() => {
+            setFfmpegProgress(ffmpeg.progress);
+          }, 200);
+
+          try {
+            resultBlob = await ffmpeg.processVideo(activeVersion.video_url, ffmpegArgs);
+            clearInterval(progressInterval);
+            setFfmpegProgress(null);
+          } catch (err: any) {
+            clearInterval(progressInterval);
+            setFfmpegProgress(null);
+            const errMsg: ChatMessage = {
+              id: crypto.randomUUID(), role: "assistant",
+              content: `❌ Processing failed: ${err.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
+            };
+            setMessages((prev) => [...prev, errMsg]);
+            setIsEditing(false);
+            return;
+          }
         }
 
-        // Process with FFmpeg
-        setMessages((prev) =>
-          prev.map((m) => m.id === loadMsg.id ? { ...m, content: `🎬 Processing edit: "${editType}"… This runs entirely in your browser.` } : m)
-        );
-        setFfmpegProgress(0);
+        // Upload processed video
+        const ext = "mp4";
+        const path = `${user!.id}/${activeProject!.id}/${crypto.randomUUID()}.${ext}`;
 
-        // Track progress from hook
-        const progressInterval = setInterval(() => {
-          setFfmpegProgress(ffmpeg.progress);
-        }, 200);
+        setUploadProgress(1);
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const session = (await supabase.auth.getSession()).data.session;
+        const authToken = session?.access_token || supabaseKey;
 
         try {
-          const resultBlob = await ffmpeg.processVideo(activeVersion.video_url, ffmpegArgs);
-          clearInterval(progressInterval);
-          setFfmpegProgress(null);
-
-          // Upload processed video
-          const ext = ffmpegArgs[ffmpegArgs.length - 1]?.split(".").pop() || "mp4";
-          const path = `${user!.id}/${activeProject!.id}/${crypto.randomUUID()}.${ext}`;
-
-          setUploadProgress(1);
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-          const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-          const session = (await supabase.auth.getSession()).data.session;
-          const authToken = session?.access_token || supabaseKey;
-
           await new Promise<void>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.upload.onprogress = (evt) => {
@@ -454,46 +514,44 @@ const VibeVideoView = () => {
             xhr.setRequestHeader("x-upsert", "false");
             xhr.send(resultBlob);
           });
+        } catch (uploadErr: any) {
           setUploadProgress(null);
-
-          const { data: urlData } = supabase.storage.from("vibe-video").getPublicUrl(path);
-          const vNum = (activeVersion?.version_number || 0) + 1;
-
-          const { data: version } = await supabase
-            .from("vibe_video_versions")
-            .insert({
-              project_id: activeProject!.id, user_id: user!.id,
-              parent_id: activeVersion?.id || null, version_number: vNum,
-              prompt: refinedInstruction, video_url: urlData.publicUrl, is_uploaded: false,
-              metadata: { ffmpeg_args: ffmpegArgs, edit_type: editType },
-            })
-            .select().single();
-
-          if (version) {
-            const v = version as VideoVersion;
-            setVersions((prev) => [...prev, v]);
-            setActiveVersion(v);
-          }
-
-          const aMsg: ChatMessage = {
-            id: crypto.randomUUID(), role: "assistant",
-            content: `✅ Edit applied! Version ${vNum} created.\n\n**Edit:** ${summary || refinedInstruction}\n**Type:** ${editType}\n\nThe edited video is now playing. You can compare versions using the timeline below.`,
-            versionId: version?.id,
-          };
-          setMessages((prev) => [...prev, aMsg]);
-          await supabase.from("vibe_video_messages").insert({
-            project_id: activeProject!.id, user_id: user!.id, role: "assistant", content: aMsg.content, version_id: version?.id,
-          });
-        } catch (err: any) {
-          clearInterval(progressInterval);
-          setFfmpegProgress(null);
-          setUploadProgress(null);
-          const errMsg: ChatMessage = {
-            id: crypto.randomUUID(), role: "assistant",
-            content: `❌ Processing failed: ${err.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first, or use a smaller file.`,
-          };
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `❌ Upload failed: ${uploadErr.message}` };
           setMessages((prev) => [...prev, errMsg]);
+          setIsEditing(false);
+          return;
         }
+        setUploadProgress(null);
+
+        const { data: urlData } = supabase.storage.from("vibe-video").getPublicUrl(path);
+        const vNum = (activeVersion?.version_number || 0) + 1;
+
+        const { data: version } = await supabase
+          .from("vibe_video_versions")
+          .insert({
+            project_id: activeProject!.id, user_id: user!.id,
+            parent_id: activeVersion?.id || null, version_number: vNum,
+            prompt: refinedInstruction, video_url: urlData.publicUrl, is_uploaded: false,
+            metadata: { ffmpeg_args: ffmpegArgs, edit_type: editType, engine: useGPU ? "mediabunny" : "ffmpeg" },
+          })
+          .select().single();
+
+        if (version) {
+          const v = version as VideoVersion;
+          setVersions((prev) => [...prev, v]);
+          setActiveVersion(v);
+        }
+
+        const engineUsed = useGPU ? "⚡ GPU-accelerated" : "🔧 Software";
+        const aMsg: ChatMessage = {
+          id: crypto.randomUUID(), role: "assistant",
+          content: `✅ Edit applied! Version ${vNum} created.\n\n**Edit:** ${summary || refinedInstruction}\n**Type:** ${editType}\n**Engine:** ${engineUsed}\n\nThe edited video is now playing.`,
+          versionId: version?.id,
+        };
+        setMessages((prev) => [...prev, aMsg]);
+        await supabase.from("vibe_video_messages").insert({
+          project_id: activeProject!.id, user_id: user!.id, role: "assistant", content: aMsg.content, version_id: version?.id,
+        });
         setIsEditing(false);
         return;
       }
