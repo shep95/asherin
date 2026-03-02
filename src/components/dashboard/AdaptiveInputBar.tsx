@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff } from "lucide-react";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 import type { FileAttachment } from "./types";
@@ -59,10 +59,15 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
   const [intent, setIntent] = useState<InputIntent>("text");
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const isMobile = useMemo(() => /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768, []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     setIntent(detectIntent(value));
@@ -207,6 +212,61 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
     onAttachmentsChange(updated);
   };
 
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
+      });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      const recorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        setRecordingTime(0);
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (blob.size === 0 || !onAttachmentsChange) return;
+
+        const ext = mimeType.includes("webm") ? "webm" : "m4a";
+        const fileName = `voice-message-${Date.now()}.${ext}`;
+
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const commaIdx = result.indexOf(",");
+            resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
+          };
+          reader.onerror = () => reject(new Error("Failed to read audio"));
+          reader.readAsDataURL(blob);
+        });
+
+        onAttachmentsChange([...attachments, { name: fileName, type: mimeType, size: blob.size, base64 }]);
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(1000);
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    } catch (err: any) {
+      console.error("Mic error:", err);
+    }
+  }, [attachments, onAttachmentsChange]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  }, []);
+
   const actions = quickActions[intent];
 
   return (
@@ -264,11 +324,25 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || isStreaming}
+            disabled={disabled || isStreaming || isRecording}
             className="shrink-0 p-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
             title="Attach files or images"
           >
             <Paperclip className="h-4 w-4" />
+          </button>
+
+          {/* Voice record button */}
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={disabled || isStreaming}
+            className={`shrink-0 p-2 rounded-xl transition-all disabled:opacity-30 ${
+              isRecording
+                ? "text-destructive bg-destructive/10 hover:bg-destructive/20 animate-pulse"
+                : "text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5"
+            }`}
+            title={isRecording ? `Recording… ${recordingTime}s — click to stop` : "Record voice message"}
+          >
+            {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           </button>
 
           <div className="flex-1 relative min-w-0">
