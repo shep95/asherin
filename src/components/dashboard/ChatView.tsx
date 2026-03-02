@@ -47,6 +47,7 @@ interface ChatViewProps {
   onProcessQueueNow?: () => void;
   queuePaused?: boolean;
   onToggleQueuePause?: () => void;
+  personaSystemPrompt?: string | null;
 }
 
 // Copy button for messages
@@ -241,7 +242,7 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   },
 });
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt }: ChatViewProps) => {
   const navigate = useNavigate();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
   const [input, setInput] = useState("");
@@ -254,8 +255,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
 
+  const voiceSystemPrompt = personaSystemPrompt
+    ? `${personaSystemPrompt}\n\nIMPORTANT: You are speaking via voice call. Be conversational, concise, and natural. Avoid long lists or code blocks — speak as a human would.`
+    : "You are Aureon, a highly intelligent AI assistant built for deep intelligence work. You are sharp, articulate, and conversational. Speak naturally and concisely. Avoid long lists or code blocks — you are on a voice call.";
+
   const geminiVoice = useGeminiVoice({
-    systemInstruction: "You are Aureon, a highly intelligent AI assistant. Be conversational, concise, and helpful. Speak naturally.",
+    systemInstruction: voiceSystemPrompt,
     voiceName: "Aoede",
   });
 
