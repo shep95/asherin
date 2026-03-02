@@ -556,8 +556,37 @@ const VibeVideoView = () => {
         return;
       }
 
-      // ── Plain chat response ─────────────────────────────────
-      const reply = analyzeData?.reply || analyzeData?.instruction || "I'm ready to help. Upload a video or describe your edit!";
+      // ── Plain chat response (with fallback JSON parsing) ────
+      let reply = analyzeData?.reply || analyzeData?.instruction || "";
+      
+      // Fallback: if reply contains raw JSON with action:clarify, parse it
+      if (reply) {
+        try {
+          const jsonMatch = reply.match(/\{[\s\S]*"action"\s*:\s*"(?:clarify|proceed)"[\s\S]*\}/);
+          if (jsonMatch) {
+            const fallbackParsed = JSON.parse(jsonMatch[0]);
+            if (fallbackParsed.action === "clarify" && fallbackParsed.questions) {
+              const questions: string[] = fallbackParsed.questions;
+              const ctx = fallbackParsed.context || "";
+              const replyText = ctx
+                ? `🔍 ${ctx}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
+                : questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n");
+              const aMsg: ChatMessage = {
+                id: crypto.randomUUID(), role: "assistant",
+                content: replyText, clarifyQuestions: questions,
+              };
+              setMessages((prev) => [...prev, aMsg]);
+              await supabase.from("vibe_video_messages").insert({
+                project_id: activeProject.id, user_id: user.id, role: "assistant", content: replyText,
+              });
+              setIsEditing(false);
+              return;
+            }
+          }
+        } catch {}
+      }
+      
+      if (!reply) reply = "I'm ready to help. Upload a video or describe your edit!";
       const aMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: reply };
       setMessages((prev) => [...prev, aMsg]);
       await supabase.from("vibe_video_messages").insert({

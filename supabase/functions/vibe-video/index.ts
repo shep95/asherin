@@ -166,26 +166,32 @@ serve(async (req) => {
       // Parse JSON response — multiple strategies
       let parsed: any = null;
 
+      // Strategy 1: fenced code block
       const fenceMatch = reply.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
       if (fenceMatch) {
         try { parsed = JSON.parse(fenceMatch[1].trim()); } catch {}
       }
 
+      // Strategy 2: find outermost JSON object containing "action"
       if (!parsed) {
-        const rawMatch = reply.match(/\{[^{}]*"action"\s*:\s*"[^"]+?"[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/s);
-        if (rawMatch) {
-          try { parsed = JSON.parse(rawMatch[0]); } catch {}
-        }
+        try {
+          // Find the first { and last } to get the full JSON object
+          const firstBrace = reply.indexOf('{');
+          const lastBrace = reply.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace > firstBrace) {
+            const jsonStr = reply.substring(firstBrace, lastBrace + 1);
+            const candidate = JSON.parse(jsonStr);
+            if (candidate.action) parsed = candidate;
+          }
+        } catch {}
       }
 
+      // Strategy 3: try parsing entire reply as JSON
       if (!parsed) {
-        const anyJson = reply.match(/\{[\s\S]*\}/);
-        if (anyJson) {
-          try {
-            const candidate = JSON.parse(anyJson[0]);
-            if (candidate.action) parsed = candidate;
-          } catch {}
-        }
+        try {
+          const candidate = JSON.parse(reply.trim());
+          if (candidate.action) parsed = candidate;
+        } catch {}
       }
 
       // If we got a "proceed" action, parse ffmpeg_args
