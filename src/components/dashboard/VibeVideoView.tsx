@@ -250,8 +250,8 @@ const VibeVideoView = () => {
     const file = e.target.files?.[0];
     if (!file || !user || !activeProject) return;
 
-    if (file.size > 20 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Maximum video size is 20MB.", variant: "destructive" });
+    if (file.size > 2 * 1024 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum video size is 2GB.", variant: "destructive" });
       return;
     }
 
