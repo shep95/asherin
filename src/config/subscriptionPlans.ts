@@ -41,7 +41,8 @@ export type FeatureId =
   | "scenario_simulator"
   | "priority_models"
   | "video_intelligence"
-  | "vibe_imager";
+  | "vibe_imager"
+  | "vibe_video";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
@@ -76,6 +77,7 @@ const PRO_FEATURES: FeatureId[] = [
   "asha", "pattern_analysis", "timeseries", "geospatial", "notebooks",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
   "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
+  "vibe_video",
 ];
 
 const ADVISOR_FEATURES: FeatureId[] = [...PRO_FEATURES];
@@ -243,6 +245,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   snippets: "code_snippets",
   "video-intelligence": "video_intelligence",
   "vibe-imager": "vibe_imager",
+  "vibe-video": "vibe_video",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────

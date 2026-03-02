@@ -3264,6 +3264,141 @@ export type Database = {
           },
         ]
       }
+      vibe_video_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          project_id: string
+          role: string
+          user_id: string
+          version_id: string | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          project_id: string
+          role?: string
+          user_id: string
+          version_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          role?: string
+          user_id?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_video_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_video_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_video_messages_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_video_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibe_video_projects: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          template: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          template?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          template?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vibe_video_versions: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          is_uploaded: boolean
+          metadata: Json | null
+          parent_id: string | null
+          project_id: string
+          prompt: string
+          style_preset: string | null
+          thumbnail_url: string | null
+          user_id: string
+          version_number: number
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_uploaded?: boolean
+          metadata?: Json | null
+          parent_id?: string | null
+          project_id: string
+          prompt?: string
+          style_preset?: string | null
+          thumbnail_url?: string | null
+          user_id: string
+          version_number?: number
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_uploaded?: boolean
+          metadata?: Json | null
+          parent_id?: string | null
+          project_id?: string
+          prompt?: string
+          style_preset?: string | null
+          thumbnail_url?: string | null
+          user_id?: string
+          version_number?: number
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibe_video_versions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_video_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_video_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_video_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zali_components: {
         Row: {
           compatible_names: string[] | null
