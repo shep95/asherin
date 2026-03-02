@@ -22,7 +22,6 @@ import {
   X,
   Maximize2,
   Minimize2,
-  ExternalLink,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -87,87 +86,63 @@ const VibeImagerView = () => {
   // ── Photopea Communication ──────────────────────────────────
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      // Photopea sends "done" when ready or after processing a command
       if (e.data === "done") {
         if (!photopeaReady) setPhotopeaReady(true);
-        if (pendingSaveRef.current) {
-          pendingSaveRef.current = false;
-          // "done" after saveToOE means data was already sent
-        }
+        if (pendingSaveRef.current) pendingSaveRef.current = false;
         return;
       }
-
-      // ArrayBuffer = exported image from Photopea (response to saveToOE)
       if (e.data instanceof ArrayBuffer) {
         handlePhotopeaExport(e.data);
         return;
       }
-
-      // String messages from echoToOE
       if (typeof e.data === "string") {
         try {
           const parsed = JSON.parse(e.data);
-          if (parsed.type === "save") {
-            // Custom save triggered
-            saveCurrentImage();
-          }
-        } catch {
-          // Not JSON, ignore
-        }
+          if (parsed.type === "save") saveCurrentImage();
+        } catch { /* ignore */ }
       }
     };
-
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, [photopeaReady, activeProject, activeVersion, user]);
 
-  // Send a script command to Photopea
   const sendToPhotopea = useCallback((script: string) => {
     if (!photopeaRef.current?.contentWindow) return;
     photopeaRef.current.contentWindow.postMessage(script, "*");
   }, []);
 
-  // Send an ArrayBuffer (image file) to Photopea
   const sendFileToPhotopea = useCallback((buffer: ArrayBuffer) => {
     if (!photopeaRef.current?.contentWindow) return;
     photopeaRef.current.contentWindow.postMessage(buffer, "*");
   }, []);
 
-  // Load an image URL into Photopea
   const loadImageInPhotopea = useCallback(async (imageUrl: string) => {
     if (!photopeaRef.current?.contentWindow) return;
     try {
       const response = await fetch(imageUrl);
       const buffer = await response.arrayBuffer();
       sendFileToPhotopea(buffer);
-    } catch (err) {
-      // Fallback: use app.open with URL
+    } catch {
       sendToPhotopea(`app.open("${imageUrl}");`);
     }
   }, [sendFileToPhotopea, sendToPhotopea]);
 
-  // Trigger Photopea to export the current document
   const saveCurrentImage = useCallback(() => {
     pendingSaveRef.current = true;
     sendToPhotopea('app.activeDocument.saveToOE("png");');
   }, [sendToPhotopea]);
 
-  // Handle the exported ArrayBuffer from Photopea
   const handlePhotopeaExport = useCallback(async (buffer: ArrayBuffer) => {
     if (!user || !activeProject) return;
     setIsSaving(true);
-
     try {
       const bytes = new Uint8Array(buffer);
       const fileName = `${user.id}/${activeProject.id}/${crypto.randomUUID()}.png`;
-
       const { error: uploadErr } = await supabase.storage
         .from("vibe-imager")
         .upload(fileName, bytes, { contentType: "image/png", upsert: false });
       if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
-
       const { data: urlData } = supabase.storage.from("vibe-imager").getPublicUrl(fileName);
-
       const versionNumber = (activeVersion?.version_number || 0) + 1;
       const { data: version, error: versionErr } = await supabase
         .from("vibe_imager_versions")
@@ -183,13 +158,10 @@ const VibeImagerView = () => {
         })
         .select()
         .single();
-
       if (versionErr) throw new Error(versionErr.message);
-
       const v = version as VibeVersion;
       setVersions((prev) => [...prev, v]);
       setActiveVersion(v);
-
       const saveMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -197,7 +169,6 @@ const VibeImagerView = () => {
         versionId: v.id,
       };
       setMessages((prev) => [...prev, saveMsg]);
-
       await supabase.from("vibe_imager_messages").insert({
         project_id: activeProject.id,
         user_id: user.id,
@@ -205,7 +176,6 @@ const VibeImagerView = () => {
         content: saveMsg.content,
         version_id: v.id,
       });
-
       toast({ title: "Saved", description: `Version ${versionNumber} saved` });
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
@@ -213,7 +183,6 @@ const VibeImagerView = () => {
     setIsSaving(false);
   }, [user, activeProject, activeVersion, toast]);
 
-  // Load projects
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -227,7 +196,6 @@ const VibeImagerView = () => {
     load();
   }, [user]);
 
-  // Load versions when project changes
   useEffect(() => {
     if (!activeProject) { setVersions([]); setActiveVersion(null); return; }
     const load = async () => {
@@ -245,7 +213,6 @@ const VibeImagerView = () => {
     load();
   }, [activeProject]);
 
-  // Load chat messages when project changes
   useEffect(() => {
     if (!activeProject) { setMessages([]); return; }
     const load = async () => {
@@ -266,19 +233,14 @@ const VibeImagerView = () => {
     load();
   }, [activeProject]);
 
-  // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // When activeVersion changes and Photopea is ready, load it
   useEffect(() => {
-    if (activeVersion && photopeaReady) {
-      loadImageInPhotopea(activeVersion.image_url);
-    }
+    if (activeVersion && photopeaReady) loadImageInPhotopea(activeVersion.image_url);
   }, [activeVersion?.id, photopeaReady]);
 
-  // ── Photopea iframe URL builder ─────────────────────────────
   const buildPhotopeaUrl = useCallback((imageUrl?: string) => {
     const config: Record<string, unknown> = {
       environment: {
@@ -287,13 +249,10 @@ const VibeImagerView = () => {
         },
       },
     };
-    if (imageUrl) {
-      config.files = [imageUrl];
-    }
+    if (imageUrl) config.files = [imageUrl];
     return `https://www.photopea.com#${encodeURIComponent(JSON.stringify(config))}`;
   }, []);
 
-  // ── Create Project ──────────────────────────────────────────
   const createProject = async (template?: string) => {
     if (!user) return;
     const name = template
@@ -312,16 +271,13 @@ const VibeImagerView = () => {
     setVersions([]);
     setActiveVersion(null);
     setPhotopeaReady(false);
-
-    const welcome: ChatMessage = {
+    setMessages([{
       id: crypto.randomUUID(),
       role: "assistant",
       content: `Welcome to Vibe Imager! 🎨 Upload an image to start editing in the built-in Photopea editor. I can also help you with AI-powered suggestions for edits, effects, and techniques.`,
-    };
-    setMessages([welcome]);
+    }]);
   };
 
-  // ── Delete Project ──────────────────────────────────────────
   const deleteProject = async (id: string) => {
     await supabase.from("vibe_imager_projects").delete().eq("id", id);
     setProjects((prev) => prev.filter((p) => p.id !== id));
@@ -333,11 +289,9 @@ const VibeImagerView = () => {
     }
   };
 
-  // ── Upload Image ────────────────────────────────────────────
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user || !activeProject) return;
-
     const ext = file.name.split(".").pop() || "png";
     const path = `${user.id}/${activeProject.id}/${crypto.randomUUID()}.${ext}`;
     const { error: uploadErr } = await supabase.storage
@@ -347,9 +301,7 @@ const VibeImagerView = () => {
       toast({ title: "Upload failed", description: uploadErr.message, variant: "destructive" });
       return;
     }
-
     const { data: urlData } = supabase.storage.from("vibe-imager").getPublicUrl(path);
-
     const { data: version } = await supabase
       .from("vibe_imager_versions")
       .insert({
@@ -363,17 +315,11 @@ const VibeImagerView = () => {
       })
       .select()
       .single();
-
     if (version) {
       const v = version as VibeVersion;
       setVersions((prev) => [...prev, v]);
       setActiveVersion(v);
-
-      // Load into Photopea
-      if (photopeaReady) {
-        loadImageInPhotopea(urlData.publicUrl);
-      }
-
+      if (photopeaReady) loadImageInPhotopea(urlData.publicUrl);
       setMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role: "user", content: `📷 Uploaded: ${file.name}` },
@@ -388,30 +334,22 @@ const VibeImagerView = () => {
     e.target.value = "";
   };
 
-  // ── Send Chat Message (AI assistant for editing tips) ───────
   const sendMessage = async () => {
     if (!input.trim() || !user || !activeProject || isChatting) return;
     const content = input.trim();
     setInput("");
-
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content };
     setMessages((prev) => [...prev, userMsg]);
-
     await supabase.from("vibe_imager_messages").insert({
       project_id: activeProject.id,
       user_id: user.id,
       role: "user",
       content,
     });
-
     setIsChatting(true);
     try {
-      const chatHistory = messages.slice(-10).map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const chatHistory = messages.slice(-10).map((m) => ({ role: m.role, content: m.content }));
       chatHistory.push({ role: "user", content });
-
       const { data: chatData, error: chatErr } = await supabase.functions.invoke("vibe-imager", {
         body: {
           action: "chat",
@@ -420,21 +358,13 @@ const VibeImagerView = () => {
           currentImageUrl: activeVersion?.image_url || null,
         },
       });
-
       if (chatErr) throw chatErr;
       const reply = chatData?.reply || "I can help you with editing tips! Try asking about specific techniques.";
-
-      // Check if AI suggests a Photopea script
       const scriptMatch = reply.match(/\[SCRIPT:\s*(.*?)\]/s);
-      if (scriptMatch && photopeaReady) {
-        sendToPhotopea(scriptMatch[1]);
-      }
-
+      if (scriptMatch && photopeaReady) sendToPhotopea(scriptMatch[1]);
       const cleanReply = reply.replace(/\[SCRIPT:.*?\]/s, "").trim();
-
       const assistantMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: cleanReply };
       setMessages((prev) => [...prev, assistantMsg]);
-
       await supabase.from("vibe_imager_messages").insert({
         project_id: activeProject.id,
         user_id: user.id,
@@ -447,15 +377,11 @@ const VibeImagerView = () => {
     setIsChatting(false);
   };
 
-  // ── Load version into editor ────────────────────────────────
   const loadVersion = (v: VibeVersion) => {
     setActiveVersion(v);
-    if (photopeaReady) {
-      loadImageInPhotopea(v.image_url);
-    }
+    if (photopeaReady) loadImageInPhotopea(v.image_url);
   };
 
-  // ── Download ────────────────────────────────────────────────
   const downloadImage = async () => {
     if (!activeVersion) return;
     try {
@@ -470,71 +396,76 @@ const VibeImagerView = () => {
     } catch { toast({ title: "Download failed", variant: "destructive" }); }
   };
 
-  // ── Quick Photopea Scripts ──────────────────────────────────
   const quickScripts = [
     { label: "🔄 Flip H", script: 'app.activeDocument.flipCanvas("horizontal");' },
     { label: "🔃 Flip V", script: 'app.activeDocument.flipCanvas("vertical");' },
-    { label: "↩️ Rotate 90°", script: "app.activeDocument.rotateCanvas(90);" },
-    { label: "🎨 Desaturate", script: 'app.activeDocument.activeLayer.adjustments.desaturate();' },
-    { label: "✨ Auto Levels", script: 'app.activeDocument.activeLayer.adjustments.levels();' },
+    { label: "↩️ Rotate", script: "app.activeDocument.rotateCanvas(90);" },
+    { label: "🎨 Desat", script: 'app.activeDocument.activeLayer.adjustments.desaturate();' },
+    { label: "✨ Levels", script: 'app.activeDocument.activeLayer.adjustments.levels();' },
     { label: "📐 Flatten", script: "app.activeDocument.flattenImage();" },
   ];
 
   // ── Landing (no project) ────────────────────────────────────
   if (!activeProject) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center p-6 gap-8">
-        <div className="text-center space-y-3">
-          <div className="flex items-center justify-center gap-2">
-            <Wand2 className="h-8 w-8 text-accent" />
-            <h1 className="text-2xl font-extralight tracking-[0.15em] text-foreground">VIBE IMAGER</h1>
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 sm:py-12 gap-8 overflow-y-auto">
+        <div className="text-center space-y-3 max-w-lg">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-3 rounded-2xl bg-accent/10 border border-accent/20">
+              <Wand2 className="h-7 w-7 text-accent" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extralight tracking-[0.15em] text-foreground">VIBE IMAGER</h1>
           </div>
-          <p className="text-sm font-extralight text-muted-foreground max-w-md">
+          <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
             Upload images, edit with a full Photoshop-class editor powered by Photopea, iterate with AI assistance, and track every version.
           </p>
         </div>
 
         {/* Templates */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-lg">
           {TEMPLATES.map((t) => (
             <button
               key={t.id}
               onClick={() => createProject(t.id)}
-              className="flex flex-col items-center gap-2 rounded-xl border border-border/20 bg-card/30 backdrop-blur-md p-4 hover:bg-card/50 hover:border-accent/30 transition-all group"
+              className="flex flex-col items-center gap-2.5 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md p-5 hover:bg-card/60 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-200 group"
             >
-              <t.icon className="h-6 w-6 text-muted-foreground group-hover:text-accent transition-colors" />
+              <div className="p-2.5 rounded-xl bg-muted/50 group-hover:bg-accent/10 transition-colors">
+                <t.icon className="h-5 w-5 text-muted-foreground group-hover:text-accent transition-colors" />
+              </div>
               <span className="text-xs font-light text-foreground">{t.label}</span>
-              <span className="text-[10px] text-muted-foreground/60">{t.desc}</span>
+              <span className="text-[10px] text-muted-foreground/60 leading-tight text-center">{t.desc}</span>
             </button>
           ))}
         </div>
 
-        <Button onClick={() => createProject()} variant="outline" className="gap-2 text-xs font-light">
+        <Button onClick={() => createProject()} variant="outline" className="gap-2 text-xs font-light rounded-xl px-5 h-10">
           <Plus className="h-3.5 w-3.5" /> Blank Project
         </Button>
 
         {/* Recent projects */}
         {projects.length > 0 && (
-          <div className="w-full max-w-lg space-y-2">
-            <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase px-1">Recent Projects</p>
-            <div className="space-y-1">
+          <div className="w-full max-w-lg space-y-3">
+            <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase px-1">Recent Projects</p>
+            <div className="space-y-1 rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md p-2">
               {projects.slice(0, 6).map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-foreground/5 transition-colors group cursor-pointer"
+                  className="flex items-center justify-between rounded-xl px-3.5 py-2.5 hover:bg-foreground/5 transition-colors group cursor-pointer"
                   onClick={() => setActiveProject(p)}
                 >
-                  <div className="flex items-center gap-2">
-                    <ImagePlus className="h-3.5 w-3.5 text-muted-foreground/50" />
-                    <span className="text-xs font-light text-foreground">{p.name}</span>
-                    <span className="text-[10px] text-muted-foreground/40">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-muted/30">
+                      <ImagePlus className="h-3.5 w-3.5 text-muted-foreground/50" />
+                    </div>
+                    <span className="text-xs font-light text-foreground truncate">{p.name}</span>
+                    <span className="text-[10px] text-muted-foreground/40 shrink-0">
                       {new Date(p.updated_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }}
-                      className="p-1 hover:bg-destructive/10 rounded"
+                      className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-3 w-3 text-destructive/60" />
                     </button>
@@ -546,19 +477,19 @@ const VibeImagerView = () => {
           </div>
         )}
 
-        <p className="text-[9px] text-muted-foreground/30 tracking-wider">Powered by Photopea • Created By ZALI Software</p>
+        <p className="text-[9px] text-muted-foreground/30 tracking-wider pb-4">Powered by Photopea • Created By ZALI Software</p>
       </div>
     );
   }
 
   // ── Main Editor Layout ──────────────────────────────────────
   return (
-    <div className="flex flex-1 h-full overflow-hidden">
+    <div className="flex flex-1 flex-col lg:flex-row h-full overflow-hidden p-2 sm:p-3 gap-2 sm:gap-3">
       {/* Chat Panel */}
       {!editorExpanded && (
-        <div className="flex flex-col w-80 min-w-[280px] max-w-[360px] border-r border-border/20 bg-card/20 backdrop-blur-md">
+        <div className="flex flex-col w-full lg:w-80 lg:min-w-[280px] lg:max-w-[360px] h-[40vh] lg:h-auto rounded-2xl border border-border/20 bg-card/20 backdrop-blur-md overflow-hidden shrink-0">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-border/20">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/10">
             <button
               onClick={() => { setActiveProject(null); setPhotopeaReady(false); }}
               className="flex items-center gap-1.5 text-xs font-light text-muted-foreground hover:text-foreground transition-colors"
@@ -572,7 +503,7 @@ const VibeImagerView = () => {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className={`p-1.5 rounded-lg transition-colors ${showHistory ? "bg-accent/20 text-accent" : "text-muted-foreground hover:text-foreground"}`}
+                className={`p-2 rounded-xl transition-colors ${showHistory ? "bg-accent/20 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`}
                 title="Version history"
               >
                 <History className="h-3.5 w-3.5" />
@@ -581,15 +512,15 @@ const VibeImagerView = () => {
           </div>
 
           {/* Chat Messages */}
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-3">
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-3 sm:p-4 space-y-3">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[85%] rounded-xl px-3 py-2 text-xs font-light ${
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs font-light leading-relaxed ${
                       msg.role === "user"
-                        ? "bg-accent/20 text-foreground"
-                        : "bg-foreground/5 text-foreground/90"
+                        ? "bg-accent/15 text-foreground rounded-br-md"
+                        : "bg-foreground/5 text-foreground/90 rounded-bl-md"
                     }`}
                   >
                     {msg.content}
@@ -599,7 +530,7 @@ const VibeImagerView = () => {
                           const v = versions.find((ver) => ver.id === msg.versionId);
                           if (v) loadVersion(v);
                         }}
-                        className="block mt-1.5 text-[9px] text-accent hover:underline"
+                        className="block mt-2 text-[10px] text-accent hover:underline"
                       >
                         Load in editor →
                       </button>
@@ -609,7 +540,7 @@ const VibeImagerView = () => {
               ))}
               {isChatting && (
                 <div className="flex justify-start">
-                  <div className="flex items-center gap-2 bg-foreground/5 rounded-xl px-3 py-2">
+                  <div className="flex items-center gap-2 bg-foreground/5 rounded-2xl px-3.5 py-2.5">
                     <Loader2 className="h-3 w-3 animate-spin text-accent" />
                     <span className="text-[10px] text-muted-foreground">Thinking...</span>
                   </div>
@@ -619,14 +550,14 @@ const VibeImagerView = () => {
             </div>
           </ScrollArea>
 
-          {/* Quick Photopea Scripts */}
+          {/* Quick Scripts */}
           {photopeaReady && activeVersion && (
-            <div className="px-3 py-2 border-t border-border/10 flex flex-wrap gap-1.5">
+            <div className="px-3 sm:px-4 py-2.5 border-t border-border/10 flex flex-wrap gap-1.5">
               {quickScripts.map((q) => (
                 <button
                   key={q.label}
                   onClick={() => sendToPhotopea(q.script)}
-                  className="text-[9px] px-2 py-1 rounded-md border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/30 transition-all"
+                  className="text-[9px] px-2.5 py-1.5 rounded-xl border border-border/20 text-muted-foreground hover:text-foreground hover:border-accent/30 hover:bg-accent/5 transition-all"
                 >
                   {q.label}
                 </button>
@@ -635,7 +566,7 @@ const VibeImagerView = () => {
           )}
 
           {/* Input */}
-          <div className="p-3 border-t border-border/20">
+          <div className="p-3 sm:p-4 border-t border-border/10">
             <div className="flex items-end gap-2">
               <input
                 ref={fileInputRef}
@@ -647,7 +578,7 @@ const VibeImagerView = () => {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isSaving}
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-40"
+                className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors disabled:opacity-40"
                 title="Upload image"
               >
                 <Upload className="h-4 w-4" />
@@ -656,8 +587,8 @@ const VibeImagerView = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder="Ask for editing tips, techniques…"
-                className="flex-1 min-h-[36px] max-h-[100px] resize-none text-xs bg-transparent border-border/20 focus:border-accent/30"
+                placeholder="Ask for editing tips…"
+                className="flex-1 min-h-[40px] max-h-[100px] resize-none text-xs bg-transparent border-border/20 focus:border-accent/30 rounded-xl"
                 rows={1}
                 disabled={isChatting}
               />
@@ -665,7 +596,7 @@ const VibeImagerView = () => {
                 size="sm"
                 onClick={sendMessage}
                 disabled={!input.trim() || isChatting}
-                className="h-9 w-9 p-0 bg-accent hover:bg-accent/80"
+                className="h-10 w-10 p-0 rounded-xl bg-accent hover:bg-accent/80"
               >
                 {isChatting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               </Button>
@@ -674,22 +605,22 @@ const VibeImagerView = () => {
         </div>
       )}
 
-      {/* Photopea Editor */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Editor + Version Timeline */}
+      <div className="flex-1 flex flex-col min-h-0 rounded-2xl border border-border/20 bg-card/10 backdrop-blur-md overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border/20 bg-card/10">
-          <div className="flex items-center gap-2">
-            <Wand2 className="h-4 w-4 text-accent" />
-            <span className="text-xs font-light tracking-wider text-foreground/70">VIBE IMAGER</span>
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/10 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Wand2 className="h-4 w-4 text-accent shrink-0" />
+            <span className="text-xs font-light tracking-wider text-foreground/70 hidden sm:inline">VIBE IMAGER</span>
             {activeVersion && (
-              <span className="text-[10px] text-muted-foreground/50 ml-2">
+              <span className="text-[10px] text-muted-foreground/50">
                 v{activeVersion.version_number}
                 {activeVersion.is_uploaded && " • Uploaded"}
               </span>
             )}
             {!photopeaReady && (
               <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" /> Loading editor…
+                <Loader2 className="h-3 w-3 animate-spin" /> Loading…
               </span>
             )}
           </div>
@@ -698,36 +629,37 @@ const VibeImagerView = () => {
               size="sm"
               variant="ghost"
               onClick={() => setEditorExpanded(!editorExpanded)}
-              className="h-7 text-[10px] gap-1"
+              className="h-8 w-8 p-0 rounded-xl lg:flex hidden"
               title={editorExpanded ? "Show chat" : "Expand editor"}
             >
-              {editorExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+              {editorExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             </Button>
             <Button
               size="sm"
               variant="default"
               onClick={saveCurrentImage}
               disabled={!photopeaReady || isSaving}
-              className="h-7 text-[10px] gap-1 bg-accent hover:bg-accent/80"
+              className="h-8 text-[10px] gap-1.5 bg-accent hover:bg-accent/80 rounded-xl px-3"
             >
               {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-              Save Version
+              <span className="hidden sm:inline">Save Version</span>
+              <span className="sm:hidden">Save</span>
             </Button>
             {activeVersion && (
-              <Button size="sm" variant="ghost" onClick={downloadImage} className="h-7 text-[10px] gap-1">
+              <Button size="sm" variant="ghost" onClick={downloadImage} className="h-8 text-[10px] gap-1 rounded-xl px-2.5">
                 <Download className="h-3 w-3" />
-                Export
+                <span className="hidden sm:inline">Export</span>
               </Button>
             )}
           </div>
         </div>
 
         {/* Photopea iframe */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0">
           <iframe
             ref={photopeaRef}
             src={buildPhotopeaUrl(activeVersion?.image_url)}
-            className="absolute inset-0 w-full h-full border-0"
+            className="absolute inset-0 w-full h-full border-0 rounded-b-2xl"
             allow="clipboard-read; clipboard-write"
             sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-downloads"
           />
@@ -735,19 +667,19 @@ const VibeImagerView = () => {
 
         {/* Version Timeline */}
         {versions.length > 0 && (
-          <div className="border-t border-border/20 bg-card/10 px-4 py-3">
-            <div className="flex items-center gap-1 mb-2">
+          <div className="border-t border-border/10 bg-card/20 px-4 py-3 shrink-0">
+            <div className="flex items-center gap-1.5 mb-2">
               <GitBranch className="h-3 w-3 text-muted-foreground/50" />
-              <span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">Version History</span>
+              <span className="text-[9px] tracking-[0.15em] text-muted-foreground/50 uppercase">Versions</span>
             </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {versions.map((v) => (
                 <button
                   key={v.id}
                   onClick={() => loadVersion(v)}
-                  className={`flex-shrink-0 rounded-lg border transition-all overflow-hidden ${
+                  className={`flex-shrink-0 rounded-xl border transition-all overflow-hidden ${
                     activeVersion?.id === v.id
-                      ? "border-accent ring-1 ring-accent/30"
+                      ? "border-accent ring-1 ring-accent/30 shadow-md shadow-accent/10"
                       : "border-border/20 hover:border-foreground/20"
                   }`}
                 >
@@ -756,7 +688,7 @@ const VibeImagerView = () => {
                     alt={`v${v.version_number}`}
                     className="w-14 h-14 object-cover"
                   />
-                  <div className="px-1.5 py-0.5 text-center">
+                  <div className="px-1.5 py-1 text-center">
                     <span className="text-[8px] text-muted-foreground">v{v.version_number}</span>
                   </div>
                 </button>
@@ -768,26 +700,26 @@ const VibeImagerView = () => {
 
       {/* History Panel (overlay) */}
       {showHistory && !editorExpanded && (
-        <div className="w-64 border-l border-border/20 bg-card/30 backdrop-blur-md flex flex-col">
-          <div className="flex items-center justify-between p-3 border-b border-border/20">
+        <div className="w-full lg:w-64 h-[40vh] lg:h-auto rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md flex flex-col overflow-hidden shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/10">
             <span className="text-xs font-light text-foreground">Version History</span>
-            <button onClick={() => setShowHistory(false)} className="p-1 text-muted-foreground hover:text-foreground">
+            <button onClick={() => setShowHistory(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-2">
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-3 space-y-2">
               {[...versions].reverse().map((v) => (
                 <button
                   key={v.id}
                   onClick={() => loadVersion(v)}
-                  className={`w-full rounded-lg border p-2 text-left transition-all ${
+                  className={`w-full rounded-xl border p-2.5 text-left transition-all ${
                     activeVersion?.id === v.id
-                      ? "border-accent bg-accent/5"
-                      : "border-border/20 hover:border-foreground/20"
+                      ? "border-accent bg-accent/5 shadow-sm shadow-accent/10"
+                      : "border-border/20 hover:border-foreground/20 hover:bg-foreground/[0.02]"
                   }`}
                 >
-                  <img src={v.image_url} alt="" className="w-full h-28 object-cover rounded-md mb-2" />
+                  <img src={v.image_url} alt="" className="w-full h-28 object-cover rounded-lg mb-2" />
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-medium text-foreground">v{v.version_number}</span>
                     <span className="text-[9px] text-muted-foreground/50">
@@ -796,7 +728,7 @@ const VibeImagerView = () => {
                   </div>
                   <p className="text-[9px] text-muted-foreground/60 truncate mt-0.5">{v.prompt}</p>
                   {v.parent_id && (
-                    <div className="flex items-center gap-1 mt-1">
+                    <div className="flex items-center gap-1 mt-1.5">
                       <GitBranch className="h-2.5 w-2.5 text-muted-foreground/30" />
                       <span className="text-[8px] text-muted-foreground/30">
                         from v{versions.find((p) => p.id === v.parent_id)?.version_number || "?"}
