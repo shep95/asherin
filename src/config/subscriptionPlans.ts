@@ -39,7 +39,8 @@ export type FeatureId =
   | "audit"
   | "entity_resolution"
   | "scenario_simulator"
-  | "priority_models";
+  | "priority_models"
+  | "video_intelligence";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
@@ -72,7 +73,7 @@ const PRO_FEATURES: FeatureId[] = [
   "google_intel", "elion", "predictive", "briefings", "nomad", "tracker",
   "asha", "pattern_analysis", "timeseries", "geospatial", "notebooks",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
-  "entity_resolution", "scenario_simulator", "priority_models",
+  "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
 ];
 
 const ADVISOR_FEATURES: FeatureId[] = [...PRO_FEATURES];
@@ -147,6 +148,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Pattern Analysis Engine",
       "Company & competitor tracking",
       "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
+      "Video Intelligence — behavioral & deception analysis",
       "Priority model access",
     ],
   },
@@ -236,6 +238,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   slideshow: "slideshow",
   "pdf-generator": "pdf_generator",
   snippets: "code_snippets",
+  "video-intelligence": "video_intelligence",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
