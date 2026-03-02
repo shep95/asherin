@@ -52,6 +52,11 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
       await conversation.startSession({
         agentId,
         connectionType: "webrtc",
+        overrides: {
+          tts: {
+            voiceId: "nju8YCEndVfEz7rGwcgK",
+          },
+        },
       });
     } catch (e: any) {
       console.error("Voice connect error:", e);
