@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAccess } from "@/hooks/useAccess";
 import type { FileAttachment } from "./types";
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
@@ -244,6 +245,7 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
 
 const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt }: ChatViewProps) => {
   const navigate = useNavigate();
+  const { hasPro } = useAccess();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
@@ -337,17 +339,27 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
           <ModeSelector active={mode} onChange={onModeChange} />
           <div className="flex items-center gap-3">
-            <button
-              onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
-              className={`p-1.5 rounded-md transition-colors ${
-                elevenLabsVoice.isConnected
-                  ? "text-accent bg-accent/10 hover:bg-accent/20"
-                  : "text-muted-foreground/50 hover:text-foreground"
-              }`}
-              title={elevenLabsVoice.isConnected ? "End voice call" : "Start voice call"}
-            >
-              <Phone className="h-4 w-4" />
-            </button>
+            {hasPro ? (
+              <button
+                onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
+                className={`p-1.5 rounded-md transition-colors ${
+                  elevenLabsVoice.isConnected
+                    ? "text-accent bg-accent/10 hover:bg-accent/20"
+                    : "text-muted-foreground/50 hover:text-foreground"
+                }`}
+                title={elevenLabsVoice.isConnected ? "End voice call" : "Start voice call"}
+              >
+                <Phone className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                disabled
+                className="p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
+                title="Voice calls require Pro ($740/mo)"
+              >
+                <Phone className="h-4 w-4" />
+              </button>
+            )}
             {conversation.messages.length > 0 && (
               <button onClick={downloadConversation} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-4 w-4" />
