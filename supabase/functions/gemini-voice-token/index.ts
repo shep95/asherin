@@ -20,28 +20,10 @@ serve(async (req) => {
       });
     }
 
-    // Generate ephemeral token via Gemini REST API
-    const model = "gemini-2.5-flash-preview-native-audio-dialog";
-    const expireTime = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
+    const model = "gemini-2.0-flash-live-001";
 
-    const tokenResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: "test" }] }],
-        }),
-      }
-    );
-
-    // If ephemeral tokens aren't available via REST, fall back to returning the API key
-    // wrapped for the client to use directly with the WebSocket
-    // The client will connect to: wss://generativelanguage.googleapis.com/ws/...?key=<key>
-    // This is the standard approach per Google's docs for the Live API
     return new Response(
       JSON.stringify({
-        apiKey: GEMINI_API_KEY,
         model,
         wsUrl: `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`,
       }),
