@@ -801,7 +801,12 @@ The user is asking about internal code, backend, or architecture. You are FORBID
             } else {
               try {
                 const decoded = atob(att.base64);
-                parts.push({ text: `[File: ${att.name}]\n${decoded}` });
+                // Truncate large documents to prevent exceeding Gemini's token limit
+                const MAX_DOC_CHARS = 80000; // ~20k tokens safe limit per document
+                const truncated = decoded.length > MAX_DOC_CHARS
+                  ? decoded.slice(0, MAX_DOC_CHARS) + `\n\n[... Document truncated. Showing first ${MAX_DOC_CHARS} of ${decoded.length} characters.]`
+                  : decoded;
+                parts.push({ text: `[File: ${att.name}]\n${truncated}` });
               } catch {
                 parts.push({ text: `[File: ${att.name} — binary content, ${att.type}]` });
               }
