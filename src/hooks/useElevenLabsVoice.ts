@@ -57,13 +57,15 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
         throw new Error(fnError?.message || "Failed to get conversation token");
       }
 
-      // Request mic permission explicitly in click handler context,
-      // then immediately start the session (SDK will use the granted permission)
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Start session with conversationToken (authenticated WebRTC)
+      // Start session — the SDK handles mic access internally.
+      // Pass the voice override so the agent uses the cloned voice.
       await conversation.startSession({
         conversationToken: data.token,
+        overrides: {
+          tts: {
+            voiceId: "2jY1kTWFwVHfpKqpiIEE",
+          },
+        },
       });
     } catch (e: any) {
       console.error("Voice connect error:", e);
