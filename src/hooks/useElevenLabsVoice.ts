@@ -103,7 +103,7 @@ export function useElevenLabsVoice({ agentId }: UseElevenLabsVoiceOptions) {
         conversationToken: data.token,
         overrides: {
           tts: {
-            voiceId: "2jY1kTWFwVHfpKqpiIEE",
+            voiceId: "nju8YCEndVfEz7rGwcgK",
           },
         },
       });
