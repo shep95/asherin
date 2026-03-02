@@ -140,8 +140,19 @@ export function useGeminiVoice(options: UseGeminiVoiceOptions = {}) {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      // Timeout if connection doesn't establish within 15s
+      const connectTimeout = setTimeout(() => {
+        if (!setupCompleteRef.current) {
+          console.error("Voice connection timed out");
+          setError("Connection timed out. Please try again.");
+          setStatus("error");
+          ws.close();
+          cleanup();
+        }
+      }, 15000);
+
       ws.onopen = () => {
-        // Send setup message
+        console.log("WS opened, sending setup...");
         const setupMsg: any = {
           setup: {
             model: `models/${model}`,
@@ -173,6 +184,8 @@ export function useGeminiVoice(options: UseGeminiVoiceOptions = {}) {
 
           // Setup complete
           if (msg.setupComplete) {
+            console.log("Gemini voice setup complete");
+            clearTimeout(connectTimeout);
             setupCompleteRef.current = true;
             setStatus("connected");
             startAudioCapture(audioCtx, stream, ws);
