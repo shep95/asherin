@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal } from "lucide-react";
+import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
@@ -291,6 +291,30 @@ const AureonIdeView = () => {
     setFiles(prev => renameInTree(prev));
   };
 
+  const moveFile = (fileId: string, targetFolderId: string | null) => {
+    let movedFile: IdeFile | null = null;
+    const removeFromTree = (nodes: IdeFile[]): IdeFile[] =>
+      nodes.filter(n => {
+        if (n.id === fileId) { movedFile = n; return false; }
+        return true;
+      }).map(n => n.children ? { ...n, children: removeFromTree(n.children) } : n);
+
+    const addToTarget = (nodes: IdeFile[]): IdeFile[] => {
+      if (!movedFile) return nodes;
+      if (!targetFolderId) return [...nodes, movedFile];
+      return nodes.map(n => {
+        if (n.id === targetFolderId && n.type === "folder") return { ...n, children: [...(n.children || []), movedFile!] };
+        if (n.children) return { ...n, children: addToTarget(n.children) };
+        return n;
+      });
+    };
+
+    setFiles(prev => {
+      const after = removeFromTree(prev);
+      return addToTarget(after);
+    });
+  };
+
   // Export ZIP
   const exportProject = useCallback(async () => {
     const JSZip = (await import("jszip")).default;
@@ -396,7 +420,7 @@ const AureonIdeView = () => {
           {mobilePanel === "explorer" && (
             leftTab === "sessions" ? <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />
             : leftTab === "search" ? <IdeSearchPanel files={files} onOpenFile={selectFile} />
-            : <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} />
+            : <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} onMoveFile={moveFile} />
           )}
           {mobilePanel === "editor" && (centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />)}
           {mobilePanel === "chat" && <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} />}
@@ -436,10 +460,17 @@ const AureonIdeView = () => {
             <Code2 className="h-4 w-4 text-accent/70 shrink-0" />
             <span className="text-xs font-light tracking-widest text-foreground/80 shrink-0">AUREON IDE</span>
           </div>
-          {activeSessionId && (
+          {activeSessionId ? (
             <span className="text-[10px] text-muted-foreground/50 bg-muted/10 rounded-full px-2.5 py-0.5 truncate max-w-[160px]">
               {sessions.find(s => s.id === activeSessionId)?.name ?? ""}
             </span>
+          ) : (
+            <button
+              onClick={createSession}
+              className="flex items-center gap-1.5 rounded-lg bg-accent/15 hover:bg-accent/25 px-3 py-1.5 text-[10px] font-light text-accent transition-colors"
+            >
+              <Plus className="h-3 w-3" /> New Project
+            </button>
           )}
         </div>
 
@@ -531,7 +562,7 @@ const AureonIdeView = () => {
                     ))}
                   </div>
                   <div className="flex-1 min-w-0 overflow-hidden">
-                    {leftTab === "files" && <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} />}
+                    {leftTab === "files" && <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} onMoveFile={moveFile} />}
                     {leftTab === "search" && <IdeSearchPanel files={files} onOpenFile={selectFile} />}
                     {leftTab === "sessions" && <IdeSessionManager sessions={sessions} activeSessionId={activeSessionId} loading={sessionsLoading} onSelect={loadSession} onCreate={createSession} onDelete={deleteSession} onRename={renameSession} />}
                     {leftTab === "git" && <IdeGitPanel files={files} onImportFiles={(imported) => setFiles(imported)} />}
