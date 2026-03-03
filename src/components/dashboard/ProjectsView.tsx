@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { FolderPlus, Layers, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Project {
   id: string;
@@ -26,10 +27,11 @@ const ProjectsView = () => {
 
   const createProject = async () => {
     if (!user || !name.trim()) return;
-    const { data } = await supabase.from("projects")
+    const { data, error } = await supabase.from("projects")
       .insert({ user_id: user.id, name: name.trim(), description: desc.trim() })
       .select().single();
-    if (data) { setProjects((prev) => [data, ...prev]); setName(""); setDesc(""); setCreating(false); }
+    if (error) { toast.error("Failed to create project: " + error.message); return; }
+    if (data) { setProjects((prev) => [data as any, ...prev]); setName(""); setDesc(""); setCreating(false); }
   };
 
   const deleteProject = async (id: string) => {

@@ -958,8 +958,8 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${activeWallpaper})` }} />
-      <div className="fixed inset-0 bg-background/80" />
+      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${activeWallpaper})` }} />
+      <div className="fixed inset-0 bg-background/80 pointer-events-none" />
 
       <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
 
