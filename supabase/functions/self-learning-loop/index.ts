@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -69,30 +69,24 @@ ARCHITECTURE:
 - State machines with explicit valid transitions only.`;
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      systemInstruction: { parts: [{ text: systemPrompt }] },
     }),
   });
 
   if (!resp.ok) {
     const t = await resp.text();
-    throw new Error(`AI gateway error ${resp.status}: ${t}`);
+    throw new Error(`Gemini API error ${resp.status}: ${t}`);
   }
 
   const data = await resp.json();
-  return data.choices?.[0]?.message?.content || "";
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 async function logAgent(supabase: any, runId: string, agentName: string, action: string, details: string, severity = "info") {

@@ -444,25 +444,23 @@ Write a detailed 3-5 paragraph intelligence briefing that:
 Be specific, use data points, write like a senior intelligence analyst. Return ONLY the briefing text.`;
 
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("GEMINI_API_KEY_APP");
     if (!apiKey) return `Based on ${topSignals.filter(s => s.signalStrength > 0).length} detected signals with ${(confidence * 100).toFixed(0)}% confidence, ${company} is likely to face a ${eventType.replace(/_/g, " ")} event within approximately ${daysUntil} days.`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-        max_tokens: 3000,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 3000 },
       }),
     });
     if (!res.ok) {
-      console.error("AI error:", res.status, await res.text());
+      console.error("Gemini error:", res.status, await res.text());
       return `Based on detected signals, ${company} is likely to face a ${eventType.replace(/_/g, " ")} event within ~${daysUntil} days (${(confidence * 100).toFixed(0)}% confidence).`;
     }
     const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() || `${company} prediction generated with ${(confidence * 100).toFixed(0)}% confidence.`;
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `${company} prediction generated with ${(confidence * 100).toFixed(0)}% confidence.`;
   } catch (e) {
     console.error("AI text generation error:", e);
     return `Based on detected signals, ${company} is likely to face a ${eventType.replace(/_/g, " ")} event within ~${daysUntil} days (${(confidence * 100).toFixed(0)}% confidence).`;

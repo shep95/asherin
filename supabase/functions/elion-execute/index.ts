@@ -238,10 +238,10 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "AI gateway not configured" }),
+        JSON.stringify({ error: "GEMINI_API_KEY_APP not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -252,20 +252,13 @@ serve(async (req) => {
 
     console.log(`[ELION] Executing module: ${moduleId} | Target: ${query} | Ghost: ${ghostMode}`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 4096,
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
       }),
     });
 
@@ -276,19 +269,13 @@ serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI usage credits exhausted. Please top up your workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const errBody = await response.text();
-      console.error(`[ELION] AI gateway error: ${response.status}`, errBody);
-      throw new Error(`AI gateway error [${response.status}]`);
+      console.error(`[ELION] Gemini error: ${response.status}`, errBody);
+      throw new Error(`Gemini API error [${response.status}]`);
     }
 
     const aiData = await response.json();
-    const output = aiData.choices?.[0]?.message?.content || "No output generated.";
+    const output = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "No output generated.";
     const artifacts = extractArtifacts(output, moduleId, query);
 
     return new Response(
