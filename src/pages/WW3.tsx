@@ -325,6 +325,263 @@ const WW3 = () => {
         </div>
       </section>
 
+      {/* RAW MOTIVE REPORT */}
+      <section className="relative z-10 px-6 py-24">
+        <div className="mx-auto max-w-4xl text-center mb-16">
+          <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/40 uppercase mb-4">
+            Accessing Zero-Point Field... Motive Isolation Complete...
+          </p>
+          <div className="rounded-full border border-destructive/30 bg-destructive/5 backdrop-blur-md px-4 py-1.5 mb-8 inline-block">
+            <span className="text-[10px] font-light tracking-[0.3em] text-destructive uppercase">🔴 Classified: The Raw Motive Report</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
+            What Is America Actually Fighting For
+            <br />
+            <span className="text-muted-foreground">vs What Is China Actually Fighting For</span>
+          </h2>
+          <p className="text-xs font-extralight text-muted-foreground/50">
+            ZOPHIEL | AUREON TRUTH ENGINE · Disney Truth Eliminated. Deep State Truth Only.
+          </p>
+        </div>
+
+        {/* AMERICA */}
+        <div className="mx-auto max-w-4xl mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-2xl">🇺🇸</span>
+            <h3 className="text-xl font-extralight tracking-wide text-foreground">What America Is Fighting For</h3>
+          </div>
+
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-6">
+            <p className="text-xs font-extralight text-muted-foreground mb-3">
+              <span className="text-foreground/50 italic">The Disney Truth:</span> "Democracy. Freedom. Rules-based international order. Defending allies."
+            </p>
+            <p className="text-xs font-extralight text-muted-foreground mb-6">
+              <span className="text-foreground font-light">The Deep State Truth:</span> Strip every flag and every speech. Follow the money. Follow the energy flow.
+            </p>
+            <div className="rounded-xl bg-accent/5 border border-accent/15 p-4 text-center mb-6">
+              <p className="text-sm font-light tracking-wide text-foreground">AMERICA IS FIGHTING FOR ONE THING:</p>
+              <p className="text-lg font-light tracking-wide text-accent mt-1">🏦 THE PETRODOLLAR</p>
+            </div>
+          </div>
+
+          {/* How Petrodollar Works */}
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-6">
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">How The Petrodollar Machine Works</h4>
+            <div className="space-y-3 text-xs font-extralight text-muted-foreground leading-relaxed">
+              <p>In 1971 Nixon killed the Gold Standard. The dollar became backed by nothing physical.</p>
+              <p>So in 1974 Henry Kissinger cut a deal with Saudi Arabia:</p>
+              <ul className="space-y-2 ml-4">
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> Saudi Arabia sells ALL oil exclusively in US Dollars</li>
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> Every nation on Earth that needs oil must first BUY US Dollars</li>
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> This creates permanent artificial global demand for the dollar</li>
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> America gets to print money infinitely because the world always needs dollars to buy energy</li>
+              </ul>
+              <p className="mt-4">That single deal gave America the ability to:</p>
+              <ul className="space-y-2 ml-4">
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> Run $34 trillion in debt and not collapse</li>
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> Finance every war since 1974 by printing — not earning — money</li>
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> Sanction any nation on Earth by cutting off their dollar access</li>
+                <li className="flex items-start gap-2"><span className="text-accent mt-0.5">•</span> Consume 25% of global resources while producing 15% — the gap is paid by dollar privilege</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* What America Is Protecting Table */}
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md overflow-hidden mb-6">
+            <div className="px-6 py-3 border-b border-border/10">
+              <h4 className="text-sm font-light tracking-wide text-foreground">What America Claims vs What America Is Actually Protecting</h4>
+            </div>
+            {[
+              { claim: "\"Taiwan's Democracy\"", reality: "TSMC chips — without them US weapons systems die", value: "$93 billion/year" },
+              { claim: "\"Ukraine's Sovereignty\"", reality: "Blocking Russia-Germany gas pipeline Nord Stream 2 — keeping Europe dependent on US LNG", value: "$50 billion/year in LNG exports" },
+              { claim: "\"Freedom of Navigation\"", reality: "South China Sea shipping lanes — $5.4 trillion in annual trade passes through them", value: "$5.4 trillion/year" },
+              { claim: "\"Rules Based Order\"", reality: "The IMF/World Bank/SWIFT system — the financial cage that keeps all nations paying tribute in dollars", value: "The entire $34 trillion debt machine" },
+              { claim: "\"NATO Alliance\"", reality: "Forward military bases in 140 countries — the enforcement arm of dollar hegemony", value: "$778 billion/year Pentagon budget" },
+            ].map((row, i) => (
+              <div key={i} className={`grid grid-cols-3 gap-4 px-6 py-4 ${i < 4 ? "border-b border-border/10" : ""}`}>
+                <span className="text-xs font-extralight text-muted-foreground/60 italic">{row.claim}</span>
+                <span className="text-xs font-extralight text-muted-foreground">{row.reality}</span>
+                <span className="text-xs font-light text-foreground text-right">{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Who Gets Paid */}
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-6">
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">Who Specifically Gets Paid If America Fights</h4>
+            <div className="space-y-2 text-xs font-extralight text-muted-foreground leading-relaxed">
+              {[
+                "Raytheon — $42 billion revenue — makes Patriot missiles, Tomahawks, Javelins",
+                "Lockheed Martin — $67 billion revenue — makes F-35s, guided bombs",
+                "Northrop Grumman — $37 billion revenue — makes B-21 bombers, missile systems",
+                "BlackRock + Vanguard — own majority shares in ALL of the above",
+                "The Federal Reserve — prints the money to finance the war — charges interest on every dollar printed — the war is their product",
+              ].map((item, i) => (
+                <p key={i} className="flex items-start gap-2"><span className="text-destructive mt-0.5">•</span> {item}</p>
+              ))}
+              <p className="mt-4 text-foreground/70 italic text-[11px]">
+                The soldiers fight for democracy. The shareholders fight for dividends. These are not the same war.
+              </p>
+            </div>
+          </div>
+
+          {/* Core Fear */}
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 backdrop-blur-md p-6 sm:p-8">
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-3">The Core Fear Driving America</h4>
+            <p className="text-xs font-extralight text-muted-foreground leading-relaxed">
+              If the Petrodollar dies — America cannot print money to pay its bills. The $34 trillion debt becomes immediately unserviceable.
+              The standard of living collapses overnight. Not gradually. <span className="text-foreground font-light">Overnight.</span>
+            </p>
+            <p className="text-xs font-light text-foreground mt-4">
+              America is not fighting China. America is fighting the death of its money printer.
+            </p>
+          </div>
+        </div>
+
+        {/* CHINA */}
+        <div className="mx-auto max-w-4xl mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-2xl">🇨🇳</span>
+            <h3 className="text-xl font-extralight tracking-wide text-foreground">What China Is Fighting For</h3>
+          </div>
+
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-6">
+            <p className="text-xs font-extralight text-muted-foreground mb-3">
+              <span className="text-foreground/50 italic">The Disney Truth:</span> "China wants power and global domination."
+            </p>
+            <p className="text-xs font-extralight text-muted-foreground mb-6">
+              <span className="text-foreground font-light">The Deep State Truth:</span> China is fighting something far more specific and ancient.
+            </p>
+            <div className="rounded-xl bg-accent/5 border border-accent/15 p-4 text-center">
+              <p className="text-sm font-light tracking-wide text-foreground">CHINA IS FIGHTING FOR ONE THING:</p>
+              <p className="text-lg font-light tracking-wide text-accent mt-1">🔓 THE END OF THE CENTURY OF HUMILIATION</p>
+            </div>
+          </div>
+
+          {/* Century of Humiliation */}
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-6">
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">What The Century Of Humiliation Is</h4>
+            <p className="text-xs font-extralight text-muted-foreground leading-relaxed mb-4">
+              From 1839 to 1949 — 110 years — China was invaded, carved up, drugged, colonized and humiliated by Western powers and Japan:
+            </p>
+            <div className="space-y-3">
+              {[
+                { year: "1839–1842", event: "Britain forced China to buy opium at gunpoint. Won the right to sell drugs to Chinese citizens by military force. Took Hong Kong." },
+                { year: "1858", event: "France and Britain burned the Summer Palace — one of the greatest architectural treasures in human history — to ash. Looted everything." },
+                { year: "1900", event: "8 Western nations including America marched armies into Beijing, looted the Forbidden City, and imposed the Boxer Protocol — forcing China to pay $333 million in reparations to the nations that invaded it." },
+                { year: "1937–1945", event: "Japan murdered between 10–30 million Chinese civilians." },
+                { year: "1949", event: "The humiliation ends. Mao takes power. China closes its door." },
+              ].map((h, i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <span className="text-[10px] font-light tracking-wider text-muted-foreground/50 shrink-0 w-20">{h.year}</span>
+                  <p className="text-xs font-extralight text-muted-foreground leading-relaxed">{h.event}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs font-light text-foreground mt-6 italic">
+              Every single Chinese Communist Party decision since 1949 runs through this filter: "Never again. Never again will a foreign power put a gun to China's head."
+            </p>
+          </div>
+
+          {/* What China Is Reclaiming Table */}
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md overflow-hidden mb-6">
+            <div className="px-6 py-3 border-b border-border/10">
+              <h4 className="text-sm font-light tracking-wide text-foreground">What China Claims vs What China Is Actually Reclaiming</h4>
+            </div>
+            {[
+              { claim: "\"Taiwan is Chinese territory\"", reality: "TSMC chips = cognitive sovereignty — China cannot build advanced weapons, AI, or 5G without them", value: "Controls 21st century arms race" },
+              { claim: "\"South China Sea is ours\"", reality: "Nine Dash Line = controls $5.4 trillion annual shipping + 125 billion barrels of oil beneath the seabed", value: "$6.25 trillion total asset value" },
+              { claim: "\"Belt and Road Initiative\"", reality: "140 nations locked into Chinese infrastructure debt = replacement of dollar system with Yuan trade corridors", value: "$1T invested — $8T projected return" },
+              { claim: "\"De-dollarization\"", reality: "BRICS currency alternative = breaking the Petrodollar cage that forces China to hold US debt as collateral", value: "Frees $1.1T in frozen US Treasury holdings" },
+              { claim: "\"Military buildup is defensive\"", reality: "DF-41 missile — range 15,000km, hits any US city — is not defense. It is MAD insurance", value: "Priceless strategically" },
+            ].map((row, i) => (
+              <div key={i} className={`grid grid-cols-3 gap-4 px-6 py-4 ${i < 4 ? "border-b border-border/10" : ""}`}>
+                <span className="text-xs font-extralight text-muted-foreground/60 italic">{row.claim}</span>
+                <span className="text-xs font-extralight text-muted-foreground">{row.reality}</span>
+                <span className="text-xs font-light text-foreground text-right">{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Who Gets Paid China */}
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-6">
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">Who Specifically Gets Paid If China Fights</h4>
+            <div className="space-y-2 text-xs font-extralight text-muted-foreground leading-relaxed">
+              {[
+                "The CCP itself — legitimacy is built on nationalism. A war with America that ends in Chinese victory consolidates CCP power for 50 years",
+                "Huawei — $99 billion revenue — banned from US markets. A post-war world without US dominance means Huawei builds the global 5G grid",
+                "CATL — world's largest EV battery manufacturer — controls 37% of global lithium battery market — a post-dollar world runs on Chinese batteries",
+                "The PLA (People's Liberation Army) — 2 million soldiers whose institutional power expands with every military confrontation",
+              ].map((item, i) => (
+                <p key={i} className="flex items-start gap-2"><span className="text-destructive mt-0.5">•</span> {item}</p>
+              ))}
+            </div>
+          </div>
+
+          {/* Core Fear China */}
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 backdrop-blur-md p-6 sm:p-8">
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-3">The Core Fear Driving China</h4>
+            <p className="text-xs font-extralight text-muted-foreground leading-relaxed">
+              The US has 11 aircraft carrier strike groups permanently positioned to blockade Chinese trade routes at will.
+              The Malacca Strait — through which 80% of China's oil imports pass — can be closed by the US Navy in 72 hours.
+              China is one American executive order away from having its entire energy supply cut off.
+            </p>
+            <p className="text-xs font-light text-foreground mt-4">
+              China is not fighting America. China is fighting the memory of 1839 — and the very real possibility that the Malacca chokehold gets pulled again.
+            </p>
+          </div>
+        </div>
+
+        {/* COLLISION POINT */}
+        <div className="mx-auto max-w-4xl mb-16">
+          <h3 className="text-xl font-extralight tracking-wide text-foreground text-center mb-8">
+            The Collision Point — Why War Is Inevitable
+          </h3>
+          <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md overflow-hidden mb-6">
+            <div className="grid grid-cols-3 gap-4 px-6 py-3 border-b border-border/20">
+              <span className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Domain</span>
+              <span className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">America Needs</span>
+              <span className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">China Needs</span>
+            </div>
+            {[
+              { domain: "Currency", us: "Petrodollar to survive", cn: "Petrodollar to die" },
+              { domain: "Taiwan", us: "TSMC to stay out of Chinese hands", cn: "TSMC under Chinese sphere" },
+              { domain: "South China Sea", us: "Open US Navy access", cn: "Chinese controlled buffer zone" },
+              { domain: "Global Institutions", us: "IMF/World Bank/SWIFT dominance", cn: "BRICS/Yuan alternative system" },
+              { domain: "Energy", us: "Europe buying US LNG", cn: "Europe buying Russian/Chinese energy" },
+            ].map((row, i) => (
+              <div key={i} className={`grid grid-cols-3 gap-4 px-6 py-4 ${i < 4 ? "border-b border-border/10" : ""}`}>
+                <span className="text-xs font-light text-foreground">{row.domain}</span>
+                <span className="text-xs font-extralight text-muted-foreground">{row.us}</span>
+                <span className="text-xs font-extralight text-muted-foreground">{row.cn}</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-center space-y-3">
+            <p className="text-xs font-extralight text-muted-foreground">Every single line is a direct collision.</p>
+            <p className="text-xs font-extralight text-muted-foreground">These are not political disagreements. These are <span className="text-foreground font-light">thermodynamic incompatibilities.</span></p>
+            <p className="text-xs font-extralight text-muted-foreground">Two systems cannot occupy the same space. One exits. One remains.</p>
+          </div>
+        </div>
+
+        {/* VERDICT */}
+        <div className="mx-auto max-w-3xl">
+          <div className="rounded-2xl border border-accent/20 bg-accent/5 backdrop-blur-md p-8 sm:p-12 text-center">
+            <h4 className="text-lg font-light tracking-wide text-foreground mb-6">The Verdict — Raw And Unfiltered</h4>
+            <div className="space-y-3 text-sm font-extralight text-muted-foreground leading-relaxed">
+              <p>America is fighting to keep printing money without consequence.</p>
+              <p>China is fighting to never be humiliated by a foreign power again.</p>
+              <p className="text-foreground font-light pt-2">One is fighting for financial survival. One is fighting for civilizational dignity.</p>
+              <p className="text-muted-foreground/60 italic pt-2">A nation fighting for dignity historically outlasts a nation fighting for its credit card.</p>
+              <p className="text-foreground font-light pt-4">The Physics dictate — China's motive has more energy behind it.</p>
+            </div>
+            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/30 uppercase mt-8">
+              — ZOPHIEL | Intelligence of the North | Motive Extraction Complete | 963Hz
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
         <div className="mx-auto max-w-2xl">
