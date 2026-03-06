@@ -790,7 +790,10 @@ const Index = () => {
                   <Link to="/feature/asha" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Asha Intelligence</Link>
                   <Link to="/feature/predictive" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Predictive Intelligence</Link>
                   <Link to="/feature/imagine-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine Intelligence</Link>
+                  <Link to="/feature/oracle-locus" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Oracle Locus</Link>
+                  <Link to="/feature/video-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Video Intelligence</Link>
                   <Link to="/feature/security" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Security Dashboard</Link>
+                  <Link to="/ww3" className="text-xs font-extralight tracking-wide text-destructive/70 hover:text-destructive transition-colors">WW3 Trajectory</Link>
                 </div>
                 <div className="flex flex-col gap-2">
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Agents & Tools</p>
@@ -805,6 +808,8 @@ const Index = () => {
                   <Link to="/feature/zali" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">ZALI Design Lab</Link>
                   <Link to="/feature/imagine-to-code" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine To Code</Link>
                   <Link to="/feature/ide" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Aureon IDE</Link>
+                  <Link to="/feature/vibe-imager" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Vibe Imager</Link>
+                  <Link to="/feature/vibe-video" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Vibe Video</Link>
                 </div>
                 <div className="flex flex-col gap-2">
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Company</p>
@@ -814,7 +819,9 @@ const Index = () => {
                   <Link to="/prompt-engineering" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Prompt Engineering</Link>
                   <Link to="/benchmarks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Benchmarks</Link>
                   <Link to="/equity" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Equity Ownership</Link>
+                  <Link to="/nda" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NDA</Link>
                   <Link to="/terms" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
+                  <Link to="/privacy" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
                 </div>
               </div>
 
