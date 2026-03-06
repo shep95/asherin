@@ -5,9 +5,9 @@ import LandingBackground from "@/components/LandingBackground";
 import {
   ArrowLeft, ArrowRight, AlertTriangle, Target, Globe, Flame,
   Shield, Cpu, TrendingUp, Users, Crosshair, Zap, Clock,
-  BarChart3, Activity, Skull, Atom, Radar, Sun, Moon, MapPin,
+  BarChart3, Activity, Skull, Atom, Radar,
 } from "lucide-react";
-import eclipseMap from "@/assets/eclipse-map.jpg";
+import EclipseWeaponsSection from "@/components/landing/EclipseWeaponsSection";
 
 const convergenceFactors = [
   {
