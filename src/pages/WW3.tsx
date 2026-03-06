@@ -859,6 +859,9 @@ const WW3 = () => {
         </div>
       </section>
 
+      {/* ECLIPSE WEAPONS MANUAL */}
+      <EclipseWeaponsSection />
+
       {/* CTA */}
       <section className="relative z-10 px-6 py-24 text-center">
         <div className="mx-auto max-w-2xl">
