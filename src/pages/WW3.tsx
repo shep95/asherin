@@ -13,7 +13,7 @@ const convergenceFactors = [
     icon: Users,
     title: "Demographic Window Closure",
     description:
-      "China's demographic window CLOSES after 2030. Every year past 2030, China gets older, weaker, and less capable of projecting military power. The CCP's own internal studies confirm this. If China is EVER going to take Taiwan, it is in the 2027–2029 window or NEVER.",
+      "China's demographic window CLOSES after 2030. Every year past 2030, China gets older, weaker, and less capable of projecting military power. The CCP's own internal studies confirm this. If China is EVER going to take Taiwan, it is in the Late 2026 – Mid 2027 window or NEVER.",
   },
   {
     icon: Cpu,
@@ -182,7 +182,7 @@ const WW3 = () => {
       <section className="relative z-10 px-6 py-24">
         <div className="mx-auto max-w-4xl text-center mb-16">
           <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
-            Why China. Why Taiwan. Why 2027–2029.
+            Why China. Why Taiwan. Why Late 2026 – Mid 2027.
           </h2>
           <p className="text-sm font-extralight text-muted-foreground max-w-2xl mx-auto">
             The trigger is not a speech or a declaration. The trigger is a calculation. The moment Beijing calculates
