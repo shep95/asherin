@@ -66,6 +66,9 @@ const Header = () => {
               <DropdownMenuItem asChild>
                 <Link to="/feature/security" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Security Dashboard</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/ww3" className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
+              </DropdownMenuItem>
 
               <div className="my-2 border-t border-border/15" />
 
