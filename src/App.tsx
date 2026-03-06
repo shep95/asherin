@@ -37,6 +37,7 @@ const FeatureNotebooks = lazy(() => import("./pages/FeatureNotebooks"));
 const FeatureVibeImager = lazy(() => import("./pages/FeatureVibeImager"));
 const FeatureVibeVideo = lazy(() => import("./pages/FeatureVibeVideo"));
 const FeatureVideoIntelligence = lazy(() => import("./pages/FeatureVideoIntelligence"));
+const WW3 = lazy(() => import("./pages/WW3"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TrackPage = lazy(() => import("./pages/TrackPage"));
 const ProjAureon = lazy(() => import("./pages/ProjAureon"));
@@ -91,6 +92,7 @@ const App = () => (
             <Route path="/feature/vibe-video" element={<FeatureVibeVideo />} />
             <Route path="/feature/video-intelligence" element={<FeatureVideoIntelligence />} />
             <Route path="/i" element={<TrackPage />} />
+            <Route path="/ww3" element={<WW3 />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
             <Route
               path="/dashboard"
