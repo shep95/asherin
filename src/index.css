@@ -81,3 +81,38 @@
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--border)) hsl(var(--background));
 }
+
+@keyframes gold-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes gold-border-glow {
+  0%, 100% {
+    border-color: hsl(43 96% 56% / 0.6);
+    box-shadow: 0 0 8px hsl(43 96% 56% / 0.15), 0 0 20px hsl(43 96% 56% / 0.05);
+  }
+  50% {
+    border-color: hsl(36 100% 50% / 0.9);
+    box-shadow: 0 0 12px hsl(36 100% 50% / 0.25), 0 0 30px hsl(36 100% 50% / 0.1);
+  }
+}
+
+.gold-shimmer-btn {
+  background: linear-gradient(
+    110deg,
+    hsl(43 96% 56%) 0%,
+    hsl(36 100% 50%) 25%,
+    hsl(48 100% 70%) 50%,
+    hsl(36 100% 50%) 75%,
+    hsl(43 96% 56%) 100%
+  );
+  background-size: 200% 100%;
+  animation: gold-shimmer 3s ease-in-out infinite, gold-border-glow 2s ease-in-out infinite;
+  border: 1px solid hsl(43 96% 56% / 0.6);
+  color: hsl(0 0% 3%);
+}

@@ -141,7 +141,7 @@ const Header = () => {
         <div className="hidden sm:block">
           <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
             {!loading && user ? (
-              <Link to="/dashboard" className="rounded-lg bg-foreground px-5 py-1.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90">
+              <Link to="/dashboard" className="gold-shimmer-btn rounded-lg px-5 py-1.5 text-sm font-light tracking-wide transition-all hover:brightness-110">
                 Go to Dashboard
               </Link>
             ) : (
@@ -186,7 +186,7 @@ const Header = () => {
                 <Link to="/benchmarks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Benchmarks</Link>
                 <Link to="/equity" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Equity Ownership</Link>
                 {!loading && user ? (
-                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-light tracking-wide text-background transition-colors hover:bg-foreground/90 text-center">
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="gold-shimmer-btn rounded-lg px-4 py-2.5 text-sm font-light tracking-wide transition-all hover:brightness-110 text-center">
                     Go to Dashboard
                   </Link>
                 ) : (
