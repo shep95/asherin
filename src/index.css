@@ -103,6 +103,19 @@
 }
 
 .gold-shimmer-btn {
+  position: relative;
+  background: transparent;
+  color: hsl(var(--foreground));
+  border: none;
+  z-index: 0;
+}
+
+.gold-shimmer-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
   background: linear-gradient(
     110deg,
     hsl(43 96% 56%) 0%,
@@ -112,7 +125,18 @@
     hsl(43 96% 56%) 100%
   );
   background-size: 200% 100%;
-  animation: gold-shimmer 3s ease-in-out infinite, gold-border-glow 2s ease-in-out infinite;
-  border: 1px solid hsl(43 96% 56% / 0.6);
-  color: hsl(0 0% 3%);
+  animation: gold-shimmer 3s ease-in-out infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: -1;
+}
+
+.gold-shimmer-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: gold-border-glow 2s ease-in-out infinite;
+  z-index: -2;
 }
