@@ -382,6 +382,14 @@ const Dashboard = () => {
     return () => window.removeEventListener("aureon:navigate", handler);
   }, []);
 
+  // Load stored BYOK providers for consensus selector
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true).then(({ data }) => {
+      if (data) setStoredProviders(data.map(d => d.provider));
+    });
+  }, [user]);
+
   // Load conversations and user profile from DB
   useEffect(() => {
     if (!user) return;
