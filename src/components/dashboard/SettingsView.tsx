@@ -397,6 +397,9 @@ const SettingsView = () => {
           </div>
         </div>
 
+        {/* AI Model Keys (BYOK) */}
+        <AIKeysSettings />
+
         {/* GitHub Integration */}
         <GitHubSettings />
 
