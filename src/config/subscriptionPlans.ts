@@ -138,6 +138,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "PDF Generator",
       "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
       "Vibe Imager — conversational AI image creation & editing",
+      "Bring Your Own AI Key — use Google, OpenAI, Claude, Meta & more",
     ],
   },
   {
