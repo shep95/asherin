@@ -697,18 +697,33 @@ const VibeVideoView = () => {
                 <div
                   key={p.id}
                   className="flex items-center justify-between rounded-xl px-3.5 py-2.5 hover:bg-foreground/5 transition-colors group cursor-pointer"
-                  onClick={() => setActiveProject(p)}
+                  onClick={() => renamingId === p.id ? null : setActiveProject(p)}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-1.5 rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="p-1.5 rounded-lg bg-muted/30 shrink-0">
                       <Film className="h-3.5 w-3.5 text-muted-foreground/50" />
                     </div>
-                    <span className="text-xs font-light text-foreground truncate">{p.name}</span>
+                    {renamingId === p.id ? (
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") renameProject(p.id, renameValue); if (e.key === "Escape") setRenamingId(null); }}
+                        onBlur={() => renameProject(p.id, renameValue)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-transparent text-xs font-light text-foreground outline-none border-b border-accent/30"
+                      />
+                    ) : (
+                      <span className="text-xs font-light text-foreground truncate">{p.name}</span>
+                    )}
                     <span className="text-[10px] text-muted-foreground/40 shrink-0">
                       {new Date(p.updated_at).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); setRenamingId(p.id); setRenameValue(p.name); }} className="p-1.5 hover:bg-foreground/10 rounded-lg transition-colors">
+                      <Pencil className="h-3 w-3 text-muted-foreground/60" />
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
                       <Trash2 className="h-3 w-3 text-destructive/60" />
                     </button>
