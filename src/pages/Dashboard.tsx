@@ -155,6 +155,9 @@ const Dashboard = () => {
   const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
   const [queuePaused, setQueuePaused] = useState(false);
   const queuePausedRef = useRef(false);
+  const [consensusEnabled, setConsensusEnabled] = useState(false);
+  const [consensusModels, setConsensusModels] = useState<SelectedModel[]>([]);
+  const [storedProviders, setStoredProviders] = useState<string[]>([]);
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
