@@ -27,6 +27,7 @@ import { renderLinkPreviews } from "./LinkPreview";
 import MessageDiagramPanel from "./MessageDiagramPanel";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 import VoiceCallOverlay from "./VoiceCallOverlay";
+import NeuralThinkingModal from "./NeuralThinkingModal";
 import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
 
 interface ChatViewProps {
