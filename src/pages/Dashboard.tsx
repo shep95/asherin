@@ -1009,6 +1009,11 @@ const Dashboard = () => {
           personaSystemPrompt={
             (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
           }
+          consensusEnabled={consensusEnabled}
+          onConsensusToggle={setConsensusEnabled}
+          consensusModels={consensusModels}
+          onConsensusModelsChange={setConsensusModels}
+          storedProviders={storedProviders}
         />
       ) : null;
     }
