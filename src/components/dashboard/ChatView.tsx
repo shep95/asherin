@@ -52,6 +52,11 @@ interface ChatViewProps {
   queuePaused?: boolean;
   onToggleQueuePause?: () => void;
   personaSystemPrompt?: string | null;
+  consensusEnabled?: boolean;
+  onConsensusToggle?: (enabled: boolean) => void;
+  consensusModels?: SelectedModel[];
+  onConsensusModelsChange?: (models: SelectedModel[]) => void;
+  storedProviders?: string[];
 }
 
 // Copy button for messages
