@@ -175,7 +175,6 @@ const AIKeysSettings = () => {
     } else {
       localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: "default", model: "default" }));
     }
-    }
     setLoading(false);
   };
 
