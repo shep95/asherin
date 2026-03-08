@@ -189,9 +189,6 @@ serve(async (req) => {
         JSON.stringify({ reply: textReply || "I've analyzed the image. Here's my editing advice.", editedImageUrl: null }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-
-      if (!editedImageBase64) {
-        return new Response(
     }
 
     // ── CHAT: General editing advice (no image edit) ──────────
