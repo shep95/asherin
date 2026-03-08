@@ -110,6 +110,14 @@ const PRO_FEATURE_GROUPS = [
       { name: "Plugin Marketplace", desc: "20+ plugins to extend Aureon's capabilities.", link: null },
     ],
   },
+  {
+    category: "AI Model Flexibility",
+    features: [
+      { name: "Bring Your Own AI Key", desc: "Connect API keys from Google, OpenAI, Anthropic, Meta, Venice, xAI, Mistral & DeepSeek.", link: "/feature/byok" },
+      { name: "Multi-model switching", desc: "Switch between models per-provider from Settings — applied across all Aureon tools.", link: null },
+      { name: "Fallback to Aureon default", desc: "If your key hits rate limits, Aureon's built-in engine takes over automatically.", link: null },
+    ],
+  },
 ];
 
 interface TierFeatureTabsProps {

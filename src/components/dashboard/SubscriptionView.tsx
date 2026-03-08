@@ -268,6 +268,7 @@ const SubscriptionView = () => {
             { q: "Can I switch plans?", a: "Yes. Upgrade or downgrade anytime. Changes take effect immediately." },
             { q: "How do I cancel?", a: "Click 'Manage Billing' above to access the portal where you can cancel instantly." },
             { q: "What are the message limits?", a: "Aureon: 300 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited." },
+            { q: "Can I use my own AI models?", a: "Yes — go to Settings → AI Model Keys. Connect API keys from Google, OpenAI, Claude, Meta, Venice, xAI, Mistral, or DeepSeek and select your preferred model." },
             { q: "What is the Advisor NDA?", a: "Advisor clients sign a Non-Disclosure Agreement to protect proprietary intelligence methods and platform internals." },
             { q: "Is the Advisor tier really limited to 8 seats?", a: "Yes. Once 8 clients are active, the Advisor tier is closed until a seat opens." },
           ].map(({ q, a }) => (

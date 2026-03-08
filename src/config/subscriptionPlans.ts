@@ -181,6 +181,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
       "Video Intelligence — behavioral & deception analysis",
       "Priority model access",
+      "Bring Your Own AI Key — use any provider across all tools",
     ],
   },
   {

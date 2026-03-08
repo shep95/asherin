@@ -108,6 +108,14 @@ const Header = () => {
 
               <div className="my-2 border-t border-border/15" />
 
+              {/* Platform Branch */}
+              <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Platform</p>
+              <DropdownMenuItem asChild>
+                <Link to="/feature/byok" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Bring Your Own AI Key</Link>
+              </DropdownMenuItem>
+
+              <div className="my-2 border-t border-border/15" />
+
               {/* Company Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Company</p>
               <DropdownMenuItem asChild>
