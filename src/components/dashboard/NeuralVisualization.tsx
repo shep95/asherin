@@ -157,7 +157,7 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
         const n = neurons[start];
         if (n) {
           ctx.font = "9px system-ui";
-          ctx.fillStyle = `hsla(var(--muted-foreground), 0.3)`;
+          ctx.fillStyle = `hsla(0, 0%, 100%, 0.4)`;
           ctx.textAlign = "center";
           ctx.fillText(labels[idx] || "", n.x, h - 8);
         }
