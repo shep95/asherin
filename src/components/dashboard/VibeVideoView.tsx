@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import MessageQueuePanel, { type QueueItem } from "@/components/dashboard/MessageQueuePanel";
 import {
   Send, Upload, Film, History, Wand2, Download, GitBranch, ChevronRight,
-  Loader2, Plus, Trash2, RotateCcw, X, Play, Pause, HelpCircle, Video,
+  Loader2, Plus, Trash2, RotateCcw, X, Play, Pause, HelpCircle, Video, Pencil, Check,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -153,9 +153,19 @@ const VibeVideoView = () => {
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [ffmpegProgress, setFfmpegProgress] = useState<number | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const renameProject = async (id: string, newName: string) => {
+    if (!newName.trim()) return;
+    await supabase.from("vibe_video_projects").update({ name: newName.trim() }).eq("id", id);
+    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, name: newName.trim() } : p));
+    if (activeProject?.id === id) setActiveProject((prev) => prev ? { ...prev, name: newName.trim() } : prev);
+    setRenamingId(null);
+  };
 
   // ── Load projects ───────────────────────────────────────────
   useEffect(() => {
@@ -650,6 +660,10 @@ const VibeVideoView = () => {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extralight tracking-[0.15em] text-foreground">VIBE VIDEO</h1>
           </div>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1">
+            <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" /></span>
+            <span className="text-[10px] font-medium tracking-[0.15em] text-amber-400 uppercase">Beta Testing</span>
+          </div>
           <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
             Upload a video, describe your edits in plain language, and Aureon AI analyzes and guides the transformation. Every version is tracked.
           </p>
@@ -683,18 +697,33 @@ const VibeVideoView = () => {
                 <div
                   key={p.id}
                   className="flex items-center justify-between rounded-xl px-3.5 py-2.5 hover:bg-foreground/5 transition-colors group cursor-pointer"
-                  onClick={() => setActiveProject(p)}
+                  onClick={() => renamingId === p.id ? null : setActiveProject(p)}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-1.5 rounded-lg bg-muted/30">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="p-1.5 rounded-lg bg-muted/30 shrink-0">
                       <Film className="h-3.5 w-3.5 text-muted-foreground/50" />
                     </div>
-                    <span className="text-xs font-light text-foreground truncate">{p.name}</span>
+                    {renamingId === p.id ? (
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") renameProject(p.id, renameValue); if (e.key === "Escape") setRenamingId(null); }}
+                        onBlur={() => renameProject(p.id, renameValue)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-transparent text-xs font-light text-foreground outline-none border-b border-accent/30"
+                      />
+                    ) : (
+                      <span className="text-xs font-light text-foreground truncate">{p.name}</span>
+                    )}
                     <span className="text-[10px] text-muted-foreground/40 shrink-0">
                       {new Date(p.updated_at).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); setRenamingId(p.id); setRenameValue(p.name); }} className="p-1.5 hover:bg-foreground/10 rounded-lg transition-colors">
+                      <Pencil className="h-3 w-3 text-muted-foreground/60" />
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
                       <Trash2 className="h-3 w-3 text-destructive/60" />
                     </button>
@@ -860,9 +889,25 @@ const VibeVideoView = () => {
             <RotateCcw className="h-3 w-3" />
             Projects
           </button>
-          <span className="text-[10px] font-light tracking-wider text-foreground/70 truncate max-w-[140px]">
-            {activeProject.name}
-          </span>
+          {renamingId === activeProject.id ? (
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") renameProject(activeProject.id, renameValue); if (e.key === "Escape") setRenamingId(null); }}
+              onBlur={() => renameProject(activeProject.id, renameValue)}
+              className="text-[10px] font-light tracking-wider text-foreground/70 bg-transparent outline-none border-b border-accent/30 max-w-[140px]"
+            />
+          ) : (
+            <button
+              onClick={() => { setRenamingId(activeProject.id); setRenameValue(activeProject.name); }}
+              className="text-[10px] font-light tracking-wider text-foreground/70 truncate max-w-[140px] hover:text-foreground transition-colors flex items-center gap-1 group/name"
+              title="Click to rename"
+            >
+              {activeProject.name}
+              <Pencil className="h-2.5 w-2.5 opacity-0 group-hover/name:opacity-60 transition-opacity" />
+            </button>
+          )}
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={`p-2 rounded-xl transition-colors ${showHistory ? "bg-accent/20 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`}
