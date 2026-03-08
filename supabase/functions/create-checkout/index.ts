@@ -37,9 +37,10 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
-    const { priceId } = await req.json();
+    const { priceId, mode } = await req.json();
     if (!priceId) throw new Error("Missing priceId");
-    logStep("Price requested", { priceId });
+    const checkoutMode = mode === "payment" ? "payment" : "subscription";
+    logStep("Price requested", { priceId, checkoutMode });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -50,40 +51,54 @@ serve(async (req) => {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
 
-      // Check if user already has an active subscription
-      const existingSubs = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "active",
-        limit: 1,
-      });
-      if (existingSubs.data.length > 0) {
-        logStep("User already has active subscription");
-        throw new Error("You already have an active subscription. Manage it from the billing portal.");
+      // For subscriptions, check if user already has an active one
+      if (checkoutMode === "subscription") {
+        const existingSubs = await stripe.subscriptions.list({
+          customer: customerId,
+          status: "active",
+          limit: 1,
+        });
+        if (existingSubs.data.length > 0) {
+          logStep("User already has active subscription");
+          throw new Error("You already have an active subscription. Manage it from the billing portal.");
+        }
       }
     }
 
     const origin = req.headers.get("origin") || "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app";
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: "subscription",
+      mode: checkoutMode,
       success_url: `${origin}/dashboard?subscription=success`,
       cancel_url: `${origin}/dashboard?subscription=canceled`,
-      // Live production features
       allow_promotion_codes: true,
       billing_address_collection: "required",
       payment_method_types: ["card"],
-      subscription_data: {
+      tax_id_collection: { enabled: true },
+      customer_update: customerId ? { address: "auto", name: "auto" } : undefined,
+    };
+
+    // Add subscription-specific metadata
+    if (checkoutMode === "subscription") {
+      sessionParams.subscription_data = {
         metadata: {
           user_id: user.id,
           user_email: user.email,
         },
-      },
-      tax_id_collection: { enabled: true },
-      customer_update: customerId ? { address: "auto", name: "auto" } : undefined,
-    });
+      };
+    } else {
+      sessionParams.payment_intent_data = {
+        metadata: {
+          user_id: user.id,
+          user_email: user.email,
+        },
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
