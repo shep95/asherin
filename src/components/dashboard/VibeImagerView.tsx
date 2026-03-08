@@ -23,6 +23,8 @@ import {
   ZoomIn,
   ZoomOut,
   HelpCircle,
+  Pencil,
+  Check,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────
