@@ -635,68 +635,93 @@ const Index = () => {
             <span className="text-muted-foreground">No Free Tiers. No Data Harvesting.</span>
           </h2>
 
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start max-w-6xl mx-auto">
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 items-start max-w-7xl mx-auto">
+            {/* Lifetime */}
+            <div className="rounded-2xl border border-accent/20 bg-accent/5 backdrop-blur-md p-7 sm:p-8 flex flex-col text-left">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-4 w-fit">
+                <span className="text-[10px] font-medium tracking-[0.2em] text-accent uppercase">Best Value</span>
+              </div>
+              <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">Pay Once, Own Forever</p>
+              <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON LIFETIME</h3>
+              <div className="mt-5 flex items-baseline gap-1">
+                <span className="text-4xl font-extralight tracking-tight text-foreground">$470</span>
+                <span className="text-sm text-muted-foreground font-extralight">one-time</span>
+              </div>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Permanent chat access. Bring Your Own API Key — our engine not included.</p>
+              <Link to="/pricing" className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+                Get Lifetime <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <div className="my-6 h-px bg-border/15" />
+              <ul className="space-y-2.5 flex-1">
+                {["Aureon Chat — permanent access", "BYOK required (8 providers)", "GPT-5.4, Opus 4.6, Gemini 3.1 Pro & more", "No Aureon default engine", "100 msgs / 3-hour window", "End-to-end encryption", "No expiry — lifetime means lifetime"].map(f => (
+                  <li key={f} className="flex items-start gap-2.5 text-[13px] font-extralight text-foreground/85">
+                    <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-accent" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             {/* Chat */}
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-7 sm:p-8 flex flex-col text-left">
               <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">AI Chat Only</p>
               <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON CHAT</h3>
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$47</span>
-                <span className="text-lg text-muted-foreground font-extralight">/ month</span>
+              <div className="mt-5 flex items-baseline gap-1">
+                <span className="text-4xl font-extralight tracking-tight text-foreground">$47</span>
+                <span className="text-sm text-muted-foreground font-extralight">/ month</span>
               </div>
-              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon AI chat — uncensored, unfiltered. Chat only, no additional agents or tools.</p>
-              <Link to="/pricing" className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Aureon AI chat — uncensored, unfiltered. Default engine included.</p>
+              <Link to="/pricing" className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
                 Get Chat Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-              <div className="my-8 h-px bg-border/15" />
-              <ul className="space-y-3 flex-1">
-                {["Uncensored AI chat on any topic", "100 messages per 3-hour window", "End-to-end encryption", "Data never sold or trained on", "Cancel anytime"].map(f => (
-                  <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
-                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+              <div className="my-6 h-px bg-border/15" />
+              <ul className="space-y-2.5 flex-1">
+                {["Uncensored AI chat on any topic", "Aureon default engine included", "100 msgs / 3-hour window", "BYOK optional — use your preferred models", "End-to-end encryption", "Cancel anytime"].map(f => (
+                  <li key={f} className="flex items-start gap-2.5 text-[13px] font-extralight text-foreground/85">
+                    <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-400" /> {f}
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Aureon */}
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-7 sm:p-8 flex flex-col text-left">
               <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">AI Intelligence</p>
               <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON</h3>
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$199</span>
-                <span className="text-lg text-muted-foreground font-extralight">/ month</span>
+              <div className="mt-5 flex items-baseline gap-1">
+                <span className="text-4xl font-extralight tracking-tight text-foreground">$199</span>
+                <span className="text-sm text-muted-foreground font-extralight">/ month</span>
               </div>
-              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Full access to Aureon AI — uncensored, unfiltered. 200 messages per 3-hour window across Chat & IDE.</p>
-              <Link to="/pricing" className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Full Aureon AI + IDE. 200 messages per 3-hour window.</p>
+              <Link to="/pricing" className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
                 Get Aureon Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-              <div className="my-8 h-px bg-border/15" />
-              <ul className="space-y-3 flex-1">
-                {["Everything in Chat +", "200 messages per 3-hour window (Chat + IDE shared)", "Aureon IDE — full cloud development environment", "Elite coding engine", "Zophiel Search Engine", "Persistent memory across all sessions", "Code Snippets Vault"].map(f => (
-                  <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
-                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+              <div className="my-6 h-px bg-border/15" />
+              <ul className="space-y-2.5 flex-1">
+                {["Everything in Chat +", "200 msgs / 3-hour window", "Aureon IDE — cloud dev environment", "Zophiel Search Engine", "Persistent memory", "Code Snippets Vault", "BYOK — use any provider"].map(f => (
+                  <li key={f} className="flex items-start gap-2.5 text-[13px] font-extralight text-foreground/85">
+                    <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-400" /> {f}
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Pro */}
-            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-8 sm:p-10 flex flex-col text-left">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-7 sm:p-8 flex flex-col text-left">
               <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">Full Dashboard Access</p>
               <h3 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">AUREON PRO</h3>
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">$740</span>
-                <span className="text-lg text-muted-foreground font-extralight">/ month</span>
+              <div className="mt-5 flex items-baseline gap-1">
+                <span className="text-4xl font-extralight tracking-tight text-foreground">$740</span>
+                <span className="text-sm text-muted-foreground font-extralight">/ month</span>
               </div>
-              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">Complete access to every tool — IDE, Google Intelligence, Asha, NOMAD, Predictive Intelligence, and more.</p>
-              <Link to="/pricing" className="group mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3.5 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Every tool — IDE, Google Intel, Asha, NOMAD, and more.</p>
+              <Link to="/pricing" className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
                 Get Pro Access <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-              <div className="my-8 h-px bg-border/15" />
-              <ul className="space-y-3 flex-1">
-                {["Everything in Aureon — expanded", "200 messages per 3 hours", "Google Intelligence Suite", "Asha Data Intelligence Platform", "NOMAD Public Intelligence Agent", "Elion / Zohar Toolkit", "ZALI Design Intelligence Lab", "Predictive Intelligence & forecasting", "Daily Intelligence Briefings", "Security Dashboard & threat intel"].map(f => (
-                  <li key={f} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
-                    <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" /> {f}
+              <div className="my-6 h-px bg-border/15" />
+              <ul className="space-y-2.5 flex-1">
+                {["Everything in Aureon — expanded", "Google Intelligence Suite", "Asha Data Intelligence", "NOMAD Public Intelligence", "Elion / Zohar Toolkit", "ZALI Design Lab", "Predictive Intelligence", "Daily Briefings", "Security Dashboard", "BYOK across all tools"].map(f => (
+                  <li key={f} className="flex items-start gap-2.5 text-[13px] font-extralight text-foreground/85">
+                    <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-400" /> {f}
                   </li>
                 ))}
               </ul>
