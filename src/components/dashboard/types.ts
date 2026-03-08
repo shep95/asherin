@@ -6,6 +6,14 @@ export interface FileAttachment {
   previewUrl?: string;
 }
 
+export interface ConsensusData {
+  consensus: boolean;
+  similarity: number;
+  modelCount: number;
+  successCount: number;
+  responses: { provider: string; model: string; content: string; error: string | null }[];
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -14,6 +22,7 @@ export interface Message {
   truthScore?: "high" | "medium" | "low";
   sources?: { title: string; url: string }[];
   attachments?: FileAttachment[];
+  consensusData?: ConsensusData;
 }
 
 export interface Conversation {

@@ -81,7 +81,8 @@ import FocusMode from "@/components/dashboard/FocusMode";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
-import { streamChat, fetchSuggestions } from "@/lib/ai";
+import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
+import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
@@ -154,6 +155,9 @@ const Dashboard = () => {
   const [queueItems, setQueueItems] = useState<{ id: string; content: string }[]>([]);
   const [queuePaused, setQueuePaused] = useState(false);
   const queuePausedRef = useRef(false);
+  const [consensusEnabled, setConsensusEnabled] = useState(false);
+  const [consensusModels, setConsensusModels] = useState<SelectedModel[]>([]);
+  const [storedProviders, setStoredProviders] = useState<string[]>([]);
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
@@ -377,6 +381,14 @@ const Dashboard = () => {
     window.addEventListener("aureon:navigate", handler);
     return () => window.removeEventListener("aureon:navigate", handler);
   }, []);
+
+  // Load stored BYOK providers for consensus selector
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_api_keys").select("provider").eq("user_id", user.id).eq("is_active", true).then(({ data }) => {
+      if (data) setStoredProviders(data.map(d => d.provider));
+    });
+  }, [user]);
 
   // Load conversations and user profile from DB
   useEffect(() => {
@@ -630,6 +642,63 @@ const Dashboard = () => {
       || builtInPersonas.find((p) => p.id === personaId);
     const personaSystemPrompt = activePersona?.systemPrompt || null;
 
+    // ── CONSENSUS MODE ──────────────────────────────────────────────
+    if (consensusEnabled && consensusModels.length >= 2) {
+      try {
+        const result = await fetchConsensus({
+          messages: history.map(m => ({ role: m.role, content: m.content })),
+          models: consensusModels.map(m => ({ provider: m.provider, model: m.model })),
+          mode,
+        });
+
+        // Pick the best content for display and DB storage
+        const bestContent = result.consensus && result.responses.find(r => r.content)?.content
+          || result.responses.filter(r => r.content).map(r => `**${r.provider}/${r.model}:**\n${r.content}`).join("\n\n---\n\n")
+          || "No models responded successfully.";
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: bestContent, consensusData: result } : m) }
+              : c
+          )
+        );
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+
+        const encryptedAssistant = await encryptText(bestContent, user.id);
+        await supabase.from("messages").insert({
+          id: assistantId,
+          conversation_id: convId,
+          user_id: user.id,
+          role: "assistant",
+          content: encryptedAssistant,
+        });
+        const sug = await fetchSuggestions(bestContent);
+        setSuggestions(sug);
+        pushNotification({
+          title: `Consensus: ${result.consensus ? "Models agree" : "Models disagree"}`,
+          message: `${result.successCount}/${result.modelCount} models responded (${Math.round(result.similarity * 100)}% similarity)`,
+          type: result.consensus ? "success" : "info",
+          actionLabel: "View",
+          actionView: "chat",
+        });
+      } catch (e: any) {
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.filter(m => m.id !== assistantId) }
+              : c
+          )
+        );
+        toast({ title: "Consensus Error", description: e.message, variant: "destructive" });
+      }
+      return;
+    }
+
+    // ── STANDARD STREAMING ──────────────────────────────────────────
     try {
       await streamChat({
         messages: history,
@@ -663,7 +732,6 @@ const Dashboard = () => {
           });
           const sug = await fetchSuggestions(assistantContent);
           setSuggestions(sug);
-          // In-app notification trigger for completed AI response
           pushNotification({
             title: "Aureon responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
@@ -941,6 +1009,11 @@ const Dashboard = () => {
           personaSystemPrompt={
             (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
           }
+          consensusEnabled={consensusEnabled}
+          onConsensusToggle={setConsensusEnabled}
+          consensusModels={consensusModels}
+          onConsensusModelsChange={setConsensusModels}
+          storedProviders={storedProviders}
         />
       ) : null;
     }

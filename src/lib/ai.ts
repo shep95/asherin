@@ -141,6 +141,65 @@ export async function streamChat({
   onDone();
 }
 
+// ── Multi-Model Consensus ──────────────────────────────────────────────
+const CONSENSUS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-consensus`;
+
+export interface ConsensusModel {
+  provider: string;
+  model: string;
+}
+
+export interface ConsensusResponse {
+  provider: string;
+  model: string;
+  content: string;
+  error: string | null;
+}
+
+export interface ConsensusResult {
+  consensus: boolean;
+  similarity: number;
+  modelCount: number;
+  successCount: number;
+  responses: ConsensusResponse[];
+}
+
+export async function fetchConsensus({
+  messages,
+  models,
+  mode,
+}: {
+  messages: Msg[];
+  models: ConsensusModel[];
+  mode: ChatMode;
+}): Promise<ConsensusResult> {
+  let authToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) authToken = session.access_token;
+  } catch { /* fallback */ }
+
+  const resp = await fetch(CONSENSUS_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+      models,
+    }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error || `HTTP ${resp.status}`);
+  }
+
+  return resp.json();
+}
+
 export async function fetchSuggestions(lastMessage: string): Promise<string[]> {
   try {
     const resp = await fetch(SUGGEST_URL, {

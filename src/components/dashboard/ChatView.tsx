@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAccess } from "@/hooks/useAccess";
@@ -29,6 +29,8 @@ import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 import VoiceCallOverlay from "./VoiceCallOverlay";
 import NeuralThinkingModal from "./NeuralThinkingModal";
 import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
+import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
+import ConsensusMessage from "./ConsensusMessage";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -50,6 +52,11 @@ interface ChatViewProps {
   queuePaused?: boolean;
   onToggleQueuePause?: () => void;
   personaSystemPrompt?: string | null;
+  consensusEnabled?: boolean;
+  onConsensusToggle?: (enabled: boolean) => void;
+  consensusModels?: SelectedModel[];
+  onConsensusModelsChange?: (models: SelectedModel[]) => void;
+  storedProviders?: string[];
 }
 
 // Copy button for messages
@@ -244,7 +251,7 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   },
 });
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt, consensusEnabled = false, onConsensusToggle, consensusModels = [], onConsensusModelsChange, storedProviders = [] }: ChatViewProps) => {
   const navigate = useNavigate();
   const { hasPro } = useAccess();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
@@ -370,6 +377,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
+            {onConsensusToggle && onConsensusModelsChange && (
+              <MultiModelSelector
+                enabled={consensusEnabled}
+                onToggle={onConsensusToggle}
+                selectedModels={consensusModels}
+                onModelsChange={onConsensusModelsChange}
+                storedProviders={storedProviders}
+              />
+            )}
           </div>
         </div>
       )}
@@ -410,6 +426,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   >
                     {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
                       <TypingIndicator mode="thinking" />
+                    ) : msg.role === "assistant" && msg.consensusData ? (
+                      <ConsensusMessage data={msg.consensusData} />
                     ) : msg.role === "assistant" ? (
                       <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30">
                         <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
