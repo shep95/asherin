@@ -417,6 +417,48 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
             </div>
           </div>
         </div>
+
+        {/* Playback Controls */}
+        <div className="px-5 py-3 border-t border-border/15 flex items-center gap-3">
+          <button onClick={handleTogglePlay} className="h-7 w-7 rounded-lg bg-accent/15 flex items-center justify-center text-accent hover:bg-accent/25 transition-colors" title={isPlaying ? "Pause" : "Play"}>
+            {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+          </button>
+          <button onClick={handleReplay} className="h-7 w-7 rounded-lg bg-card/40 flex items-center justify-center text-muted-foreground/50 hover:text-foreground transition-colors" title="Replay">
+            <RotateCcw className="h-3 w-3" />
+          </button>
+
+          {/* Progress scrubber */}
+          <div className="flex-1 relative">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.001}
+              value={progress}
+              onChange={handleScrub}
+              className="w-full h-1.5 appearance-none bg-border/20 rounded-full outline-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:shadow-md"
+            />
+            <div
+              className="absolute top-0 left-0 h-1.5 rounded-full bg-accent/50 pointer-events-none"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+
+          <span className="text-[9px] font-light text-muted-foreground/50 tabular-nums w-12 text-right">
+            {Math.round(progress * 100)}%
+          </span>
+
+          {/* Speed controls */}
+          <div className="flex items-center gap-1 border-l border-border/15 pl-3">
+            <button onClick={() => handleSpeedChange(-1)} className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/40 hover:text-foreground transition-colors">
+              <Minus className="h-2.5 w-2.5" />
+            </button>
+            <span className="text-[10px] font-light text-foreground/70 tabular-nums w-8 text-center">{speed}x</span>
+            <button onClick={() => handleSpeedChange(1)} className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/40 hover:text-foreground transition-colors">
+              <Plus className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
