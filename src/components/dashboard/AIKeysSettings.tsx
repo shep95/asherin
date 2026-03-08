@@ -18,7 +18,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "google",
     name: "Google AI (Gemini)",
-    icon: "🔮",
+    icon: "◈",
     placeholder: "AIzaSy...",
     helpUrl: "https://aistudio.google.com/app/apikey",
     helpText: "Get your API key from Google AI Studio",
@@ -31,7 +31,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "openai",
     name: "OpenAI",
-    icon: "🤖",
+    icon: "◉",
     placeholder: "sk-...",
     helpUrl: "https://platform.openai.com/api-keys",
     helpText: "Get your API key from OpenAI Platform",
@@ -46,7 +46,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "anthropic",
     name: "Anthropic (Claude)",
-    icon: "🧠",
+    icon: "◎",
     placeholder: "sk-ant-...",
     helpUrl: "https://console.anthropic.com/settings/keys",
     helpText: "Get your API key from Anthropic Console",
@@ -60,7 +60,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "meta",
     name: "Meta AI (Llama)",
-    icon: "🦙",
+    icon: "◇",
     placeholder: "Your Meta AI API key...",
     helpUrl: "https://llama.meta.com/",
     helpText: "Access via Meta AI API or compatible providers",
@@ -73,7 +73,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "venice",
     name: "Venice AI",
-    icon: "🎭",
+    icon: "◆",
     placeholder: "Your Venice API key...",
     helpUrl: "https://venice.ai/",
     helpText: "Get your API key from Venice AI",
@@ -85,7 +85,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "xai",
     name: "xAI (Grok)",
-    icon: "⚡",
+    icon: "◌",
     placeholder: "xai-...",
     helpUrl: "https://console.x.ai/",
     helpText: "Get your API key from xAI Console",
@@ -97,7 +97,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "mistral",
     name: "Mistral AI",
-    icon: "🌊",
+    icon: "◐",
     placeholder: "Your Mistral API key...",
     helpUrl: "https://console.mistral.ai/api-keys/",
     helpText: "Get your API key from Mistral Console",
@@ -110,7 +110,7 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   {
     id: "deepseek",
     name: "DeepSeek",
-    icon: "🔍",
+    icon: "◔",
     placeholder: "sk-...",
     helpUrl: "https://platform.deepseek.com/",
     helpText: "Get your API key from DeepSeek Platform",
