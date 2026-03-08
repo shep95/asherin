@@ -153,9 +153,19 @@ const VibeVideoView = () => {
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [ffmpegProgress, setFfmpegProgress] = useState<number | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const renameProject = async (id: string, newName: string) => {
+    if (!newName.trim()) return;
+    await supabase.from("vibe_video_projects").update({ name: newName.trim() }).eq("id", id);
+    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, name: newName.trim() } : p));
+    if (activeProject?.id === id) setActiveProject((prev) => prev ? { ...prev, name: newName.trim() } : prev);
+    setRenamingId(null);
+  };
 
   // ── Load projects ───────────────────────────────────────────
   useEffect(() => {
