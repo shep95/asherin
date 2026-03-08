@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
+import NeuralThinkingModal from "@/components/dashboard/NeuralThinkingModal";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
@@ -60,6 +61,8 @@ const Index = () => {
     return parseInt(localStorage.getItem("aureon_demo_count") || "0", 10);
   });
   const [showDiagram, setShowDiagram] = useState(false);
+  const [showNeural, setShowNeural] = useState(false);
+  const [lastDemoQuery, setLastDemoQuery] = useState("");
   const maxDemos = 3;
 
   const handleDemo = async (e: React.FormEvent) => {
@@ -72,6 +75,7 @@ const Index = () => {
     setDemoResponse("");
 
     const query = demoQuery.trim();
+    setLastDemoQuery(query);
     setDemoQuery("");
 
     try {
@@ -254,9 +258,16 @@ const Index = () => {
                   </div>
                   {isTyping && <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-1 align-text-bottom" />}
                   
-                  {/* Diagram toggle */}
+                  {/* Action buttons */}
                   {!isTyping && demoResponse.length > 20 && (
-                    <div className="mt-4 pt-3 border-t border-border/10 flex items-center gap-2">
+                    <div className="mt-4 pt-3 border-t border-border/10 flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => setShowNeural(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-light transition-all text-accent/70 hover:text-accent hover:bg-accent/10 border border-accent/20"
+                      >
+                        <Brain className="h-3 w-3" />
+                        Show Thinking Process
+                      </button>
                       <button
                         onClick={() => setShowDiagram(!showDiagram)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-light transition-all ${
@@ -265,19 +276,8 @@ const Index = () => {
                             : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 border border-border/15"
                         }`}
                       >
-                        <Zap className="h-3 w-3" />
-                        Neural Timeline
-                      </button>
-                      <button
-                        onClick={() => setShowDiagram(!showDiagram)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-light transition-all ${
-                          showDiagram
-                            ? "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 border border-border/15"
-                            : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 border border-border/15"
-                        }`}
-                      >
                         <GitBranch className="h-3 w-3" />
-                        Knowledge Diagram
+                        Diagram
                       </button>
                     </div>
                   )}
@@ -287,6 +287,14 @@ const Index = () => {
                     open={showDiagram}
                     content={demoResponse}
                     onClose={() => setShowDiagram(false)}
+                  />
+
+                  {/* Neural Thinking Modal */}
+                  <NeuralThinkingModal
+                    open={showNeural}
+                    query={lastDemoQuery}
+                    response={demoResponse}
+                    onClose={() => setShowNeural(false)}
                   />
                 </div>
               )}

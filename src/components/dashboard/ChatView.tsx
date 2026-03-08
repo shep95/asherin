@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap } from "lucide-react";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAccess } from "@/hooks/useAccess";
@@ -27,6 +27,7 @@ import { renderLinkPreviews } from "./LinkPreview";
 import MessageDiagramPanel from "./MessageDiagramPanel";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 import VoiceCallOverlay from "./VoiceCallOverlay";
+import NeuralThinkingModal from "./NeuralThinkingModal";
 import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
 
 interface ChatViewProps {
@@ -252,6 +253,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const [cotId, setCotId] = useState<string | null>(null);
   const [diagramId, setDiagramId] = useState<string | null>(null);
+  const [neuralId, setNeuralId] = useState<string | null>(null);
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -470,6 +472,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             <GitBranch className="h-3 w-3" />
                             Diagram
                           </button>
+                          <button
+                            onClick={() => setNeuralId(msg.id)}
+                            className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors"
+                          >
+                            <Zap className="h-3 w-3" />
+                            Show Thinking
+                          </button>
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
@@ -491,6 +500,14 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       open={true}
                       content={msg.content}
                       onClose={() => setDiagramId(null)}
+                    />
+                  )}
+                  {msg.role === "assistant" && neuralId === msg.id && (
+                    <NeuralThinkingModal
+                      open={true}
+                      query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content || ""}
+                      response={msg.content}
+                      onClose={() => setNeuralId(null)}
                     />
                   )}
                 </div>
