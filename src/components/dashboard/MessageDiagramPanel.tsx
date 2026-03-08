@@ -431,7 +431,7 @@ const DIAGRAM_TYPES: { id: DiagramType; label: string; desc: string; icon: typeo
 ];
 
 const MessageDiagramPanel = ({ open, content, onClose }: MessageDiagramPanelProps) => {
-  const [diagramType, setDiagramType] = useState<DiagramType>("knowledge");
+  const [diagramType, setDiagramType] = useState<DiagramType>("neural");
   const [copied, setCopied] = useState(false);
 
   const mermaidCode = useMemo(() => {
