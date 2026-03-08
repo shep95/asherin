@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, GitBranch, Copy, Check, Brain, Lightbulb, Link2, Layers } from "lucide-react";
+import { X, GitBranch, Copy, Check, Brain, Lightbulb, Link2, Layers, Zap } from "lucide-react";
 
 interface MessageDiagramPanelProps {
   open: boolean;
