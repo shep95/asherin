@@ -65,6 +65,10 @@ export interface PlanDefinition {
 }
 
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
+const LIFETIME_FEATURES: FeatureId[] = [
+  "chat", "encryption",
+];
+
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption",
 ];
