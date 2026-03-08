@@ -59,6 +59,7 @@ const Index = () => {
   const [demoCount, setDemoCount] = useState(() => {
     return parseInt(localStorage.getItem("aureon_demo_count") || "0", 10);
   });
+  const [showDiagram, setShowDiagram] = useState(false);
   const maxDemos = 3;
 
   const handleDemo = async (e: React.FormEvent) => {
