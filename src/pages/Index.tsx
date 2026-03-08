@@ -75,6 +75,7 @@ const Index = () => {
     setDemoResponse("");
 
     const query = demoQuery.trim();
+    setLastDemoQuery(query);
     setDemoQuery("");
 
     try {
