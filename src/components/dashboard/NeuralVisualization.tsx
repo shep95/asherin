@@ -106,14 +106,14 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
               ctx.beginPath();
               ctx.moveTo(a.x, a.y);
               ctx.lineTo(b.x, b.y);
-              ctx.strokeStyle = `hsla(var(--accent), ${strength * 0.6})`;
+              ctx.strokeStyle = `hsla(0, 0%, 100%, ${strength * 0.7})`;
               ctx.lineWidth = strength * 2.5;
               ctx.stroke();
             } else {
               ctx.beginPath();
               ctx.moveTo(a.x, a.y);
               ctx.lineTo(b.x, b.y);
-              ctx.strokeStyle = `hsla(var(--border), 0.08)`;
+              ctx.strokeStyle = `hsla(0, 0%, 100%, 0.12)`;
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
@@ -129,7 +129,7 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
         if (n.activation > 0.3) {
           ctx.beginPath();
           ctx.arc(n.x, n.y, radius + 6, 0, Math.PI * 2);
-          ctx.fillStyle = `hsla(var(--accent), ${n.activation * 0.2})`;
+          ctx.fillStyle = `hsla(0, 0%, 100%, ${n.activation * 0.25})`;
           ctx.fill();
         }
 
@@ -137,16 +137,16 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
         ctx.beginPath();
         ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
         ctx.fillStyle = n.activation > 0.3
-          ? `hsla(var(--accent), ${0.4 + n.activation * 0.6})`
-          : `hsla(var(--muted-foreground), 0.15)`;
+          ? `hsla(0, 0%, 100%, ${0.5 + n.activation * 0.5})`
+          : `hsla(0, 0%, 100%, 0.2)`;
         ctx.fill();
 
         // Border
         ctx.beginPath();
         ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
         ctx.strokeStyle = n.activation > 0.3
-          ? `hsla(var(--accent), ${0.5 + n.activation * 0.5})`
-          : `hsla(var(--border), 0.2)`;
+          ? `hsla(0, 0%, 100%, ${0.6 + n.activation * 0.4})`
+          : `hsla(0, 0%, 100%, 0.25)`;
         ctx.lineWidth = 1;
         ctx.stroke();
       });
@@ -157,7 +157,7 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
         const n = neurons[start];
         if (n) {
           ctx.font = "9px system-ui";
-          ctx.fillStyle = `hsla(var(--muted-foreground), 0.3)`;
+          ctx.fillStyle = `hsla(0, 0%, 100%, 0.4)`;
           ctx.textAlign = "center";
           ctx.fillText(labels[idx] || "", n.x, h - 8);
         }
