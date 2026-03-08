@@ -145,8 +145,8 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
         ctx.beginPath();
         ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
         ctx.strokeStyle = n.activation > 0.3
-          ? `hsla(var(--accent), ${0.5 + n.activation * 0.5})`
-          : `hsla(var(--border), 0.2)`;
+          ? `hsla(0, 0%, 100%, ${0.6 + n.activation * 0.4})`
+          : `hsla(0, 0%, 100%, 0.25)`;
         ctx.lineWidth = 1;
         ctx.stroke();
       });
