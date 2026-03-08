@@ -1138,6 +1138,42 @@ export type Database = {
           },
         ]
       }
+      gift_purchases: {
+        Row: {
+          addons: Json | null
+          buyer_id: string
+          created_at: string | null
+          duration_months: number
+          id: string
+          recipient_email: string
+          status: string
+          stripe_session_id: string
+          tier: string
+        }
+        Insert: {
+          addons?: Json | null
+          buyer_id: string
+          created_at?: string | null
+          duration_months: number
+          id?: string
+          recipient_email: string
+          status?: string
+          stripe_session_id: string
+          tier: string
+        }
+        Update: {
+          addons?: Json | null
+          buyer_id?: string
+          created_at?: string | null
+          duration_months?: number
+          id?: string
+          recipient_email?: string
+          status?: string
+          stripe_session_id?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       github_connections: {
         Row: {
           branch: string
