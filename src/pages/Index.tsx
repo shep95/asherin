@@ -253,6 +253,41 @@ const Index = () => {
                     <ReactMarkdown>{demoResponse}</ReactMarkdown>
                   </div>
                   {isTyping && <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-1 align-text-bottom" />}
+                  
+                  {/* Diagram toggle */}
+                  {!isTyping && demoResponse.length > 20 && (
+                    <div className="mt-4 pt-3 border-t border-border/10 flex items-center gap-2">
+                      <button
+                        onClick={() => setShowDiagram(!showDiagram)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-light transition-all ${
+                          showDiagram
+                            ? "bg-accent/15 text-accent border border-accent/20"
+                            : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 border border-border/15"
+                        }`}
+                      >
+                        <Zap className="h-3 w-3" />
+                        Neural Timeline
+                      </button>
+                      <button
+                        onClick={() => setShowDiagram(!showDiagram)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-light transition-all ${
+                          showDiagram
+                            ? "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 border border-border/15"
+                            : "text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 border border-border/15"
+                        }`}
+                      >
+                        <GitBranch className="h-3 w-3" />
+                        Knowledge Diagram
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Diagram Panel */}
+                  <MessageDiagramPanel
+                    open={showDiagram}
+                    content={demoResponse}
+                    onClose={() => setShowDiagram(false)}
+                  />
                 </div>
               )}
             </div>
