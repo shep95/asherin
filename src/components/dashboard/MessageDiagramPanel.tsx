@@ -512,57 +512,63 @@ const MessageDiagramPanel = ({ open, content, onClose }: MessageDiagramPanelProp
         })}
       </div>
 
-      {/* Visual Knowledge Diagram */}
+      {/* Visual Diagram */}
       <div className="p-4 overflow-x-auto">
-        {/* Root / center nodes */}
-        {rootNodes.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center mb-3">
-            {rootNodes.map(node => (
-              <div
-                key={node.id}
-                className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent text-center max-w-[200px]"
-              >
-                {node.label}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Connection indicators */}
-        {rootNodes.length > 0 && childNodes.length > 0 && (
-          <div className="flex justify-center mb-3">
-            <div className="h-5 w-px bg-accent/30" />
-          </div>
-        )}
-
-        {/* Child knowledge nodes */}
-        {childNodes.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {childNodes.map(node => {
-              const edge = parsedEdges.find(e => e.to === node.id);
-              return (
-                <div
-                  key={node.id}
-                  className="rounded-xl border border-border/20 bg-card/50 px-3 py-2.5 hover:border-accent/20 hover:bg-card/70 transition-all group"
-                >
-                  {edge?.label && (
-                    <div className="text-[9px] text-accent/60 font-light mb-1 uppercase tracking-wider">
-                      {edge.label}
-                    </div>
-                  )}
-                  <div className="text-[11px] font-light text-foreground/90 leading-relaxed">
+        {diagramType === "neural" ? (
+          <NeuralTimelineView content={content} />
+        ) : (
+          <>
+            {/* Root / center nodes */}
+            {rootNodes.length > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center mb-3">
+                {rootNodes.map(node => (
+                  <div
+                    key={node.id}
+                    className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-[11px] font-medium text-accent text-center max-w-[200px]"
+                  >
                     {node.label}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                ))}
+              </div>
+            )}
 
-        {parsedNodes.length === 0 && (
-          <div className="text-center text-[11px] text-muted-foreground/40 py-6">
-            No knowledge structure detected in this message
-          </div>
+            {/* Connection indicators */}
+            {rootNodes.length > 0 && childNodes.length > 0 && (
+              <div className="flex justify-center mb-3">
+                <div className="h-5 w-px bg-accent/30" />
+              </div>
+            )}
+
+            {/* Child knowledge nodes */}
+            {childNodes.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {childNodes.map(node => {
+                  const edge = parsedEdges.find(e => e.to === node.id);
+                  return (
+                    <div
+                      key={node.id}
+                      className="rounded-xl border border-border/20 bg-card/50 px-3 py-2.5 hover:border-accent/20 hover:bg-card/70 transition-all group"
+                    >
+                      {edge?.label && (
+                        <div className="text-[9px] text-accent/60 font-light mb-1 uppercase tracking-wider">
+                          {edge.label}
+                        </div>
+                      )}
+                      <div className="text-[11px] font-light text-foreground/90 leading-relaxed">
+                        {node.label}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {parsedNodes.length === 0 && (
+              <div className="text-center text-[11px] text-muted-foreground/40 py-6">
+                No knowledge structure detected in this message
+              </div>
+            )}
+          </>
         )}
       </div>
 
