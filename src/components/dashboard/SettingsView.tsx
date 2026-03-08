@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { useGitHub } from "@/hooks/useGitHub";
+import AIKeysSettings from "./AIKeysSettings";
 import wallpaperDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
@@ -395,6 +396,9 @@ const SettingsView = () => {
             </div>
           </div>
         </div>
+
+        {/* AI Model Keys (BYOK) */}
+        <AIKeysSettings />
 
         {/* GitHub Integration */}
         <GitHubSettings />

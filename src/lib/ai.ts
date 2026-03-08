@@ -49,13 +49,35 @@ export async function streamChat({
     return { role: m.role, content: m.content };
   });
 
+  // Load BYOK preferences from localStorage cache (set by AIKeysSettings)
+  let byokProvider: string | undefined;
+  let byokModel: string | undefined;
+  try {
+    const cached = localStorage.getItem("aureon_byok_active");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.provider && parsed.provider !== "default") {
+        byokProvider = parsed.provider;
+        byokModel = parsed.model;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Get auth token for BYOK key lookup
+  let authToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) authToken = session.access_token;
+  } catch { /* fallback to anon key */ }
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile }),
+    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel }),
     signal,
   });
 

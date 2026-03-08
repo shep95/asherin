@@ -660,9 +660,42 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile } = await req.json();
+    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP is not configured");
+
+    // ── BYOK: Load user's API key if they specified a provider ────────────
+    let userApiKey: string | null = null;
+    let useByok = false;
+    if (byokProvider && byokProvider !== "default" && byokModel && byokModel !== "default") {
+      const authHeader2 = req.headers.get("Authorization");
+      if (authHeader2) {
+        try {
+          const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+          const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE);
+          const token = authHeader2.replace("Bearer ", "");
+          const anonSb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
+          const { data: { user: reqUser } } = await anonSb.auth.getUser(token);
+          if (reqUser) {
+            const { data: keyRow } = await adminSb
+              .from("user_api_keys")
+              .select("api_key")
+              .eq("user_id", reqUser.id)
+              .eq("provider", byokProvider)
+              .eq("is_active", true)
+              .single();
+            if (keyRow?.api_key) {
+              userApiKey = keyRow.api_key;
+              useByok = true;
+            }
+          }
+        } catch (e) {
+          console.error("BYOK key lookup failed:", e);
+        }
+      }
+    }
 
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
@@ -825,14 +858,73 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }),
     ];
 
-    // Retry with exponential backoff for rate limits
-    const MAX_RETRIES = 4;
-    let response: Response | null = null;
-    let lastError = "";
+    // ══════════════════════════════════════════════════════════════════════════
+    // BYOK ROUTING — Call user's chosen provider or default Gemini
+    // ══════════════════════════════════════════════════════════════════════════
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
+    // Convert messages to OpenAI-compatible format for non-Gemini providers
+    const openaiMessages = [
+      { role: "system" as const, content: systemParts },
+      ...prunedMessages.map((m: { role: string; content: string }) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    ];
+
+    // Provider endpoint mapping
+    const PROVIDER_ENDPOINTS: Record<string, { url: string; streamParam: boolean; transformResponse: boolean }> = {
+      openai: { url: "https://api.openai.com/v1/chat/completions", streamParam: true, transformResponse: false },
+      anthropic: { url: "https://api.anthropic.com/v1/messages", streamParam: true, transformResponse: true },
+      meta: { url: "https://api.together.xyz/v1/chat/completions", streamParam: true, transformResponse: false },
+      venice: { url: "https://api.venice.ai/api/v1/chat/completions", streamParam: true, transformResponse: false },
+      xai: { url: "https://api.x.ai/v1/chat/completions", streamParam: true, transformResponse: false },
+      mistral: { url: "https://api.mistral.ai/v1/chat/completions", streamParam: true, transformResponse: false },
+      deepseek: { url: "https://api.deepseek.com/chat/completions", streamParam: true, transformResponse: false },
+    };
+
+    // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)
+    async function callOpenAICompatible(apiKey: string, endpoint: string, model: string) {
+      return await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: openaiMessages,
+          stream: true,
+          temperature: 0.7,
+        }),
+      });
+    }
+
+    // Helper: call Anthropic (different format)
+    async function callAnthropic(apiKey: string, model: string) {
+      return await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 8192,
+          system: systemParts,
+          messages: prunedMessages.map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          stream: true,
+        }),
+      });
+    }
+
+    // Helper: call Google Gemini with user's key
+    async function callGeminiWithKey(apiKey: string, model: string) {
+      return await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -842,32 +934,113 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           }),
         },
       );
+    }
 
-      if (response.ok) break;
+    // Determine which provider to call
+    let isGeminiResponse = true; // true if we need to transform Gemini SSE format
+    let isAnthropicResponse = false;
 
-      if (response.status === 429 && attempt < MAX_RETRIES) {
-        const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 16000);
-        console.log(`Rate limited (429), retry ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
+    const MAX_RETRIES = 4;
+    let response: Response | null = null;
+    let lastError = "";
+    let byokFailed = false;
+
+    if (useByok && userApiKey && byokProvider && byokModel) {
+      console.log(`BYOK: Using ${byokProvider}/${byokModel}`);
+      try {
+        if (byokProvider === "google") {
+          response = await callGeminiWithKey(userApiKey, byokModel);
+          isGeminiResponse = true;
+        } else if (byokProvider === "anthropic") {
+          response = await callAnthropic(userApiKey, byokModel);
+          isGeminiResponse = false;
+          isAnthropicResponse = true;
+        } else {
+          const endpoint = PROVIDER_ENDPOINTS[byokProvider];
+          if (endpoint) {
+            response = await callOpenAICompatible(userApiKey, endpoint.url, byokModel);
+            isGeminiResponse = false;
+          }
+        }
+
+        if (response && !response.ok) {
+          const errText = await response.text();
+          console.error(`BYOK ${byokProvider} error (${response.status}):`, errText.slice(0, 500));
+          byokFailed = true;
+          response = null;
+        }
+      } catch (e) {
+        console.error("BYOK call failed:", e);
+        byokFailed = true;
       }
+    }
 
-      // Non-retryable error or max retries exhausted
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait a moment and try again." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Fallback to default Gemini if BYOK not used or failed
+    if (!response) {
+      if (byokFailed && !( await (async () => {
+        // Check fallback preference
+        try {
+          const authH = req.headers.get("Authorization");
+          if (!authH) return true; // default fallback
+          const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+          const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const sb = createClient(SUPABASE_URL, ANON_KEY);
+          const { data: { user: u } } = await sb.auth.getUser(authH.replace("Bearer ", ""));
+          if (!u) return true;
+          const { createClient: createAdmin } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const adminSb = createAdmin(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "");
+          const { data: pref } = await adminSb.from("user_model_preferences").select("fallback_to_default").eq("user_id", u.id).single();
+          return pref?.fallback_to_default !== false;
+        } catch { return true; }
+      })())) {
+        return new Response(JSON.stringify({ error: `Your ${byokProvider} API key returned an error. Check your key in Settings → AI Model Keys.` }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Usage credits exhausted. Please add credits." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+
+      // Use default Gemini
+      isGeminiResponse = true;
+      isAnthropicResponse = false;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: geminiMessages,
+              generationConfig: { temperature: 0.7 },
+            }),
+          },
+        );
+
+        if (response.ok) break;
+
+        if (response.status === 429 && attempt < MAX_RETRIES) {
+          const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 16000);
+          console.log(`Rate limited (429), retry ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait a moment and try again." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "Usage credits exhausted. Please add credits." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        lastError = await response.text();
+        console.error("Gemini API error:", response.status, lastError);
+        return new Response(JSON.stringify({ error: "AI gateway error" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      lastError = await response.text();
-      console.error("Gemini API error:", response.status, lastError);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
 
     if (!response || !response.ok) {
@@ -876,7 +1049,10 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       });
     }
 
-    // Transform Gemini SSE stream to OpenAI-compatible SSE for the frontend
+    // ══════════════════════════════════════════════════════════════════════════
+    // STREAM TRANSFORMER — Normalize all provider formats to OpenAI SSE
+    // ══════════════════════════════════════════════════════════════════════════
+
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
@@ -896,16 +1072,46 @@ The user is asking about internal code, backend, or architecture. You are FORBID
           while ((idx = buf.indexOf("\n")) !== -1) {
             const line = buf.slice(0, idx).trim();
             buf = buf.slice(idx + 1);
-            if (!line.startsWith("data: ")) continue;
-            const jsonStr = line.slice(6);
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                const chunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
-                await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+
+            if (isGeminiResponse) {
+              // Gemini SSE format
+              if (!line.startsWith("data: ")) continue;
+              const jsonStr = line.slice(6);
+              try {
+                const parsed = JSON.parse(jsonStr);
+                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: text } }] });
+                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                }
+              } catch { /* skip */ }
+            } else if (isAnthropicResponse) {
+              // Anthropic SSE format
+              if (!line.startsWith("data: ")) continue;
+              const jsonStr = line.slice(6);
+              try {
+                const parsed = JSON.parse(jsonStr);
+                if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content: parsed.delta.text } }] });
+                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                }
+              } catch { /* skip */ }
+            } else {
+              // OpenAI-compatible SSE format (OpenAI, xAI, Mistral, Venice, DeepSeek, Together)
+              if (!line.startsWith("data: ")) continue;
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr === "[DONE]") {
+                break;
               }
-            } catch { /* skip */ }
+              try {
+                const parsed = JSON.parse(jsonStr);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  const chunk = JSON.stringify({ choices: [{ delta: { content } }] });
+                  await writer.write(encoder.encode(`data: ${chunk}\n\n`));
+                }
+              } catch { /* skip */ }
+            }
           }
         }
         await writer.write(encoder.encode("data: [DONE]\n\n"));

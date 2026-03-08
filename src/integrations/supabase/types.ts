@@ -3003,6 +3003,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          provider: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_behavior_analytics: {
         Row: {
           anomaly_details: string | null
@@ -3088,6 +3118,36 @@ export type Database = {
           tone_preference?: string
           topics_of_interest?: string[]
           total_calibrations?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_model_preferences: {
+        Row: {
+          active_model: string | null
+          active_provider: string | null
+          created_at: string
+          fallback_to_default: boolean
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_model?: string | null
+          active_provider?: string | null
+          created_at?: string
+          fallback_to_default?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_model?: string | null
+          active_provider?: string | null
+          created_at?: string
+          fallback_to_default?: boolean
+          id?: string
           updated_at?: string
           user_id?: string
         }
