@@ -29,6 +29,8 @@ import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 import VoiceCallOverlay from "./VoiceCallOverlay";
 import NeuralThinkingModal from "./NeuralThinkingModal";
 import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
+import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
+import ConsensusMessage from "./ConsensusMessage";
 
 interface ChatViewProps {
   conversation: Conversation;
