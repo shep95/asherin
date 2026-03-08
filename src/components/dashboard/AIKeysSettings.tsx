@@ -165,11 +165,16 @@ const AIKeysSettings = () => {
     ]);
     setStoredKeys((keysRes.data as StoredKey[]) || []);
     if (prefRes.data) {
-      setPreferences({
+      const pref = {
         active_provider: prefRes.data.active_provider || "default",
         active_model: prefRes.data.active_model || "default",
         fallback_to_default: prefRes.data.fallback_to_default ?? true,
-      });
+      };
+      setPreferences(pref);
+      localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: pref.active_provider, model: pref.active_model }));
+    } else {
+      localStorage.setItem("aureon_byok_active", JSON.stringify({ provider: "default", model: "default" }));
+    }
     }
     setLoading(false);
   };
