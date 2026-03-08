@@ -307,7 +307,7 @@ const AIKeysSettings = () => {
             : "border-border/15 bg-card/10 hover:bg-card/20"
         }`}
       >
-        <span className="text-lg">⚡</span>
+        <Zap className="h-4 w-4 text-foreground" />
         <div className="flex-1 text-left">
           <p className="text-xs font-light text-foreground">Aureon Default Engine</p>
           <p className="text-[10px] text-muted-foreground/50">Built-in intelligence — no API key needed</p>
