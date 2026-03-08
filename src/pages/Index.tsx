@@ -597,14 +597,14 @@ const Index = () => {
             <p className="text-xs font-light tracking-[0.25em] text-muted-foreground/60 uppercase mb-6">Supported AI Providers</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { name: "OpenAI", models: "GPT-4o, GPT-4 Turbo, o1, o3" },
-                { name: "Anthropic", models: "Claude 3.5 Sonnet, Claude 3 Opus" },
-                { name: "Google", models: "Gemini 2.5 Pro, Gemini 2.5 Flash" },
-                { name: "xAI", models: "Grok-2, Grok-3" },
-                { name: "Mistral", models: "Mistral Large, Mixtral" },
-                { name: "DeepSeek", models: "DeepSeek V3, DeepSeek R1" },
-                { name: "Meta", models: "Llama 3.3, Llama 4 (via Together)" },
-                { name: "Venice AI", models: "Uncensored models, no logging" },
+                { name: "OpenAI", models: "GPT-4.1, o3, o4-mini" },
+                { name: "Anthropic", models: "Claude Opus 4, Sonnet 4" },
+                { name: "Google", models: "Gemini 2.5 Pro, 2.5 Flash" },
+                { name: "xAI", models: "Grok 3, Grok 3 Mini" },
+                { name: "Mistral", models: "Large, Codestral, Pixtral" },
+                { name: "DeepSeek", models: "DeepSeek V3, R1" },
+                { name: "Meta", models: "Llama 4 Maverick & Scout" },
+                { name: "Venice AI", models: "Uncensored, zero logging" },
               ].map(provider => (
                 <div key={provider.name} className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-md p-4 text-left">
                   <p className="text-xs font-light tracking-wide text-foreground">{provider.name}</p>
