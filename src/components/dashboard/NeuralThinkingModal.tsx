@@ -386,7 +386,7 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
 
               <div className="space-y-2">
                 {steps.map((step, i) => (
-                  <ThinkingStepCard key={i} step={step} index={i} isAnimating={isAnimating} />
+                  <ThinkingStepCard key={i} step={step} index={i} visible={i < visibleStepCount} />
                 ))}
               </div>
 
