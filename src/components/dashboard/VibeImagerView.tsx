@@ -483,6 +483,10 @@ const VibeImagerView = () => {
             </div>
             <h1 className="text-2xl sm:text-3xl font-extralight tracking-[0.15em] text-foreground">VIBE IMAGER</h1>
           </div>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1">
+            <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" /></span>
+            <span className="text-[10px] font-medium tracking-[0.15em] text-amber-400 uppercase">Beta Testing</span>
+          </div>
           <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
             Upload an image, describe your edits in plain language, and Aureon AI transforms it for you. Every edit is versioned.
           </p>
