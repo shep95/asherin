@@ -144,8 +144,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const startCheckout = useCallback(async (tier: TierKey) => {
     setCheckoutLoading(true);
     try {
+      const isLifetime = tier === "lifetime";
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: TIERS[tier].price_id },
+        body: { priceId: TIERS[tier].price_id, mode: isLifetime ? "payment" : "subscription" },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
