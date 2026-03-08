@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import MessageQueuePanel, { type QueueItem } from "@/components/dashboard/MessageQueuePanel";
 import {
   Send, Upload, Film, History, Wand2, Download, GitBranch, ChevronRight,
-  Loader2, Plus, Trash2, RotateCcw, X, Play, Pause, HelpCircle, Video,
+  Loader2, Plus, Trash2, RotateCcw, X, Play, Pause, HelpCircle, Video, Pencil, Check,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────
