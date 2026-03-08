@@ -253,6 +253,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const [cotId, setCotId] = useState<string | null>(null);
   const [diagramId, setDiagramId] = useState<string | null>(null);
+  const [neuralId, setNeuralId] = useState<string | null>(null);
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
