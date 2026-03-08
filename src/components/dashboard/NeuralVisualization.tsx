@@ -137,8 +137,8 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
         ctx.beginPath();
         ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
         ctx.fillStyle = n.activation > 0.3
-          ? `hsla(var(--accent), ${0.4 + n.activation * 0.6})`
-          : `hsla(var(--muted-foreground), 0.15)`;
+          ? `hsla(0, 0%, 100%, ${0.5 + n.activation * 0.5})`
+          : `hsla(0, 0%, 100%, 0.2)`;
         ctx.fill();
 
         // Border
