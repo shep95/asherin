@@ -75,21 +75,14 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
       tick++;
       ctx.clearRect(0, 0, w, h);
 
-      // Update activations
-      if (isThinking) {
-        neurons.forEach((n) => {
-          if (tick % 3 === 0 && Math.random() > 0.7) {
-            n.targetActivation = Math.random();
-          }
-          n.activation += (n.targetActivation - n.activation) * 0.12;
-          n.targetActivation *= 0.97;
-        });
-      } else {
-        neurons.forEach((n) => {
-          n.activation *= 0.95;
-          n.targetActivation *= 0.95;
-        });
-      }
+      // Always animate — continuous brain activity loop
+      neurons.forEach((n) => {
+        if (tick % 3 === 0 && Math.random() > 0.5) {
+          n.targetActivation = Math.random() * 0.8 + 0.1;
+        }
+        n.activation += (n.targetActivation - n.activation) * 0.08;
+        n.targetActivation *= 0.985;
+      });
 
       // Draw connections
       for (let l = 0; l < layerRanges.length - 1; l++) {
