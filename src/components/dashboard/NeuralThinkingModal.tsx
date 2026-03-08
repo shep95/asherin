@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { X, Brain, Zap, Eye, Copy, Check, Download, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { X, Brain, Zap, Eye, Copy, Check, Download, ChevronRight, Play, Pause, RotateCcw, Minus, Plus } from "lucide-react";
 import NeuralVisualization from "./NeuralVisualization";
 
 interface ThinkingStep {
