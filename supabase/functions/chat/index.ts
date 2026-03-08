@@ -660,9 +660,42 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile } = await req.json();
+    const { messages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP is not configured");
+
+    // ── BYOK: Load user's API key if they specified a provider ────────────
+    let userApiKey: string | null = null;
+    let useByok = false;
+    if (byokProvider && byokProvider !== "default" && byokModel && byokModel !== "default") {
+      const authHeader2 = req.headers.get("Authorization");
+      if (authHeader2) {
+        try {
+          const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+          const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+          const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+          const adminSb = createClient(SUPABASE_URL, SERVICE_ROLE);
+          const token = authHeader2.replace("Bearer ", "");
+          const anonSb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
+          const { data: { user: reqUser } } = await anonSb.auth.getUser(token);
+          if (reqUser) {
+            const { data: keyRow } = await adminSb
+              .from("user_api_keys")
+              .select("api_key")
+              .eq("user_id", reqUser.id)
+              .eq("provider", byokProvider)
+              .eq("is_active", true)
+              .single();
+            if (keyRow?.api_key) {
+              userApiKey = keyRow.api_key;
+              useByok = true;
+            }
+          }
+        } catch (e) {
+          console.error("BYOK key lookup failed:", e);
+        }
+      }
+    }
 
     // ── Admin-only backend/code discussion gate ──────────────────────────
     // Detect if user is asking about internal code, backend, architecture
