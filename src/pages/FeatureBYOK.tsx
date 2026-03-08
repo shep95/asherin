@@ -5,14 +5,14 @@ import LandingBackground from "@/components/LandingBackground";
 import { ArrowLeft, ArrowRight, Key, Brain, Zap, Shield, RefreshCw, Settings, ToggleRight, Cpu } from "lucide-react";
 
 const providers = [
-  { icon: "🔮", name: "Google AI (Gemini)", models: "Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash" },
-  { icon: "🤖", name: "OpenAI", models: "GPT-4o, GPT-4o Mini, GPT-4 Turbo, o1, o1 Mini" },
-  { icon: "🧠", name: "Anthropic (Claude)", models: "Claude Sonnet 4, Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku" },
-  { icon: "🦙", name: "Meta AI (Llama)", models: "Llama 3.1 405B, 70B, 8B" },
-  { icon: "🎭", name: "Venice AI", models: "Llama 3.1 405B, Dolphin 2.9 — uncensored" },
-  { icon: "⚡", name: "xAI (Grok)", models: "Grok 2, Grok 2 Mini" },
-  { icon: "🌊", name: "Mistral AI", models: "Mistral Large, Medium, Small" },
-  { icon: "🔍", name: "DeepSeek", models: "DeepSeek V3, DeepSeek R1" },
+  { icon: "◈", name: "Google AI (Gemini)", models: "Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash" },
+  { icon: "◉", name: "OpenAI", models: "GPT-4o, GPT-4o Mini, GPT-4 Turbo, o1, o1 Mini" },
+  { icon: "◎", name: "Anthropic (Claude)", models: "Claude Sonnet 4, Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Haiku" },
+  { icon: "◇", name: "Meta AI (Llama)", models: "Llama 3.1 405B, 70B, 8B" },
+  { icon: "◆", name: "Venice AI", models: "Llama 3.1 405B, Dolphin 2.9 — uncensored" },
+  { icon: "◌", name: "xAI (Grok)", models: "Grok 2, Grok 2 Mini" },
+  { icon: "◐", name: "Mistral AI", models: "Mistral Large, Medium, Small" },
+  { icon: "◔", name: "DeepSeek", models: "DeepSeek V3, DeepSeek R1" },
 ];
 
 const capabilities = [
