@@ -12,10 +12,11 @@ const CHAT_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Security",
+    category: "Security & Flexibility",
     features: [
       { name: "End-to-end encryption", desc: "Every message encrypted. Your data is never stored as training data.", link: null },
       { name: "Data sovereignty", desc: "Your data is never sold, shared, or used for model improvement.", link: null },
+      { name: "Bring Your Own AI Key", desc: "Connect your own API keys from Google, OpenAI, Claude, Meta, xAI, Mistral, DeepSeek & Venice.", link: "/feature/byok" },
     ],
   },
 ];
