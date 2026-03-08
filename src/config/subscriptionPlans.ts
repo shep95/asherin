@@ -98,7 +98,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Pay Once, Own Forever",
     price: "$470",
     period: "one-time",
-    description: "Permanent Aureon Chat access. Bring Your Own API Key required — our engine is not included. Pay once, use forever.",
+    description: "Permanent Aureon Chat access with your own uncensored LLM model powered by ZOPHIEL intelligence. Bring Your Own API Key required. Pay once, use forever.",
     cta: "Get Lifetime Access",
     highlight: false,
     publicVisible: true,
@@ -106,6 +106,8 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     messageLimit: 100,
     featureLabels: [
       "Aureon Chat — permanent access, no recurring fees",
+      "Your own uncensored LLM model — no filters, no restrictions",
+      "Powered by ZOPHIEL Intelligence System — truth-seeking AI engine",
       "Bring Your Own API Key required (8 providers supported)",
       "GPT-5.4, Claude Opus 4.6, Gemini 3.1 Pro, Grok 4 & more",
       "Aureon default engine NOT included",
