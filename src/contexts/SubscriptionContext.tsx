@@ -4,6 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // Stripe product/price mapping
 export const TIERS = {
+  lifetime: {
+    product_id: "prod_U74tK6VXkH6S5Z",
+    price_id: "price_1T8qjNRxgCpmPfiFsv2lsvQq",
+  },
   chat: {
     product_id: "prod_U4YWDDwSXK3SGO",
     price_id: "price_1T6PPmRxgCpmPfiFoTiBXBzq",
@@ -71,7 +75,7 @@ function productToTier(productId: string | null): TierKey | null {
 
 /** Check if user has chat-only access */
 export function hasChatAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "chat" || tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+  return tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
 }
 
 /** Check if user has access to Zophiel Search (aureon+ tiers) */
@@ -140,8 +144,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const startCheckout = useCallback(async (tier: TierKey) => {
     setCheckoutLoading(true);
     try {
+      const isLifetime = tier === "lifetime";
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: TIERS[tier].price_id },
+        body: { priceId: TIERS[tier].price_id, mode: isLifetime ? "payment" : "subscription" },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

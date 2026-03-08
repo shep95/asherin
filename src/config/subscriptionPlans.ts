@@ -65,6 +65,10 @@ export interface PlanDefinition {
 }
 
 // ── Tier → Feature Mapping ───────────────────────────────────────────────────
+const LIFETIME_FEATURES: FeatureId[] = [
+  "chat", "encryption",
+];
+
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption",
 ];
@@ -89,6 +93,29 @@ const ADVISOR_FEATURES: FeatureId[] = [...PRO_FEATURES];
 // ── Plans Array ──────────────────────────────────────────────────────────────
 export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
   {
+    id: "lifetime",
+    name: "AUREON LIFETIME",
+    tagline: "Pay Once, Own Forever",
+    price: "$470",
+    period: "one-time",
+    description: "Permanent Aureon Chat access. Bring Your Own API Key required — our engine is not included. Pay once, use forever.",
+    cta: "Get Lifetime Access",
+    highlight: false,
+    publicVisible: true,
+    features: LIFETIME_FEATURES,
+    messageLimit: 100,
+    featureLabels: [
+      "Aureon Chat — permanent access, no recurring fees",
+      "Bring Your Own API Key required (8 providers supported)",
+      "GPT-5.4, Claude Opus 4.6, Gemini 3.1 Pro, Grok 4 & more",
+      "Aureon default engine NOT included",
+      "100 messages per 3-hour window",
+      "End-to-end encryption",
+      "Data never sold or used for training",
+      "No expiry — lifetime means lifetime",
+    ],
+  },
+  {
     id: "chat",
     name: "AUREON CHAT",
     tagline: "AI Chat Only",
@@ -103,6 +130,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     featureLabels: [
       "Uncensored AI chat on any topic",
       "100 messages per 3-hour window",
+      "Aureon default engine included",
       "End-to-end encryption",
       "Data never sold or used for training",
       "Bring Your Own AI Key — use your preferred models",

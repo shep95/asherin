@@ -87,6 +87,38 @@ serve(async (req) => {
     );
 
     if (!activeSub) {
+      // Check for one-time lifetime purchase
+      const LIFETIME_PRODUCT_ID = "prod_U74tK6VXkH6S5Z";
+      const sessions = await stripe.checkout.sessions.list({
+        customer: customerId,
+        limit: 100,
+      });
+      const lifetimePurchase = sessions.data.find(
+        (s) => s.payment_status === "paid" && s.mode === "payment"
+      );
+      if (lifetimePurchase) {
+        // Verify it was the lifetime product by checking line items
+        const lineItems = await stripe.checkout.sessions.listLineItems(lifetimePurchase.id, { limit: 5 });
+        const hasLifetime = lineItems.data.some((li) => {
+          const priceProduct = (li.price as any)?.product;
+          return priceProduct === LIFETIME_PRODUCT_ID;
+        });
+        if (hasLifetime) {
+          logStep("Lifetime purchase found", { sessionId: lifetimePurchase.id });
+          return new Response(JSON.stringify({
+            subscribed: true,
+            product_id: LIFETIME_PRODUCT_ID,
+            price_id: null,
+            subscription_end: null,
+            status: "lifetime",
+            cancel_at_period_end: false,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+      }
+
       logStep("No active/trialing subscription found");
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
