@@ -642,6 +642,63 @@ const Dashboard = () => {
       || builtInPersonas.find((p) => p.id === personaId);
     const personaSystemPrompt = activePersona?.systemPrompt || null;
 
+    // ── CONSENSUS MODE ──────────────────────────────────────────────
+    if (consensusEnabled && consensusModels.length >= 2) {
+      try {
+        const result = await fetchConsensus({
+          messages: history.map(m => ({ role: m.role, content: m.content })),
+          models: consensusModels.map(m => ({ provider: m.provider, model: m.model })),
+          mode,
+        });
+
+        // Pick the best content for display and DB storage
+        const bestContent = result.consensus && result.responses.find(r => r.content)?.content
+          || result.responses.filter(r => r.content).map(r => `**${r.provider}/${r.model}:**\n${r.content}`).join("\n\n---\n\n")
+          || "No models responded successfully.";
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: bestContent, consensusData: result } : m) }
+              : c
+          )
+        );
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+
+        const encryptedAssistant = await encryptText(bestContent, user.id);
+        await supabase.from("messages").insert({
+          id: assistantId,
+          conversation_id: convId,
+          user_id: user.id,
+          role: "assistant",
+          content: encryptedAssistant,
+        });
+        const sug = await fetchSuggestions(bestContent);
+        setSuggestions(sug);
+        pushNotification({
+          title: `Consensus: ${result.consensus ? "Models agree" : "Models disagree"}`,
+          message: `${result.successCount}/${result.modelCount} models responded (${Math.round(result.similarity * 100)}% similarity)`,
+          type: result.consensus ? "success" : "info",
+          actionLabel: "View",
+          actionView: "chat",
+        });
+      } catch (e: any) {
+        setIsStreaming(false);
+        isStreamingRef.current = false;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === convId
+              ? { ...c, messages: c.messages.filter(m => m.id !== assistantId) }
+              : c
+          )
+        );
+        toast({ title: "Consensus Error", description: e.message, variant: "destructive" });
+      }
+      return;
+    }
+
+    // ── STANDARD STREAMING ──────────────────────────────────────────
     try {
       await streamChat({
         messages: history,
@@ -675,7 +732,6 @@ const Dashboard = () => {
           });
           const sug = await fetchSuggestions(assistantContent);
           setSuggestions(sug);
-          // In-app notification trigger for completed AI response
           pushNotification({
             title: "Aureon responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
