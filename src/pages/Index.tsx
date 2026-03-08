@@ -1,12 +1,13 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link } from "react-router-dom";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
+import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
