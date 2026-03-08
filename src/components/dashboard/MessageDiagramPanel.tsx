@@ -8,7 +8,7 @@ interface MessageDiagramPanelProps {
   onClose: () => void;
 }
 
-type DiagramType = "knowledge" | "concepts" | "causal" | "taxonomy";
+type DiagramType = "knowledge" | "concepts" | "causal" | "taxonomy" | "neural";
 
 /* ── Knowledge extraction helpers ── */
 
