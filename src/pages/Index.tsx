@@ -548,52 +548,70 @@ const Index = () => {
       <ScrollSection>
       <div className="relative z-10 px-6 py-24 sm:py-32">
         <div className="mx-auto max-w-5xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/5 px-4 py-1.5 mb-8">
+            <Key className="h-3.5 w-3.5 text-accent" />
+            <span className="text-[10px] font-light tracking-[0.25em] text-accent uppercase">Bring Your Own Key</span>
+          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
             Your Keys. Your Models.
             <br />
-            <span className="text-muted-foreground">One Unified Intelligence Layer.</span>
+            <span className="text-muted-foreground">Uncensored Through Every Provider.</span>
           </h2>
           <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
-            Bring your own API keys from OpenAI, Anthropic, Google, Mistral, xAI, DeepSeek, and more. Run multiple models simultaneously, compare outputs side-by-side, and let Aureon's consensus engine determine when they agree — or expose where they diverge.
+            Plug in your own API keys from any major AI provider. Every model runs through Aureon's uncensored intelligence layer — same raw output, same zero-filter policy, regardless of which LLM powers it. Run multiple models at once, compare outputs, and let the consensus engine find truth across providers.
           </p>
 
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Key className="h-7 w-7 text-accent" />
+              <Key className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Bring Your Own Key</h3>
               <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                Plug in API keys from any major provider. Your keys, your billing, your control.
+                Plug in API keys from any provider. Your keys, your billing, your control. No middleman.
               </p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Layers className="h-7 w-7 text-accent" />
+              <Layers className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Multi-Model at Once</h3>
               <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                Send one prompt to 2–4 models in parallel. See every response, not just one.
+                Send one prompt to 2–4 models in parallel. See every response side-by-side.
               </p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Shuffle className="h-7 w-7 text-accent" />
+              <Shuffle className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Consensus Engine</h3>
               <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                When models agree, you get one clean answer. When they disagree, you see exactly where and why.
+                When models agree, you get one clean answer. When they disagree, you see exactly where.
               </p>
             </div>
             <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
-              <Cpu className="h-7 w-7 text-accent" />
+              <Cpu className="h-7 w-7 text-foreground" />
               <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Aureon Brain Intact</h3>
               <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
-                Every model runs through Aureon's system prompt. Same personality, same depth — regardless of provider.
+                Every model runs through Aureon's uncensored system prompt. Same depth, zero filters.
               </p>
             </div>
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
-            {["OpenAI", "Anthropic", "Google Gemini", "Mistral", "xAI (Grok)", "DeepSeek", "Meta (Llama)", "Venice AI"].map(provider => (
-              <span key={provider} className="rounded-full border border-border/20 bg-card/20 px-4 py-1.5 text-[10px] font-extralight tracking-wide text-muted-foreground">
-                {provider}
-              </span>
-            ))}
+          {/* Supported AI Providers — Full List */}
+          <div className="mt-16">
+            <p className="text-xs font-light tracking-[0.25em] text-muted-foreground/60 uppercase mb-6">Supported AI Providers</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { name: "OpenAI", models: "GPT-4o, GPT-4 Turbo, o1, o3" },
+                { name: "Anthropic", models: "Claude 3.5 Sonnet, Claude 3 Opus" },
+                { name: "Google", models: "Gemini 2.5 Pro, Gemini 2.5 Flash" },
+                { name: "xAI", models: "Grok-2, Grok-3" },
+                { name: "Mistral", models: "Mistral Large, Mixtral" },
+                { name: "DeepSeek", models: "DeepSeek V3, DeepSeek R1" },
+                { name: "Meta", models: "Llama 3.3, Llama 4 (via Together)" },
+                { name: "Venice AI", models: "Uncensored models, no logging" },
+              ].map(provider => (
+                <div key={provider.name} className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-md p-4 text-left">
+                  <p className="text-xs font-light tracking-wide text-foreground">{provider.name}</p>
+                  <p className="mt-1 text-[10px] font-extralight leading-relaxed text-muted-foreground/60">{provider.models}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <p className="mt-10 text-sm font-extralight text-muted-foreground/70">
@@ -602,6 +620,7 @@ const Index = () => {
         </div>
       </div>
       </ScrollSection>
+
 
       <ScrollSection>
       <DashboardPreview />
