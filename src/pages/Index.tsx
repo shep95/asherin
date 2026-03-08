@@ -647,13 +647,13 @@ const Index = () => {
                 <span className="text-4xl font-extralight tracking-tight text-foreground">$470</span>
                 <span className="text-sm text-muted-foreground font-extralight">one-time</span>
               </div>
-              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">Permanent chat access with your own uncensored LLM model powered by ZOPHIEL intelligence. Unlimited messages with your own API key.</p>
+              <p className="mt-3 text-sm font-extralight leading-relaxed text-muted-foreground">We uncensor your preferred LLM models — no filters, no agendas. Your GPT, Claude, Gemini run without corporate restrictions via ZOPHIEL intelligence.</p>
               <Link to="/pricing" className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all">
                 Get Lifetime <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <div className="my-6 h-px bg-border/15" />
               <ul className="space-y-2.5 flex-1">
-                {["Aureon Chat — permanent access", "Your own uncensored LLM model", "Powered by ZOPHIEL Intelligence", "Unlimited messages with your API key", "BYOK (Bring Your Own API Key) — 8 providers", "GPT-5.4, Opus 4.6, Gemini 3.1 Pro & more", "No Aureon default engine", "End-to-end encryption", "No expiry — lifetime means lifetime"].map(f => (
+                {["Aureon Chat — permanent access", "We uncensor your preferred models", "No safety filters or corporate agendas", "Powered by ZOPHIEL Intelligence", "Unlimited messages with your API key", "BYOK (Bring Your Own API Key) — 8 providers", "GPT-5.4, Opus 4.6, Gemini 3.1 Pro & more", "End-to-end encryption", "No expiry — lifetime means lifetime"].map(f => (
                   <li key={f} className="flex items-start gap-2.5 text-[13px] font-extralight text-foreground/85">
                     <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-accent" /> {f}
                   </li>
