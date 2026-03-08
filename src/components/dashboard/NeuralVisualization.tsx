@@ -129,7 +129,7 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
         if (n.activation > 0.3) {
           ctx.beginPath();
           ctx.arc(n.x, n.y, radius + 6, 0, Math.PI * 2);
-          ctx.fillStyle = `hsla(var(--accent), ${n.activation * 0.2})`;
+          ctx.fillStyle = `hsla(0, 0%, 100%, ${n.activation * 0.25})`;
           ctx.fill();
         }
 
