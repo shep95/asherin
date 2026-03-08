@@ -472,6 +472,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             <GitBranch className="h-3 w-3" />
                             Diagram
                           </button>
+                          <button
+                            onClick={() => setNeuralId(msg.id)}
+                            className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors"
+                          >
+                            <Zap className="h-3 w-3" />
+                            Show Thinking
+                          </button>
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
@@ -493,6 +500,14 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       open={true}
                       content={msg.content}
                       onClose={() => setDiagramId(null)}
+                    />
+                  )}
+                  {msg.role === "assistant" && neuralId === msg.id && (
+                    <NeuralThinkingModal
+                      open={true}
+                      query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content || ""}
+                      response={msg.content}
+                      onClose={() => setNeuralId(null)}
                     />
                   )}
                 </div>
