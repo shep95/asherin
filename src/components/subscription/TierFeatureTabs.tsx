@@ -12,10 +12,11 @@ const CHAT_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Security",
+    category: "Security & Flexibility",
     features: [
       { name: "End-to-end encryption", desc: "Every message encrypted. Your data is never stored as training data.", link: null },
       { name: "Data sovereignty", desc: "Your data is never sold, shared, or used for model improvement.", link: null },
+      { name: "Bring Your Own AI Key", desc: "Connect your own API keys from Google, OpenAI, Claude, Meta, xAI, Mistral, DeepSeek & Venice.", link: "/feature/byok" },
     ],
   },
 ];
@@ -55,10 +56,11 @@ const AUREON_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Security",
+    category: "Security & Flexibility",
     features: [
       { name: "End-to-end encryption", desc: "Every message encrypted. Your data is never stored as training data.", link: null },
       { name: "Data sovereignty", desc: "Your data is never sold, shared, or used for model improvement.", link: null },
+      { name: "Bring Your Own AI Key", desc: "Use your preferred AI models from 8+ providers across all Aureon tools.", link: "/feature/byok" },
     ],
   },
 ];
@@ -108,6 +110,14 @@ const PRO_FEATURE_GROUPS = [
       { name: "Audit Trail", desc: "Full compliance-grade audit logging of all platform activity.", link: null },
       { name: "Team Workspace", desc: "RBAC, email invites, and collaborative workspaces.", link: null },
       { name: "Plugin Marketplace", desc: "20+ plugins to extend Aureon's capabilities.", link: null },
+    ],
+  },
+  {
+    category: "AI Model Flexibility",
+    features: [
+      { name: "Bring Your Own AI Key", desc: "Connect API keys from Google, OpenAI, Anthropic, Meta, Venice, xAI, Mistral & DeepSeek.", link: "/feature/byok" },
+      { name: "Multi-model switching", desc: "Switch between models per-provider from Settings — applied across all Aureon tools.", link: null },
+      { name: "Fallback to Aureon default", desc: "If your key hits rate limits, Aureon's built-in engine takes over automatically.", link: null },
     ],
   },
 ];

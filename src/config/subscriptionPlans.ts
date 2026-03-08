@@ -105,6 +105,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "100 messages per 3-hour window",
       "End-to-end encryption",
       "Data never sold or used for training",
+      "Bring Your Own AI Key — use your preferred models",
       "Cancel anytime — one click",
     ],
   },
@@ -137,6 +138,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "PDF Generator",
       "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
       "Vibe Imager — conversational AI image creation & editing",
+      "Bring Your Own AI Key — use Google, OpenAI, Claude, Meta & more",
     ],
   },
   {
@@ -179,6 +181,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "IMAGINE INTELLIGENCE — Geo-Intelligence Analysis",
       "Video Intelligence — behavioral & deception analysis",
       "Priority model access",
+      "Bring Your Own AI Key — use any provider across all tools",
     ],
   },
   {
