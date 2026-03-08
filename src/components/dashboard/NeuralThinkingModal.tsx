@@ -114,16 +114,7 @@ function extractAttentionWeights(query: string): AttentionWeight[] {
 
 /* ── Animated step component ── */
 
-const ThinkingStepCard = ({ step, index, isAnimating }: { step: ThinkingStep; index: number; isAnimating: boolean }) => {
-  const [visible, setVisible] = useState(!isAnimating);
-
-  useEffect(() => {
-    if (isAnimating) {
-      const timer = setTimeout(() => setVisible(true), index * 600);
-      return () => clearTimeout(timer);
-    }
-  }, [index, isAnimating]);
-
+const ThinkingStepCard = ({ step, index, visible }: { step: ThinkingStep; index: number; visible: boolean }) => {
   if (!visible) return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/10 bg-card/20">
       <div className="h-6 w-6 rounded-full bg-muted-foreground/10 animate-pulse" />
@@ -132,21 +123,16 @@ const ThinkingStepCard = ({ step, index, isAnimating }: { step: ThinkingStep; in
   );
 
   return (
-    <div className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-sm px-3 py-3 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+    <div className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-sm px-3 py-3 animate-fade-in" style={{ animationDelay: `${index * 60}ms` }}>
       <div className="flex items-center gap-2 mb-1.5">
-        <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-medium ${
-          step.status === "complete" ? "bg-accent/20 text-accent" : step.status === "active" ? "bg-accent/10 text-accent animate-pulse" : "bg-muted-foreground/10 text-muted-foreground/40"
-        }`}>
-          {step.status === "complete" ? "✓" : step.status === "active" ? "⚡" : index + 1}
-        </div>
+        <div className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-medium bg-accent/20 text-accent">✓</div>
         <span className="text-[11px] font-light text-foreground tracking-wide">{step.title}</span>
         <span className="ml-auto text-[9px] text-muted-foreground/40">{step.confidence}%</span>
       </div>
       <p className="text-[10px] font-extralight text-muted-foreground/60 leading-relaxed pl-7">{step.detail}</p>
-      {/* Confidence bar */}
       <div className="mt-2 pl-7">
         <div className="h-1 rounded-full bg-border/15 overflow-hidden">
-          <div className="h-full rounded-full bg-accent/50 transition-all duration-1000" style={{ width: `${step.confidence}%` }} />
+          <div className="h-full rounded-full bg-accent/50 transition-all duration-500" style={{ width: `${step.confidence}%` }} />
         </div>
       </div>
       {step.concepts && step.concepts.length > 0 && (
