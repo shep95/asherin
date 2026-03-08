@@ -597,11 +597,11 @@ const Index = () => {
             <p className="text-xs font-light tracking-[0.25em] text-muted-foreground/60 uppercase mb-6">Supported AI Providers</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { name: "OpenAI", models: "GPT-4.1, o3, o4-mini" },
-                { name: "Anthropic", models: "Claude Opus 4, Sonnet 4" },
-                { name: "Google", models: "Gemini 2.5 Pro, 2.5 Flash" },
-                { name: "xAI", models: "Grok 3, Grok 3 Mini" },
-                { name: "Mistral", models: "Large, Codestral, Pixtral" },
+                { name: "OpenAI", models: "GPT-5.4, GPT-5.3, o4-mini" },
+                { name: "Anthropic", models: "Opus 4.6, Sonnet 4.6" },
+                { name: "Google", models: "Gemini 3.1 Pro, 2.5 Pro" },
+                { name: "xAI", models: "Grok 4, Grok Code" },
+                { name: "Mistral", models: "Medium 3.1, Codestral" },
                 { name: "DeepSeek", models: "DeepSeek V3, R1" },
                 { name: "Meta", models: "Llama 4 Maverick & Scout" },
                 { name: "Venice AI", models: "Uncensored, zero logging" },
