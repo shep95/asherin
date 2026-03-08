@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
@@ -541,6 +541,64 @@ const Index = () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+      </ScrollSection>
+
+      <ScrollSection>
+      <div className="relative z-10 px-6 py-24 sm:py-32">
+        <div className="mx-auto max-w-5xl text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight tracking-wide leading-tight text-foreground">
+            Your Keys. Your Models.
+            <br />
+            <span className="text-muted-foreground">One Unified Intelligence Layer.</span>
+          </h2>
+          <p className="mt-6 max-w-2xl mx-auto text-base font-extralight leading-relaxed text-muted-foreground">
+            Bring your own API keys from OpenAI, Anthropic, Google, Mistral, xAI, DeepSeek, and more. Run multiple models simultaneously, compare outputs side-by-side, and let Aureon's consensus engine determine when they agree — or expose where they diverge.
+          </p>
+
+          <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
+              <Key className="h-7 w-7 text-accent" />
+              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Bring Your Own Key</h3>
+              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
+                Plug in API keys from any major provider. Your keys, your billing, your control.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
+              <Layers className="h-7 w-7 text-accent" />
+              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Multi-Model at Once</h3>
+              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
+                Send one prompt to 2–4 models in parallel. See every response, not just one.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
+              <Shuffle className="h-7 w-7 text-accent" />
+              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Consensus Engine</h3>
+              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
+                When models agree, you get one clean answer. When they disagree, you see exactly where and why.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md p-6 text-left">
+              <Cpu className="h-7 w-7 text-accent" />
+              <h3 className="mt-4 text-sm font-light tracking-wide text-foreground">Aureon Brain Intact</h3>
+              <p className="mt-2 text-xs font-extralight leading-relaxed text-muted-foreground">
+                Every model runs through Aureon's system prompt. Same personality, same depth — regardless of provider.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
+            {["OpenAI", "Anthropic", "Google Gemini", "Mistral", "xAI (Grok)", "DeepSeek", "Meta (Llama)", "Venice AI"].map(provider => (
+              <span key={provider} className="rounded-full border border-border/20 bg-card/20 px-4 py-1.5 text-[10px] font-extralight tracking-wide text-muted-foreground">
+                {provider}
+              </span>
+            ))}
+          </div>
+
+          <p className="mt-10 text-sm font-extralight text-muted-foreground/70">
+            No vendor lock-in. Switch models per message. Or run them all at once.
+          </p>
         </div>
       </div>
       </ScrollSection>
