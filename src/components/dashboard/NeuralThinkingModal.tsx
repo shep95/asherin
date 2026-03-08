@@ -148,16 +148,26 @@ const ThinkingStepCard = ({ step, index, visible }: { step: ThinkingStep; index:
 
 /* ── Main Modal ── */
 
+const SPEED_OPTIONS = [0.25, 0.5, 1, 1.5, 2, 3];
+const BASE_STEP_MS = 600;
+
 const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingModalProps) => {
   const [activeTab, setActiveTab] = useState<"neural" | "steps" | "stats">("neural");
   const [copied, setCopied] = useState(false);
   const [isAnimating, setIsAnimating] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1);
+  const [progress, setProgress] = useState(0);
+  const progressTimerRef = useRef<number>(0);
+  const pausedElapsedRef = useRef<number>(0);
+  const playStartRef = useRef<number>(0);
 
   const steps = useMemo(() => extractThinkingSteps(query, response), [query, response]);
   const attentionWeights = useMemo(() => extractAttentionWeights(query), [query]);
   const overallConfidence = useMemo(() => Math.round(steps.reduce((s, st) => s + st.confidence, 0) / steps.length), [steps]);
 
-  // Simulated stats
+  const totalDuration = useMemo(() => steps.length * BASE_STEP_MS + 500, [steps.length]);
+
   const stats = useMemo(() => ({
     neuronsActive: Math.floor(Math.random() * 800 + 400),
     pathsActive: Math.floor(Math.random() * 80 + 30),
@@ -166,13 +176,74 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
     processingTime: (Math.random() * 2 + 0.8).toFixed(1),
   }), [response, steps]);
 
+  const visibleStepCount = Math.min(Math.floor(progress * (steps.length + 1)), steps.length);
+
+  useEffect(() => {
+    if (!open || !isPlaying) return;
+    playStartRef.current = performance.now();
+    const baseElapsed = pausedElapsedRef.current;
+
+    const tick = () => {
+      const delta = (performance.now() - playStartRef.current) * speed;
+      const totalElapsed = baseElapsed + delta;
+      const p = Math.min(totalElapsed / totalDuration, 1);
+      setProgress(p);
+      setIsAnimating(p < 1);
+      if (p < 1) {
+        progressTimerRef.current = requestAnimationFrame(tick);
+      } else {
+        pausedElapsedRef.current = totalDuration;
+        setIsPlaying(false);
+      }
+    };
+
+    progressTimerRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(progressTimerRef.current);
+  }, [open, isPlaying, speed, totalDuration]);
+
   useEffect(() => {
     if (open) {
+      setProgress(0);
+      pausedElapsedRef.current = 0;
+      setIsPlaying(true);
       setIsAnimating(true);
-      const t = setTimeout(() => setIsAnimating(false), steps.length * 600 + 500);
-      return () => clearTimeout(t);
     }
-  }, [open, steps.length]);
+  }, [open]);
+
+  const handleReplay = useCallback(() => {
+    setProgress(0);
+    pausedElapsedRef.current = 0;
+    setIsPlaying(true);
+    setIsAnimating(true);
+  }, []);
+
+  const handleTogglePlay = useCallback(() => {
+    if (progress >= 1) {
+      handleReplay();
+    } else {
+      if (isPlaying) {
+        pausedElapsedRef.current = progress * totalDuration;
+      }
+      setIsPlaying(p => !p);
+    }
+  }, [progress, isPlaying, totalDuration, handleReplay]);
+
+  const handleSpeedChange = useCallback((delta: number) => {
+    setSpeed(prev => {
+      const idx = SPEED_OPTIONS.indexOf(prev);
+      const next = idx + delta;
+      if (next >= 0 && next < SPEED_OPTIONS.length) return SPEED_OPTIONS[next];
+      return prev;
+    });
+  }, []);
+
+  const handleScrub = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setProgress(val);
+    pausedElapsedRef.current = val * totalDuration;
+    setIsAnimating(val < 1);
+    if (val >= 1) setIsPlaying(false);
+  }, [totalDuration]);
 
   const handleCopy = useCallback(() => {
     const text = steps.map((s, i) => `Step ${i + 1}: ${s.title}\n${s.detail}\nConfidence: ${s.confidence}%`).join("\n\n");
