@@ -105,6 +105,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "100 messages per 3-hour window",
       "End-to-end encryption",
       "Data never sold or used for training",
+      "Bring Your Own AI Key — use your preferred models",
       "Cancel anytime — one click",
     ],
   },
