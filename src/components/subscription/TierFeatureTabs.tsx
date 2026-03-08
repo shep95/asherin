@@ -56,10 +56,11 @@ const AUREON_FEATURE_GROUPS = [
     ],
   },
   {
-    category: "Security",
+    category: "Security & Flexibility",
     features: [
       { name: "End-to-end encryption", desc: "Every message encrypted. Your data is never stored as training data.", link: null },
       { name: "Data sovereignty", desc: "Your data is never sold, shared, or used for model improvement.", link: null },
+      { name: "Bring Your Own AI Key", desc: "Use your preferred AI models from 8+ providers across all Aureon tools.", link: "/feature/byok" },
     ],
   },
 ];
