@@ -889,9 +889,25 @@ const VibeVideoView = () => {
             <RotateCcw className="h-3 w-3" />
             Projects
           </button>
-          <span className="text-[10px] font-light tracking-wider text-foreground/70 truncate max-w-[140px]">
-            {activeProject.name}
-          </span>
+          {renamingId === activeProject.id ? (
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") renameProject(activeProject.id, renameValue); if (e.key === "Escape") setRenamingId(null); }}
+              onBlur={() => renameProject(activeProject.id, renameValue)}
+              className="text-[10px] font-light tracking-wider text-foreground/70 bg-transparent outline-none border-b border-accent/30 max-w-[140px]"
+            />
+          ) : (
+            <button
+              onClick={() => { setRenamingId(activeProject.id); setRenameValue(activeProject.name); }}
+              className="text-[10px] font-light tracking-wider text-foreground/70 truncate max-w-[140px] hover:text-foreground transition-colors flex items-center gap-1 group/name"
+              title="Click to rename"
+            >
+              {activeProject.name}
+              <Pencil className="h-2.5 w-2.5 opacity-0 group-hover/name:opacity-60 transition-opacity" />
+            </button>
+          )}
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={`p-2 rounded-xl transition-colors ${showHistory ? "bg-accent/20 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`}
