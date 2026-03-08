@@ -113,7 +113,7 @@ const NeuralVisualization = ({ isThinking, className = "" }: NeuralVisualization
               ctx.beginPath();
               ctx.moveTo(a.x, a.y);
               ctx.lineTo(b.x, b.y);
-              ctx.strokeStyle = `hsla(var(--border), 0.08)`;
+              ctx.strokeStyle = `hsla(0, 0%, 100%, 0.12)`;
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
