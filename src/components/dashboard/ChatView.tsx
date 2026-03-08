@@ -377,6 +377,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
+            {onConsensusToggle && onConsensusModelsChange && (
+              <MultiModelSelector
+                enabled={consensusEnabled}
+                onToggle={onConsensusToggle}
+                selectedModels={consensusModels}
+                onModelsChange={onConsensusModelsChange}
+                storedProviders={storedProviders}
+              />
+            )}
           </div>
         </div>
       )}
