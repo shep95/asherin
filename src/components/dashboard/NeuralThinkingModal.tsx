@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { X, Brain, Zap, Eye, Copy, Check, Download, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { X, Brain, Zap, Eye, Copy, Check, Download, ChevronRight, Play, Pause, RotateCcw, Minus, Plus } from "lucide-react";
 import NeuralVisualization from "./NeuralVisualization";
 
 interface ThinkingStep {
@@ -114,16 +114,7 @@ function extractAttentionWeights(query: string): AttentionWeight[] {
 
 /* ── Animated step component ── */
 
-const ThinkingStepCard = ({ step, index, isAnimating }: { step: ThinkingStep; index: number; isAnimating: boolean }) => {
-  const [visible, setVisible] = useState(!isAnimating);
-
-  useEffect(() => {
-    if (isAnimating) {
-      const timer = setTimeout(() => setVisible(true), index * 600);
-      return () => clearTimeout(timer);
-    }
-  }, [index, isAnimating]);
-
+const ThinkingStepCard = ({ step, index, visible }: { step: ThinkingStep; index: number; visible: boolean }) => {
   if (!visible) return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/10 bg-card/20">
       <div className="h-6 w-6 rounded-full bg-muted-foreground/10 animate-pulse" />
@@ -132,21 +123,16 @@ const ThinkingStepCard = ({ step, index, isAnimating }: { step: ThinkingStep; in
   );
 
   return (
-    <div className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-sm px-3 py-3 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+    <div className="rounded-xl border border-border/20 bg-card/40 backdrop-blur-sm px-3 py-3 animate-fade-in" style={{ animationDelay: `${index * 60}ms` }}>
       <div className="flex items-center gap-2 mb-1.5">
-        <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-medium ${
-          step.status === "complete" ? "bg-accent/20 text-accent" : step.status === "active" ? "bg-accent/10 text-accent animate-pulse" : "bg-muted-foreground/10 text-muted-foreground/40"
-        }`}>
-          {step.status === "complete" ? "✓" : step.status === "active" ? "⚡" : index + 1}
-        </div>
+        <div className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-medium bg-accent/20 text-accent">✓</div>
         <span className="text-[11px] font-light text-foreground tracking-wide">{step.title}</span>
         <span className="ml-auto text-[9px] text-muted-foreground/40">{step.confidence}%</span>
       </div>
       <p className="text-[10px] font-extralight text-muted-foreground/60 leading-relaxed pl-7">{step.detail}</p>
-      {/* Confidence bar */}
       <div className="mt-2 pl-7">
         <div className="h-1 rounded-full bg-border/15 overflow-hidden">
-          <div className="h-full rounded-full bg-accent/50 transition-all duration-1000" style={{ width: `${step.confidence}%` }} />
+          <div className="h-full rounded-full bg-accent/50 transition-all duration-500" style={{ width: `${step.confidence}%` }} />
         </div>
       </div>
       {step.concepts && step.concepts.length > 0 && (
@@ -162,16 +148,26 @@ const ThinkingStepCard = ({ step, index, isAnimating }: { step: ThinkingStep; in
 
 /* ── Main Modal ── */
 
+const SPEED_OPTIONS = [0.25, 0.5, 1, 1.5, 2, 3];
+const BASE_STEP_MS = 600;
+
 const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingModalProps) => {
   const [activeTab, setActiveTab] = useState<"neural" | "steps" | "stats">("neural");
   const [copied, setCopied] = useState(false);
   const [isAnimating, setIsAnimating] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1);
+  const [progress, setProgress] = useState(0);
+  const progressTimerRef = useRef<number>(0);
+  const pausedElapsedRef = useRef<number>(0);
+  const playStartRef = useRef<number>(0);
 
   const steps = useMemo(() => extractThinkingSteps(query, response), [query, response]);
   const attentionWeights = useMemo(() => extractAttentionWeights(query), [query]);
   const overallConfidence = useMemo(() => Math.round(steps.reduce((s, st) => s + st.confidence, 0) / steps.length), [steps]);
 
-  // Simulated stats
+  const totalDuration = useMemo(() => steps.length * BASE_STEP_MS + 500, [steps.length]);
+
   const stats = useMemo(() => ({
     neuronsActive: Math.floor(Math.random() * 800 + 400),
     pathsActive: Math.floor(Math.random() * 80 + 30),
@@ -180,13 +176,74 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
     processingTime: (Math.random() * 2 + 0.8).toFixed(1),
   }), [response, steps]);
 
+  const visibleStepCount = Math.min(Math.floor(progress * (steps.length + 1)), steps.length);
+
+  useEffect(() => {
+    if (!open || !isPlaying) return;
+    playStartRef.current = performance.now();
+    const baseElapsed = pausedElapsedRef.current;
+
+    const tick = () => {
+      const delta = (performance.now() - playStartRef.current) * speed;
+      const totalElapsed = baseElapsed + delta;
+      const p = Math.min(totalElapsed / totalDuration, 1);
+      setProgress(p);
+      setIsAnimating(p < 1);
+      if (p < 1) {
+        progressTimerRef.current = requestAnimationFrame(tick);
+      } else {
+        pausedElapsedRef.current = totalDuration;
+        setIsPlaying(false);
+      }
+    };
+
+    progressTimerRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(progressTimerRef.current);
+  }, [open, isPlaying, speed, totalDuration]);
+
   useEffect(() => {
     if (open) {
+      setProgress(0);
+      pausedElapsedRef.current = 0;
+      setIsPlaying(true);
       setIsAnimating(true);
-      const t = setTimeout(() => setIsAnimating(false), steps.length * 600 + 500);
-      return () => clearTimeout(t);
     }
-  }, [open, steps.length]);
+  }, [open]);
+
+  const handleReplay = useCallback(() => {
+    setProgress(0);
+    pausedElapsedRef.current = 0;
+    setIsPlaying(true);
+    setIsAnimating(true);
+  }, []);
+
+  const handleTogglePlay = useCallback(() => {
+    if (progress >= 1) {
+      handleReplay();
+    } else {
+      if (isPlaying) {
+        pausedElapsedRef.current = progress * totalDuration;
+      }
+      setIsPlaying(p => !p);
+    }
+  }, [progress, isPlaying, totalDuration, handleReplay]);
+
+  const handleSpeedChange = useCallback((delta: number) => {
+    setSpeed(prev => {
+      const idx = SPEED_OPTIONS.indexOf(prev);
+      const next = idx + delta;
+      if (next >= 0 && next < SPEED_OPTIONS.length) return SPEED_OPTIONS[next];
+      return prev;
+    });
+  }, []);
+
+  const handleScrub = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setProgress(val);
+    pausedElapsedRef.current = val * totalDuration;
+    setIsAnimating(val < 1);
+    if (val >= 1) setIsPlaying(false);
+  }, [totalDuration]);
 
   const handleCopy = useCallback(() => {
     const text = steps.map((s, i) => `Step ${i + 1}: ${s.title}\n${s.detail}\nConfidence: ${s.confidence}%`).join("\n\n");
@@ -329,7 +386,7 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
 
               <div className="space-y-2">
                 {steps.map((step, i) => (
-                  <ThinkingStepCard key={i} step={step} index={i} isAnimating={isAnimating} />
+                  <ThinkingStepCard key={i} step={step} index={i} visible={i < visibleStepCount} />
                 ))}
               </div>
 
@@ -358,6 +415,48 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
                 <span className="text-[9px] text-muted-foreground/40">🎯 Depth: {stats.reasoningDepth}</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Playback Controls */}
+        <div className="px-5 py-3 border-t border-border/15 flex items-center gap-3">
+          <button onClick={handleTogglePlay} className="h-7 w-7 rounded-lg bg-accent/15 flex items-center justify-center text-accent hover:bg-accent/25 transition-colors" title={isPlaying ? "Pause" : "Play"}>
+            {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+          </button>
+          <button onClick={handleReplay} className="h-7 w-7 rounded-lg bg-card/40 flex items-center justify-center text-muted-foreground/50 hover:text-foreground transition-colors" title="Replay">
+            <RotateCcw className="h-3 w-3" />
+          </button>
+
+          {/* Progress scrubber */}
+          <div className="flex-1 relative">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.001}
+              value={progress}
+              onChange={handleScrub}
+              className="w-full h-1.5 appearance-none bg-border/20 rounded-full outline-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:shadow-md"
+            />
+            <div
+              className="absolute top-0 left-0 h-1.5 rounded-full bg-accent/50 pointer-events-none"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+
+          <span className="text-[9px] font-light text-muted-foreground/50 tabular-nums w-12 text-right">
+            {Math.round(progress * 100)}%
+          </span>
+
+          {/* Speed controls */}
+          <div className="flex items-center gap-1 border-l border-border/15 pl-3">
+            <button onClick={() => handleSpeedChange(-1)} className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/40 hover:text-foreground transition-colors">
+              <Minus className="h-2.5 w-2.5" />
+            </button>
+            <span className="text-[10px] font-light text-foreground/70 tabular-nums w-8 text-center">{speed}x</span>
+            <button onClick={() => handleSpeedChange(1)} className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/40 hover:text-foreground transition-colors">
+              <Plus className="h-2.5 w-2.5" />
+            </button>
           </div>
         </div>
       </div>
