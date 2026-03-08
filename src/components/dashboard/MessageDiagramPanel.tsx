@@ -477,8 +477,10 @@ const MessageDiagramPanel = ({ open, content, onClose }: MessageDiagramPanelProp
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/15">
         <div className="flex items-center gap-2">
-          <Brain className="h-3.5 w-3.5 text-accent" />
-          <span className="text-[11px] font-light text-foreground tracking-wide">Knowledge Diagram</span>
+          {diagramType === "neural" ? <Zap className="h-3.5 w-3.5 text-accent" /> : <Brain className="h-3.5 w-3.5 text-accent" />}
+          <span className="text-[11px] font-light text-foreground tracking-wide">
+            {diagramType === "neural" ? "Neural Reasoning Timeline" : "Knowledge Diagram"}
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <button onClick={handleCopy} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Copy Mermaid code">
