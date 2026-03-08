@@ -23,9 +23,10 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     helpUrl: "https://aistudio.google.com/app/apikey",
     helpText: "Get your API key from Google AI Studio",
     models: [
+      { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", description: "Top-tier reasoning & multimodal" },
       { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", description: "Fast, balanced performance" },
-      { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", description: "Strongest reasoning & multimodal" },
-      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Previous gen, fast" },
+      { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", description: "Fastest & cheapest Gemini" },
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", description: "Previous gen, reliable" },
     ],
   },
   {
@@ -36,11 +37,14 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     helpUrl: "https://platform.openai.com/api-keys",
     helpText: "Get your API key from OpenAI Platform",
     models: [
-      { id: "gpt-4o", name: "GPT-4o", description: "Latest multimodal flagship" },
-      { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Fast & affordable" },
-      { id: "gpt-4-turbo", name: "GPT-4 Turbo", description: "High performance" },
-      { id: "o1", name: "o1", description: "Advanced reasoning" },
-      { id: "o1-mini", name: "o1 Mini", description: "Fast reasoning" },
+      { id: "gpt-4.1", name: "GPT-4.1", description: "Latest flagship, best coding" },
+      { id: "gpt-4.1-mini", name: "GPT-4.1 Mini", description: "Fast & affordable flagship" },
+      { id: "gpt-4.1-nano", name: "GPT-4.1 Nano", description: "Ultra-fast, lowest cost" },
+      { id: "gpt-4o", name: "GPT-4o", description: "Multimodal all-rounder" },
+      { id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Compact multimodal" },
+      { id: "o3", name: "o3", description: "Most powerful reasoning" },
+      { id: "o3-mini", name: "o3 Mini", description: "Fast advanced reasoning" },
+      { id: "o4-mini", name: "o4-mini", description: "Latest reasoning, tool use" },
     ],
   },
   {
@@ -51,10 +55,10 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     helpUrl: "https://console.anthropic.com/settings/keys",
     helpText: "Get your API key from Anthropic Console",
     models: [
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", description: "Latest balanced model" },
-      { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", description: "Fast & capable" },
-      { id: "claude-3-opus-20240229", name: "Claude 3 Opus", description: "Most powerful" },
-      { id: "claude-3-haiku-20240307", name: "Claude 3 Haiku", description: "Fastest & cheapest" },
+      { id: "claude-opus-4-20250514", name: "Claude Opus 4", description: "Most powerful Claude ever" },
+      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", description: "Best balance of speed & power" },
+      { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 Sonnet", description: "Extended thinking model" },
+      { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku", description: "Fastest Claude model" },
     ],
   },
   {
@@ -65,9 +69,10 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     helpUrl: "https://llama.meta.com/",
     helpText: "Access via Meta AI API or compatible providers",
     models: [
+      { id: "llama-4-maverick", name: "Llama 4 Maverick", description: "Latest MoE flagship" },
+      { id: "llama-4-scout", name: "Llama 4 Scout", description: "Fast 10M context model" },
+      { id: "llama-3.3-70b", name: "Llama 3.3 70B", description: "Strong open-weight model" },
       { id: "llama-3.1-405b", name: "Llama 3.1 405B", description: "Largest open model" },
-      { id: "llama-3.1-70b", name: "Llama 3.1 70B", description: "Strong performance" },
-      { id: "llama-3.1-8b", name: "Llama 3.1 8B", description: "Fast & efficient" },
     ],
   },
   {
@@ -76,10 +81,11 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     icon: "◆",
     placeholder: "Your Venice API key...",
     helpUrl: "https://venice.ai/",
-    helpText: "Get your API key from Venice AI",
+    helpText: "Get your API key from Venice AI — uncensored, no logging",
     models: [
       { id: "llama-3.1-405b", name: "Llama 3.1 405B", description: "Uncensored large model" },
       { id: "dolphin-2.9", name: "Dolphin 2.9", description: "Uncensored assistant" },
+      { id: "nous-hermes-2", name: "Nous Hermes 2", description: "Zero-filter reasoning" },
     ],
   },
   {
@@ -90,8 +96,9 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     helpUrl: "https://console.x.ai/",
     helpText: "Get your API key from xAI Console",
     models: [
-      { id: "grok-2", name: "Grok 2", description: "Latest reasoning model" },
-      { id: "grok-2-mini", name: "Grok 2 Mini", description: "Fast & efficient" },
+      { id: "grok-3", name: "Grok 3", description: "Most powerful Grok model" },
+      { id: "grok-3-mini", name: "Grok 3 Mini", description: "Fast reasoning" },
+      { id: "grok-2", name: "Grok 2", description: "Reliable all-rounder" },
     ],
   },
   {
@@ -102,9 +109,10 @@ export const AI_PROVIDERS: ProviderConfig[] = [
     helpUrl: "https://console.mistral.ai/api-keys/",
     helpText: "Get your API key from Mistral Console",
     models: [
-      { id: "mistral-large-latest", name: "Mistral Large", description: "Most capable" },
-      { id: "mistral-medium-latest", name: "Mistral Medium", description: "Balanced" },
+      { id: "mistral-large-latest", name: "Mistral Large", description: "Most capable Mistral" },
+      { id: "codestral-latest", name: "Codestral", description: "Dedicated code model" },
       { id: "mistral-small-latest", name: "Mistral Small", description: "Fast & efficient" },
+      { id: "pixtral-large-latest", name: "Pixtral Large", description: "Vision & multimodal" },
     ],
   },
   {
