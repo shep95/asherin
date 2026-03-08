@@ -4,6 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // Stripe product/price mapping
 export const TIERS = {
+  lifetime: {
+    product_id: "prod_U74tK6VXkH6S5Z",
+    price_id: "price_1T8qjNRxgCpmPfiFsv2lsvQq",
+  },
   chat: {
     product_id: "prod_U4YWDDwSXK3SGO",
     price_id: "price_1T6PPmRxgCpmPfiFoTiBXBzq",
