@@ -5,13 +5,13 @@ import LandingBackground from "@/components/LandingBackground";
 import { ArrowLeft, ArrowRight, Key, Brain, Zap, Shield, RefreshCw, Settings, ToggleRight, Cpu } from "lucide-react";
 
 const providers = [
-  { icon: "◈", name: "Google AI (Gemini)", models: "Gemini 2.5 Pro, 2.5 Flash, 2.5 Flash Lite, 2.0 Flash" },
-  { icon: "◉", name: "OpenAI", models: "GPT-4.1, GPT-4.1 Mini/Nano, GPT-4o, o3, o3 Mini, o4-mini" },
-  { icon: "◎", name: "Anthropic (Claude)", models: "Claude Opus 4, Sonnet 4, 3.7 Sonnet, 3.5 Haiku" },
-  { icon: "◇", name: "Meta AI (Llama)", models: "Llama 4 Maverick, Llama 4 Scout, Llama 3.3 70B, 3.1 405B" },
+  { icon: "◈", name: "Google AI (Gemini)", models: "Gemini 3.1 Pro, 3.1 Flash Lite, 2.5 Pro, 2.5 Flash" },
+  { icon: "◉", name: "OpenAI", models: "GPT-5.4, GPT-5.3, GPT-5.2, GPT-4.1, o4-mini, o3" },
+  { icon: "◎", name: "Anthropic (Claude)", models: "Claude Opus 4.6, Sonnet 4.6, Sonnet 4, 3.5 Haiku" },
+  { icon: "◇", name: "Meta AI (Llama)", models: "Llama 4 Maverick, Llama 4 Scout, 3.3 70B, 3.1 405B" },
   { icon: "◆", name: "Venice AI", models: "Llama 3.1 405B, Dolphin 2.9, Nous Hermes 2 — uncensored" },
-  { icon: "◌", name: "xAI (Grok)", models: "Grok 3, Grok 3 Mini, Grok 2" },
-  { icon: "◐", name: "Mistral AI", models: "Mistral Large, Codestral, Small, Pixtral Large" },
+  { icon: "◌", name: "xAI (Grok)", models: "Grok 4, Grok 4 Fast, Grok Code, Grok 3" },
+  { icon: "◐", name: "Mistral AI", models: "Medium 3.1, Large, Codestral, Small, Pixtral Large" },
   { icon: "◔", name: "DeepSeek", models: "DeepSeek V3, DeepSeek R1" },
 ];
 
