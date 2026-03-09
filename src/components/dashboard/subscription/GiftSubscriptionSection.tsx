@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Gift, Mail, Calendar, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Gift, Mail, Calendar, Sparkles, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicPlans } from "@/config/subscriptionPlans";
