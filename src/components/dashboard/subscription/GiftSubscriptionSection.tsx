@@ -63,15 +63,12 @@ const GiftSubscriptionSection = () => {
   const savings = basePrice * duration - totalPrice;
 
   const handleGiftCheckout = async () => {
-    if (!recipientEmail) {
-      toast({ title: "Email required", description: "Please enter recipient's email", variant: "destructive" });
-      return;
-    }
-
-    // Basic email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(recipientEmail)) {
-      toast({ title: "Invalid email", description: "Please enter a valid email address", variant: "destructive" });
+    if (!recipientEmail || emailValidation.status !== "valid") {
+      toast({ 
+        title: "Invalid recipient", 
+        description: "Please enter a valid Aureon account email", 
+        variant: "destructive" 
+      });
       return;
     }
 
