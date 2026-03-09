@@ -1,16 +1,34 @@
 import { useState } from "react";
-import { Package, Loader2, Plus } from "lucide-react";
+import { Package, Loader2, Plus, Brain, Video, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
 const addOns = [
-  { id: "priority", name: "Priority Processing", price: 29, icon: "⚡", description: "Skip the queue for all requests" },
-  { id: "memory", name: "Extended Memory", price: 19, icon: "🧠", description: "10x context window expansion" },
-  { id: "security", name: "Security Suite", price: 49, icon: "🛡️", description: "Advanced threat detection" },
-  { id: "vault", name: "Data Vault", price: 39, icon: "🔒", description: "Encrypted long-term storage" },
-  { id: "video", name: "Video Intelligence", price: 59, icon: "🎬", description: "Advanced video analysis" },
-  { id: "osint", name: "OSINT Pro", price: 79, icon: "🔍", description: "Professional investigation tools" },
+  { 
+    id: "memory", 
+    name: "Extended Memory", 
+    price: 19, 
+    icon: Brain, 
+    description: "10x context window expansion",
+    includedIn: "Included in Pro tier"
+  },
+  { 
+    id: "video", 
+    name: "Video Intelligence", 
+    price: 59, 
+    icon: Video, 
+    description: "Advanced video analysis",
+    includedIn: "Included in Pro tier"
+  },
+  { 
+    id: "osint", 
+    name: "OSINT Pro", 
+    price: 79, 
+    icon: Search, 
+    description: "Professional investigation tools",
+    includedIn: "Included in Aureon & Pro tiers"
+  },
 ];
 
 const AddOnsSection = () => {
@@ -57,34 +75,38 @@ const AddOnsSection = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {addOns.map((addon) => (
-          <div key={addon.id} className="rounded-lg border border-border/10 bg-card/10 p-3 space-y-2">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{addon.icon}</span>
-                <div>
-                  <p className="text-xs font-light text-foreground">{addon.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{addon.description}</p>
+        {addOns.map((addon) => {
+          const IconComponent = addon.icon;
+          return (
+            <div key={addon.id} className="rounded-lg border border-border/10 bg-card/10 p-3 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <IconComponent className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs font-light text-foreground">{addon.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{addon.description}</p>
+                    <p className="text-[9px] text-muted-foreground/60 mt-0.5">{addon.includedIn}</p>
+                  </div>
                 </div>
               </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-sm font-light text-accent">${addon.price}/mo</span>
+                <button
+                  onClick={() => handleAddOnCheckout(addon)}
+                  disabled={loading === addon.id || !subscribed}
+                  className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading === addon.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
+                  Add
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-sm font-light text-accent">${addon.price}/mo</span>
-              <button
-                onClick={() => handleAddOnCheckout(addon)}
-                disabled={loading === addon.id || !subscribed}
-                className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading === addon.id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Plus className="h-3 w-3" />
-                )}
-                Add
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
