@@ -37,10 +37,10 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
-    const { priceId, mode } = await req.json();
+    const { priceId, mode, isGift, giftRecipientEmail, giftDurationMonths } = await req.json();
     if (!priceId) throw new Error("Missing priceId");
     const checkoutMode = mode === "payment" ? "payment" : "subscription";
-    logStep("Price requested", { priceId, checkoutMode });
+    logStep("Price requested", { priceId, checkoutMode, isGift, giftRecipientEmail, giftDurationMonths });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
