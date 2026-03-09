@@ -174,7 +174,7 @@ const SubscriptionView = () => {
                 <ul className="space-y-1.5 flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-[11px] font-extralight text-foreground/80">
-                      <Check className="h-3 w-3 mt-0.5 shrink-0 text-emerald-400" />
+                      <Check className="h-3 w-3 mt-0.5 shrink-0 text-accent" />
                       {feature}
                     </li>
                   ))}
