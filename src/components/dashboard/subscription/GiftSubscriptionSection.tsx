@@ -15,6 +15,7 @@ const GiftSubscriptionSection = () => {
   const [loading, setLoading] = useState(false);
 
   const selectedPlan = plans.find(p => p.id === selectedTier);
+  const priceId = TIERS[selectedTier as TierKey]?.price_id;
   const basePrice = selectedPlan?.price === "Free" ? 0 : parseInt(selectedPlan?.price.replace(/[^0-9]/g, "") || "0");
   
   const discounts = { 1: 0, 3: 0.05, 6: 0.10, 12: 0.15 };
