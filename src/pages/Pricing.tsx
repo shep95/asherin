@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useEffect } from "react";
 import { getPublicPlans, TIER_FEATURE_CARDS } from "@/config/subscriptionPlans";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
+import PricingComparisonTable from "@/components/subscription/PricingComparisonTable";
 
 const tiers = getPublicPlans().map(p => ({
   id: p.id,
