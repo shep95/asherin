@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
-import { Gift, Mail, Calendar, Sparkles, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Gift, Mail, Calendar, Sparkles, CheckCircle2, XCircle, Loader2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicPlans } from "@/config/subscriptionPlans";
 import { TIERS, type TierKey } from "@/contexts/SubscriptionContext";
 
-const plans = getPublicPlans().filter(p => p.id !== "lifetime");
+const plans = getPublicPlans(); // Include lifetime
+const ADDON_PRODUCTS = {
+  "Memory Center": "prod_addon_memory",
+  "Video Intelligence": "prod_addon_video",
+  "OSINT Suite": "prod_addon_osint",
+};
 
 const GiftSubscriptionSection = () => {
   const { toast } = useToast();
