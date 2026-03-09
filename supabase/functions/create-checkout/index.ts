@@ -42,6 +42,22 @@ serve(async (req) => {
     const checkoutMode = mode === "payment" ? "payment" : "subscription";
     logStep("Price requested", { priceId, checkoutMode, isGift, giftRecipientEmail, giftDurationMonths });
 
+    // Validate gift recipient exists if this is a gift purchase
+    if (isGift && giftRecipientEmail) {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+      const { data: recipientUser } = await supabaseAdmin.auth.admin.listUsers();
+      const recipientExists = recipientUser?.users?.some((u) => u.email === giftRecipientEmail);
+      
+      if (!recipientExists) {
+        logStep("Gift recipient email not found in system", { giftRecipientEmail });
+        throw new Error("Recipient email must be a registered account in the system");
+      }
+      logStep("Gift recipient validated", { giftRecipientEmail });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Find or reference existing customer

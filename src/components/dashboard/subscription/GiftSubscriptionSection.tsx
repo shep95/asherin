@@ -28,6 +28,13 @@ const GiftSubscriptionSection = () => {
       return;
     }
 
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
