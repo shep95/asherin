@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useEffect } from "react";
 import { getPublicPlans, TIER_FEATURE_CARDS } from "@/config/subscriptionPlans";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
+import PricingComparisonTable from "@/components/subscription/PricingComparisonTable";
 
 const tiers = getPublicPlans().map(p => ({
   id: p.id,
@@ -47,58 +48,10 @@ const Pricing = () => {
         </p>
       </div>
 
-      {/* Pricing Cards */}
+      {/* Pricing Comparison Table */}
       <div className="relative z-10 px-6 pb-24">
-        <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 items-start">
-          {tiers.map((tier) => (
-            <div
-key={tier.id}
-              className={`rounded-2xl border backdrop-blur-md p-8 sm:p-10 transition-all flex flex-col ${
-                tier.highlight
-                  ? "border-accent/30 bg-accent/5 shadow-[0_0_60px_-15px_hsl(var(--accent)/0.15)]"
-                  : "border-border/20 bg-card/30"
-              }`}
-            >
-              {tier.highlight && (
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-6 w-fit">
-                  <Zap className="h-3 w-3 text-accent" />
-                  <span className="text-[10px] font-medium tracking-[0.2em] text-accent uppercase">Full Suite</span>
-                </div>
-              )}
-
-              <p className="text-xs font-light tracking-[0.25em] text-muted-foreground uppercase">{tier.tagline}</p>
-              <h2 className="mt-2 text-lg font-light tracking-[0.15em] text-foreground">{tier.name}</h2>
-
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl sm:text-5xl font-extralight tracking-tight text-foreground">{tier.price}</span>
-                <span className="text-lg text-muted-foreground font-extralight">{tier.period}</span>
-              </div>
-
-              <p className="mt-4 text-sm font-extralight leading-relaxed text-muted-foreground">{tier.description}</p>
-
-              <button
-                className={`group mt-8 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-light tracking-wide transition-all ${
-                  tier.highlight
-                    ? "bg-accent text-accent-foreground hover:bg-accent/90"
-                    : "bg-foreground text-background hover:bg-foreground/90"
-                }`}
-              >
-                {tier.cta}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
-
-              <div className="my-8 h-px bg-border/15" />
-
-              <ul className="space-y-3 flex-1">
-                {tier.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-sm font-extralight text-foreground/85">
-                    <Check className={`h-4 w-4 mt-0.5 shrink-0 ${tier.highlight ? "text-accent" : "text-emerald-400"}`} />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div className="mx-auto max-w-7xl">
+          <PricingComparisonTable />
         </div>
       </div>
 
