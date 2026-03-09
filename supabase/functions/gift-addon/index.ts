@@ -1,0 +1,109 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[GIFT-ADDON] ${step}${detailsStr}`);
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
+  try {
+    logStep("Function started");
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header provided");
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data } = await supabaseClient.auth.getUser(token);
+    const user = data.user;
+    if (!user?.email) throw new Error("User not authenticated or email not available");
+    logStep("User authenticated", { email: user.email });
+
+    const { addonProductId, recipientEmail } = await req.json();
+    if (!addonProductId) throw new Error("Missing addonProductId");
+    if (!recipientEmail) throw new Error("Missing recipientEmail");
+
+    logStep("Addon gift requested", { addonProductId, recipientEmail });
+
+    // Validate recipient exists
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    const { data: recipientUser } = await supabaseAdmin.auth.admin.listUsers();
+    const recipientExists = recipientUser?.users?.some((u) => u.email === recipientEmail);
+    
+    if (!recipientExists) {
+      logStep("Recipient email not found", { recipientEmail });
+      throw new Error("Recipient email must be a registered account");
+    }
+
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // Get addon price from product
+    const prices = await stripe.prices.list({ product: addonProductId, limit: 1 });
+    if (prices.data.length === 0) {
+      throw new Error("No price found for addon product");
+    }
+
+    const priceId = prices.data[0].id;
+    logStep("Addon price found", { priceId });
+
+    // Find or create customer
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    let customerId: string | undefined;
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
+    }
+
+    const origin = req.headers.get("origin") || "https://id-preview--5d5e1e10-9f71-4760-8dad-575a93313745.lovable.app";
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      customer_email: customerId ? undefined : user.email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: "payment",
+      success_url: `${origin}/dashboard?gift=success`,
+      cancel_url: `${origin}/dashboard?gift=canceled`,
+      metadata: {
+        user_id: user.id,
+        user_email: user.email,
+        is_gift: "true",
+        gift_recipient_email: recipientEmail,
+        gift_duration_months: "0", // Addons are permanent
+      },
+    });
+
+    logStep("Checkout session created", { sessionId: session.id });
+
+    return new Response(JSON.stringify({ url: session.url }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});

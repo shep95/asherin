@@ -254,21 +254,31 @@ const GiftSubscriptionSection = () => {
         )}
 
         <div className="rounded-lg border border-border/10 bg-card/10 p-3 space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="text-foreground">${(basePrice * duration).toFixed(2)}</span>
-          </div>
-          {savings > 0 && (
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Duration Discount</span>
-              <span className="text-accent">-${savings.toFixed(2)}</span>
+          {giftType === "plan" && (
+            <>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-foreground">${(basePrice * effectiveDuration).toFixed(2)}</span>
+              </div>
+              {savings > 0 && !isLifetime && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Duration Discount</span>
+                  <span className="text-accent">-${savings.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="h-px bg-border/10 my-1.5" />
+              <div className="flex items-center justify-between text-sm font-light">
+                <span className="text-foreground">Total</span>
+                <span className="text-accent">${totalPrice.toFixed(2)}</span>
+              </div>
+            </>
+          )}
+          {giftType === "addon" && (
+            <div className="flex items-center justify-between text-sm font-light">
+              <span className="text-foreground">{selectedAddon}</span>
+              <span className="text-accent">One-time purchase</span>
             </div>
           )}
-          <div className="h-px bg-border/10 my-1.5" />
-          <div className="flex items-center justify-between text-sm font-light">
-            <span className="text-foreground">Total</span>
-            <span className="text-accent">${totalPrice.toFixed(2)}</span>
-          </div>
         </div>
 
         <button
