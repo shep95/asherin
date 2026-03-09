@@ -110,7 +110,7 @@ const GiftSubscriptionSection = () => {
               >
                 {months}mo
                 {discounts[months] > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 rounded-full bg-emerald-400/20 px-1.5 py-0.5 text-[9px] text-emerald-400">
+                  <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] text-accent">
                     <Sparkles className="h-2 w-2" />
                     -{(discounts[months] * 100).toFixed(0)}%
                   </span>
