@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Gift, Mail, Calendar, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Gift, Mail, Calendar, Sparkles, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicPlans } from "@/config/subscriptionPlans";
@@ -13,6 +13,46 @@ const GiftSubscriptionSection = () => {
   const [selectedTier, setSelectedTier] = useState(plans[0].id);
   const [duration, setDuration] = useState<1 | 3 | 6 | 12>(1);
   const [loading, setLoading] = useState(false);
+  const [emailValidation, setEmailValidation] = useState<{
+    status: "idle" | "checking" | "valid" | "invalid";
+    message?: string;
+  }>({ status: "idle" });
+
+  // Debounced email validation
+  useEffect(() => {
+    if (!recipientEmail) {
+      setEmailValidation({ status: "idle" });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      setEmailValidation({ status: "invalid", message: "Invalid email format" });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setEmailValidation({ status: "checking" });
+      
+      try {
+        const { data, error } = await supabase.functions.invoke("validate-gift-email", {
+          body: { email: recipientEmail },
+        });
+
+        if (error) throw error;
+
+        if (data?.exists) {
+          setEmailValidation({ status: "valid", message: "Account found ✓" });
+        } else {
+          setEmailValidation({ status: "invalid", message: "No Aureon account found" });
+        }
+      } catch (err) {
+        setEmailValidation({ status: "invalid", message: "Unable to verify email" });
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [recipientEmail]);
 
   const selectedPlan = plans.find(p => p.id === selectedTier);
   const priceId = TIERS[selectedTier as TierKey]?.price_id;
@@ -23,15 +63,12 @@ const GiftSubscriptionSection = () => {
   const savings = basePrice * duration - totalPrice;
 
   const handleGiftCheckout = async () => {
-    if (!recipientEmail) {
-      toast({ title: "Email required", description: "Please enter recipient's email", variant: "destructive" });
-      return;
-    }
-
-    // Basic email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(recipientEmail)) {
-      toast({ title: "Invalid email", description: "Please enter a valid email address", variant: "destructive" });
+    if (!recipientEmail || emailValidation.status !== "valid") {
+      toast({ 
+        title: "Invalid recipient", 
+        description: "Please enter a valid Aureon account email", 
+        variant: "destructive" 
+      });
       return;
     }
 
@@ -71,13 +108,33 @@ const GiftSubscriptionSection = () => {
             <Mail className="h-3 w-3" />
             Recipient Email
           </label>
-          <input
-            type="email"
-            value={recipientEmail}
-            onChange={(e) => setRecipientEmail(e.target.value)}
-            placeholder="friend@example.com"
-            className="w-full rounded-lg border border-border/20 bg-background/50 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent/50"
-          />
+          <div className="relative">
+            <input
+              type="email"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              placeholder="friend@example.com"
+              className="w-full rounded-lg border border-border/20 bg-background/50 px-3 py-2 pr-8 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent/50"
+            />
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              {emailValidation.status === "checking" && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+              {emailValidation.status === "valid" && (
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              )}
+              {emailValidation.status === "invalid" && (
+                <XCircle className="h-3.5 w-3.5 text-destructive" />
+              )}
+            </div>
+          </div>
+          {emailValidation.message && (
+            <p className={`text-[10px] mt-1 ${
+              emailValidation.status === "valid" ? "text-emerald-500" : "text-destructive"
+            }`}>
+              {emailValidation.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -147,7 +204,7 @@ const GiftSubscriptionSection = () => {
 
         <button
           onClick={handleGiftCheckout}
-          disabled={loading || !recipientEmail}
+          disabled={loading || emailValidation.status !== "valid"}
           className="w-full rounded-lg bg-accent px-4 py-2.5 text-xs font-light text-accent-foreground hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Processing..." : "Continue to Checkout"}
