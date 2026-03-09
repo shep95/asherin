@@ -141,9 +141,9 @@ const SubscriptionView = () => {
                 } ${isActive ? "ring-1 ring-accent/50" : ""}`}
               >
                 {isActive && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 mb-3 w-fit">
-                    <Check className="h-3 w-3 text-emerald-400" />
-                    <span className="text-[10px] font-medium tracking-[0.15em] text-emerald-400 uppercase">Your Plan</span>
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 mb-3 w-fit">
+                    <Check className="h-3 w-3 text-accent" />
+                    <span className="text-[10px] font-medium tracking-[0.15em] text-accent uppercase">Your Plan</span>
                   </div>
                 )}
 
