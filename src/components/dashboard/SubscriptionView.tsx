@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, FileText, Package, Trash2 } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, FileText, Package, Trash2, Gift } from "lucide-react";
 import { useSubscription, TIERS, type TierKey } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { getPublicPlans } from "@/config/subscriptionPlans";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
+import GiftSubscriptionSection from "@/components/dashboard/subscription/GiftSubscriptionSection";
+import AddOnsSection from "@/components/dashboard/subscription/AddOnsSection";
 
 const plans = getPublicPlans().map(p => ({
   id: p.id,
@@ -139,9 +141,9 @@ const SubscriptionView = () => {
                 } ${isActive ? "ring-1 ring-accent/50" : ""}`}
               >
                 {isActive && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 mb-3 w-fit">
-                    <Check className="h-3 w-3 text-emerald-400" />
-                    <span className="text-[10px] font-medium tracking-[0.15em] text-emerald-400 uppercase">Your Plan</span>
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 mb-3 w-fit">
+                    <Check className="h-3 w-3 text-accent" />
+                    <span className="text-[10px] font-medium tracking-[0.15em] text-accent uppercase">Your Plan</span>
                   </div>
                 )}
 
@@ -172,7 +174,7 @@ const SubscriptionView = () => {
                 <ul className="space-y-1.5 flex-1">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-[11px] font-extralight text-foreground/80">
-                      <Check className="h-3 w-3 mt-0.5 shrink-0 text-emerald-400" />
+                      <Check className="h-3 w-3 mt-0.5 shrink-0 text-accent" />
                       {feature}
                     </li>
                   ))}
@@ -181,6 +183,12 @@ const SubscriptionView = () => {
             );
           })}
         </div>
+
+        {/* Gift Subscriptions */}
+        <GiftSubscriptionSection />
+
+        {/* Add-On Subscriptions */}
+        <AddOnsSection />
 
         {/* Detailed Feature Breakdown */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 sm:p-5">
