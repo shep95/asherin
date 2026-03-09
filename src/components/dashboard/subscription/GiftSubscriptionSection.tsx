@@ -128,7 +128,7 @@ const GiftSubscriptionSection = () => {
           {savings > 0 && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Duration Discount</span>
-              <span className="text-emerald-400">-${savings.toFixed(2)}</span>
+              <span className="text-accent">-${savings.toFixed(2)}</span>
             </div>
           )}
           <div className="h-px bg-border/10 my-1.5" />
