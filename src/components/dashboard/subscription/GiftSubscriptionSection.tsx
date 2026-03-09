@@ -3,8 +3,9 @@ import { Gift, Mail, Calendar, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicPlans } from "@/config/subscriptionPlans";
+import { TIERS, type TierKey } from "@/contexts/SubscriptionContext";
 
-const plans = getPublicPlans();
+const plans = getPublicPlans().filter(p => p.id !== "lifetime");
 
 const GiftSubscriptionSection = () => {
   const { toast } = useToast();
