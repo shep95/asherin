@@ -13,6 +13,46 @@ const GiftSubscriptionSection = () => {
   const [selectedTier, setSelectedTier] = useState(plans[0].id);
   const [duration, setDuration] = useState<1 | 3 | 6 | 12>(1);
   const [loading, setLoading] = useState(false);
+  const [emailValidation, setEmailValidation] = useState<{
+    status: "idle" | "checking" | "valid" | "invalid";
+    message?: string;
+  }>({ status: "idle" });
+
+  // Debounced email validation
+  useEffect(() => {
+    if (!recipientEmail) {
+      setEmailValidation({ status: "idle" });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      setEmailValidation({ status: "invalid", message: "Invalid email format" });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setEmailValidation({ status: "checking" });
+      
+      try {
+        const { data, error } = await supabase.functions.invoke("validate-gift-email", {
+          body: { email: recipientEmail },
+        });
+
+        if (error) throw error;
+
+        if (data?.exists) {
+          setEmailValidation({ status: "valid", message: "Account found ✓" });
+        } else {
+          setEmailValidation({ status: "invalid", message: "No Aureon account found" });
+        }
+      } catch (err) {
+        setEmailValidation({ status: "invalid", message: "Unable to verify email" });
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [recipientEmail]);
 
   const selectedPlan = plans.find(p => p.id === selectedTier);
   const priceId = TIERS[selectedTier as TierKey]?.price_id;
