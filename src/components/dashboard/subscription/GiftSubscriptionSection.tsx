@@ -204,7 +204,7 @@ const GiftSubscriptionSection = () => {
 
         <button
           onClick={handleGiftCheckout}
-          disabled={loading || !recipientEmail}
+          disabled={loading || emailValidation.status !== "valid"}
           className="w-full rounded-lg bg-accent px-4 py-2.5 text-xs font-light text-accent-foreground hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Processing..." : "Continue to Checkout"}
