@@ -75,34 +75,38 @@ const AddOnsSection = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {addOns.map((addon) => (
-          <div key={addon.id} className="rounded-lg border border-border/10 bg-card/10 p-3 space-y-2">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{addon.icon}</span>
-                <div>
-                  <p className="text-xs font-light text-foreground">{addon.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{addon.description}</p>
+        {addOns.map((addon) => {
+          const IconComponent = addon.icon;
+          return (
+            <div key={addon.id} className="rounded-lg border border-border/10 bg-card/10 p-3 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <IconComponent className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs font-light text-foreground">{addon.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{addon.description}</p>
+                    <p className="text-[9px] text-muted-foreground/60 mt-0.5">{addon.includedIn}</p>
+                  </div>
                 </div>
               </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-sm font-light text-accent">${addon.price}/mo</span>
+                <button
+                  onClick={() => handleAddOnCheckout(addon)}
+                  disabled={loading === addon.id || !subscribed}
+                  className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading === addon.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
+                  Add
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-sm font-light text-accent">${addon.price}/mo</span>
-              <button
-                onClick={() => handleAddOnCheckout(addon)}
-                disabled={loading === addon.id || !subscribed}
-                className="flex items-center gap-1.5 rounded-lg bg-foreground/10 px-3 py-1.5 text-[10px] font-light text-foreground hover:bg-foreground/15 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading === addon.id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Plus className="h-3 w-3" />
-                )}
-                Add
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
