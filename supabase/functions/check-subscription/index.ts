@@ -39,10 +39,38 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Check user_subscriptions table first (includes gifts, addons, lifetime)
+    const { data: userSubs } = await supabaseClient
+      .from("user_subscriptions")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
 
-    // Check granted_subscriptions table first (free/manual grants)
+    if (userSubs && userSubs.length > 0) {
+      const activeSub = userSubs[0];
+      logStep("Found active user subscription", { 
+        product_id: activeSub.product_id, 
+        type: activeSub.subscription_type,
+        gifted: !!activeSub.gifted_by_user_id 
+      });
+      
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: activeSub.product_id,
+        price_id: null,
+        subscription_end: activeSub.expires_at || null,
+        status: activeSub.status,
+        cancel_at_period_end: false,
+        subscription_type: activeSub.subscription_type,
+        addons: userSubs.filter(s => s.subscription_type === "addon").map(s => s.product_id),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Check granted_subscriptions table (free/manual grants)
     const { data: granted } = await supabaseClient
       .from("granted_subscriptions")
       .select("*")
@@ -65,6 +93,9 @@ serve(async (req) => {
         status: 200,
       });
     }
+
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");

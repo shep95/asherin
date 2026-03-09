@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react";
-import { Gift, Mail, Calendar, Sparkles, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Gift, Mail, Calendar, Sparkles, CheckCircle2, XCircle, Loader2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicPlans } from "@/config/subscriptionPlans";
 import { TIERS, type TierKey } from "@/contexts/SubscriptionContext";
 
-const plans = getPublicPlans().filter(p => p.id !== "lifetime");
+const plans = getPublicPlans(); // Include lifetime
+const ADDON_PRODUCTS = {
+  "Memory Center": "prod_addon_memory",
+  "Video Intelligence": "prod_addon_video",
+  "OSINT Suite": "prod_addon_osint",
+};
 
 const GiftSubscriptionSection = () => {
   const { toast } = useToast();
+  const [giftType, setGiftType] = useState<"plan" | "addon">("plan");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [selectedTier, setSelectedTier] = useState(plans[0].id);
+  const [selectedAddon, setSelectedAddon] = useState(Object.keys(ADDON_PRODUCTS)[0]);
   const [duration, setDuration] = useState<1 | 3 | 6 | 12>(1);
   const [loading, setLoading] = useState(false);
   const [emailValidation, setEmailValidation] = useState<{
@@ -59,8 +66,10 @@ const GiftSubscriptionSection = () => {
   const basePrice = selectedPlan?.price === "Free" ? 0 : parseInt(selectedPlan?.price.replace(/[^0-9]/g, "") || "0");
   
   const discounts = { 1: 0, 3: 0.05, 6: 0.10, 12: 0.15 };
-  const totalPrice = basePrice * duration * (1 - discounts[duration]);
-  const savings = basePrice * duration - totalPrice;
+  const isLifetime = selectedTier === "lifetime";
+  const effectiveDuration = isLifetime ? 1 : duration;
+  const totalPrice = basePrice * effectiveDuration * (1 - (isLifetime ? 0 : discounts[duration]));
+  const savings = basePrice * effectiveDuration - totalPrice;
 
   const handleGiftCheckout = async () => {
     if (!recipientEmail || emailValidation.status !== "valid") {
@@ -74,18 +83,28 @@ const GiftSubscriptionSection = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          priceId,
-          mode: "payment",
-          isGift: true,
-          giftRecipientEmail: recipientEmail,
-          giftDurationMonths: duration,
-        },
-      });
-
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (giftType === "addon") {
+        const { data, error } = await supabase.functions.invoke("gift-addon", {
+          body: {
+            addonProductId: ADDON_PRODUCTS[selectedAddon as keyof typeof ADDON_PRODUCTS],
+            recipientEmail,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) window.open(data.url, "_blank");
+      } else {
+        const { data, error } = await supabase.functions.invoke("create-checkout", {
+          body: {
+            priceId,
+            mode: isLifetime ? "payment" : "payment",
+            isGift: true,
+            giftRecipientEmail: recipientEmail,
+            giftDurationMonths: isLifetime ? 0 : duration,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) window.open(data.url, "_blank");
+      }
     } catch (err) {
       toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create gift checkout", variant: "destructive" });
     } finally {
@@ -103,6 +122,33 @@ const GiftSubscriptionSection = () => {
       <p className="text-xs font-extralight text-muted-foreground">Give the power of Aureon to someone special. Extended durations receive automatic discounts.</p>
 
       <div className="space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Gift Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setGiftType("plan")}
+              className={`rounded-lg border px-3 py-2 text-xs transition-all flex items-center gap-2 justify-center ${
+                giftType === "plan"
+                  ? "border-accent/50 bg-accent/10 text-accent"
+                  : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+              }`}
+            >
+              <Gift className="h-3.5 w-3.5" />
+              Subscription Plan
+            </button>
+            <button
+              onClick={() => setGiftType("addon")}
+              className={`rounded-lg border px-3 py-2 text-xs transition-all flex items-center gap-2 justify-center ${
+                giftType === "addon"
+                  ? "border-accent/50 bg-accent/10 text-accent"
+                  : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+              }`}
+            >
+              <Package className="h-3.5 w-3.5" />
+              Add-on Module
+            </button>
+          </div>
+        </div>
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
             <Mail className="h-3 w-3" />
@@ -137,69 +183,102 @@ const GiftSubscriptionSection = () => {
           )}
         </div>
 
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Select Plan</label>
-          <div className="grid grid-cols-3 gap-2">
-            {plans.map((plan) => (
-              <button
-                key={plan.id}
-                onClick={() => setSelectedTier(plan.id)}
-                className={`rounded-lg border px-3 py-2 text-xs transition-all ${
-                  selectedTier === plan.id
-                    ? "border-accent/50 bg-accent/10 text-accent"
-                    : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
-                }`}
-              >
-                {plan.name}
-              </button>
-            ))}
+        {giftType === "plan" ? (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Select Plan</label>
+            <div className="grid grid-cols-2 gap-2">
+              {plans.map((plan) => (
+                <button
+                  key={plan.id}
+                  onClick={() => setSelectedTier(plan.id)}
+                  className={`rounded-lg border px-3 py-2 text-xs transition-all ${
+                    selectedTier === plan.id
+                      ? "border-accent/50 bg-accent/10 text-accent"
+                      : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+                  }`}
+                >
+                  {plan.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Select Add-on</label>
+            <div className="grid grid-cols-1 gap-2">
+              {Object.keys(ADDON_PRODUCTS).map((addon) => (
+                <button
+                  key={addon}
+                  onClick={() => setSelectedAddon(addon)}
+                  className={`rounded-lg border px-3 py-2 text-xs transition-all ${
+                    selectedAddon === addon
+                      ? "border-accent/50 bg-accent/10 text-accent"
+                      : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+                  }`}
+                >
+                  {addon}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
-            Duration
-          </label>
-          <div className="grid grid-cols-4 gap-2">
-            {([1, 3, 6, 12] as const).map((months) => (
-              <button
-                key={months}
-                onClick={() => setDuration(months)}
-                className={`relative rounded-lg border px-2 py-2 text-xs transition-all ${
-                  duration === months
-                    ? "border-accent/50 bg-accent/10 text-accent"
-                    : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
-                }`}
-              >
-                {months}mo
-                {discounts[months] > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] text-accent">
-                    <Sparkles className="h-2 w-2" />
-                    -{(discounts[months] * 100).toFixed(0)}%
-                  </span>
-                )}
-              </button>
-            ))}
+        {giftType === "plan" && !isLifetime && (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
+              <Calendar className="h-3 w-3" />
+              Duration
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {([1, 3, 6, 12] as const).map((months) => (
+                <button
+                  key={months}
+                  onClick={() => setDuration(months)}
+                  className={`relative rounded-lg border px-2 py-2 text-xs transition-all ${
+                    duration === months
+                      ? "border-accent/50 bg-accent/10 text-accent"
+                      : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+                  }`}
+                >
+                  {months}mo
+                  {discounts[months] > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] text-accent">
+                      <Sparkles className="h-2 w-2" />
+                      -{(discounts[months] * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="rounded-lg border border-border/10 bg-card/10 p-3 space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="text-foreground">${(basePrice * duration).toFixed(2)}</span>
-          </div>
-          {savings > 0 && (
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Duration Discount</span>
-              <span className="text-accent">-${savings.toFixed(2)}</span>
+          {giftType === "plan" && (
+            <>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-foreground">${(basePrice * effectiveDuration).toFixed(2)}</span>
+              </div>
+              {savings > 0 && !isLifetime && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Duration Discount</span>
+                  <span className="text-accent">-${savings.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="h-px bg-border/10 my-1.5" />
+              <div className="flex items-center justify-between text-sm font-light">
+                <span className="text-foreground">Total</span>
+                <span className="text-accent">${totalPrice.toFixed(2)}</span>
+              </div>
+            </>
+          )}
+          {giftType === "addon" && (
+            <div className="flex items-center justify-between text-sm font-light">
+              <span className="text-foreground">{selectedAddon}</span>
+              <span className="text-accent">One-time purchase</span>
             </div>
           )}
-          <div className="h-px bg-border/10 my-1.5" />
-          <div className="flex items-center justify-between text-sm font-light">
-            <span className="text-foreground">Total</span>
-            <span className="text-accent">${totalPrice.toFixed(2)}</span>
-          </div>
         </div>
 
         <button
