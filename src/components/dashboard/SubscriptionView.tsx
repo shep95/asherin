@@ -184,6 +184,12 @@ const SubscriptionView = () => {
           })}
         </div>
 
+        {/* Gift Subscriptions */}
+        <GiftSubscriptionSection />
+
+        {/* Add-On Subscriptions */}
+        <AddOnsSection />
+
         {/* Detailed Feature Breakdown */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 sm:p-5">
           <h3 className="text-sm font-light text-foreground mb-4">Feature Breakdown</h3>
