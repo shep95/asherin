@@ -223,33 +223,35 @@ const GiftSubscriptionSection = () => {
           </div>
         )}
 
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
-            Duration
-          </label>
-          <div className="grid grid-cols-4 gap-2">
-            {([1, 3, 6, 12] as const).map((months) => (
-              <button
-                key={months}
-                onClick={() => setDuration(months)}
-                className={`relative rounded-lg border px-2 py-2 text-xs transition-all ${
-                  duration === months
-                    ? "border-accent/50 bg-accent/10 text-accent"
-                    : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
-                }`}
-              >
-                {months}mo
-                {discounts[months] > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] text-accent">
-                    <Sparkles className="h-2 w-2" />
-                    -{(discounts[months] * 100).toFixed(0)}%
-                  </span>
-                )}
-              </button>
-            ))}
+        {giftType === "plan" && !isLifetime && (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
+              <Calendar className="h-3 w-3" />
+              Duration
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {([1, 3, 6, 12] as const).map((months) => (
+                <button
+                  key={months}
+                  onClick={() => setDuration(months)}
+                  className={`relative rounded-lg border px-2 py-2 text-xs transition-all ${
+                    duration === months
+                      ? "border-accent/50 bg-accent/10 text-accent"
+                      : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+                  }`}
+                >
+                  {months}mo
+                  {discounts[months] > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] text-accent">
+                      <Sparkles className="h-2 w-2" />
+                      -{(discounts[months] * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="rounded-lg border border-border/10 bg-card/10 p-3 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
