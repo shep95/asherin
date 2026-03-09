@@ -1,16 +1,34 @@
 import { useState } from "react";
-import { Package, Loader2, Plus } from "lucide-react";
+import { Package, Loader2, Plus, Brain, Video, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
 const addOns = [
-  { id: "priority", name: "Priority Processing", price: 29, icon: "⚡", description: "Skip the queue for all requests" },
-  { id: "memory", name: "Extended Memory", price: 19, icon: "🧠", description: "10x context window expansion" },
-  { id: "security", name: "Security Suite", price: 49, icon: "🛡️", description: "Advanced threat detection" },
-  { id: "vault", name: "Data Vault", price: 39, icon: "🔒", description: "Encrypted long-term storage" },
-  { id: "video", name: "Video Intelligence", price: 59, icon: "🎬", description: "Advanced video analysis" },
-  { id: "osint", name: "OSINT Pro", price: 79, icon: "🔍", description: "Professional investigation tools" },
+  { 
+    id: "memory", 
+    name: "Extended Memory", 
+    price: 19, 
+    icon: Brain, 
+    description: "10x context window expansion",
+    includedIn: "Included in Pro tier"
+  },
+  { 
+    id: "video", 
+    name: "Video Intelligence", 
+    price: 59, 
+    icon: Video, 
+    description: "Advanced video analysis",
+    includedIn: "Included in Pro tier"
+  },
+  { 
+    id: "osint", 
+    name: "OSINT Pro", 
+    price: 79, 
+    icon: Search, 
+    description: "Professional investigation tools",
+    includedIn: "Included in Aureon & Pro tiers"
+  },
 ];
 
 const AddOnsSection = () => {
