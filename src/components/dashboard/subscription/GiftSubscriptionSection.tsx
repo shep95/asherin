@@ -123,6 +123,33 @@ const GiftSubscriptionSection = () => {
 
       <div className="space-y-3">
         <div>
+          <label className="text-xs text-muted-foreground mb-1.5 block">Gift Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setGiftType("plan")}
+              className={`rounded-lg border px-3 py-2 text-xs transition-all flex items-center gap-2 justify-center ${
+                giftType === "plan"
+                  ? "border-accent/50 bg-accent/10 text-accent"
+                  : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+              }`}
+            >
+              <Gift className="h-3.5 w-3.5" />
+              Subscription Plan
+            </button>
+            <button
+              onClick={() => setGiftType("addon")}
+              className={`rounded-lg border px-3 py-2 text-xs transition-all flex items-center gap-2 justify-center ${
+                giftType === "addon"
+                  ? "border-accent/50 bg-accent/10 text-accent"
+                  : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+              }`}
+            >
+              <Package className="h-3.5 w-3.5" />
+              Add-on Module
+            </button>
+          </div>
+        </div>
+        <div>
           <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
             <Mail className="h-3 w-3" />
             Recipient Email
