@@ -108,13 +108,33 @@ const GiftSubscriptionSection = () => {
             <Mail className="h-3 w-3" />
             Recipient Email
           </label>
-          <input
-            type="email"
-            value={recipientEmail}
-            onChange={(e) => setRecipientEmail(e.target.value)}
-            placeholder="friend@example.com"
-            className="w-full rounded-lg border border-border/20 bg-background/50 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent/50"
-          />
+          <div className="relative">
+            <input
+              type="email"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              placeholder="friend@example.com"
+              className="w-full rounded-lg border border-border/20 bg-background/50 px-3 py-2 pr-8 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent/50"
+            />
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              {emailValidation.status === "checking" && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              )}
+              {emailValidation.status === "valid" && (
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              )}
+              {emailValidation.status === "invalid" && (
+                <XCircle className="h-3.5 w-3.5 text-destructive" />
+              )}
+            </div>
+          </div>
+          {emailValidation.message && (
+            <p className={`text-[10px] mt-1 ${
+              emailValidation.status === "valid" ? "text-emerald-500" : "text-destructive"
+            }`}>
+              {emailValidation.message}
+            </p>
+          )}
         </div>
 
         <div>
