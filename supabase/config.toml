@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.elevenlabs-conversation-token]
 verify_jwt = false
+
+[functions.validate-gift-email]
+verify_jwt = false
