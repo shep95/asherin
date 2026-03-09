@@ -66,8 +66,10 @@ const GiftSubscriptionSection = () => {
   const basePrice = selectedPlan?.price === "Free" ? 0 : parseInt(selectedPlan?.price.replace(/[^0-9]/g, "") || "0");
   
   const discounts = { 1: 0, 3: 0.05, 6: 0.10, 12: 0.15 };
-  const totalPrice = basePrice * duration * (1 - discounts[duration]);
-  const savings = basePrice * duration - totalPrice;
+  const isLifetime = selectedTier === "lifetime";
+  const effectiveDuration = isLifetime ? 1 : duration;
+  const totalPrice = basePrice * effectiveDuration * (1 - (isLifetime ? 0 : discounts[duration]));
+  const savings = basePrice * effectiveDuration - totalPrice;
 
   const handleGiftCheckout = async () => {
     if (!recipientEmail || emailValidation.status !== "valid") {
