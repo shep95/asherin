@@ -83,18 +83,28 @@ const GiftSubscriptionSection = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          priceId,
-          mode: "payment",
-          isGift: true,
-          giftRecipientEmail: recipientEmail,
-          giftDurationMonths: duration,
-        },
-      });
-
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (giftType === "addon") {
+        const { data, error } = await supabase.functions.invoke("gift-addon", {
+          body: {
+            addonProductId: ADDON_PRODUCTS[selectedAddon as keyof typeof ADDON_PRODUCTS],
+            recipientEmail,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) window.open(data.url, "_blank");
+      } else {
+        const { data, error } = await supabase.functions.invoke("create-checkout", {
+          body: {
+            priceId,
+            mode: isLifetime ? "payment" : "payment",
+            isGift: true,
+            giftRecipientEmail: recipientEmail,
+            giftDurationMonths: isLifetime ? 0 : duration,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) window.open(data.url, "_blank");
+      }
     } catch (err) {
       toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create gift checkout", variant: "destructive" });
     } finally {
