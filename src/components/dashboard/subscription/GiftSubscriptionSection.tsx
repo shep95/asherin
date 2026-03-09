@@ -32,7 +32,7 @@ const GiftSubscriptionSection = () => {
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {
-          priceId: selectedPlan?.priceId,
+          priceId,
           mode: "payment",
           isGift: true,
           giftRecipientEmail: recipientEmail,
