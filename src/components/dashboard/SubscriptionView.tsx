@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, FileText, Package, Trash2 } from "lucide-react";
+import { Check, ArrowRight, Zap, Shield, AlertCircle, Loader2, ExternalLink, RefreshCw, Crown, FileText, Package, Trash2, Gift } from "lucide-react";
 import { useSubscription, TIERS, type TierKey } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { getPublicPlans } from "@/config/subscriptionPlans";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
+import GiftSubscriptionSection from "@/components/dashboard/subscription/GiftSubscriptionSection";
+import AddOnsSection from "@/components/dashboard/subscription/AddOnsSection";
 
 const plans = getPublicPlans().map(p => ({
   id: p.id,
