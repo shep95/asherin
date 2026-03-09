@@ -183,24 +183,45 @@ const GiftSubscriptionSection = () => {
           )}
         </div>
 
-        <div>
-          <label className="text-xs text-muted-foreground mb-1.5 block">Select Plan</label>
-          <div className="grid grid-cols-3 gap-2">
-            {plans.map((plan) => (
-              <button
-                key={plan.id}
-                onClick={() => setSelectedTier(plan.id)}
-                className={`rounded-lg border px-3 py-2 text-xs transition-all ${
-                  selectedTier === plan.id
-                    ? "border-accent/50 bg-accent/10 text-accent"
-                    : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
-                }`}
-              >
-                {plan.name}
-              </button>
-            ))}
+        {giftType === "plan" ? (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Select Plan</label>
+            <div className="grid grid-cols-2 gap-2">
+              {plans.map((plan) => (
+                <button
+                  key={plan.id}
+                  onClick={() => setSelectedTier(plan.id)}
+                  className={`rounded-lg border px-3 py-2 text-xs transition-all ${
+                    selectedTier === plan.id
+                      ? "border-accent/50 bg-accent/10 text-accent"
+                      : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+                  }`}
+                >
+                  {plan.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <label className="text-xs text-muted-foreground mb-1.5 block">Select Add-on</label>
+            <div className="grid grid-cols-1 gap-2">
+              {Object.keys(ADDON_PRODUCTS).map((addon) => (
+                <button
+                  key={addon}
+                  onClick={() => setSelectedAddon(addon)}
+                  className={`rounded-lg border px-3 py-2 text-xs transition-all ${
+                    selectedAddon === addon
+                      ? "border-accent/50 bg-accent/10 text-accent"
+                      : "border-border/20 bg-card/10 text-muted-foreground hover:border-accent/30"
+                  }`}
+                >
+                  {addon}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
