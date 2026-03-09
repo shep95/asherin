@@ -14,8 +14,10 @@ const ADDON_PRODUCTS = {
 
 const GiftSubscriptionSection = () => {
   const { toast } = useToast();
+  const [giftType, setGiftType] = useState<"plan" | "addon">("plan");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [selectedTier, setSelectedTier] = useState(plans[0].id);
+  const [selectedAddon, setSelectedAddon] = useState(Object.keys(ADDON_PRODUCTS)[0]);
   const [duration, setDuration] = useState<1 | 3 | 6 | 12>(1);
   const [loading, setLoading] = useState(false);
   const [emailValidation, setEmailValidation] = useState<{
