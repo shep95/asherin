@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote } from "lucide-react";
 import MessageNote from "./MessageNote";
 import FloatingNotepad from "./FloatingNotepad";
 import ChatSearchBar from "./ChatSearchBar";
