@@ -306,7 +306,7 @@ const VibeImagerView = () => {
       setActiveVersion(v);
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "user", content: `📷 Uploaded: ${file.name}`, imageUrl: urlData.publicUrl },
+        { id: crypto.randomUUID(), role: "user", content: `◈ Uploaded: ${file.name}`, imageUrl: urlData.publicUrl },
         { id: crypto.randomUUID(), role: "assistant", content: "Image uploaded! Now describe your edit — I'll ask for specifics if needed before applying it." },
       ]);
     }
