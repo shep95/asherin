@@ -263,9 +263,19 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [neuralId, setNeuralId] = useState<string | null>(null);
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+  const [searchActive, setSearchActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Scroll to highlighted message
+  useEffect(() => {
+    if (highlightedMsgId && messageRefs.current[highlightedMsgId]) {
+      messageRefs.current[highlightedMsgId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightedMsgId]);
 
   const elevenLabsVoice = useElevenLabsVoice({
     agentId: "agent_1701kjqvrqkpfwat79br17vqbdms",
