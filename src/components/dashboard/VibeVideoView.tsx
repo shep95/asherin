@@ -435,7 +435,7 @@ const VibeVideoView = () => {
             // Fallback to FFmpeg if MediaBunny fails
             console.warn("[MediaBunny] GPU processing failed, falling back to FFmpeg:", gpuErr.message);
             setMessages((prev) =>
-              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `🔄 GPU engine failed, falling back to FFmpeg…` } : m)
+              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `◌ GPU engine failed, falling back to FFmpeg…` } : m)
             );
 
             try {
