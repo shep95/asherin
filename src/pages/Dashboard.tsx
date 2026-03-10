@@ -654,6 +654,36 @@ const Dashboard = () => {
       || builtInPersonas.find((p) => p.id === personaId);
     const personaSystemPrompt = activePersona?.systemPrompt || null;
 
+    // ── BRAIN CONTEXT ─────────────────────────────────────────────────
+    let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
+    if (activeBrainId) {
+      try {
+        const { data: brain } = await supabase.from("brains").select("system_prompt, file_ids").eq("id", activeBrainId).single();
+        if (brain) {
+          const fileContents: { name: string; content: string }[] = [];
+          if (brain.file_ids?.length) {
+            const { data: files } = await supabase.from("library_files").select("file_name, storage_path, file_type").in("id", brain.file_ids);
+            if (files) {
+              for (const f of files) {
+                // Only load text-readable files as context
+                const isText = !f.file_type.startsWith("image/") && !f.file_type.startsWith("video/") && !f.file_type.startsWith("audio/");
+                if (isText) {
+                  const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
+                  if (blob) {
+                    const text = await blob.text();
+                    fileContents.push({ name: f.file_name, content: text.slice(0, 80000) });
+                  }
+                }
+              }
+            }
+          }
+          brainContext = { prompt: brain.system_prompt || "", fileContents };
+        }
+      } catch (e) {
+        console.error("Failed to load brain context:", e);
+      }
+    }
+
     // ── CONSENSUS MODE ──────────────────────────────────────────────
     if (consensusEnabled && consensusModels.length >= 2) {
       try {
