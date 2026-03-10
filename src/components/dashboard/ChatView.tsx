@@ -343,7 +343,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     return (
     <div className="flex flex-1 flex-col min-w-0 h-full relative">
       {/* Floating Notepad */}
-      <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} />
+      <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
       {/* Voice Call Overlay */}
       <VoiceCallOverlay
         isConnected={elevenLabsVoice.isConnected}
