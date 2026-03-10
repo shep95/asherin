@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers } from "lucide-react";
+import ChatSearchBar from "./ChatSearchBar";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAccess } from "@/hooks/useAccess";
