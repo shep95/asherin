@@ -749,6 +749,7 @@ const Dashboard = () => {
         personaSystemPrompt,
         depth,
         userProfile,
+        brainContext,
         signal: controller.signal,
         onDelta: (chunk) => {
           assistantContent += chunk;
