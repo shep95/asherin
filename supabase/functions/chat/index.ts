@@ -1037,6 +1037,64 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       }
     }
 
+    // ── VEDIC BRAIN AUTO-INJECTION ────────────────────────────────────────
+    // Detect astrology/chart queries and auto-load full Vedic practitioner knowledge
+    let vedicBrainContent = "";
+    const lastUserMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
+    const allUserContent = (messages || []).filter((m: any) => m.role === "user").map((m: any) => m.content?.toLowerCase() || "").join(" ");
+    const vedicTriggers = [
+      "chart", "natal", "birth chart", "vedic", "jyotish", "dasha", "transit",
+      "ascendant", "rising sign", "moon sign", "sun sign", "house lord", "placement",
+      "atma karaka", "navamsa", "d9", "d60", "rahu", "ketu", "saturn", "jupiter",
+      "venus", "mars", "mercury", "nakshatra", "yoga", "conjunction", "aspect",
+      "7th house", "10th house", "1st house", "2nd house", "3rd house", "4th house",
+      "5th house", "6th house", "8th house", "9th house", "11th house", "12th house",
+      "horoscope", "zodiac", "astrology", "pisces", "aries", "taurus", "gemini",
+      "cancer", "leo", "virgo", "libra", "scorpio", "sagittarius", "capricorn", "aquarius",
+      "prediction", "forecast", "retrograde", "mahadasha", "antardasha", "bhava",
+      "kundli", "kundali", "lagna", "upapada", "gandanta", "soulmate", "marriage timing",
+      "career prediction", "wealth prediction", "death prediction"
+    ];
+    const isVedicQuery = vedicTriggers.some(t => lastUserMsg.includes(t)) ||
+                         vedicTriggers.filter(t => allUserContent.includes(t)).length >= 3;
+    
+    // Check if user attached an image (likely a chart screenshot)
+    const hasChartAttachment = (messages || []).some((m: any) => 
+      m.attachments?.some((a: any) => a.type?.startsWith("image/"))
+    );
+    
+    if (isVedicQuery || hasChartAttachment) {
+      try {
+        const SUPABASE_URL2 = Deno.env.get("SUPABASE_URL") || "";
+        const SERVICE_ROLE2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const storageUrl = `${SUPABASE_URL2}/storage/v1/object/vedic-knowledge/Vadic_Brain_1.txt`;
+        const brainResp = await fetch(storageUrl, {
+          headers: { Authorization: `Bearer ${SERVICE_ROLE2}` },
+        });
+        if (brainResp.ok) {
+          const fullText = await brainResp.text();
+          vedicBrainContent = `
+
+## ═══════════════════════════════════════════════════════════════════
+## VEDIC PRACTITIONER BRAIN — COMPLETE TRANSCRIPTS (MANDATORY REFERENCE)
+## ═══════════════════════════════════════════════════════════════════
+
+CRITICAL INSTRUCTION: The following is the COMPLETE transcript of elite Vedic Jyotish practitioner teachings.
+You MUST scrape EVERY sentence of this content when answering the user's question about their chart.
+Do NOT give a surface-level answer. For EVERY placement the user mentions, cross-reference it against
+ALL relevant sections below. If the user asks about Venus, find EVERY Venus reference. If they ask about
+a house lord, find EVERY house lord reference. Synthesize ALL matching knowledge into your answer.
+
+${fullText}
+
+## END OF VEDIC PRACTITIONER BRAIN
+`;
+        }
+      } catch (e) {
+        console.error("Failed to load Vedic Brain:", e);
+      }
+    }
+
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
     const prunedMessages = messages.length > MAX_HISTORY_MESSAGES
@@ -1051,6 +1109,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       AUREON_PSYCHOLOGY_ENGINE,
       AUREON_FORENSIC_LINGUISTICS,
       AUREON_VEDIC_INTELLIGENCE,
+      vedicBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
