@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers } from "lucide-react";
+import ChatSearchBar from "./ChatSearchBar";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAccess } from "@/hooks/useAccess";
@@ -262,9 +263,19 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [neuralId, setNeuralId] = useState<string | null>(null);
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
+  const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+  const [searchActive, setSearchActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Scroll to highlighted message
+  useEffect(() => {
+    if (highlightedMsgId && messageRefs.current[highlightedMsgId]) {
+      messageRefs.current[highlightedMsgId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightedMsgId]);
 
   const elevenLabsVoice = useElevenLabsVoice({
     agentId: "agent_1701kjqvrqkpfwat79br17vqbdms",
@@ -374,6 +385,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 <Download className="h-4 w-4" />
               </button>
             )}
+            <ChatSearchBar
+              messages={conversation.messages}
+              onHighlightMessage={setHighlightedMsgId}
+              onSearchActive={setSearchActive}
+            />
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
@@ -413,7 +429,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             {conversation.messages.map((msg, idx) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up`}
+                ref={(el) => { messageRefs.current[msg.id] = el; }}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up transition-all duration-300 ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
                 style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
               >
                 <div className="max-w-[80%]">
