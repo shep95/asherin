@@ -35,6 +35,7 @@ import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
 import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
 import ConsensusMessage from "./ConsensusMessage";
 import BrainsManager from "./BrainsManager";
+import ConversationApiToggles from "./ConversationApiToggles";
 
 interface ChatViewProps {
   conversation: Conversation;
