@@ -674,6 +674,42 @@ export type Database = {
           },
         ]
       }
+      brains: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_ids: string[] | null
+          id: string
+          is_active: boolean | null
+          name: string
+          system_prompt: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_ids?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          system_prompt?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_ids?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          system_prompt?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       briefing_profiles: {
         Row: {
           company_name: string | null
