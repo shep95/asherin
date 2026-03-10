@@ -61,6 +61,8 @@ interface ChatViewProps {
   consensusModels?: SelectedModel[];
   onConsensusModelsChange?: (models: SelectedModel[]) => void;
   storedProviders?: string[];
+  activeBrainId?: string | null;
+  onBrainChange?: (brainId: string | null) => void;
 }
 
 // Copy button for messages
