@@ -463,7 +463,7 @@ const VibeVideoView = () => {
           try {
             await ffmpeg.load();
           } catch {
-            const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "❌ Failed to load the video engine. Try Chrome or Edge." };
+            const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "◇ Failed to load the video engine. Try Chrome or Edge." };
             setMessages((prev) => [...prev, errMsg]);
             setIsEditing(false);
             return;
