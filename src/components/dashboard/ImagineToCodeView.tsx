@@ -958,7 +958,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
 
     const goalMsg: AureonMessage = {
       id: uid(), role: "user",
-      content: `🔄 **AUTONOMOUS LOOP INITIATED**\n\n**Goal:** ${goal}\n\nAUREON will now enter an autonomous edit→imagine→fix cycle until the result is satisfactory.`,
+      content: `◌ **AUTONOMOUS LOOP INITIATED**\n\n**Goal:** ${goal}\n\nAUREON will now enter an autonomous edit→imagine→fix cycle until the result is satisfactory.`,
       timestamp: new Date()
     };
     setAureonMessages(prev => [...prev, goalMsg]);
