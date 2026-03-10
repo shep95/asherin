@@ -404,6 +404,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             {onBrainChange && (
               <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
             )}
+            <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
              <ChatSearchBar
                messages={conversation.messages}
                onHighlightMessage={setHighlightedMsgId}
