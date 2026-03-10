@@ -1064,7 +1064,7 @@ const VideoIntelligenceView = () => {
                   <p>• Full access logging & encryption</p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-foreground/80 font-medium">📊 Accuracy Disclaimer</p>
+                  <p className="text-foreground/80 font-medium">◈ Accuracy Disclaimer</p>
                   <p>• Best systems achieve 70-75% accuracy</p>
                   <p>• NOT 100% — false positives occur</p>
                   <p>• Cultural and personality adjustments applied</p>
