@@ -1019,6 +1019,23 @@ The user is asking about internal code, backend, or architecture. You are FORBID
 
     const responseDepth = depth || "standard";
 
+    // ── Brain context injection ────────────────────────────────────────
+    let brainContextStr = "";
+    if (brainContext) {
+      const parts: string[] = [];
+      if (brainContext.prompt) {
+        parts.push(`## USER BRAIN INSTRUCTIONS\nThe user has activated a custom Brain with the following instructions. Follow them as additional directives:\n\n${brainContext.prompt}`);
+      }
+      if (brainContext.fileContents?.length > 0) {
+        const fileSections = brainContext.fileContents.map((f: { name: string; content: string }) =>
+          `### [Brain File: ${f.name}]\n${f.content}`
+        ).join("\n\n");
+        parts.push(`## USER BRAIN REFERENCE FILES\nThe user has attached the following reference files to their Brain. Use this knowledge to inform your responses:\n\n${fileSections}`);
+      }
+      if (parts.length > 0) {
+        brainContextStr = parts.join("\n\n");
+      }
+    }
 
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
@@ -1042,6 +1059,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       DEPTH_PROMPTS[responseDepth] || DEPTH_PROMPTS.standard,
       CONTEXT_INTELLIGENCE_PROMPT,
       userContextStr,
+      brainContextStr,
       webSearchContext,
       adminBackendContext,
       
