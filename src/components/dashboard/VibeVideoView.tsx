@@ -526,7 +526,7 @@ const VibeVideoView = () => {
           });
         } catch (uploadErr: any) {
           setUploadProgress(null);
-          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `❌ Upload failed: ${uploadErr.message}` };
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◇ Upload failed: ${uploadErr.message}` };
           setMessages((prev) => [...prev, errMsg]);
           setIsEditing(false);
           return;
