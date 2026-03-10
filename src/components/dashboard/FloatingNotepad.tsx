@@ -1,17 +1,23 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { StickyNote, X, Copy, Check, Download, Minus, Maximize2, GripHorizontal } from "lucide-react";
 
-const STORAGE_KEY = "aureon_floating_notepad";
+const NOTES_KEY = "aureon_conv_notes";
 const POS_KEY = "aureon_notepad_pos";
 
 interface Size { w: number; h: number }
 interface Pos { x: number; y: number }
 
-function loadNotepad(): string {
-  return localStorage.getItem(STORAGE_KEY) || "";
+function loadAllNotes(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || "{}"); } catch { return {}; }
 }
-function saveNotepad(text: string) {
-  localStorage.setItem(STORAGE_KEY, text);
+function loadNotepad(convId: string): string {
+  return loadAllNotes()[convId] || "";
+}
+function saveNotepad(convId: string, text: string) {
+  const all = loadAllNotes();
+  if (text.trim()) all[convId] = text;
+  else delete all[convId];
+  localStorage.setItem(NOTES_KEY, JSON.stringify(all));
 }
 function loadPos(): Pos & Size {
   try {
@@ -27,6 +33,7 @@ function savePos(p: Pos & Size) {
 interface FloatingNotepadProps {
   open: boolean;
   onClose: () => void;
+  conversationId: string;
 }
 
 const MIN_W = 260;
