@@ -41,8 +41,8 @@ const MIN_H = 200;
 const MAX_W = 900;
 const MAX_H = 800;
 
-const FloatingNotepad = ({ open, onClose }: FloatingNotepadProps) => {
-  const [text, setText] = useState(loadNotepad);
+const FloatingNotepad = ({ open, onClose, conversationId }: FloatingNotepadProps) => {
+  const [text, setText] = useState(() => loadNotepad(conversationId));
   const [pos, setPos] = useState<Pos & Size>(loadPos);
   const [copied, setCopied] = useState(false);
   const [minimized, setMinimized] = useState(false);
