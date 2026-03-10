@@ -1057,6 +1057,8 @@ const Dashboard = () => {
           consensusModels={consensusModels}
           onConsensusModelsChange={setConsensusModels}
           storedProviders={storedProviders}
+          activeBrainId={activeBrainId}
+          onBrainChange={setActiveBrainId}
         />
       ) : null;
     }
