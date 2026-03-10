@@ -12,6 +12,11 @@ export interface UserProfile {
   inferred_traits?: Record<string, unknown>;
 }
 
+export interface BrainContext {
+  prompt: string;
+  fileContents: { name: string; content: string }[];
+}
+
 export async function streamChat({
   messages,
   mode,
@@ -19,6 +24,7 @@ export async function streamChat({
   personaSystemPrompt,
   depth,
   userProfile,
+  brainContext,
   signal,
   onDelta,
   onDone,
@@ -29,6 +35,7 @@ export async function streamChat({
   personaSystemPrompt?: string | null;
   depth?: ResponseDepth;
   userProfile?: UserProfile | null;
+  brainContext?: BrainContext | null;
   signal?: AbortSignal;
   onDelta: (text: string) => void;
   onDone: () => void;
