@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote } from "lucide-react";
+import MessageNote from "./MessageNote";
 import ChatSearchBar from "./ChatSearchBar";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -483,6 +484,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                         <MessageStatusIndicator status={messageStatuses[msg.id]} />
                       )}
                       <MessageCopyButton text={msg.content} />
+                      <MessageNote messageId={msg.id} />
                       {msg.role === "assistant" && (
                         <>
                           <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
