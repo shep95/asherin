@@ -486,7 +486,7 @@ const VibeVideoView = () => {
             setFfmpegProgress(null);
             const errMsg: ChatMessage = {
               id: crypto.randomUUID(), role: "assistant",
-              content: `❌ Processing failed: ${err.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
+              content: `◇ Processing failed: ${err.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
             };
             setMessages((prev) => [...prev, errMsg]);
             setIsEditing(false);
