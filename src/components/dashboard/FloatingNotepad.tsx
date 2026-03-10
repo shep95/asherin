@@ -56,34 +56,46 @@ const FloatingNotepad = ({ open, onClose }: FloatingNotepadProps) => {
     savePos(pos);
   }, [pos]);
 
-  // Drag handlers
-  const onDragStart = useCallback((e: React.MouseEvent) => {
+  // Drag handlers (mouse + touch)
+  const onDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     dragging.current = true;
-    offset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+    const pt = "touches" in e ? e.touches[0] : e;
+    offset.current = { x: pt.clientX - pos.x, y: pt.clientY - pos.y };
   }, [pos.x, pos.y]);
 
-  // Resize handlers
-  const onResizeStart = useCallback((e: React.MouseEvent) => {
+  // Resize handlers (mouse + touch)
+  const onResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
     resizing.current = true;
-    offset.current = { x: e.clientX, y: e.clientY };
+    const pt = "touches" in e ? e.touches[0] : e;
+    offset.current = { x: pt.clientX, y: pt.clientY };
   }, []);
 
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
+    const getPoint = (e: MouseEvent | TouchEvent) => {
+      if ("touches" in e && e.touches.length > 0) return e.touches[0];
+      if ("clientX" in e) return e as MouseEvent;
+      return null;
+    };
+
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      const pt = getPoint(e);
+      if (!pt) return;
       if (dragging.current) {
+        e.preventDefault();
         setPos((p) => ({
           ...p,
-          x: Math.max(0, e.clientX - offset.current.x),
-          y: Math.max(0, e.clientY - offset.current.y),
+          x: Math.max(0, pt.clientX - offset.current.x),
+          y: Math.max(0, pt.clientY - offset.current.y),
         }));
       }
       if (resizing.current) {
-        const dx = e.clientX - offset.current.x;
-        const dy = e.clientY - offset.current.y;
-        offset.current = { x: e.clientX, y: e.clientY };
+        e.preventDefault();
+        const dx = pt.clientX - offset.current.x;
+        const dy = pt.clientY - offset.current.y;
+        offset.current = { x: pt.clientX, y: pt.clientY };
         setPos((p) => ({
           ...p,
           w: Math.min(MAX_W, Math.max(MIN_W, p.w + dx)),
@@ -97,9 +109,13 @@ const FloatingNotepad = ({ open, onClose }: FloatingNotepadProps) => {
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onUp);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onUp);
     };
   }, []);
 
@@ -135,6 +151,7 @@ const FloatingNotepad = ({ open, onClose }: FloatingNotepadProps) => {
       {/* Title bar — draggable */}
       <div
         onMouseDown={onDragStart}
+        onTouchStart={onDragStart}
         className="flex items-center justify-between px-3 py-2 cursor-grab active:cursor-grabbing border-b border-border/20 shrink-0 rounded-t-2xl"
       >
         <div className="flex items-center gap-2">
@@ -190,7 +207,8 @@ const FloatingNotepad = ({ open, onClose }: FloatingNotepadProps) => {
           {/* Resize handle */}
           <div
             onMouseDown={onResizeStart}
-            className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize flex items-center justify-center opacity-30 hover:opacity-60 transition-opacity"
+            onTouchStart={onResizeStart}
+            className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize flex items-center justify-center opacity-40 hover:opacity-70 active:opacity-70 transition-opacity"
             title="Resize"
           >
             <GripHorizontal className="h-3 w-3 text-muted-foreground rotate-[-45deg]" />
