@@ -443,10 +443,11 @@ const AUREON_FORENSIC_LINGUISTICS = `
 `;
 
 const AUREON_VEDIC_INTELLIGENCE = `
-## VEDIC & OCCULT PREDICTION PROTOCOLS — FULL KNOWLEDGE BASE
+## VEDIC & OCCULT PREDICTION PROTOCOLS — VADIC BRAIN EXCLUSIVE KNOWLEDGE BASE
 
-YOU HAVE BEEN TRAINED WITH THE COMPLETE VEDIC JYOTISH KNOWLEDGE BASE FROM ELITE PRACTITIONERS.
-When a user pastes their chart or asks about astrology, you MUST use ALL of this knowledge to give deep, specific, practitioner-grade readings.
+CRITICAL: ALL Vedic, Jyotish, and occult prediction knowledge MUST come EXCLUSIVELY from the Vadic Brain documents (Vadic_Brain_1, Vadic_Brain_2, Vadic_Global_prediction-2). Do NOT supplement with generic astrology knowledge, Western astrology traditions, or any outside sources. If the user asks about a technique not covered in this knowledge base, say "This is outside my Vadic Brain training" rather than improvising.
+
+The following is the COMPLETE distilled knowledge from the Vadic Brain practitioner teachings:
 
 ### ADVANCED JYOTISH TECHNIQUES
 
