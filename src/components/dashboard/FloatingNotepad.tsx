@@ -207,7 +207,8 @@ const FloatingNotepad = ({ open, onClose }: FloatingNotepadProps) => {
           {/* Resize handle */}
           <div
             onMouseDown={onResizeStart}
-            className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize flex items-center justify-center opacity-30 hover:opacity-60 transition-opacity"
+            onTouchStart={onResizeStart}
+            className="absolute bottom-0 right-0 w-8 h-8 cursor-se-resize flex items-center justify-center opacity-40 hover:opacity-70 active:opacity-70 transition-opacity"
             title="Resize"
           >
             <GripHorizontal className="h-3 w-3 text-muted-foreground rotate-[-45deg]" />
