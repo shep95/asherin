@@ -70,7 +70,7 @@ const ClarifyQuestionsCard = ({
   };
 
   const allAnswered = answers.every((a) => a.trim().length > 0);
-  const contextLine = context.split("\n")[0]?.replace(/^🔍\s*/, "") || "";
+  const contextLine = context.split("\n")[0]?.replace(/^[◎◈]\s*/, "") || "";
 
   return (
     <div className="space-y-2.5">
@@ -374,7 +374,7 @@ const VibeVideoView = () => {
         const questions: string[] = analyzeData.questions || [];
         const context = analyzeData.context || "";
         const replyText = context
-          ? `🔍 ${context}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
+          ? `◎ ${context}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
           : questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n");
 
         const aMsg: ChatMessage = {
@@ -397,12 +397,12 @@ const VibeVideoView = () => {
         const editType = analyzeData.edit_type || "filter";
 
         if (summary) {
-          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✨ ${summary}` };
+          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◈ ${summary}` };
           setMessages((prev) => [...prev, infoMsg]);
         }
 
         if (ffmpegArgs.length === 0) {
-          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⚠️ Couldn't determine the exact command for this edit. Try being more specific." };
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "◇ Couldn't determine the exact command for this edit. Try being more specific." };
           setMessages((prev) => [...prev, errMsg]);
           setIsEditing(false);
           return;
@@ -410,9 +410,9 @@ const VibeVideoView = () => {
 
         // Determine which engine to use
         const useGPU = mediaBunny.canUseMediaBunny(editType);
-        const engineLabel = useGPU ? "⚡ MediaBunny (GPU-accelerated)" : "🔧 FFmpeg (software)";
+        const engineLabel = useGPU ? "◈ MediaBunny (GPU-accelerated)" : "◎ FFmpeg (software)";
 
-        const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `⏳ Loading ${engineLabel}…` };
+        const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◌ Loading ${engineLabel}…` };
         setMessages((prev) => [...prev, loadMsg]);
 
         let resultBlob: Blob;
@@ -421,7 +421,7 @@ const VibeVideoView = () => {
           // ── GPU-accelerated path (MediaBunny / WebCodecs) ──
           try {
             setMessages((prev) =>
-              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `⚡ Processing with GPU acceleration: "${editType}"… Near-instant for supported operations.` } : m)
+              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `◈ Processing with GPU acceleration: "${editType}"… Near-instant for supported operations.` } : m)
             );
             setFfmpegProgress(0);
             const progressInterval = setInterval(() => {
@@ -435,7 +435,7 @@ const VibeVideoView = () => {
             // Fallback to FFmpeg if MediaBunny fails
             console.warn("[MediaBunny] GPU processing failed, falling back to FFmpeg:", gpuErr.message);
             setMessages((prev) =>
-              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `🔄 GPU engine failed, falling back to FFmpeg…` } : m)
+              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `◌ GPU engine failed, falling back to FFmpeg…` } : m)
             );
 
             try {
@@ -451,7 +451,7 @@ const VibeVideoView = () => {
               setFfmpegProgress(null);
               const errMsg: ChatMessage = {
                 id: crypto.randomUUID(), role: "assistant",
-                content: `❌ Processing failed: ${ffmpegErr.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
+                content: `◇ Processing failed: ${ffmpegErr.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
               };
               setMessages((prev) => [...prev, errMsg]);
               setIsEditing(false);
@@ -463,7 +463,7 @@ const VibeVideoView = () => {
           try {
             await ffmpeg.load();
           } catch {
-            const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "❌ Failed to load the video engine. Try Chrome or Edge." };
+            const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "◇ Failed to load the video engine. Try Chrome or Edge." };
             setMessages((prev) => [...prev, errMsg]);
             setIsEditing(false);
             return;
@@ -486,7 +486,7 @@ const VibeVideoView = () => {
             setFfmpegProgress(null);
             const errMsg: ChatMessage = {
               id: crypto.randomUUID(), role: "assistant",
-              content: `❌ Processing failed: ${err.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
+              content: `◇ Processing failed: ${err.message}\n\nTip: Very large videos may exceed browser memory. Try trimming the video first.`,
             };
             setMessages((prev) => [...prev, errMsg]);
             setIsEditing(false);
@@ -526,7 +526,7 @@ const VibeVideoView = () => {
           });
         } catch (uploadErr: any) {
           setUploadProgress(null);
-          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `❌ Upload failed: ${uploadErr.message}` };
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◇ Upload failed: ${uploadErr.message}` };
           setMessages((prev) => [...prev, errMsg]);
           setIsEditing(false);
           return;
@@ -552,10 +552,10 @@ const VibeVideoView = () => {
           setActiveVersion(v);
         }
 
-        const engineUsed = useGPU ? "⚡ GPU-accelerated" : "🔧 Software";
+        const engineUsed = useGPU ? "◈ GPU-accelerated" : "◎ Software";
         const aMsg: ChatMessage = {
           id: crypto.randomUUID(), role: "assistant",
-          content: `✅ Edit applied! Version ${vNum} created.\n\n**Edit:** ${summary || refinedInstruction}\n**Type:** ${editType}\n**Engine:** ${engineUsed}\n\nThe edited video is now playing.`,
+          content: `◉ Edit applied — Version ${vNum} created.\n\n**Edit:** ${summary || refinedInstruction}\n**Type:** ${editType}\n**Engine:** ${engineUsed}\n\nThe edited video is now playing.`,
           versionId: version?.id,
         };
         setMessages((prev) => [...prev, aMsg]);
@@ -579,7 +579,7 @@ const VibeVideoView = () => {
               const questions: string[] = fallbackParsed.questions;
               const ctx = fallbackParsed.context || "";
               const replyText = ctx
-                ? `🔍 ${ctx}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
+                ? `◎ ${ctx}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
                 : questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n");
               const aMsg: ChatMessage = {
                 id: crypto.randomUUID(), role: "assistant",

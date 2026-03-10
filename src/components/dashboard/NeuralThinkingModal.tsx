@@ -410,9 +410,9 @@ const NeuralThinkingModal = ({ open, query, response, onClose }: NeuralThinkingM
 
               {/* Metrics footer */}
               <div className="mt-4 pt-3 border-t border-border/10 flex flex-wrap items-center gap-3">
-                <span className="text-[9px] text-muted-foreground/40">⏱️ {stats.processingTime}s</span>
-                <span className="text-[9px] text-muted-foreground/40">📝 {Math.round(stats.tokensUsed)} tokens</span>
-                <span className="text-[9px] text-muted-foreground/40">🎯 Depth: {stats.reasoningDepth}</span>
+                <span className="text-[9px] text-muted-foreground/40">◷ {stats.processingTime}s</span>
+                <span className="text-[9px] text-muted-foreground/40">◈ {Math.round(stats.tokensUsed)} tokens</span>
+                <span className="text-[9px] text-muted-foreground/40">◎ Depth: {stats.reasoningDepth}</span>
               </div>
             </div>
           </div>

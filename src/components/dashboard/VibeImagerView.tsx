@@ -86,7 +86,7 @@ const ClarifyQuestionsCard = ({
   const allAnswered = answers.every((a) => a.trim().length > 0);
 
   // Extract context text before numbered questions
-  const contextLine = context.split("\n")[0]?.replace(/^🔍\s*/, "") || "";
+  const contextLine = context.split("\n")[0]?.replace(/^[◎◈]\s*/, "") || "";
 
   return (
     <div className="space-y-2.5">
@@ -260,7 +260,7 @@ const VibeImagerView = () => {
     setActiveProject(project);
     setMessages([{
       id: crypto.randomUUID(), role: "assistant",
-      content: "Welcome to Vibe Imager! 🎨 Upload an image and describe your edit. I'll ask clarifying questions if I need more detail before transforming it.",
+      content: "Welcome to Vibe Imager. Upload an image and describe your edit. I'll ask clarifying questions if I need more detail before transforming it.",
     }]);
     setVersions([]);
     setActiveVersion(null);
@@ -306,7 +306,7 @@ const VibeImagerView = () => {
       setActiveVersion(v);
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "user", content: `📷 Uploaded: ${file.name}`, imageUrl: urlData.publicUrl },
+        { id: crypto.randomUUID(), role: "user", content: `◈ Uploaded: ${file.name}`, imageUrl: urlData.publicUrl },
         { id: crypto.randomUUID(), role: "assistant", content: "Image uploaded! Now describe your edit — I'll ask for specifics if needed before applying it." },
       ]);
     }
@@ -346,7 +346,7 @@ const VibeImagerView = () => {
         const questions: string[] = analyzeData.questions || [];
         const context = analyzeData.context || "";
         const replyText = context
-          ? `🔍 ${context}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
+          ? `◎ ${context}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
           : questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n");
 
         const aMsg: ChatMessage = {
@@ -369,7 +369,7 @@ const VibeImagerView = () => {
         const summary = analyzeData.summary || "";
 
         if (summary) {
-          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✨ ${summary} Applying now…` };
+          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◈ ${summary} Applying now…` };
           setMessages((prev) => [...prev, infoMsg]);
         }
 
@@ -404,7 +404,7 @@ const VibeImagerView = () => {
             setActiveVersion(v);
             const aMsg: ChatMessage = {
               id: crypto.randomUUID(), role: "assistant",
-              content: `✅ ${reply}`, imageUrl: editedUrl, versionId: v.id,
+              content: `◉ ${reply}`, imageUrl: editedUrl, versionId: v.id,
             };
             setMessages((prev) => [...prev, aMsg]);
             await supabase.from("vibe_imager_messages").insert({

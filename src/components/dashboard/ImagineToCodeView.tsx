@@ -958,7 +958,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
 
     const goalMsg: AureonMessage = {
       id: uid(), role: "user",
-      content: `🔄 **AUTONOMOUS LOOP INITIATED**\n\n**Goal:** ${goal}\n\nAUREON will now enter an autonomous edit→imagine→fix cycle until the result is satisfactory.`,
+      content: `◌ **AUTONOMOUS LOOP INITIATED**\n\n**Goal:** ${goal}\n\nAUREON will now enter an autonomous edit→imagine→fix cycle until the result is satisfactory.`,
       timestamp: new Date()
     };
     setAureonMessages(prev => [...prev, goalMsg]);
@@ -1285,7 +1285,7 @@ When drawing, be precise and systematic. If the request is ambiguous, ask one fo
                         {s}
                       </button>
                     ))}
-                    <p className="text-[8px] text-muted-foreground/30 text-center tracking-widest uppercase mt-1">🔄 Autonomous loop</p>
+                    <p className="text-[8px] text-muted-foreground/30 text-center tracking-widest uppercase mt-1">◌ Autonomous loop</p>
                     {["Draw a detailed pixel landscape and refine until perfect", "Create a complex character sprite and self-correct details"].map(s => (
                       <button key={s} onClick={() => { setAureonInput(""); startAutonomousLoop(s); }} className="w-full text-left text-[10px] font-light text-muted-foreground/50 hover:text-accent/70 border border-accent/10 hover:border-accent/30 rounded-xl px-3 py-2 transition-all hover:bg-accent/5">
                         <span className="text-accent/50 mr-1">↺</span>{s}

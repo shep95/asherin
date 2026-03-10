@@ -378,7 +378,7 @@ const DashboardSidebar = ({
                     {groups.map((group) => (
                       <div key={group.label}>
                         <p className="px-3 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
-                          {group.label === "Pinned" ? "📌 Pinned" : group.label}
+                          {group.label === "Pinned" ? "◆ Pinned" : group.label}
                         </p>
                         <div className="space-y-0.5">
                           {group.items.map((conv) => (

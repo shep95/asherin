@@ -677,7 +677,7 @@ const OracleLocusView = () => {
                       <p className="text-[10px] text-muted-foreground">📸 Best results: Front-facing · Good lighting · No sunglasses</p>
                     </div>
                     <div className="rounded-xl bg-accent/5 border border-accent/10 px-4 py-2 mt-1 max-w-sm">
-                      <p className="text-[10px] text-muted-foreground/70">🔍 Cross-reference facial features against open-source intelligence databases worldwide</p>
+                      <p className="text-[10px] text-muted-foreground/70">◎ Cross-reference facial features against open-source intelligence databases worldwide</p>
                     </div>
                   </button>
                   <input ref={faceInputRef} type="file" accept="image/*" onChange={handleFaceFileSelect} className="hidden" />
@@ -861,7 +861,7 @@ const OracleLocusView = () => {
                               <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Genetic Markers Detected</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {faceResult.subject_analysis.genetic_markers.map((m, i) => (
-                                  <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">🧬 {m}</span>
+                                  <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">◈ {m}</span>
                                 ))}
                               </div>
                             </div>

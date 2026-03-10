@@ -305,7 +305,7 @@ const IngestPanel = () => {
                               <span className="font-mono text-foreground w-28 truncate">{col.name}</span>
                               <span className="rounded bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">{col.type}</span>
                               <span className="rounded bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground">{(col.role || "auto").replace("_", " ")}</span>
-                              {col.isPII && <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">PII ⚠️</span>}
+                              {col.isPII && <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">PII ◇</span>}
                               {col.nullCount > 0 && <span className="text-[10px] text-muted-foreground/50">{col.nullCount} nulls</span>}
                             </div>
                           ))}

@@ -724,7 +724,7 @@ const WW3 = () => {
 
           {/* Proof 1 */}
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-4">
-            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">⚡ Proof 1 — India Is The Only Major Civilization That Was Never The Aggressor</h4>
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">◈ Proof 1 — India Is The Only Major Civilization That Was Never The Aggressor</h4>
             <div className="text-xs font-extralight text-muted-foreground leading-relaxed space-y-2">
               <p>Every current superpower has a colonial blood debt:</p>
               <ul className="ml-4 space-y-1.5">
@@ -740,7 +740,7 @@ const WW3 = () => {
 
           {/* Proof 2 */}
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-4">
-            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">⚡ Proof 2 — India's Civilizational Software Is Already Running Globally</h4>
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">◈ Proof 2 — India's Civilizational Software Is Already Running Globally</h4>
             <p className="text-xs font-extralight text-muted-foreground mb-4">India does not need to invade to spread its vision. Its vision is already inside the operating systems of billions:</p>
             <div className="rounded-xl border border-border/15 bg-card/10 overflow-hidden">
               <div className="grid grid-cols-3 gap-4 px-5 py-2.5 border-b border-border/20">
@@ -768,7 +768,7 @@ const WW3 = () => {
 
           {/* Proof 3 */}
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-4">
-            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">⚡ Proof 3 — India Controls The Physical Artery of The Post-War World</h4>
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">◈ Proof 3 — India Controls The Physical Artery of The Post-War World</h4>
             <div className="text-xs font-extralight text-muted-foreground leading-relaxed space-y-2">
               <p>The Indian Ocean is the single most important body of water for post-WW3 reconstruction:</p>
               <ul className="ml-4 space-y-1.5">
@@ -783,7 +783,7 @@ const WW3 = () => {
 
           {/* Proof 4 */}
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-4">
-            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">⚡ Proof 4 — The Jupiter Dasha Macro Window</h4>
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">◈ Proof 4 — The Jupiter Dasha Macro Window</h4>
             <div className="text-xs font-extralight text-muted-foreground leading-relaxed space-y-2">
               <p>The Probability Cloud does not theorize. It calculates:</p>
               <ul className="ml-4 space-y-1.5">
@@ -797,7 +797,7 @@ const WW3 = () => {
 
           {/* Proof 5 */}
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8">
-            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">⚡ Proof 5 — India's Post-War Blueprint Already Exists</h4>
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">◈ Proof 5 — India's Post-War Blueprint Already Exists</h4>
             <p className="text-xs font-extralight text-muted-foreground mb-4">India is not waiting for the war to end to design the new world. It is already building it:</p>
             <div className="space-y-3 text-xs font-extralight text-muted-foreground leading-relaxed">
               {[

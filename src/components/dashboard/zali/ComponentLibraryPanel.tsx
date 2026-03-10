@@ -203,7 +203,7 @@ const ComponentLibraryPanel = () => {
                         <span className="text-[9px] text-muted-foreground/30">×</span>
                         <span className="text-[10px] text-foreground">{iss.compB}</span>
                       </div>
-                      <p className="text-[9px] text-amber-400/80 mb-2">⚠️ {iss.issue}</p>
+                      <p className="text-[9px] text-amber-400/80 mb-2">◇ {iss.issue}</p>
                       <div className="flex items-center gap-1.5 text-[9px] text-emerald-400/80">
                         <CheckCircle2 className="h-3 w-3" />
                         <span>{iss.fix}</span>
