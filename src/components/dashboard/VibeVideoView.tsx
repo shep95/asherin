@@ -402,7 +402,7 @@ const VibeVideoView = () => {
         }
 
         if (ffmpegArgs.length === 0) {
-          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⚠️ Couldn't determine the exact command for this edit. Try being more specific." };
+          const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "◇ Couldn't determine the exact command for this edit. Try being more specific." };
           setMessages((prev) => [...prev, errMsg]);
           setIsEditing(false);
           return;
