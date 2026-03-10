@@ -346,7 +346,7 @@ const VibeImagerView = () => {
         const questions: string[] = analyzeData.questions || [];
         const context = analyzeData.context || "";
         const replyText = context
-          ? `🔍 ${context}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
+          ? `◎ ${context}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
           : questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n");
 
         const aMsg: ChatMessage = {
