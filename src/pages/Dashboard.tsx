@@ -158,6 +158,9 @@ const Dashboard = () => {
   const [consensusEnabled, setConsensusEnabled] = useState(false);
   const [consensusModels, setConsensusModels] = useState<SelectedModel[]>([]);
   const [storedProviders, setStoredProviders] = useState<string[]>([]);
+  const [activeBrainId, setActiveBrainId] = useState<string | null>(() => {
+    try { return localStorage.getItem("aureon_active_brain_id") || null; } catch { return null; }
+  });
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
