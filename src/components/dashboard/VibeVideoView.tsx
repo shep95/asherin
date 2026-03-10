@@ -421,7 +421,7 @@ const VibeVideoView = () => {
           // ── GPU-accelerated path (MediaBunny / WebCodecs) ──
           try {
             setMessages((prev) =>
-              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `⚡ Processing with GPU acceleration: "${editType}"… Near-instant for supported operations.` } : m)
+              prev.map((m) => m.id === loadMsg.id ? { ...m, content: `◈ Processing with GPU acceleration: "${editType}"… Near-instant for supported operations.` } : m)
             );
             setFfmpegProgress(0);
             const progressInterval = setInterval(() => {
