@@ -266,6 +266,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [neuralId, setNeuralId] = useState<string | null>(null);
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+  const [searchActive, setSearchActive] = useState(false);
   const [notepadOpen, setNotepadOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
