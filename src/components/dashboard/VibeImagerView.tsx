@@ -369,7 +369,7 @@ const VibeImagerView = () => {
         const summary = analyzeData.summary || "";
 
         if (summary) {
-          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✨ ${summary} Applying now…` };
+          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◈ ${summary} Applying now…` };
           setMessages((prev) => [...prev, infoMsg]);
         }
 
