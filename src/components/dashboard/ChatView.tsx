@@ -34,6 +34,7 @@ import NeuralThinkingModal from "./NeuralThinkingModal";
 import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
 import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
 import ConsensusMessage from "./ConsensusMessage";
+import BrainsManager from "./BrainsManager";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -60,6 +61,8 @@ interface ChatViewProps {
   consensusModels?: SelectedModel[];
   onConsensusModelsChange?: (models: SelectedModel[]) => void;
   storedProviders?: string[];
+  activeBrainId?: string | null;
+  onBrainChange?: (brainId: string | null) => void;
 }
 
 // Copy button for messages
@@ -254,7 +257,7 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   },
 });
 
-const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt, consensusEnabled = false, onConsensusToggle, consensusModels = [], onConsensusModelsChange, storedProviders = [] }: ChatViewProps) => {
+const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt, consensusEnabled = false, onConsensusToggle, consensusModels = [], onConsensusModelsChange, storedProviders = [], activeBrainId, onBrainChange }: ChatViewProps) => {
   const navigate = useNavigate();
   const { hasPro } = useAccess();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
@@ -397,6 +400,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             >
               <StickyNote className="h-4 w-4" />
             </button>
+            {onBrainChange && (
+              <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
+            )}
              <ChatSearchBar
                messages={conversation.messages}
                onHighlightMessage={setHighlightedMsgId}

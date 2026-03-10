@@ -158,6 +158,9 @@ const Dashboard = () => {
   const [consensusEnabled, setConsensusEnabled] = useState(false);
   const [consensusModels, setConsensusModels] = useState<SelectedModel[]>([]);
   const [storedProviders, setStoredProviders] = useState<string[]>([]);
+  const [activeBrainId, setActiveBrainId] = useState<string | null>(() => {
+    try { return localStorage.getItem("aureon_active_brain_id") || null; } catch { return null; }
+  });
   const [customPersonas, setCustomPersonas] = useState<Persona[]>(() => {
     try {
       const oldStored = localStorage.getItem("zialiel_custom_personas");
@@ -485,6 +488,15 @@ const Dashboard = () => {
     }
   }, [activeConvId]);
 
+  // Persist active brain id
+  useEffect(() => {
+    if (activeBrainId) {
+      localStorage.setItem("aureon_active_brain_id", activeBrainId);
+    } else {
+      localStorage.removeItem("aureon_active_brain_id");
+    }
+  }, [activeBrainId]);
+
   // Keep ref in sync so sendMessageCore always reads latest conversations
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
@@ -642,6 +654,36 @@ const Dashboard = () => {
       || builtInPersonas.find((p) => p.id === personaId);
     const personaSystemPrompt = activePersona?.systemPrompt || null;
 
+    // ── BRAIN CONTEXT ─────────────────────────────────────────────────
+    let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
+    if (activeBrainId) {
+      try {
+        const { data: brain } = await supabase.from("brains").select("system_prompt, file_ids").eq("id", activeBrainId).single();
+        if (brain) {
+          const fileContents: { name: string; content: string }[] = [];
+          if (brain.file_ids?.length) {
+            const { data: files } = await supabase.from("library_files").select("file_name, storage_path, file_type").in("id", brain.file_ids);
+            if (files) {
+              for (const f of files) {
+                // Only load text-readable files as context
+                const isText = !f.file_type.startsWith("image/") && !f.file_type.startsWith("video/") && !f.file_type.startsWith("audio/");
+                if (isText) {
+                  const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
+                  if (blob) {
+                    const text = await blob.text();
+                    fileContents.push({ name: f.file_name, content: text.slice(0, 80000) });
+                  }
+                }
+              }
+            }
+          }
+          brainContext = { prompt: brain.system_prompt || "", fileContents };
+        }
+      } catch (e) {
+        console.error("Failed to load brain context:", e);
+      }
+    }
+
     // ── CONSENSUS MODE ──────────────────────────────────────────────
     if (consensusEnabled && consensusModels.length >= 2) {
       try {
@@ -707,6 +749,7 @@ const Dashboard = () => {
         personaSystemPrompt,
         depth,
         userProfile,
+        brainContext,
         signal: controller.signal,
         onDelta: (chunk) => {
           assistantContent += chunk;
@@ -1014,6 +1057,8 @@ const Dashboard = () => {
           consensusModels={consensusModels}
           onConsensusModelsChange={setConsensusModels}
           storedProviders={storedProviders}
+          activeBrainId={activeBrainId}
+          onBrainChange={setActiveBrainId}
         />
       ) : null;
     }
