@@ -1052,7 +1052,7 @@ const VideoIntelligenceView = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px] text-muted-foreground">
                 <div className="space-y-1.5">
-                  <p className="text-foreground/80 font-medium">⚠️ Legal Requirements</p>
+                  <p className="text-foreground/80 font-medium">◇ Legal Requirements</p>
                   <p>• BIPA: $1,000–$5,000 per violation</p>
                   <p>• GDPR: Up to 4% of revenue in fines</p>
                   <p>• CCPA: $2,500–$7,500 per violation</p>
