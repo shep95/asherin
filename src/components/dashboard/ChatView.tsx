@@ -387,12 +387,19 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <button onClick={downloadConversation} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-4 w-4" />
               </button>
-            )}
-            <ChatSearchBar
-              messages={conversation.messages}
-              onHighlightMessage={setHighlightedMsgId}
-              onSearchActive={setSearchActive}
-            />
+             )}
+            <button
+              onClick={() => setNotepadOpen(!notepadOpen)}
+              className={`p-1.5 rounded-md transition-colors ${notepadOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+              title="Notepad"
+            >
+              <StickyNote className="h-4 w-4" />
+            </button>
+             <ChatSearchBar
+               messages={conversation.messages}
+               onHighlightMessage={setHighlightedMsgId}
+               onSearchActive={setSearchActive}
+             />
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
