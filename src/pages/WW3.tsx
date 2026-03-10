@@ -768,7 +768,7 @@ const WW3 = () => {
 
           {/* Proof 3 */}
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8 mb-4">
-            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">⚡ Proof 3 — India Controls The Physical Artery of The Post-War World</h4>
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">◈ Proof 3 — India Controls The Physical Artery of The Post-War World</h4>
             <div className="text-xs font-extralight text-muted-foreground leading-relaxed space-y-2">
               <p>The Indian Ocean is the single most important body of water for post-WW3 reconstruction:</p>
               <ul className="ml-4 space-y-1.5">
