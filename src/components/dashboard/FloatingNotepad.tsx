@@ -151,6 +151,7 @@ const FloatingNotepad = ({ open, onClose }: FloatingNotepadProps) => {
       {/* Title bar — draggable */}
       <div
         onMouseDown={onDragStart}
+        onTouchStart={onDragStart}
         className="flex items-center justify-between px-3 py-2 cursor-grab active:cursor-grabbing border-b border-border/20 shrink-0 rounded-t-2xl"
       >
         <div className="flex items-center gap-2">
