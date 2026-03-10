@@ -579,7 +579,7 @@ const VibeVideoView = () => {
               const questions: string[] = fallbackParsed.questions;
               const ctx = fallbackParsed.context || "";
               const replyText = ctx
-                ? `🔍 ${ctx}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
+                ? `◎ ${ctx}\n\n${questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n")}`
                 : questions.map((q: string, i: number) => `${i + 1}. ${q}`).join("\n");
               const aMsg: ChatMessage = {
                 id: crypto.randomUUID(), role: "assistant",
