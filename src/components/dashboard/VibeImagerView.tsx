@@ -86,7 +86,7 @@ const ClarifyQuestionsCard = ({
   const allAnswered = answers.every((a) => a.trim().length > 0);
 
   // Extract context text before numbered questions
-  const contextLine = context.split("\n")[0]?.replace(/^🔍\s*/, "") || "";
+  const contextLine = context.split("\n")[0]?.replace(/^[◎◈]\s*/, "") || "";
 
   return (
     <div className="space-y-2.5">
