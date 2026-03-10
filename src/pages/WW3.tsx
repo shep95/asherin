@@ -797,7 +797,7 @@ const WW3 = () => {
 
           {/* Proof 5 */}
           <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-md p-6 sm:p-8">
-            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">⚡ Proof 5 — India's Post-War Blueprint Already Exists</h4>
+            <h4 className="text-sm font-light tracking-wide text-foreground mb-4">◈ Proof 5 — India's Post-War Blueprint Already Exists</h4>
             <p className="text-xs font-extralight text-muted-foreground mb-4">India is not waiting for the war to end to design the new world. It is already building it:</p>
             <div className="space-y-3 text-xs font-extralight text-muted-foreground leading-relaxed">
               {[

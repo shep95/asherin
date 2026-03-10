@@ -1070,7 +1070,7 @@ const VideoIntelligenceView = () => {
                   <p>• Cultural and personality adjustments applied</p>
                 </div>
                 <div className="space-y-1.5">
-                  <p className="text-foreground/80 font-medium">🎯 Best Results With</p>
+                  <p className="text-foreground/80 font-medium">◎ Best Results With</p>
                   <p>• Clear, well-lit video (2+ minutes)</p>
                   <p>• Full face and upper body visible</p>
                   <p>• Natural conversation setting</p>

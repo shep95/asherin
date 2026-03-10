@@ -457,7 +457,7 @@ INSTRUCTIONS:
         return next;
       });
     } catch {
-      const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "⚠️ Failed to process follow-up. Please try again.", timestamp: new Date() };
+      const errMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "◇ Failed to process follow-up. Please try again.", timestamp: new Date() };
       const errChat = [...updatedChat, errMsg];
       const errSession = { ...updated, chat: errChat };
       setActiveSession(errSession);

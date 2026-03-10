@@ -404,7 +404,7 @@ const VibeImagerView = () => {
             setActiveVersion(v);
             const aMsg: ChatMessage = {
               id: crypto.randomUUID(), role: "assistant",
-              content: `✅ ${reply}`, imageUrl: editedUrl, versionId: v.id,
+              content: `◉ ${reply}`, imageUrl: editedUrl, versionId: v.id,
             };
             setMessages((prev) => [...prev, aMsg]);
             await supabase.from("vibe_imager_messages").insert({

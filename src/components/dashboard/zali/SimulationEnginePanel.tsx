@@ -114,7 +114,7 @@ const SimulationEnginePanel = ({ project }: Props) => {
                 <div className="flex items-center gap-2 mb-3">
                   {result.status === "pass" ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <XCircle className="h-4 w-4 text-amber-400" />}
                   <h3 className="text-xs font-light text-foreground">
-                    {result.status === "pass" ? "SIMULATION PASSED" : result.status === "fail" ? "SIMULATION FAILED" : "⚠️ ISSUE DETECTED"}
+                    {result.status === "pass" ? "SIMULATION PASSED" : result.status === "fail" ? "SIMULATION FAILED" : "◇ ISSUE DETECTED"}
                   </h3>
                 </div>
                 <div className="grid grid-cols-2 gap-2.5">

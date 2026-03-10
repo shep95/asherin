@@ -457,7 +457,7 @@ function IdeMock() {
         {/* File tree */}
         <div className="w-[120px] shrink-0 border-r border-border/10 pr-1.5 text-[9px] space-y-0.5">
           <p className="text-[8px] text-muted-foreground/40 uppercase tracking-wider mb-1">Explorer</p>
-          {["📁 src", "  📄 main.ts", "  📄 agent.ts", "  📄 config.json", "  📁 lib", "    📄 utils.ts", "📁 tests", "  📄 agent.test.ts"].map(f => (
+          {["◇ src", "  ◈ main.ts", "  ◈ agent.ts", "  ◈ config.json", "  ◇ lib", "    ◈ utils.ts", "◇ tests", "  ◈ agent.test.ts"].map(f => (
             <p key={f} className={`px-1 py-0.5 rounded text-muted-foreground/50 ${f.includes("agent.ts") && !f.includes("test") ? "bg-foreground/10 text-foreground" : ""}`}>{f}</p>
           ))}
         </div>
