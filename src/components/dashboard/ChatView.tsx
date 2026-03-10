@@ -429,7 +429,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             {conversation.messages.map((msg, idx) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up`}
+                ref={(el) => { messageRefs.current[msg.id] = el; }}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up transition-all duration-300 ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
                 style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
               >
                 <div className="max-w-[80%]">
