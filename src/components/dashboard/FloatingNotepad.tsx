@@ -52,11 +52,16 @@ const FloatingNotepad = ({ open, onClose, conversationId }: FloatingNotepadProps
   const offset = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Persist text
+  // Persist text per conversation
   useEffect(() => {
-    const t = setTimeout(() => saveNotepad(text), 400);
+    const t = setTimeout(() => saveNotepad(conversationId, text), 400);
     return () => clearTimeout(t);
-  }, [text]);
+  }, [text, conversationId]);
+
+  // Reload notes when switching conversations
+  useEffect(() => {
+    setText(loadNotepad(conversationId));
+  }, [conversationId]);
 
   // Persist position
   useEffect(() => {
