@@ -412,7 +412,7 @@ const VibeVideoView = () => {
         const useGPU = mediaBunny.canUseMediaBunny(editType);
         const engineLabel = useGPU ? "◈ MediaBunny (GPU-accelerated)" : "◎ FFmpeg (software)";
 
-        const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `⏳ Loading ${engineLabel}…` };
+        const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◌ Loading ${engineLabel}…` };
         setMessages((prev) => [...prev, loadMsg]);
 
         let resultBlob: Blob;
