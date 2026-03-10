@@ -397,7 +397,7 @@ const VibeVideoView = () => {
         const editType = analyzeData.edit_type || "filter";
 
         if (summary) {
-          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `✨ ${summary}` };
+          const infoMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: `◈ ${summary}` };
           setMessages((prev) => [...prev, infoMsg]);
         }
 
