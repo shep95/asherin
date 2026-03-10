@@ -84,7 +84,7 @@ export async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel }),
+    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext }),
     signal,
   });
 
