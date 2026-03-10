@@ -260,7 +260,7 @@ const VibeImagerView = () => {
     setActiveProject(project);
     setMessages([{
       id: crypto.randomUUID(), role: "assistant",
-      content: "Welcome to Vibe Imager! 🎨 Upload an image and describe your edit. I'll ask clarifying questions if I need more detail before transforming it.",
+      content: "Welcome to Vibe Imager. Upload an image and describe your edit. I'll ask clarifying questions if I need more detail before transforming it.",
     }]);
     setVersions([]);
     setActiveVersion(null);
