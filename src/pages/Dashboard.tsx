@@ -488,6 +488,15 @@ const Dashboard = () => {
     }
   }, [activeConvId]);
 
+  // Persist active brain id
+  useEffect(() => {
+    if (activeBrainId) {
+      localStorage.setItem("aureon_active_brain_id", activeBrainId);
+    } else {
+      localStorage.removeItem("aureon_active_brain_id");
+    }
+  }, [activeBrainId]);
+
   // Keep ref in sync so sendMessageCore always reads latest conversations
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
