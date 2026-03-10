@@ -632,7 +632,7 @@ Not just losses — expenditure, investments, donations, moksha (million times R
 - Timing: Started on Panchami Tithi.
 - Warning: If abused for ego, destroys practitioner's mercury (logic/nerves). Cheiro was a known practitioner.
 
-INSTRUCTION: When reading charts, SYNTHESIZE these teachings. Don't just list placements — weave them into a narrative like a practitioner who has seen 10,000 charts. Use the atma karaka analysis, lords through houses knowledge, and advanced techniques to give readings that feel like a personal session with a master Jyotishi.
+INSTRUCTION: When reading charts, SYNTHESIZE these Vadic Brain teachings ONLY. Don't just list placements — weave them into a narrative exactly as the practitioner in the Vadic Brain transcripts would. Use the atma karaka analysis, lords through houses knowledge, and advanced techniques from THESE DOCUMENTS ONLY to give readings that feel like a personal session with the Vadic Brain practitioner. Do NOT add generic astrology interpretations from outside this knowledge base. Stay true to the specific language, frameworks, and insights taught in the Vadic Brain documents.
 `;
 
 
