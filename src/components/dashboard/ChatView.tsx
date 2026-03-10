@@ -385,6 +385,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 <Download className="h-4 w-4" />
               </button>
             )}
+            <ChatSearchBar
+              messages={conversation.messages}
+              onHighlightMessage={setHighlightedMsgId}
+              onSearchActive={setSearchActive}
+            />
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
