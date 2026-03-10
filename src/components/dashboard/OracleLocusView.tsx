@@ -861,7 +861,7 @@ const OracleLocusView = () => {
                               <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Genetic Markers Detected</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {faceResult.subject_analysis.genetic_markers.map((m, i) => (
-                                  <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">🧬 {m}</span>
+                                  <span key={i} className="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">◈ {m}</span>
                                 ))}
                               </div>
                             </div>
