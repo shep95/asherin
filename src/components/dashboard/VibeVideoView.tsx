@@ -552,10 +552,10 @@ const VibeVideoView = () => {
           setActiveVersion(v);
         }
 
-        const engineUsed = useGPU ? "⚡ GPU-accelerated" : "🔧 Software";
+        const engineUsed = useGPU ? "◈ GPU-accelerated" : "◎ Software";
         const aMsg: ChatMessage = {
           id: crypto.randomUUID(), role: "assistant",
-          content: `✅ Edit applied! Version ${vNum} created.\n\n**Edit:** ${summary || refinedInstruction}\n**Type:** ${editType}\n**Engine:** ${engineUsed}\n\nThe edited video is now playing.`,
+          content: `◉ Edit applied — Version ${vNum} created.\n\n**Edit:** ${summary || refinedInstruction}\n**Type:** ${editType}\n**Engine:** ${engineUsed}\n\nThe edited video is now playing.`,
           versionId: version?.id,
         };
         setMessages((prev) => [...prev, aMsg]);
