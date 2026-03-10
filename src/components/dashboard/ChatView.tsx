@@ -35,6 +35,7 @@ import { useElevenLabsVoice } from "@/hooks/useElevenLabsVoice";
 import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
 import ConsensusMessage from "./ConsensusMessage";
 import BrainsManager from "./BrainsManager";
+import ConversationApiToggles from "./ConversationApiToggles";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -403,6 +404,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             {onBrainChange && (
               <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
             )}
+            <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
              <ChatSearchBar
                messages={conversation.messages}
                onHighlightMessage={setHighlightedMsgId}
