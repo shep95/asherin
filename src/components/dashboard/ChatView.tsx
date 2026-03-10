@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote } from "lucide-react";
 import MessageNote from "./MessageNote";
+import FloatingNotepad from "./FloatingNotepad";
 import ChatSearchBar from "./ChatSearchBar";
 import MessageQueuePanel, { type QueueItem } from "./MessageQueuePanel";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -266,6 +267,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const [searchActive, setSearchActive] = useState(false);
+  const [notepadOpen, setNotepadOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -340,6 +342,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
     return (
     <div className="flex flex-1 flex-col min-w-0 h-full relative">
+      {/* Floating Notepad */}
+      <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} />
       {/* Voice Call Overlay */}
       <VoiceCallOverlay
         isConnected={elevenLabsVoice.isConnected}
@@ -385,12 +389,19 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <button onClick={downloadConversation} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-4 w-4" />
               </button>
-            )}
-            <ChatSearchBar
-              messages={conversation.messages}
-              onHighlightMessage={setHighlightedMsgId}
-              onSearchActive={setSearchActive}
-            />
+             )}
+            <button
+              onClick={() => setNotepadOpen(!notepadOpen)}
+              className={`p-1.5 rounded-md transition-colors ${notepadOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+              title="Notepad"
+            >
+              <StickyNote className="h-4 w-4" />
+            </button>
+             <ChatSearchBar
+               messages={conversation.messages}
+               onHighlightMessage={setHighlightedMsgId}
+               onSearchActive={setSearchActive}
+             />
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
