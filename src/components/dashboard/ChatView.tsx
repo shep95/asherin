@@ -484,6 +484,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                         <MessageStatusIndicator status={messageStatuses[msg.id]} />
                       )}
                       <MessageCopyButton text={msg.content} />
+                      <MessageNote messageId={msg.id} />
                       {msg.role === "assistant" && (
                         <>
                           <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
