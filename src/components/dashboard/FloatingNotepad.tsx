@@ -1,7 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { StickyNote, X, Copy, Check, Download, Minus, Maximize2, GripHorizontal, FolderTree, MessageSquare } from "lucide-react";
+import { StickyNote, X, Copy, Check, Download, Minus, Maximize2, GripHorizontal, FolderTree, MessageSquare, BookOpen, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import NoteTree from "./notepad/NoteTree";
 import NotepadChat from "./notepad/NotepadChat";
+import { syncNotepadToNotebook } from "./notepad/syncToNotebook";
 import { loadNotepadData, saveNotepadData, loadPos, savePos, genId } from "./notepad/types";
 import type { NotepadData, PosSize, NoteBranch } from "./notepad/types";
 
@@ -21,13 +24,17 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 type Tab = "notes" | "chat";
 
 const FloatingNotepad = ({ open, onClose, conversationId }: FloatingNotepadProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [data, setData] = useState<NotepadData>(() => loadNotepadData(conversationId));
   const [pos, setPos] = useState<PosSize>(loadPos);
   const [copied, setCopied] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [tab, setTab] = useState<Tab>("notes");
   const [sorting, setSorting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const activeConvRef = useRef(conversationId);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dragging = useRef(false);
   const resizing = useRef(false);
@@ -105,6 +112,33 @@ const FloatingNotepad = ({ open, onClose, conversationId }: FloatingNotepadProps
   }, []);
 
   const handleChange = (newData: NotepadData) => setData(newData);
+
+  // Auto-sync to notebooks (debounced 3s after changes)
+  useEffect(() => {
+    if (!user) return;
+    const totalNotes = data.unsorted.length + data.branches.reduce((s, b) => s + b.notes.length, 0);
+    if (totalNotes === 0) return;
+
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(async () => {
+      await syncNotepadToNotebook(user.id, conversationId, data);
+    }, 3000);
+
+    return () => { if (syncTimer.current) clearTimeout(syncTimer.current); };
+  }, [data, user, conversationId]);
+
+  // Manual sync
+  const handleSyncToNotebook = async () => {
+    if (!user || syncing) return;
+    setSyncing(true);
+    const result = await syncNotepadToNotebook(user.id, conversationId, data);
+    setSyncing(false);
+    if (result.success) {
+      toast({ title: "Saved to Notebooks", description: "Your notes are synced to the Notebooks tab." });
+    } else {
+      toast({ title: "Sync failed", description: result.error, variant: "destructive" });
+    }
+  };
 
   // AI auto-sort
   const handleAiSort = async () => {
@@ -274,6 +308,9 @@ Rules:
           )}
         </div>
         <div className="flex items-center gap-0.5">
+          <button onClick={handleSyncToNotebook} disabled={syncing} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Save to Notebooks">
+            {syncing ? <Loader2 className="h-3 w-3 animate-spin text-amber-500" /> : <BookOpen className="h-3 w-3" />}
+          </button>
           <button onClick={handleCopy} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Copy all">
             {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
           </button>
