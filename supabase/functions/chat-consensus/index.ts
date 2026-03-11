@@ -122,6 +122,7 @@ async function callProvider(
         model,
         messages: [{ role: "system", content: systemPrompt }, ...messages.map(m => ({ role: m.role, content: m.content }))],
         temperature: 0.4,
+        max_tokens: 4096,
       }),
     });
 
