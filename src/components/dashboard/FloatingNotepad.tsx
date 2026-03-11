@@ -308,6 +308,9 @@ Rules:
           )}
         </div>
         <div className="flex items-center gap-0.5">
+          <button onClick={handleSyncToNotebook} disabled={syncing} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Save to Notebooks">
+            {syncing ? <Loader2 className="h-3 w-3 animate-spin text-amber-500" /> : <BookOpen className="h-3 w-3" />}
+          </button>
           <button onClick={handleCopy} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Copy all">
             {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
           </button>
