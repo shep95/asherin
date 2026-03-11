@@ -52,7 +52,7 @@ async function callProvider(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: geminiMessages, generationConfig: { temperature: 0.4 } }),
+          body: JSON.stringify({ contents: geminiMessages, generationConfig: { temperature: 0.4, maxOutputTokens: 8192 } }),
         },
       );
       if (!response.ok) {
