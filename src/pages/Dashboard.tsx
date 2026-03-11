@@ -78,6 +78,7 @@ const VibeImagerView = React.lazy(() => import("@/components/dashboard/VibeImage
 const VibeVideoView = React.lazy(() => import("@/components/dashboard/VibeVideoView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
+import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
