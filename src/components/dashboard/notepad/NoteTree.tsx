@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Trash2, Plus, FolderTree, FileText, Pencil, Check, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown, ChevronRight, Trash2, Plus, FolderTree, FileText, Pencil, Check, X, Sparkles } from "lucide-react";
 import type { NotepadData, NoteBranch, NoteItem } from "./types";
 import { genId } from "./types";
 
