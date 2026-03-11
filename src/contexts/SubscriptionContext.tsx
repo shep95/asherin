@@ -79,7 +79,7 @@ function productToTier(productId: string | null): TierKey | null {
 
 /** Check if user has chat-only access */
 export function hasChatAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+  return tierKey === "starter" || tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
 }
 
 /** Check if user has access to Zophiel Search (aureon+ tiers) */
