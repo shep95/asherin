@@ -24,13 +24,17 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 type Tab = "notes" | "chat";
 
 const FloatingNotepad = ({ open, onClose, conversationId }: FloatingNotepadProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [data, setData] = useState<NotepadData>(() => loadNotepadData(conversationId));
   const [pos, setPos] = useState<PosSize>(loadPos);
   const [copied, setCopied] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [tab, setTab] = useState<Tab>("notes");
   const [sorting, setSorting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const activeConvRef = useRef(conversationId);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dragging = useRef(false);
   const resizing = useRef(false);
