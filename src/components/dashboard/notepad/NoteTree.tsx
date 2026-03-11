@@ -6,6 +6,8 @@ import { genId } from "./types";
 interface NoteTreeProps {
   data: NotepadData;
   onChange: (data: NotepadData) => void;
+  onRequestSort?: () => void;
+  sorting?: boolean;
 }
 
 const NoteTree = ({ data, onChange }: NoteTreeProps) => {
