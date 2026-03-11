@@ -1078,7 +1078,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
       "kundli", "kundali", "lagna", "upapada", "gandanta", "soulmate", "marriage timing",
       "career prediction", "wealth prediction", "death prediction"
     ];
-    const isVedicQuery = vedicTriggers.some(t => lastUserMsg.includes(t)) ||
+    const isVedicQuery = vedicTriggers.some(t => vedicLastMsg.includes(t)) ||
                          vedicTriggers.filter(t => allUserContent.includes(t)).length >= 3;
     
     // Check if user attached an image (likely a chart screenshot)
