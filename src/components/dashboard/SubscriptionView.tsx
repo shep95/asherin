@@ -5,12 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
-import { getPublicPlans } from "@/config/subscriptionPlans";
+import { getDashboardPlans } from "@/config/subscriptionPlans";
 import TierFeatureTabs from "@/components/subscription/TierFeatureTabs";
 import GiftSubscriptionSection from "@/components/dashboard/subscription/GiftSubscriptionSection";
 import AddOnsSection from "@/components/dashboard/subscription/AddOnsSection";
 
-const plans = getPublicPlans().map(p => ({
+const plans = getDashboardPlans().map(p => ({
   id: p.id,
   name: p.name,
   tagline: p.tagline,
@@ -128,7 +128,7 @@ const SubscriptionView = () => {
         </div>
 
         {/* Plan Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {plans.map((plan) => {
             const isActive = tierKey === plan.id;
             return (
