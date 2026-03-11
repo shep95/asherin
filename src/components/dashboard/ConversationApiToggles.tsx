@@ -40,7 +40,7 @@ const ConversationApiToggles = ({ conversationId, storedProviders }: Props) => {
     setToggles(loadToggles(conversationId));
   }, [conversationId]);
 
-  const isActive = (providerId: string) => toggles[providerId] !== false;
+  const isActive = (providerId: string) => toggles[providerId] === true;
 
   const handleToggle = (providerId: string) => {
     const updated = { ...toggles, [providerId]: !isActive(providerId) };
