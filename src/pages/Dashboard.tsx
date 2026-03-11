@@ -78,6 +78,7 @@ const VibeImagerView = React.lazy(() => import("@/components/dashboard/VibeImage
 const VibeVideoView = React.lazy(() => import("@/components/dashboard/VibeVideoView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
+import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -158,6 +159,8 @@ const Dashboard = () => {
   const [consensusEnabled, setConsensusEnabled] = useState(false);
   const [consensusModels, setConsensusModels] = useState<SelectedModel[]>([]);
   const [storedProviders, setStoredProviders] = useState<string[]>([]);
+  const [splitPanes, setSplitPanes] = useState<SplitPane[]>([]);
+  const [isDraggingConvo, setIsDraggingConvo] = useState(false);
   const [activeBrainId, setActiveBrainId] = useState<string | null>(() => {
     try { return localStorage.getItem("aureon_active_brain_id") || null; } catch { return null; }
   });
@@ -184,6 +187,46 @@ const Dashboard = () => {
     window.addEventListener("aureon-wallpaper-change", handler);
     return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
   }, []);
+
+  // Global drag detection for split-pane drop zones
+  useEffect(() => {
+    const onDragOver = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes("text/aureon-conversation-id")) {
+        setIsDraggingConvo(true);
+      }
+    };
+    const onDragEnd = () => setIsDraggingConvo(false);
+    const onDrop = () => setIsDraggingConvo(false);
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("dragend", onDragEnd);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("dragend", onDragEnd);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, []);
+
+  const addSplitPane = useCallback((convId: string) => {
+    if (splitPanes.length >= 4) return;
+    if (splitPanes.some(p => p.conversationId === convId)) return;
+    setSplitPanes(prev => [...prev, { id: crypto.randomUUID(), conversationId: convId }]);
+  }, [splitPanes]);
+
+  const removeSplitPane = useCallback((paneId: string) => {
+    setSplitPanes(prev => {
+      const next = prev.filter(p => p.id !== paneId);
+      return next;
+    });
+  }, []);
+
+  const handleSplitSendMessage = useCallback(async (content: string, convId: string, attachments?: FileAttachment[]) => {
+    // Temporarily switch active conv to send to the right conversation
+    const prevActive = activeConvId;
+    setActiveConvId(convId);
+    await sendMessageCore(content, convId, attachments);
+    if (prevActive) setActiveConvId(prevActive);
+  }, [activeConvId]);
 
   // Online/offline detection
   useEffect(() => {
@@ -1105,8 +1148,80 @@ const Dashboard = () => {
           />
         )}
 
-        <main className="flex flex-1 flex-col min-w-0 overflow-hidden h-full">
-          {renderView()}
+        <main
+          className="flex flex-1 flex-col min-w-0 overflow-hidden h-full relative"
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes("text/aureon-conversation-id") && splitPanes.length === 0 && activeView === "chat") {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            }
+          }}
+          onDrop={(e) => {
+            const convId = e.dataTransfer.getData("text/aureon-conversation-id");
+            if (convId && splitPanes.length === 0 && activeView === "chat") {
+              e.preventDefault();
+              // Don't add the currently active conversation
+              if (convId !== activeConvId) {
+                addSplitPane(activeConvId!);
+                addSplitPane(convId);
+              }
+            }
+          }}
+        >
+          {splitPanes.length > 0 ? (
+            <SplitPaneManager
+              panes={splitPanes}
+              conversations={conversations}
+              onRemovePane={(paneId) => {
+                const next = splitPanes.filter(p => p.id !== paneId);
+                if (next.length <= 1) {
+                  // If only one pane left, exit split mode and set it as active
+                  if (next.length === 1) setActiveConvId(next[0].conversationId);
+                  setSplitPanes([]);
+                } else {
+                  setSplitPanes(next);
+                }
+              }}
+              onSendMessage={handleSplitSendMessage}
+              mode={mode}
+              onModeChange={setMode}
+              depth={depth}
+              onDepthChange={handleDepthChange}
+              isStreaming={isStreaming}
+              suggestions={suggestions}
+              onCalibrationFeedback={handleCalibrationFeedback}
+              onStopStreaming={stopStreaming}
+              focusMode={focusMode}
+              messageStatuses={messageStatuses}
+              personaSystemPrompt={
+                (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
+              }
+              storedProviders={storedProviders}
+              activeBrainId={activeBrainId}
+              onBrainChange={setActiveBrainId}
+              onDropConversation={(convId) => {
+                if (!splitPanes.some(p => p.conversationId === convId)) {
+                  addSplitPane(convId);
+                }
+              }}
+              isDraggingConvo={isDraggingConvo}
+            />
+          ) : (
+            <>
+              {renderView()}
+              {/* Drop zone overlay when dragging a convo onto chat */}
+              {isDraggingConvo && activeView === "chat" && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm pointer-events-none animate-fade-in">
+                  <div className="text-center space-y-3 pointer-events-none">
+                    <div className="w-16 h-16 mx-auto rounded-2xl border-2 border-dashed border-foreground/30 flex items-center justify-center">
+                      <span className="text-2xl font-extralight text-foreground/40">◫</span>
+                    </div>
+                    <p className="text-xs font-light text-foreground/50">Drop to split view</p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
 

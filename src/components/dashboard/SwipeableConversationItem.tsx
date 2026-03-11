@@ -51,6 +51,11 @@ const SwipeableConversationItem = ({
     onArchive();
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/aureon-conversation-id", conv.id);
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
   return (
     <div className="relative overflow-hidden rounded-xl">
       {/* Archive action behind */}
@@ -64,9 +69,11 @@ const SwipeableConversationItem = ({
         </button>
       </div>
 
-      {/* Swipeable foreground */}
+      {/* Swipeable + draggable foreground */}
       <div
-        className={`relative z-10 group flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer transition-colors ${
+        draggable
+        onDragStart={handleDragStart}
+        className={`relative z-10 group flex items-center gap-2 rounded-xl px-3 py-2 cursor-grab active:cursor-grabbing transition-colors ${
           isActive
             ? "bg-foreground/10 text-foreground"
             : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
