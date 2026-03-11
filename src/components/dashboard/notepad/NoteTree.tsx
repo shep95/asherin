@@ -155,19 +155,40 @@ const NoteTree = ({ data, onChange, onRequestSort, sorting }: NoteTreeProps) => 
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Note input */}
-      <div className="flex items-center gap-1.5 px-3 pt-2 pb-1.5 border-b border-border/10">
-        <input
+      {/* Note input — expandable textarea */}
+      <div className="flex items-start gap-1.5 px-3 pt-2 pb-1.5 border-b border-border/10">
+        <textarea
+          ref={textareaRef}
           value={newNote}
           onChange={e => setNewNote(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") addNote(); }}
-          placeholder="Add a note…"
-          className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none"
+          onKeyDown={e => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNote(); }
+          }}
+          placeholder="Paste or type notes… (Ctrl+Enter to add)&#10;Multi-line text is auto-split into separate notes"
+          className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none resize-none leading-relaxed"
+          style={{ minHeight: "36px", maxHeight: "160px" }}
+          rows={1}
         />
-        <button onClick={addNote} className="p-1 rounded text-amber-500/60 hover:text-amber-500 transition-colors" title="Add note">
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex flex-col gap-0.5 pt-0.5">
+          <button onClick={addNote} className="p-1 rounded text-amber-500/60 hover:text-amber-500 transition-colors" title="Add note (Ctrl+Enter)">
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
+
+      {/* AI Sort button */}
+      {(data.unsorted.length > 1 || (data.unsorted.length > 0 && data.branches.length > 0)) && onRequestSort && (
+        <div className="px-3 py-1.5 border-b border-border/10">
+          <button
+            onClick={onRequestSort}
+            disabled={sorting}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-500/80 text-[10px] font-medium transition-all disabled:opacity-40"
+          >
+            <Sparkles className="h-3 w-3" />
+            {sorting ? "Sorting…" : "Auto-sort into branches"}
+          </button>
+        </div>
+      )}
 
       {/* Tree view */}
       <div className="flex-1 overflow-y-auto px-2 py-1.5 space-y-1">
