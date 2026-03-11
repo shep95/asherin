@@ -1063,7 +1063,7 @@ The user is asking about internal code, backend, or architecture. You are FORBID
     // ── VEDIC BRAIN AUTO-INJECTION ────────────────────────────────────────
     // Detect astrology/chart queries and auto-load full Vedic practitioner knowledge
     let vedicBrainContent = "";
-    const lastUserMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
+    const vedicLastMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
     const allUserContent = (messages || []).filter((m: any) => m.role === "user").map((m: any) => m.content?.toLowerCase() || "").join(" ");
     const vedicTriggers = [
       "chart", "natal", "birth chart", "vedic", "jyotish", "dasha", "transit",
