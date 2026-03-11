@@ -10,18 +10,43 @@ interface NoteTreeProps {
   sorting?: boolean;
 }
 
-const NoteTree = ({ data, onChange }: NoteTreeProps) => {
+const NoteTree = ({ data, onChange, onRequestSort, sorting }: NoteTreeProps) => {
   const [newNote, setNewNote] = useState("");
   const [newBranch, setNewBranch] = useState("");
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
+    }
+  }, [newNote]);
 
   const addNote = () => {
     const trimmed = newNote.trim();
     if (!trimmed) return;
-    const note: NoteItem = { id: genId(), content: trimmed, createdAt: Date.now() };
-    onChange({ ...data, unsorted: [...data.unsorted, note] });
+
+    // Smart split: if text has multiple lines/paragraphs, split into separate notes
+    const lines = trimmed.split(/\n{2,}|\n(?=-\s)|(?<=\.\s)\n/) // split on double newlines, bullet points, or sentence-ending newlines
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+
+    if (lines.length > 1) {
+      // Multiple chunks detected — create separate notes
+      const newNotes: NoteItem[] = lines.map(line => ({
+        id: genId(),
+        content: line.replace(/^[-•*]\s*/, ""), // strip bullet prefixes
+        createdAt: Date.now(),
+      }));
+      onChange({ ...data, unsorted: [...data.unsorted, ...newNotes] });
+    } else {
+      const note: NoteItem = { id: genId(), content: trimmed, createdAt: Date.now() };
+      onChange({ ...data, unsorted: [...data.unsorted, note] });
+    }
     setNewNote("");
   };
 
