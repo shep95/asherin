@@ -8,10 +8,33 @@ export interface FileAttachment {
 
 export interface ConsensusData {
   consensus: boolean;
-  similarity: number;
-  modelCount: number;
-  successCount: number;
-  responses: { provider: string; model: string; content: string; error: string | null }[];
+  confidence: {
+    overallConfidence: number;
+    level: "high" | "medium" | "low" | "critical_divergence";
+    needsHumanReview: boolean;
+    reasons: string[];
+    jaccardSimilarity: number;
+  };
+  crossValidation: {
+    provider: string;
+    model: string;
+    totalClaims: number;
+    validatedClaims: number;
+    unvalidatedClaims: string[];
+    validationRate: number;
+  }[];
+  ensemble: {
+    agreedFacts: string[];
+    contestedFacts: string[];
+    agreementRatio: number;
+  };
+  verdict: { index: number; provider: string; model: string } | null;
+  responses: { provider: string; model: string; content: string; error: string | null; latencyMs: number }[];
+  timing: { parallelMs: number; totalMs: number };
+  // Legacy compat
+  similarity?: number;
+  modelCount?: number;
+  successCount?: number;
 }
 
 export interface Message {
