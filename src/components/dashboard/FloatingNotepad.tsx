@@ -113,6 +113,33 @@ const FloatingNotepad = ({ open, onClose, conversationId }: FloatingNotepadProps
 
   const handleChange = (newData: NotepadData) => setData(newData);
 
+  // Auto-sync to notebooks (debounced 3s after changes)
+  useEffect(() => {
+    if (!user) return;
+    const totalNotes = data.unsorted.length + data.branches.reduce((s, b) => s + b.notes.length, 0);
+    if (totalNotes === 0) return;
+
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(async () => {
+      await syncNotepadToNotebook(user.id, conversationId, data);
+    }, 3000);
+
+    return () => { if (syncTimer.current) clearTimeout(syncTimer.current); };
+  }, [data, user, conversationId]);
+
+  // Manual sync
+  const handleSyncToNotebook = async () => {
+    if (!user || syncing) return;
+    setSyncing(true);
+    const result = await syncNotepadToNotebook(user.id, conversationId, data);
+    setSyncing(false);
+    if (result.success) {
+      toast({ title: "Saved to Notebooks", description: "Your notes are synced to the Notebooks tab." });
+    } else {
+      toast({ title: "Sync failed", description: result.error, variant: "destructive" });
+    }
+  };
+
   // AI auto-sort
   const handleAiSort = async () => {
     const allNotes = [
