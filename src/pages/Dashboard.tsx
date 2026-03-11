@@ -736,15 +736,18 @@ const Dashboard = () => {
           mode,
         });
 
-        // Pick the best content for display and DB storage
-        const bestContent = result.consensus && result.responses.find(r => r.content)?.content
+        // Pick the best content: use verdict response if available
+        const verdictIdx = result.verdict?.index ?? 0;
+        const successfulResponses = result.responses.filter(r => r.content && !r.error);
+        const bestContent = successfulResponses[verdictIdx]?.content
+          || successfulResponses[0]?.content
           || result.responses.filter(r => r.content).map(r => `**${r.provider}/${r.model}:**\n${r.content}`).join("\n\n---\n\n")
           || "No models responded successfully.";
 
         setConversations((prev) =>
           prev.map((c) =>
             c.id === convId
-              ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: bestContent, consensusData: result } : m) }
+              ? { ...c, messages: c.messages.map((m) => m.id === assistantId ? { ...m, content: bestContent, consensusData: result as any } : m) }
               : c
           )
         );
@@ -761,10 +764,14 @@ const Dashboard = () => {
         });
         const sug = await fetchSuggestions(bestContent);
         setSuggestions(sug);
+
+        const confLevel = result.confidence?.level || "medium";
+        const successCount = successfulResponses.length;
+        const totalCount = result.responses.length;
         pushNotification({
-          title: `Consensus: ${result.consensus ? "Models agree" : "Models disagree"}`,
-          message: `${result.successCount}/${result.modelCount} models responded (${Math.round(result.similarity * 100)}% similarity)`,
-          type: result.consensus ? "success" : "info",
+          title: `Consensus: ${result.consensus ? "Models agree" : "Models diverge"}`,
+          message: `${successCount}/${totalCount} responded · ${result.confidence?.overallConfidence ?? 0}% confidence${result.confidence?.needsHumanReview ? " · ⚠ Human review recommended" : ""}`,
+          type: confLevel === "high" ? "success" : confLevel === "critical_divergence" ? "error" : "info",
           actionLabel: "View",
           actionView: "chat",
         });
