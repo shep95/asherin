@@ -1148,8 +1148,80 @@ const Dashboard = () => {
           />
         )}
 
-        <main className="flex flex-1 flex-col min-w-0 overflow-hidden h-full">
-          {renderView()}
+        <main
+          className="flex flex-1 flex-col min-w-0 overflow-hidden h-full relative"
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes("text/aureon-conversation-id") && splitPanes.length === 0 && activeView === "chat") {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            }
+          }}
+          onDrop={(e) => {
+            const convId = e.dataTransfer.getData("text/aureon-conversation-id");
+            if (convId && splitPanes.length === 0 && activeView === "chat") {
+              e.preventDefault();
+              // Don't add the currently active conversation
+              if (convId !== activeConvId) {
+                addSplitPane(activeConvId!);
+                addSplitPane(convId);
+              }
+            }
+          }}
+        >
+          {splitPanes.length > 0 ? (
+            <SplitPaneManager
+              panes={splitPanes}
+              conversations={conversations}
+              onRemovePane={(paneId) => {
+                const next = splitPanes.filter(p => p.id !== paneId);
+                if (next.length <= 1) {
+                  // If only one pane left, exit split mode and set it as active
+                  if (next.length === 1) setActiveConvId(next[0].conversationId);
+                  setSplitPanes([]);
+                } else {
+                  setSplitPanes(next);
+                }
+              }}
+              onSendMessage={handleSplitSendMessage}
+              mode={mode}
+              onModeChange={setMode}
+              depth={depth}
+              onDepthChange={handleDepthChange}
+              isStreaming={isStreaming}
+              suggestions={suggestions}
+              onCalibrationFeedback={handleCalibrationFeedback}
+              onStopStreaming={stopStreaming}
+              focusMode={focusMode}
+              messageStatuses={messageStatuses}
+              personaSystemPrompt={
+                (customPersonas.find(p => p.id === personaId) || builtInPersonas.find(p => p.id === personaId))?.systemPrompt || null
+              }
+              storedProviders={storedProviders}
+              activeBrainId={activeBrainId}
+              onBrainChange={setActiveBrainId}
+              onDropConversation={(convId) => {
+                if (!splitPanes.some(p => p.conversationId === convId)) {
+                  addSplitPane(convId);
+                }
+              }}
+              isDraggingConvo={isDraggingConvo}
+            />
+          ) : (
+            <>
+              {renderView()}
+              {/* Drop zone overlay when dragging a convo onto chat */}
+              {isDraggingConvo && activeView === "chat" && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm pointer-events-none animate-fade-in">
+                  <div className="text-center space-y-3 pointer-events-none">
+                    <div className="w-16 h-16 mx-auto rounded-2xl border-2 border-dashed border-foreground/30 flex items-center justify-center">
+                      <span className="text-2xl font-extralight text-foreground/40">◫</span>
+                    </div>
+                    <p className="text-xs font-light text-foreground/50">Drop to split view</p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
 
