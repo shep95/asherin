@@ -1,7 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { StickyNote, X, Copy, Check, Download, Minus, Maximize2, GripHorizontal, FolderTree, MessageSquare } from "lucide-react";
+import { StickyNote, X, Copy, Check, Download, Minus, Maximize2, GripHorizontal, FolderTree, MessageSquare, BookOpen, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import NoteTree from "./notepad/NoteTree";
 import NotepadChat from "./notepad/NotepadChat";
+import { syncNotepadToNotebook } from "./notepad/syncToNotebook";
 import { loadNotepadData, saveNotepadData, loadPos, savePos, genId } from "./notepad/types";
 import type { NotepadData, PosSize, NoteBranch } from "./notepad/types";
 
