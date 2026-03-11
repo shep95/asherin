@@ -46,22 +46,28 @@ const FloatingNotepad = ({ open, onClose, conversationId }: FloatingNotepadProps
   const [pos, setPos] = useState<Pos & Size>(loadPos);
   const [copied, setCopied] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const activeConvRef = useRef(conversationId);
 
   const dragging = useRef(false);
   const resizing = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Persist text per conversation
-  useEffect(() => {
-    const t = setTimeout(() => saveNotepad(conversationId, text), 400);
-    return () => clearTimeout(t);
-  }, [text, conversationId]);
-
   // Reload notes when switching conversations
   useEffect(() => {
+    activeConvRef.current = conversationId;
     setText(loadNotepad(conversationId));
   }, [conversationId]);
+
+  // Persist text per conversation (only if conversationId hasn't changed)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (activeConvRef.current === conversationId) {
+        saveNotepad(conversationId, text);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [text, conversationId]);
 
   // Persist position
   useEffect(() => {
