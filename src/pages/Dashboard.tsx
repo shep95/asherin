@@ -188,6 +188,46 @@ const Dashboard = () => {
     return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
   }, []);
 
+  // Global drag detection for split-pane drop zones
+  useEffect(() => {
+    const onDragOver = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes("text/aureon-conversation-id")) {
+        setIsDraggingConvo(true);
+      }
+    };
+    const onDragEnd = () => setIsDraggingConvo(false);
+    const onDrop = () => setIsDraggingConvo(false);
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("dragend", onDragEnd);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("dragend", onDragEnd);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, []);
+
+  const addSplitPane = useCallback((convId: string) => {
+    if (splitPanes.length >= 4) return;
+    if (splitPanes.some(p => p.conversationId === convId)) return;
+    setSplitPanes(prev => [...prev, { id: crypto.randomUUID(), conversationId: convId }]);
+  }, [splitPanes]);
+
+  const removeSplitPane = useCallback((paneId: string) => {
+    setSplitPanes(prev => {
+      const next = prev.filter(p => p.id !== paneId);
+      return next;
+    });
+  }, []);
+
+  const handleSplitSendMessage = useCallback(async (content: string, convId: string, attachments?: FileAttachment[]) => {
+    // Temporarily switch active conv to send to the right conversation
+    const prevActive = activeConvId;
+    setActiveConvId(convId);
+    await sendMessageCore(content, convId, attachments);
+    if (prevActive) setActiveConvId(prevActive);
+  }, [activeConvId]);
+
   // Online/offline detection
   useEffect(() => {
     const handleOnline = () => {
