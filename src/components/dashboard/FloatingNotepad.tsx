@@ -350,7 +350,7 @@ Rules:
 
           {/* Content */}
           {tab === "notes" ? (
-            <NoteTree data={data} onChange={handleChange} />
+            <NoteTree data={data} onChange={handleChange} onRequestSort={handleAiSort} sorting={sorting} />
           ) : (
             <NotepadChat data={data} onAiSort={handleAiSort} sorting={sorting} />
           )}

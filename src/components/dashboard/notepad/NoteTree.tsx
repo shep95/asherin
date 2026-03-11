@@ -1,25 +1,52 @@
-import { useState } from "react";
-import { ChevronDown, ChevronRight, Trash2, Plus, FolderTree, FileText, Pencil, Check, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown, ChevronRight, Trash2, Plus, FolderTree, FileText, Pencil, Check, X, Sparkles } from "lucide-react";
 import type { NotepadData, NoteBranch, NoteItem } from "./types";
 import { genId } from "./types";
 
 interface NoteTreeProps {
   data: NotepadData;
   onChange: (data: NotepadData) => void;
+  onRequestSort?: () => void;
+  sorting?: boolean;
 }
 
-const NoteTree = ({ data, onChange }: NoteTreeProps) => {
+const NoteTree = ({ data, onChange, onRequestSort, sorting }: NoteTreeProps) => {
   const [newNote, setNewNote] = useState("");
   const [newBranch, setNewBranch] = useState("");
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + "px";
+    }
+  }, [newNote]);
 
   const addNote = () => {
     const trimmed = newNote.trim();
     if (!trimmed) return;
-    const note: NoteItem = { id: genId(), content: trimmed, createdAt: Date.now() };
-    onChange({ ...data, unsorted: [...data.unsorted, note] });
+
+    // Smart split: if text has multiple lines/paragraphs, split into separate notes
+    const lines = trimmed.split(/\n{2,}|\n(?=-\s)|(?<=\.\s)\n/) // split on double newlines, bullet points, or sentence-ending newlines
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+
+    if (lines.length > 1) {
+      // Multiple chunks detected — create separate notes
+      const newNotes: NoteItem[] = lines.map(line => ({
+        id: genId(),
+        content: line.replace(/^[-•*]\s*/, ""), // strip bullet prefixes
+        createdAt: Date.now(),
+      }));
+      onChange({ ...data, unsorted: [...data.unsorted, ...newNotes] });
+    } else {
+      const note: NoteItem = { id: genId(), content: trimmed, createdAt: Date.now() };
+      onChange({ ...data, unsorted: [...data.unsorted, note] });
+    }
     setNewNote("");
   };
 
@@ -128,19 +155,40 @@ const NoteTree = ({ data, onChange }: NoteTreeProps) => {
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Note input */}
-      <div className="flex items-center gap-1.5 px-3 pt-2 pb-1.5 border-b border-border/10">
-        <input
+      {/* Note input — expandable textarea */}
+      <div className="flex items-start gap-1.5 px-3 pt-2 pb-1.5 border-b border-border/10">
+        <textarea
+          ref={textareaRef}
           value={newNote}
           onChange={e => setNewNote(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") addNote(); }}
-          placeholder="Add a note…"
-          className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none"
+          onKeyDown={e => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNote(); }
+          }}
+          placeholder="Paste or type notes… (Ctrl+Enter to add)&#10;Multi-line text is auto-split into separate notes"
+          className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none resize-none leading-relaxed"
+          style={{ minHeight: "36px", maxHeight: "160px" }}
+          rows={1}
         />
-        <button onClick={addNote} className="p-1 rounded text-amber-500/60 hover:text-amber-500 transition-colors" title="Add note">
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex flex-col gap-0.5 pt-0.5">
+          <button onClick={addNote} className="p-1 rounded text-amber-500/60 hover:text-amber-500 transition-colors" title="Add note (Ctrl+Enter)">
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
+
+      {/* AI Sort button */}
+      {(data.unsorted.length > 1 || (data.unsorted.length > 0 && data.branches.length > 0)) && onRequestSort && (
+        <div className="px-3 py-1.5 border-b border-border/10">
+          <button
+            onClick={onRequestSort}
+            disabled={sorting}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-500/80 text-[10px] font-medium transition-all disabled:opacity-40"
+          >
+            <Sparkles className="h-3 w-3" />
+            {sorting ? "Sorting…" : "Auto-sort into branches"}
+          </button>
+        </div>
+      )}
 
       {/* Tree view */}
       <div className="flex-1 overflow-y-auto px-2 py-1.5 space-y-1">
