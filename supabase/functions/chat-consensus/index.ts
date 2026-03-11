@@ -52,7 +52,7 @@ async function callProvider(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: geminiMessages, generationConfig: { temperature: 0.4 } }),
+          body: JSON.stringify({ contents: geminiMessages, generationConfig: { temperature: 0.4, maxOutputTokens: 8192 } }),
         },
       );
       if (!response.ok) {
@@ -100,7 +100,7 @@ async function callProvider(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: geminiMessages, generationConfig: { temperature: 0.4 } }),
+          body: JSON.stringify({ contents: geminiMessages, generationConfig: { temperature: 0.4, maxOutputTokens: 8192 } }),
         },
       );
       if (!response.ok) {
@@ -122,6 +122,7 @@ async function callProvider(
         model,
         messages: [{ role: "system", content: systemPrompt }, ...messages.map(m => ({ role: m.role, content: m.content }))],
         temperature: 0.4,
+        max_tokens: 4096,
       }),
     });
 
