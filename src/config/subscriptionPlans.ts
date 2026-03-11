@@ -296,9 +296,14 @@ export function getPlan(tierKey: TierKey): PlanDefinition | undefined {
   return SUBSCRIPTION_PLANS.find(p => p.id === tierKey);
 }
 
-/** Get all publicly visible plans */
+/** Get all publicly visible plans (for landing/pricing pages) */
 export function getPublicPlans(): PlanDefinition[] {
   return SUBSCRIPTION_PLANS.filter(p => p.publicVisible);
+}
+
+/** Get plans visible in the dashboard subscription view (public + starter) */
+export function getDashboardPlans(): PlanDefinition[] {
+  return SUBSCRIPTION_PLANS.filter(p => p.publicVisible || p.id === "starter");
 }
 
 /** Map dashboard view IDs to feature IDs for gating */
