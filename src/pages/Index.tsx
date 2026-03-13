@@ -994,6 +994,13 @@ const Index = () => {
         </div>
       </footer>
       </ScrollSection>
+      {showAuth && (
+        <AuthOverlay
+          isLogin={authIsLogin}
+          setIsLogin={setAuthIsLogin}
+          onClose={() => setShowAuth(false)}
+        />
+      )}
     </LandingBackground>
   );
 };
