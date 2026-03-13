@@ -1,0 +1,1 @@
+DELETE FROM granted_subscriptions WHERE id = 'ef3e6834-dc8d-42ce-b783-4dad3095a427';

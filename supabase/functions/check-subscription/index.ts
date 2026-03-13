@@ -71,12 +71,14 @@ serve(async (req) => {
     }
 
     // Check granted_subscriptions table (free/manual grants)
-    const { data: granted } = await supabaseClient
+    const { data: grantedRows } = await supabaseClient
       .from("granted_subscriptions")
       .select("*")
       .eq("email", user.email)
       .eq("active", true)
-      .maybeSingle();
+      .order("granted_at", { ascending: false })
+      .limit(1);
+    const granted = grantedRows && grantedRows.length > 0 ? grantedRows[0] : null;
 
     if (granted) {
       logStep("Found granted subscription", { tier: granted.tier, product_id: granted.product_id });
