@@ -42,7 +42,8 @@ export type FeatureId =
   | "priority_models"
   | "video_intelligence"
   | "vibe_imager"
-  | "vibe_video";
+  | "vibe_video"
+  | "agents";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
