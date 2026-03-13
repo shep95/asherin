@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
+import AuthOverlay from "@/components/AuthOverlay";
 import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
@@ -63,6 +64,8 @@ const Index = () => {
   const [showDiagram, setShowDiagram] = useState(false);
   const [showNeural, setShowNeural] = useState(false);
   const [lastDemoQuery, setLastDemoQuery] = useState("");
+  const [showAuth, setShowAuth] = useState(false);
+  const [authIsLogin, setAuthIsLogin] = useState(false);
   const maxDemos = 3;
 
   const handleDemo = async (e: React.FormEvent) => {
@@ -304,7 +307,7 @@ const Index = () => {
           {/* Below Demo CTA */}
           <div className="mt-12 flex flex-col items-center gap-4">
             <p className="text-xl font-extralight tracking-wide text-foreground">Liked what you saw?</p>
-            <button className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
+            <button onClick={() => { setAuthIsLogin(false); setShowAuth(true); }} className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
               Get Full Access
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
@@ -991,6 +994,13 @@ const Index = () => {
         </div>
       </footer>
       </ScrollSection>
+      {showAuth && (
+        <AuthOverlay
+          isLogin={authIsLogin}
+          setIsLogin={setAuthIsLogin}
+          onClose={() => setShowAuth(false)}
+        />
+      )}
     </LandingBackground>
   );
 };
