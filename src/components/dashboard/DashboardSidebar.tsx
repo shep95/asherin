@@ -195,7 +195,8 @@ const DashboardSidebar = ({
         return tierHasFeature(tierKey, featureId) || user?.email === "ashernewtonx@gmail.com";
       }
 
-      // Legacy access field fallback
+      // Legacy access field fallback (admin always has access)
+      if (user?.email === "ashernewtonx@gmail.com") return true;
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
       if (item.access === "pro") return hasProAccess(tierKey);
