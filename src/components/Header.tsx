@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import AuthOverlay from "@/components/AuthOverlay";
 
 const Header = () => {
   const { user, loading } = useAuth();
