@@ -547,29 +547,38 @@ const AgentsView = () => {
                 </div>
               ) : (
                 <div className="space-y-2 p-1">
-                  {logsData.map(exec => (
-                    <div key={exec.id} className="rounded-lg border border-border/10 bg-card/10 p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {exec.status === "success" ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                          ) : exec.status === "failed" ? (
-                            <XCircle className="h-3.5 w-3.5 text-red-400" />
-                          ) : (
-                            <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
-                          )}
-                          <span className="text-xs font-light text-foreground capitalize">{exec.status}</span>
+                  {logsData.map(exec => {
+                    const results = exec.results as any;
+                    const outputPreview = results?.output || results?.actions?.map((a: any) => a.output).join('\n').substring(0, 500);
+                    return (
+                      <div key={exec.id} className="rounded-lg border border-border/10 bg-card/10 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {exec.status === "success" ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                            ) : exec.status === "failed" ? (
+                              <XCircle className="h-3.5 w-3.5 text-red-400" />
+                            ) : (
+                              <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
+                            )}
+                            <span className="text-xs font-light text-foreground capitalize">{exec.status}</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/50">{new Date(exec.created_at).toLocaleString()}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground/50">{new Date(exec.created_at).toLocaleString()}</span>
+                        {exec.duration && (
+                          <p className="text-[10px] text-muted-foreground/60">Duration: {(exec.duration / 1000).toFixed(1)}s</p>
+                        )}
+                        {exec.error && (
+                          <p className="text-[10px] text-red-400/80 mt-1">{exec.error}</p>
+                        )}
+                        {outputPreview && (
+                          <div className="mt-2 rounded-md border border-border/10 bg-background/30 p-2 max-h-40 overflow-y-auto">
+                            <p className="text-[10px] text-muted-foreground/70 whitespace-pre-wrap leading-relaxed">{outputPreview}</p>
+                          </div>
+                        )}
                       </div>
-                      {exec.duration && (
-                        <p className="text-[10px] text-muted-foreground/60">Duration: {(exec.duration / 1000).toFixed(1)}s</p>
-                      )}
-                      {exec.error && (
-                        <p className="text-[10px] text-red-400/80 mt-1">{exec.error}</p>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
