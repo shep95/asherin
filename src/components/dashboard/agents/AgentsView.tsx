@@ -342,6 +342,7 @@ const AgentsView = () => {
                           key={agent.id}
                           agent={agent}
                           viewMode={viewMode}
+                          isRunning={runningAgentId === agent.id}
                           onToggle={() => toggleAgentStatus(agent)}
                           onDelete={() => deleteAgent(agent.id)}
                           onRunNow={() => runAgentNow(agent)}
