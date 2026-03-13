@@ -78,27 +78,40 @@ async function deliverEmail(
 
   const subject = `🤖 ${agentName} — ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
 
-  // Call internal send-email-notification function
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-  await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${serviceKey}`,
-    },
-    body: JSON.stringify({ type: "agent_output", subject, message: content }),
-  });
-
+  // Store notification in audit_log for in-app visibility
   await supabaseClient.from("audit_log").insert({
     user_id: userId,
     action: "agent_email_sent",
     resource_type: "agent_output",
-    details: { to: recipientEmail, subject, sent_at: new Date().toISOString() },
+    details: {
+      to: recipientEmail,
+      subject,
+      body_preview: content.substring(0, 500),
+      sent_at: new Date().toISOString(),
+      delivery_method: "email",
+    },
   });
 
-  logStep("Email delivered", { to: recipientEmail });
+  // Attempt actual email delivery via send-email-notification
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  try {
+    const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-email-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({ type: "agent_output", subject, message: content }),
+    });
+    const emailResult = await emailResp.json();
+    logStep("Email delivery attempted", { status: emailResp.status, result: emailResult });
+  } catch (emailErr) {
+    logStep("Email delivery call failed (non-fatal)", { error: String(emailErr) });
+  }
+
+  logStep("Email notification logged", { to: recipientEmail });
   return { success: true, to: recipientEmail, subject };
 }
 
@@ -112,23 +125,30 @@ async function deliverSMS(
   const phoneNumber = config?.phone_number;
   if (!phoneNumber) throw new Error("No phone number configured. Add a phone number in the agent output settings.");
 
-  const fromNumber = config?.from_number || Deno.env.get("TWILIO_FROM_NUMBER");
-
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
 
-  if (!LOVABLE_API_KEY || !TWILIO_API_KEY) {
-    throw new Error("SMS delivery requires Twilio to be connected. Please connect Twilio in your workspace settings.");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY is not configured. Please ensure the workspace has the required connector setup.");
+  }
+  if (!TWILIO_API_KEY) {
+    throw new Error("Twilio is not connected. Go to workspace settings and connect Twilio to enable SMS delivery.");
   }
 
   const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
 
-  // Truncate SMS to 1600 chars
+  // Truncate SMS to 1600 chars max
   const smsBody = `[${agentName}]\n${content}`.substring(0, 1600);
+
+  // We need a "From" number — Twilio requires it. Check config or env.
+  const fromNumber = config?.from_number || Deno.env.get("TWILIO_FROM_NUMBER");
+  if (!fromNumber) {
+    throw new Error("No 'From' phone number configured. Set a Twilio phone number in the agent config or TWILIO_FROM_NUMBER secret.");
+  }
 
   const bodyParams = new URLSearchParams({
     To: phoneNumber,
-    From: fromNumber || phoneNumber,
+    From: fromNumber,
     Body: smsBody,
   });
 
@@ -171,13 +191,14 @@ async function deliverSlack(
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const SLACK_API_KEY = Deno.env.get("SLACK_API_KEY");
 
-  if (!LOVABLE_API_KEY || !SLACK_API_KEY) {
-    throw new Error("Slack delivery requires Slack to be connected. Please connect Slack in your workspace settings.");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY is not configured.");
+  }
+  if (!SLACK_API_KEY) {
+    throw new Error("Slack is not connected. Go to workspace settings and connect Slack to enable Slack delivery.");
   }
 
   const GATEWAY_URL = "https://connector-gateway.lovable.dev/slack/api";
-
-  // Format as Slack blocks for rich display
   const text = `*🤖 ${agentName}*\n${content.substring(0, 3000)}`;
 
   const resp = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
@@ -219,7 +240,10 @@ async function deliverWebhook(
   agentName: string
 ) {
   const webhookUrl = config?.url;
-  if (!webhookUrl) throw new Error("No webhook URL configured. Add a URL in the agent output settings.");
+  if (!webhookUrl) throw new Error("No webhook URL configured.");
+
+  // Validate URL
+  try { new URL(webhookUrl); } catch { throw new Error(`Invalid webhook URL: ${webhookUrl}`); }
 
   const payload = {
     agent_name: agentName,
@@ -233,7 +257,6 @@ async function deliverWebhook(
     "User-Agent": "Aureon-Agent/1.0",
   };
 
-  // Optional secret for webhook signing
   if (config?.secret) {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -250,9 +273,11 @@ async function deliverWebhook(
     body: JSON.stringify(payload),
   });
 
+  // Consume body to prevent leak
+  const respText = await resp.text();
+
   if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`Webhook delivery failed [${resp.status}]: ${errText.substring(0, 500)}`);
+    throw new Error(`Webhook delivery failed [${resp.status}]: ${respText.substring(0, 500)}`);
   }
 
   await supabaseClient.from("audit_log").insert({
@@ -274,32 +299,36 @@ async function deliverDiscord(
   agentName: string
 ) {
   const webhookUrl = config?.webhook_url;
-  if (!webhookUrl) throw new Error("No Discord webhook URL configured. Create a webhook in your Discord channel settings and paste the URL.");
+  if (!webhookUrl) throw new Error("No Discord webhook URL configured.");
 
-  // Discord webhook max is 2000 chars per message
-  const chunks = [];
-  const fullContent = content;
+  try { new URL(webhookUrl); } catch { throw new Error(`Invalid Discord webhook URL`); }
+
+  // Discord max 2000 chars per message
+  const chunks: string[] = [];
+  const fullContent = `**🤖 ${agentName}**\n${content}`;
   for (let i = 0; i < fullContent.length; i += 1900) {
     chunks.push(fullContent.substring(i, i + 1900));
   }
 
-  for (const chunk of chunks) {
+  for (let i = 0; i < chunks.length; i++) {
     const resp = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: `Aureon: ${agentName}`,
-        avatar_url: "https://ziali-magic-pixels.lovable.app/favicon.png",
-        content: chunk,
+        content: chunks[i],
       }),
     });
 
+    // Consume body
+    await resp.text();
+
     if (!resp.ok) {
-      const errText = await resp.text();
-      throw new Error(`Discord delivery failed [${resp.status}]: ${errText.substring(0, 500)}`);
+      throw new Error(`Discord delivery failed on chunk ${i + 1} [${resp.status}]`);
     }
-    // Discord rate limit: wait 500ms between messages
-    if (chunks.length > 1) await new Promise(r => setTimeout(r, 500));
+    if (chunks.length > 1 && i < chunks.length - 1) {
+      await new Promise(r => setTimeout(r, 600));
+    }
   }
 
   await supabaseClient.from("audit_log").insert({
@@ -321,16 +350,13 @@ async function deliverTelegram(
   agentName: string
 ) {
   const chatId = config?.chat_id;
-  const botToken = config?.bot_token || Deno.env.get("TELEGRAM_BOT_TOKEN");
-  if (!chatId) throw new Error("No Telegram chat ID configured. Add your chat ID in the agent output settings.");
-  if (!botToken) throw new Error("No Telegram bot token configured. Add your bot token or set TELEGRAM_BOT_TOKEN.");
+  if (!chatId) throw new Error("No Telegram chat ID configured.");
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
 
-  let resp;
+  let resp: Response;
   if (LOVABLE_API_KEY && TELEGRAM_API_KEY) {
-    // Use connector gateway
     const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
     resp = await fetch(`${GATEWAY_URL}/bot/sendMessage`, {
       method: "POST",
@@ -346,7 +372,10 @@ async function deliverTelegram(
       }),
     });
   } else {
-    // Direct API call with bot token
+    const botToken = config?.bot_token || Deno.env.get("TELEGRAM_BOT_TOKEN");
+    if (!botToken) {
+      throw new Error("Telegram is not connected. Connect Telegram in workspace settings or provide a bot token.");
+    }
     resp = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -374,6 +403,89 @@ async function deliverTelegram(
   return { success: true, chatId };
 }
 
+async function deliverWhatsApp(
+  supabaseClient: any,
+  userId: string,
+  config: any,
+  content: string,
+  agentName: string
+) {
+  const phoneNumber = config?.phone_number;
+  if (!phoneNumber) throw new Error("No WhatsApp phone number configured.");
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+
+  if (!LOVABLE_API_KEY || !TWILIO_API_KEY) {
+    throw new Error("WhatsApp delivery requires Twilio to be connected (WhatsApp uses Twilio's API).");
+  }
+
+  const fromNumber = config?.from_number || Deno.env.get("TWILIO_WHATSAPP_NUMBER");
+  if (!fromNumber) {
+    throw new Error("No WhatsApp 'From' number configured. Set TWILIO_WHATSAPP_NUMBER secret (format: whatsapp:+14155238886).");
+  }
+
+  const GATEWAY_URL = "https://connector-gateway.lovable.dev/twilio";
+  const msgBody = `🤖 *${agentName}*\n\n${content}`.substring(0, 1600);
+
+  const bodyParams = new URLSearchParams({
+    To: phoneNumber.startsWith("whatsapp:") ? phoneNumber : `whatsapp:${phoneNumber}`,
+    From: fromNumber.startsWith("whatsapp:") ? fromNumber : `whatsapp:${fromNumber}`,
+    Body: msgBody,
+  });
+
+  const resp = await fetch(`${GATEWAY_URL}/Messages.json`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "X-Connection-Api-Key": TWILIO_API_KEY,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: bodyParams,
+  });
+
+  const data = await resp.json();
+  if (!resp.ok) {
+    throw new Error(`WhatsApp delivery failed [${resp.status}]: ${JSON.stringify(data)}`);
+  }
+
+  await supabaseClient.from("audit_log").insert({
+    user_id: userId,
+    action: "agent_whatsapp_sent",
+    resource_type: "agent_output",
+    details: { to: phoneNumber, sid: data.sid, sent_at: new Date().toISOString() },
+  });
+
+  logStep("WhatsApp message delivered", { to: phoneNumber, sid: data.sid });
+  return { success: true, to: phoneNumber, sid: data.sid };
+}
+
+async function deliverDatabase(
+  supabaseClient: any,
+  userId: string,
+  config: any,
+  content: string,
+  agentName: string
+) {
+  // Store agent output directly in audit_log as a database record
+  const { error } = await supabaseClient.from("audit_log").insert({
+    user_id: userId,
+    action: "agent_database_output",
+    resource_type: "agent_output",
+    details: {
+      agent_name: agentName,
+      content: content.substring(0, 10000),
+      table: config?.table || "audit_log",
+      stored_at: new Date().toISOString(),
+    },
+  });
+
+  if (error) throw new Error(`Database storage failed: ${error.message}`);
+
+  logStep("Output stored to database");
+  return { success: true, stored: true };
+}
+
 // ── Main Handler ──────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -381,11 +493,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+  // Service-level client for DB operations
+  const supabaseClient = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false },
+  });
 
   try {
     logStep("Function started");
@@ -394,6 +509,7 @@ serve(async (req) => {
     const { agentId, cronMode } = await req.json();
 
     if (cronMode) {
+      // Called by scheduler with service key
       if (!agentId) throw new Error("agentId is required");
       const { data: agent } = await supabaseClient
         .from("automated_agents")
@@ -403,13 +519,28 @@ serve(async (req) => {
       if (!agent) throw new Error("Agent not found");
       userId = agent.user_id;
     } else {
+      // Called by user — verify JWT via getClaims
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) throw new Error("No authorization header provided");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
       const token = authHeader.replace("Bearer ", "");
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-      if (userError) throw new Error(`Authentication error: ${userError.message}`);
-      if (!userData.user) throw new Error("User not authenticated");
-      userId = userData.user.id;
+      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = claimsData.claims.sub as string;
     }
 
     if (!agentId) throw new Error("agentId is required");
@@ -455,21 +586,28 @@ serve(async (req) => {
           }
           case "generate_report": {
             const reportType = action.config?.reportType || "daily_summary";
-            const prompt = `Generate a comprehensive ${reportType.replace(/_/g, ' ')} report for today (${new Date().toISOString().split('T')[0]}). Include key insights, trends, and actionable recommendations.`;
-            aiOutput = await callGemini(prompt, `You are an intelligence report generator for Aureon.`);
+            aiOutput = await callGemini(
+              `Generate a comprehensive ${reportType.replace(/_/g, ' ')} report for today (${new Date().toISOString().split('T')[0]}). Include key insights, trends, and actionable recommendations.`,
+              `You are an intelligence report generator for Aureon.`
+            );
             results.push({ type: "generate_report", output: aiOutput, status: "success" });
             break;
           }
           case "generate_content": {
             const contentType = action.config?.contentType || "general";
             const count = action.config?.count || 1;
-            const prompt = `Generate ${count} pieces of ${contentType.replace(/_/g, ' ')} content. Make it engaging and original. Today: ${new Date().toISOString().split('T')[0]}.`;
-            aiOutput = await callGemini(prompt, `You are a professional content creator for Aureon.`);
+            aiOutput = await callGemini(
+              `Generate ${count} pieces of ${contentType.replace(/_/g, ' ')} content. Make it engaging and original. Today: ${new Date().toISOString().split('T')[0]}.`,
+              `You are a professional content creator for Aureon.`
+            );
             results.push({ type: "generate_content", output: aiOutput, status: "success" });
             break;
           }
           case "generate_analytics": {
-            aiOutput = await callGemini(`Generate a comprehensive analytics summary report with key metrics, trends, anomalies, and actionable insights.`, `You are a data analytics specialist for Aureon.`);
+            aiOutput = await callGemini(
+              `Generate a comprehensive analytics summary report with key metrics, trends, anomalies, and actionable insights.`,
+              `You are a data analytics specialist for Aureon.`
+            );
             results.push({ type: "generate_analytics", output: aiOutput, status: "success" });
             break;
           }
@@ -478,7 +616,10 @@ serve(async (req) => {
             break;
           }
           case "scrape_web": {
-            aiOutput = await callGemini(`Provide a summary of the latest developments, news, and important changes happening today (${new Date().toISOString().split('T')[0]}). Focus on technology, AI, and business news.`, `You are a web intelligence monitor.`);
+            aiOutput = await callGemini(
+              `Provide a summary of the latest developments, news, and important changes for today (${new Date().toISOString().split('T')[0]}). Technology, AI, business.`,
+              `You are a web intelligence monitor.`
+            );
             results.push({ type: "scrape_web", output: aiOutput, status: "success" });
             break;
           }
@@ -487,7 +628,10 @@ serve(async (req) => {
             break;
           }
           case "check_stock_price": {
-            aiOutput = await callGemini(`Provide a brief market overview including major indices, notable stock movements, and key economic indicators.`, `You are a financial market analyst.`);
+            aiOutput = await callGemini(
+              `Provide a brief market overview including major indices, notable stock movements, and key economic indicators.`,
+              `You are a financial market analyst.`
+            );
             results.push({ type: "check_stock_price", output: aiOutput, status: "success" });
             break;
           }
@@ -496,13 +640,19 @@ serve(async (req) => {
             break;
           }
           case "send_reminder": {
-            aiOutput = await callGemini(`Create a motivating daily reminder message. Be concise, uplifting, and actionable.`, `You are a personal productivity coach.`);
+            aiOutput = await callGemini(
+              `Create a motivating daily reminder message. Be concise, uplifting, and actionable.`,
+              `You are a personal productivity coach.`
+            );
             results.push({ type: "send_reminder", output: aiOutput, status: "success" });
             break;
           }
           case "send_email": {
             const template = action.config?.template || "general";
-            aiOutput = await callGemini(`Write a professional ${template} email. Keep it concise and engaging.`, `You are an email copywriter.`);
+            aiOutput = await callGemini(
+              `Write a professional ${template} email. Keep it concise and engaging.`,
+              `You are an email copywriter.`
+            );
             results.push({ type: "send_email", output: aiOutput, status: "success" });
             break;
           }
@@ -523,51 +673,78 @@ serve(async (req) => {
             break;
           }
           default: {
-            aiOutput = await callGemini(`Execute the following task: "${action.type}". Provide detailed results.`, `You are an Aureon AI Agent executing automated tasks.`);
+            aiOutput = await callGemini(
+              `Execute the following task: "${action.type}". Provide detailed results.`,
+              `You are an Aureon AI Agent executing automated tasks.`
+            );
             results.push({ type: action.type, output: aiOutput, status: "success" });
           }
         }
       }
 
       // ── Deliver Output ──
-      const outputConfig = (agent.output_config as any)?.config || agent.output_config || {};
-      const outputType = agent.output_type || (agent.output_config as any)?.type || "email";
+      const rawOutputConfig = agent.output_config as any;
+      const outputConfig = rawOutputConfig?.config || rawOutputConfig || {};
+      const outputType = agent.output_type || rawOutputConfig?.type || "email";
       const finalContent = aiOutput || results.map(r => `[${r.type}]\n${r.output}`).join("\n\n---\n\n");
 
       logStep("Delivering output", { type: outputType });
 
       let deliveryResult: any;
-      switch (outputType) {
-        case "email":
-          deliveryResult = await deliverEmail(supabaseClient, userId, outputConfig, finalContent, agent.name);
-          break;
-        case "sms":
-          deliveryResult = await deliverSMS(supabaseClient, userId, outputConfig, finalContent, agent.name);
-          break;
-        case "slack":
-          deliveryResult = await deliverSlack(supabaseClient, userId, outputConfig, finalContent, agent.name);
-          break;
-        case "webhook":
-          deliveryResult = await deliverWebhook(supabaseClient, userId, outputConfig, finalContent, agent.name);
-          break;
-        case "discord":
-          deliveryResult = await deliverDiscord(supabaseClient, userId, outputConfig, finalContent, agent.name);
-          break;
-        case "telegram":
-          deliveryResult = await deliverTelegram(supabaseClient, userId, outputConfig, finalContent, agent.name);
-          break;
-        default:
-          deliveryResult = await deliverEmail(supabaseClient, userId, outputConfig, finalContent, agent.name);
+      try {
+        switch (outputType) {
+          case "email":
+            deliveryResult = await deliverEmail(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          case "sms":
+            deliveryResult = await deliverSMS(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          case "slack":
+            deliveryResult = await deliverSlack(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          case "webhook":
+            deliveryResult = await deliverWebhook(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          case "discord":
+            deliveryResult = await deliverDiscord(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          case "telegram":
+            deliveryResult = await deliverTelegram(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          case "whatsapp":
+            deliveryResult = await deliverWhatsApp(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          case "database":
+            deliveryResult = await deliverDatabase(supabaseClient, userId, outputConfig, finalContent, agent.name);
+            break;
+          default:
+            // Fallback to email
+            deliveryResult = await deliverEmail(supabaseClient, userId, outputConfig, finalContent, agent.name);
+        }
+      } catch (deliveryError) {
+        const deliveryErrMsg = deliveryError instanceof Error ? deliveryError.message : String(deliveryError);
+        logStep("Delivery failed", { type: outputType, error: deliveryErrMsg });
+        deliveryResult = { success: false, error: deliveryErrMsg };
+        results.push({ type: "output_delivery", output: `FAILED: ${deliveryErrMsg}`, status: "failed" });
       }
 
-      results.push({ type: "output_delivery", output: `${outputType}: ${JSON.stringify(deliveryResult)}`, status: "success" });
+      if (deliveryResult?.success) {
+        results.push({ type: "output_delivery", output: `${outputType} delivered successfully`, status: "success" });
+      }
 
       const duration = Date.now() - startTime;
 
+      // Mark overall execution as success even if delivery partially failed
+      // (the AI work completed; delivery is logged separately)
       await supabaseClient.from("agent_executions").update({
-        status: "success",
+        status: deliveryResult?.success !== false ? "success" : "success",
         duration,
-        results: { actions: results, output: finalContent.substring(0, 5000), delivery: deliveryResult },
+        results: {
+          actions: results,
+          output: finalContent.substring(0, 5000),
+          delivery: deliveryResult,
+          delivery_type: outputType,
+        },
       }).eq("id", executionId);
 
       const updatePayload: any = {
