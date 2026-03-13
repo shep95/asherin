@@ -149,7 +149,14 @@ const AgentsView = () => {
       }];
       const outputConfig = {
         type: newOutputType,
-        config: { email: newOutputEmail || user.email },
+        config: {
+          ...(newOutputType === "email" && { email: newOutputEmail || user.email }),
+          ...(newOutputType === "sms" && { phone_number: newOutputPhone }),
+          ...(newOutputType === "slack" && { channel: newOutputSlackChannel }),
+          ...(newOutputType === "webhook" && { url: newOutputWebhookUrl }),
+          ...(newOutputType === "discord" && { webhook_url: newOutputDiscordWebhook }),
+          ...(newOutputType === "telegram" && { chat_id: newOutputTelegramChatId }),
+        },
       };
 
       const { data, error } = await supabase.from("automated_agents").insert({
