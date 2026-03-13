@@ -125,3 +125,9 @@ verify_jwt = false
 
 [functions.validate-gift-email]
 verify_jwt = false
+
+[functions.agent-execute]
+verify_jwt = false
+
+[functions.agent-scheduler]
+verify_jwt = false
