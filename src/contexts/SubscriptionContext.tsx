@@ -82,9 +82,9 @@ export function hasChatAccess(tierKey: TierKey | null): boolean {
   return tierKey === "starter" || tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
 }
 
-/** Check if user has access to Zophiel Search (aureon+ tiers) */
+/** Check if user has access to Zophiel Search, Imagine Intelligence, Notebooks (chat+ tiers) */
 export function hasSearchAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+  return tierKey === "chat" || tierKey === "starter" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
 }
 
 /** Check if user has pro-level access (pro or advisor) */
