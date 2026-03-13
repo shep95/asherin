@@ -307,7 +307,7 @@ const Index = () => {
           {/* Below Demo CTA */}
           <div className="mt-12 flex flex-col items-center gap-4">
             <p className="text-xl font-extralight tracking-wide text-foreground">Liked what you saw?</p>
-            <button className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
+            <button onClick={() => { setAuthIsLogin(false); setShowAuth(true); }} className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
               Get Full Access
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
