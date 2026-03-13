@@ -64,6 +64,8 @@ const Index = () => {
   const [showDiagram, setShowDiagram] = useState(false);
   const [showNeural, setShowNeural] = useState(false);
   const [lastDemoQuery, setLastDemoQuery] = useState("");
+  const [showAuth, setShowAuth] = useState(false);
+  const [authIsLogin, setAuthIsLogin] = useState(false);
   const maxDemos = 3;
 
   const handleDemo = async (e: React.FormEvent) => {
