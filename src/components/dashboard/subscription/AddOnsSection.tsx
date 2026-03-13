@@ -1,10 +1,18 @@
 import { useState } from "react";
-import { Package, Loader2, Plus, Brain, Video, Search } from "lucide-react";
+import { Package, Loader2, Plus, Brain, Video, Search, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 
 const addOns = [
+  { 
+    id: "agents", 
+    name: "Automated Agents", 
+    price: 200, 
+    icon: Bot, 
+    description: "AI agents that run tasks on autopilot forever",
+    includedIn: "Add-on for any plan"
+  },
   { 
     id: "memory", 
     name: "Extended Memory", 

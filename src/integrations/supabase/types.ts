@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_executions: {
+        Row: {
+          agent_id: string
+          created_at: string
+          duration: number | null
+          error: string | null
+          id: string
+          results: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          duration?: number | null
+          error?: string | null
+          id?: string
+          results?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          duration?: number | null
+          error?: string | null
+          id?: string
+          results?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_executions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "automated_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_schedule: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          scheduled_for: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          scheduled_for: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          scheduled_for?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_schedule_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "automated_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asha_alerts: {
         Row: {
           created_at: string
@@ -673,6 +749,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      automated_agents: {
+        Row: {
+          actions: Json
+          created_at: string
+          description: string | null
+          failed_runs: number
+          id: string
+          last_run: string | null
+          name: string
+          next_run: string | null
+          output_config: Json
+          output_type: string
+          settings: Json
+          status: string
+          successful_runs: number
+          total_runs: number
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Json
+          created_at?: string
+          description?: string | null
+          failed_runs?: number
+          id?: string
+          last_run?: string | null
+          name: string
+          next_run?: string | null
+          output_config?: Json
+          output_type?: string
+          settings?: Json
+          status?: string
+          successful_runs?: number
+          total_runs?: number
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Json
+          created_at?: string
+          description?: string | null
+          failed_runs?: number
+          id?: string
+          last_run?: string | null
+          name?: string
+          next_run?: string | null
+          output_config?: Json
+          output_type?: string
+          settings?: Json
+          status?: string
+          successful_runs?: number
+          total_runs?: number
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       brains: {
         Row: {
