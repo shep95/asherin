@@ -736,8 +736,8 @@ const AgentCard = ({
           <p className="text-[10px] text-muted-foreground/50 capitalize">{triggerLabel} · {agent.total_runs} runs · {successRate}% success</p>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={onRunNow} className="p-1.5 rounded-lg hover:bg-foreground/10 transition-colors" title="Run now">
-            <Play className="h-3 w-3 text-muted-foreground" />
+          <button onClick={onRunNow} disabled={isRunning} className="p-1.5 rounded-lg hover:bg-foreground/10 transition-colors disabled:opacity-50" title="Run now">
+            {isRunning ? <Loader2 className="h-3 w-3 text-accent animate-spin" /> : <Play className="h-3 w-3 text-muted-foreground" />}
           </button>
           <button onClick={onViewLogs} className="p-1.5 rounded-lg hover:bg-foreground/10 transition-colors" title="View logs">
             <FileText className="h-3 w-3 text-muted-foreground" />
