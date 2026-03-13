@@ -500,7 +500,7 @@ const AgentsView = () => {
               <div className="space-y-1.5">
                 <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Output</label>
                 <div className="flex flex-wrap gap-2">
-                  {["email", "sms", "slack", "webhook", "discord", "telegram"].map(type => (
+                  {["email", "sms", "slack", "webhook", "discord", "telegram", "whatsapp", "database"].map(type => (
                     <button
                       key={type}
                       onClick={() => setNewOutputType(type)}
