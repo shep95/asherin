@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Package, Loader2, Plus, Brain, Video, Search } from "lucide-react";
+import { Package, Loader2, Plus, Brain, Video, Search, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
