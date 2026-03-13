@@ -67,6 +67,11 @@ const AgentsView = () => {
   const [newTime, setNewTime] = useState("07:00");
   const [newOutputType, setNewOutputType] = useState("email");
   const [newOutputEmail, setNewOutputEmail] = useState("");
+  const [newOutputPhone, setNewOutputPhone] = useState("");
+  const [newOutputSlackChannel, setNewOutputSlackChannel] = useState("");
+  const [newOutputWebhookUrl, setNewOutputWebhookUrl] = useState("");
+  const [newOutputDiscordWebhook, setNewOutputDiscordWebhook] = useState("");
+  const [newOutputTelegramChatId, setNewOutputTelegramChatId] = useState("");
   const [creating, setCreating] = useState(false);
 
   const loadAgents = useCallback(async () => {
