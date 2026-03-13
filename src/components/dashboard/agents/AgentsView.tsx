@@ -508,7 +508,7 @@ const AgentsView = () => {
               )}
             </div>
 
-            <DialogFooter className="gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowCreate(false)}
                 className="rounded-lg border border-border/30 bg-card/20 px-4 py-2 text-xs font-light text-muted-foreground hover:bg-card/40 transition-colors"
@@ -523,7 +523,7 @@ const AgentsView = () => {
                 {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
                 Create Agent
               </button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
 
