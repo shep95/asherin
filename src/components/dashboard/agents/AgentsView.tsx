@@ -506,7 +506,7 @@ const AgentsView = () => {
                 </div>
               </div>
 
-              {/* Output email */}
+              {/* Output config fields */}
               {newOutputType === "email" && (
                 <div className="space-y-1.5">
                   <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Send to email</label>
@@ -516,6 +516,71 @@ const AgentsView = () => {
                     placeholder={user?.email || "your@email.com"}
                     className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
                   />
+                </div>
+              )}
+
+              {newOutputType === "sms" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Phone Number (E.164 format)</label>
+                  <input
+                    value={newOutputPhone}
+                    onChange={e => setNewOutputPhone(e.target.value)}
+                    placeholder="+15551234567"
+                    className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground/40">Requires Twilio connection. Include country code.</p>
+                </div>
+              )}
+
+              {newOutputType === "slack" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Slack Channel</label>
+                  <input
+                    value={newOutputSlackChannel}
+                    onChange={e => setNewOutputSlackChannel(e.target.value)}
+                    placeholder="#general or C1234567890"
+                    className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground/40">Requires Slack connection. Use channel name or ID.</p>
+                </div>
+              )}
+
+              {newOutputType === "webhook" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Webhook URL</label>
+                  <input
+                    value={newOutputWebhookUrl}
+                    onChange={e => setNewOutputWebhookUrl(e.target.value)}
+                    placeholder="https://your-api.com/webhook"
+                    className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground/40">POST request with JSON payload. Optional HMAC signing.</p>
+                </div>
+              )}
+
+              {newOutputType === "discord" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Discord Webhook URL</label>
+                  <input
+                    value={newOutputDiscordWebhook}
+                    onChange={e => setNewOutputDiscordWebhook(e.target.value)}
+                    placeholder="https://discord.com/api/webhooks/..."
+                    className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground/40">Create a webhook in Discord: Channel Settings → Integrations → Webhooks.</p>
+                </div>
+              )}
+
+              {newOutputType === "telegram" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Telegram Chat ID</label>
+                  <input
+                    value={newOutputTelegramChatId}
+                    onChange={e => setNewOutputTelegramChatId(e.target.value)}
+                    placeholder="-1001234567890 or @channelname"
+                    className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground/40">Requires Telegram connection. Use @userinfobot to find your chat ID.</p>
                 </div>
               )}
             </div>
