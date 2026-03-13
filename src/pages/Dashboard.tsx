@@ -1066,6 +1066,7 @@ const Dashboard = () => {
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro and Advisor plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
       case "vibe-video": return gatedView("vibe-video", VibeVideoView, "Vibe Video", "Conversational AI video editing — upload, describe edits, and Aureon analyzes your footage. Available on Pro and Advisor plans.");
+      case "agents": return gatedView("agents", AgentsView, "Automated Agents", "AI-powered automation — create agents that run tasks on autopilot forever. Available as an add-on subscription.");
       // Always-accessible views
       case "library": return <Suspense fallback={<LazyFallback />}><LibraryView /></Suspense>;
       case "snippets": return <Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense>;

@@ -109,6 +109,7 @@ const navGroups: NavGroup[] = [
   {
     label: "System",
     items: [
+      { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
       { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
       { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
       { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },

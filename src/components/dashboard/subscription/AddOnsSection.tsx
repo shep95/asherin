@@ -6,6 +6,14 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 
 const addOns = [
   { 
+    id: "agents", 
+    name: "Automated Agents", 
+    price: 200, 
+    icon: Bot, 
+    description: "AI agents that run tasks on autopilot forever",
+    includedIn: "Add-on for any plan"
+  },
+  { 
     id: "memory", 
     name: "Extended Memory", 
     price: 19, 
