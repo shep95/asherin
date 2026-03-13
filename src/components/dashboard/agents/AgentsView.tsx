@@ -589,7 +589,25 @@ const AgentsView = () => {
                   <p className="text-[9px] text-muted-foreground/40">Requires Telegram connection. Use @userinfobot to find your chat ID.</p>
                 </div>
               )}
-            </div>
+
+              {newOutputType === "whatsapp" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">WhatsApp Phone Number</label>
+                  <input
+                    value={newOutputPhone}
+                    onChange={e => setNewOutputPhone(e.target.value)}
+                    placeholder="+15551234567"
+                    className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground/40">Requires Twilio + WhatsApp Business. Include country code.</p>
+                </div>
+              )}
+
+              {newOutputType === "database" && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground/60">Output will be stored in the database audit log. No external delivery needed.</p>
+                </div>
+              )}
 
             <div className="flex justify-end gap-2 pt-2">
               <button
