@@ -785,8 +785,8 @@ const AgentCard = ({
       </div>
 
       <div className="flex items-center gap-1 pt-2 border-t border-border/10">
-        <button onClick={onRunNow} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-foreground/10 transition-colors" title="Run now">
-          <Play className="h-3 w-3" /> Run
+        <button onClick={onRunNow} disabled={isRunning} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-foreground/10 transition-colors disabled:opacity-50" title="Run now">
+          {isRunning ? <Loader2 className="h-3 w-3 animate-spin text-accent" /> : <Play className="h-3 w-3" />} {isRunning ? "Running..." : "Run"}
         </button>
         <button onClick={onViewLogs} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-foreground/10 transition-colors" title="View logs">
           <FileText className="h-3 w-3" /> Logs
