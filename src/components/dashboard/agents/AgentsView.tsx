@@ -177,6 +177,12 @@ const AgentsView = () => {
       setNewName("");
       setNewDescription("");
       setNewPrompt("");
+      setNewOutputEmail("");
+      setNewOutputPhone("");
+      setNewOutputSlackChannel("");
+      setNewOutputWebhookUrl("");
+      setNewOutputDiscordWebhook("");
+      setNewOutputTelegramChatId("");
       toast({ title: "Agent created", description: `${newName} is now active` });
     } catch (err) {
       toast({ title: "Error creating agent", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
