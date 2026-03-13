@@ -76,6 +76,7 @@ const ImagineIntelligenceView = React.lazy(() => import("@/components/dashboard/
 const VideoIntelligenceView = React.lazy(() => import("@/components/dashboard/VideoIntelligenceView"));
 const VibeImagerView = React.lazy(() => import("@/components/dashboard/VibeImagerView"));
 const VibeVideoView = React.lazy(() => import("@/components/dashboard/VibeVideoView"));
+const AgentsView = React.lazy(() => import("@/components/dashboard/agents/AgentsView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
