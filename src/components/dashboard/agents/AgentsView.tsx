@@ -117,17 +117,24 @@ const AgentsView = () => {
     toast({ title: "Agent deleted" });
   };
 
+  const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
+
   const runAgentNow = async (agent: AutomatedAgent) => {
+    setRunningAgentId(agent.id);
     try {
       const { data, error } = await supabase.functions.invoke("agent-execute", {
         body: { agentId: agent.id },
       });
       if (error) throw error;
-      toast({ title: "Agent executed", description: `${agent.name} ran successfully` });
+      const deliveryInfo = data?.delivery?.success
+        ? ` — delivered via ${data?.delivery?.to || data?.delivery?.channel || agent.output_type}`
+        : "";
+      toast({ title: "Agent executed", description: `${agent.name} ran successfully${deliveryInfo}` });
       loadAgents();
     } catch (err) {
       toast({ title: "Execution failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
     }
+    setRunningAgentId(null);
   };
 
   const createAgent = async () => {
