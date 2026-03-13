@@ -608,6 +608,7 @@ const AgentsView = () => {
                   <p className="text-[10px] text-muted-foreground/60">Output will be stored in the database audit log. No external delivery needed.</p>
                 </div>
               )}
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
