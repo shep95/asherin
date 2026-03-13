@@ -339,6 +339,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   "video-intelligence": "video_intelligence",
   "vibe-imager": "vibe_imager",
   "vibe-video": "vibe_video",
+  agents: "agents",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
