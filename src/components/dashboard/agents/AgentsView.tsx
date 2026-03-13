@@ -703,10 +703,11 @@ const AgentsView = () => {
 
 // Agent Card Component
 const AgentCard = ({
-  agent, viewMode, onToggle, onDelete, onRunNow, onViewLogs,
+  agent, viewMode, isRunning, onToggle, onDelete, onRunNow, onViewLogs,
 }: {
   agent: AutomatedAgent;
   viewMode: "grid" | "list";
+  isRunning?: boolean;
   onToggle: () => void;
   onDelete: () => void;
   onRunNow: () => void;
