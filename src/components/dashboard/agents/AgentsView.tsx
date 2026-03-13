@@ -163,6 +163,7 @@ const AgentsView = () => {
           ...(newOutputType === "webhook" && { url: newOutputWebhookUrl }),
           ...(newOutputType === "discord" && { webhook_url: newOutputDiscordWebhook }),
           ...(newOutputType === "telegram" && { chat_id: newOutputTelegramChatId }),
+          ...(newOutputType === "whatsapp" && { phone_number: newOutputPhone }),
         },
       };
 
