@@ -117,17 +117,24 @@ const AgentsView = () => {
     toast({ title: "Agent deleted" });
   };
 
+  const [runningAgentId, setRunningAgentId] = useState<string | null>(null);
+
   const runAgentNow = async (agent: AutomatedAgent) => {
+    setRunningAgentId(agent.id);
     try {
       const { data, error } = await supabase.functions.invoke("agent-execute", {
         body: { agentId: agent.id },
       });
       if (error) throw error;
-      toast({ title: "Agent executed", description: `${agent.name} ran successfully` });
+      const deliveryInfo = data?.delivery?.success
+        ? ` — delivered via ${data?.delivery?.to || data?.delivery?.channel || agent.output_type}`
+        : "";
+      toast({ title: "Agent executed", description: `${agent.name} ran successfully${deliveryInfo}` });
       loadAgents();
     } catch (err) {
       toast({ title: "Execution failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
     }
+    setRunningAgentId(null);
   };
 
   const createAgent = async () => {
@@ -156,6 +163,7 @@ const AgentsView = () => {
           ...(newOutputType === "webhook" && { url: newOutputWebhookUrl }),
           ...(newOutputType === "discord" && { webhook_url: newOutputDiscordWebhook }),
           ...(newOutputType === "telegram" && { chat_id: newOutputTelegramChatId }),
+          ...(newOutputType === "whatsapp" && { phone_number: newOutputPhone }),
         },
       };
 
@@ -313,6 +321,7 @@ const AgentsView = () => {
                           key={agent.id}
                           agent={agent}
                           viewMode={viewMode}
+                          isRunning={runningAgentId === agent.id}
                           onToggle={() => toggleAgentStatus(agent)}
                           onDelete={() => deleteAgent(agent.id)}
                           onRunNow={() => runAgentNow(agent)}
@@ -333,6 +342,7 @@ const AgentsView = () => {
                           key={agent.id}
                           agent={agent}
                           viewMode={viewMode}
+                          isRunning={runningAgentId === agent.id}
                           onToggle={() => toggleAgentStatus(agent)}
                           onDelete={() => deleteAgent(agent.id)}
                           onRunNow={() => runAgentNow(agent)}
@@ -500,7 +510,7 @@ const AgentsView = () => {
               <div className="space-y-1.5">
                 <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Output</label>
                 <div className="flex flex-wrap gap-2">
-                  {["email", "sms", "slack", "webhook", "discord", "telegram"].map(type => (
+                  {["email", "sms", "slack", "webhook", "discord", "telegram", "whatsapp", "database"].map(type => (
                     <button
                       key={type}
                       onClick={() => setNewOutputType(type)}
@@ -589,6 +599,25 @@ const AgentsView = () => {
                   <p className="text-[9px] text-muted-foreground/40">Requires Telegram connection. Use @userinfobot to find your chat ID.</p>
                 </div>
               )}
+
+              {newOutputType === "whatsapp" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">WhatsApp Phone Number</label>
+                  <input
+                    value={newOutputPhone}
+                    onChange={e => setNewOutputPhone(e.target.value)}
+                    placeholder="+15551234567"
+                    className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  <p className="text-[9px] text-muted-foreground/40">Requires Twilio + WhatsApp Business. Include country code.</p>
+                </div>
+              )}
+
+              {newOutputType === "database" && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground/60">Output will be stored in the database audit log. No external delivery needed.</p>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -674,10 +703,11 @@ const AgentsView = () => {
 
 // Agent Card Component
 const AgentCard = ({
-  agent, viewMode, onToggle, onDelete, onRunNow, onViewLogs,
+  agent, viewMode, isRunning, onToggle, onDelete, onRunNow, onViewLogs,
 }: {
   agent: AutomatedAgent;
   viewMode: "grid" | "list";
+  isRunning?: boolean;
   onToggle: () => void;
   onDelete: () => void;
   onRunNow: () => void;
@@ -706,8 +736,8 @@ const AgentCard = ({
           <p className="text-[10px] text-muted-foreground/50 capitalize">{triggerLabel} · {agent.total_runs} runs · {successRate}% success</p>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={onRunNow} className="p-1.5 rounded-lg hover:bg-foreground/10 transition-colors" title="Run now">
-            <Play className="h-3 w-3 text-muted-foreground" />
+          <button onClick={onRunNow} disabled={isRunning} className="p-1.5 rounded-lg hover:bg-foreground/10 transition-colors disabled:opacity-50" title="Run now">
+            {isRunning ? <Loader2 className="h-3 w-3 text-accent animate-spin" /> : <Play className="h-3 w-3 text-muted-foreground" />}
           </button>
           <button onClick={onViewLogs} className="p-1.5 rounded-lg hover:bg-foreground/10 transition-colors" title="View logs">
             <FileText className="h-3 w-3 text-muted-foreground" />
@@ -755,8 +785,8 @@ const AgentCard = ({
       </div>
 
       <div className="flex items-center gap-1 pt-2 border-t border-border/10">
-        <button onClick={onRunNow} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-foreground/10 transition-colors" title="Run now">
-          <Play className="h-3 w-3" /> Run
+        <button onClick={onRunNow} disabled={isRunning} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-foreground/10 transition-colors disabled:opacity-50" title="Run now">
+          {isRunning ? <Loader2 className="h-3 w-3 animate-spin text-accent" /> : <Play className="h-3 w-3" />} {isRunning ? "Running..." : "Run"}
         </button>
         <button onClick={onViewLogs} className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-foreground/10 transition-colors" title="View logs">
           <FileText className="h-3 w-3" /> Logs
