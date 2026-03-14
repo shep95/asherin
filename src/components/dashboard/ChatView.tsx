@@ -734,6 +734,17 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             usedSearch={msg.sources && msg.sources.length > 0}
                             usedFiles={msg.attachments && msg.attachments.length > 0}
                           />
+                          {/* Verification Workflow */}
+                          <VerificationWorkflow
+                            content={msg.content}
+                            onVerify={(prompt) => onSendMessage(prompt)}
+                          />
+                          {/* Thread Receipt */}
+                          <ThreadReceipt
+                            memoriesUsed={0}
+                            filesUsed={msg.attachments?.map(a => a.name)}
+                            timestamp={msg.timestamp}
+                          />
                         </>
                       )}
                     </div>
