@@ -52,13 +52,11 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
       // Use nomad-investigate with quiver mode context
       const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }));
       // Prepend context
-      const messagesForAI = [
-        { role: "user" as const, content: `[QUIVER QUERY MODE]\nContext:\n${context}\n\nQuestion: ${query}` },
-      ];
+      const messagesForAI: { role: "user" | "assistant"; content: string }[] = [];
       if (messages.length > 0) {
-        // Include prior quiver conversation
-        messagesForAI.unshift(...history.slice(0, -1).map(m => ({ role: m.role as "user" | "assistant", content: m.content })));
+        messagesForAI.push(...history.slice(0, -1));
       }
+      messagesForAI.push({ role: "user", content: `[QUIVER QUERY MODE]\nContext:\n${context}\n\nQuestion: ${query}` });
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/nomad-investigate`,
