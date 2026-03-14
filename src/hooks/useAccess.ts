@@ -23,6 +23,7 @@ const PUBLIC_VIEWS: DashboardView[] = [
   "library", "snippets", "projects", "memory", "stats",
   "settings", "subscription", "persona-store",
   "pdf-generator", "slideshow", "self-learning", "self-access",
+  "bug-reports",
 ];
 
 export function useAccess() {
