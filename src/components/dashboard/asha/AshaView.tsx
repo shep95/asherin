@@ -60,6 +60,10 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "webintel", icon: Globe, label: "Web Intel" },
   { id: "files", icon: FolderOpen, label: "Files" },
   { id: "predictions", icon: Brain, label: "Predictions" },
+  { id: "pipeline-builder", icon: Workflow, label: "Pipelines" },
+  { id: "ontology", icon: Network, label: "Ontology" },
+  { id: "workshop", icon: Hammer, label: "Workshop" },
+  { id: "quiver", icon: Sparkles, label: "Quiver" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
 
