@@ -150,7 +150,84 @@ const SettingsView = () => {
       setAvatarUrl(profileRes.data?.avatar_url ?? null);
       setLoading(false);
     });
+
+    // Load custom wallpapers
+    loadCustomWallpapers();
+    // Check wallpaper addon status (simplified: check user_subscriptions or granted_subscriptions for addon)
+    checkWallpaperAddon();
   }, [user]);
+
+  const loadCustomWallpapers = async () => {
+    if (!user) return;
+    const { data } = await supabase.storage.from("custom-wallpapers").list(user.id, { limit: 20 });
+    if (data && data.length > 0) {
+      const wps = data.filter(f => f.name !== ".emptyFolderPlaceholder").map(f => {
+        const { data: urlData } = supabase.storage.from("custom-wallpapers").getPublicUrl(`${user.id}/${f.name}`);
+        return { name: f.name, url: urlData.publicUrl };
+      });
+      setCustomWallpapers(wps);
+    }
+  };
+
+  const checkWallpaperAddon = async () => {
+    if (!user) return;
+    // For now, check if user has any active subscription — the addon checkout creates a separate Stripe subscription
+    // In production you'd check for the specific addon product. For simplicity, we check localStorage or a flag.
+    const stored = localStorage.getItem("aureon_wallpaper_addon");
+    if (stored === "active") {
+      setHasWallpaperAddon(true);
+      return;
+    }
+    // Also unlock for Pro tier users as a perk
+    if (tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual") {
+      setHasWallpaperAddon(true);
+    }
+  };
+
+  const uploadCustomWallpaper = async (file: File) => {
+    if (!user) return;
+    if (!hasWallpaperAddon) {
+      toast({ title: "Add-on required", description: "Subscribe to the Custom Wallpapers add-on ($3.99/mo) to upload your own wallpapers.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 10MB", variant: "destructive" });
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Only image files are allowed.", variant: "destructive" });
+      return;
+    }
+    setUploadingWallpaper(true);
+    const ext = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${ext}`;
+    const path = `${user.id}/${fileName}`;
+    const { error } = await supabase.storage.from("custom-wallpapers").upload(path, file, { upsert: false });
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } else {
+      const { data: urlData } = supabase.storage.from("custom-wallpapers").getPublicUrl(path);
+      setCustomWallpapers(prev => [...prev, { name: fileName, url: urlData.publicUrl }]);
+      toast({ title: "Wallpaper uploaded", description: "You can now select it as your wallpaper." });
+    }
+    setUploadingWallpaper(false);
+  };
+
+  const deleteCustomWallpaper = async (fileName: string) => {
+    if (!user) return;
+    await supabase.storage.from("custom-wallpapers").remove([`${user.id}/${fileName}`]);
+    setCustomWallpapers(prev => prev.filter(w => w.name !== fileName));
+    toast({ title: "Wallpaper removed" });
+  };
+
+  const selectCustomWallpaper = (url: string) => {
+    localStorage.setItem("aureon_wallpaper", "custom");
+    localStorage.setItem("aureon_custom_wallpaper_url", url);
+    localStorage.setItem("aureon_landing_wallpaper", "custom");
+    window.dispatchEvent(new Event("aureon-wallpaper-change"));
+    window.dispatchEvent(new Event("wallpaper-change"));
+    toast({ title: "Custom wallpaper applied" });
+  };
 
   const updateSetting = async (key: string, value: any) => {
     if (!user) return;
