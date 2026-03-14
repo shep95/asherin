@@ -1,17 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   Brain, Activity, Clock, Loader2,
   Shield, UserMinus, DollarSign, Package, Target,
   ExternalLink, Calendar, Zap, Search, ChevronDown, ChevronUp,
   TrendingUp, AlertTriangle, Sparkles, Eye, History,
   GitBranch, Scale, BarChart3, Layers, ArrowRight, Gauge, Timer,
-  XCircle, CheckCircle2
+  XCircle, CheckCircle2, Database, FlaskConical, Radio
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+
+const DataIntegrationEngine = lazy(() => import("./intel/DataIntegrationEngine"));
+const ScenarioModelingEngine = lazy(() => import("./intel/ScenarioModelingEngine"));
+const SignalDetectionEngine = lazy(() => import("./intel/SignalDetectionEngine"));
 
 interface Prediction {
   id: string;
@@ -80,6 +84,7 @@ const PredictiveIntelligenceView = () => {
   const [progressData, setProgressData] = useState<ProgressEvent | null>(null);
   const [progressLog, setProgressLog] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [activeEngine, setActiveEngine] = useState<"predictions" | "data-integration" | "scenario-modeling" | "signal-detection">("predictions");
   const abortRef = useRef<AbortController | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -249,30 +254,35 @@ const PredictiveIntelligenceView = () => {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      {/* Engine Tabs */}
+      <div className="flex-shrink-0 flex items-center gap-1 p-2 border-b border-border/20 bg-card/10 overflow-x-auto">
+        {[
+          { id: "predictions" as const, label: "Predictions", icon: Brain },
+          { id: "data-integration" as const, label: "Data Integration", icon: Database },
+          { id: "scenario-modeling" as const, label: "Scenario Modeling", icon: FlaskConical },
+          { id: "signal-detection" as const, label: "Signal Detection", icon: Radio },
+        ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveEngine(tab.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-medium whitespace-nowrap transition-colors ${
+              activeEngine === tab.id
+                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                : "text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 border border-transparent"
+            }`}>
+            <tab.icon className="h-3 w-3" /> {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeEngine === "data-integration" ? (
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-purple-400" /></div>}><DataIntegrationEngine /></Suspense>
+      ) : activeEngine === "scenario-modeling" ? (
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-purple-400" /></div>}><ScenarioModelingEngine /></Suspense>
+      ) : activeEngine === "signal-detection" ? (
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-purple-400" /></div>}><SignalDetectionEngine /></Suspense>
+      ) : (
+      <>
       {/* Header */}
       <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border/20 bg-card/20 backdrop-blur-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-600/20 border border-purple-500/30 flex-shrink-0">
-              <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-extralight tracking-wide text-foreground truncate">
-                Aureon Predictive Intelligence
-              </h2>
-              <p className="text-[9px] sm:text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase truncate">
-                Algorithmic pattern-based forecasting engine
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-violet-600/20 border border-purple-500/30 hover:from-purple-500/30 hover:to-violet-600/30 text-purple-400 transition-all text-xs font-light flex-shrink-0 w-full sm:w-auto justify-center sm:justify-start"
-          >
-            <Zap className="h-3.5 w-3.5" />
-            Analyze
-          </button>
-        </div>
 
         {showSettings && (
           <div className="rounded-xl border border-purple-500/20 bg-card/30 backdrop-blur-sm p-4 space-y-3">
