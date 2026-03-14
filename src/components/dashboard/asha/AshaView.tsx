@@ -4,7 +4,7 @@ import {
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
   Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
   Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen, Pencil, Check, X,
-  Brain, AlertTriangle, Keyboard,
+  Brain, AlertTriangle, Keyboard, Network, Search, Sparkles, Hammer,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -27,6 +27,10 @@ import MonitoringPanel from "./MonitoringPanel";
 import DocumentIntelligencePanel from "./DocumentIntelligencePanel";
 import FilesPanel from "./FilesPanel";
 import PredictionsPanel from "./PredictionsPanel";
+import PipelineBuilderPanel from "./PipelineBuilderPanel";
+import OntologyEnginePanel from "./OntologyEnginePanel";
+import WorkshopPanel from "./WorkshopPanel";
+import QuiverPanel from "./QuiverPanel";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
@@ -56,6 +60,10 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "webintel", icon: Globe, label: "Web Intel" },
   { id: "files", icon: FolderOpen, label: "Files" },
   { id: "predictions", icon: Brain, label: "Predictions" },
+  { id: "pipeline-builder", icon: Workflow, label: "Pipelines" },
+  { id: "ontology", icon: Network, label: "Ontology" },
+  { id: "workshop", icon: Hammer, label: "Workshop" },
+  { id: "quiver", icon: Sparkles, label: "Quiver" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
 
@@ -258,6 +266,10 @@ const AshaInner = () => {
         case "webintel": return <WebIntelligencePanel />;
         case "files": return <FilesPanel />;
         case "predictions": return <PredictionsPanel />;
+        case "pipeline-builder": return <PipelineBuilderPanel />;
+        case "ontology": return <OntologyEnginePanel />;
+        case "workshop": return <WorkshopPanel />;
+        case "quiver": return <QuiverPanel />;
         case "query": return <QueryBar />;
       }
     })();

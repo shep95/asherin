@@ -8,7 +8,7 @@ import {
   Fingerprint, MapPin, Phone, Image, Shield, Sparkles,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
   Brain, TrendingUp, Network, ShieldCheck,
-  Layers, Map, BarChart3, MessageSquare,
+  Layers, Map, BarChart3, MessageSquare, Search,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
@@ -19,6 +19,9 @@ const NomadObjectExplorer = lazy(() => import("./nomad/NomadObjectExplorer"));
 const NomadTimeline = lazy(() => import("./nomad/NomadTimeline"));
 const NomadGraphAnalysis = lazy(() => import("./nomad/NomadGraphAnalysis"));
 const NomadMapLayer = lazy(() => import("./nomad/NomadMapLayer"));
+const NomadLineage = lazy(() => import("./nomad/NomadLineage"));
+const NomadOntology = lazy(() => import("./nomad/NomadOntology"));
+const NomadQuiver = lazy(() => import("./nomad/NomadQuiver"));
 
 interface NomadInvestigation {
   id: string;
@@ -64,7 +67,7 @@ interface NomadMessage {
   status?: "sending" | "queued" | "sent" | "failed";
 }
 
-type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map";
+type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver";
 
 const INVESTIGATION_TYPES = [
   { id: "person", icon: User, label: "Person", desc: "Deep profile & predictions" },
@@ -83,6 +86,9 @@ const TABS: { id: NomadTab; icon: any; label: string }[] = [
   { id: "timeline", icon: Clock, label: "Timeline" },
   { id: "graph", icon: Network, label: "Graph" },
   { id: "map", icon: Map, label: "Map" },
+  { id: "lineage", icon: GitBranch, label: "Lineage" },
+  { id: "ontology", icon: Layers, label: "Ontology" },
+  { id: "quiver", icon: Sparkles, label: "Quiver" },
 ];
 
 const NomadView = () => {
@@ -583,6 +589,15 @@ const NomadView = () => {
             )}
             {activeTab === "map" && (
               <NomadMapLayer entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "lineage" && (
+              <NomadLineage entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "ontology" && (
+              <NomadOntology entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "quiver" && (
+              <NomadQuiver entities={allEntities} investigations={sessionInvestigations} />
             )}
           </Suspense>
         )}
