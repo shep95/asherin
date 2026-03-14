@@ -2129,6 +2129,9 @@ serve(async (req) => {
     // 1. ESRC PIPELINE EXECUTION
     const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration } = await ingestIntelligence(lastUserMessage);
 
+    // 2a. Collect images from search results in parallel with compilation
+    const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
+
     // 2. Compile intelligence payload with ESRC metadata
     const activeNodes = nodes.filter(n => n.data);
     const intelSections = activeNodes.map(n =>
