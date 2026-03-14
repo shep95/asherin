@@ -4,7 +4,7 @@ export type AshaTab =
   | "webintel" | "entities" | "scenarios" | "lineage" | "threats" | "monitoring"
   | "docintel" | "files" | "predictions"
   | "pipeline-builder" | "ontology" | "workshop" | "quiver"
-  | "aip-logic" | "aip-bootcamps" | "grounded-ai" | "action-engine";
+  | "aip-logic" | "aip-bootcamps" | "action-engine";
 
 export interface AshaFile {
   id: string;
