@@ -353,7 +353,6 @@ ${allRawText.slice(0, 100000)}`,
   }, [allRawText, metadata, settings]);
 
   // ── Fix Grammar on all chapters ──
-  const [fixingGrammar, setFixingGrammar] = useState(false);
 
   const fixAllGrammar = useCallback(async () => {
     if (chapters.length === 0) return;
