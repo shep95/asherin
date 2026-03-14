@@ -67,6 +67,13 @@ function extractEntitiesFromText(text: string) {
   return entities;
 }
 
+interface CollectedImage {
+  url: string;
+  title: string;
+  source: string;
+  thumbnail?: string;
+}
+
 interface NomadMessage {
   id: string;
   role: "user" | "assistant";
@@ -74,6 +81,7 @@ interface NomadMessage {
   timestamp: Date;
   investigationType?: string;
   status?: "sending" | "queued" | "sent" | "failed";
+  images?: CollectedImage[];
 }
 
 type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff";
@@ -122,6 +130,7 @@ const NomadView = () => {
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<NomadTab>("chat");
+  const [expandedImages, setExpandedImages] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -217,6 +226,12 @@ const NomadView = () => {
         if (jsonStr === "[DONE]") break;
         try {
           const parsed = JSON.parse(jsonStr);
+          // Handle image events
+          if (parsed.type === 'images' && parsed.images) {
+            const imgs = parsed.images as CollectedImage[];
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, images: imgs } : m));
+            continue;
+          }
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) {
             assistantContent += content;
@@ -487,7 +502,7 @@ const NomadView = () => {
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                               <span className="text-xs font-extralight text-muted-foreground animate-pulse">Investigating…</span>
                             </div>
-                          ) : msg.role === "assistant" ? (
+                          ) : msg.role === "assistant" ? (<>
                             <div className="prose prose-invert prose-sm max-w-none font-extralight [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_h1]:text-base [&_h1]:font-light [&_h2]:text-sm [&_h2]:font-light [&_h3]:text-sm [&_h3]:font-light [&_li]:text-sm [&_code]:bg-secondary/50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-lg [&_pre]:bg-secondary/30 [&_pre]:rounded-2xl [&_pre]:p-4 [&_strong]:text-foreground [&_a]:text-accent">
                               {(() => {
                                 const parts = msg.content.split(/(```mermaid[\s\S]*?```)/g);
@@ -503,6 +518,48 @@ const NomadView = () => {
                                 });
                               })()}
                             </div>
+                            {/* Image Gallery */}
+                            {msg.images && msg.images.length > 0 && (
+                              <div className="mt-4 border-t border-border/10 pt-3">
+                                <button
+                                  onClick={() => setExpandedImages(expandedImages === msg.id ? null : msg.id)}
+                                  className="flex items-center gap-2 text-[10px] font-light text-accent/70 hover:text-accent transition-colors mb-2"
+                                >
+                                  <Image className="h-3 w-3" />
+                                  {msg.images.length} {msg.images.length !== 1 ? "images" : "image"} collected
+                                  <span className="text-[8px] text-muted-foreground/50">
+                                    {expandedImages === msg.id ? '▼' : '▶'}
+                                  </span>
+                                </button>
+                                {expandedImages === msg.id && (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 animate-fade-in">
+                                    {msg.images.map((img, imgIdx) => (
+                                      <a
+                                        key={imgIdx}
+                                        href={img.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group relative rounded-xl overflow-hidden border border-border/15 bg-card/20 hover:border-accent/30 transition-all"
+                                      >
+                                        <img
+                                          src={img.thumbnail || img.url}
+                                          alt={img.title || 'Investigation image'}
+                                          className="w-full h-24 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                          loading="lazy"
+                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/90 to-transparent p-1.5">
+                                          <p className="text-[8px] font-extralight text-foreground/70 truncate">
+                                            {img.title || img.source}
+                                          </p>
+                                        </div>
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            </>
                           ) : (
                             <p className="text-sm font-extralight text-foreground">{msg.content}</p>
                           )}

@@ -19,6 +19,14 @@ interface IntelNode {
   timestamp: string;
   confidence: number;
   entities: ExtractedEntity[];
+  images?: CollectedImage[];
+}
+
+interface CollectedImage {
+  url: string;
+  title: string;
+  source: string;
+  thumbnail?: string;
 }
 
 interface ExtractedEntity {
@@ -670,7 +678,102 @@ async function ingestAcademicSearch(query: string): Promise<IntelNode> {
 }
 
 function emptyNode(source: string, tier: 1 | 2 | 3 | 4): IntelNode {
-  return { source, tier, data: '', provenanceHash: '', timestamp: new Date().toISOString(), confidence: 0, entities: [] };
+  return { source, tier, data: '', provenanceHash: '', timestamp: new Date().toISOString(), confidence: 0, entities: [], images: [] };
+}
+
+// ── Image Collection Engine ─────────────────────────────────────────────────
+
+function extractImagesFromHtml(html: string, source: string): CollectedImage[] {
+  const images: CollectedImage[] = [];
+  const seen = new Set<string>();
+  const imgMatches = html.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'])?/gi);
+  for (const m of imgMatches) {
+    const url = m[1];
+    if (!url || seen.has(url)) continue;
+    if (url.includes('data:') || url.includes('pixel') || url.includes('1x1') || 
+        url.includes('tracking') || url.includes('spacer') || url.length < 20) continue;
+    if (!/^https?:\/\//i.test(url)) continue;
+    if (/doubleclick|googlesyndication|facebook\.com\/tr|analytics|adsystem/i.test(url)) continue;
+    seen.add(url);
+    images.push({ url, title: m[2] || '', source });
+  }
+  return images.slice(0, 5);
+}
+
+async function ingestDDGImages(query: string): Promise<CollectedImage[]> {
+  try {
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query + ' photos images')}&iax=images&ia=images`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    });
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    const images: CollectedImage[] = [];
+    const seen = new Set<string>();
+    const thumbMatches = html.matchAll(/(?:data-src|src)=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|gif|webp)[^"']*)["']/gi);
+    for (const m of thumbMatches) {
+      const url = m[1];
+      if (!url || seen.has(url)) continue;
+      if (/pixel|spacer|tracking|1x1|icon/i.test(url)) continue;
+      seen.add(url);
+      images.push({ url, title: '', source: 'DuckDuckGo Images', thumbnail: url });
+    }
+    return images.slice(0, 10);
+  } catch { return []; }
+}
+
+async function ingestGoogleImages(query: string): Promise<CollectedImage[]> {
+  try {
+    const apiKey = Deno.env.get('GOOGLE_CSE_API_KEY');
+    const cseId = Deno.env.get('GOOGLE_CSE_ID');
+    if (!apiKey || !cseId) return [];
+    const resp = await fetch(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cseId}&q=${encodeURIComponent(query)}&searchType=image&num=8`);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return (data.items || []).slice(0, 8).map((item: any) => ({
+      url: item.link,
+      title: item.title || '',
+      source: 'Google Images',
+      thumbnail: item.image?.thumbnailLink || item.link,
+    }));
+  } catch { return []; }
+}
+
+async function collectInvestigationImages(query: string, nodes: IntelNode[]): Promise<CollectedImage[]> {
+  const allImages: CollectedImage[] = [];
+  const seen = new Set<string>();
+  
+  for (const node of nodes) {
+    if (node.images) {
+      for (const img of node.images) {
+        if (!seen.has(img.url)) { seen.add(img.url); allImages.push(img); }
+      }
+    }
+  }
+  
+  const [ddgImages, googleImages] = await Promise.allSettled([
+    ingestDDGImages(query),
+    ingestGoogleImages(query),
+  ]);
+  
+  const results = [
+    ...(ddgImages.status === 'fulfilled' ? ddgImages.value : []),
+    ...(googleImages.status === 'fulfilled' ? googleImages.value : []),
+  ];
+  
+  for (const img of results) {
+    if (!seen.has(img.url)) { seen.add(img.url); allImages.push(img); }
+  }
+  
+  for (const node of nodes) {
+    if (node.data && node.data.includes('<img')) {
+      const htmlImages = extractImagesFromHtml(node.data, node.source);
+      for (const img of htmlImages) {
+        if (!seen.has(img.url)) { seen.add(img.url); allImages.push(img); }
+      }
+    }
+  }
+  
+  return allImages.slice(0, 20);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2026,6 +2129,9 @@ serve(async (req) => {
     // 1. ESRC PIPELINE EXECUTION
     const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration } = await ingestIntelligence(lastUserMessage);
 
+    // 2a. Collect images from search results in parallel with compilation
+    const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
+
     // 2. Compile intelligence payload with ESRC metadata
     const activeNodes = nodes.filter(n => n.data);
     const intelSections = activeNodes.map(n =>
@@ -2158,12 +2264,20 @@ Produce a NOMAD v3.0 response following the mandatory output format: a mermaid d
       throw new Error(`AI generation failed (${resp.status})`);
     }
 
-    // 4. STREAM RESPONSE
+    // 4. Await collected images
+    const collectedImages = await imagePromise;
+
+    // 5. STREAM RESPONSE
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
         const chunk = { choices: [{ delta: { content: aiText } }] };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+        // Send images as a separate event
+        if (collectedImages.length > 0) {
+          const imgChunk = { type: 'images', images: collectedImages };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(imgChunk)}\n\n`));
+        }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       },
