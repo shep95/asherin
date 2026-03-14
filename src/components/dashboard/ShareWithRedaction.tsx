@@ -58,7 +58,7 @@ const ShareWithRedaction = ({ messages, open, onClose }: ShareWithRedactionProps
   const getRedactedText = () => {
     let result = fullText;
     redactions.filter(r => r.approved).forEach(r => {
-      result = result.replaceAll(r.original, r.replacement);
+      result = result.split(r.original).join(r.replacement);
     });
     return result;
   };
