@@ -157,7 +157,7 @@ const FeatureNomad = () => {
             ],
           },
         ]}
-        features={["12 OSINT engines", "Shodan + Censys", "VirusTotal + GreyNoise", "SecurityTrails DNS", "crt.sh + urlscan.io", "GitHub secret hunting", "threat intel feeds", "confidence scoring", "entity resolution", "risk matrices", "exportable dossiers"]}
+        features={["21 OSINT engines", "Google + Bing", "Shodan + Censys", "VirusTotal + GreyNoise", "SecurityTrails DNS", "crt.sh + urlscan.io", "GitHub secret hunting", "threat intel feeds", "social platforms", "Yandex reverse image", "Wayback Machine", "public records", "court portals", "OpenCorporates", "Google Maps/Places", "confidence scoring", "entity resolution", "risk matrices", "exportable dossiers"]}
       />
 
       {/* Investigation Types */}
