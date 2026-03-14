@@ -492,7 +492,7 @@ const ReverseEngineerView = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-light text-muted-foreground block mb-1">Company / Product</label>
-                <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Slack, Palantir"
+                <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Slack, Stripe"
                   className="w-full bg-card/20 border border-border/20 rounded-lg px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-accent/40" />
               </div>
               <div>
