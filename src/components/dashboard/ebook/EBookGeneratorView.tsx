@@ -1001,9 +1001,16 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase">Chapters</p>
-          <button onClick={addChapter} className="flex items-center gap-1 rounded-lg border border-border/20 px-2 py-1 text-[9px] text-muted-foreground hover:text-foreground transition-colors">
-            <Plus className="h-2.5 w-2.5" /> Add Chapter
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={fixAllGrammar} disabled={fixingGrammar || chapters.length === 0}
+              className="flex items-center gap-1 rounded-lg border border-accent/20 bg-accent/10 px-2.5 py-1 text-[9px] text-accent hover:bg-accent/20 transition-colors disabled:opacity-40">
+              {fixingGrammar ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Sparkles className="h-2.5 w-2.5" />}
+              {fixingGrammar ? "Fixing…" : "Fix All Grammar"}
+            </button>
+            <button onClick={addChapter} className="flex items-center gap-1 rounded-lg border border-border/20 px-2 py-1 text-[9px] text-muted-foreground hover:text-foreground transition-colors">
+              <Plus className="h-2.5 w-2.5" /> Add Chapter
+            </button>
+          </div>
         </div>
         {chapters.map((ch, i) => (
           <div key={ch.id} className="rounded-xl border border-border/20 bg-card/20 overflow-hidden">
