@@ -455,7 +455,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <DeterminismSlider value={determinism} onChange={setDeterminism} />
             <QualityOfServiceControls mode={qosMode} onChange={setQosMode} />
             {/* Assumption Tracker */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setAssumptionsOpen(!assumptionsOpen)}
                 className={`p-1.5 rounded-md transition-colors ${assumptionsOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
