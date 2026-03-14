@@ -404,9 +404,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Top bar — hidden in focus mode */}
       {!focusMode && (
-        <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
+        <div className="flex items-center px-4 pt-4 pb-2 lg:pt-4 gap-3">
           <ModeSelector active={mode} onChange={onModeChange} />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide min-w-0 flex-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {hasPro ? (
               <button
                 onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
