@@ -956,22 +956,48 @@ ${allRawText.slice(0, 100000)}`,
         ))}
       </div>
 
+      {/* Book Preview — Cover + Pages */}
       <div>
-        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Cover Preview</p>
-        <div className="flex items-end gap-4">
-          <div className="relative rounded-xl overflow-hidden border border-border/20 aspect-[3/4] max-w-[200px]">
+        <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-3">Book Preview</p>
+        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin">
+          {/* Cover */}
+          <div className="flex-shrink-0 relative rounded-xl overflow-hidden border border-border/20 w-[180px] aspect-[3/4] shadow-lg">
             <img src={wallpaperSrc} alt="Cover" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
               <p className="text-sm font-light text-white/90 leading-tight">{metadata.title || "Untitled"}</p>
               {metadata.subtitle && <p className="text-[9px] font-light text-white/60 mt-1">{metadata.subtitle}</p>}
               {metadata.author && <p className="text-[8px] font-light text-white/50 mt-4 italic">{metadata.author}</p>}
             </div>
+            <div className="absolute bottom-1.5 left-0 right-0 text-center">
+              <span className="text-[7px] font-light text-white/30 uppercase tracking-wider">Cover</span>
+            </div>
           </div>
-          <button onClick={downloadCover}
-            className="flex items-center gap-1.5 rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-[10px] font-light text-muted-foreground hover:text-foreground hover:bg-card/50 transition-colors">
-            <Download className="h-3 w-3" /> Download Cover
-          </button>
+
+          {/* Page previews for each chapter */}
+          {chapters.map((ch, i) => {
+            const words = ch.content.split(/\s+/).filter(Boolean);
+            const previewText = words.slice(0, 80).join(" ") + (words.length > 80 ? "…" : "");
+            return (
+              <div key={ch.id} className="flex-shrink-0 rounded-xl overflow-hidden border border-border/20 bg-white w-[180px] aspect-[3/4] shadow-md flex flex-col p-4 cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)}>
+                <p className="text-[7px] font-normal text-neutral-400 uppercase tracking-[0.15em] mb-1">Chapter {i + 1}</p>
+                <p className="text-[10px] font-semibold text-neutral-800 leading-tight mb-2 line-clamp-2">{ch.title}</p>
+                {ch.summary && (
+                  <p className="text-[7px] italic text-neutral-400 leading-snug mb-2 line-clamp-2">{ch.summary}</p>
+                )}
+                <div className="h-px bg-neutral-200 mb-2" />
+                <p className="text-[7px] font-normal text-neutral-500 leading-relaxed flex-1 overflow-hidden line-clamp-[12]">{previewText}</p>
+                <div className="mt-auto pt-1 text-center">
+                  <span className="text-[7px] text-neutral-300">{i + 1}</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
+        <button onClick={downloadCover}
+          className="mt-2 flex items-center gap-1.5 rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-[10px] font-light text-muted-foreground hover:text-foreground hover:bg-card/50 transition-colors">
+          <Download className="h-3 w-3" /> Download Cover
+        </button>
       </div>
     </div>
   );
