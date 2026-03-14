@@ -120,6 +120,7 @@ const GitHubSettings = () => {
 const SettingsView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { subscribed, tier } = useSubscription();
   const [settings, setSettings] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -132,6 +133,10 @@ const SettingsView = () => {
   const [deleting, setDeleting] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wallpaperInputRef = useRef<HTMLInputElement>(null);
+  const [customWallpapers, setCustomWallpapers] = useState<{ name: string; url: string }[]>([]);
+  const [uploadingWallpaper, setUploadingWallpaper] = useState(false);
+  const [hasWallpaperAddon, setHasWallpaperAddon] = useState(false);
 
   useEffect(() => {
     if (!user) return;
