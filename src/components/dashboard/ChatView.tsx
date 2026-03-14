@@ -612,7 +612,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   </div>
                   {/* Action bar for both message types */}
                   {msg.content && !isStreaming && (
-                    <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
                       {msg.role === "user" && (
                         <MessageStatusIndicator status={messageStatuses[msg.id]} />
                       )}
