@@ -351,6 +351,85 @@ ${allRawText.slice(0, 100000)}`,
     }
   }, [allRawText, metadata, settings]);
 
+  // ── Fix Grammar on all chapters ──
+  const [fixingGrammar, setFixingGrammar] = useState(false);
+
+  const fixAllGrammar = useCallback(async () => {
+    if (chapters.length === 0) return;
+    setFixingGrammar(true);
+    setProgress("Aureon is fixing grammar across all chapters…");
+
+    const chaptersPayload = chapters.map((ch, i) => ({
+      index: i,
+      title: ch.title,
+      content: ch.content,
+      summary: ch.summary || "",
+    }));
+
+    let result = "";
+    try {
+      await streamChat({
+        messages: [{
+          role: "user",
+          content: `You are a professional book editor. Your ONLY task is to fix grammar, spelling, punctuation, sentence structure, and clarity across ALL chapters below. Make every sentence read naturally and make logical sense.
+
+RULES:
+1. Fix ALL grammar errors, typos, awkward phrasing, and unclear sentences.
+2. Ensure proper punctuation — commas, periods, semicolons, quotation marks.
+3. Fix run-on sentences by splitting them. Fix fragments by completing them.
+4. Ensure subject-verb agreement and consistent tense.
+5. Improve clarity — if a sentence is confusing, rewrite it so it makes sense.
+6. Maintain the original meaning and tone — do NOT change the ideas, only fix the language.
+7. Keep ALL content — do NOT remove or shorten anything.
+8. Fix chapter titles too if they have grammar issues.
+
+OUTPUT FORMAT: Return ONLY a valid JSON array with the same number of elements (${chapters.length} chapters). Each element:
+{
+  "title": "Corrected Chapter Title",
+  "content": "Full corrected chapter text with proper paragraphs...",
+  "summary": "Corrected summary"
+}
+
+Do NOT wrap in markdown. Return ONLY the JSON array.
+
+CHAPTERS TO FIX:
+${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
+        }],
+        mode: "chat",
+        onDelta: (chunk) => {
+          result += chunk;
+          if (result.length > 500) setProgress("Correcting grammar…");
+          if (result.length > 3000) setProgress("Polishing sentences…");
+          if (result.length > 8000) setProgress("Final review…");
+        },
+        onDone: () => {
+          try {
+            const jsonMatch = result.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]) as Array<{ title: string; content: string; summary?: string }>;
+              setChapters(prev => prev.map((ch, i) => ({
+                ...ch,
+                title: parsed[i]?.title || ch.title,
+                content: parsed[i]?.content || ch.content,
+                summary: parsed[i]?.summary || ch.summary,
+              })));
+              setProgress("");
+              toast({ title: "Grammar fixed", description: `All ${chapters.length} chapters have been corrected.` });
+            } else {
+              setProgress("Failed to parse corrected text.");
+            }
+          } catch {
+            setProgress("Error parsing AI response.");
+          }
+          setFixingGrammar(false);
+        },
+      });
+    } catch {
+      setFixingGrammar(false);
+      setProgress("Error connecting to AI.");
+    }
+  }, [chapters, toast]);
+
   const addChapter = () => {
     setChapters(prev => [...prev, { id: `ch-new-${Date.now()}`, title: `Chapter ${prev.length + 1}`, content: "", summary: "" }]);
   };
