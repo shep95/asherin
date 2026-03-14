@@ -38,7 +38,7 @@
 3. Queue for analysis
 ```
 
-### **LAYER 2: MULTI-MODEL AI (PALANTIR APPROACH)**
+### **LAYER 2: MULTI-MODEL AI (CONSENSUS APPROACH)**
 ```
 Run 3 AI models in parallel:
 - Claude Sonnet 4 (code analysis, architecture)
