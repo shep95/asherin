@@ -617,6 +617,33 @@ const NomadView = () => {
             {activeTab === "quiver" && (
               <NomadQuiver entities={allEntities} investigations={sessionInvestigations} />
             )}
+            {activeTab === "entities" && (
+              <NomadEntityWorkbench entities={allEntities} crossRefMap={crossRefMap} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "claims" && (
+              <NomadClaimsEvidence entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "sources" && (
+              <NomadSourceIntel investigations={sessionInvestigations} />
+            )}
+            {activeTab === "case" && (
+              <NomadCaseManager entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "adversary" && (
+              <NomadAdversaryView entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "media" && (
+              <NomadMediaForensics />
+            )}
+            {activeTab === "pipeline" && (
+              <NomadCollectionPipeline />
+            )}
+            {activeTab === "handles" && (
+              <NomadHandleHunter entities={allEntities} />
+            )}
+            {activeTab === "diff" && (
+              <NomadNetworkDiff entities={allEntities} investigations={sessionInvestigations} />
+            )}
           </Suspense>
         )}
       </div>
