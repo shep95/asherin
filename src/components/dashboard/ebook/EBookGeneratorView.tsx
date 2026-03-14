@@ -375,6 +375,75 @@ ${allRawText.slice(0, 100000)}`,
     });
   };
 
+  // ── Download Cover as Image ──
+  const downloadCover = useCallback(async () => {
+    const ps = PAGE_SIZES[settings.pageSize];
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = ps.w * scale;
+    canvas.height = ps.h * scale;
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(scale, scale);
+
+    // Draw wallpaper
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve) => {
+        img.onload = () => { ctx.drawImage(img, 0, 0, ps.w, ps.h); resolve(); };
+        img.onerror = () => { ctx.fillStyle = "#111"; ctx.fillRect(0, 0, ps.w, ps.h); resolve(); };
+        img.src = wallpaperSrc;
+      });
+    } catch {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, ps.w, ps.h);
+    }
+
+    // Dark overlay
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.fillRect(0, 0, ps.w, ps.h);
+
+    // Title
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(240,240,240,1)";
+    ctx.font = "bold 36px Helvetica, Arial, sans-serif";
+    const titleY = ps.h * 0.35;
+    const maxW = ps.w - 108;
+    const words = (metadata.title || "Untitled").split(" ");
+    let lines: string[] = [];
+    let cur = "";
+    for (const w of words) {
+      const test = cur ? `${cur} ${w}` : w;
+      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else { cur = test; }
+    }
+    if (cur) lines.push(cur);
+    lines.forEach((l, i) => ctx.fillText(l, ps.w / 2, titleY + i * 44));
+
+    // Subtitle
+    let nextY = titleY + lines.length * 44 + 10;
+    if (metadata.subtitle) {
+      ctx.font = "normal 18px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "rgba(200,200,200,1)";
+      ctx.fillText(metadata.subtitle, ps.w / 2, nextY);
+      nextY += 26;
+    }
+
+    // Author
+    if (metadata.author) {
+      ctx.font = "italic 16px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "rgba(180,180,180,1)";
+      ctx.fillText(metadata.author, ps.w / 2, ps.h * 0.7);
+    }
+
+    // Download
+    const a = document.createElement("a");
+    a.download = `${(metadata.title || "book").replace(/[^a-z0-9]/gi, "_")}_cover.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+
+    toast({ title: "Cover downloaded", description: "Your book cover has been saved as PNG." });
+  }, [settings, metadata, wallpaperSrc, toast]);
+
   // ── PDF Export ──
   const exportPdf = useCallback(async () => {
     if (chapters.length === 0) return;
@@ -852,13 +921,19 @@ ${allRawText.slice(0, 100000)}`,
 
       <div>
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Cover Preview</p>
-        <div className="relative rounded-xl overflow-hidden border border-border/20 aspect-[3/4] max-w-[200px]">
-          <img src={wallpaperSrc} alt="Cover" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
-            <p className="text-sm font-light text-white/90 leading-tight">{metadata.title || "Untitled"}</p>
-            {metadata.subtitle && <p className="text-[9px] font-light text-white/60 mt-1">{metadata.subtitle}</p>}
-            {metadata.author && <p className="text-[8px] font-light text-white/50 mt-4 italic">{metadata.author}</p>}
+        <div className="flex items-end gap-4">
+          <div className="relative rounded-xl overflow-hidden border border-border/20 aspect-[3/4] max-w-[200px]">
+            <img src={wallpaperSrc} alt="Cover" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
+              <p className="text-sm font-light text-white/90 leading-tight">{metadata.title || "Untitled"}</p>
+              {metadata.subtitle && <p className="text-[9px] font-light text-white/60 mt-1">{metadata.subtitle}</p>}
+              {metadata.author && <p className="text-[8px] font-light text-white/50 mt-4 italic">{metadata.author}</p>}
+            </div>
           </div>
+          <button onClick={downloadCover}
+            className="flex items-center gap-1.5 rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-[10px] font-light text-muted-foreground hover:text-foreground hover:bg-card/50 transition-colors">
+            <Download className="h-3 w-3" /> Download Cover
+          </button>
         </div>
       </div>
     </div>
