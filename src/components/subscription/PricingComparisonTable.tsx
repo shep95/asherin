@@ -13,6 +13,8 @@ const features = [
   { name: "Messages per 3-hour window", chat: "100", aureon: "200", pro: "200", lifetime: "Unlimited" },
   { name: "End-to-end encryption", chat: true, aureon: true, pro: true, lifetime: true },
   { name: "Bring Your Own Key", chat: true, aureon: true, pro: true, lifetime: true },
+  { name: "PDF Generator", chat: true, aureon: true, pro: true, lifetime: false },
+  { name: "Slideshow Generator", chat: true, aureon: true, pro: true, lifetime: false },
   { name: "Aureon IDE", chat: false, aureon: true, pro: true, lifetime: true },
   { name: "Persistent memory", chat: false, aureon: true, pro: true, lifetime: true },
   { name: "Code Snippets Vault", chat: false, aureon: true, pro: true, lifetime: true },
