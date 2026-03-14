@@ -124,8 +124,8 @@ function SubscriptionGatedInput(props: {
   }
   if (!subscribed) {
     return (
-      <div className="border-t border-border/20 bg-card/30 backdrop-blur-md px-4 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4 rounded-xl border border-accent/20 bg-accent/5 px-5 py-3.5">
+      <div className="border-t border-border/20 bg-card/30 backdrop-blur-md px-2 sm:px-4 py-3 sm:py-4">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 rounded-xl border border-accent/20 bg-accent/5 px-4 sm:px-5 py-3 sm:py-3.5">
           <div className="flex items-center gap-3">
             <Lock className="h-4 w-4 text-accent shrink-0" />
             <p className="text-xs font-light text-foreground">Subscribe to start messaging Aureon.</p>
