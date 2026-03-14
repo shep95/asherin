@@ -15,7 +15,6 @@ const capabilities = [
     description:
       "NOMAD pulls from Google (advanced operators), Shodan, Censys, SecurityTrails, VirusTotal, GreyNoise, BinaryEdge, FOFA, urlscan.io, crt.sh, GitHub, and public threat intel feeds — simultaneously.",
   },
-  },
   {
     icon: Shield,
     title: "BLUF Executive Summaries",
