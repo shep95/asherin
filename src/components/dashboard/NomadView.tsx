@@ -225,6 +225,12 @@ const NomadView = () => {
         if (jsonStr === "[DONE]") break;
         try {
           const parsed = JSON.parse(jsonStr);
+          // Handle image events
+          if (parsed.type === 'images' && parsed.images) {
+            const imgs = parsed.images as CollectedImage[];
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, images: imgs } : m));
+            continue;
+          }
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) {
             assistantContent += content;
