@@ -528,7 +528,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       <GoalLockHeader conversationId={conversation.id} />
 
       {/* Messages */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-4 relative">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 pb-4 relative min-h-0">
         {conversation.messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center max-w-md animate-fade-in">
