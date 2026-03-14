@@ -404,9 +404,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Top bar — hidden in focus mode */}
       {!focusMode && (
-        <div className="flex items-center justify-between px-4 pt-4 pb-2 lg:pt-4 gap-3 flex-wrap">
+        <div className="flex items-center px-4 pt-4 pb-2 lg:pt-4 gap-3">
           <ModeSelector active={mode} onChange={onModeChange} />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide min-w-0 flex-1">
             {hasPro ? (
               <button
                 onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
@@ -455,7 +455,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <DeterminismSlider value={determinism} onChange={setDeterminism} />
             <QualityOfServiceControls mode={qosMode} onChange={setQosMode} />
             {/* Assumption Tracker */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setAssumptionsOpen(!assumptionsOpen)}
                 className={`p-1.5 rounded-md transition-colors ${assumptionsOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
@@ -479,7 +479,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             </div>
             {/* Decision Log */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setDecisionsOpen(!decisionsOpen)}
                 className={`p-1.5 rounded-md transition-colors ${decisionsOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
@@ -490,7 +490,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
             </div>
             {/* Output QA Toggles */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setQaTogglesOpen(!qaTogglesOpen)}
                 className={`p-1.5 rounded-md transition-colors ${qaTogglesOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
@@ -501,7 +501,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
             </div>
             {/* Personal Style Profile */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setStyleProfileOpen(!styleProfileOpen)}
                 className={`p-1.5 rounded-md transition-colors ${styleProfileOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
