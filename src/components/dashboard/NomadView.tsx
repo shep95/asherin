@@ -558,6 +558,7 @@ const NomadView = () => {
                                 )}
                               </div>
                             )}
+                            </>
                           ) : (
                             <p className="text-sm font-extralight text-foreground">{msg.content}</p>
                           )}
