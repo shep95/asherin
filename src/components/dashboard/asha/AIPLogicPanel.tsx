@@ -103,25 +103,49 @@ const AIPLogicPanel = () => {
     toast({ title: "Workflow created", description: `"${wf.name}" is ready for configuration.` });
   };
 
-  const activateWorkflow = (id: string) => {
+  const activateWorkflow = async (id: string) => {
     setWorkflows(prev => prev.map(w => w.id === id ? { ...w, status: "active" as const } : w));
-    // Simulate generating pending actions
     const wf = workflows.find(w => w.id === id);
-    if (wf) {
-      const mockActions: PendingAction[] = [
-        {
-          id: crypto.randomUUID(),
-          workflowId: id,
-          workflowName: wf.name,
-          stepLabel: "Analyst Review",
-          recommendation: "Flag Report #IR-2847 — detected 3 anomalies: unusual geographic correlation between 4 entities, temporal clustering of transactions (within 2h window), and communication pattern deviation from baseline.",
-          confidence: 87,
-          reasoning: "Cross-referenced against 12 historical patterns. Matches profile of coordinated activity with 87% confidence. Two of three indicators exceed 2σ threshold.",
-          status: "pending",
-          createdAt: new Date(),
-        },
-      ];
-      setPendingActions(prev => [...prev, ...mockActions]);
+    if (wf && user && activeSession) {
+      try {
+        const { data, error } = await supabase.functions.invoke("asha-query", {
+          body: {
+            query: `Workflow "${wf.name}" has been activated. Based on this workflow: "${wf.description}" with guardrails [${wf.guardrails.join("; ")}], generate ONE realistic pending action that requires human approval. Return JSON with keys: recommendation (string), confidence (number 0-100), reasoning (string). Return ONLY JSON.`,
+            sessionId: activeSession.id,
+            mode: "aip-logic",
+          },
+        });
+
+        if (!error && data?.response) {
+          let rec = "AI analysis complete — review recommended for flagged items.";
+          let conf = 80;
+          let reason = "Cross-referenced against historical patterns.";
+          try {
+            const jsonMatch = data.response.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              rec = parsed.recommendation || rec;
+              conf = parsed.confidence || conf;
+              reason = parsed.reasoning || reason;
+            }
+          } catch { /* use defaults */ }
+
+          const action: PendingAction = {
+            id: crypto.randomUUID(),
+            workflowId: id,
+            workflowName: wf.name,
+            stepLabel: wf.steps.find(s => s.type === "human_review")?.label || "Review",
+            recommendation: rec,
+            confidence: conf,
+            reasoning: reason,
+            status: "pending",
+            createdAt: new Date(),
+          };
+          setPendingActions(prev => [...prev, action]);
+        }
+      } catch {
+        // Still activate the workflow even if AI fails
+      }
     }
     toast({ title: "Workflow activated", description: "AI processing has begun. Actions requiring approval will appear in the queue." });
   };
