@@ -19,6 +19,14 @@ interface IntelNode {
   timestamp: string;
   confidence: number;
   entities: ExtractedEntity[];
+  images?: CollectedImage[];
+}
+
+interface CollectedImage {
+  url: string;
+  title: string;
+  source: string;
+  thumbnail?: string;
 }
 
 interface ExtractedEntity {
