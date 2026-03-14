@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight } from "lucide-react";
+import OutputFormatMenu from "./OutputFormatMenu";
+import DiffView from "./DiffView";
+import CitationFootnote from "./CitationFootnote";
+import ChatErrorBanner from "./ChatErrorBanner";
+import ArtifactCanvas from "./ArtifactCanvas";
 import MessageNote from "./MessageNote";
 import FloatingNotepad from "./FloatingNotepad";
 import ChatSearchBar from "./ChatSearchBar";
@@ -272,6 +277,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
   const [searchActive, setSearchActive] = useState(false);
   const [notepadOpen, setNotepadOpen] = useState(false);
+  const [formatMenuId, setFormatMenuId] = useState<string | null>(null);
+  const [diffState, setDiffState] = useState<{ msgId: string; before: string } | null>(null);
+  const [showDiffId, setShowDiffId] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [artifactOpen, setArtifactOpen] = useState(false);
+  const [artifactContent, setArtifactContent] = useState("");
+  const [previousResponses, setPreviousResponses] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -345,7 +357,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
     return (
-    <div className="flex flex-1 flex-col min-w-0 h-full relative">
+    <div className="flex flex-1 min-w-0 h-full relative">
+      {/* Main chat column */}
+      <div className={`flex flex-1 flex-col min-w-0 h-full ${artifactOpen ? "max-w-[60%]" : ""}`}>
       {/* Floating Notepad */}
       <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
       {/* Voice Call Overlay */}
@@ -445,6 +459,19 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           </div>
         ) : (
           <div ref={messagesRef} className="relative mx-auto max-w-3xl space-y-4 py-4">
+            {/* Error banner */}
+            {chatError && (
+              <ChatErrorBanner
+                error={chatError}
+                onRetry={() => {
+                  setChatError(null);
+                  const lastUserMsg = [...conversation.messages].reverse().find(m => m.role === "user");
+                  if (lastUserMsg) onSendMessage(lastUserMsg.content);
+                }}
+                onFallback={() => setChatError(null)}
+                onDismiss={() => setChatError(null)}
+              />
+            )}
             <SmartSelectionMenu containerRef={messagesRef} onAction={handleSelectionAction} />
             {conversation.messages.map((msg, idx) => (
               <div
@@ -535,6 +562,50 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             <Zap className="h-3 w-3" />
                             Show Thinking
                           </button>
+                          {/* Export As */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setFormatMenuId(formatMenuId === msg.id ? null : msg.id)}
+                              className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                            >
+                              <Package className="h-3 w-3" />
+                              Export As
+                            </button>
+                            {formatMenuId === msg.id && (
+                              <OutputFormatMenu content={msg.content} onClose={() => setFormatMenuId(null)} />
+                            )}
+                          </div>
+                          {/* Regenerate with diff tracking */}
+                          <button
+                            onClick={() => {
+                              setPreviousResponses(prev => ({ ...prev, [msg.id]: msg.content }));
+                              // Find the user message before this one to regenerate
+                              const userMsg = conversation.messages.slice(0, conversation.messages.indexOf(msg)).reverse().find(m => m.role === "user");
+                              if (userMsg) onSendMessage(userMsg.content);
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Regenerate
+                          </button>
+                          {/* Show diff if previous version exists */}
+                          {previousResponses[msg.id] && previousResponses[msg.id] !== msg.content && (
+                            <button
+                              onClick={() => setShowDiffId(showDiffId === msg.id ? null : msg.id)}
+                              className="flex items-center gap-1 text-[10px] font-light text-amber-500/60 hover:text-amber-500 transition-colors"
+                            >
+                              <GitBranch className="h-3 w-3" />
+                              View Diff
+                            </button>
+                          )}
+                          {/* Open in Canvas */}
+                          <button
+                            onClick={() => { setArtifactContent(msg.content); setArtifactOpen(true); }}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <PanelRight className="h-3 w-3" />
+                            Canvas
+                          </button>
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
@@ -564,6 +635,25 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content || ""}
                       response={msg.content}
                       onClose={() => setNeuralId(null)}
+                    />
+                  )}
+                  {/* Diff view for regenerated responses */}
+                  {msg.role === "assistant" && showDiffId === msg.id && previousResponses[msg.id] && (
+                    <DiffView
+                      before={previousResponses[msg.id]}
+                      after={msg.content}
+                      open={true}
+                      onClose={() => setShowDiffId(null)}
+                    />
+                  )}
+                  {/* Citation footnotes */}
+                  {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
+                    <CitationFootnote
+                      sources={msg.sources.map((s, i) => ({
+                        ...s,
+                        tier: i === 0 ? "primary" as const : i < 3 ? "secondary" as const : "tertiary" as const,
+                        credibility: Math.max(40, 95 - i * 12),
+                      }))}
                     />
                   )}
                 </div>
@@ -604,6 +694,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         attachments={attachments}
         onAttachmentsChange={setAttachments}
       />
+      </div>
+      {/* Artifact Canvas - right panel */}
+      {artifactOpen && (
+        <ArtifactCanvas
+          open={artifactOpen}
+          onClose={() => setArtifactOpen(false)}
+          initialContent={artifactContent}
+        />
+      )}
     </div>
   );
 };
