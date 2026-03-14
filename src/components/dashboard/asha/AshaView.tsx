@@ -278,6 +278,10 @@ const AshaInner = () => {
         case "ontology": return <OntologyEnginePanel />;
         case "workshop": return <WorkshopPanel />;
         case "quiver": return <QuiverPanel />;
+        case "aip-logic": return <AIPLogicPanel />;
+        case "aip-bootcamps": return <AIPBootcampsPanel />;
+        case "grounded-ai": return <OntologyGroundedAIPanel />;
+        case "action-engine": return <ActionEnginePanel />;
         case "query": return <QueryBar />;
       }
     })();
