@@ -479,7 +479,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             </div>
             {/* Decision Log */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setDecisionsOpen(!decisionsOpen)}
                 className={`p-1.5 rounded-md transition-colors ${decisionsOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
