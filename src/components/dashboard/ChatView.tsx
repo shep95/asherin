@@ -382,9 +382,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
     return (
-    <div className="flex flex-1 min-w-0 h-full relative">
+    <div className="flex flex-1 min-w-0 h-full relative overflow-hidden">
       {/* Main chat column */}
-      <div className={`flex flex-1 flex-col min-w-0 h-full ${artifactOpen ? "max-w-[60%]" : ""}`}>
+      <div className={`flex flex-1 flex-col min-w-0 h-full overflow-hidden ${artifactOpen ? "max-w-[60%]" : ""}`}>
       {/* Floating Notepad */}
       <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
       {/* Voice Call Overlay */}
