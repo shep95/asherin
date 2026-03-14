@@ -6,7 +6,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import { AI_PROVIDERS } from "./AIKeysSettings";
 
-// ── Types matching the new Palantir-style consensus engine ──────────────────────
+// ── Types matching the multi-model consensus engine ──────────────────────
 
 interface CrossValidationEntry {
   provider: string;
