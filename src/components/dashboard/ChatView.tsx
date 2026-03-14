@@ -501,7 +501,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
             </div>
             {/* Personal Style Profile */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setStyleProfileOpen(!styleProfileOpen)}
                 className={`p-1.5 rounded-md transition-colors ${styleProfileOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
