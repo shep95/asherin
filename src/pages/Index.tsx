@@ -819,7 +819,7 @@ const Index = () => {
                 Instead of dumping every war in human history into a prompt and asking "predict the next conflict" — ask Aureon what data points, context, and variables it needs to give you the most accurate prediction. The output transforms from a guess into an intelligence assessment.
               </p>
               <p className="mt-4 text-sm font-extralight leading-relaxed tracking-wide text-muted-foreground">
-                This is the same principle behind every serious intelligence operation in history. In warfare, your best asset isn't the technology — it's the intelligence feeding it. You can't win a war without data. That's why the American government built <span className="text-foreground font-light">Palantir</span>. And that's why we built <span className="text-foreground font-light">Aureon</span> for you — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
+                This is the same principle behind every serious intelligence operation in history. In warfare, your best asset isn't the technology — it's the intelligence feeding it. You can't win a war without data. That's why we built <span className="text-foreground font-light">Aureon</span> — and <span className="text-foreground font-light">Zophiel</span> as our intelligence officer.
               </p>
 
               <Link to="/prompt-engineering" className="mt-8 inline-flex items-center gap-2 rounded-xl border border-border/30 bg-card/40 backdrop-blur-md px-5 py-2.5 text-xs font-light tracking-wide text-foreground transition-all hover:bg-foreground/10">

@@ -289,7 +289,7 @@ Aureon: [Explains with code + diagrams]
 
 **1. MULTI-MODEL CONSENSUS**
 - 3 AI models cross-validate
-- Like Palantir's approach
+- Cross-validated consensus
 - Catches hallucinations
 - High confidence scores
 

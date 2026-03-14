@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 /*
-  PALANTIR-STYLE MULTI-MODEL CONSENSUS ENGINE
+  AUREON MULTI-MODEL CONSENSUS ENGINE
   ════════════════════════════════════════════
   Phase 1: PARALLEL EXECUTION — Run all models simultaneously on the same query
   Phase 2: CROSS-VALIDATION — Each model's output is checked against every other for hallucinations
