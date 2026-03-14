@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
       `${trimmed} primary source official report`,
     ];
 
-    // Run DuckDuckGo + OSINT engines in parallel
+    // Run DuckDuckGo + OSINT engines + Extended OSINT in parallel
     const osintResults: { source: string; content: string; tier: number }[] = [];
     
     // Detect query type for targeted OSINT engine activation
@@ -272,6 +272,8 @@ Deno.serve(async (req) => {
     const domainMatch = trimmed.match(/\b([\w-]+\.(?:com|org|net|io|dev|co|gov|edu|mil|ai|tech|cloud|app|xyz|me)(?:\.\w{2,3})?)\b/i);
     const hashMatch = trimmed.match(/\b([a-fA-F0-9]{32,64})\b/);
     const isCyber = /malware|threat|vulnerability|cve|exploit|attack|breach|hack|phish|ransomware|apt|ioc|indicator|scan|port|service|banner|exposure|certificate|subdomain|dns/i.test(qLower);
+    const isPerson = /person|who is|about|officer|director|ceo|cto|founder|profile|name|identify/i.test(qLower);
+    const isCompany = /compan|corp|inc|llc|ltd|business|firm|startup|enterprise/i.test(qLower);
     
     const osintTasks: Promise<void>[] = [];
     
