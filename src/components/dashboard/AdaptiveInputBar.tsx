@@ -312,7 +312,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
           </div>
         )}
 
-        <div className={`flex items-end gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-3 transition-all`}>
+        <div className={`flex items-end gap-2 sm:gap-3 rounded-2xl border ${online ? "border-border/30" : "border-amber-500/30"} bg-card/40 backdrop-blur-xl p-2 sm:p-3 transition-all min-w-0`}>
           {/* Attach button */}
           <input
             ref={fileInputRef}

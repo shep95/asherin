@@ -818,7 +818,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       />
 
       {/* Toolbar: Blocks + Structured Input */}
-      <div className="relative flex items-center gap-2 px-4 py-1.5 border-t border-border/10 shrink-0">
+      <div className="relative flex items-center gap-2 px-2 sm:px-4 py-1.5 border-t border-border/10 shrink-0 overflow-x-auto scrollbar-hide">
         <div className="relative">
           <button
             onClick={() => setBlocksOpen(!blocksOpen)}
