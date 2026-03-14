@@ -124,8 +124,8 @@ function SubscriptionGatedInput(props: {
   }
   if (!subscribed) {
     return (
-      <div className="border-t border-border/20 bg-card/30 backdrop-blur-md px-4 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4 rounded-xl border border-accent/20 bg-accent/5 px-5 py-3.5">
+      <div className="border-t border-border/20 bg-card/30 backdrop-blur-md px-2 sm:px-4 py-3 sm:py-4">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 rounded-xl border border-accent/20 bg-accent/5 px-4 sm:px-5 py-3 sm:py-3.5">
           <div className="flex items-center gap-3">
             <Lock className="h-4 w-4 text-accent shrink-0" />
             <p className="text-xs font-light text-foreground">Subscribe to start messaging Aureon.</p>
@@ -382,9 +382,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
     return (
-    <div className="flex flex-1 min-w-0 h-full relative">
+    <div className="flex flex-1 min-w-0 h-full relative overflow-hidden">
       {/* Main chat column */}
-      <div className={`flex flex-1 flex-col min-w-0 h-full ${artifactOpen ? "max-w-[60%]" : ""}`}>
+      <div className={`flex flex-1 flex-col min-w-0 h-full overflow-hidden ${artifactOpen ? "max-w-[60%]" : ""}`}>
       {/* Floating Notepad */}
       <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
       {/* Voice Call Overlay */}
@@ -404,13 +404,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Top bar — hidden in focus mode */}
       {!focusMode && (
-        <div className="flex items-center px-4 pt-4 pb-2 lg:pt-4 gap-3">
+        <div className="flex items-center px-2 sm:px-4 pt-2 sm:pt-4 pb-2 gap-2 sm:gap-3 shrink-0">
           <ModeSelector active={mode} onChange={onModeChange} />
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide min-w-0 flex-1">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide min-w-0 flex-1 py-1">
             {hasPro ? (
               <button
                 onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
-                className={`p-1.5 rounded-md transition-colors ${
+                className={`shrink-0 p-1.5 rounded-md transition-colors ${
                   elevenLabsVoice.isConnected
                     ? "text-accent bg-accent/10 hover:bg-accent/20"
                     : "text-muted-foreground/50 hover:text-foreground"
@@ -422,20 +422,20 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             ) : (
               <button
                 disabled
-                className="p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
+                className="shrink-0 p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
                 title="Voice calls require Pro ($740/mo)"
               >
                 <Phone className="h-4 w-4" />
               </button>
             )}
             {conversation.messages.length > 0 && (
-              <button onClick={downloadConversation} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
+              <button onClick={downloadConversation} className="shrink-0 p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-4 w-4" />
               </button>
              )}
             <button
               onClick={() => setNotepadOpen(!notepadOpen)}
-              className={`p-1.5 rounded-md transition-colors ${notepadOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+              className={`shrink-0 p-1.5 rounded-md transition-colors ${notepadOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
               title="Notepad"
             >
               <StickyNote className="h-4 w-4" />
@@ -528,7 +528,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       <GoalLockHeader conversationId={conversation.id} />
 
       {/* Messages */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-4 relative">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 pb-4 relative min-h-0">
         {conversation.messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center max-w-md animate-fade-in">
@@ -545,7 +545,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             </div>
           </div>
         ) : (
-          <div ref={messagesRef} className="relative mx-auto max-w-3xl space-y-4 py-4">
+          <div ref={messagesRef} className="relative mx-auto max-w-3xl space-y-3 sm:space-y-4 py-4">
             {/* Error banner */}
             {chatError && (
               <ChatErrorBanner
@@ -567,9 +567,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up transition-all duration-300 ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
                 style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
               >
-                <div className="max-w-[80%]">
+                <div className="max-w-[95%] sm:max-w-[80%]">
                   <div
-                    className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed transition-all ${
+                    className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm font-light leading-relaxed transition-all ${
                       msg.role === "user"
                         ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
                         : "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
@@ -612,7 +612,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   </div>
                   {/* Action bar for both message types */}
                   {msg.content && !isStreaming && (
-                    <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
                       {msg.role === "user" && (
                         <MessageStatusIndicator status={messageStatuses[msg.id]} />
                       )}
@@ -818,7 +818,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       />
 
       {/* Toolbar: Blocks + Structured Input */}
-      <div className="relative flex items-center gap-2 px-4 py-1.5 border-t border-border/10 shrink-0">
+      <div className="relative flex items-center gap-2 px-2 sm:px-4 py-1.5 border-t border-border/10 shrink-0 overflow-x-auto scrollbar-hide">
         <div className="relative">
           <button
             onClick={() => setBlocksOpen(!blocksOpen)}
