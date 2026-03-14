@@ -865,6 +865,8 @@ const PredictiveIntelligenceView = () => {
           </div>
         </ScrollArea>
       )}
+      </>
+      )}
     </div>
   );
 };
