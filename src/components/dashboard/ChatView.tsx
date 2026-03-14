@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2 } from "lucide-react";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
 import ChatErrorBanner from "./ChatErrorBanner";
 import ArtifactCanvas from "./ArtifactCanvas";
+import ReusableBlocks from "./ReusableBlocks";
+import AnswerControls from "./AnswerControls";
+import StructuredInputForms from "./StructuredInputForms";
+import ShareWithRedaction from "./ShareWithRedaction";
+import TokenCostIndicator from "./TokenCostIndicator";
 import MessageNote from "./MessageNote";
 import FloatingNotepad from "./FloatingNotepad";
 import ChatSearchBar from "./ChatSearchBar";
