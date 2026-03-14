@@ -452,6 +452,90 @@ const SettingsView = () => {
               );
             })}
           </div>
+
+          {/* Custom Wallpapers */}
+          <div className="mt-4 pt-4 border-t border-border/15 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Upload className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <span className="text-xs font-light text-foreground">Custom Wallpapers</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20">$3.99/mo</span>
+              </div>
+              {!hasWallpaperAddon && (
+                <Link to="/dashboard" onClick={() => {/* navigate to subscription */}} className="text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors flex items-center gap-1">
+                  <Lock className="h-3 w-3" /> Unlock
+                </Link>
+              )}
+            </div>
+
+            {hasWallpaperAddon ? (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  {customWallpapers.map((wp) => {
+                    const isActive = localStorage.getItem("aureon_wallpaper") === "custom" && localStorage.getItem("aureon_custom_wallpaper_url") === wp.url;
+                    return (
+                      <div key={wp.name} className="relative group">
+                        <button
+                          onClick={() => selectCustomWallpaper(wp.url)}
+                          className={`relative rounded-xl overflow-hidden border-2 transition-all aspect-video w-full ${
+                            isActive ? "border-foreground/50 ring-1 ring-foreground/20" : "border-border/20 hover:border-foreground/30"
+                          }`}
+                        >
+                          <img src={wp.url} alt="Custom" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-background/40" />
+                          {isActive && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Check className="h-4 w-4 text-foreground" />
+                            </div>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => deleteCustomWallpaper(wp.name)}
+                          className="absolute top-1 right-1 rounded-md bg-background/80 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/20"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {/* Upload button */}
+                  <button
+                    onClick={() => wallpaperInputRef.current?.click()}
+                    disabled={uploadingWallpaper}
+                    className="rounded-xl border-2 border-dashed border-border/30 aspect-video flex flex-col items-center justify-center gap-1 hover:border-foreground/30 transition-colors"
+                  >
+                    {uploadingWallpaper ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 text-muted-foreground/40" />
+                        <span className="text-[9px] text-muted-foreground/40">Upload</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <input
+                  ref={wallpaperInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadCustomWallpaper(file);
+                    e.target.value = "";
+                  }}
+                />
+                <p className="text-[9px] text-muted-foreground/40">Max 10MB · JPG, PNG, WebP</p>
+              </>
+            ) : (
+              <div className="rounded-lg border border-border/10 bg-card/5 p-4 text-center space-y-2">
+                <Lock className="h-5 w-5 text-muted-foreground/30 mx-auto" />
+                <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+                  Subscribe to the <strong className="text-foreground/70">Custom Wallpapers</strong> add-on to upload and use your own wallpapers.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Appearance */}
