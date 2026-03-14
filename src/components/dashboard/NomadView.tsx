@@ -8,7 +8,7 @@ import {
   Fingerprint, MapPin, Phone, Image, Shield, Sparkles,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
   Brain, TrendingUp, Network, ShieldCheck,
-  Layers, Map, BarChart3, MessageSquare,
+  Layers, Map, BarChart3, MessageSquare, Search,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
