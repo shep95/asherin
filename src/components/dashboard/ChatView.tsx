@@ -490,7 +490,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
             </div>
             {/* Output QA Toggles */}
-            <div className="relative">
+              <div className="relative shrink-0">
               <button
                 onClick={() => setQaTogglesOpen(!qaTogglesOpen)}
                 className={`p-1.5 rounded-md transition-colors ${qaTogglesOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
