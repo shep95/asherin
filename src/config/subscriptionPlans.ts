@@ -165,6 +165,8 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Zophiel Search Engine — privacy-first intelligence search",
       "Imagine Intelligence — geo-intelligence image analysis",
       "Intelligence Notebooks — versioned analysis workbooks",
+      "PDF Generator — AI-structured professional documents",
+      "Slideshow Generator — 16:9 presentation builder",
       "End-to-end encryption",
       "Data never sold or used for training",
       "Bring Your Own AI Key — use your preferred models",

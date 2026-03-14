@@ -16,13 +16,13 @@ const PRO_VIEWS: DashboardView[] = [
 const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "notebooks"];
 
 // Views that require any paid plan (chat-tier minimum)
-const CHAT_VIEWS: DashboardView[] = ["chat"];
+const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow"];
 
 // Views that are always accessible to authenticated users
 const PUBLIC_VIEWS: DashboardView[] = [
   "library", "snippets", "projects", "memory", "stats",
   "settings", "subscription", "persona-store",
-  "pdf-generator", "slideshow", "self-learning", "self-access",
+  "self-learning", "self-access",
   "bug-reports",
 ];
 
