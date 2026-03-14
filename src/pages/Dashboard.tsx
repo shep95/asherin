@@ -78,6 +78,7 @@ const VibeImagerView = React.lazy(() => import("@/components/dashboard/VibeImage
 const VibeVideoView = React.lazy(() => import("@/components/dashboard/VibeVideoView"));
 const AgentsView = React.lazy(() => import("@/components/dashboard/agents/AgentsView"));
 const BugReportsView = React.lazy(() => import("@/components/dashboard/BugReportsView"));
+const EBookGeneratorView = React.lazy(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -1080,6 +1081,7 @@ const Dashboard = () => {
       case "persona-store": return <Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense>;
       case "ide": return <Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense>;
       case "pdf-generator": return <Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense>;
+      case "ebook": return <Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense>;
       case "slideshow": return <Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense>;
       
       case "self-access": return <Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense>;
