@@ -120,7 +120,7 @@ const GitHubSettings = () => {
 const SettingsView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { subscribed, tier } = useSubscription();
+  const { subscribed, tierKey } = useSubscription();
   const [settings, setSettings] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
