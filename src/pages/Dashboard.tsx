@@ -1081,6 +1081,7 @@ const Dashboard = () => {
       case "persona-store": return <Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense>;
       case "ide": return <Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense>;
       case "pdf-generator": return <Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense>;
+      case "ebook": return <Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense>;
       case "slideshow": return <Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense>;
       
       case "self-access": return <Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense>;
