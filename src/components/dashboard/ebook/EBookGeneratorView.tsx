@@ -551,49 +551,57 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
       const lineH = bodyFontSize * settings.lineSpacing;
       let pageNum = 0;
 
-      const addPage = () => { if (pageNum > 0) pdf.addPage(); pageNum++; return pageNum; };
+      // Pre-render wallpaper as a reusable JPEG data URL
+      let bgDataUrl: string | null = null;
+      try {
+        const img = new Image(); img.crossOrigin = "anonymous";
+        bgDataUrl = await new Promise<string | null>(resolve => {
+          img.onload = () => {
+            const c = document.createElement("canvas");
+            c.width = Math.round(ps.w * 2);
+            c.height = Math.round(ps.h * 2);
+            const ctx = c.getContext("2d")!;
+            // "cover" fit
+            const imgRatio = img.naturalWidth / img.naturalHeight;
+            const pageRatio = ps.w / ps.h;
+            let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+            if (imgRatio > pageRatio) { sw = img.naturalHeight * pageRatio; sx = (img.naturalWidth - sw) / 2; }
+            else { sh = img.naturalWidth / pageRatio; sy = (img.naturalHeight - sh) / 2; }
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+            resolve(c.toDataURL("image/jpeg", 0.85));
+          };
+          img.onerror = () => resolve(null);
+          img.src = wallpaperSrc;
+        });
+      } catch { bgDataUrl = null; }
+
+      // Helper: draw wallpaper bg + dark overlay on current page
+      const drawPageBg = (overlayOpacity = 0.75) => {
+        if (bgDataUrl) {
+          pdf.addImage(bgDataUrl, "JPEG", 0, 0, ps.w, ps.h);
+        } else {
+          pdf.setFillColor(17, 17, 17);
+          pdf.rect(0, 0, ps.w, ps.h, "F");
+        }
+        pdf.setFillColor(0, 0, 0);
+        pdf.setGState(new (pdf as any).GState({ opacity: overlayOpacity }));
+        pdf.rect(0, 0, ps.w, ps.h, "F");
+        pdf.setGState(new (pdf as any).GState({ opacity: 1 }));
+      };
+
+      const addPage = () => { if (pageNum > 0) pdf.addPage(); pageNum++; drawPageBg(); return pageNum; };
       const drawPageNumber = (num: number) => {
-        pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(150);
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(180);
         const t = `${num}`; pdf.text(t, (ps.w - pdf.getTextWidth(t)) / 2, ps.h - 36);
       };
       const drawHeader = (l: string, r: string) => {
-        pdf.setFont("helvetica", "italic"); pdf.setFontSize(8); pdf.setTextColor(160);
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(8); pdf.setTextColor(140);
         pdf.text(l, margin.left, 40); pdf.text(r, ps.w - margin.right - pdf.getTextWidth(r), 40);
       };
 
-      // Cover
-      addPage();
-      try {
-        const img = new Image(); img.crossOrigin = "anonymous";
-        await new Promise<void>(resolve => {
-          img.onload = () => {
-            // "cover" fit: crop to fill page without squashing
-            const imgRatio = img.naturalWidth / img.naturalHeight;
-            const pageRatio = ps.w / ps.h;
-            const coverCanvas = document.createElement("canvas");
-            coverCanvas.width = Math.round(ps.w * 2);
-            coverCanvas.height = Math.round(ps.h * 2);
-            const cctx = coverCanvas.getContext("2d")!;
-            let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-            if (imgRatio > pageRatio) {
-              sw = img.naturalHeight * pageRatio;
-              sx = (img.naturalWidth - sw) / 2;
-            } else {
-              sh = img.naturalWidth / pageRatio;
-              sy = (img.naturalHeight - sh) / 2;
-            }
-            cctx.drawImage(img, sx, sy, sw, sh, 0, 0, coverCanvas.width, coverCanvas.height);
-            pdf.addImage(coverCanvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, ps.w, ps.h);
-            resolve();
-          };
-          img.onerror = () => resolve();
-          img.src = wallpaperSrc;
-        });
-      } catch {}
-      pdf.setFillColor(0, 0, 0);
-      pdf.setGState(new (pdf as any).GState({ opacity: 0.65 }));
-      pdf.rect(0, 0, ps.w, ps.h, "F");
-      pdf.setGState(new (pdf as any).GState({ opacity: 1 }));
+      // Cover (less overlay for more wallpaper visibility)
+      if (pageNum > 0) pdf.addPage(); pageNum++;
+      drawPageBg(0.55);
       pdf.setFont("helvetica", "bold"); pdf.setFontSize(36); pdf.setTextColor(240);
       const titleLines = pdf.splitTextToSize(metadata.title, contentW);
       let ty = ps.h * 0.35;
@@ -609,14 +617,14 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
 
       // Copyright
       if (settings.includeCopyright) {
-        addPage(); pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(80);
+        addPage(); pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(180);
         const ct = metadata.copyright || `© ${new Date().getFullYear()} ${metadata.author || "Author"}. All rights reserved.`;
         pdf.text(pdf.splitTextToSize(ct, contentW), margin.left, ps.h * 0.6);
       }
 
       // Dedication
       if (settings.includeDedication && metadata.dedication.trim()) {
-        addPage(); pdf.setFont("helvetica", "italic"); pdf.setFontSize(14); pdf.setTextColor(100);
+        addPage(); pdf.setFont("helvetica", "italic"); pdf.setFontSize(14); pdf.setTextColor(200);
         const dl = pdf.splitTextToSize(metadata.dedication, contentW * 0.6);
         dl.forEach((l: string, i: number) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, ps.h * 0.4 + i * 22); });
       }
@@ -624,11 +632,11 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
       // TOC
       if (settings.includeTableOfContents) {
         addPage(); drawPageNumber(pageNum);
-        pdf.setFont("helvetica", "bold"); pdf.setFontSize(24); pdf.setTextColor(30);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(24); pdf.setTextColor(230);
         pdf.text("Table of Contents", margin.left, margin.top + 30);
         let tocY = margin.top + 80;
         chapters.forEach((ch, i) => {
-          pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(60);
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(200);
           pdf.text(`${i + 1}.  ${ch.title}`, margin.left + 20, tocY); tocY += 28;
           if (tocY > ps.h - margin.bottom) { addPage(); drawPageNumber(pageNum); tocY = margin.top + 30; }
         });
@@ -639,21 +647,21 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
         addPage();
         pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(160);
         const cn = `CHAPTER ${chIdx + 1}`; pdf.text(cn, (ps.w - pdf.getTextWidth(cn)) / 2, margin.top + 60);
-        pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(30);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(240);
         const ctl = pdf.splitTextToSize(chapter.title, contentW);
         let cy = margin.top + 95;
         ctl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, cy); cy += chapterTitleSize + 6; });
-        pdf.setDrawColor(180); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10); cy += 35;
+        pdf.setDrawColor(120); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10); cy += 35;
 
         if (settings.includeChapterSummaries && chapter.summary) {
-          pdf.setFont("helvetica", "italic"); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor(120);
+          pdf.setFont("helvetica", "italic"); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor(170);
           pdf.splitTextToSize(chapter.summary, contentW - 40).forEach((l: string) => {
             if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
             pdf.text(l, margin.left + 20, cy); cy += lineH;
           }); cy += lineH;
         }
 
-        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(40);
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(220);
         chapter.content.split(/\n\n+/).forEach(para => {
           const trimmed = para.trim(); if (!trimmed) return;
           pdf.splitTextToSize(trimmed, contentW).forEach((l: string, li: number) => {
@@ -667,9 +675,9 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
       // About Author
       if (settings.includeAboutAuthor && metadata.aboutAuthor.trim()) {
         addPage(); drawPageNumber(pageNum);
-        pdf.setFont("helvetica", "bold"); pdf.setFontSize(20); pdf.setTextColor(30);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(20); pdf.setTextColor(230);
         pdf.text("About the Author", margin.left, margin.top + 40);
-        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(60);
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(200);
         let ay = margin.top + 80;
         pdf.splitTextToSize(metadata.aboutAuthor, contentW).forEach((l: string) => {
           if (ay > ps.h - margin.bottom) { addPage(); drawPageNumber(pageNum); ay = margin.top + 20; }
@@ -1064,17 +1072,21 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
             const words = ch.content.split(/\s+/).filter(Boolean);
             const previewText = words.slice(0, 80).join(" ") + (words.length > 80 ? "…" : "");
             return (
-              <div key={ch.id} className="flex-shrink-0 rounded-xl overflow-hidden border border-border/20 bg-white w-[180px] aspect-[3/4] shadow-md flex flex-col p-4 cursor-pointer hover:shadow-lg transition-shadow"
+              <div key={ch.id} className="flex-shrink-0 rounded-xl overflow-hidden border border-border/20 w-[180px] aspect-[3/4] shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow relative"
                 onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)}>
-                <p className="text-[7px] font-normal text-neutral-400 uppercase tracking-[0.15em] mb-1">Chapter {i + 1}</p>
-                <p className="text-[10px] font-semibold text-neutral-800 leading-tight mb-2 line-clamp-2">{ch.title}</p>
-                {ch.summary && (
-                  <p className="text-[7px] italic text-neutral-400 leading-snug mb-2 line-clamp-2">{ch.summary}</p>
-                )}
-                <div className="h-px bg-neutral-200 mb-2" />
-                <p className="text-[7px] font-normal text-neutral-500 leading-relaxed flex-1 overflow-hidden line-clamp-[12]">{previewText}</p>
-                <div className="mt-auto pt-1 text-center">
-                  <span className="text-[7px] text-neutral-300">{i + 1}</span>
+                <img src={wallpaperSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/75" />
+                <div className="relative z-10 flex flex-col h-full p-4">
+                  <p className="text-[7px] font-normal text-white/40 uppercase tracking-[0.15em] mb-1">Chapter {i + 1}</p>
+                  <p className="text-[10px] font-semibold text-white/90 leading-tight mb-2 line-clamp-2">{ch.title}</p>
+                  {ch.summary && (
+                    <p className="text-[7px] italic text-white/40 leading-snug mb-2 line-clamp-2">{ch.summary}</p>
+                  )}
+                  <div className="h-px bg-white/10 mb-2" />
+                  <p className="text-[7px] font-normal text-white/60 leading-relaxed flex-1 overflow-hidden line-clamp-[12]">{previewText}</p>
+                  <div className="mt-auto pt-1 text-center">
+                    <span className="text-[7px] text-white/30">{i + 1}</span>
+                  </div>
                 </div>
               </div>
             );
