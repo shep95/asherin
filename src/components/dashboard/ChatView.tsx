@@ -613,11 +613,47 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                           >
                             <PanelRight className="h-3 w-3" />
-                            Canvas
+                          Canvas
+                          </button>
+                          {/* Save as Block */}
+                          <button
+                            onClick={() => { setBlockSaveContent(msg.content); setBlocksOpen(true); }}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <Blocks className="h-3 w-3" />
+                            Save Block
+                          </button>
+                          {/* Share with Redaction */}
+                          <button
+                            onClick={() => setShareOpen(true)}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <Share2 className="h-3 w-3" />
+                            Share
                           </button>
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
+                          />
+                          {/* Answer Controls */}
+                          <AnswerControls
+                            onAction={(action) => {
+                              const prompts: Record<string, string> = {
+                                "shorter": `Make this response shorter and more concise:\n\n${msg.content.slice(0, 500)}`,
+                                "longer": `Expand on this response with more detail:\n\n${msg.content.slice(0, 500)}`,
+                                "examples": `Add practical examples to this response:\n\n${msg.content.slice(0, 500)}`,
+                                "edge-cases": `Add edge cases and exceptions to consider:\n\n${msg.content.slice(0, 500)}`,
+                                "sources": `Add sources and references to support this:\n\n${msg.content.slice(0, 500)}`,
+                                "deliverable": `Turn this into a polished, professional deliverable with clear headings, structure, and action items:\n\n${msg.content}`,
+                              };
+                              if (prompts[action]) onSendMessage(prompts[action]);
+                            }}
+                          />
+                          {/* Token cost indicator */}
+                          <TokenCostIndicator
+                            tokenCount={Math.round(msg.content.length / 4)}
+                            usedSearch={msg.sources && msg.sources.length > 0}
+                            usedFiles={msg.attachments && msg.attachments.length > 0}
                           />
                         </>
                       )}
