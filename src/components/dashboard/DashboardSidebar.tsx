@@ -91,6 +91,7 @@ const navGroups: NavGroup[] = [
       { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
       { id: "vibe-video" as DashboardView, icon: Sparkles, label: "Vibe Video", access: "pro" },
       { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
+      { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
       { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
       { id: "projects", icon: Layers, label: "Projects" },
