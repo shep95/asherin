@@ -727,6 +727,39 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         onTogglePause={onToggleQueuePause}
       />
 
+      {/* Toolbar: Blocks + Structured Input */}
+      <div className="relative flex items-center gap-2 px-4 py-1.5 border-t border-border/10 shrink-0">
+        <div className="relative">
+          <button
+            onClick={() => setBlocksOpen(!blocksOpen)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-light text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+          >
+            <Blocks className="h-3 w-3" />
+            Blocks
+          </button>
+          <ReusableBlocks
+            open={blocksOpen}
+            onClose={() => { setBlocksOpen(false); setBlockSaveContent(undefined); }}
+            onInsert={(content) => setInput(prev => prev + content)}
+            contentToSave={blockSaveContent}
+          />
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setStructuredOpen(!structuredOpen)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-light text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+          >
+            <ClipboardList className="h-3 w-3" />
+            Forms
+          </button>
+          <StructuredInputForms
+            open={structuredOpen}
+            onClose={() => setStructuredOpen(false)}
+            onSubmit={(prompt) => onSendMessage(prompt)}
+          />
+        </div>
+      </div>
+
       {/* Adaptive Input — gated behind subscription */}
       <SubscriptionGatedInput
         value={input}
@@ -738,6 +771,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         conversationId={conversation.id}
         attachments={attachments}
         onAttachmentsChange={setAttachments}
+      />
+
+      {/* Share with Redaction modal */}
+      <ShareWithRedaction
+        messages={conversation.messages}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
       />
       </div>
       {/* Artifact Canvas - right panel */}
