@@ -624,6 +624,25 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       onClose={() => setNeuralId(null)}
                     />
                   )}
+                  {/* Diff view for regenerated responses */}
+                  {msg.role === "assistant" && showDiffId === msg.id && previousResponses[msg.id] && (
+                    <DiffView
+                      before={previousResponses[msg.id]}
+                      after={msg.content}
+                      open={true}
+                      onClose={() => setShowDiffId(null)}
+                    />
+                  )}
+                  {/* Citation footnotes */}
+                  {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
+                    <CitationFootnote
+                      sources={msg.sources.map((s, i) => ({
+                        ...s,
+                        tier: i === 0 ? "primary" as const : i < 3 ? "secondary" as const : "tertiary" as const,
+                        credibility: Math.max(40, 95 - i * 12),
+                      }))}
+                    />
+                  )}
                 </div>
               </div>
             ))}
