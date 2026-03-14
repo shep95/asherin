@@ -9,9 +9,20 @@ const corsHeaders = {
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP") || "";
 
+interface FrameData {
+  base64: string;
+  mimeType: string;
+  timestamp?: number; // seconds into video
+}
+
 interface AnalysisRequest {
   imageBase64?: string;
   imageMimeType?: string;
+  // Video: multiple extracted frames
+  frames?: FrameData[];
+  mediaType?: "image" | "video";
+  videoDuration?: number;
+  frameCount?: number;
   context?: string;
   analysisType?: "competitor" | "hardware" | "security";
   company?: string;
@@ -23,7 +34,7 @@ interface AnalysisRequest {
   previousAnalysis?: string;
 }
 
-const SYSTEM_PROMPT = `You are AUREON REIS (Reverse Engineering Intelligence System), a Class-5 forensic reverse-engineering AI. You analyze uploaded screenshots and images of software, hardware, and systems to reconstruct their complete architecture with 89-98% confidence.
+const SYSTEM_PROMPT = `You are AUREON REIS (Reverse Engineering Intelligence System), a Class-5 forensic reverse-engineering AI. You analyze uploaded screenshots, images, and video frames of software, hardware, and systems to reconstruct their complete architecture with 89-98% confidence.
 
 ## YOUR CAPABILITIES
 1. **UI/UX Analysis**: Detect frameworks (React, Vue, Angular, Flutter, SwiftUI), extract components, analyze design systems, map interactions
@@ -33,6 +44,7 @@ const SYSTEM_PROMPT = `You are AUREON REIS (Reverse Engineering Intelligence Sys
 5. **Workflow Analysis**: Build user flow diagrams, create state machines, map decision points
 6. **Hardware Analysis**: Identify components, map connections, detect protocols, analyze power systems
 7. **Security Analysis**: Find vulnerabilities, check auth security, detect exposed secrets, generate recommendations
+8. **Video Frame-by-Frame Analysis**: When given multiple video frames, analyze each frame individually to track UI state changes, navigation flows, data mutations, and temporal patterns across the recording. Reconstruct the complete user journey.
 
 ## OUTPUT FORMAT
 Return a comprehensive JSON object with the following structure:
@@ -44,7 +56,9 @@ Return a comprehensive JSON object with the following structure:
     "total_endpoints": <number>,
     "total_security_issues": <number>,
     "analysis_depth": "standard" | "deep",
-    "analysis_type": "software" | "hardware" | "hybrid"
+    "analysis_type": "software" | "hardware" | "hybrid",
+    "media_type": "image" | "video",
+    "frames_analyzed": <number or null>
   },
   "tech_stack": [
     { "category": "Frontend|Backend|Database|Hosting|Auth|Other", "technology": "<name>", "confidence": <number>, "evidence": "<why>" }
@@ -112,7 +126,16 @@ Return a comprehensive JSON object with the following structure:
       { "phase": "<phase name>", "description": "<what to do>", "duration_hours": <number> }
     ],
     "recommended_stack": "<recommended modern stack for rebuild>"
-  }
+  },
+  "frame_analysis": [
+    {
+      "frame_index": <number>,
+      "timestamp_seconds": <number>,
+      "description": "<what is visible in this frame>",
+      "state_changes": "<what changed from the previous frame>",
+      "key_observations": ["<observation1>", "<observation2>"]
+    }
+  ]
 }
 
 ## RULES
@@ -122,7 +145,9 @@ Return a comprehensive JSON object with the following structure:
 4. For database schemas, infer from visible fields, forms, lists, and data relationships in the UI.
 5. For APIs, infer from visible data flows, forms submissions, loading states, and navigation patterns.
 6. If focus areas are specified, provide extra depth in those sections.
-7. Return ONLY the JSON object, no markdown fencing, no explanation text.`;
+7. When analyzing VIDEO FRAMES: analyze EACH frame individually, note state transitions between frames, reconstruct the complete user journey, and identify features that only become visible across multiple frames.
+8. Return ONLY the JSON object, no markdown fencing, no explanation text.
+9. If no video frames are provided, omit the "frame_analysis" field or return an empty array.`;
 
 const QA_SYSTEM_PROMPT = `You are AUREON REIS Q&A system. The user has already completed a reverse engineering analysis. They are now asking follow-up questions about the analyzed system.
 
@@ -133,6 +158,41 @@ Use the previous analysis data to answer questions with:
 - Confidence scores for any new inferences
 
 Be direct, technical, and thorough. Use markdown formatting for readability.`;
+
+/** Build Gemini content parts for image or video frames */
+function buildContentParts(body: AnalysisRequest): { inlineParts: any[]; userPrompt: string } {
+  const inlineParts: any[] = [];
+  let mediaDescription = "";
+
+  if (body.mediaType === "video" && body.frames?.length) {
+    // Video: attach each frame as inline image
+    for (let i = 0; i < body.frames.length; i++) {
+      const frame = body.frames[i];
+      inlineParts.push({
+        inlineData: { mimeType: frame.mimeType, data: frame.base64 },
+      });
+    }
+    mediaDescription = `This is a VIDEO recording broken into ${body.frames.length} frames extracted at regular intervals across ${body.videoDuration?.toFixed(1) || "unknown"} seconds. Analyze EACH frame individually and track all state changes, navigation, and interactions across the timeline.`;
+  } else if (body.imageBase64 && body.imageMimeType) {
+    // Single image
+    inlineParts.push({
+      inlineData: { mimeType: body.imageMimeType, data: body.imageBase64 },
+    });
+    mediaDescription = "Analyze this uploaded image";
+  }
+
+  let contextAdditions = "";
+  if (body.analysisType) contextAdditions += `\nAnalysis type focus: ${body.analysisType}`;
+  if (body.company) contextAdditions += `\nCompany/Product being analyzed: ${body.company}`;
+  if (body.notes) contextAdditions += `\nAdditional user notes: ${body.notes}`;
+  if (body.depthMode === "deep") contextAdditions += `\nDEPTH: EXHAUSTIVE. Provide maximum detail in all sections. Infer deeper architecture patterns, hidden APIs, and security implications.`;
+  if (body.focusAreas?.length) contextAdditions += `\nFOCUS AREAS (provide extra depth): ${body.focusAreas.join(", ")}`;
+  if (body.context) contextAdditions += `\nUser context: ${body.context}`;
+
+  const userPrompt = `${mediaDescription} and reverse-engineer the complete system shown. Provide your analysis as a JSON object following the exact schema defined in your instructions.${contextAdditions}`;
+
+  return { inlineParts, userPrompt };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -184,26 +244,20 @@ serve(async (req) => {
     }
 
     // ── Analysis Mode ──
-    if (!body.imageBase64 || !body.imageMimeType) {
-      throw new Error("Missing image data");
+    const isVideo = body.mediaType === "video" && body.frames?.length;
+    const isImage = body.imageBase64 && body.imageMimeType;
+
+    if (!isVideo && !isImage) {
+      throw new Error("Missing media data — upload an image or video");
     }
 
-    // Build context-aware prompt additions
-    let contextAdditions = "";
-    if (body.analysisType) contextAdditions += `\nAnalysis type focus: ${body.analysisType}`;
-    if (body.company) contextAdditions += `\nCompany/Product being analyzed: ${body.company}`;
-    if (body.notes) contextAdditions += `\nAdditional user notes: ${body.notes}`;
-    if (body.depthMode === "deep") contextAdditions += `\nDEPTH: EXHAUSTIVE. Provide maximum detail in all sections. Infer deeper architecture patterns, hidden APIs, and security implications.`;
-    if (body.focusAreas?.length) contextAdditions += `\nFOCUS AREAS (provide extra depth): ${body.focusAreas.join(", ")}`;
-    if (body.context) contextAdditions += `\nUser context: ${body.context}`;
-
-    const userPrompt = `Analyze this uploaded image and reverse-engineer the complete system shown. Provide your analysis as a JSON object following the exact schema defined in your instructions.${contextAdditions}`;
+    const { inlineParts, userPrompt } = buildContentParts(body);
 
     const contents = [
       {
         role: "user",
         parts: [
-          { inlineData: { mimeType: body.imageMimeType, data: body.imageBase64 } },
+          ...inlineParts,
           { text: userPrompt },
         ],
       },
@@ -212,8 +266,7 @@ serve(async (req) => {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`;
 
     let response: Response | null = null;
-    let lastError = "";
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 4;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       response = await fetch(geminiUrl, {
@@ -224,7 +277,7 @@ serve(async (req) => {
           contents,
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 32768,
+            maxOutputTokens: 65536,
             responseMimeType: "application/json",
           },
         }),
@@ -239,7 +292,7 @@ serve(async (req) => {
         continue;
       }
 
-      lastError = await response.text();
+      const lastError = await response.text();
       console.error("Gemini error:", response.status, lastError);
       throw new Error("AI analysis failed");
     }
@@ -258,15 +311,12 @@ serve(async (req) => {
     // Parse the JSON response
     let analysis;
     try {
-      // Try direct parse
       analysis = JSON.parse(rawText);
     } catch {
-      // Try extracting JSON from markdown code blocks
       const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         analysis = JSON.parse(jsonMatch[1].trim());
       } else {
-        // Last resort: find first { to last }
         const start = rawText.indexOf("{");
         const end = rawText.lastIndexOf("}");
         if (start !== -1 && end !== -1) {
