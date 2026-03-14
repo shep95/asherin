@@ -406,7 +406,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       {!focusMode && (
         <div className="flex items-center px-2 sm:px-4 pt-2 sm:pt-4 pb-2 gap-2 sm:gap-3 shrink-0">
           <ModeSelector active={mode} onChange={onModeChange} />
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide min-w-0 flex-1">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide min-w-0 flex-1 py-1">
             {hasPro ? (
               <button
                 onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
