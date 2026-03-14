@@ -110,7 +110,7 @@ const PipelineBuilderPanel = () => {
       last_run: new Date().toISOString(),
     });
 
-    updated.status = "completed";
+    (updated as any).status = "completed";
     updated.runsCount += 1;
     updated.lastRun = new Date().toISOString();
     setActivePipeline(updated);

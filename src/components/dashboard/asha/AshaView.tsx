@@ -4,7 +4,7 @@ import {
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
   Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
   Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen, Pencil, Check, X,
-  Brain, AlertTriangle, Keyboard,
+  Brain, AlertTriangle, Keyboard, Network, Search, Sparkles, Hammer,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
