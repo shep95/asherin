@@ -633,7 +633,7 @@ const NomadView = () => {
               <NomadAdversaryView entities={allEntities} investigations={sessionInvestigations} />
             )}
             {activeTab === "media" && (
-              <NomadMediaForensics />
+              <NomadMediaForensics entities={allEntities} investigations={sessionInvestigations} />
             )}
             {activeTab === "pipeline" && (
               <NomadCollectionPipeline />
