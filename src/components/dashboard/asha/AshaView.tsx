@@ -266,6 +266,10 @@ const AshaInner = () => {
         case "webintel": return <WebIntelligencePanel />;
         case "files": return <FilesPanel />;
         case "predictions": return <PredictionsPanel />;
+        case "pipeline-builder": return <PipelineBuilderPanel />;
+        case "ontology": return <OntologyEnginePanel />;
+        case "workshop": return <WorkshopPanel />;
+        case "quiver": return <QuiverPanel />;
         case "query": return <QueryBar />;
       }
     })();
