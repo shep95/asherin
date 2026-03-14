@@ -375,6 +375,75 @@ ${allRawText.slice(0, 100000)}`,
     });
   };
 
+  // ── Download Cover as Image ──
+  const downloadCover = useCallback(async () => {
+    const ps = PAGE_SIZES[settings.pageSize];
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = ps.w * scale;
+    canvas.height = ps.h * scale;
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(scale, scale);
+
+    // Draw wallpaper
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve) => {
+        img.onload = () => { ctx.drawImage(img, 0, 0, ps.w, ps.h); resolve(); };
+        img.onerror = () => { ctx.fillStyle = "#111"; ctx.fillRect(0, 0, ps.w, ps.h); resolve(); };
+        img.src = wallpaperSrc;
+      });
+    } catch {
+      ctx.fillStyle = "#111";
+      ctx.fillRect(0, 0, ps.w, ps.h);
+    }
+
+    // Dark overlay
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.fillRect(0, 0, ps.w, ps.h);
+
+    // Title
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(240,240,240,1)";
+    ctx.font = "bold 36px Helvetica, Arial, sans-serif";
+    const titleY = ps.h * 0.35;
+    const maxW = ps.w - 108;
+    const words = (metadata.title || "Untitled").split(" ");
+    let lines: string[] = [];
+    let cur = "";
+    for (const w of words) {
+      const test = cur ? `${cur} ${w}` : w;
+      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else { cur = test; }
+    }
+    if (cur) lines.push(cur);
+    lines.forEach((l, i) => ctx.fillText(l, ps.w / 2, titleY + i * 44));
+
+    // Subtitle
+    let nextY = titleY + lines.length * 44 + 10;
+    if (metadata.subtitle) {
+      ctx.font = "normal 18px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "rgba(200,200,200,1)";
+      ctx.fillText(metadata.subtitle, ps.w / 2, nextY);
+      nextY += 26;
+    }
+
+    // Author
+    if (metadata.author) {
+      ctx.font = "italic 16px Helvetica, Arial, sans-serif";
+      ctx.fillStyle = "rgba(180,180,180,1)";
+      ctx.fillText(metadata.author, ps.w / 2, ps.h * 0.7);
+    }
+
+    // Download
+    const a = document.createElement("a");
+    a.download = `${(metadata.title || "book").replace(/[^a-z0-9]/gi, "_")}_cover.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+
+    toast({ title: "Cover downloaded", description: "Your book cover has been saved as PNG." });
+  }, [settings, metadata, wallpaperSrc, toast]);
+
   // ── PDF Export ──
   const exportPdf = useCallback(async () => {
     if (chapters.length === 0) return;
