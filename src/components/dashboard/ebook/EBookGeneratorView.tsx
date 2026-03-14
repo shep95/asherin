@@ -1072,17 +1072,21 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
             const words = ch.content.split(/\s+/).filter(Boolean);
             const previewText = words.slice(0, 80).join(" ") + (words.length > 80 ? "…" : "");
             return (
-              <div key={ch.id} className="flex-shrink-0 rounded-xl overflow-hidden border border-border/20 bg-white w-[180px] aspect-[3/4] shadow-md flex flex-col p-4 cursor-pointer hover:shadow-lg transition-shadow"
+              <div key={ch.id} className="flex-shrink-0 rounded-xl overflow-hidden border border-border/20 w-[180px] aspect-[3/4] shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow relative"
                 onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)}>
-                <p className="text-[7px] font-normal text-neutral-400 uppercase tracking-[0.15em] mb-1">Chapter {i + 1}</p>
-                <p className="text-[10px] font-semibold text-neutral-800 leading-tight mb-2 line-clamp-2">{ch.title}</p>
-                {ch.summary && (
-                  <p className="text-[7px] italic text-neutral-400 leading-snug mb-2 line-clamp-2">{ch.summary}</p>
-                )}
-                <div className="h-px bg-neutral-200 mb-2" />
-                <p className="text-[7px] font-normal text-neutral-500 leading-relaxed flex-1 overflow-hidden line-clamp-[12]">{previewText}</p>
-                <div className="mt-auto pt-1 text-center">
-                  <span className="text-[7px] text-neutral-300">{i + 1}</span>
+                <img src={wallpaperSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/75" />
+                <div className="relative z-10 flex flex-col h-full p-4">
+                  <p className="text-[7px] font-normal text-white/40 uppercase tracking-[0.15em] mb-1">Chapter {i + 1}</p>
+                  <p className="text-[10px] font-semibold text-white/90 leading-tight mb-2 line-clamp-2">{ch.title}</p>
+                  {ch.summary && (
+                    <p className="text-[7px] italic text-white/40 leading-snug mb-2 line-clamp-2">{ch.summary}</p>
+                  )}
+                  <div className="h-px bg-white/10 mb-2" />
+                  <p className="text-[7px] font-normal text-white/60 leading-relaxed flex-1 overflow-hidden line-clamp-[12]">{previewText}</p>
+                  <div className="mt-auto pt-1 text-center">
+                    <span className="text-[7px] text-white/30">{i + 1}</span>
+                  </div>
                 </div>
               </div>
             );
