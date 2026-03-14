@@ -70,6 +70,7 @@ const QueryBar = () => {
   const [online, setOnline] = useState(navigator.onLine);
   const [cotId, setCotId] = useState<string | null>(null);
   const [decodeId, setDecodeId] = useState<string | null>(null);
+  const [groundedMode, setGroundedMode] = useState(false);
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
 
