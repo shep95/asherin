@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal } from "lucide-react";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
@@ -309,6 +309,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [styleProfileOpen, setStyleProfileOpen] = useState(false);
   const [determinism, setDeterminism] = useState(33);
   const [qosMode, setQosMode] = useState<QoSMode>("fast");
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -404,9 +405,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Top bar — hidden in focus mode */}
       {!focusMode && (
-        <div className="flex items-center px-2 sm:px-4 pt-2 sm:pt-4 pb-2 gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center px-2 sm:px-4 pt-2 sm:pt-4 pb-2 gap-1.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
           <ModeSelector active={mode} onChange={onModeChange} />
-          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide min-w-0 flex-1 py-1">
+
+          {/* Primary icons — always visible */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {hasPro ? (
               <button
                 onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
@@ -417,7 +420,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 }`}
                 title={elevenLabsVoice.isConnected ? "End voice call" : "Start voice call"}
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             ) : (
               <button
@@ -425,33 +428,37 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 className="shrink-0 p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
                 title="Voice calls require Pro ($740/mo)"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             )}
             {conversation.messages.length > 0 && (
               <button onClick={downloadConversation} className="shrink-0 p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
-                <Download className="h-4 w-4" />
+                <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
-             )}
+            )}
             <button
               onClick={() => setNotepadOpen(!notepadOpen)}
               className={`shrink-0 p-1.5 rounded-md transition-colors ${notepadOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
               title="Notepad"
             >
-              <StickyNote className="h-4 w-4" />
+              <StickyNote className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
-             <ChatSearchBar
-               messages={conversation.messages}
-               onHighlightMessage={setHighlightedMsgId}
-               onSearchActive={setSearchActive}
-             />
+            <ChatSearchBar
+              messages={conversation.messages}
+              onHighlightMessage={setHighlightedMsgId}
+              onSearchActive={setSearchActive}
+            />
+          </div>
+
+          {/* Advanced controls — hidden on mobile, visible on sm+ */}
+          <div className="hidden sm:flex items-center gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 py-1">
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
             <DeterminismSlider value={determinism} onChange={setDeterminism} />
             <QualityOfServiceControls mode={qosMode} onChange={setQosMode} />
             {/* Assumption Tracker */}
-              <div className="relative shrink-0">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setAssumptionsOpen(!assumptionsOpen)}
                 className={`p-1.5 rounded-md transition-colors ${assumptionsOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
@@ -475,7 +482,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             </div>
             {/* Decision Log */}
-              <div className="relative shrink-0">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setDecisionsOpen(!decisionsOpen)}
                 className={`p-1.5 rounded-md transition-colors ${decisionsOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
@@ -486,7 +493,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
             </div>
             {/* Output QA Toggles */}
-              <div className="relative shrink-0">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setQaTogglesOpen(!qaTogglesOpen)}
                 className={`p-1.5 rounded-md transition-colors ${qaTogglesOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
@@ -497,7 +504,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
             </div>
             {/* Personal Style Profile */}
-              <div className="relative shrink-0">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setStyleProfileOpen(!styleProfileOpen)}
                 className={`p-1.5 rounded-md transition-colors ${styleProfileOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
@@ -517,12 +524,107 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             )}
           </div>
+
+          {/* Mobile overflow menu — visible only on mobile */}
+          <div className="relative sm:hidden shrink-0">
+            <button
+              onClick={() => setMobileToolsOpen(!mobileToolsOpen)}
+              className={`p-1.5 rounded-md transition-colors ${mobileToolsOpen ? "bg-foreground/10 text-foreground" : "text-muted-foreground/50 hover:text-foreground"}`}
+              title="More tools"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+            {mobileToolsOpen && (
+              <div className="absolute right-0 top-full mt-1 z-50 w-[280px] rounded-xl border border-border/20 bg-card/95 backdrop-blur-xl shadow-2xl p-2 space-y-1 animate-fade-in">
+                <p className="text-[9px] font-light tracking-wider text-muted-foreground/40 uppercase px-2 pb-1">Tools</p>
+
+                {/* Reasoning */}
+                <div className="px-2 py-1.5">
+                  <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
+                </div>
+
+                {/* Depth */}
+                <div className="px-2 py-1.5">
+                  <DepthSelector active={depth} onChange={onDepthChange} />
+                </div>
+
+                {/* Context Health */}
+                <div className="px-2 py-1.5 flex items-center">
+                  <ContextHealthIndicator messageCount={conversation.messages.length} />
+                </div>
+
+                {/* Toggleable items */}
+                <button
+                  onClick={() => { setAssumptionsOpen(!assumptionsOpen); setMobileToolsOpen(false); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5" /> Assumptions
+                </button>
+                <button
+                  onClick={() => { setDecisionsOpen(!decisionsOpen); setMobileToolsOpen(false); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                >
+                  <Gavel className="h-3.5 w-3.5" /> Decision Log
+                </button>
+                <button
+                  onClick={() => { setQaTogglesOpen(!qaTogglesOpen); setMobileToolsOpen(false); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                >
+                  <Shield className="h-3.5 w-3.5" /> Output QA
+                </button>
+                <button
+                  onClick={() => { setStyleProfileOpen(!styleProfileOpen); setMobileToolsOpen(false); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-light text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
+                >
+                  <Palette className="h-3.5 w-3.5" /> Writing Style
+                </button>
+              </div>
+            )}
+          </div>
+
           {onBrainChange && (
             <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
           )}
           <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
         </div>
       )}
+
+      {/* Mobile popover panels for tools triggered from overflow menu */}
+      <div className="sm:hidden">
+        {assumptionsOpen && (
+          <div className="px-2 pb-2">
+            <AssumptionTracker
+              conversationId={conversation.id}
+              open={assumptionsOpen}
+              onClose={() => setAssumptionsOpen(false)}
+              onRequestReAnswer={(assumptions) => {
+                const active = assumptions.filter(a => a.active).map(a => a.text);
+                const inactive = assumptions.filter(a => !a.active).map(a => a.text);
+                let prompt = "Re-evaluate your last answer with these updated assumptions:\n";
+                if (active.length) prompt += `\nActive assumptions:\n${active.map(a => `- ${a}`).join("\n")}`;
+                if (inactive.length) prompt += `\nRemoved assumptions:\n${inactive.map(a => `- ~~${a}~~`).join("\n")}`;
+                onSendMessage(prompt);
+                setAssumptionsOpen(false);
+              }}
+            />
+          </div>
+        )}
+        {decisionsOpen && (
+          <div className="px-2 pb-2">
+            <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
+          </div>
+        )}
+        {qaTogglesOpen && (
+          <div className="px-2 pb-2">
+            <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
+          </div>
+        )}
+        {styleProfileOpen && (
+          <div className="px-2 pb-2">
+            <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+          </div>
+        )}
+      </div>
 
       {/* Goal Lock Header */}
       <GoalLockHeader conversationId={conversation.id} />
