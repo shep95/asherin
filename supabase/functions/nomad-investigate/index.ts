@@ -1353,11 +1353,85 @@ async function ingestIntelligence(query: string): Promise<{
   const q = query.toLowerCase();
   const tasks: Promise<IntelNode>[] = [];
 
-  // Always: web search + instant answer + cross-platform search
+  // ── ALWAYS: Core web search ──
   tasks.push(ingestDDG(query));
   tasks.push(ingestDDGInstant(query));
+  tasks.push(ingestGoogleCSE(query));
 
-  // ESRC: Always search across platforms for identity resolution
+  // ── OSINT: IP Address detected ──
+  const ipMatch = query.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/);
+  if (ipMatch) {
+    tasks.push(ingestShodan(ipMatch[1]));
+    tasks.push(ingestCensys(ipMatch[1]));
+    tasks.push(ingestGreyNoise(ipMatch[1]));
+    tasks.push(ingestBinaryEdge(ipMatch[1]));
+    tasks.push(ingestVirusTotal(ipMatch[1]));
+    tasks.push(ingestThreatIntel(ipMatch[1]));
+  }
+
+  // ── OSINT: Domain detected ──
+  const domainMatch = query.match(/\b([\w-]+\.(?:com|org|net|io|dev|co|info|biz|gov|edu|mil|int|xyz|me|app|cloud|tech|ai|cyber|security)(?:\.\w{2,3})?)\b/i);
+  if (domainMatch) {
+    tasks.push(ingestCrtSh(domainMatch[1]));
+    tasks.push(ingestWHOIS(domainMatch[1]));
+    tasks.push(ingestSecurityTrails(domainMatch[1]));
+    tasks.push(ingestVirusTotal(domainMatch[1]));
+    tasks.push(ingestUrlscan(domainMatch[1]));
+    tasks.push(ingestShodan(`hostname:${domainMatch[1]}`));
+    tasks.push(ingestThreatIntel(domainMatch[1]));
+  }
+
+  // ── OSINT: Hash/IOC detected ──
+  const hashMatch = query.match(/\b([a-fA-F0-9]{32,64})\b/);
+  if (hashMatch) {
+    tasks.push(ingestVirusTotal(hashMatch[1]));
+    tasks.push(ingestThreatIntel(hashMatch[1]));
+  }
+
+  // ── OSINT: URL detected ──
+  if (/https?:\/\//.test(query)) {
+    const urlMatch = query.match(/(https?:\/\/[^\s]+)/);
+    if (urlMatch) {
+      tasks.push(ingestUrlscan(urlMatch[1]));
+      tasks.push(ingestVirusTotal(urlMatch[1]));
+    }
+  }
+
+  // ── OSINT: Infrastructure / exposure scanning keywords ──
+  if (/shodan|port|banner|service|iot|ics|exposed|open port|scan|attack surface|exposure|asset/i.test(q)) {
+    tasks.push(ingestShodan(query));
+    tasks.push(ingestCensys(query));
+    tasks.push(ingestBinaryEdge(query));
+    tasks.push(ingestFOFA(query));
+  }
+
+  // ── OSINT: DNS / subdomain / cert keywords ──
+  if (/dns|subdomain|certificate|ssl|tls|cert|nameserver|mx|whois|registr/i.test(q)) {
+    if (domainMatch) {
+      tasks.push(ingestSecurityTrails(domainMatch[1]));
+    }
+  }
+
+  // ── OSINT: Threat intel / malware / IOC keywords ──
+  if (/malware|threat|ioc|indicator|compromise|virus|trojan|ransomware|c2|command.and.control|apt|campaign/i.test(q)) {
+    tasks.push(ingestVirusTotal(query));
+    tasks.push(ingestThreatIntel(query));
+    tasks.push(ingestGreyNoise(query));
+    tasks.push(ingestUrlscan(query));
+  }
+
+  // ── OSINT: Noise / scanning classification ──
+  if (/noise|background|targeted|opportunistic|greynoise|scanning/i.test(q)) {
+    tasks.push(ingestGreyNoise(query));
+  }
+
+  // ── OSINT: Secret hunting / code exposure ──
+  if (/secret|api.key|password|credential|leaked|exposed|config|\.env|token/i.test(q)) {
+    tasks.push(ingestGitHubCodeSearch(query));
+    tasks.push(ingestGoogleCSE(query, 'filetype:env OR filetype:json OR filetype:yaml'));
+  }
+
+  // ── ESRC: Person / identity resolution ──
   const isPerson = /person|individual|who is|about|officer|director|ceo|cto|founder|deanonymize|identify|profile/i.test(q);
   const isUsername = /username|user|handle|account|profile|pseudonym|anonymous|alias/i.test(q);
 
@@ -1378,12 +1452,12 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestProPublica(query));
   }
 
-  // Domain
-  if (/domain|\.com|\.org|\.net|\.io|dns|ssl|cert|subdomain|whois/i.test(q)) {
-    const domainMatch = query.match(/[\w-]+\.[\w.]+/);
-    if (domainMatch) {
-      tasks.push(ingestCrtSh(domainMatch[0]));
-      tasks.push(ingestWHOIS(domainMatch[0]));
+  // Domain (legacy — kept for backward compat)
+  if (/domain|\.com|\.org|\.net|\.io|dns|ssl|cert|subdomain|whois/i.test(q) && !domainMatch) {
+    const fallbackDomain = query.match(/[\w-]+\.[\w.]+/);
+    if (fallbackDomain) {
+      tasks.push(ingestCrtSh(fallbackDomain[0]));
+      tasks.push(ingestWHOIS(fallbackDomain[0]));
     }
   }
 
@@ -1417,7 +1491,7 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestUSASpending(query));
   }
 
-  // Always include academic search for person queries
+  // Academic
   if (!isPerson && !isUsername && /research|paper|publication|academic|professor|scientist/i.test(q)) {
     tasks.push(ingestAcademicSearch(query));
   }
