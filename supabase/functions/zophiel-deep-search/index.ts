@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
       `${trimmed} primary source official report`,
     ];
 
-    // Run DuckDuckGo + OSINT engines in parallel
+    // Run DuckDuckGo + OSINT engines + Extended OSINT in parallel
     const osintResults: { source: string; content: string; tier: number }[] = [];
     
     // Detect query type for targeted OSINT engine activation
@@ -272,6 +272,8 @@ Deno.serve(async (req) => {
     const domainMatch = trimmed.match(/\b([\w-]+\.(?:com|org|net|io|dev|co|gov|edu|mil|ai|tech|cloud|app|xyz|me)(?:\.\w{2,3})?)\b/i);
     const hashMatch = trimmed.match(/\b([a-fA-F0-9]{32,64})\b/);
     const isCyber = /malware|threat|vulnerability|cve|exploit|attack|breach|hack|phish|ransomware|apt|ioc|indicator|scan|port|service|banner|exposure|certificate|subdomain|dns/i.test(qLower);
+    const isPerson = /person|who is|about|officer|director|ceo|cto|founder|profile|name|identify/i.test(qLower);
+    const isCompany = /compan|corp|inc|llc|ltd|business|firm|startup|enterprise/i.test(qLower);
     
     const osintTasks: Promise<void>[] = [];
     
@@ -397,6 +399,142 @@ Deno.serve(async (req) => {
             if (subs.length) {
               osintResults.push({ source: 'SecurityTrails', content: `Subdomains (${json.subdomain_count || subs.length} total): ${subs.map((s: string) => `${s}.${domainMatch[1]}`).join(', ')}`, tier: 1 });
             }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // ── Extended OSINT engines for Zophiel Deep Search ──
+
+    // Bing Web Search (if key available)
+    if (Deno.env.get('BING_SEARCH_API_KEY')) {
+      osintTasks.push((async () => {
+        try {
+          const key = Deno.env.get('BING_SEARCH_API_KEY')!;
+          const resp = await fetch(`https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(trimmed)}&count=5&mkt=en-US`, {
+            headers: { 'Ocp-Apim-Subscription-Key': key },
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json.webPages?.value?.length) {
+              osintResults.push({ source: 'Bing', content: json.webPages.value.slice(0, 5).map((r: any) => `${r.name} — ${r.url}\n${r.snippet || ''}`).join('\n'), tier: 2 });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // Wayback Machine (free, no key)
+    if (domainMatch || /archive|deleted|cached|old|history|wayback/i.test(qLower)) {
+      osintTasks.push((async () => {
+        try {
+          const target = domainMatch?.[1] || trimmed;
+          const resp = await fetch(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(target)}&output=json&limit=8&fl=original,timestamp,statuscode&collapse=timestamp:6`);
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json.length > 1) {
+              osintResults.push({
+                source: 'Wayback Machine',
+                content: json.slice(1, 8).map((r: string[]) => `${r[0]} | Archived: ${r[1].slice(0,4)}-${r[1].slice(4,6)}-${r[1].slice(6,8)} | Status: ${r[2]}`).join('\n'),
+                tier: 2,
+              });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // OpenCorporates (free, no key)
+    if (isCompany || /director|officer|registry|registered agent/i.test(qLower)) {
+      osintTasks.push((async () => {
+        try {
+          const resp = await fetch(`https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(trimmed)}&per_page=5&order=score`);
+          if (resp.ok) {
+            const json = await resp.json();
+            const companies = json.results?.companies || [];
+            if (companies.length) {
+              osintResults.push({
+                source: 'OpenCorporates',
+                content: companies.map((c: any) => {
+                  const co = c.company || {};
+                  return `${co.name} (${co.jurisdiction_code}) | Status: ${co.current_status || 'N/A'} | Inc: ${co.incorporation_date || 'N/A'}`;
+                }).join('\n'),
+                tier: 2,
+              });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // Social platform proxied search (for person queries)
+    if (isPerson) {
+      for (const platform of ['facebook', 'instagram', 'tiktok']) {
+        osintTasks.push((async () => {
+          try {
+            const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(trimmed + ` site:${platform}.com`)}`, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+            });
+            if (!resp.ok) return;
+            const html = await resp.text();
+            const results: string[] = [];
+            const blocks = html.split(/class="result\s/);
+            for (let i = 1; i < blocks.length && results.length < 3; i++) {
+              const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+              const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+              if (title) results.push(title);
+            }
+            if (results.length) {
+              osintResults.push({ source: `${platform.charAt(0).toUpperCase() + platform.slice(1)}`, content: results.join('\n'), tier: 4 });
+            }
+          } catch { /* skip */ }
+        })());
+      }
+    }
+
+    // Public records proxy (for person queries)
+    if (isPerson) {
+      osintTasks.push((async () => {
+        try {
+          const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${trimmed}" site:whitepages.com OR site:spokeo.com OR site:truepeoplesearch.com`)}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+          });
+          if (!resp.ok) return;
+          const html = await resp.text();
+          const results: string[] = [];
+          const blocks = html.split(/class="result\s/);
+          for (let i = 1; i < blocks.length && results.length < 5; i++) {
+            const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+            const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+            const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+            const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+            if (title) results.push(`${title}: ${snippet}`);
+          }
+          if (results.length) {
+            osintResults.push({ source: 'Public Records', content: results.join('\n'), tier: 3 });
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // Court filings proxy
+    if (/court|lawsuit|judgment|litigation|property|dispute/i.test(qLower)) {
+      osintTasks.push((async () => {
+        try {
+          const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${trimmed}" site:courtlistener.com OR site:law.justia.com`)}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+          });
+          if (!resp.ok) return;
+          const html = await resp.text();
+          const results: string[] = [];
+          const blocks = html.split(/class="result\s/);
+          for (let i = 1; i < blocks.length && results.length < 5; i++) {
+            const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+            const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+            if (title) results.push(title);
+          }
+          if (results.length) {
+            osintResults.push({ source: 'Court Filings', content: results.join('\n'), tier: 1 });
           }
         } catch { /* skip */ }
       })());
