@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { MapPin, Globe, Layers, Radio, Navigation, ChevronDown } from "lucide-react";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { MapPin, Globe, Layers, Radio, Navigation, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface LocationEntity {
@@ -16,117 +16,160 @@ interface NomadMapLayerProps {
   investigations: { query: string; findings: string; created_at: string }[];
 }
 
+// Nominatim (OpenStreetMap) geocoding — LIVE
+async function geocodeWithNominatim(query: string): Promise<{ lat: number; lng: number; display: string } | null> {
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=0`,
+      { headers: { "User-Agent": "AUREON-NOMAD/3.0 (research@aureon.ai)" } }
+    );
+    if (!resp.ok) return null;
+    const results = await resp.json();
+    if (results.length === 0) return null;
+    return {
+      lat: parseFloat(results[0].lat),
+      lng: parseFloat(results[0].lon),
+      display: results[0].display_name,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Try to extract coordinates from entity values
 function parseCoordinates(value: string): { lat: number; lng: number } | null {
-  // Direct coordinate format: "lat, lng"
   const coordMatch = value.match(/(-?\d{1,3}\.\d{3,8}),\s*(-?\d{1,3}\.\d{3,8})/);
   if (coordMatch) {
     const lat = parseFloat(coordMatch[1]);
     const lng = parseFloat(coordMatch[2]);
     if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
   }
-
-  // Lat/lng format
   const latMatch = value.match(/lat(?:itude)?[:\s]*(-?\d{1,3}\.\d{3,8})/i);
   const lngMatch = value.match(/(?:lng|lon(?:gitude)?)[:\s]*(-?\d{1,3}\.\d{3,8})/i);
   if (latMatch && lngMatch) {
     return { lat: parseFloat(latMatch[1]), lng: parseFloat(lngMatch[1]) };
   }
-
   return null;
 }
 
-// Known city coordinates for rough geo-mapping
-const KNOWN_CITIES: Record<string, { lat: number; lng: number }> = {
-  "new york": { lat: 40.7128, lng: -74.0060 },
-  "los angeles": { lat: 34.0522, lng: -118.2437 },
-  "chicago": { lat: 41.8781, lng: -87.6298 },
-  "houston": { lat: 29.7604, lng: -95.3698 },
-  "phoenix": { lat: 33.4484, lng: -112.0740 },
-  "san francisco": { lat: 37.7749, lng: -122.4194 },
-  "seattle": { lat: 47.6062, lng: -122.3321 },
-  "miami": { lat: 25.7617, lng: -80.1918 },
-  "boston": { lat: 42.3601, lng: -71.0589 },
-  "washington": { lat: 38.9072, lng: -77.0369 },
-  "london": { lat: 51.5074, lng: -0.1278 },
-  "paris": { lat: 48.8566, lng: 2.3522 },
-  "tokyo": { lat: 35.6762, lng: 139.6503 },
-  "berlin": { lat: 52.5200, lng: 13.4050 },
-  "sydney": { lat: -33.8688, lng: 151.2093 },
-  "dubai": { lat: 25.2048, lng: 55.2708 },
-  "singapore": { lat: 1.3521, lng: 103.8198 },
-  "hong kong": { lat: 22.3193, lng: 114.1694 },
-  "toronto": { lat: 43.6532, lng: -79.3832 },
-  "mumbai": { lat: 19.0760, lng: 72.8777 },
-  "austin": { lat: 30.2672, lng: -97.7431 },
-  "denver": { lat: 39.7392, lng: -104.9903 },
-  "atlanta": { lat: 33.7490, lng: -84.3880 },
-  "dallas": { lat: 32.7767, lng: -96.7970 },
-  "san jose": { lat: 37.3382, lng: -121.8863 },
-  "palo alto": { lat: 37.4419, lng: -122.1430 },
-  "silicon valley": { lat: 37.3875, lng: -122.0575 },
-};
-
-function geolocateEntity(entity: { type: string; value: string }): { lat: number; lng: number } | null {
-  // Direct coordinates
-  const coords = parseCoordinates(entity.value);
-  if (coords) return coords;
-
-  // Try known cities
-  const lower = entity.value.toLowerCase();
-  for (const [city, coords] of Object.entries(KNOWN_CITIES)) {
-    if (lower.includes(city)) return coords;
-  }
-
-  return null;
-}
+// Cache for geocoding results
+const geocodeCache = new Map<string, { lat: number; lng: number } | null>();
 
 const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
   const [selectedPin, setSelectedPin] = useState<LocationEntity | null>(null);
   const [layerFilter, setLayerFilter] = useState<string>("all");
+  const [locationEntities, setLocationEntities] = useState<LocationEntity[]>([]);
+  const [geocoding, setGeocoding] = useState(false);
 
-  // Extract all location-related entities
-  const locationEntities = useMemo(() => {
+  // Extract location candidates from entities and investigation text
+  const locationCandidates = useMemo(() => {
     const locTypes = ["location", "us_location", "coordinates", "geo_coordinate", "cell_tower", "ip_address"];
-    const locs: LocationEntity[] = [];
+    const candidates: LocationEntity[] = [];
+    const seen = new Set<string>();
 
-    // From entities
     for (const e of entities) {
       if (locTypes.includes(e.type) || e.type === "organization" || e.type === "institution") {
-        const coords = geolocateEntity(e);
+        const key = `${e.type}:${e.value}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const coords = parseCoordinates(e.value);
         if (coords) {
-          locs.push({ ...e, ...coords, label: e.value });
-        } else if (locTypes.includes(e.type)) {
-          locs.push({ ...e, label: e.value });
+          candidates.push({ ...e, ...coords, label: e.value });
+        } else if (locTypes.includes(e.type) || e.type === "organization" || e.type === "institution") {
+          candidates.push({ ...e, label: e.value });
         }
       }
     }
 
-    // Extract locations from investigation text
+    // Extract location mentions from investigation text
     for (const inv of investigations) {
-      for (const [city, coords] of Object.entries(KNOWN_CITIES)) {
-        if (inv.findings.toLowerCase().includes(city)) {
-          const exists = locs.some(l => l.lat === coords.lat && l.lng === coords.lng);
-          if (!exists) {
-            locs.push({
-              type: "text_location",
-              value: city.charAt(0).toUpperCase() + city.slice(1),
-              confidence: 0.6,
-              ...coords,
-              label: `${city.charAt(0).toUpperCase() + city.slice(1)} (mentioned in findings)`,
-            });
-          }
+      const locMatches = inv.findings.match(
+        /\b(?:located\s+(?:in|at|near)|headquartered\s+in|based\s+in|office\s+in)\s+([A-Z][A-Za-z\s,]+)/g
+      ) || [];
+      const cityMatches = inv.findings.match(
+        /\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/g
+      ) || [];
+
+      for (const match of [...locMatches, ...cityMatches]) {
+        const clean = match.replace(/^(?:located|headquartered|based|office)\s+(?:in|at|near)\s+/i, "").trim();
+        const key = `text_location:${clean.toLowerCase()}`;
+        if (!seen.has(key) && clean.length > 2) {
+          seen.add(key);
+          candidates.push({
+            type: "text_location",
+            value: clean,
+            confidence: 0.7,
+            label: `${clean} (from findings)`,
+          });
         }
       }
     }
 
-    return locs;
+    return candidates;
   }, [entities, investigations]);
+
+  // Geocode all unresolved locations using Nominatim
+  const geocodeAll = useCallback(async () => {
+    if (locationCandidates.length === 0) return;
+    setGeocoding(true);
+
+    const resolved: LocationEntity[] = [];
+    const toGeocode: LocationEntity[] = [];
+
+    for (const loc of locationCandidates) {
+      if (loc.lat !== undefined && loc.lng !== undefined) {
+        resolved.push(loc);
+      } else {
+        const cacheKey = loc.value.toLowerCase().trim();
+        if (geocodeCache.has(cacheKey)) {
+          const cached = geocodeCache.get(cacheKey);
+          if (cached) {
+            resolved.push({ ...loc, ...cached });
+          } else {
+            resolved.push(loc); // null = previously failed
+          }
+        } else {
+          toGeocode.push(loc);
+        }
+      }
+    }
+
+    // Geocode in batches of 3 (Nominatim rate limit: 1 req/sec)
+    for (let i = 0; i < toGeocode.length; i++) {
+      const loc = toGeocode[i];
+      const cacheKey = loc.value.toLowerCase().trim();
+      // Clean the value for geocoding
+      const query = loc.value
+        .replace(/^(?:located|headquartered|based|office)\s+(?:in|at|near)\s+/i, "")
+        .replace(/\(.*?\)/g, "")
+        .trim();
+
+      const result = await geocodeWithNominatim(query);
+      geocodeCache.set(cacheKey, result);
+
+      if (result) {
+        resolved.push({ ...loc, lat: result.lat, lng: result.lng, label: loc.label || result.display });
+      } else {
+        resolved.push(loc);
+      }
+
+      // Rate limit: 1 request per second for Nominatim
+      if (i < toGeocode.length - 1) {
+        await new Promise(r => setTimeout(r, 1100));
+      }
+    }
+
+    setLocationEntities(resolved);
+    setGeocoding(false);
+  }, [locationCandidates]);
+
+  useEffect(() => {
+    geocodeAll();
+  }, [geocodeAll]);
 
   const geoLocated = locationEntities.filter(l => l.lat !== undefined && l.lng !== undefined);
   const unlocated = locationEntities.filter(l => l.lat === undefined);
 
-  // Calculate map bounds
   const mapBounds = useMemo(() => {
     if (geoLocated.length === 0) return { minLat: -30, maxLat: 60, minLng: -130, maxLng: 150 };
     const lats = geoLocated.map(l => l.lat!);
@@ -140,7 +183,6 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
     };
   }, [geoLocated]);
 
-  // Project lat/lng to SVG coordinates
   const project = (lat: number, lng: number, width: number, height: number) => {
     const x = ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * width;
     const y = ((mapBounds.maxLat - lat) / (mapBounds.maxLat - mapBounds.minLat)) * height;
@@ -148,10 +190,9 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
   };
 
   const filteredPins = layerFilter === "all" ? geoLocated : geoLocated.filter(l => l.type === layerFilter);
-
   const pinTypes = [...new Set(geoLocated.map(l => l.type))];
 
-  if (locationEntities.length === 0) {
+  if (locationEntities.length === 0 && !geocoding) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center py-20">
         <Globe className="h-10 w-10 text-muted-foreground/30 mb-4" />
@@ -180,6 +221,12 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
               ))}
             </select>
           </div>
+          {geocoding && (
+            <div className="flex items-center gap-1.5 rounded-xl bg-accent/10 border border-accent/20 px-3 py-2 backdrop-blur-sm">
+              <Loader2 className="h-3 w-3 text-accent animate-spin" />
+              <span className="text-[10px] font-extralight text-accent">Geocoding…</span>
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -199,7 +246,7 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
           ))}
 
           {/* Connection lines between pins */}
-          {filteredPins.map((pin, i) => 
+          {filteredPins.map((pin, i) =>
             filteredPins.slice(i + 1).map((other, j) => {
               const p1 = project(pin.lat!, pin.lng!, 800, 500);
               const p2 = project(other.lat!, other.lng!, 800, 500);
@@ -221,18 +268,14 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
 
             return (
               <g key={idx} onClick={() => setSelectedPin(isSelected ? null : pin)} style={{ cursor: "pointer" }}>
-                {/* Pulse ring */}
                 <circle cx={x} cy={y} r={pulseRadius} fill="hsl(var(--accent))" opacity={0.08}>
                   <animate attributeName="r" values={`${pulseRadius};${pulseRadius + 10};${pulseRadius}`} dur="3s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.08;0.02;0.08" dur="3s" repeatCount="indefinite" />
                 </circle>
-                {/* Pin dot */}
                 <circle cx={x} cy={y} r={isSelected ? 6 : 4} fill="hsl(var(--accent))" opacity={0.8} stroke="hsl(var(--accent))" strokeWidth={isSelected ? 2 : 0} />
-                {/* Label */}
                 <text x={x} y={y - 10} textAnchor="middle" fontSize={isSelected ? 10 : 8} fill="hsl(var(--foreground))" opacity={0.7} fontWeight={isSelected ? 400 : 200}>
                   {pin.value.length > 20 ? pin.value.slice(0, 17) + "…" : pin.value}
                 </text>
-                {/* Coordinates on hover */}
                 {isSelected && (
                   <text x={x} y={y + 18} textAnchor="middle" fontSize={7} fill="hsl(var(--muted-foreground))" opacity={0.5}>
                     {pin.lat!.toFixed(4)}, {pin.lng!.toFixed(4)} · {Math.round(pin.confidence * 100)}%
@@ -244,7 +287,7 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
         </svg>
       </div>
 
-      {/* Right sidebar: Location list */}
+      {/* Right sidebar */}
       <div className="w-56 border-l border-border/20 flex-shrink-0">
         <div className="p-3 border-b border-border/20">
           <p className="text-[10px] font-extralight tracking-wider text-muted-foreground/50 uppercase">Intelligence Locations</p>
@@ -270,7 +313,7 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
                     <div className="min-w-0">
                       <p className="text-[10px] font-extralight text-foreground truncate">{loc.value}</p>
                       <p className="text-[8px] font-extralight text-muted-foreground/40">
-                        {hasCoords ? `${loc.lat!.toFixed(2)}, ${loc.lng!.toFixed(2)}` : "No coordinates"}
+                        {hasCoords ? `${loc.lat!.toFixed(2)}, ${loc.lng!.toFixed(2)}` : "Resolving…"}
                       </p>
                     </div>
                   </div>
