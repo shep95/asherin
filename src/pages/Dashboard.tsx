@@ -79,6 +79,7 @@ const VibeVideoView = React.lazy(() => import("@/components/dashboard/VibeVideoV
 const AgentsView = React.lazy(() => import("@/components/dashboard/agents/AgentsView"));
 const BugReportsView = React.lazy(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = React.lazy(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
+const ReverseEngineerView = React.lazy(() => import("@/components/dashboard/ReverseEngineerView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -1070,6 +1071,7 @@ const Dashboard = () => {
       case "vibe-video": return gatedView("vibe-video", VibeVideoView, "Vibe Video", "Conversational AI video editing — upload, describe edits, and Aureon analyzes your footage. Available on Pro and Advisor plans.");
       case "agents": return gatedView("agents", AgentsView, "Automated Agents", "AI-powered automation — create agents that run tasks on autopilot forever. Available as an add-on subscription.");
       case "bug-reports": return <Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense>;
+      case "reverse-engineer": return gatedView("reverse-engineer", ReverseEngineerView, "Reverse Engineering Intelligence", "Upload screenshots of any software or hardware system — Aureon deconstructs the entire architecture. Available on Aureon and Pro plans.");
       // Always-accessible views
       case "library": return <Suspense fallback={<LazyFallback />}><LibraryView /></Suspense>;
       case "snippets": return <Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense>;
