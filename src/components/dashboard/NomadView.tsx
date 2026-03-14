@@ -67,6 +67,13 @@ function extractEntitiesFromText(text: string) {
   return entities;
 }
 
+interface CollectedImage {
+  url: string;
+  title: string;
+  source: string;
+  thumbnail?: string;
+}
+
 interface NomadMessage {
   id: string;
   role: "user" | "assistant";
@@ -74,6 +81,7 @@ interface NomadMessage {
   timestamp: Date;
   investigationType?: string;
   status?: "sending" | "queued" | "sent" | "failed";
+  images?: CollectedImage[];
 }
 
 type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff";
