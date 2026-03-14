@@ -110,11 +110,14 @@ const PipelineBuilderPanel = () => {
       last_run: new Date().toISOString(),
     });
 
-    (updated as any).status = "completed";
-    updated.runsCount += 1;
-    updated.lastRun = new Date().toISOString();
-    setActivePipeline(updated);
-    setPipelines(prev => prev.map(p => p.id === updated.id ? updated : p));
+    const finalPipeline: Pipeline = {
+      ...updated,
+      status: "completed",
+      runsCount: updated.runsCount + 1,
+      lastRun: new Date().toISOString(),
+    };
+    setActivePipeline(finalPipeline);
+    setPipelines(prev => prev.map(p => p.id === finalPipeline.id ? finalPipeline : p));
     setRunning(false);
     toast({ title: "Pipeline completed", description: `${updated.nodes.length} nodes executed successfully` });
   };
