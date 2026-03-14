@@ -440,10 +440,6 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             >
               <StickyNote className="h-4 w-4" />
             </button>
-            {onBrainChange && (
-              <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
-            )}
-            <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
              <ChatSearchBar
                messages={conversation.messages}
                onHighlightMessage={setHighlightedMsgId}
@@ -521,6 +517,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             )}
           </div>
+          {onBrainChange && (
+            <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
+          )}
+          <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
         </div>
       )}
 
