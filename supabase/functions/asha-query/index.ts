@@ -79,8 +79,10 @@ serve(async (req) => {
 
     const user = { id: userId };
 
-    const { query, sessionId } = await req.json();
+    const { query, sessionId, datasetContext, mode } = await req.json();
     if (!query?.trim()) throw new Error("Missing query");
+
+    const isQuiverMode = mode === "quiver";
 
     // Fetch user's datasets for context — scoped to session
     let dsQuery = supabase
