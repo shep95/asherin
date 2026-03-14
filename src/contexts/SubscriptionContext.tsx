@@ -67,9 +67,15 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
   status: null,
   cancelAtPeriodEnd: false,
   loading: true,
+  isPastDue: false,
+  isTrialing: false,
   checkSubscription: async () => {},
   startCheckout: async () => {},
   openPortal: async () => {},
+  upgradeSubscription: async () => {},
+  startProTrial: async () => {},
+  cancelSubscription: async () => {},
+  reactivateSubscription: async () => {},
   checkoutLoading: false,
 });
 
