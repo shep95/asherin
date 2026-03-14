@@ -545,7 +545,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             </div>
           </div>
         ) : (
-          <div ref={messagesRef} className="relative mx-auto max-w-3xl space-y-4 py-4">
+          <div ref={messagesRef} className="relative mx-auto max-w-3xl space-y-3 sm:space-y-4 py-4">
             {/* Error banner */}
             {chatError && (
               <ChatErrorBanner
