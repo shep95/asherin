@@ -674,6 +674,442 @@ function emptyNode(source: string, tier: 1 | 2 | 3 | 4): IntelNode {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// OSINT SEARCH ENGINES — 12-Engine Intelligence Collection Suite
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── 1. Google Custom Search (Advanced Operators) ─────────────────────────────
+async function ingestGoogleCSE(query: string, operators?: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('GOOGLE_CSE_API_KEY');
+    const cx = Deno.env.get('GOOGLE_CSE_CX');
+    if (!apiKey || !cx) return emptyNode('Google CSE', 2);
+    const q = operators ? `${query} ${operators}` : query;
+    const resp = await fetch(`https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(q)}&num=10`);
+    if (!resp.ok) return emptyNode('Google CSE', 2);
+    const json = await resp.json();
+    if (!json.items?.length) return emptyNode('Google CSE', 2);
+    const data = `Google Search Results:\n${json.items.map((r: any) => `- ${r.title}\n  ${r.link}\n  ${r.snippet || ''}`).join('\n')}`;
+    return {
+      source: 'Google Custom Search (Advanced Operators)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('google-cse', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.8,
+      entities: extractEntitiesFromText(data, 'Google CSE'),
+    };
+  } catch { return emptyNode('Google CSE', 2); }
+}
+
+// ── 2. Shodan — Internet-Facing Asset Discovery ─────────────────────────────
+async function ingestShodan(query: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('SHODAN_API_KEY');
+    if (!apiKey) return emptyNode('Shodan', 1);
+    // Detect if query is an IP or a search query
+    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(query.trim());
+    let data = '';
+    if (isIP) {
+      const resp = await fetch(`https://api.shodan.io/shodan/host/${query.trim()}?key=${apiKey}`);
+      if (!resp.ok) return emptyNode('Shodan', 1);
+      const host = await resp.json();
+      const ports = host.ports?.join(', ') || 'None';
+      const vulns = host.vulns?.slice(0, 10).join(', ') || 'None detected';
+      data = `Shodan Host Report (${query.trim()}):\n- IP: ${host.ip_str}\n- Organization: ${host.org || 'N/A'}\n- ISP: ${host.isp || 'N/A'}\n- OS: ${host.os || 'Unknown'}\n- Country: ${host.country_name || 'N/A'}\n- City: ${host.city || 'N/A'}\n- Open Ports: ${ports}\n- Vulnerabilities: ${vulns}\n- Hostnames: ${host.hostnames?.join(', ') || 'None'}\n- Last Update: ${host.last_update || 'N/A'}`;
+      if (host.data?.length) {
+        data += `\n\nService Banners:\n${host.data.slice(0, 5).map((s: any) => `- Port ${s.port}/${s.transport || 'tcp'}: ${s.product || 'Unknown'} ${s.version || ''} — ${(s.data || '').slice(0, 200)}`).join('\n')}`;
+      }
+    } else {
+      const cleaned = query.replace(/investigate|search|find|scan|shodan/gi, '').trim();
+      const resp = await fetch(`https://api.shodan.io/shodan/host/search?key=${apiKey}&query=${encodeURIComponent(cleaned)}&page=1`);
+      if (!resp.ok) return emptyNode('Shodan', 1);
+      const results = await resp.json();
+      if (!results.matches?.length) return emptyNode('Shodan', 1);
+      data = `Shodan Search Results (${results.total} total):\n${results.matches.slice(0, 10).map((m: any) => 
+        `- ${m.ip_str}:${m.port} | ${m.org || 'N/A'} | ${m.product || 'Unknown'} ${m.version || ''} | ${m.country_name || 'N/A'} | ${m.hostnames?.join(', ') || 'No hostname'}`
+      ).join('\n')}`;
+    }
+    return {
+      source: 'Shodan (Internet Asset Discovery)',
+      tier: 1,
+      data,
+      provenanceHash: await computeProvenanceHash('shodan', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.92,
+      entities: extractEntitiesFromText(data, 'Shodan'),
+    };
+  } catch { return emptyNode('Shodan', 1); }
+}
+
+// ── 3. Censys — Certificate-Centric Internet Scanning ───────────────────────
+async function ingestCensys(query: string): Promise<IntelNode> {
+  try {
+    const apiId = Deno.env.get('CENSYS_API_ID');
+    const apiSecret = Deno.env.get('CENSYS_API_SECRET');
+    if (!apiId || !apiSecret) return emptyNode('Censys', 1);
+    const auth = btoa(`${apiId}:${apiSecret}`);
+    const cleaned = query.replace(/investigate|search|find|scan|censys/gi, '').trim();
+    const resp = await fetch('https://search.censys.io/api/v2/hosts/search', {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: cleaned, per_page: 10 }),
+    });
+    if (!resp.ok) return emptyNode('Censys', 1);
+    const json = await resp.json();
+    const hits = json.result?.hits || [];
+    if (!hits.length) return emptyNode('Censys', 1);
+    const data = `Censys Host Search (${json.result?.total || 0} total):\n${hits.map((h: any) => {
+      const services = h.services?.map((s: any) => `${s.port}/${s.transport_protocol}: ${s.service_name || 'unknown'}`).join(', ') || 'N/A';
+      return `- ${h.ip} | ${h.autonomous_system?.name || 'N/A'} (AS${h.autonomous_system?.asn || '?'}) | ${h.location?.country || 'N/A'} | Services: ${services}`;
+    }).join('\n')}`;
+    return {
+      source: 'Censys (Internet Scanning & Certificate Intelligence)',
+      tier: 1,
+      data,
+      provenanceHash: await computeProvenanceHash('censys', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.93,
+      entities: extractEntitiesFromText(data, 'Censys'),
+    };
+  } catch { return emptyNode('Censys', 1); }
+}
+
+// ── 4. SecurityTrails — DNS & Domain Intelligence ───────────────────────────
+async function ingestSecurityTrails(domain: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('SECURITYTRAILS_API_KEY');
+    if (!apiKey) return emptyNode('SecurityTrails', 1);
+    const cleaned = domain.replace(/investigate|search|find|dns|domain/gi, '').trim();
+    // Domain details
+    const resp = await fetch(`https://api.securitytrails.com/v1/domain/${encodeURIComponent(cleaned)}`, {
+      headers: { 'APIKEY': apiKey, 'Accept': 'application/json' },
+    });
+    if (!resp.ok) return emptyNode('SecurityTrails', 1);
+    const json = await resp.json();
+    let data = `SecurityTrails Domain Report (${cleaned}):\n- Hostname: ${json.hostname || 'N/A'}\n- Alexa Rank: ${json.alexa_rank || 'N/A'}\n- Current DNS:\n`;
+    if (json.current_dns) {
+      const dns = json.current_dns;
+      if (dns.a) data += `  A Records: ${dns.a.values?.map((v: any) => v.ip).join(', ') || 'N/A'}\n`;
+      if (dns.mx) data += `  MX Records: ${dns.mx.values?.map((v: any) => `${v.hostname} (priority: ${v.priority})`).join(', ') || 'N/A'}\n`;
+      if (dns.ns) data += `  NS Records: ${dns.ns.values?.map((v: any) => v.nameserver).join(', ') || 'N/A'}\n`;
+      if (dns.txt) data += `  TXT Records: ${dns.txt.values?.map((v: any) => v.value?.slice(0, 100)).join('; ') || 'N/A'}\n`;
+    }
+    // Subdomains
+    const subResp = await fetch(`https://api.securitytrails.com/v1/domain/${encodeURIComponent(cleaned)}/subdomains?children_only=false`, {
+      headers: { 'APIKEY': apiKey, 'Accept': 'application/json' },
+    });
+    if (subResp.ok) {
+      const subJson = await subResp.json();
+      const subs = subJson.subdomains?.slice(0, 20) || [];
+      if (subs.length) data += `\nSubdomains (${subJson.subdomain_count || subs.length} total):\n${subs.map((s: string) => `- ${s}.${cleaned}`).join('\n')}`;
+    }
+    // Historical DNS
+    const histResp = await fetch(`https://api.securitytrails.com/v1/history/${encodeURIComponent(cleaned)}/dns/a`, {
+      headers: { 'APIKEY': apiKey, 'Accept': 'application/json' },
+    });
+    if (histResp.ok) {
+      const histJson = await histResp.json();
+      const records = histJson.records?.slice(0, 10) || [];
+      if (records.length) data += `\n\nHistorical A Records:\n${records.map((r: any) => `- ${r.values?.map((v: any) => v.ip).join(', ') || 'N/A'} (first: ${r.first_seen || 'N/A'}, last: ${r.last_seen || 'N/A'})`).join('\n')}`;
+    }
+    return {
+      source: 'SecurityTrails (DNS & Domain Intelligence)',
+      tier: 1,
+      data,
+      provenanceHash: await computeProvenanceHash('securitytrails', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.94,
+      entities: extractEntitiesFromText(data, 'SecurityTrails'),
+    };
+  } catch { return emptyNode('SecurityTrails', 1); }
+}
+
+// ── 5. VirusTotal — Malware & IOC Intelligence ──────────────────────────────
+async function ingestVirusTotal(query: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('VIRUSTOTAL_API_KEY');
+    if (!apiKey) return emptyNode('VirusTotal', 1);
+    const cleaned = query.replace(/investigate|search|find|virustotal|malware|ioc/gi, '').trim();
+    let data = '';
+    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(cleaned);
+    const isDomain = /^[\w.-]+\.\w{2,}$/.test(cleaned) && !isIP;
+    const isHash = /^[a-fA-F0-9]{32,64}$/.test(cleaned);
+    const isURL = cleaned.startsWith('http');
+    let endpoint = '';
+    if (isHash) endpoint = `https://www.virustotal.com/api/v3/files/${cleaned}`;
+    else if (isDomain) endpoint = `https://www.virustotal.com/api/v3/domains/${cleaned}`;
+    else if (isIP) endpoint = `https://www.virustotal.com/api/v3/ip_addresses/${cleaned}`;
+    else if (isURL) {
+      const urlId = btoa(cleaned).replace(/=/g, '');
+      endpoint = `https://www.virustotal.com/api/v3/urls/${urlId}`;
+    } else {
+      // Search
+      const resp = await fetch(`https://www.virustotal.com/api/v3/search?query=${encodeURIComponent(cleaned)}&limit=5`, {
+        headers: { 'x-apikey': apiKey },
+      });
+      if (!resp.ok) return emptyNode('VirusTotal', 1);
+      const json = await resp.json();
+      if (!json.data?.length) return emptyNode('VirusTotal', 1);
+      data = `VirusTotal Search Results:\n${json.data.slice(0, 5).map((item: any) => {
+        const attrs = item.attributes || {};
+        const stats = attrs.last_analysis_stats || {};
+        return `- [${item.type}] ${attrs.meaningful_name || attrs.name || item.id}\n  Malicious: ${stats.malicious || 0}/${(stats.malicious || 0) + (stats.undetected || 0) + (stats.harmless || 0)}\n  Tags: ${attrs.tags?.join(', ') || 'none'}`;
+      }).join('\n')}`;
+      return { source: 'VirusTotal (Threat Intelligence)', tier: 1, data, provenanceHash: await computeProvenanceHash('vt', data), timestamp: new Date().toISOString(), confidence: 0.93, entities: extractEntitiesFromText(data, 'VirusTotal') };
+    }
+    const resp = await fetch(endpoint, { headers: { 'x-apikey': apiKey } });
+    if (!resp.ok) return emptyNode('VirusTotal', 1);
+    const json = await resp.json();
+    const attrs = json.data?.attributes || {};
+    const stats = attrs.last_analysis_stats || {};
+    if (isHash) {
+      data = `VirusTotal File Report:\n- Name: ${attrs.meaningful_name || attrs.name || 'Unknown'}\n- SHA256: ${attrs.sha256 || cleaned}\n- Type: ${attrs.type_description || 'N/A'}\n- Size: ${attrs.size || 'N/A'} bytes\n- Detection: ${stats.malicious || 0}/${(stats.malicious || 0) + (stats.undetected || 0)} engines\n- Tags: ${attrs.tags?.join(', ') || 'none'}\n- First Seen: ${attrs.first_submission_date ? new Date(attrs.first_submission_date * 1000).toISOString() : 'N/A'}\n- Last Analysis: ${attrs.last_analysis_date ? new Date(attrs.last_analysis_date * 1000).toISOString() : 'N/A'}`;
+    } else if (isDomain) {
+      data = `VirusTotal Domain Report (${cleaned}):\n- Reputation: ${attrs.reputation || 'N/A'}\n- Categories: ${Object.values(attrs.categories || {}).join(', ') || 'N/A'}\n- Detection: ${stats.malicious || 0} malicious / ${stats.harmless || 0} harmless\n- Registrar: ${attrs.registrar || 'N/A'}\n- Creation: ${attrs.creation_date ? new Date(attrs.creation_date * 1000).toISOString() : 'N/A'}\n- Last DNS: ${JSON.stringify(attrs.last_dns_records?.slice(0, 5) || [])}`;
+    } else if (isIP) {
+      data = `VirusTotal IP Report (${cleaned}):\n- AS Owner: ${attrs.as_owner || 'N/A'}\n- ASN: ${attrs.asn || 'N/A'}\n- Country: ${attrs.country || 'N/A'}\n- Reputation: ${attrs.reputation || 'N/A'}\n- Detection: ${stats.malicious || 0} malicious / ${stats.harmless || 0} harmless\n- Network: ${attrs.network || 'N/A'}`;
+    }
+    return {
+      source: 'VirusTotal (Threat Intelligence)',
+      tier: 1,
+      data,
+      provenanceHash: await computeProvenanceHash('virustotal', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.94,
+      entities: extractEntitiesFromText(data, 'VirusTotal'),
+    };
+  } catch { return emptyNode('VirusTotal', 1); }
+}
+
+// ── 6. GreyNoise — Background Noise vs Targeted Scanning ────────────────────
+async function ingestGreyNoise(query: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('GREYNOISE_API_KEY');
+    if (!apiKey) return emptyNode('GreyNoise', 2);
+    const cleaned = query.replace(/investigate|search|find|greynoise|noise|scan/gi, '').trim();
+    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(cleaned);
+    let data = '';
+    if (isIP) {
+      const resp = await fetch(`https://api.greynoise.io/v3/community/${cleaned}`, {
+        headers: { 'key': apiKey, 'Accept': 'application/json' },
+      });
+      if (!resp.ok) return emptyNode('GreyNoise', 2);
+      const json = await resp.json();
+      data = `GreyNoise IP Report (${cleaned}):\n- Classification: ${json.classification || 'Unknown'}\n- Noise: ${json.noise ? 'YES (internet background noise)' : 'NO (not seen scanning)'}\n- RIOT: ${json.riot ? 'YES (common business service)' : 'NO'}\n- Name: ${json.name || 'N/A'}\n- Last Seen: ${json.last_seen || 'N/A'}\n- Message: ${json.message || 'N/A'}`;
+    } else {
+      // GNQL query
+      const resp = await fetch(`https://api.greynoise.io/v3/gnql?query=${encodeURIComponent(cleaned)}&size=10`, {
+        headers: { 'key': apiKey, 'Accept': 'application/json' },
+      });
+      if (!resp.ok) return emptyNode('GreyNoise', 2);
+      const json = await resp.json();
+      if (!json.data?.length) return emptyNode('GreyNoise', 2);
+      data = `GreyNoise GNQL Results (${json.count || 0} total):\n${json.data.slice(0, 10).map((r: any) => 
+        `- ${r.ip} | ${r.classification || 'unknown'} | ${r.organization || 'N/A'} | ${r.operating_system || 'N/A'} | Last: ${r.last_seen || 'N/A'} | Tags: ${r.tags?.join(', ') || 'none'}`
+      ).join('\n')}`;
+    }
+    return {
+      source: 'GreyNoise (Noise vs Targeted Scanning)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('greynoise', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.88,
+      entities: extractEntitiesFromText(data, 'GreyNoise'),
+    };
+  } catch { return emptyNode('GreyNoise', 2); }
+}
+
+// ── 7. BinaryEdge — Attack Surface & Historical Exposure ────────────────────
+async function ingestBinaryEdge(query: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('BINARYEDGE_API_KEY');
+    if (!apiKey) return emptyNode('BinaryEdge', 2);
+    const cleaned = query.replace(/investigate|search|find|binaryedge|exposure|surface/gi, '').trim();
+    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(cleaned);
+    let data = '';
+    if (isIP) {
+      const resp = await fetch(`https://api.binaryedge.io/v2/query/ip/${cleaned}`, {
+        headers: { 'X-Key': apiKey },
+      });
+      if (!resp.ok) return emptyNode('BinaryEdge', 2);
+      const json = await resp.json();
+      const events = json.events || [];
+      data = `BinaryEdge IP Report (${cleaned}):\n- Total Events: ${json.total || 0}\n${events.slice(0, 8).map((e: any) => {
+        const result = e.results?.[0] || {};
+        return `- Port ${result.target?.port || '?'}/${result.target?.protocol || 'tcp'}: ${result.result?.data?.service?.name || 'unknown'} | Banner: ${(result.result?.data?.service?.banner || '').slice(0, 150)}`;
+      }).join('\n')}`;
+    } else {
+      const resp = await fetch(`https://api.binaryedge.io/v2/query/search?query=${encodeURIComponent(cleaned)}&page=1&pagesize=10`, {
+        headers: { 'X-Key': apiKey },
+      });
+      if (!resp.ok) return emptyNode('BinaryEdge', 2);
+      const json = await resp.json();
+      if (!json.events?.length) return emptyNode('BinaryEdge', 2);
+      data = `BinaryEdge Search (${json.total || 0} total):\n${json.events.slice(0, 10).map((e: any) => {
+        const result = e.results?.[0] || {};
+        const target = result.target || {};
+        return `- ${target.ip || 'N/A'}:${target.port || '?'} | ${result.result?.data?.service?.name || 'unknown'}`;
+      }).join('\n')}`;
+    }
+    return {
+      source: 'BinaryEdge (Attack Surface Scanning)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('binaryedge', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.87,
+      entities: extractEntitiesFromText(data, 'BinaryEdge'),
+    };
+  } catch { return emptyNode('BinaryEdge', 2); }
+}
+
+// ── 8. FOFA — Massive Device/Service Search ─────────────────────────────────
+async function ingestFOFA(query: string): Promise<IntelNode> {
+  try {
+    const email = Deno.env.get('FOFA_EMAIL');
+    const apiKey = Deno.env.get('FOFA_API_KEY');
+    if (!email || !apiKey) return emptyNode('FOFA', 2);
+    const cleaned = query.replace(/investigate|search|find|fofa|device/gi, '').trim();
+    const qbase64 = btoa(cleaned);
+    const resp = await fetch(`https://fofa.info/api/v1/search/all?email=${encodeURIComponent(email)}&key=${apiKey}&qbase64=${qbase64}&size=10&fields=ip,port,protocol,host,domain,title,country,city,server,banner`);
+    if (!resp.ok) return emptyNode('FOFA', 2);
+    const json = await resp.json();
+    if (!json.results?.length) return emptyNode('FOFA', 2);
+    const data = `FOFA Search (${json.size || 0} total results):\n${json.results.slice(0, 10).map((r: any) => {
+      const [ip, port, protocol, host, domain, title, country, city, server, banner] = r;
+      return `- ${ip || 'N/A'}:${port || '?'} | ${protocol || 'tcp'} | ${host || domain || 'N/A'} | ${title || 'No title'} | ${country || 'N/A'}/${city || 'N/A'} | Server: ${server || 'N/A'}`;
+    }).join('\n')}`;
+    return {
+      source: 'FOFA (Global Device/Service Discovery)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('fofa', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.85,
+      entities: extractEntitiesFromText(data, 'FOFA'),
+    };
+  } catch { return emptyNode('FOFA', 2); }
+}
+
+// ── 9. urlscan.io — URL Detonation & Infrastructure Reuse ───────────────────
+async function ingestUrlscan(query: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|search|find|urlscan|url/gi, '').trim();
+    // Public search API (no key required)
+    const resp = await fetch(`https://urlscan.io/api/v1/search/?q=${encodeURIComponent(cleaned)}&size=10`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!resp.ok) return emptyNode('urlscan.io', 2);
+    const json = await resp.json();
+    if (!json.results?.length) return emptyNode('urlscan.io', 2);
+    const data = `urlscan.io Results:\n${json.results.slice(0, 10).map((r: any) => {
+      const page = r.page || {};
+      const task = r.task || {};
+      return `- ${page.url || task.url || 'N/A'}\n  Domain: ${page.domain || 'N/A'} | IP: ${page.ip || 'N/A'} | Server: ${page.server || 'N/A'}\n  Title: ${page.title || 'N/A'} | Country: ${page.country || 'N/A'}\n  Verdict: ${r.verdicts?.overall?.malicious ? '🔴 MALICIOUS' : '🟢 Clean'} | Score: ${r.verdicts?.overall?.score || 0}`;
+    }).join('\n')}`;
+    return {
+      source: 'urlscan.io (URL Detonation & Infrastructure)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('urlscan', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.88,
+      entities: extractEntitiesFromText(data, 'urlscan.io'),
+    };
+  } catch { return emptyNode('urlscan.io', 2); }
+}
+
+// ── 10. GitHub Code Search — Secret Hunting & Exposed Configs ───────────────
+async function ingestGitHubCodeSearch(query: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|search|find|github|code|secret/gi, '').trim();
+    const resp = await fetch(`https://api.github.com/search/code?q=${encodeURIComponent(cleaned)}&per_page=10`, {
+      headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'AUREON-NOMAD/3.0' },
+    });
+    if (!resp.ok) return emptyNode('GitHub Code Search', 3);
+    const json = await resp.json();
+    if (!json.items?.length) return emptyNode('GitHub Code Search', 3);
+    const data = `GitHub Code Search (${json.total_count || 0} total):\n${json.items.slice(0, 10).map((item: any) => 
+      `- ${item.repository?.full_name || 'N/A'}/${item.name}\n  Path: ${item.path}\n  URL: ${item.html_url}`
+    ).join('\n')}`;
+    return {
+      source: 'GitHub Code Search (Secret Hunting)',
+      tier: 3,
+      data,
+      provenanceHash: await computeProvenanceHash('github-code', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.82,
+      entities: extractEntitiesFromText(data, 'GitHub Code Search'),
+    };
+  } catch { return emptyNode('GitHub Code Search', 3); }
+}
+
+// ── 11. Public Threat Intel — AlienVault OTX + ThreatFox ────────────────────
+async function ingestThreatIntel(query: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|search|find|threat|ioc|indicator/gi, '').trim();
+    let data = '';
+    
+    // ThreatFox (free, no API key)
+    try {
+      const tfResp = await fetch('https://threatfox-api.abuse.ch/api/v1/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: 'search_ioc', search_term: cleaned }),
+      });
+      if (tfResp.ok) {
+        const tfJson = await tfResp.json();
+        if (tfJson.data?.length) {
+          data += `ThreatFox IOC Results:\n${tfJson.data.slice(0, 5).map((ioc: any) => 
+            `- [${ioc.ioc_type || 'unknown'}] ${ioc.ioc || 'N/A'} | Threat: ${ioc.threat_type || 'N/A'} | Malware: ${ioc.malware || 'N/A'} | Confidence: ${ioc.confidence_level || 'N/A'}% | Reporter: ${ioc.reporter || 'anonymous'} | First Seen: ${ioc.first_seen || 'N/A'}`
+          ).join('\n')}\n\n`;
+        }
+      }
+    } catch { /* ThreatFox failed, continue */ }
+
+    // AlienVault OTX (free API key)
+    const otxKey = Deno.env.get('ALIENVAULT_OTX_KEY');
+    if (otxKey) {
+      try {
+        const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(cleaned);
+        const isDomain = /^[\w.-]+\.\w{2,}$/.test(cleaned) && !isIP;
+        let otxUrl = '';
+        if (isIP) otxUrl = `https://otx.alienvault.com/api/v1/indicators/IPv4/${cleaned}/general`;
+        else if (isDomain) otxUrl = `https://otx.alienvault.com/api/v1/indicators/domain/${cleaned}/general`;
+        else otxUrl = `https://otx.alienvault.com/api/v1/search/pulses?q=${encodeURIComponent(cleaned)}&page=1&limit=5`;
+        
+        const otxResp = await fetch(otxUrl, {
+          headers: { 'X-OTX-API-KEY': otxKey, 'Accept': 'application/json' },
+        });
+        if (otxResp.ok) {
+          const otxJson = await otxResp.json();
+          if (isIP || isDomain) {
+            const pulseCount = otxJson.pulse_info?.count || 0;
+            const pulses = otxJson.pulse_info?.pulses?.slice(0, 5) || [];
+            data += `AlienVault OTX Report (${cleaned}):\n- Pulse Count: ${pulseCount}\n- Reputation: ${otxJson.reputation || 0}\n- Country: ${otxJson.country_name || 'N/A'}\n${pulses.length ? `Threat Pulses:\n${pulses.map((p: any) => `  - ${p.name} (${p.created || 'N/A'}) — Tags: ${p.tags?.join(', ') || 'none'}`).join('\n')}` : ''}`;
+          } else {
+            const results = otxJson.results?.slice(0, 5) || [];
+            if (results.length) data += `AlienVault OTX Pulses:\n${results.map((p: any) => `- ${p.name} | Created: ${p.created || 'N/A'} | IOCs: ${p.indicator_count || 0} | Tags: ${p.tags?.join(', ') || 'none'}`).join('\n')}`;
+          }
+        }
+      } catch { /* OTX failed, continue */ }
+    }
+
+    if (!data) return emptyNode('Threat Intelligence', 2);
+    return {
+      source: 'Public Threat Intelligence (ThreatFox + OTX)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('threatintel', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.87,
+      entities: extractEntitiesFromText(data, 'Threat Intel'),
+    };
+  } catch { return emptyNode('Threat Intelligence', 2); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ESRC STAGE 3: REASON — Entity Resolution + Two-Stage Selection & Verification
 // "Select from shortlist, then verify with advanced reasoning"
 // ══════════════════════════════════════════════════════════════════════════════
@@ -917,11 +1353,85 @@ async function ingestIntelligence(query: string): Promise<{
   const q = query.toLowerCase();
   const tasks: Promise<IntelNode>[] = [];
 
-  // Always: web search + instant answer + cross-platform search
+  // ── ALWAYS: Core web search ──
   tasks.push(ingestDDG(query));
   tasks.push(ingestDDGInstant(query));
+  tasks.push(ingestGoogleCSE(query));
 
-  // ESRC: Always search across platforms for identity resolution
+  // ── OSINT: IP Address detected ──
+  const ipMatch = query.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/);
+  if (ipMatch) {
+    tasks.push(ingestShodan(ipMatch[1]));
+    tasks.push(ingestCensys(ipMatch[1]));
+    tasks.push(ingestGreyNoise(ipMatch[1]));
+    tasks.push(ingestBinaryEdge(ipMatch[1]));
+    tasks.push(ingestVirusTotal(ipMatch[1]));
+    tasks.push(ingestThreatIntel(ipMatch[1]));
+  }
+
+  // ── OSINT: Domain detected ──
+  const domainMatch = query.match(/\b([\w-]+\.(?:com|org|net|io|dev|co|info|biz|gov|edu|mil|int|xyz|me|app|cloud|tech|ai|cyber|security)(?:\.\w{2,3})?)\b/i);
+  if (domainMatch) {
+    tasks.push(ingestCrtSh(domainMatch[1]));
+    tasks.push(ingestWHOIS(domainMatch[1]));
+    tasks.push(ingestSecurityTrails(domainMatch[1]));
+    tasks.push(ingestVirusTotal(domainMatch[1]));
+    tasks.push(ingestUrlscan(domainMatch[1]));
+    tasks.push(ingestShodan(`hostname:${domainMatch[1]}`));
+    tasks.push(ingestThreatIntel(domainMatch[1]));
+  }
+
+  // ── OSINT: Hash/IOC detected ──
+  const hashMatch = query.match(/\b([a-fA-F0-9]{32,64})\b/);
+  if (hashMatch) {
+    tasks.push(ingestVirusTotal(hashMatch[1]));
+    tasks.push(ingestThreatIntel(hashMatch[1]));
+  }
+
+  // ── OSINT: URL detected ──
+  if (/https?:\/\//.test(query)) {
+    const urlMatch = query.match(/(https?:\/\/[^\s]+)/);
+    if (urlMatch) {
+      tasks.push(ingestUrlscan(urlMatch[1]));
+      tasks.push(ingestVirusTotal(urlMatch[1]));
+    }
+  }
+
+  // ── OSINT: Infrastructure / exposure scanning keywords ──
+  if (/shodan|port|banner|service|iot|ics|exposed|open port|scan|attack surface|exposure|asset/i.test(q)) {
+    tasks.push(ingestShodan(query));
+    tasks.push(ingestCensys(query));
+    tasks.push(ingestBinaryEdge(query));
+    tasks.push(ingestFOFA(query));
+  }
+
+  // ── OSINT: DNS / subdomain / cert keywords ──
+  if (/dns|subdomain|certificate|ssl|tls|cert|nameserver|mx|whois|registr/i.test(q)) {
+    if (domainMatch) {
+      tasks.push(ingestSecurityTrails(domainMatch[1]));
+    }
+  }
+
+  // ── OSINT: Threat intel / malware / IOC keywords ──
+  if (/malware|threat|ioc|indicator|compromise|virus|trojan|ransomware|c2|command.and.control|apt|campaign/i.test(q)) {
+    tasks.push(ingestVirusTotal(query));
+    tasks.push(ingestThreatIntel(query));
+    tasks.push(ingestGreyNoise(query));
+    tasks.push(ingestUrlscan(query));
+  }
+
+  // ── OSINT: Noise / scanning classification ──
+  if (/noise|background|targeted|opportunistic|greynoise|scanning/i.test(q)) {
+    tasks.push(ingestGreyNoise(query));
+  }
+
+  // ── OSINT: Secret hunting / code exposure ──
+  if (/secret|api.key|password|credential|leaked|exposed|config|\.env|token/i.test(q)) {
+    tasks.push(ingestGitHubCodeSearch(query));
+    tasks.push(ingestGoogleCSE(query, 'filetype:env OR filetype:json OR filetype:yaml'));
+  }
+
+  // ── ESRC: Person / identity resolution ──
   const isPerson = /person|individual|who is|about|officer|director|ceo|cto|founder|deanonymize|identify|profile/i.test(q);
   const isUsername = /username|user|handle|account|profile|pseudonym|anonymous|alias/i.test(q);
 
@@ -942,12 +1452,12 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestProPublica(query));
   }
 
-  // Domain
-  if (/domain|\.com|\.org|\.net|\.io|dns|ssl|cert|subdomain|whois/i.test(q)) {
-    const domainMatch = query.match(/[\w-]+\.[\w.]+/);
-    if (domainMatch) {
-      tasks.push(ingestCrtSh(domainMatch[0]));
-      tasks.push(ingestWHOIS(domainMatch[0]));
+  // Domain (legacy — kept for backward compat)
+  if (/domain|\.com|\.org|\.net|\.io|dns|ssl|cert|subdomain|whois/i.test(q) && !domainMatch) {
+    const fallbackDomain = query.match(/[\w-]+\.[\w.]+/);
+    if (fallbackDomain) {
+      tasks.push(ingestCrtSh(fallbackDomain[0]));
+      tasks.push(ingestWHOIS(fallbackDomain[0]));
     }
   }
 
@@ -981,7 +1491,7 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestUSASpending(query));
   }
 
-  // Always include academic search for person queries
+  // Academic
   if (!isPerson && !isUsername && /research|paper|publication|academic|professor|scientist/i.test(q)) {
     tasks.push(ingestAcademicSearch(query));
   }
@@ -1016,7 +1526,21 @@ async function ingestIntelligence(query: string): Promise<{
 // NOMAD v3.0 SYSTEM PROMPT — ESRC DEANONYMIZATION FRAMEWORK
 // ══════════════════════════════════════════════════════════════════════════════
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD v3.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine on AUREON. Framework: arXiv:2602.16800v1.
+const NOMAD_SYSTEM_PROMPT = `You are NOMAD v4.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine on AUREON with a 12-Engine OSINT Collection Suite. Framework: arXiv:2602.16800v1.
+
+AVAILABLE OSINT ENGINES:
+1. Google (Advanced Operators) — dorks, filetypes, exposed panels
+2. Shodan — internet-facing assets, open ports, banners, ICS/IoT
+3. Censys — certificate-centric pivots, structured internet scanning
+4. SecurityTrails — DNS history, subdomains, passive recon
+5. VirusTotal — malware, IOCs, domain/IP/hash reputation
+6. GreyNoise — background noise vs targeted scanning classification
+7. BinaryEdge — external attack surface, historical exposure
+8. FOFA — global device/service discovery
+9. urlscan.io — URL detonation, redirect chains, infrastructure reuse
+10. crt.sh — subdomain discovery via Certificate Transparency logs
+11. GitHub Search — secret hunting, exposed configs, API key leaks
+12. Threat Intel (ThreatFox + AlienVault OTX) — IOC search, TTPs, actor reporting
 
 ## MANDATORY OUTPUT FORMAT
 
