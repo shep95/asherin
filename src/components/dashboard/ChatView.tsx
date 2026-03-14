@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2 } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge } from "lucide-react";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
@@ -10,6 +10,16 @@ import AnswerControls from "./AnswerControls";
 import StructuredInputForms from "./StructuredInputForms";
 import ShareWithRedaction from "./ShareWithRedaction";
 import TokenCostIndicator from "./TokenCostIndicator";
+import GoalLockHeader from "./GoalLockHeader";
+import AssumptionTracker from "./AssumptionTracker";
+import DecisionLog from "./DecisionLog";
+import OutputQAToggles from "./OutputQAToggles";
+import DeterminismSlider from "./DeterminismSlider";
+import VerificationWorkflow from "./VerificationWorkflow";
+import MessageStatusControls from "./MessageStatusControls";
+import ThreadReceipt from "./ThreadReceipt";
+import PersonalStyleProfile from "./PersonalStyleProfile";
+import QualityOfServiceControls, { type QoSMode } from "./QualityOfServiceControls";
 import MessageNote from "./MessageNote";
 import FloatingNotepad from "./FloatingNotepad";
 import ChatSearchBar from "./ChatSearchBar";
@@ -293,6 +303,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [blockSaveContent, setBlockSaveContent] = useState<string | undefined>();
   const [structuredOpen, setStructuredOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [assumptionsOpen, setAssumptionsOpen] = useState(false);
+  const [decisionsOpen, setDecisionsOpen] = useState(false);
+  const [qaTogglesOpen, setQaTogglesOpen] = useState(false);
+  const [styleProfileOpen, setStyleProfileOpen] = useState(false);
+  const [determinism, setDeterminism] = useState(33);
+  const [qosMode, setQosMode] = useState<QoSMode>("fast");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -436,6 +452,65 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             <ContextHealthIndicator messageCount={conversation.messages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
+            <DeterminismSlider value={determinism} onChange={setDeterminism} />
+            <QualityOfServiceControls mode={qosMode} onChange={setQosMode} />
+            {/* Assumption Tracker */}
+            <div className="relative">
+              <button
+                onClick={() => setAssumptionsOpen(!assumptionsOpen)}
+                className={`p-1.5 rounded-md transition-colors ${assumptionsOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+                title="Assumptions"
+              >
+                <AlertTriangle className="h-4 w-4" />
+              </button>
+              <AssumptionTracker
+                conversationId={conversation.id}
+                open={assumptionsOpen}
+                onClose={() => setAssumptionsOpen(false)}
+                onRequestReAnswer={(assumptions) => {
+                  const active = assumptions.filter(a => a.active).map(a => a.text);
+                  const inactive = assumptions.filter(a => !a.active).map(a => a.text);
+                  let prompt = "Re-evaluate your last answer with these updated assumptions:\n";
+                  if (active.length) prompt += `\nActive assumptions:\n${active.map(a => `- ${a}`).join("\n")}`;
+                  if (inactive.length) prompt += `\nRemoved assumptions:\n${inactive.map(a => `- ~~${a}~~`).join("\n")}`;
+                  onSendMessage(prompt);
+                  setAssumptionsOpen(false);
+                }}
+              />
+            </div>
+            {/* Decision Log */}
+            <div className="relative">
+              <button
+                onClick={() => setDecisionsOpen(!decisionsOpen)}
+                className={`p-1.5 rounded-md transition-colors ${decisionsOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+                title="Decision Log"
+              >
+                <Gavel className="h-4 w-4" />
+              </button>
+              <DecisionLog conversationId={conversation.id} open={decisionsOpen} onClose={() => setDecisionsOpen(false)} />
+            </div>
+            {/* Output QA Toggles */}
+            <div className="relative">
+              <button
+                onClick={() => setQaTogglesOpen(!qaTogglesOpen)}
+                className={`p-1.5 rounded-md transition-colors ${qaTogglesOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+                title="Output QA Controls"
+              >
+                <Shield className="h-4 w-4" />
+              </button>
+              <OutputQAToggles conversationId={conversation.id} open={qaTogglesOpen} onClose={() => setQaTogglesOpen(false)} />
+            </div>
+            {/* Personal Style Profile */}
+            <div className="relative">
+              <button
+                onClick={() => setStyleProfileOpen(!styleProfileOpen)}
+                className={`p-1.5 rounded-md transition-colors ${styleProfileOpen ? "text-accent bg-accent/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+                title="Writing Style"
+              >
+                <Palette className="h-4 w-4" />
+              </button>
+              <PersonalStyleProfile open={styleProfileOpen} onClose={() => setStyleProfileOpen(false)} />
+            </div>
             {onConsensusToggle && onConsensusModelsChange && (
               <MultiModelSelector
                 enabled={consensusEnabled}
@@ -448,6 +523,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           </div>
         </div>
       )}
+
+      {/* Goal Lock Header */}
+      <GoalLockHeader conversationId={conversation.id} />
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-4 relative">
@@ -540,6 +618,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       )}
                       <MessageCopyButton text={msg.content} />
                       <MessageNote messageId={msg.id} />
+                      <MessageStatusControls messageId={msg.id} />
                       {msg.role === "assistant" && (
                         <>
                           <TruthScore score={msg.truthScore ?? "medium"} sources={msg.sources} />
@@ -654,6 +733,17 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             tokenCount={Math.round(msg.content.length / 4)}
                             usedSearch={msg.sources && msg.sources.length > 0}
                             usedFiles={msg.attachments && msg.attachments.length > 0}
+                          />
+                          {/* Verification Workflow */}
+                          <VerificationWorkflow
+                            content={msg.content}
+                            onVerify={(prompt) => onSendMessage(prompt)}
+                          />
+                          {/* Thread Receipt */}
+                          <ThreadReceipt
+                            memoriesUsed={0}
+                            filesUsed={msg.attachments?.map(a => a.name)}
+                            timestamp={msg.timestamp}
                           />
                         </>
                       )}
