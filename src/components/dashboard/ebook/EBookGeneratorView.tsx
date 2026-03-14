@@ -80,6 +80,7 @@ const EBookGeneratorView = () => {
   const [exporting, setExporting] = useState(false);
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fixingGrammar, setFixingGrammar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
