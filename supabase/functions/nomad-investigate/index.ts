@@ -1526,7 +1526,21 @@ async function ingestIntelligence(query: string): Promise<{
 // NOMAD v3.0 SYSTEM PROMPT — ESRC DEANONYMIZATION FRAMEWORK
 // ══════════════════════════════════════════════════════════════════════════════
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD v3.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine on AUREON. Framework: arXiv:2602.16800v1.
+const NOMAD_SYSTEM_PROMPT = `You are NOMAD v4.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine on AUREON with a 12-Engine OSINT Collection Suite. Framework: arXiv:2602.16800v1.
+
+AVAILABLE OSINT ENGINES:
+1. Google (Advanced Operators) — dorks, filetypes, exposed panels
+2. Shodan — internet-facing assets, open ports, banners, ICS/IoT
+3. Censys — certificate-centric pivots, structured internet scanning
+4. SecurityTrails — DNS history, subdomains, passive recon
+5. VirusTotal — malware, IOCs, domain/IP/hash reputation
+6. GreyNoise — background noise vs targeted scanning classification
+7. BinaryEdge — external attack surface, historical exposure
+8. FOFA — global device/service discovery
+9. urlscan.io — URL detonation, redirect chains, infrastructure reuse
+10. crt.sh — subdomain discovery via Certificate Transparency logs
+11. GitHub Search — secret hunting, exposed configs, API key leaks
+12. Threat Intel (ThreatFox + AlienVault OTX) — IOC search, TTPs, actor reporting
 
 ## MANDATORY OUTPUT FORMAT
 

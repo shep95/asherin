@@ -158,7 +158,7 @@ const FeatureNomad = () => {
             ],
           },
         ]}
-        features={["40+ sources", "confidence scoring", "entity resolution", "risk matrices", "exportable dossiers"]}
+        features={["12 OSINT engines", "Shodan + Censys", "VirusTotal + GreyNoise", "SecurityTrails DNS", "crt.sh + urlscan.io", "GitHub secret hunting", "threat intel feeds", "confidence scoring", "entity resolution", "risk matrices", "exportable dossiers"]}
       />
 
       {/* Investigation Types */}
