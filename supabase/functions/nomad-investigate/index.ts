@@ -1728,10 +1728,12 @@ async function ingestIntelligence(query: string): Promise<{
   const q = query.toLowerCase();
   const tasks: Promise<IntelNode>[] = [];
 
-  // ── ALWAYS: Core web search ──
+  // ── ALWAYS: Core web search (Google + Bing + DDG + Startpage) ──
   tasks.push(ingestDDG(query));
   tasks.push(ingestDDGInstant(query));
   tasks.push(ingestGoogleCSE(query));
+  tasks.push(ingestBing(query));
+  tasks.push(ingestStartpage(query));
 
   // ── OSINT: IP Address detected ──
   const ipMatch = query.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/);
@@ -1754,6 +1756,7 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestUrlscan(domainMatch[1]));
     tasks.push(ingestShodan(`hostname:${domainMatch[1]}`));
     tasks.push(ingestThreatIntel(domainMatch[1]));
+    tasks.push(ingestWaybackMachine(domainMatch[1]));
   }
 
   // ── OSINT: Hash/IOC detected ──
@@ -1769,6 +1772,7 @@ async function ingestIntelligence(query: string): Promise<{
     if (urlMatch) {
       tasks.push(ingestUrlscan(urlMatch[1]));
       tasks.push(ingestVirusTotal(urlMatch[1]));
+      tasks.push(ingestWaybackMachine(urlMatch[1]));
     }
   }
 
@@ -1818,6 +1822,14 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestGitHubSearch(query));
     tasks.push(ingestCourtListener(query));
     tasks.push(ingestReddit(query));
+    // Extended: Social platforms + public records
+    tasks.push(ingestSocialPlatformSearch(query, 'facebook'));
+    tasks.push(ingestSocialPlatformSearch(query, 'instagram'));
+    tasks.push(ingestSocialPlatformSearch(query, 'tiktok'));
+    tasks.push(ingestPublicRecords(query));
+    tasks.push(ingestYandex(query));
+    tasks.push(ingestOpenCorporates(query));
+    tasks.push(ingestMappingTools(query));
   }
 
   // Company/corporate
@@ -1825,6 +1837,9 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestEdgar(query));
     tasks.push(ingestUSASpending(query));
     tasks.push(ingestProPublica(query));
+    tasks.push(ingestOpenCorporates(query));
+    tasks.push(ingestCourtFilings(query));
+    tasks.push(ingestMappingTools(query));
   }
 
   // Domain (legacy — kept for backward compat)
@@ -1864,6 +1879,37 @@ async function ingestIntelligence(query: string): Promise<{
   // Federal contracts
   if (/contract|federal|government|grant|spending|usaspending/i.test(q)) {
     tasks.push(ingestUSASpending(query));
+  }
+
+  // Wayback Machine / archive / deleted / cached
+  if (/wayback|archive|deleted|cached|old version|past|history|removed/i.test(q)) {
+    tasks.push(ingestWaybackMachine(query));
+  }
+
+  // Court / lawsuit / judgment / property
+  if (/court|lawsuit|judgment|filing|litigation|property|dispute|lien|bankruptcy/i.test(q)) {
+    tasks.push(ingestCourtFilings(query));
+    tasks.push(ingestCourtListener(query));
+  }
+
+  // Business registry / director / officer / LLC
+  if (/registry|director|officer|registered agent|incorporate|llc link|beneficial owner/i.test(q)) {
+    tasks.push(ingestOpenCorporates(query));
+  }
+
+  // Mapping / geolocation / address / business listing
+  if (/map|location|address|geotagged|business listing|google maps|review|storefront/i.test(q)) {
+    tasks.push(ingestMappingTools(query));
+  }
+
+  // Public records / relatives / address history
+  if (/public record|address history|relatives|age range|background check|people search/i.test(q)) {
+    tasks.push(ingestPublicRecords(query));
+  }
+
+  // Yandex / reverse image / Russian / Eastern European
+  if (/yandex|reverse image|russian|eastern european|reposted|profile photo/i.test(q)) {
+    tasks.push(ingestYandex(query));
   }
 
   // Academic
