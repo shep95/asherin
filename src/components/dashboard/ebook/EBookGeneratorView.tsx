@@ -390,7 +390,21 @@ ${allRawText.slice(0, 100000)}`,
       const img = new Image();
       img.crossOrigin = "anonymous";
       await new Promise<void>((resolve) => {
-        img.onload = () => { ctx.drawImage(img, 0, 0, ps.w, ps.h); resolve(); };
+        img.onload = () => {
+          // "cover" fit: fill canvas without squashing
+          const imgRatio = img.naturalWidth / img.naturalHeight;
+          const canvasRatio = ps.w / ps.h;
+          let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+          if (imgRatio > canvasRatio) {
+            sw = img.naturalHeight * canvasRatio;
+            sx = (img.naturalWidth - sw) / 2;
+          } else {
+            sh = img.naturalWidth / canvasRatio;
+            sy = (img.naturalHeight - sh) / 2;
+          }
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, ps.w, ps.h);
+          resolve();
+        };
         img.onerror = () => { ctx.fillStyle = "#111"; ctx.fillRect(0, 0, ps.w, ps.h); resolve(); };
         img.src = wallpaperSrc;
       });
