@@ -549,6 +549,50 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             <Zap className="h-3 w-3" />
                             Show Thinking
                           </button>
+                          {/* Export As */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setFormatMenuId(formatMenuId === msg.id ? null : msg.id)}
+                              className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                            >
+                              <Package className="h-3 w-3" />
+                              Export As
+                            </button>
+                            {formatMenuId === msg.id && (
+                              <OutputFormatMenu content={msg.content} onClose={() => setFormatMenuId(null)} />
+                            )}
+                          </div>
+                          {/* Regenerate with diff tracking */}
+                          <button
+                            onClick={() => {
+                              setPreviousResponses(prev => ({ ...prev, [msg.id]: msg.content }));
+                              // Find the user message before this one to regenerate
+                              const userMsg = conversation.messages.slice(0, conversation.messages.indexOf(msg)).reverse().find(m => m.role === "user");
+                              if (userMsg) onSendMessage(userMsg.content);
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Regenerate
+                          </button>
+                          {/* Show diff if previous version exists */}
+                          {previousResponses[msg.id] && previousResponses[msg.id] !== msg.content && (
+                            <button
+                              onClick={() => setShowDiffId(showDiffId === msg.id ? null : msg.id)}
+                              className="flex items-center gap-1 text-[10px] font-light text-amber-500/60 hover:text-amber-500 transition-colors"
+                            >
+                              <GitBranch className="h-3 w-3" />
+                              View Diff
+                            </button>
+                          )}
+                          {/* Open in Canvas */}
+                          <button
+                            onClick={() => { setArtifactContent(msg.content); setArtifactOpen(true); }}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <PanelRight className="h-3 w-3" />
+                            Canvas
+                          </button>
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
