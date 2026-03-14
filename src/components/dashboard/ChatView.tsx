@@ -384,7 +384,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     return (
     <div className="flex flex-1 min-w-0 h-full relative overflow-hidden">
       {/* Main chat column */}
-      <div className={`flex flex-1 flex-col min-w-0 h-full overflow-hidden ${artifactOpen ? "max-w-[60%]" : ""}`}>
+      <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
       {/* Floating Notepad */}
       <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={conversation.id} />
       {/* Voice Call Overlay */}
