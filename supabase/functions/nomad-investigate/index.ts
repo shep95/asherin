@@ -114,20 +114,55 @@ function extractEntitiesFromText(text: string, source: string): ExtractedEntity[
   };
 
   (text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g) || []).forEach(v => add("email", v, 1.0));
-  (text.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g) || []).forEach(v => add("phone", v, 0.9));
+  (text.match(/\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g) || []).forEach(v => add("phone", v, 0.9));
   (text.match(/\$[\d,]+(?:\.\d{2})?(?:\s*(?:million|billion|trillion|M|B|T))?/gi) || []).forEach(v => add("financial", v, 0.95));
   (text.match(/\b[A-Z][A-Za-z\s&]+(?:Inc\.|LLC|Corp\.|Corporation|Ltd\.|Group|Holdings|Partners|Capital|Fund|Trust)\b/g) || []).forEach(v => add("organization", v.trim(), 0.85));
   (text.match(/https?:\/\/[^\s)]+/g) || []).forEach(v => add("url", v, 1.0));
   (text.match(/CIK[:\s]*(\d{7,10})/g) || []).forEach(v => add("sec_identifier", v, 1.0));
   (text.match(/EIN[:\s]*(\d{2}-\d{7})/g) || []).forEach(v => add("ein", v, 1.0));
   (text.match(/\b(?:19|20)\d{2}-\d{2}-\d{2}\b/g) || []).forEach(v => add("date", v, 0.9));
-  // ESRC: Additional microdata extraction
   (text.match(/\b(?:PhD|MSc|BSc|MBA|MD|JD|MA|BA|BS|MS)\b/gi) || []).forEach(v => add("education_level", v.toUpperCase(), 0.85));
   (text.match(/\b(?:Stanford|MIT|Harvard|Oxford|Cambridge|Berkeley|Yale|Princeton|Columbia|ETH Zurich|Carnegie Mellon)\b/g) || []).forEach(v => add("institution", v, 0.9));
   (text.match(/\b(?:CEO|CTO|CFO|COO|VP|Director|Manager|Engineer|Researcher|Professor|Analyst|Consultant)\b/gi) || []).forEach(v => add("role", v, 0.8));
   (text.match(/\b(?:Python|JavaScript|TypeScript|Rust|Go|Java|C\+\+|Swift|Kotlin|Ruby|Scala|Haskell)\b/g) || []).forEach(v => add("technology", v, 0.75));
   (text.match(/\b(?:r\/\w+)/g) || []).forEach(v => add("subreddit", v, 0.7));
   (text.match(/@[\w]{3,}/g) || []).forEach(v => add("handle", v, 0.8));
+
+  // ── GOTHAM-GRADE: Vehicle extraction ──
+  (text.match(/\b[A-Z]{1,3}[-\s]?\d{3,4}[-\s]?[A-Z]{0,3}\b/g) || []).forEach(v => add("license_plate", v, 0.7));
+  (text.match(/\bVIN[:\s]*[A-HJ-NPR-Z0-9]{17}\b/gi) || []).forEach(v => add("vin", v, 0.95));
+  (text.match(/\b(?:Toyota|Honda|Ford|BMW|Mercedes|Tesla|Chevrolet|Audi|Volkswagen|Hyundai|Kia|Nissan|Porsche|Lamborghini|Ferrari|Bentley|Rolls-Royce)\s+[A-Z][A-Za-z0-9\s-]{2,20}/g) || []).forEach(v => add("vehicle", v.trim(), 0.8));
+
+  // ── GOTHAM-GRADE: Transaction / Financial identifiers ──
+  (text.match(/\b(?:SWIFT|BIC)[:\s]*[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b/gi) || []).forEach(v => add("swift_code", v, 0.95));
+  (text.match(/\b(?:IBAN)[:\s]*[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/gi) || []).forEach(v => add("iban", v, 0.95));
+  (text.match(/\btransaction[:\s#]*[A-Za-z0-9-]{8,36}\b/gi) || []).forEach(v => add("transaction_id", v, 0.85));
+  (text.match(/\b(?:wire|transfer|payment|deposit|withdrawal)\s+(?:of\s+)?\$[\d,.]+/gi) || []).forEach(v => add("transaction", v, 0.9));
+  (text.match(/\baccount[:\s#]*\d{6,16}\b/gi) || []).forEach(v => add("bank_account", v, 0.85));
+  (text.match(/\b(?:Bitcoin|BTC|ETH|Ethereum)[:\s]*(?:0x)?[a-fA-F0-9]{26,64}\b/g) || []).forEach(v => add("crypto_wallet", v, 0.9));
+
+  // ── GOTHAM-GRADE: Cell tower / IMSI / IMEI ──
+  (text.match(/\bIMEI[:\s]*\d{15}\b/gi) || []).forEach(v => add("imei", v, 0.95));
+  (text.match(/\bIMSI[:\s]*\d{15}\b/gi) || []).forEach(v => add("imsi", v, 0.95));
+  (text.match(/\b(?:cell\s*tower|tower\s*id|cell\s*id)[:\s]*[A-Z0-9-]{4,20}\b/gi) || []).forEach(v => add("cell_tower", v, 0.85));
+
+  // ── GOTHAM-GRADE: IP Address ──
+  (text.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) || []).forEach(v => {
+    const parts = v.split('.').map(Number);
+    if (parts.every(p => p >= 0 && p <= 255)) add("ip_address", v, 0.9);
+  });
+
+  // ── GOTHAM-GRADE: Geolocation coordinates ──
+  (text.match(/-?\d{1,3}\.\d{3,8},\s*-?\d{1,3}\.\d{3,8}/g) || []).forEach(v => add("coordinates", v, 0.85));
+  (text.match(/\b(?:lat(?:itude)?|lng|lon(?:gitude)?)[:\s]*-?\d{1,3}\.\d{3,8}/gi) || []).forEach(v => add("geo_coordinate", v, 0.85));
+
+  // ── GOTHAM-GRADE: Passport / SSN / National IDs ──
+  (text.match(/\bpassport[:\s#]*[A-Z0-9]{6,12}\b/gi) || []).forEach(v => add("passport", v, 0.9));
+  (text.match(/\bSSN[:\s]*\d{3}-\d{2}-\d{4}\b/gi) || []).forEach(v => add("ssn", v, 0.95));
+
+  // ── GOTHAM-GRADE: Location names with geospatial context ──
+  (text.match(/\b(?:located\s+(?:in|at|near)|headquartered\s+in|based\s+in|office\s+in|branch\s+in|facility\s+(?:in|at))\s+([A-Z][A-Za-z\s,]+)/g) || []).forEach(v => add("location", v.trim(), 0.8));
+  (text.match(/\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*),\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/g) || []).forEach(v => add("us_location", v, 0.85));
 
   return entities;
 }
