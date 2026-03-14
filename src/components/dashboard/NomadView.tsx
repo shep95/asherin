@@ -22,6 +22,15 @@ const NomadMapLayer = lazy(() => import("./nomad/NomadMapLayer"));
 const NomadLineage = lazy(() => import("./nomad/NomadLineage"));
 const NomadOntology = lazy(() => import("./nomad/NomadOntology"));
 const NomadQuiver = lazy(() => import("./nomad/NomadQuiver"));
+const NomadEntityWorkbench = lazy(() => import("./nomad/NomadEntityWorkbench"));
+const NomadClaimsEvidence = lazy(() => import("./nomad/NomadClaimsEvidence"));
+const NomadSourceIntel = lazy(() => import("./nomad/NomadSourceIntel"));
+const NomadCaseManager = lazy(() => import("./nomad/NomadCaseManager"));
+const NomadAdversaryView = lazy(() => import("./nomad/NomadAdversaryView"));
+const NomadMediaForensics = lazy(() => import("./nomad/NomadMediaForensics"));
+const NomadCollectionPipeline = lazy(() => import("./nomad/NomadCollectionPipeline"));
+const NomadHandleHunter = lazy(() => import("./nomad/NomadHandleHunter"));
+const NomadNetworkDiff = lazy(() => import("./nomad/NomadNetworkDiff"));
 
 interface NomadInvestigation {
   id: string;
