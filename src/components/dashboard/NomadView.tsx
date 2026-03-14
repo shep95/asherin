@@ -64,7 +64,7 @@ interface NomadMessage {
   status?: "sending" | "queued" | "sent" | "failed";
 }
 
-type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map";
+type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver";
 
 const INVESTIGATION_TYPES = [
   { id: "person", icon: User, label: "Person", desc: "Deep profile & predictions" },
@@ -83,6 +83,9 @@ const TABS: { id: NomadTab; icon: any; label: string }[] = [
   { id: "timeline", icon: Clock, label: "Timeline" },
   { id: "graph", icon: Network, label: "Graph" },
   { id: "map", icon: Map, label: "Map" },
+  { id: "lineage", icon: GitBranch, label: "Lineage" },
+  { id: "ontology", icon: Layers, label: "Ontology" },
+  { id: "quiver", icon: Sparkles, label: "Quiver" },
 ];
 
 const NomadView = () => {
