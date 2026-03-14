@@ -2264,12 +2264,20 @@ Produce a NOMAD v3.0 response following the mandatory output format: a mermaid d
       throw new Error(`AI generation failed (${resp.status})`);
     }
 
-    // 4. STREAM RESPONSE
+    // 4. Await collected images
+    const collectedImages = await imagePromise;
+
+    // 5. STREAM RESPONSE
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
         const chunk = { choices: [{ delta: { content: aiText } }] };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+        // Send images as a separate event
+        if (collectedImages.length > 0) {
+          const imgChunk = { type: 'images', images: collectedImages };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(imgChunk)}\n\n`));
+        }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       },
