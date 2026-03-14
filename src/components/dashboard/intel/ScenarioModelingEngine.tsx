@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  FlaskConical, Play, Loader2, TrendingUp, TrendingDown, Minus,
+  FlaskConical, Play, Loader2, TrendingUp, TrendingDown, Minus, CheckCircle,
   AlertTriangle, Plus, ChevronRight, Gauge, BarChart3, GitBranch
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, Area, AreaChart } from "recharts";
