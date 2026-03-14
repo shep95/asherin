@@ -525,7 +525,7 @@ const NomadView = () => {
                                   className="flex items-center gap-2 text-[10px] font-light text-accent/70 hover:text-accent transition-colors mb-2"
                                 >
                                   <Image className="h-3 w-3" />
-                                  {msg.images.length} image{msg.images.length !== 1 ? 's' : ''} collected
+                                  {msg.images.length} {msg.images.length !== 1 ? "images" : "image"} collected
                                   <span className="text-[8px] text-muted-foreground/50">
                                     {expandedImages === msg.id ? '▼' : '▶'}
                                   </span>
