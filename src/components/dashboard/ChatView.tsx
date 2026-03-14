@@ -618,6 +618,15 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         attachments={attachments}
         onAttachmentsChange={setAttachments}
       />
+      </div>
+      {/* Artifact Canvas - right panel */}
+      {artifactOpen && (
+        <ArtifactCanvas
+          open={artifactOpen}
+          onClose={() => setArtifactOpen(false)}
+          initialContent={artifactContent}
+        />
+      )}
     </div>
   );
 };
