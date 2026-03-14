@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X } from "lucide-react";
+import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X, Upload, Lock, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
