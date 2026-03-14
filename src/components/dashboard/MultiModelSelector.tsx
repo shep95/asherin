@@ -85,6 +85,14 @@ const MultiModelSelector = ({ enabled, onToggle, selectedModels, onModelsChange,
             {availableProviders.map((m) => {
               const selected = isSelected(m.provider, m.model);
               const disabled = !selected && selectedModels.length >= 4;
+              // Tradeoff hints
+              const traits: Record<string, { speed: string; quality: string; cost: string }> = {
+                "gemini-2.5-flash": { speed: "Fast", quality: "Good", cost: "Low" },
+                "gemini-2.5-pro": { speed: "Slow", quality: "Best", cost: "High" },
+                "gpt-5": { speed: "Slow", quality: "Best", cost: "High" },
+                "gpt-5-mini": { speed: "Fast", quality: "Good", cost: "Medium" },
+              };
+              const trait = traits[m.model];
               return (
                 <button
                   key={`${m.provider}-${m.model}`}
@@ -103,7 +111,16 @@ const MultiModelSelector = ({ enabled, onToggle, selectedModels, onModelsChange,
                   }`}>
                     {selected && <Check className="h-2.5 w-2.5 text-foreground" />}
                   </div>
-                  <span className="text-[11px] font-light text-foreground truncate">{m.label}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[11px] font-light text-foreground truncate block">{m.label}</span>
+                    {trait && (
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] text-muted-foreground/40">⚡ {trait.speed}</span>
+                        <span className="text-[9px] text-muted-foreground/40">✦ {trait.quality}</span>
+                        <span className="text-[9px] text-muted-foreground/40">$ {trait.cost}</span>
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}
