@@ -486,7 +486,30 @@ ${allRawText.slice(0, 100000)}`,
       addPage();
       try {
         const img = new Image(); img.crossOrigin = "anonymous";
-        await new Promise<void>(resolve => { img.onload = () => { pdf.addImage(img, "JPEG", 0, 0, ps.w, ps.h); resolve(); }; img.onerror = () => resolve(); img.src = wallpaperSrc; });
+        await new Promise<void>(resolve => {
+          img.onload = () => {
+            // "cover" fit: crop to fill page without squashing
+            const imgRatio = img.naturalWidth / img.naturalHeight;
+            const pageRatio = ps.w / ps.h;
+            const coverCanvas = document.createElement("canvas");
+            coverCanvas.width = Math.round(ps.w * 2);
+            coverCanvas.height = Math.round(ps.h * 2);
+            const cctx = coverCanvas.getContext("2d")!;
+            let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+            if (imgRatio > pageRatio) {
+              sw = img.naturalHeight * pageRatio;
+              sx = (img.naturalWidth - sw) / 2;
+            } else {
+              sh = img.naturalWidth / pageRatio;
+              sy = (img.naturalHeight - sh) / 2;
+            }
+            cctx.drawImage(img, sx, sy, sw, sh, 0, 0, coverCanvas.width, coverCanvas.height);
+            pdf.addImage(coverCanvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, ps.w, ps.h);
+            resolve();
+          };
+          img.onerror = () => resolve();
+          img.src = wallpaperSrc;
+        });
       } catch {}
       pdf.setFillColor(0, 0, 0);
       pdf.setGState(new (pdf as any).GState({ opacity: 0.65 }));
