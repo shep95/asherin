@@ -33,7 +33,6 @@ import WorkshopPanel from "./WorkshopPanel";
 import QuiverPanel from "./QuiverPanel";
 import AIPLogicPanel from "./AIPLogicPanel";
 import AIPBootcampsPanel from "./AIPBootcampsPanel";
-import OntologyGroundedAIPanel from "./OntologyGroundedAIPanel";
 import ActionEnginePanel from "./ActionEnginePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
