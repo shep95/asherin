@@ -44,12 +44,18 @@ interface SubscriptionState {
   status: string | null;
   cancelAtPeriodEnd: boolean;
   loading: boolean;
+  isPastDue: boolean;
+  isTrialing: boolean;
 }
 
 interface SubscriptionContextValue extends SubscriptionState {
   checkSubscription: () => Promise<void>;
   startCheckout: (tier: TierKey) => Promise<void>;
   openPortal: () => Promise<void>;
+  upgradeSubscription: (targetTier: TierKey) => Promise<void>;
+  startProTrial: () => Promise<void>;
+  cancelSubscription: () => Promise<void>;
+  reactivateSubscription: () => Promise<void>;
   checkoutLoading: boolean;
 }
 
