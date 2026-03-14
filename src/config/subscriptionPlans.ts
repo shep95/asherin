@@ -72,6 +72,7 @@ const LIFETIME_FEATURES: FeatureId[] = [
 
 const CHAT_FEATURES: FeatureId[] = [
   "chat", "encryption", "zophiel_search", "imagine_intelligence", "notebooks",
+  "slideshow", "pdf_generator",
 ];
 
 const AUREON_FEATURES: FeatureId[] = [
