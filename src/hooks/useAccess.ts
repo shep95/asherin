@@ -27,12 +27,14 @@ const PUBLIC_VIEWS: DashboardView[] = [
 ];
 
 export function useAccess() {
-  const { tierKey } = useSubscription();
+  const { tierKey, isPastDue } = useSubscription();
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   const canAccess = (view: DashboardView): boolean => {
     if (isAdmin) return true;
+    // If payment failed, only allow public views (settings, subscription, etc.)
+    if (isPastDue) return PUBLIC_VIEWS.includes(view);
     if (PUBLIC_VIEWS.includes(view)) return true;
     if (CHAT_VIEWS.includes(view)) return hasChatAccess(tierKey);
     if (SEARCH_VIEWS.includes(view)) return hasSearchAccess(tierKey);
@@ -42,5 +44,5 @@ export function useAccess() {
     return true;
   };
 
-  return { canAccess, isAdmin, tierKey, hasChat: hasChatAccess(tierKey), hasSearch: hasSearchAccess(tierKey), hasPro: hasProAccess(tierKey) };
+  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: hasChatAccess(tierKey), hasSearch: hasSearchAccess(tierKey), hasPro: hasProAccess(tierKey) };
 }

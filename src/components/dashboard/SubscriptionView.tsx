@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Check, ArrowRight, Loader2, ExternalLink, RefreshCw, Crown, AlertCircle, Package, Trash2, Shield, ChevronDown } from "lucide-react";
+import { Check, ArrowRight, Loader2, ExternalLink, RefreshCw, Crown, AlertCircle, Package, Trash2, Shield, ChevronDown, Sparkles, ArrowUp, XCircle, RotateCcw, AlertTriangle } from "lucide-react";
 import { useSubscription, type TierKey } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,15 @@ const plans = getDashboardPlans().map(p => ({
   features: p.featureLabels,
 }));
 
-/* ── Section wrapper for visual consistency ─────────────────────────────── */
+// Tier hierarchy for upgrade logic
+const TIER_ORDER: TierKey[] = ["starter", "lifetime", "chat", "aureon", "pro", "advisor_monthly", "advisor_annual"];
+
+function isUpgrade(current: TierKey | null, target: TierKey): boolean {
+  if (!current) return false;
+  return TIER_ORDER.indexOf(target) > TIER_ORDER.indexOf(current);
+}
+
+/* ── Section wrapper ─────────────────────────────── */
 const Section = ({ title, icon: Icon, children, defaultOpen = true }: {
   title: string;
   icon: React.ElementType;
@@ -46,10 +54,16 @@ const Section = ({ title, icon: Icon, children, defaultOpen = true }: {
 };
 
 const SubscriptionView = () => {
-  const { subscribed, tierKey, subscriptionEnd, status, cancelAtPeriodEnd, loading, checkSubscription, startCheckout, openPortal, checkoutLoading } = useSubscription();
+  const {
+    subscribed, tierKey, subscriptionEnd, status, cancelAtPeriodEnd,
+    loading, checkSubscription, startCheckout, openPortal,
+    upgradeSubscription, startProTrial, cancelSubscription, reactivateSubscription,
+    checkoutLoading, isPastDue, isTrialing,
+  } = useSubscription();
   const { user } = useAuth();
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   interface InstalledPluginRow {
     id: string;
@@ -89,6 +103,50 @@ const SubscriptionView = () => {
     setRefreshing(false);
   };
 
+  const handleUpgrade = async (targetTier: TierKey) => {
+    setActionLoading(targetTier);
+    try {
+      await upgradeSubscription(targetTier);
+      toast({ title: "Subscription upgraded!", description: "You now have access to your new tier. You only pay the prorated difference." });
+    } catch (e: any) {
+      toast({ title: "Upgrade failed", description: e?.message || "Please try again.", variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  const handleStartProTrial = async () => {
+    setActionLoading("pro_trial");
+    try {
+      await startProTrial();
+      toast({ title: "Pro Trial Activated!", description: "You have 3 days of full Pro access. After that, you can upgrade or return to Aureon." });
+    } catch (e: any) {
+      toast({ title: "Trial failed", description: e?.message || "Please try again.", variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  const handleCancel = async () => {
+    setActionLoading("cancel");
+    try {
+      await cancelSubscription();
+      toast({ title: "Subscription will cancel", description: "You'll keep access until the end of your billing period." });
+    } catch (e: any) {
+      toast({ title: "Cancel failed", description: e?.message || "Please try again.", variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  const handleReactivate = async () => {
+    setActionLoading("reactivate");
+    try {
+      await reactivateSubscription();
+      toast({ title: "Subscription reactivated!", description: "Your plan will continue renewing normally." });
+    } catch (e: any) {
+      toast({ title: "Reactivation failed", description: e?.message || "Please try again.", variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
   const activePlanName = tierKey ? plans.find(p => p.id === tierKey)?.name ?? "Unknown" : null;
 
   return (
@@ -106,15 +164,32 @@ const SubscriptionView = () => {
           </button>
         </div>
 
+        {/* ── Past Due Warning ──────────────────────────────────────────── */}
+        {isPastDue && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/[0.06] p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-light text-destructive">Payment Failed — Features Paused</p>
+              <p className="text-[11px] text-destructive/70 mt-1 leading-relaxed">
+                Your last payment didn't go through. All premium features are paused until payment is resolved.
+                Please update your payment method to restore access.
+              </p>
+              <button onClick={openPortal} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-xs font-light text-destructive-foreground hover:bg-destructive/90 transition-colors">
+                <ExternalLink className="h-3 w-3" /> Update Payment Method
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Current Plan Banner ──────────────────────────────────────── */}
         <div className="rounded-xl border border-border/15 bg-card/10 backdrop-blur-sm p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${subscribed ? "bg-accent/15" : "bg-muted/15"}`}>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${subscribed ? (isPastDue ? "bg-destructive/15" : "bg-accent/15") : "bg-muted/15"}`}>
                 {loading ? (
                   <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
                 ) : subscribed ? (
-                  <Crown className="h-4 w-4 text-accent" />
+                  isPastDue ? <AlertTriangle className="h-4 w-4 text-destructive" /> : <Crown className="h-4 w-4 text-accent" />
                 ) : (
                   <AlertCircle className="h-4 w-4 text-muted-foreground/60" />
                 )}
@@ -126,15 +201,22 @@ const SubscriptionView = () => {
                   <>
                     <p className="text-sm font-light text-foreground tracking-wide">
                       {activePlanName}
-                      <span className="ml-2 text-[10px] font-light tracking-[0.15em] uppercase text-accent/80">
-                        {cancelAtPeriodEnd ? "Canceling" : status === "trialing" ? "Trial" : "Active"}
+                      <span className={`ml-2 text-[10px] font-light tracking-[0.15em] uppercase ${
+                        isPastDue ? "text-destructive" :
+                        cancelAtPeriodEnd ? "text-amber-400" :
+                        isTrialing ? "text-purple-400" :
+                        "text-accent/80"
+                      }`}>
+                        {isPastDue ? "Payment Failed" : cancelAtPeriodEnd ? "Canceling" : isTrialing ? "Trial" : "Active"}
                       </span>
                     </p>
                     {subscriptionEnd && (
                       <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                         {cancelAtPeriodEnd
                           ? `Access until ${new Date(subscriptionEnd).toLocaleDateString()}`
-                          : `Renews ${new Date(subscriptionEnd).toLocaleDateString()}`}
+                          : isTrialing
+                            ? `Trial ends ${new Date(subscriptionEnd).toLocaleDateString()}`
+                            : `Renews ${new Date(subscriptionEnd).toLocaleDateString()}`}
                       </p>
                     )}
                   </>
@@ -146,12 +228,47 @@ const SubscriptionView = () => {
                 )}
               </div>
             </div>
-            {subscribed && (
-              <button onClick={openPortal} className="flex items-center gap-1.5 rounded-lg border border-border/15 px-3.5 py-2 text-[10px] font-light tracking-wide text-foreground/80 hover:bg-foreground/5 transition-colors">
-                <ExternalLink className="h-3 w-3" />
-                Manage Billing
-              </button>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Pro Trial button for Aureon users */}
+              {tierKey === "aureon" && !isTrialing && (
+                <button
+                  onClick={handleStartProTrial}
+                  disabled={actionLoading === "pro_trial" || checkoutLoading}
+                  className="flex items-center gap-1.5 rounded-lg border border-purple-500/20 bg-purple-500/10 px-3.5 py-2 text-[10px] font-light tracking-wide text-purple-400 hover:bg-purple-500/15 transition-colors disabled:opacity-40"
+                >
+                  {actionLoading === "pro_trial" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                  Try Pro Free · 3 Days
+                </button>
+              )}
+              {/* Cancel / Reactivate */}
+              {subscribed && !isPastDue && (
+                cancelAtPeriodEnd ? (
+                  <button
+                    onClick={handleReactivate}
+                    disabled={actionLoading === "reactivate" || checkoutLoading}
+                    className="flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-2 text-[10px] font-light tracking-wide text-emerald-400 hover:bg-emerald-500/15 transition-colors disabled:opacity-40"
+                  >
+                    {actionLoading === "reactivate" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    Reactivate
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCancel}
+                    disabled={actionLoading === "cancel" || checkoutLoading}
+                    className="flex items-center gap-1.5 rounded-lg border border-border/15 px-3.5 py-2 text-[10px] font-light tracking-wide text-muted-foreground/60 hover:text-destructive hover:border-destructive/20 hover:bg-destructive/5 transition-colors disabled:opacity-40"
+                  >
+                    {actionLoading === "cancel" ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
+                    Cancel
+                  </button>
+                )
+              )}
+              {subscribed && (
+                <button onClick={openPortal} className="flex items-center gap-1.5 rounded-lg border border-border/15 px-3.5 py-2 text-[10px] font-light tracking-wide text-foreground/80 hover:bg-foreground/5 transition-colors">
+                  <ExternalLink className="h-3 w-3" />
+                  Manage Billing
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -161,6 +278,7 @@ const SubscriptionView = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {plans.map((plan) => {
               const isActive = tierKey === plan.id;
+              const canUpgrade = subscribed && tierKey && isUpgrade(tierKey, plan.id as TierKey);
               return (
                 <div
                   key={plan.id}
@@ -189,17 +307,33 @@ const SubscriptionView = () => {
 
                   <p className="mt-2 text-[11px] font-extralight leading-relaxed text-muted-foreground/70 line-clamp-2">{plan.description}</p>
 
-                  <button
-                    onClick={() => !isActive && startCheckout(plan.id)}
-                    disabled={isActive || checkoutLoading}
-                    className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-light tracking-wide transition-all ${
-                      isActive
-                        ? "bg-accent/10 text-accent/60 cursor-default"
-                        : "bg-foreground text-background hover:bg-foreground/90"
-                    }`}
-                  >
-                    {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? "Current Plan" : <>Subscribe <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></>}
-                  </button>
+                  {/* Action button */}
+                  {canUpgrade ? (
+                    <button
+                      onClick={() => handleUpgrade(plan.id as TierKey)}
+                      disabled={actionLoading === plan.id || checkoutLoading}
+                      className="group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-light tracking-wide transition-all bg-accent/15 text-accent border border-accent/25 hover:bg-accent/20"
+                    >
+                      {actionLoading === plan.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (
+                        <>
+                          <ArrowUp className="h-3 w-3" />
+                          Upgrade · Pay Difference Only
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => !isActive && startCheckout(plan.id as TierKey)}
+                      disabled={isActive || checkoutLoading}
+                      className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-light tracking-wide transition-all ${
+                        isActive
+                          ? "bg-accent/10 text-accent/60 cursor-default"
+                          : "bg-foreground text-background hover:bg-foreground/90"
+                      }`}
+                    >
+                      {checkoutLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isActive ? "Current Plan" : <>Subscribe <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></>}
+                    </button>
+                  )}
 
                   <div className="my-4 h-px bg-border/10" />
 
@@ -277,6 +411,8 @@ const SubscriptionView = () => {
             {[
               { label: "Payment method", value: subscribed ? "Managed via Stripe" : "No payment method on file" },
               { label: "Next billing date", value: subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString() : "—" },
+              { label: "Cancellation policy", value: "Cancels at end of billing period — full access until then" },
+              { label: "Upgrade policy", value: "Prorated billing — you only pay the difference when upgrading" },
               { label: "Data policy", value: "Your data is never sold or used for training" },
             ].map(({ label, value }, i) => (
               <div key={label}>
@@ -284,7 +420,7 @@ const SubscriptionView = () => {
                   <span className="text-muted-foreground/60">{label}</span>
                   <span className="text-foreground/60">{value}</span>
                 </div>
-                {i < 2 && <div className="h-px bg-border/8 mt-3" />}
+                {i < 4 && <div className="h-px bg-border/8 mt-3" />}
               </div>
             ))}
           </div>
@@ -300,12 +436,12 @@ const SubscriptionView = () => {
           <p className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground/50 mb-3 px-1">Common Questions</p>
           <div className="space-y-1.5">
             {[
-              { q: "Can I switch plans?", a: "Yes. Upgrade or downgrade anytime. Changes take effect immediately." },
-              { q: "How do I cancel?", a: "Click 'Manage Billing' above to access the portal where you can cancel instantly." },
-              { q: "What are the message limits?", a: "Aureon: 300 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited." },
+              { q: "Can I upgrade my plan?", a: "Yes. Upgrade anytime — you only pay the prorated difference for the rest of your billing period. No double-charging." },
+              { q: "Can I try Pro before committing?", a: "Aureon ($199/mo) subscribers get a free 3-day Pro trial. Full Pro access, no charge. After 3 days it reverts — you can upgrade if you like it." },
+              { q: "What happens if I cancel?", a: "Your subscription stays active until the end of your billing period. You keep full access until then — no immediate cutoff." },
+              { q: "What if my payment fails?", a: "All premium features are paused until your payment method is updated. Your data is preserved — update payment to restore access." },
+              { q: "What are the message limits?", a: "Aureon: 200 messages per 3 hours. Pro: 200 per 3 hours. Advisor: Unlimited." },
               { q: "Can I use my own AI models?", a: "Yes — go to Settings → AI Model Keys. Connect API keys from Google, OpenAI, Claude, Meta, Venice, xAI, Mistral, or DeepSeek and select your preferred model." },
-              { q: "What is the Advisor NDA?", a: "Advisor clients sign a Non-Disclosure Agreement to protect proprietary intelligence methods and platform internals." },
-              { q: "Is the Advisor tier really limited to 8 seats?", a: "Yes. Once 8 clients are active, the Advisor tier is closed until a seat opens." },
             ].map(({ q, a }) => (
               <details key={q} className="group rounded-lg border border-border/12 bg-card/5 overflow-hidden">
                 <summary className="flex items-center justify-between px-4 py-3 cursor-pointer text-[11px] font-light text-foreground/80 list-none">

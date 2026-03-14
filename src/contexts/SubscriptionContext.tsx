@@ -44,12 +44,18 @@ interface SubscriptionState {
   status: string | null;
   cancelAtPeriodEnd: boolean;
   loading: boolean;
+  isPastDue: boolean;
+  isTrialing: boolean;
 }
 
 interface SubscriptionContextValue extends SubscriptionState {
   checkSubscription: () => Promise<void>;
   startCheckout: (tier: TierKey) => Promise<void>;
   openPortal: () => Promise<void>;
+  upgradeSubscription: (targetTier: TierKey) => Promise<void>;
+  startProTrial: () => Promise<void>;
+  cancelSubscription: () => Promise<void>;
+  reactivateSubscription: () => Promise<void>;
   checkoutLoading: boolean;
 }
 
@@ -61,9 +67,15 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
   status: null,
   cancelAtPeriodEnd: false,
   loading: true,
+  isPastDue: false,
+  isTrialing: false,
   checkSubscription: async () => {},
   startCheckout: async () => {},
   openPortal: async () => {},
+  upgradeSubscription: async () => {},
+  startProTrial: async () => {},
+  cancelSubscription: async () => {},
+  reactivateSubscription: async () => {},
   checkoutLoading: false,
 });
 
@@ -112,26 +124,31 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     status: null,
     cancelAtPeriodEnd: false,
     loading: true,
+    isPastDue: false,
+    isTrialing: false,
   });
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const checkSubscription = useCallback(async () => {
     if (!user) {
-      setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false });
+      setState({ subscribed: false, productId: null, tierKey: null, subscriptionEnd: null, status: null, cancelAtPeriodEnd: false, loading: false, isPastDue: false, isTrialing: false });
       return;
     }
     try {
       const { data, error } = await supabase.functions.invoke("check-subscription");
       if (error) throw error;
       const tierKey = productToTier(data?.product_id ?? null);
+      const status = data?.status ?? null;
       setState({
         subscribed: data?.subscribed ?? false,
         productId: data?.product_id ?? null,
         tierKey,
         subscriptionEnd: data?.subscription_end ?? null,
-        status: data?.status ?? null,
+        status,
         cancelAtPeriodEnd: data?.cancel_at_period_end ?? false,
         loading: false,
+        isPastDue: status === "past_due",
+        isTrialing: status === "trialing",
       });
     } catch (e) {
       console.error("check-subscription error:", e);
@@ -170,8 +187,83 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const upgradeSubscription = useCallback(async (targetTier: TierKey) => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("upgrade-subscription", {
+        body: { action: "upgrade", targetTier },
+      });
+      if (error) throw error;
+      // Refresh subscription state
+      await checkSubscription();
+    } catch (e) {
+      console.error("upgrade error:", e);
+      throw e;
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }, [checkSubscription]);
+
+  const startProTrial = useCallback(async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("upgrade-subscription", {
+        body: { action: "start_pro_trial" },
+      });
+      if (error) throw error;
+      await checkSubscription();
+    } catch (e) {
+      console.error("pro trial error:", e);
+      throw e;
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }, [checkSubscription]);
+
+  const cancelSubscription = useCallback(async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("upgrade-subscription", {
+        body: { action: "cancel" },
+      });
+      if (error) throw error;
+      await checkSubscription();
+    } catch (e) {
+      console.error("cancel error:", e);
+      throw e;
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }, [checkSubscription]);
+
+  const reactivateSubscription = useCallback(async () => {
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("upgrade-subscription", {
+        body: { action: "reactivate" },
+      });
+      if (error) throw error;
+      await checkSubscription();
+    } catch (e) {
+      console.error("reactivate error:", e);
+      throw e;
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }, [checkSubscription]);
+
   return (
-    <SubscriptionContext.Provider value={{ ...state, checkSubscription, startCheckout, openPortal, checkoutLoading }}>
+    <SubscriptionContext.Provider value={{
+      ...state,
+      checkSubscription,
+      startCheckout,
+      openPortal,
+      upgradeSubscription,
+      startProTrial,
+      cancelSubscription,
+      reactivateSubscription,
+      checkoutLoading,
+    }}>
       {children}
     </SubscriptionContext.Provider>
   );
