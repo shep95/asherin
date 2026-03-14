@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Plus, Brain, Video, Search, Bot, Zap } from "lucide-react";
+import { Loader2, Plus, Brain, Video, Search, Bot, Zap, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -11,6 +11,14 @@ const addOns = [
     price: 200, 
     icon: Bot, 
     description: "AI agents that run tasks on autopilot forever",
+    includedIn: "Add-on for any plan"
+  },
+  { 
+    id: "custom-wallpapers", 
+    name: "Custom Wallpapers", 
+    price: 3.99, 
+    icon: ImageIcon, 
+    description: "Upload your own wallpapers for dashboard & landing page",
     includedIn: "Add-on for any plan"
   },
   { 
@@ -56,7 +64,7 @@ const AddOnsSection = () => {
         body: {
           addonId: addOn.id,
           addonName: addOn.name,
-          priceCents: addOn.price * 100,
+          priceCents: Math.round(addOn.price * 100),
         },
       });
 
