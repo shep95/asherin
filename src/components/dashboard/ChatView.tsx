@@ -524,6 +524,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         </div>
       )}
 
+      {/* Goal Lock Header */}
+      <GoalLockHeader conversationId={conversation.id} />
+
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 pb-4 relative">
         {conversation.messages.length === 0 ? (
