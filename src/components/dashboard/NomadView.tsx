@@ -130,6 +130,7 @@ const NomadView = () => {
   const [reasoningMode, setReasoningMode] = useState<ReasoningMode>("deep");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<NomadTab>("chat");
+  const [expandedImages, setExpandedImages] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
