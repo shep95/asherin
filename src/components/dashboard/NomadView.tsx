@@ -517,6 +517,47 @@ const NomadView = () => {
                                 });
                               })()}
                             </div>
+                            {/* Image Gallery */}
+                            {msg.images && msg.images.length > 0 && (
+                              <div className="mt-4 border-t border-border/10 pt-3">
+                                <button
+                                  onClick={() => setExpandedImages(expandedImages === msg.id ? null : msg.id)}
+                                  className="flex items-center gap-2 text-[10px] font-light text-accent/70 hover:text-accent transition-colors mb-2"
+                                >
+                                  <Image className="h-3 w-3" />
+                                  {msg.images.length} image{msg.images.length !== 1 ? 's' : ''} collected
+                                  <span className="text-[8px] text-muted-foreground/50">
+                                    {expandedImages === msg.id ? '▼' : '▶'}
+                                  </span>
+                                </button>
+                                {expandedImages === msg.id && (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 animate-fade-in">
+                                    {msg.images.map((img, imgIdx) => (
+                                      <a
+                                        key={imgIdx}
+                                        href={img.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group relative rounded-xl overflow-hidden border border-border/15 bg-card/20 hover:border-accent/30 transition-all"
+                                      >
+                                        <img
+                                          src={img.thumbnail || img.url}
+                                          alt={img.title || 'Investigation image'}
+                                          className="w-full h-24 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                          loading="lazy"
+                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                        />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/90 to-transparent p-1.5">
+                                          <p className="text-[8px] font-extralight text-foreground/70 truncate">
+                                            {img.title || img.source}
+                                          </p>
+                                        </div>
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           ) : (
                             <p className="text-sm font-extralight text-foreground">{msg.content}</p>
                           )}
