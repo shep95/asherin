@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check, Copy, Brain, Eye, Download, Upload, FileText, Image } from "lucide-react";
+import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check, Copy, Brain, Eye, Download, Upload, FileText, Image, Shield, Database, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
