@@ -410,7 +410,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             {hasPro ? (
               <button
                 onClick={elevenLabsVoice.isConnected ? elevenLabsVoice.disconnect : elevenLabsVoice.connect}
-                className={`p-1.5 rounded-md transition-colors ${
+                className={`shrink-0 p-1.5 rounded-md transition-colors ${
                   elevenLabsVoice.isConnected
                     ? "text-accent bg-accent/10 hover:bg-accent/20"
                     : "text-muted-foreground/50 hover:text-foreground"
@@ -422,20 +422,20 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
             ) : (
               <button
                 disabled
-                className="p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
+                className="shrink-0 p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
                 title="Voice calls require Pro ($740/mo)"
               >
                 <Phone className="h-4 w-4" />
               </button>
             )}
             {conversation.messages.length > 0 && (
-              <button onClick={downloadConversation} className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
+              <button onClick={downloadConversation} className="shrink-0 p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-4 w-4" />
               </button>
              )}
             <button
               onClick={() => setNotepadOpen(!notepadOpen)}
-              className={`p-1.5 rounded-md transition-colors ${notepadOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
+              className={`shrink-0 p-1.5 rounded-md transition-colors ${notepadOpen ? "text-amber-500/70 bg-amber-500/10" : "text-muted-foreground/50 hover:text-foreground"}`}
               title="Notepad"
             >
               <StickyNote className="h-4 w-4" />
