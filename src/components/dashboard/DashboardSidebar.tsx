@@ -115,6 +115,7 @@ const navGroups: NavGroup[] = [
       { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
       
       { id: "self-access", icon: FileText, label: "Self-Access Learning" },
+      { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
       { id: "stats", icon: BarChart3, label: "My Stats" },
       { id: "subscription", icon: CreditCard, label: "Subscription" },
       { id: "settings", icon: Settings, label: "Settings" },
