@@ -1,9 +1,11 @@
-import { useState, useRef, useCallback } from "react";
-import { BookOpen, Upload, FileText, Sparkles, Download, Loader2, ArrowRight, ArrowLeft, Settings2, Eye, ChevronDown, ChevronUp, Trash2, GripVertical, Plus } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { BookOpen, Upload, FileText, Sparkles, Download, Loader2, ArrowRight, ArrowLeft, Settings2, Eye, ChevronDown, ChevronUp, Trash2, GripVertical, Plus, FolderOpen, Clock, X } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { jsPDF } from "jspdf";
-import type { EBookChapter, EBookMetadata, EBookSettings, EBookStep } from "./types";
+import { useToast } from "@/hooks/use-toast";
+import type { EBookChapter, EBookMetadata, EBookSettings, EBookStep, EBookSession, EBookTextUpload } from "./types";
 
 import heroBgDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
@@ -44,68 +46,237 @@ const PAGE_SIZES = {
 };
 
 const DEFAULT_METADATA: EBookMetadata = {
-  title: "",
-  subtitle: "",
-  author: "",
-  description: "",
-  dedication: "",
-  copyright: "",
-  aboutAuthor: "",
+  title: "", subtitle: "", author: "", description: "",
+  dedication: "", copyright: "", aboutAuthor: "",
 };
 
 const DEFAULT_SETTINGS: EBookSettings = {
-  wallpaper: "default",
-  pageSize: "a4",
-  fontSize: 12,
-  lineSpacing: 1.5,
-  chapterCount: "auto",
-  tone: "formal",
-  includeTableOfContents: true,
-  includeChapterSummaries: true,
-  includeDedication: false,
-  includeAboutAuthor: false,
-  includeCopyright: true,
-  rewriteForConsistency: true,
-  fixGrammar: true,
-  removeDuplicates: true,
+  wallpaper: "default", pageSize: "a4", fontSize: 12, lineSpacing: 1.5,
+  chapterCount: "auto", tone: "formal",
+  includeTableOfContents: true, includeChapterSummaries: true,
+  includeDedication: false, includeAboutAuthor: false, includeCopyright: true,
+  rewriteForConsistency: true, fixGrammar: true, removeDuplicates: true,
 };
 
 const EBookGeneratorView = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Session management
+  const [sessions, setSessions] = useState<EBookSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [showSessionList, setShowSessionList] = useState(true);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+
+  // Current book state
   const [step, setStep] = useState<EBookStep>("upload");
-  const [rawText, setRawText] = useState("");
   const [metadata, setMetadata] = useState<EBookMetadata>({ ...DEFAULT_METADATA });
   const [settings, setSettings] = useState<EBookSettings>({ ...DEFAULT_SETTINGS });
   const [chapters, setChapters] = useState<EBookChapter[]>([]);
+  const [textUploads, setTextUploads] = useState<EBookTextUpload[]>([]);
+  const [pasteText, setPasteText] = useState("");
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState("");
   const [exporting, setExporting] = useState(false);
   const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const wallpaperSrc = WALLPAPERS.find(w => w.key === settings.wallpaper)?.src || heroBgDefault;
-  const wordCount = rawText.trim().split(/\s+/).filter(Boolean).length;
-  const estimatedPages = Math.max(1, Math.ceil(wordCount / 250));
-  const readingTime = Math.ceil(wordCount / 200);
+  const totalWords = textUploads.reduce((sum, u) => sum + u.wordCount, 0);
+  const estimatedPages = Math.max(1, Math.ceil(totalWords / 250));
+
+  // ── Load sessions on mount ──
+  useEffect(() => {
+    if (!user) return;
+    loadSessions();
+  }, [user]);
+
+  const loadSessions = async () => {
+    if (!user) return;
+    setSessionsLoading(true);
+    const { data } = await supabase
+      .from("ebook_sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false });
+
+    if (data) {
+      setSessions(data.map(s => ({
+        id: s.id,
+        title: s.title,
+        subtitle: s.subtitle || "",
+        author: s.author || "",
+        description: s.description || "",
+        dedication: s.dedication || "",
+        copyright: s.copyright || "",
+        aboutAuthor: s.about_author || "",
+        settings: (s.settings as unknown as EBookSettings) || { ...DEFAULT_SETTINGS },
+        chapters: (s.chapters as unknown as EBookChapter[]) || [],
+        status: s.status,
+        createdAt: new Date(s.created_at),
+        updatedAt: new Date(s.updated_at),
+      })));
+    }
+    setSessionsLoading(false);
+  };
+
+  // ── Load a session's text uploads ──
+  const loadTextUploads = async (sessionId: string) => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("ebook_text_uploads")
+      .select("*")
+      .eq("session_id", sessionId)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      setTextUploads(data.map(u => ({
+        id: u.id,
+        sessionId: u.session_id,
+        fileName: u.file_name,
+        content: u.content,
+        wordCount: u.word_count,
+        createdAt: new Date(u.created_at),
+      })));
+    }
+  };
+
+  // ── Create new session ──
+  const createSession = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("ebook_sessions")
+      .insert({ user_id: user.id, title: "Untitled Book", settings: DEFAULT_SETTINGS as any, chapters: [] as any })
+      .select()
+      .single();
+
+    if (data) {
+      const session: EBookSession = {
+        id: data.id, title: data.title, subtitle: "", author: "", description: "",
+        dedication: "", copyright: "", aboutAuthor: "",
+        settings: { ...DEFAULT_SETTINGS }, chapters: [],
+        status: "draft", createdAt: new Date(data.created_at), updatedAt: new Date(data.updated_at),
+      };
+      setSessions(prev => [session, ...prev]);
+      openSession(session);
+      toast({ title: "New book created" });
+    }
+  };
+
+  // ── Open session ──
+  const openSession = (session: EBookSession) => {
+    setActiveSessionId(session.id);
+    setMetadata({
+      title: session.title, subtitle: session.subtitle, author: session.author,
+      description: session.description, dedication: session.dedication,
+      copyright: session.copyright, aboutAuthor: session.aboutAuthor,
+    });
+    setSettings(session.settings || { ...DEFAULT_SETTINGS });
+    setChapters(session.chapters || []);
+    setStep(session.chapters.length > 0 ? "preview" : "upload");
+    setShowSessionList(false);
+    setPasteText("");
+    loadTextUploads(session.id);
+  };
+
+  // ── Delete session ──
+  const deleteSession = async (id: string) => {
+    await supabase.from("ebook_text_uploads").delete().eq("session_id", id);
+    await supabase.from("ebook_sessions").delete().eq("id", id);
+    setSessions(prev => prev.filter(s => s.id !== id));
+    if (activeSessionId === id) {
+      setActiveSessionId(null);
+      setShowSessionList(true);
+    }
+    toast({ title: "Book deleted" });
+  };
+
+  // ── Auto-save session (debounced) ──
+  const saveSession = useCallback(async () => {
+    if (!activeSessionId || !user) return;
+    setSaving(true);
+    await supabase.from("ebook_sessions").update({
+      title: metadata.title || "Untitled Book",
+      subtitle: metadata.subtitle,
+      author: metadata.author,
+      description: metadata.description,
+      dedication: metadata.dedication,
+      copyright: metadata.copyright,
+      about_author: metadata.aboutAuthor,
+      settings: settings as any,
+      chapters: chapters as any,
+      status: chapters.length > 0 ? "structured" : "draft",
+    }).eq("id", activeSessionId);
+    setSaving(false);
+
+    // Update local sessions list
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s, title: metadata.title || "Untitled Book", subtitle: metadata.subtitle,
+      author: metadata.author, description: metadata.description,
+      settings, chapters, updatedAt: new Date(),
+    } : s));
+  }, [activeSessionId, user, metadata, settings, chapters]);
+
+  // Debounced auto-save on metadata/settings/chapters change
+  useEffect(() => {
+    if (!activeSessionId) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveSession(), 1500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [metadata, settings, chapters, activeSessionId, saveSession]);
+
+  // ── Add text upload (from file or paste) ──
+  const addTextUpload = async (fileName: string, content: string) => {
+    if (!activeSessionId || !user || !content.trim()) return;
+    const wc = content.trim().split(/\s+/).filter(Boolean).length;
+    const { data } = await supabase
+      .from("ebook_text_uploads")
+      .insert({ session_id: activeSessionId, user_id: user.id, file_name: fileName, content, word_count: wc })
+      .select()
+      .single();
+
+    if (data) {
+      setTextUploads(prev => [...prev, {
+        id: data.id, sessionId: data.session_id, fileName: data.file_name,
+        content: data.content, wordCount: data.word_count, createdAt: new Date(data.created_at),
+      }]);
+      toast({ title: `Added "${fileName}"`, description: `${wc.toLocaleString()} words` });
+    }
+  };
+
+  const removeTextUpload = async (id: string) => {
+    await supabase.from("ebook_text_uploads").delete().eq("id", id);
+    setTextUploads(prev => prev.filter(u => u.id !== id));
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const promises = Array.from(files).map(file => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (ev) => resolve(ev.target?.result as string || "");
-        reader.readAsText(file);
-      });
-    });
-    Promise.all(promises).then(texts => {
-      setRawText(prev => prev + (prev ? "\n\n" : "") + texts.join("\n\n---\n\n"));
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string || "";
+        addTextUpload(file.name, text);
+      };
+      reader.readAsText(file);
     });
     e.target.value = "";
   };
 
+  const handlePasteSubmit = () => {
+    if (!pasteText.trim()) return;
+    addTextUpload(`pasted_text_${Date.now()}`, pasteText);
+    setPasteText("");
+  };
+
+  // ── AI Structure ──
+  const allRawText = textUploads.map(u => u.content).join("\n\n---\n\n");
+
   const structureBook = useCallback(async () => {
-    if (!rawText.trim() || !metadata.title.trim()) return;
+    if (!allRawText.trim() || !metadata.title.trim()) return;
     setProcessing(true);
     setProgress("Analyzing content structure…");
     setChapters([]);
@@ -147,12 +318,11 @@ OUTPUT FORMAT: Return ONLY a valid JSON array. Each element:
 Do NOT wrap in markdown. Return ONLY the JSON array.
 
 RAW TEXT TO STRUCTURE:
-${rawText.slice(0, 100000)}`,
+${allRawText.slice(0, 100000)}`,
         }],
         mode: "chat",
         onDelta: (chunk) => {
           result += chunk;
-          // Update progress based on content length
           if (result.length > 500) setProgress("Organizing chapters…");
           if (result.length > 2000) setProgress("Writing chapter content…");
           if (result.length > 5000) setProgress("Refining and polishing…");
@@ -162,10 +332,8 @@ ${rawText.slice(0, 100000)}`,
             const jsonMatch = result.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]) as EBookChapter[];
-              setChapters(parsed.map((ch, i) => ({
-                ...ch,
-                id: `ch-${i}-${Date.now()}`,
-              })));
+              const newChapters = parsed.map((ch, i) => ({ ...ch, id: `ch-${i}-${Date.now()}` }));
+              setChapters(newChapters);
               setProgress("");
               setStep("preview");
             } else {
@@ -181,15 +349,10 @@ ${rawText.slice(0, 100000)}`,
       setProcessing(false);
       setProgress("Error connecting to AI. Please try again.");
     }
-  }, [rawText, metadata, settings]);
+  }, [allRawText, metadata, settings]);
 
   const addChapter = () => {
-    setChapters(prev => [...prev, {
-      id: `ch-new-${Date.now()}`,
-      title: `Chapter ${prev.length + 1}`,
-      content: "",
-      summary: "",
-    }]);
+    setChapters(prev => [...prev, { id: `ch-new-${Date.now()}`, title: `Chapter ${prev.length + 1}`, content: "", summary: "" }]);
   };
 
   const updateChapter = (id: string, field: keyof EBookChapter, value: string) => {
@@ -212,270 +375,229 @@ ${rawText.slice(0, 100000)}`,
     });
   };
 
-  // ── PDF Export with multi-page support ──
+  // ── PDF Export ──
   const exportPdf = useCallback(async () => {
     if (chapters.length === 0) return;
     setExporting(true);
-
     try {
       const ps = PAGE_SIZES[settings.pageSize];
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [ps.w, ps.h] });
       const margin = { top: 72, bottom: 72, left: 54, right: 54 };
       const contentW = ps.w - margin.left - margin.right;
       const bodyFontSize = settings.fontSize;
-      const headingFontSize = bodyFontSize + 8;
       const chapterTitleSize = bodyFontSize + 14;
       const lineH = bodyFontSize * settings.lineSpacing;
       let pageNum = 0;
-      const pageNumbers: { page: number; label: string }[] = [];
 
-      const addPage = () => {
-        if (pageNum > 0) pdf.addPage();
-        pageNum++;
-        return pageNum;
-      };
-
+      const addPage = () => { if (pageNum > 0) pdf.addPage(); pageNum++; return pageNum; };
       const drawPageNumber = (num: number) => {
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(9);
-        pdf.setTextColor(150);
-        const text = `${num}`;
-        const tw = pdf.getTextWidth(text);
-        pdf.text(text, (ps.w - tw) / 2, ps.h - 36);
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(150);
+        const t = `${num}`; pdf.text(t, (ps.w - pdf.getTextWidth(t)) / 2, ps.h - 36);
+      };
+      const drawHeader = (l: string, r: string) => {
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(8); pdf.setTextColor(160);
+        pdf.text(l, margin.left, 40); pdf.text(r, ps.w - margin.right - pdf.getTextWidth(r), 40);
       };
 
-      const drawHeader = (leftText: string, rightText: string) => {
-        pdf.setFont("helvetica", "italic");
-        pdf.setFontSize(8);
-        pdf.setTextColor(160);
-        pdf.text(leftText, margin.left, 40);
-        const rw = pdf.getTextWidth(rightText);
-        pdf.text(rightText, ps.w - margin.right - rw, 40);
-      };
-
-      // ── COVER PAGE ──
+      // Cover
       addPage();
-      // Draw wallpaper as cover background
       try {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        await new Promise<void>((resolve) => {
-          img.onload = () => {
-            pdf.addImage(img, "JPEG", 0, 0, ps.w, ps.h);
-            resolve();
-          };
-          img.onerror = () => resolve();
-          img.src = wallpaperSrc;
-        });
-      } catch { /* skip bg */ }
-      // Overlay
+        const img = new Image(); img.crossOrigin = "anonymous";
+        await new Promise<void>(resolve => { img.onload = () => { pdf.addImage(img, "JPEG", 0, 0, ps.w, ps.h); resolve(); }; img.onerror = () => resolve(); img.src = wallpaperSrc; });
+      } catch {}
       pdf.setFillColor(0, 0, 0);
       pdf.setGState(new (pdf as any).GState({ opacity: 0.65 }));
       pdf.rect(0, 0, ps.w, ps.h, "F");
       pdf.setGState(new (pdf as any).GState({ opacity: 1 }));
-
-      // Title
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(36);
-      pdf.setTextColor(240);
+      pdf.setFont("helvetica", "bold"); pdf.setFontSize(36); pdf.setTextColor(240);
       const titleLines = pdf.splitTextToSize(metadata.title, contentW);
-      let titleY = ps.h * 0.35;
-      titleLines.forEach((line: string) => {
-        const tw = pdf.getTextWidth(line);
-        pdf.text(line, (ps.w - tw) / 2, titleY);
-        titleY += 44;
-      });
-
-      // Subtitle
+      let ty = ps.h * 0.35;
+      titleLines.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, ty); ty += 44; });
       if (metadata.subtitle) {
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(18);
-        pdf.setTextColor(200);
-        const subtitleLines = pdf.splitTextToSize(metadata.subtitle, contentW);
-        subtitleLines.forEach((line: string) => {
-          const tw = pdf.getTextWidth(line);
-          pdf.text(line, (ps.w - tw) / 2, titleY + 10);
-          titleY += 26;
-        });
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(18); pdf.setTextColor(200);
+        pdf.splitTextToSize(metadata.subtitle, contentW).forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, ty + 10); ty += 26; });
       }
-
-      // Author
       if (metadata.author) {
-        pdf.setFont("helvetica", "italic");
-        pdf.setFontSize(16);
-        pdf.setTextColor(180);
-        const aw = pdf.getTextWidth(metadata.author);
-        pdf.text(metadata.author, (ps.w - aw) / 2, ps.h * 0.7);
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(16); pdf.setTextColor(180);
+        pdf.text(metadata.author, (ps.w - pdf.getTextWidth(metadata.author)) / 2, ps.h * 0.7);
       }
 
-      // ── COPYRIGHT PAGE ──
+      // Copyright
       if (settings.includeCopyright) {
-        addPage();
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(10);
-        pdf.setTextColor(80);
-        const copyrightText = metadata.copyright || `© ${new Date().getFullYear()} ${metadata.author || "Author"}. All rights reserved.\n\nNo part of this publication may be reproduced, distributed, or transmitted in any form without prior written permission.`;
-        const copyrightLines = pdf.splitTextToSize(copyrightText, contentW);
-        pdf.text(copyrightLines, margin.left, ps.h * 0.6);
+        addPage(); pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(80);
+        const ct = metadata.copyright || `© ${new Date().getFullYear()} ${metadata.author || "Author"}. All rights reserved.`;
+        pdf.text(pdf.splitTextToSize(ct, contentW), margin.left, ps.h * 0.6);
       }
 
-      // ── DEDICATION PAGE ──
+      // Dedication
       if (settings.includeDedication && metadata.dedication.trim()) {
-        addPage();
-        pdf.setFont("helvetica", "italic");
-        pdf.setFontSize(14);
-        pdf.setTextColor(100);
-        const dedLines = pdf.splitTextToSize(metadata.dedication, contentW * 0.6);
-        const dedY = ps.h * 0.4;
-        dedLines.forEach((line: string, i: number) => {
-          const tw = pdf.getTextWidth(line);
-          pdf.text(line, (ps.w - tw) / 2, dedY + i * 22);
-        });
+        addPage(); pdf.setFont("helvetica", "italic"); pdf.setFontSize(14); pdf.setTextColor(100);
+        const dl = pdf.splitTextToSize(metadata.dedication, contentW * 0.6);
+        dl.forEach((l: string, i: number) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, ps.h * 0.4 + i * 22); });
       }
 
-      // ── TABLE OF CONTENTS ──
-      let tocStartPage = 0;
+      // TOC
       if (settings.includeTableOfContents) {
-        tocStartPage = addPage();
-        drawPageNumber(pageNum);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(24);
-        pdf.setTextColor(30);
+        addPage(); drawPageNumber(pageNum);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(24); pdf.setTextColor(30);
         pdf.text("Table of Contents", margin.left, margin.top + 30);
-
         let tocY = margin.top + 80;
         chapters.forEach((ch, i) => {
-          pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(12);
-          pdf.setTextColor(60);
-          const label = `${i + 1}.  ${ch.title}`;
-          pdf.text(label, margin.left + 20, tocY);
-          tocY += 28;
-          if (tocY > ps.h - margin.bottom) {
-            addPage();
-            drawPageNumber(pageNum);
-            tocY = margin.top + 30;
-          }
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(60);
+          pdf.text(`${i + 1}.  ${ch.title}`, margin.left + 20, tocY); tocY += 28;
+          if (tocY > ps.h - margin.bottom) { addPage(); drawPageNumber(pageNum); tocY = margin.top + 30; }
         });
       }
 
-      // ── CHAPTERS ──
+      // Chapters
       chapters.forEach((chapter, chIdx) => {
-        // Each chapter starts on a new page
-        const chapterPage = addPage();
-        pageNumbers.push({ page: chapterPage, label: chapter.title });
-
-        // Chapter number
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(12);
-        pdf.setTextColor(160);
-        const chNumText = `CHAPTER ${chIdx + 1}`;
-        const cnw = pdf.getTextWidth(chNumText);
-        pdf.text(chNumText, (ps.w - cnw) / 2, margin.top + 60);
-
-        // Chapter title
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(chapterTitleSize);
-        pdf.setTextColor(30);
-        const chTitleLines = pdf.splitTextToSize(chapter.title, contentW);
+        addPage();
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(160);
+        const cn = `CHAPTER ${chIdx + 1}`; pdf.text(cn, (ps.w - pdf.getTextWidth(cn)) / 2, margin.top + 60);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(30);
+        const ctl = pdf.splitTextToSize(chapter.title, contentW);
         let cy = margin.top + 95;
-        chTitleLines.forEach((line: string) => {
-          const tw = pdf.getTextWidth(line);
-          pdf.text(line, (ps.w - tw) / 2, cy);
-          cy += chapterTitleSize + 6;
-        });
+        ctl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, cy); cy += chapterTitleSize + 6; });
+        pdf.setDrawColor(180); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10); cy += 35;
 
-        // Decorative line
-        pdf.setDrawColor(180);
-        pdf.setLineWidth(0.5);
-        pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10);
-        cy += 35;
-
-        // Chapter summary
         if (settings.includeChapterSummaries && chapter.summary) {
-          pdf.setFont("helvetica", "italic");
-          pdf.setFontSize(bodyFontSize - 1);
-          pdf.setTextColor(120);
-          const summaryLines = pdf.splitTextToSize(chapter.summary, contentW - 40);
-          summaryLines.forEach((line: string) => {
-            if (cy > ps.h - margin.bottom) {
-              addPage();
-              drawHeader(metadata.title, chapter.title);
-              drawPageNumber(pageNum);
-              cy = margin.top + 20;
-            }
-            pdf.text(line, margin.left + 20, cy);
-            cy += lineH;
-          });
-          cy += lineH;
+          pdf.setFont("helvetica", "italic"); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor(120);
+          pdf.splitTextToSize(chapter.summary, contentW - 40).forEach((l: string) => {
+            if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
+            pdf.text(l, margin.left + 20, cy); cy += lineH;
+          }); cy += lineH;
         }
 
-        // Body text
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(bodyFontSize);
-        pdf.setTextColor(40);
-
-        const paragraphs = chapter.content.split(/\n\n+/);
-        paragraphs.forEach((para) => {
-          const trimmed = para.trim();
-          if (!trimmed) return;
-
-          const lines = pdf.splitTextToSize(trimmed, contentW);
-          lines.forEach((line: string, li: number) => {
-            if (cy > ps.h - margin.bottom) {
-              addPage();
-              drawHeader(metadata.title, chapter.title);
-              drawPageNumber(pageNum);
-              cy = margin.top + 20;
-            }
-            // First line indent
-            const xOff = li === 0 ? 20 : 0;
-            pdf.text(line, margin.left + xOff, cy);
-            cy += lineH;
-          });
-          cy += lineH * 0.5; // paragraph spacing
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(40);
+        chapter.content.split(/\n\n+/).forEach(para => {
+          const trimmed = para.trim(); if (!trimmed) return;
+          pdf.splitTextToSize(trimmed, contentW).forEach((l: string, li: number) => {
+            if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
+            pdf.text(l, margin.left + (li === 0 ? 20 : 0), cy); cy += lineH;
+          }); cy += lineH * 0.5;
         });
-
         drawPageNumber(pageNum);
       });
 
-      // ── ABOUT THE AUTHOR ──
+      // About Author
       if (settings.includeAboutAuthor && metadata.aboutAuthor.trim()) {
-        addPage();
-        drawPageNumber(pageNum);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(20);
-        pdf.setTextColor(30);
+        addPage(); drawPageNumber(pageNum);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(20); pdf.setTextColor(30);
         pdf.text("About the Author", margin.left, margin.top + 40);
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(bodyFontSize);
-        pdf.setTextColor(60);
-        const aboutLines = pdf.splitTextToSize(metadata.aboutAuthor, contentW);
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(60);
         let ay = margin.top + 80;
-        aboutLines.forEach((line: string) => {
-          if (ay > ps.h - margin.bottom) {
-            addPage();
-            drawPageNumber(pageNum);
-            ay = margin.top + 20;
-          }
-          pdf.text(line, margin.left, ay);
-          ay += lineH;
+        pdf.splitTextToSize(metadata.aboutAuthor, contentW).forEach((l: string) => {
+          if (ay > ps.h - margin.bottom) { addPage(); drawPageNumber(pageNum); ay = margin.top + 20; }
+          pdf.text(l, margin.left, ay); ay += lineH;
         });
       }
 
       pdf.save(`${metadata.title.replace(/[^a-zA-Z0-9]/g, "_")}_ebook.pdf`);
-    } catch (e) {
-      console.error("PDF export error:", e);
-    }
+    } catch (e) { console.error("PDF export error:", e); }
     setExporting(false);
   }, [chapters, metadata, settings, wallpaperSrc]);
 
-  // ── STATS ──
+  // ── Stats ──
   const totalChapterWords = chapters.reduce((sum, ch) => sum + ch.content.split(/\s+/).filter(Boolean).length, 0);
   const totalChapterPages = Math.max(1, Math.ceil(totalChapterWords / 250));
 
-  // ── RENDER STEPS ──
+  // ── RENDER: Session List ──
+  if (showSessionList) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BookOpen className="h-5 w-5 text-accent" />
+              <div>
+                <h1 className="text-lg font-extralight tracking-wide text-foreground">E-Book Generator</h1>
+                <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">AI-Powered Book Builder</p>
+              </div>
+            </div>
+            <button onClick={createSession}
+              className="flex items-center gap-2 rounded-lg bg-accent/20 px-4 py-2 text-xs text-accent hover:bg-accent/30 transition-colors">
+              <Plus className="h-3.5 w-3.5" /> New Book
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+          <div className="max-w-2xl mx-auto space-y-3">
+            {sessionsLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-6 w-6 text-accent animate-spin" />
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-20 space-y-4">
+                <BookOpen className="h-12 w-12 text-muted-foreground/20 mx-auto" />
+                <p className="text-sm font-light text-muted-foreground/50">No books yet. Create your first one.</p>
+                <button onClick={createSession}
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent/20 px-5 py-2.5 text-xs text-accent hover:bg-accent/30 transition-colors">
+                  <Plus className="h-3.5 w-3.5" /> Create Book
+                </button>
+              </div>
+            ) : (
+              sessions.map(session => (
+                <div key={session.id}
+                  className="group rounded-xl border border-border/20 bg-card/20 hover:bg-card/30 transition-colors cursor-pointer overflow-hidden"
+                  onClick={() => openSession(session)}>
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="flex-shrink-0 w-12 h-16 rounded-lg overflow-hidden border border-border/10">
+                      <img src={WALLPAPERS.find(w => w.key === session.settings?.wallpaper)?.src || heroBgDefault}
+                        alt="" className="w-full h-full object-cover opacity-60" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-light text-foreground truncate">{session.title}</p>
+                      {session.author && <p className="text-[10px] font-light text-muted-foreground/50 italic">by {session.author}</p>}
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[9px] font-light text-muted-foreground/40">{session.chapters.length} chapters</span>
+                        <span className="text-[9px] font-light text-muted-foreground/40">
+                          {session.status === "structured" ? "✓ Structured" : "Draft"}
+                        </span>
+                        <span className="text-[9px] font-light text-muted-foreground/40 flex items-center gap-1">
+                          <Clock className="h-2.5 w-2.5" />
+                          {session.updatedAt.toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); deleteSession(session.id); }}
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all p-1.5">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RENDER: Book Editor ──
+  const steps: { id: EBookStep; label: string; icon: React.ElementType }[] = [
+    { id: "upload", label: "Content", icon: Upload },
+    { id: "settings", label: "Settings", icon: Settings2 },
+    { id: "processing", label: "Generate", icon: Sparkles },
+    { id: "preview", label: "Preview", icon: Eye },
+  ];
+
+  const canProceed = () => {
+    if (step === "upload") return textUploads.length > 0 && metadata.title.trim().length > 0;
+    if (step === "settings") return true;
+    return false;
+  };
+
+  const handleNext = () => {
+    if (step === "upload") setStep("settings");
+    else if (step === "settings") { setStep("processing"); structureBook(); }
+  };
+
+  const handleBack = () => {
+    if (step === "settings") setStep("upload");
+    if (step === "preview") setStep("settings");
+  };
+
   const renderUploadStep = () => (
     <div className="space-y-6">
       {/* Metadata */}
@@ -496,34 +618,58 @@ ${rawText.slice(0, 100000)}`,
           className="w-full bg-card/30 border border-border/20 rounded-xl px-4 py-3 text-sm font-light text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30 resize-none" />
       </div>
 
-      {/* Raw Text Upload */}
-      <div className="space-y-2">
+      {/* Text Uploads */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase">Raw Content</p>
-          <button onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 rounded-lg border border-border/20 px-3 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
-            <Upload className="h-3 w-3" /> Upload Files
-          </button>
+          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase">Source Text Files</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-muted-foreground/40">{totalWords.toLocaleString()} words · ~{estimatedPages} pages</span>
+            <button onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-lg border border-border/20 px-3 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+              <Upload className="h-3 w-3" /> Upload Files
+            </button>
+          </div>
         </div>
         <input ref={fileInputRef} type="file" multiple className="hidden" accept=".txt,.md,.csv,.json,.xml,.html,.rtf" onChange={handleFileUpload} />
-        <textarea value={rawText} onChange={e => setRawText(e.target.value)}
-          placeholder="Paste or upload all your raw text content here… Aureon will analyze, deduplicate, organize, and transform it into a structured book with chapters."
-          rows={12}
-          className="w-full bg-card/30 border border-border/20 rounded-xl px-4 py-3 text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30 resize-none" />
-        {rawText.trim() && (
-          <div className="flex items-center gap-4 text-[10px] text-muted-foreground/50 font-light">
-            <span>{wordCount.toLocaleString()} words</span>
-            <span>~{estimatedPages} pages</span>
-            <span>~{readingTime} min read</span>
+
+        {/* Existing uploads */}
+        {textUploads.length > 0 && (
+          <div className="space-y-1.5">
+            {textUploads.map(u => (
+              <div key={u.id} className="flex items-center gap-3 rounded-lg border border-border/10 bg-card/10 px-3 py-2">
+                <FileText className="h-3.5 w-3.5 text-accent/50 flex-shrink-0" />
+                <span className="flex-1 text-xs font-light text-foreground truncate">{u.fileName}</span>
+                <span className="text-[9px] text-muted-foreground/40 flex-shrink-0">{u.wordCount.toLocaleString()} words</span>
+                <button onClick={() => removeTextUpload(u.id)} className="text-muted-foreground/30 hover:text-destructive transition-colors">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
+
+        {/* Paste area */}
+        <div className="space-y-2">
+          <textarea value={pasteText} onChange={e => setPasteText(e.target.value)}
+            placeholder="Paste additional text here and click 'Add Text' to append to your book sources…"
+            rows={6}
+            className="w-full bg-card/30 border border-border/20 rounded-xl px-4 py-3 text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30 resize-none" />
+          {pasteText.trim() && (
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] text-muted-foreground/40">{pasteText.trim().split(/\s+/).filter(Boolean).length.toLocaleString()} words</span>
+              <button onClick={handlePasteSubmit}
+                className="flex items-center gap-1.5 rounded-lg bg-accent/15 px-3 py-1.5 text-[10px] text-accent hover:bg-accent/25 transition-colors">
+                <Plus className="h-3 w-3" /> Add Text
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 
   const renderSettingsStep = () => (
     <div className="space-y-6">
-      {/* Cover Wallpaper */}
       <div>
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Cover Wallpaper</p>
         <div className="grid grid-cols-7 gap-2">
@@ -539,7 +685,6 @@ ${rawText.slice(0, 100000)}`,
         </div>
       </div>
 
-      {/* Page Settings */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Page Size</p>
@@ -571,7 +716,6 @@ ${rawText.slice(0, 100000)}`,
         </div>
       </div>
 
-      {/* Chapters */}
       <div>
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Chapter Count</p>
         <div className="flex items-center gap-3">
@@ -586,19 +730,18 @@ ${rawText.slice(0, 100000)}`,
         </div>
       </div>
 
-      {/* Toggles */}
       <div className="space-y-2">
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Content Processing</p>
-        {[
-          { key: "rewriteForConsistency" as const, label: "Rewrite for consistency" },
-          { key: "fixGrammar" as const, label: "Fix grammar & spelling" },
-          { key: "removeDuplicates" as const, label: "Remove duplicates" },
-          { key: "includeTableOfContents" as const, label: "Table of Contents" },
-          { key: "includeChapterSummaries" as const, label: "Chapter summaries" },
-          { key: "includeCopyright" as const, label: "Copyright page" },
-          { key: "includeDedication" as const, label: "Dedication page" },
-          { key: "includeAboutAuthor" as const, label: "About the Author page" },
-        ].map(({ key, label }) => (
+        {([
+          ["rewriteForConsistency", "Rewrite for consistency"],
+          ["fixGrammar", "Fix grammar & spelling"],
+          ["removeDuplicates", "Remove duplicates"],
+          ["includeTableOfContents", "Table of Contents"],
+          ["includeChapterSummaries", "Chapter summaries"],
+          ["includeCopyright", "Copyright page"],
+          ["includeDedication", "Dedication page"],
+          ["includeAboutAuthor", "About the Author page"],
+        ] as const).map(([key, label]) => (
           <label key={key} className="flex items-center gap-3 cursor-pointer group">
             <div className={`w-8 h-4 rounded-full transition-colors relative ${settings[key] ? "bg-accent/60" : "bg-border/30"}`}
               onClick={() => setSettings(prev => ({ ...prev, [key]: !prev[key] }))}>
@@ -609,7 +752,6 @@ ${rawText.slice(0, 100000)}`,
         ))}
       </div>
 
-      {/* Optional fields */}
       {settings.includeDedication && (
         <textarea value={metadata.dedication} onChange={e => setMetadata(prev => ({ ...prev, dedication: e.target.value }))}
           placeholder="Dedication text…" rows={2}
@@ -641,7 +783,6 @@ ${rawText.slice(0, 100000)}`,
 
   const renderPreviewStep = () => (
     <div className="space-y-4">
-      {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
           { label: "Chapters", value: chapters.length },
@@ -656,7 +797,22 @@ ${rawText.slice(0, 100000)}`,
         ))}
       </div>
 
-      {/* Chapter List */}
+      {/* Source files summary */}
+      <div className="rounded-xl border border-border/20 bg-card/10 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase">Source Files ({textUploads.length})</p>
+          <button onClick={() => { setStep("upload"); }}
+            className="text-[9px] text-accent/60 hover:text-accent transition-colors">+ Add More Text</button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {textUploads.map(u => (
+            <span key={u.id} className="inline-flex items-center gap-1 rounded-md bg-card/30 px-2 py-0.5 text-[9px] text-muted-foreground/50">
+              <FileText className="h-2.5 w-2.5" /> {u.fileName}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase">Chapters</p>
@@ -694,7 +850,6 @@ ${rawText.slice(0, 100000)}`,
         ))}
       </div>
 
-      {/* Cover Preview */}
       <div>
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Cover Preview</p>
         <div className="relative rounded-xl overflow-hidden border border-border/20 aspect-[3/4] max-w-[200px]">
@@ -709,42 +864,21 @@ ${rawText.slice(0, 100000)}`,
     </div>
   );
 
-  const steps: { id: EBookStep; label: string; icon: React.ElementType }[] = [
-    { id: "upload", label: "Content", icon: Upload },
-    { id: "settings", label: "Settings", icon: Settings2 },
-    { id: "processing", label: "Generate", icon: Sparkles },
-    { id: "preview", label: "Preview", icon: Eye },
-  ];
-
-  const canProceed = () => {
-    if (step === "upload") return rawText.trim().length > 50 && metadata.title.trim().length > 0;
-    if (step === "settings") return true;
-    return false;
-  };
-
-  const handleNext = () => {
-    if (step === "upload") setStep("settings");
-    else if (step === "settings") {
-      setStep("processing");
-      structureBook();
-    }
-  };
-
-  const handleBack = () => {
-    if (step === "settings") setStep("upload");
-    if (step === "preview") setStep("settings");
-  };
-
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <BookOpen className="h-5 w-5 text-accent" />
+            <button onClick={() => { saveSession(); setShowSessionList(true); }}
+              className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors">
+              <FolderOpen className="h-4 w-4" />
+            </button>
             <div>
-              <h1 className="text-lg font-extralight tracking-wide text-foreground">E-Book Generator</h1>
-              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">AI-Powered Book Builder</p>
+              <h1 className="text-lg font-extralight tracking-wide text-foreground">{metadata.title || "Untitled Book"}</h1>
+              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">
+                {saving ? "Saving…" : "Auto-saved"} · {textUploads.length} source{textUploads.length !== 1 ? "s" : ""} · {totalWords.toLocaleString()} words
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -758,7 +892,7 @@ ${rawText.slice(0, 100000)}`,
           </div>
         </div>
 
-        {/* Step Indicator */}
+        {/* Steps */}
         <div className="flex items-center gap-2 mt-4">
           {steps.map((s, i) => (
             <div key={s.id} className="flex items-center gap-2">
@@ -789,7 +923,7 @@ ${rawText.slice(0, 100000)}`,
         </div>
       </div>
 
-      {/* Footer Nav */}
+      {/* Footer */}
       {step !== "processing" && (
         <div className="flex-shrink-0 border-t border-border/20 bg-card/20 backdrop-blur-sm px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between max-w-3xl mx-auto">
@@ -800,15 +934,12 @@ ${rawText.slice(0, 100000)}`,
             {(step === "upload" || step === "settings") && (
               <button onClick={handleNext} disabled={!canProceed()}
                 className="flex items-center gap-2 rounded-lg bg-accent/20 px-5 py-2 text-xs text-accent hover:bg-accent/30 transition-colors disabled:opacity-40">
-                {step === "settings" ? (
-                  <><Sparkles className="h-3.5 w-3.5" /> Generate Book</>
-                ) : (
-                  <><ArrowRight className="h-3.5 w-3.5" /> Next</>
-                )}
+                {step === "settings" ? <><Sparkles className="h-3.5 w-3.5" /> Generate Book</> : <><ArrowRight className="h-3.5 w-3.5" /> Next</>}
               </button>
             )}
             {step === "preview" && (
-              <button onClick={() => { setStep("settings"); }} className="flex items-center gap-2 rounded-lg border border-border/20 px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={() => setStep("settings")}
+                className="flex items-center gap-2 rounded-lg border border-border/20 px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                 <Sparkles className="h-3.5 w-3.5" /> Regenerate
               </button>
             )}
