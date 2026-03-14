@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check, Copy, Brain, Eye, Download, Upload, FileText, Image } from "lucide-react";
+import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check, Copy, Brain, Eye, Download, Upload, FileText, Image, Shield, Database, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAshaSession } from "./AshaSessionContext";
@@ -70,6 +70,7 @@ const QueryBar = () => {
   const [online, setOnline] = useState(navigator.onLine);
   const [cotId, setCotId] = useState<string | null>(null);
   const [decodeId, setDecodeId] = useState<string | null>(null);
+  const [groundedMode, setGroundedMode] = useState(false);
   const { user } = useAuth();
   const { activeSession } = useAshaSession();
 
@@ -171,6 +172,22 @@ const QueryBar = () => {
     }
 
     try {
+      // Build grounded context if grounded mode is on
+      let groundedContext = "";
+      if (groundedMode && user && activeSession) {
+        const [{ data: datasets }, { data: entities }] = await Promise.all([
+          supabase.from("asha_datasets").select("file_name, schema, row_count, col_count").eq("user_id", user.id).eq("session_id", activeSession.id).eq("status", "ready"),
+          supabase.from("asha_document_entities").select("entity_type, entity_value, confidence").eq("user_id", user.id).limit(100),
+        ]);
+        const dataContext = datasets?.map(d => {
+          const schema = d.schema as any[];
+          const fields = schema?.map((s: any) => `${s.name} (${s.type})`).join(", ") || "unknown";
+          return `Dataset "${d.file_name}": ${d.row_count} rows, ${d.col_count} cols. Fields: ${fields}`;
+        }).join("\n") || "";
+        const entityContext = entities?.length ? `Known entities: ${entities.map(e => `${e.entity_type}: ${e.entity_value}`).join("; ")}` : "";
+        groundedContext = `ONTOLOGY-GROUNDED MODE: Answer ONLY from the user's actual data. Never hallucinate or use general knowledge.\n\nAvailable Data:\n${dataContext}\n\n${entityContext}`;
+      }
+
       const { data: session } = await supabase.auth.getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-query`, {
         method: "POST",
@@ -179,7 +196,11 @@ const QueryBar = () => {
           Authorization: `Bearer ${session?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ query: q, sessionId: activeSession?.id }),
+        body: JSON.stringify({
+          query: q,
+          sessionId: activeSession?.id,
+          ...(groundedMode && groundedContext ? { mode: "grounded", context: groundedContext } : {}),
+        }),
       });
 
       if (!res.ok) throw new Error("Query failed");
@@ -326,14 +347,26 @@ const QueryBar = () => {
         )}
         <div className={`flex items-center gap-2 rounded-xl border ${online ? "border-border/20" : "border-amber-500/30"} bg-card/20 backdrop-blur-sm px-4 py-3`}>
           {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
+          {/* Grounded Mode Toggle */}
+          <button
+            onClick={() => setGroundedMode(!groundedMode)}
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] transition-colors shrink-0 ${
+              groundedMode
+                ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                : "bg-foreground/5 border border-border/20 text-muted-foreground/50 hover:text-muted-foreground"
+            }`}
+          >
+            {groundedMode ? <CheckCircle className="h-3 w-3" /> : <Database className="h-3 w-3" />}
+            Grounded
+          </button>
           <Sparkles className="h-4 w-4 text-accent/40 shrink-0" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitQuery()} placeholder={online ? "Ask anything about your data…" : "Offline — queries will queue…"} className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitQuery()} placeholder={groundedMode ? "Ask about your data (grounded)…" : online ? "Ask anything about your data…" : "Offline — queries will queue…"} className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
           <button onClick={submitQuery} disabled={!query.trim() || loading} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors">
             <Send className="h-4 w-4" />
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground/30 text-center">
-          {!online ? "Offline · queries queued · " : ""}End-to-end encrypted · PII auto-masked{activePlugins.length > 0 ? ` · ${activePlugins.length} plugins active` : ""}
+          {!online ? "Offline · queries queued · " : ""}{groundedMode ? "Grounded mode — answers from your data only · " : ""}End-to-end encrypted · PII auto-masked{activePlugins.length > 0 ? ` · ${activePlugins.length} plugins active` : ""}
         </p>
       </div>
     </div>

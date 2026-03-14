@@ -33,7 +33,6 @@ import WorkshopPanel from "./WorkshopPanel";
 import QuiverPanel from "./QuiverPanel";
 import AIPLogicPanel from "./AIPLogicPanel";
 import AIPBootcampsPanel from "./AIPBootcampsPanel";
-import OntologyGroundedAIPanel from "./OntologyGroundedAIPanel";
 import ActionEnginePanel from "./ActionEnginePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -70,7 +69,6 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "quiver", icon: Sparkles, label: "Quiver" },
   { id: "aip-logic", icon: Shield, label: "AIP Logic" },
   { id: "aip-bootcamps", icon: Rocket, label: "Bootcamps" },
-  { id: "grounded-ai", icon: Bot, label: "Grounded AI" },
   { id: "action-engine", icon: ZapIcon, label: "Action Engine" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
@@ -280,7 +278,6 @@ const AshaInner = () => {
         case "quiver": return <QuiverPanel />;
         case "aip-logic": return <AIPLogicPanel />;
         case "aip-bootcamps": return <AIPBootcampsPanel />;
-        case "grounded-ai": return <OntologyGroundedAIPanel />;
         case "action-engine": return <ActionEnginePanel />;
         case "query": return <QueryBar />;
       }
