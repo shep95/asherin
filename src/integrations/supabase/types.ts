@@ -1376,6 +1376,95 @@ export type Database = {
           },
         ]
       }
+      ebook_sessions: {
+        Row: {
+          about_author: string | null
+          author: string | null
+          chapters: Json | null
+          copyright: string | null
+          created_at: string
+          dedication: string | null
+          description: string | null
+          id: string
+          settings: Json
+          status: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          about_author?: string | null
+          author?: string | null
+          chapters?: Json | null
+          copyright?: string | null
+          created_at?: string
+          dedication?: string | null
+          description?: string | null
+          id?: string
+          settings?: Json
+          status?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          about_author?: string | null
+          author?: string | null
+          chapters?: Json | null
+          copyright?: string | null
+          created_at?: string
+          dedication?: string | null
+          description?: string | null
+          id?: string
+          settings?: Json
+          status?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ebook_text_uploads: {
+        Row: {
+          content: string
+          created_at: string
+          file_name: string
+          id: string
+          session_id: string
+          user_id: string
+          word_count: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          session_id: string
+          user_id: string
+          word_count?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          session_id?: string
+          user_id?: string
+          word_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ebook_text_uploads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ebook_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gift_purchases: {
         Row: {
           addons: Json | null
