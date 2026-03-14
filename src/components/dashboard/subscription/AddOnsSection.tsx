@@ -64,7 +64,7 @@ const AddOnsSection = () => {
         body: {
           addonId: addOn.id,
           addonName: addOn.name,
-          priceCents: addOn.price * 100,
+          priceCents: Math.round(addOn.price * 100),
         },
       });
 

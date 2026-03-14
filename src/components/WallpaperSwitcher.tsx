@@ -36,6 +36,10 @@ const STORAGE_KEY = "aureon_landing_wallpaper";
 
 export const getStoredWallpaper = (): string => {
   const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "custom") {
+    const customUrl = localStorage.getItem("aureon_custom_wallpaper_url");
+    if (customUrl) return customUrl;
+  }
   const wp = WALLPAPERS.find((w) => w.key === stored);
   return wp ? wp.src : wallpaperDefault;
 };
