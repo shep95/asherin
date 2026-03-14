@@ -1,17 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   Brain, Activity, Clock, Loader2,
   Shield, UserMinus, DollarSign, Package, Target,
   ExternalLink, Calendar, Zap, Search, ChevronDown, ChevronUp,
   TrendingUp, AlertTriangle, Sparkles, Eye, History,
   GitBranch, Scale, BarChart3, Layers, ArrowRight, Gauge, Timer,
-  XCircle, CheckCircle2
+  XCircle, CheckCircle2, Database, FlaskConical, Radio
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
+
+const DataIntegrationEngine = lazy(() => import("./intel/DataIntegrationEngine"));
+const ScenarioModelingEngine = lazy(() => import("./intel/ScenarioModelingEngine"));
+const SignalDetectionEngine = lazy(() => import("./intel/SignalDetectionEngine"));
 
 interface Prediction {
   id: string;
