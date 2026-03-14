@@ -347,14 +347,26 @@ const QueryBar = () => {
         )}
         <div className={`flex items-center gap-2 rounded-xl border ${online ? "border-border/20" : "border-amber-500/30"} bg-card/20 backdrop-blur-sm px-4 py-3`}>
           {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
+          {/* Grounded Mode Toggle */}
+          <button
+            onClick={() => setGroundedMode(!groundedMode)}
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[9px] transition-colors shrink-0 ${
+              groundedMode
+                ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                : "bg-foreground/5 border border-border/20 text-muted-foreground/50 hover:text-muted-foreground"
+            }`}
+          >
+            {groundedMode ? <CheckCircle className="h-3 w-3" /> : <Database className="h-3 w-3" />}
+            Grounded
+          </button>
           <Sparkles className="h-4 w-4 text-accent/40 shrink-0" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitQuery()} placeholder={online ? "Ask anything about your data…" : "Offline — queries will queue…"} className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submitQuery()} placeholder={groundedMode ? "Ask about your data (grounded)…" : online ? "Ask anything about your data…" : "Offline — queries will queue…"} className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none" />
           <button onClick={submitQuery} disabled={!query.trim() || loading} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors">
             <Send className="h-4 w-4" />
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground/30 text-center">
-          {!online ? "Offline · queries queued · " : ""}End-to-end encrypted · PII auto-masked{activePlugins.length > 0 ? ` · ${activePlugins.length} plugins active` : ""}
+          {!online ? "Offline · queries queued · " : ""}{groundedMode ? "Grounded mode — answers from your data only · " : ""}End-to-end encrypted · PII auto-masked{activePlugins.length > 0 ? ` · ${activePlugins.length} plugins active` : ""}
         </p>
       </div>
     </div>
