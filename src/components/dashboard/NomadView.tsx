@@ -76,7 +76,7 @@ interface NomadMessage {
   status?: "sending" | "queued" | "sent" | "failed";
 }
 
-type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver";
+type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff";
 
 const INVESTIGATION_TYPES = [
   { id: "person", icon: User, label: "Person", desc: "Deep profile & predictions" },
@@ -91,10 +91,19 @@ const INVESTIGATION_TYPES = [
 
 const TABS: { id: NomadTab; icon: any; label: string }[] = [
   { id: "chat", icon: MessageSquare, label: "Intel Chat" },
+  { id: "entities", icon: User, label: "Entities" },
+  { id: "claims", icon: Shield, label: "Claims" },
   { id: "objects", icon: Layers, label: "Objects" },
   { id: "timeline", icon: Clock, label: "Timeline" },
   { id: "graph", icon: Network, label: "Graph" },
   { id: "map", icon: Map, label: "Map" },
+  { id: "sources", icon: ShieldCheck, label: "Sources" },
+  { id: "handles", icon: Fingerprint, label: "Handles" },
+  { id: "adversary", icon: Crosshair, label: "Adversary" },
+  { id: "media", icon: Image, label: "Media" },
+  { id: "case", icon: Search, label: "Case Mgmt" },
+  { id: "pipeline", icon: GitBranch, label: "Pipelines" },
+  { id: "diff", icon: TrendingUp, label: "Diff" },
   { id: "lineage", icon: GitBranch, label: "Lineage" },
   { id: "ontology", icon: Layers, label: "Ontology" },
   { id: "quiver", icon: Sparkles, label: "Quiver" },
