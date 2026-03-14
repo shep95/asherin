@@ -921,13 +921,19 @@ ${allRawText.slice(0, 100000)}`,
 
       <div>
         <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-2">Cover Preview</p>
-        <div className="relative rounded-xl overflow-hidden border border-border/20 aspect-[3/4] max-w-[200px]">
-          <img src={wallpaperSrc} alt="Cover" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
-            <p className="text-sm font-light text-white/90 leading-tight">{metadata.title || "Untitled"}</p>
-            {metadata.subtitle && <p className="text-[9px] font-light text-white/60 mt-1">{metadata.subtitle}</p>}
-            {metadata.author && <p className="text-[8px] font-light text-white/50 mt-4 italic">{metadata.author}</p>}
+        <div className="flex items-end gap-4">
+          <div className="relative rounded-xl overflow-hidden border border-border/20 aspect-[3/4] max-w-[200px]">
+            <img src={wallpaperSrc} alt="Cover" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center">
+              <p className="text-sm font-light text-white/90 leading-tight">{metadata.title || "Untitled"}</p>
+              {metadata.subtitle && <p className="text-[9px] font-light text-white/60 mt-1">{metadata.subtitle}</p>}
+              {metadata.author && <p className="text-[8px] font-light text-white/50 mt-4 italic">{metadata.author}</p>}
+            </div>
           </div>
+          <button onClick={downloadCover}
+            className="flex items-center gap-1.5 rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-[10px] font-light text-muted-foreground hover:text-foreground hover:bg-card/50 transition-colors">
+            <Download className="h-3 w-3" /> Download Cover
+          </button>
         </div>
       </div>
     </div>
