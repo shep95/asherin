@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2 } from "lucide-react";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
 import ChatErrorBanner from "./ChatErrorBanner";
 import ArtifactCanvas from "./ArtifactCanvas";
+import ReusableBlocks from "./ReusableBlocks";
+import AnswerControls from "./AnswerControls";
+import StructuredInputForms from "./StructuredInputForms";
+import ShareWithRedaction from "./ShareWithRedaction";
+import TokenCostIndicator from "./TokenCostIndicator";
 import MessageNote from "./MessageNote";
 import FloatingNotepad from "./FloatingNotepad";
 import ChatSearchBar from "./ChatSearchBar";
@@ -284,6 +289,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [artifactOpen, setArtifactOpen] = useState(false);
   const [artifactContent, setArtifactContent] = useState("");
   const [previousResponses, setPreviousResponses] = useState<Record<string, string>>({});
+  const [blocksOpen, setBlocksOpen] = useState(false);
+  const [blockSaveContent, setBlockSaveContent] = useState<string | undefined>();
+  const [structuredOpen, setStructuredOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -604,11 +613,47 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                           >
                             <PanelRight className="h-3 w-3" />
-                            Canvas
+                          Canvas
+                          </button>
+                          {/* Save as Block */}
+                          <button
+                            onClick={() => { setBlockSaveContent(msg.content); setBlocksOpen(true); }}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <Blocks className="h-3 w-3" />
+                            Save Block
+                          </button>
+                          {/* Share with Redaction */}
+                          <button
+                            onClick={() => setShareOpen(true)}
+                            className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            <Share2 className="h-3 w-3" />
+                            Share
                           </button>
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
+                          />
+                          {/* Answer Controls */}
+                          <AnswerControls
+                            onAction={(action) => {
+                              const prompts: Record<string, string> = {
+                                "shorter": `Make this response shorter and more concise:\n\n${msg.content.slice(0, 500)}`,
+                                "longer": `Expand on this response with more detail:\n\n${msg.content.slice(0, 500)}`,
+                                "examples": `Add practical examples to this response:\n\n${msg.content.slice(0, 500)}`,
+                                "edge-cases": `Add edge cases and exceptions to consider:\n\n${msg.content.slice(0, 500)}`,
+                                "sources": `Add sources and references to support this:\n\n${msg.content.slice(0, 500)}`,
+                                "deliverable": `Turn this into a polished, professional deliverable with clear headings, structure, and action items:\n\n${msg.content}`,
+                              };
+                              if (prompts[action]) onSendMessage(prompts[action]);
+                            }}
+                          />
+                          {/* Token cost indicator */}
+                          <TokenCostIndicator
+                            tokenCount={Math.round(msg.content.length / 4)}
+                            usedSearch={msg.sources && msg.sources.length > 0}
+                            usedFiles={msg.attachments && msg.attachments.length > 0}
                           />
                         </>
                       )}
@@ -682,6 +727,39 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         onTogglePause={onToggleQueuePause}
       />
 
+      {/* Toolbar: Blocks + Structured Input */}
+      <div className="relative flex items-center gap-2 px-4 py-1.5 border-t border-border/10 shrink-0">
+        <div className="relative">
+          <button
+            onClick={() => setBlocksOpen(!blocksOpen)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-light text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+          >
+            <Blocks className="h-3 w-3" />
+            Blocks
+          </button>
+          <ReusableBlocks
+            open={blocksOpen}
+            onClose={() => { setBlocksOpen(false); setBlockSaveContent(undefined); }}
+            onInsert={(content) => setInput(prev => prev + content)}
+            contentToSave={blockSaveContent}
+          />
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setStructuredOpen(!structuredOpen)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-light text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors"
+          >
+            <ClipboardList className="h-3 w-3" />
+            Forms
+          </button>
+          <StructuredInputForms
+            open={structuredOpen}
+            onClose={() => setStructuredOpen(false)}
+            onSubmit={(prompt) => onSendMessage(prompt)}
+          />
+        </div>
+      </div>
+
       {/* Adaptive Input — gated behind subscription */}
       <SubscriptionGatedInput
         value={input}
@@ -693,6 +771,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
         conversationId={conversation.id}
         attachments={attachments}
         onAttachmentsChange={setAttachments}
+      />
+
+      {/* Share with Redaction modal */}
+      <ShareWithRedaction
+        messages={conversation.messages}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
       />
       </div>
       {/* Artifact Canvas - right panel */}
