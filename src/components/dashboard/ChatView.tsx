@@ -567,9 +567,9 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-slide-up transition-all duration-300 ${highlightedMsgId === msg.id ? "ring-1 ring-accent/50 rounded-2xl bg-accent/5" : ""}`}
                 style={{ animationDelay: `${Math.min(idx * 30, 150)}ms`, animationFillMode: "backwards" }}
               >
-                <div className="max-w-[80%]">
+                <div className="max-w-[95%] sm:max-w-[80%]">
                   <div
-                    className={`rounded-2xl px-4 py-3 text-sm font-light leading-relaxed transition-all ${
+                    className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm font-light leading-relaxed transition-all ${
                       msg.role === "user"
                         ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
                         : "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
