@@ -84,6 +84,7 @@ const PredictiveIntelligenceView = () => {
   const [progressData, setProgressData] = useState<ProgressEvent | null>(null);
   const [progressLog, setProgressLog] = useState<string[]>([]);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [activeEngine, setActiveEngine] = useState<"predictions" | "data-integration" | "scenario-modeling" | "signal-detection">("predictions");
   const abortRef = useRef<AbortController | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
