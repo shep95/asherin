@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { X, Download, Copy, Check, History, ChevronLeft, ChevronRight, Code2, FileText, GitBranch } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { X, Download, Copy, Check, History, Code2, FileText, GitBranch, Maximize2, Minimize2, GripVertical } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface ArtifactVersion {
@@ -15,6 +15,9 @@ interface ArtifactCanvasProps {
   initialContent?: string;
 }
 
+const MIN_WIDTH = 280;
+const MAX_WIDTH_RATIO = 0.8;
+
 const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasProps) => {
   const [content, setContent] = useState(initialContent);
   const [versions, setVersions] = useState<ArtifactVersion[]>(() =>
@@ -24,7 +27,45 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasPr
   const [viewMode, setViewMode] = useState<"edit" | "preview" | "split">("split");
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(480);
+  const [isResizing, setIsResizing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // On small screens, default to preview-only and auto-fullscreen
+  useEffect(() => {
+    const w = window.innerWidth;
+    if (w < 640) {
+      setViewMode("preview");
+      setIsFullscreen(true);
+    } else if (w < 1024) {
+      setViewMode("preview");
+      setPanelWidth(Math.min(400, w * 0.5));
+    }
+  }, [open]);
+
+  // Resize drag handler
+  const startResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startWidth = panelWidth;
+    const maxWidth = window.innerWidth * MAX_WIDTH_RATIO;
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = startX - ev.clientX;
+      const newWidth = Math.max(MIN_WIDTH, Math.min(maxWidth, startWidth + delta));
+      setPanelWidth(newWidth);
+    };
+    const onUp = () => {
+      setIsResizing(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [panelWidth]);
 
   const saveVersion = useCallback(() => {
     const label = `v${versions.length + 1}`;
@@ -58,34 +99,64 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasPr
   if (!open) return null;
 
   const isCode = content.trimStart().startsWith("```") || /^(import |export |const |function |class |def |#include)/.test(content.trim());
+  const effectiveWidth = isFullscreen ? "100%" : `${panelWidth}px`;
+
+  // On small screens in split, force stacked layout
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+  const splitDirection = isMobile ? "flex-col" : "";
 
   return (
-    <div className="flex flex-col h-full border-l border-border/20 bg-card/10 backdrop-blur-sm min-w-[400px]">
+    <div
+      ref={containerRef}
+      className={`flex flex-col h-full border-l border-border/20 bg-card/10 backdrop-blur-sm transition-all duration-200 ${isFullscreen ? "fixed inset-0 z-50 border-l-0 bg-background/95 backdrop-blur-xl" : "relative"}`}
+      style={isFullscreen ? undefined : { width: effectiveWidth, minWidth: `${MIN_WIDTH}px` }}
+    >
+      {/* Resize handle (left edge) — hidden in fullscreen or mobile */}
+      {!isFullscreen && !isMobile && (
+        <div
+          onMouseDown={startResize}
+          className={`absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10 flex items-center justify-center hover:bg-accent/20 transition-colors ${isResizing ? "bg-accent/30" : ""}`}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground/20" />
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/20 shrink-0">
-        <div className="flex items-center gap-2">
-          {isCode ? <Code2 className="h-3.5 w-3.5 text-accent/60" /> : <FileText className="h-3.5 w-3.5 text-accent/60" />}
-          <span className="text-[11px] font-light text-foreground">Artifact Canvas</span>
+      <div className="flex items-center justify-between px-2 sm:px-3 py-2 border-b border-border/20 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+          {isCode ? <Code2 className="h-3.5 w-3.5 text-accent/60 shrink-0" /> : <FileText className="h-3.5 w-3.5 text-accent/60 shrink-0" />}
+          <span className="text-[11px] font-light text-foreground truncate">Artifact Canvas</span>
           {versions.length > 0 && (
-            <span className="text-[9px] text-muted-foreground/40 bg-muted/20 rounded px-1.5 py-0.5">
+            <span className="text-[9px] text-muted-foreground/40 bg-muted/20 rounded px-1.5 py-0.5 shrink-0">
               {versions[activeVersionIdx]?.label || "draft"}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           {/* View mode toggle */}
-          {(["edit", "split", "preview"] as const).map(m => (
+          <div className="hidden xs:flex items-center gap-0.5">
+            {(["edit", "split", "preview"] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => setViewMode(m)}
+                className={`px-1.5 sm:px-2 py-1 text-[9px] rounded-md transition-colors ${
+                  viewMode === m ? "bg-foreground/10 text-foreground" : "text-muted-foreground/40 hover:text-foreground"
+                }`}
+              >
+                {m.charAt(0).toUpperCase() + m.slice(1)}
+              </button>
+            ))}
+          </div>
+          {/* Mobile view mode - single toggle */}
+          <div className="flex xs:hidden items-center gap-0.5">
             <button
-              key={m}
-              onClick={() => setViewMode(m)}
-              className={`px-2 py-1 text-[9px] rounded-md transition-colors ${
-                viewMode === m ? "bg-foreground/10 text-foreground" : "text-muted-foreground/40 hover:text-foreground"
-              }`}
+              onClick={() => setViewMode(viewMode === "edit" ? "preview" : "edit")}
+              className="px-1.5 py-1 text-[9px] rounded-md bg-foreground/10 text-foreground"
             >
-              {m.charAt(0).toUpperCase() + m.slice(1)}
+              {viewMode === "edit" ? "Preview" : "Edit"}
             </button>
-          ))}
-          <div className="w-px h-4 bg-border/20 mx-1" />
+          </div>
+          <div className="w-px h-4 bg-border/20 mx-0.5 sm:mx-1" />
           <button onClick={saveVersion} className="p-1 text-muted-foreground/40 hover:text-foreground transition-colors" title="Save version">
             <GitBranch className="h-3.5 w-3.5" />
           </button>
@@ -98,6 +169,13 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasPr
           <button onClick={handleExport} className="p-1 text-muted-foreground/40 hover:text-foreground transition-colors" title="Export">
             <Download className="h-3.5 w-3.5" />
           </button>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1 text-muted-foreground/40 hover:text-foreground transition-colors"
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
           <button onClick={onClose} className="p-1 text-muted-foreground/40 hover:text-foreground transition-colors" title="Close">
             <X className="h-3.5 w-3.5" />
           </button>
@@ -106,7 +184,7 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasPr
 
       {/* Version History Panel */}
       {showHistory && versions.length > 0 && (
-        <div className="border-b border-border/20 bg-card/20 px-3 py-2 max-h-[150px] overflow-y-auto">
+        <div className="border-b border-border/20 bg-card/20 px-2 sm:px-3 py-2 max-h-[150px] overflow-y-auto shrink-0">
           <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider mb-1.5">Version History</p>
           {versions.map((v, idx) => (
             <button
@@ -124,20 +202,20 @@ const ArtifactCanvas = ({ open, onClose, initialContent = "" }: ArtifactCanvasPr
       )}
 
       {/* Content Area */}
-      <div className={`flex-1 min-h-0 flex ${viewMode === "split" ? "divide-x divide-border/20" : ""}`}>
+      <div className={`flex-1 min-h-0 flex ${viewMode === "split" ? `divide-border/20 ${splitDirection || "divide-x"}` : ""} ${splitDirection}`}>
         {(viewMode === "edit" || viewMode === "split") && (
           <textarea
             ref={textareaRef}
             value={content}
             onChange={e => setContent(e.target.value)}
-            className={`${viewMode === "split" ? "w-1/2" : "w-full"} h-full bg-transparent resize-none p-4 text-sm font-mono font-light text-foreground placeholder:text-muted-foreground/30 outline-none`}
+            className={`${viewMode === "split" ? (isMobile ? "w-full h-1/2" : "w-1/2 h-full") : "w-full h-full"} bg-transparent resize-none p-3 sm:p-4 text-[13px] sm:text-sm font-mono font-light text-foreground placeholder:text-muted-foreground/30 outline-none`}
             placeholder="Start writing or paste content here..."
             spellCheck={false}
           />
         )}
         {(viewMode === "preview" || viewMode === "split") && (
-          <div className={`${viewMode === "split" ? "w-1/2" : "w-full"} h-full overflow-y-auto p-4`}>
-            <div className="prose prose-sm prose-invert max-w-none [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3">
+          <div className={`${viewMode === "split" ? (isMobile ? "w-full h-1/2 border-t border-border/20" : "w-1/2 h-full") : "w-full h-full"} overflow-y-auto p-3 sm:p-4`}>
+            <div className="prose prose-sm prose-invert max-w-none [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:text-[12px] [&_pre]:sm:text-[13px] [&_pre]:overflow-x-auto">
               <ReactMarkdown>{content}</ReactMarkdown>
             </div>
           </div>
