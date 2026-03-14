@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
 
     console.log('[ZOPHIEL] Deep search with Truth Graph Protocol:', enhancedQuery);
 
-    // ── Step 1: Multi-Angle Search (4 search vectors) ──
+    // ── Step 1: Multi-Angle Search (4 search vectors) + OSINT Engines ──
     const searchVariants = [
       enhancedQuery,
       `${trimmed} latest 2025 2026`,
@@ -263,7 +263,150 @@ Deno.serve(async (req) => {
       `${trimmed} primary source official report`,
     ];
 
-    const allSearchResults = await Promise.all(searchVariants.map(q => searchDDG(q)));
+    // Run DuckDuckGo + OSINT engines in parallel
+    const osintResults: { source: string; content: string; tier: number }[] = [];
+    
+    // Detect query type for targeted OSINT engine activation
+    const qLower = trimmed.toLowerCase();
+    const ipMatch = trimmed.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/);
+    const domainMatch = trimmed.match(/\b([\w-]+\.(?:com|org|net|io|dev|co|gov|edu|mil|ai|tech|cloud|app|xyz|me)(?:\.\w{2,3})?)\b/i);
+    const hashMatch = trimmed.match(/\b([a-fA-F0-9]{32,64})\b/);
+    const isCyber = /malware|threat|vulnerability|cve|exploit|attack|breach|hack|phish|ransomware|apt|ioc|indicator|scan|port|service|banner|exposure|certificate|subdomain|dns/i.test(qLower);
+    
+    const osintTasks: Promise<void>[] = [];
+    
+    // urlscan.io (free, no key needed)
+    if (domainMatch || /url|website|phish|redirect/i.test(qLower)) {
+      osintTasks.push((async () => {
+        try {
+          const resp = await fetch(`https://urlscan.io/api/v1/search/?q=${encodeURIComponent(domainMatch?.[1] || trimmed)}&size=5`);
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json.results?.length) {
+              osintResults.push({
+                source: 'urlscan.io',
+                content: json.results.slice(0, 5).map((r: any) => `${r.page?.url || ''} — ${r.page?.title || 'N/A'} | IP: ${r.page?.ip || 'N/A'} | Verdict: ${r.verdicts?.overall?.malicious ? 'MALICIOUS' : 'Clean'}`).join('\n'),
+                tier: 2,
+              });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+    
+    // crt.sh (free, no key needed)
+    if (domainMatch) {
+      osintTasks.push((async () => {
+        try {
+          const resp = await fetch(`https://crt.sh/?q=%25.${encodeURIComponent(domainMatch[1])}&output=json`);
+          if (resp.ok) {
+            const json = await resp.json();
+            const unique = [...new Set(json.slice(0, 15).map((c: any) => c.common_name || c.name_value))];
+            if (unique.length) {
+              osintResults.push({
+                source: 'crt.sh (Certificate Transparency)',
+                content: `Subdomains discovered: ${unique.length}\n${unique.map((s: string) => `- ${s}`).join('\n')}`,
+                tier: 2,
+              });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // Shodan (if key available)
+    if ((ipMatch || isCyber || domainMatch) && Deno.env.get('SHODAN_API_KEY')) {
+      osintTasks.push((async () => {
+        try {
+          const key = Deno.env.get('SHODAN_API_KEY')!;
+          let resp;
+          if (ipMatch) {
+            resp = await fetch(`https://api.shodan.io/shodan/host/${ipMatch[1]}?key=${key}`);
+          } else {
+            const q = domainMatch ? `hostname:${domainMatch[1]}` : trimmed;
+            resp = await fetch(`https://api.shodan.io/shodan/host/search?key=${key}&query=${encodeURIComponent(q)}&page=1`);
+          }
+          if (resp.ok) {
+            const json = await resp.json();
+            if (ipMatch) {
+              osintResults.push({ source: 'Shodan', content: `IP: ${json.ip_str} | Org: ${json.org || 'N/A'} | Ports: ${json.ports?.join(', ') || 'None'} | Vulns: ${json.vulns?.slice(0, 5).join(', ') || 'None'}`, tier: 1 });
+            } else if (json.matches?.length) {
+              osintResults.push({ source: 'Shodan', content: json.matches.slice(0, 5).map((m: any) => `${m.ip_str}:${m.port} | ${m.org || 'N/A'} | ${m.product || ''}`).join('\n'), tier: 1 });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // VirusTotal (if key available)
+    if ((ipMatch || domainMatch || hashMatch || isCyber) && Deno.env.get('VIRUSTOTAL_API_KEY')) {
+      osintTasks.push((async () => {
+        try {
+          const key = Deno.env.get('VIRUSTOTAL_API_KEY')!;
+          const target = hashMatch?.[1] || domainMatch?.[1] || ipMatch?.[1] || trimmed;
+          const isIPTarget = /^(\d{1,3}\.){3}\d{1,3}$/.test(target);
+          const isDomainTarget = /^[\w.-]+\.\w{2,}$/.test(target) && !isIPTarget;
+          const isHashTarget = /^[a-fA-F0-9]{32,64}$/.test(target);
+          let endpoint = '';
+          if (isHashTarget) endpoint = `https://www.virustotal.com/api/v3/files/${target}`;
+          else if (isDomainTarget) endpoint = `https://www.virustotal.com/api/v3/domains/${target}`;
+          else if (isIPTarget) endpoint = `https://www.virustotal.com/api/v3/ip_addresses/${target}`;
+          if (endpoint) {
+            const resp = await fetch(endpoint, { headers: { 'x-apikey': key } });
+            if (resp.ok) {
+              const json = await resp.json();
+              const attrs = json.data?.attributes || {};
+              const stats = attrs.last_analysis_stats || {};
+              osintResults.push({ source: 'VirusTotal', content: `${target}: Malicious: ${stats.malicious || 0} | Harmless: ${stats.harmless || 0} | Reputation: ${attrs.reputation || 'N/A'}`, tier: 1 });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // ThreatFox (free, no key needed)
+    if (isCyber || hashMatch || ipMatch) {
+      osintTasks.push((async () => {
+        try {
+          const resp = await fetch('https://threatfox-api.abuse.ch/api/v1/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: 'search_ioc', search_term: hashMatch?.[1] || ipMatch?.[1] || trimmed }),
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json.data?.length) {
+              osintResults.push({ source: 'ThreatFox', content: json.data.slice(0, 5).map((ioc: any) => `[${ioc.ioc_type}] ${ioc.ioc} — ${ioc.threat_type || 'N/A'} / ${ioc.malware || 'N/A'}`).join('\n'), tier: 2 });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // SecurityTrails (if key available)
+    if (domainMatch && Deno.env.get('SECURITYTRAILS_API_KEY')) {
+      osintTasks.push((async () => {
+        try {
+          const key = Deno.env.get('SECURITYTRAILS_API_KEY')!;
+          const resp = await fetch(`https://api.securitytrails.com/v1/domain/${domainMatch[1]}/subdomains?children_only=false`, {
+            headers: { 'APIKEY': key },
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            const subs = json.subdomains?.slice(0, 15) || [];
+            if (subs.length) {
+              osintResults.push({ source: 'SecurityTrails', content: `Subdomains (${json.subdomain_count || subs.length} total): ${subs.map((s: string) => `${s}.${domainMatch[1]}`).join(', ')}`, tier: 1 });
+            }
+          }
+        } catch { /* skip */ }
+      })());
+    }
+
+    // Run all OSINT + DuckDuckGo searches in parallel
+    const [allSearchResults] = await Promise.all([
+      Promise.all(searchVariants.map(q => searchDDG(q))),
+      Promise.allSettled(osintTasks),
+    ]);
     
     // Deduplicate by URL
     const seen = new Set<string>();
@@ -277,7 +420,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[ZOPHIEL] Found ${uniqueResults.length} unique results across ${searchVariants.length} search vectors`);
+    console.log(`[ZOPHIEL] Found ${uniqueResults.length} unique results across ${searchVariants.length} search vectors + ${osintResults.length} OSINT engine results`);
 
     // ── Step 2: Prioritize scraping by source tier (primary sources first) ──
     const scoredResults = uniqueResults.map(r => {
@@ -300,12 +443,28 @@ Deno.serve(async (req) => {
       })
     );
 
+    // Add OSINT results as virtual scraped sources
+    for (const osint of osintResults) {
+      (scrapeResults as any[]).push({
+        status: 'fulfilled',
+        value: {
+          url: `osint://${osint.source.toLowerCase().replace(/\s+/g, '-')}`,
+          title: osint.source,
+          domain: osint.source,
+          content: osint.content,
+          tier: osint.tier,
+          provenanceScore: osint.tier === 1 ? 0.95 : 0.75,
+          hostile: false,
+        } as ScrapedSource,
+      });
+    }
+
     const sources: ScrapedSource[] = scrapeResults
       .filter((r): r is PromiseFulfilledResult<ScrapedSource | null> => r.status === 'fulfilled')
       .map(r => r.value)
       .filter((s): s is ScrapedSource => s !== null);
 
-    console.log(`[ZOPHIEL] Scraped ${sources.length} sources — validating integrity...`);
+    console.log(`[ZOPHIEL] Scraped ${sources.length} sources (incl. ${osintResults.length} OSINT) — validating integrity...`);
 
     // ── Step 3: Cross-Source Validation ──
     const validation = crossValidateSources(sources);
