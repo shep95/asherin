@@ -190,6 +190,7 @@ const DashboardSidebar = ({
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
       
       if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
 
       // Use centralized feature map for tier-gated views
       const featureId = VIEW_FEATURE_MAP[item.id];
