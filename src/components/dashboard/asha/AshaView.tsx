@@ -4,7 +4,7 @@ import {
   Lightbulb, MessageSquare, Database, Shield, BookOpen, FileOutput, Globe,
   Fingerprint, FlaskConical, GitCommitHorizontal, Target, Activity,
   Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen, Pencil, Check, X,
-  Brain, AlertTriangle, Keyboard, Network, Search, Sparkles, Hammer,
+  Brain, AlertTriangle, Keyboard, Network, Search, Sparkles, Hammer, Rocket, Zap as ZapIcon, Bot,
 } from "lucide-react";
 import type { AshaTab } from "./types";
 import IngestPanel from "./IngestPanel";
@@ -31,6 +31,10 @@ import PipelineBuilderPanel from "./PipelineBuilderPanel";
 import OntologyEnginePanel from "./OntologyEnginePanel";
 import WorkshopPanel from "./WorkshopPanel";
 import QuiverPanel from "./QuiverPanel";
+import AIPLogicPanel from "./AIPLogicPanel";
+import AIPBootcampsPanel from "./AIPBootcampsPanel";
+import OntologyGroundedAIPanel from "./OntologyGroundedAIPanel";
+import ActionEnginePanel from "./ActionEnginePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
@@ -64,6 +68,10 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "ontology", icon: Network, label: "Ontology" },
   { id: "workshop", icon: Hammer, label: "Workshop" },
   { id: "quiver", icon: Sparkles, label: "Quiver" },
+  { id: "aip-logic", icon: Shield, label: "AIP Logic" },
+  { id: "aip-bootcamps", icon: Rocket, label: "Bootcamps" },
+  { id: "grounded-ai", icon: Bot, label: "Grounded AI" },
+  { id: "action-engine", icon: ZapIcon, label: "Action Engine" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
 
@@ -270,6 +278,10 @@ const AshaInner = () => {
         case "ontology": return <OntologyEnginePanel />;
         case "workshop": return <WorkshopPanel />;
         case "quiver": return <QuiverPanel />;
+        case "aip-logic": return <AIPLogicPanel />;
+        case "aip-bootcamps": return <AIPBootcampsPanel />;
+        case "grounded-ai": return <OntologyGroundedAIPanel />;
+        case "action-engine": return <ActionEnginePanel />;
         case "query": return <QueryBar />;
       }
     })();
