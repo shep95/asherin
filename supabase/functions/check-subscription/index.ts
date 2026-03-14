@@ -115,8 +115,9 @@ serve(async (req) => {
       limit: 10,
     });
 
+    // Check for active, trialing, OR past_due subscriptions
     const activeSub = subscriptions.data.find(
-      (s) => s.status === "active" || s.status === "trialing"
+      (s) => s.status === "active" || s.status === "trialing" || s.status === "past_due"
     );
 
     if (!activeSub) {
