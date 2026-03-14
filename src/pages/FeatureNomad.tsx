@@ -11,9 +11,9 @@ import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiag
 const capabilities = [
   {
     icon: Globe,
-    title: "12 OSINT Search Engines",
+    title: "21 OSINT Search Engines",
     description:
-      "NOMAD pulls from Google (advanced operators), Shodan, Censys, SecurityTrails, VirusTotal, GreyNoise, BinaryEdge, FOFA, urlscan.io, crt.sh, GitHub, and public threat intel feeds — simultaneously.",
+      "Google, Bing, Shodan, Censys, SecurityTrails, VirusTotal, GreyNoise, BinaryEdge, FOFA, urlscan.io, crt.sh, GitHub, ThreatFox, Yandex, social platforms (LinkedIn/Facebook/Instagram/X/TikTok), Wayback Machine, public records, court portals, OpenCorporates, and mapping tools — all in parallel.",
   },
   {
     icon: Shield,
