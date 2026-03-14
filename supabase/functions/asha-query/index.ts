@@ -224,7 +224,28 @@ serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `You are Asha, a forensic-grade data intelligence AI. You conduct deep, exhaustive analysis — never surface-level summaries.
+        contents: [{ parts: [{ text: isQuiverMode
+? `You are Quiver, an AI-assisted data query engine inside the ASHA intelligence platform. Users ask questions in plain language and you answer from their connected datasets.
+
+${datasetContext ? `DATASET CONTEXT:\n${datasetContext}` : `User's Datasets:\n${datasetsContext}`}
+
+Known Insights:
+${insightsContext}
+
+${sampleData ? `Sample data:\n${sampleData}\n` : ""}
+
+User Question: "${query}"
+
+INSTRUCTIONS:
+- Answer the question directly using the available dataset context.
+- If exact data is available, provide specific numbers, percentages, and rankings.
+- If you need to approximate, clearly state your assumptions.
+- Format tables when comparing items. Use markdown.
+- Be concise but thorough. Every sentence must answer the question.
+- If the data is insufficient, specify exactly which datasets or columns would be needed.
+- Include a confidence level for your answer.`
+
+: `You are Asha, a forensic-grade data intelligence AI. You conduct deep, exhaustive analysis — never surface-level summaries.
 
 User's Datasets:
 ${datasetsContext}
@@ -247,7 +268,8 @@ INSTRUCTIONS:
 - If you can't answer from available data, specify exactly what additional data sources would close the gap.
 - Never use filler text or generic statements. Every sentence must add intelligence value.
 - Think like a senior analyst at a top-tier intelligence firm.
-${pluginInstructions ? `\nPLUGIN-ENHANCED CAPABILITIES:${pluginInstructions}\n\nLeverage ALL active plugin capabilities in your analysis. Mention which plugin capabilities you used.` : ""}` }] }],
+${pluginInstructions ? `\nPLUGIN-ENHANCED CAPABILITIES:${pluginInstructions}\n\nLeverage ALL active plugin capabilities in your analysis. Mention which plugin capabilities you used.` : ""}`
+}] }],
         generationConfig: { temperature: 0.3, maxOutputTokens: 8000 },
       }),
     });
