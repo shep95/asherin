@@ -172,6 +172,22 @@ const QueryBar = () => {
     }
 
     try {
+      // Build grounded context if grounded mode is on
+      let groundedContext = "";
+      if (groundedMode && user && activeSession) {
+        const [{ data: datasets }, { data: entities }] = await Promise.all([
+          supabase.from("asha_datasets").select("file_name, schema, row_count, col_count").eq("user_id", user.id).eq("session_id", activeSession.id).eq("status", "ready"),
+          supabase.from("asha_document_entities").select("entity_type, entity_value, confidence").eq("user_id", user.id).limit(100),
+        ]);
+        const dataContext = datasets?.map(d => {
+          const schema = d.schema as any[];
+          const fields = schema?.map((s: any) => `${s.name} (${s.type})`).join(", ") || "unknown";
+          return `Dataset "${d.file_name}": ${d.row_count} rows, ${d.col_count} cols. Fields: ${fields}`;
+        }).join("\n") || "";
+        const entityContext = entities?.length ? `Known entities: ${entities.map(e => `${e.entity_type}: ${e.entity_value}`).join("; ")}` : "";
+        groundedContext = `ONTOLOGY-GROUNDED MODE: Answer ONLY from the user's actual data. Never hallucinate or use general knowledge.\n\nAvailable Data:\n${dataContext}\n\n${entityContext}`;
+      }
+
       const { data: session } = await supabase.auth.getSession();
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asha-query`, {
         method: "POST",
@@ -180,7 +196,11 @@ const QueryBar = () => {
           Authorization: `Bearer ${session?.session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ query: q, sessionId: activeSession?.id }),
+        body: JSON.stringify({
+          query: q,
+          sessionId: activeSession?.id,
+          ...(groundedMode && groundedContext ? { mode: "grounded", context: groundedContext } : {}),
+        }),
       });
 
       if (!res.ok) throw new Error("Query failed");
