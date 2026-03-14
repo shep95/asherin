@@ -245,7 +245,9 @@ serve(async (req) => {
 
     // ── Analysis Mode ──
     const isVideo = body.mediaType === "video" && body.frames?.length;
-    const isImage = body.imageBase64 && body.imageMimeType;
+    const isImage = !!(body.imageBase64 && body.imageMimeType);
+
+    console.log("REIS payload check:", { mediaType: body.mediaType, isVideo, isImage, hasBase64: !!body.imageBase64, hasMime: !!body.imageMimeType, frameCount: body.frames?.length || 0 });
 
     if (!isVideo && !isImage) {
       throw new Error("Missing media data — upload an image or video");
