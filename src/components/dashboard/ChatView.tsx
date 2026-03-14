@@ -459,6 +459,19 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           </div>
         ) : (
           <div ref={messagesRef} className="relative mx-auto max-w-3xl space-y-4 py-4">
+            {/* Error banner */}
+            {chatError && (
+              <ChatErrorBanner
+                error={chatError}
+                onRetry={() => {
+                  setChatError(null);
+                  const lastUserMsg = [...conversation.messages].reverse().find(m => m.role === "user");
+                  if (lastUserMsg) onSendMessage(lastUserMsg.content);
+                }}
+                onFallback={() => setChatError(null)}
+                onDismiss={() => setChatError(null)}
+              />
+            )}
             <SmartSelectionMenu containerRef={messagesRef} onAction={handleSelectionAction} />
             {conversation.messages.map((msg, idx) => (
               <div
