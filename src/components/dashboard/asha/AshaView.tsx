@@ -69,7 +69,6 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "quiver", icon: Sparkles, label: "Quiver" },
   { id: "aip-logic", icon: Shield, label: "AIP Logic" },
   { id: "aip-bootcamps", icon: Rocket, label: "Bootcamps" },
-  { id: "grounded-ai", icon: Bot, label: "Grounded AI" },
   { id: "action-engine", icon: ZapIcon, label: "Action Engine" },
   { id: "query", icon: MessageSquare, label: "Ask Asha" },
 ];
