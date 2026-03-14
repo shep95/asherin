@@ -270,8 +270,8 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
   const actions = quickActions[intent];
 
   return (
-    <div className="px-4 pb-4 lg:pb-6">
-      <div className="mx-auto max-w-3xl">
+    <div className="px-2 sm:px-4 pb-3 sm:pb-4 lg:pb-6">
+      <div className="mx-auto max-w-3xl min-w-0">
         {/* Quick action pills */}
         {actions.length > 0 && value.trim() && (
           <div className="flex items-center gap-1.5 mb-2 animate-fade-in">
