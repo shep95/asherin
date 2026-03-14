@@ -319,7 +319,7 @@ const DashboardSidebar = ({
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <button onClick={onToggleSidebar} className="fixed top-4 right-4 z-50 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5 lg:hidden">
+      <button onClick={onToggleSidebar} className={`fixed top-4 z-50 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md p-2.5 lg:hidden ${sidebarOpen ? "left-4" : "right-4"}`}>
         {sidebarOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
       </button>
 
