@@ -590,6 +590,15 @@ const NomadView = () => {
             {activeTab === "map" && (
               <NomadMapLayer entities={allEntities} investigations={sessionInvestigations} />
             )}
+            {activeTab === "lineage" && (
+              <NomadLineage entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "ontology" && (
+              <NomadOntology entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "quiver" && (
+              <NomadQuiver entities={allEntities} investigations={sessionInvestigations} />
+            )}
           </Suspense>
         )}
       </div>
