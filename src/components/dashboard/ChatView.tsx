@@ -517,6 +517,10 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             )}
           </div>
+          {onBrainChange && (
+            <BrainsManager activeBrainId={activeBrainId ?? null} onBrainChange={onBrainChange} />
+          )}
+          <ConversationApiToggles conversationId={conversation.id} storedProviders={storedProviders} />
         </div>
       )}
 
