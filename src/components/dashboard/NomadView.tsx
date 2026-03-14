@@ -19,6 +19,9 @@ const NomadObjectExplorer = lazy(() => import("./nomad/NomadObjectExplorer"));
 const NomadTimeline = lazy(() => import("./nomad/NomadTimeline"));
 const NomadGraphAnalysis = lazy(() => import("./nomad/NomadGraphAnalysis"));
 const NomadMapLayer = lazy(() => import("./nomad/NomadMapLayer"));
+const NomadLineage = lazy(() => import("./nomad/NomadLineage"));
+const NomadOntology = lazy(() => import("./nomad/NomadOntology"));
+const NomadQuiver = lazy(() => import("./nomad/NomadQuiver"));
 
 interface NomadInvestigation {
   id: string;
