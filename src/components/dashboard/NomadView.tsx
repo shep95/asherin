@@ -22,6 +22,15 @@ const NomadMapLayer = lazy(() => import("./nomad/NomadMapLayer"));
 const NomadLineage = lazy(() => import("./nomad/NomadLineage"));
 const NomadOntology = lazy(() => import("./nomad/NomadOntology"));
 const NomadQuiver = lazy(() => import("./nomad/NomadQuiver"));
+const NomadEntityWorkbench = lazy(() => import("./nomad/NomadEntityWorkbench"));
+const NomadClaimsEvidence = lazy(() => import("./nomad/NomadClaimsEvidence"));
+const NomadSourceIntel = lazy(() => import("./nomad/NomadSourceIntel"));
+const NomadCaseManager = lazy(() => import("./nomad/NomadCaseManager"));
+const NomadAdversaryView = lazy(() => import("./nomad/NomadAdversaryView"));
+const NomadMediaForensics = lazy(() => import("./nomad/NomadMediaForensics"));
+const NomadCollectionPipeline = lazy(() => import("./nomad/NomadCollectionPipeline"));
+const NomadHandleHunter = lazy(() => import("./nomad/NomadHandleHunter"));
+const NomadNetworkDiff = lazy(() => import("./nomad/NomadNetworkDiff"));
 
 interface NomadInvestigation {
   id: string;
@@ -67,7 +76,7 @@ interface NomadMessage {
   status?: "sending" | "queued" | "sent" | "failed";
 }
 
-type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver";
+type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff";
 
 const INVESTIGATION_TYPES = [
   { id: "person", icon: User, label: "Person", desc: "Deep profile & predictions" },
@@ -82,10 +91,19 @@ const INVESTIGATION_TYPES = [
 
 const TABS: { id: NomadTab; icon: any; label: string }[] = [
   { id: "chat", icon: MessageSquare, label: "Intel Chat" },
+  { id: "entities", icon: User, label: "Entities" },
+  { id: "claims", icon: Shield, label: "Claims" },
   { id: "objects", icon: Layers, label: "Objects" },
   { id: "timeline", icon: Clock, label: "Timeline" },
   { id: "graph", icon: Network, label: "Graph" },
   { id: "map", icon: Map, label: "Map" },
+  { id: "sources", icon: ShieldCheck, label: "Sources" },
+  { id: "handles", icon: Fingerprint, label: "Handles" },
+  { id: "adversary", icon: Crosshair, label: "Adversary" },
+  { id: "media", icon: Image, label: "Media" },
+  { id: "case", icon: Search, label: "Case Mgmt" },
+  { id: "pipeline", icon: GitBranch, label: "Pipelines" },
+  { id: "diff", icon: TrendingUp, label: "Diff" },
   { id: "lineage", icon: GitBranch, label: "Lineage" },
   { id: "ontology", icon: Layers, label: "Ontology" },
   { id: "quiver", icon: Sparkles, label: "Quiver" },
@@ -598,6 +616,33 @@ const NomadView = () => {
             )}
             {activeTab === "quiver" && (
               <NomadQuiver entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "entities" && (
+              <NomadEntityWorkbench entities={allEntities} crossRefMap={crossRefMap} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "claims" && (
+              <NomadClaimsEvidence entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "sources" && (
+              <NomadSourceIntel investigations={sessionInvestigations} />
+            )}
+            {activeTab === "case" && (
+              <NomadCaseManager entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "adversary" && (
+              <NomadAdversaryView entities={allEntities} investigations={sessionInvestigations} />
+            )}
+            {activeTab === "media" && (
+              <NomadMediaForensics />
+            )}
+            {activeTab === "pipeline" && (
+              <NomadCollectionPipeline />
+            )}
+            {activeTab === "handles" && (
+              <NomadHandleHunter entities={allEntities} />
+            )}
+            {activeTab === "diff" && (
+              <NomadNetworkDiff entities={allEntities} investigations={sessionInvestigations} />
             )}
           </Suspense>
         )}
