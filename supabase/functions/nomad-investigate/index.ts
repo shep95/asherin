@@ -1110,6 +1110,381 @@ async function ingestThreatIntel(query: string): Promise<IntelNode> {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// EXTENDED OSINT ENGINES — 9 Additional Intelligence Sources
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── 13. Bing Web Search ─────────────────────────────────────────────────────
+async function ingestBing(query: string, operators?: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('BING_SEARCH_API_KEY');
+    if (!apiKey) return emptyNode('Bing', 2);
+    const q = operators ? `${query} ${operators}` : query;
+    const resp = await fetch(`https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(q)}&count=10&mkt=en-US`, {
+      headers: { 'Ocp-Apim-Subscription-Key': apiKey },
+    });
+    if (!resp.ok) return emptyNode('Bing', 2);
+    const json = await resp.json();
+    if (!json.webPages?.value?.length) return emptyNode('Bing', 2);
+    const data = `Bing Search Results:\n${json.webPages.value.map((r: any) => `- ${r.name}\n  ${r.url}\n  ${r.snippet || ''}`).join('\n')}`;
+    return {
+      source: 'Bing Web Search (Advanced Operators)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('bing', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.8,
+      entities: extractEntitiesFromText(data, 'Bing'),
+    };
+  } catch { return emptyNode('Bing', 2); }
+}
+
+// ── 14. Social Platform Search (Facebook, Instagram, TikTok via DDG) ────────
+async function ingestSocialPlatformSearch(query: string, platform: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|person|research|find|who is|look up|about/gi, '').trim();
+    const siteMap: Record<string, string> = {
+      facebook: 'site:facebook.com',
+      instagram: 'site:instagram.com',
+      tiktok: 'site:tiktok.com',
+      linkedin: 'site:linkedin.com',
+      x: 'site:x.com OR site:twitter.com',
+    };
+    const siteFilter = siteMap[platform] || `site:${platform}.com`;
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(cleaned + ' ' + siteFilter)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+    });
+    if (!resp.ok) return emptyNode(`${platform} Search`, 4);
+    const html = await resp.text();
+    const results: string[] = [];
+    const blocks = html.split(/class="result\s/);
+    for (let i = 1; i < blocks.length && results.length < 5; i++) {
+      const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      if (title) results.push(`- ${title}: ${snippet}`);
+    }
+    if (!results.length) return emptyNode(`${platform} Search`, 4);
+    const data = `${platform.charAt(0).toUpperCase() + platform.slice(1)} Search Results:\n${results.join('\n')}`;
+    return {
+      source: `${platform.charAt(0).toUpperCase() + platform.slice(1)} (via web search)`,
+      tier: 4,
+      data,
+      provenanceHash: await computeProvenanceHash(`social-${platform}`, data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.55,
+      entities: extractEntitiesFromText(data, `${platform} Search`),
+    };
+  } catch { return emptyNode(`${platform} Search`, 4); }
+}
+
+// ── 15. Yandex Search (Reverse Image + Web) ─────────────────────────────────
+async function ingestYandex(query: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('YANDEX_SEARCH_API_KEY');
+    const folderId = Deno.env.get('YANDEX_FOLDER_ID');
+    if (!apiKey || !folderId) {
+      // Fallback: DDG with Yandex-indexed content hints
+      const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query + ' site:yandex.com OR site:yandex.ru')}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+      });
+      if (!resp.ok) return emptyNode('Yandex', 3);
+      const html = await resp.text();
+      const results: string[] = [];
+      const blocks = html.split(/class="result\s/);
+      for (let i = 1; i < blocks.length && results.length < 5; i++) {
+        const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+        if (title) results.push(`- ${title}`);
+      }
+      if (!results.length) return emptyNode('Yandex', 3);
+      const data = `Yandex-Indexed Results:\n${results.join('\n')}`;
+      return {
+        source: 'Yandex (via web search fallback)',
+        tier: 3,
+        data,
+        provenanceHash: await computeProvenanceHash('yandex-fallback', data),
+        timestamp: new Date().toISOString(),
+        confidence: 0.6,
+        entities: extractEntitiesFromText(data, 'Yandex'),
+      };
+    }
+    const resp = await fetch(`https://yandex.com/search/xml?user=${folderId}&key=${apiKey}&query=${encodeURIComponent(query)}&l10n=en&sortby=rlv&filter=none&groupby=attr%3D%22%22.mode%3Dflat.groups-on-page%3D10`);
+    if (!resp.ok) return emptyNode('Yandex', 3);
+    const xml = await resp.text();
+    const results: string[] = [];
+    const urlMatches = xml.matchAll(/<url>([\s\S]*?)<\/url>/g);
+    const titleMatches = xml.matchAll(/<title>([\s\S]*?)<\/title>/g);
+    const urls = [...urlMatches].map(m => m[1].replace(/<[^>]*>/g, '').trim());
+    const titles = [...titleMatches].map(m => m[1].replace(/<[^>]*>/g, '').trim());
+    for (let i = 0; i < Math.min(urls.length, 10); i++) {
+      results.push(`- ${titles[i] || 'N/A'}: ${urls[i]}`);
+    }
+    if (!results.length) return emptyNode('Yandex', 3);
+    const data = `Yandex Search Results:\n${results.join('\n')}`;
+    return {
+      source: 'Yandex Search (Russian + Eastern European coverage)',
+      tier: 3,
+      data,
+      provenanceHash: await computeProvenanceHash('yandex', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.75,
+      entities: extractEntitiesFromText(data, 'Yandex'),
+    };
+  } catch { return emptyNode('Yandex', 3); }
+}
+
+// ── 16. Startpage (Privacy-focused, alternate Google indexing) ───────────────
+async function ingestStartpage(query: string): Promise<IntelNode> {
+  try {
+    // Startpage has no public API — use DDG as a proxy for alternate indexing
+    const resp = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1&no_redirect=1`);
+    if (!resp.ok) return emptyNode('Startpage/Alt Index', 3);
+    const json = await resp.json();
+    const results: string[] = [];
+    if (json.AbstractText) results.push(`Abstract: ${json.AbstractText} (${json.AbstractSource})`);
+    if (json.RelatedTopics?.length) {
+      for (const topic of json.RelatedTopics.slice(0, 8)) {
+        if (topic.Text) results.push(`- ${topic.Text}`);
+        if (topic.Topics) {
+          for (const sub of topic.Topics.slice(0, 3)) {
+            if (sub.Text) results.push(`  - ${sub.Text}`);
+          }
+        }
+      }
+    }
+    if (!results.length) return emptyNode('Startpage/Alt Index', 3);
+    const data = `Alternate Index Results:\n${results.join('\n')}`;
+    return {
+      source: 'Alternate Search Index (DuckDuckGo/Startpage)',
+      tier: 3,
+      data,
+      provenanceHash: await computeProvenanceHash('startpage', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.65,
+      entities: extractEntitiesFromText(data, 'Alt Index'),
+    };
+  } catch { return emptyNode('Startpage/Alt Index', 3); }
+}
+
+// ── 17. Wayback Machine (Internet Archive CDX API) ──────────────────────────
+async function ingestWaybackMachine(query: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|search|find|wayback|archive|deleted|old|cached|history/gi, '').trim();
+    // Detect if it's a URL
+    const isUrl = /^https?:\/\//.test(cleaned) || /^[\w-]+\.[\w.]+/.test(cleaned);
+    const targetUrl = isUrl ? (cleaned.startsWith('http') ? cleaned : `https://${cleaned}`) : '';
+    
+    if (!targetUrl) {
+      // Search for the term across the Wayback Machine
+      const resp = await fetch(`https://web.archive.org/cdx/search/cdx?url=*.${encodeURIComponent(cleaned)}*&output=json&limit=10&fl=original,timestamp,statuscode,mimetype`);
+      if (!resp.ok) return emptyNode('Wayback Machine', 2);
+      const json = await resp.json();
+      if (!json.length || json.length <= 1) return emptyNode('Wayback Machine', 2);
+      const rows = json.slice(1, 11);
+      const data = `Wayback Machine Archived Pages:\n${rows.map((r: string[]) => {
+        const ts = r[1];
+        const date = `${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}`;
+        return `- ${r[0]} | Archived: ${date} | Status: ${r[2]} | Type: ${r[3]}`;
+      }).join('\n')}`;
+      return {
+        source: 'Wayback Machine (Internet Archive)',
+        tier: 2,
+        data,
+        provenanceHash: await computeProvenanceHash('wayback', data),
+        timestamp: new Date().toISOString(),
+        confidence: 0.85,
+        entities: extractEntitiesFromText(data, 'Wayback Machine'),
+      };
+    }
+    
+    // Get snapshots for a specific URL
+    const resp = await fetch(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(targetUrl)}&output=json&limit=15&fl=original,timestamp,statuscode,mimetype&collapse=timestamp:6`);
+    if (!resp.ok) return emptyNode('Wayback Machine', 2);
+    const json = await resp.json();
+    if (!json.length || json.length <= 1) return emptyNode('Wayback Machine', 2);
+    const rows = json.slice(1);
+    const data = `Wayback Machine Snapshots for ${targetUrl}:\nTotal snapshots: ${rows.length}\n${rows.map((r: string[]) => {
+      const ts = r[1];
+      const date = `${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}`;
+      return `- ${date} | Status: ${r[2]} | Type: ${r[3]}\n  View: https://web.archive.org/web/${ts}/${r[0]}`;
+    }).join('\n')}`;
+    return {
+      source: 'Wayback Machine (Internet Archive)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('wayback', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.9,
+      entities: extractEntitiesFromText(data, 'Wayback Machine'),
+    };
+  } catch { return emptyNode('Wayback Machine', 2); }
+}
+
+// ── 18. Public Records Aggregators (via advanced dork search) ────────────────
+async function ingestPublicRecords(query: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|search|find|public records|records|address|relatives/gi, '').trim();
+    // Search for public records across aggregator sites
+    const searchQuery = `"${cleaned}" site:whitepages.com OR site:spokeo.com OR site:beenverified.com OR site:truepeoplesearch.com OR site:fastpeoplesearch.com OR site:thatsThem.com`;
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+    });
+    if (!resp.ok) return emptyNode('Public Records', 3);
+    const html = await resp.text();
+    const results: string[] = [];
+    const blocks = html.split(/class="result\s/);
+    for (let i = 1; i < blocks.length && results.length < 8; i++) {
+      const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      if (title) results.push(`- ${title}: ${snippet}`);
+    }
+    if (!results.length) return emptyNode('Public Records', 3);
+    const data = `Public Records Search Results:\n${results.join('\n')}`;
+    return {
+      source: 'Public Records Aggregators (Whitepages, Spokeo, etc.)',
+      tier: 3,
+      data,
+      provenanceHash: await computeProvenanceHash('public-records', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.65,
+      entities: extractEntitiesFromText(data, 'Public Records'),
+    };
+  } catch { return emptyNode('Public Records', 3); }
+}
+
+// ── 19. OpenCorporates (Business Registry / Company Director Search) ────────
+async function ingestOpenCorporates(query: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|search|find|company|corporation|llc|inc|ltd|business|registry|director|officer/gi, '').trim();
+    // Company search
+    const compResp = await fetch(`https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(cleaned)}&per_page=5&order=score`);
+    let data = '';
+    if (compResp.ok) {
+      const compJson = await compResp.json();
+      const companies = compJson.results?.companies || [];
+      if (companies.length) {
+        data += `Business Registry — Companies:\n${companies.map((c: any) => {
+          const co = c.company || {};
+          return `- ${co.name || 'N/A'} (${co.jurisdiction_code || 'N/A'})\n  Status: ${co.current_status || 'N/A'} | Type: ${co.company_type || 'N/A'}\n  Incorporated: ${co.incorporation_date || 'N/A'} | Reg #: ${co.company_number || 'N/A'}\n  Address: ${co.registered_address_in_full || 'N/A'}`;
+        }).join('\n')}`;
+      }
+    }
+    // Officer search
+    const offResp = await fetch(`https://api.opencorporates.com/v0.4/officers/search?q=${encodeURIComponent(cleaned)}&per_page=5&order=score`);
+    if (offResp.ok) {
+      const offJson = await offResp.json();
+      const officers = offJson.results?.officers || [];
+      if (officers.length) {
+        data += `\n\nBusiness Registry — Officers/Directors:\n${officers.map((o: any) => {
+          const off = o.officer || {};
+          return `- ${off.name || 'N/A'} — ${off.position || 'N/A'}\n  Company: ${off.company?.name || 'N/A'} (${off.company?.jurisdiction_code || 'N/A'})\n  Start: ${off.start_date || 'N/A'} | End: ${off.end_date || 'Active'}`;
+        }).join('\n')}`;
+      }
+    }
+    if (!data) return emptyNode('OpenCorporates', 2);
+    return {
+      source: 'OpenCorporates (Global Business Registry)',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('opencorporates', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.88,
+      entities: extractEntitiesFromText(data, 'OpenCorporates'),
+    };
+  } catch { return emptyNode('OpenCorporates', 2); }
+}
+
+// ── 20. Court/Filing Portals (PACER + State Courts via DDG) ─────────────────
+async function ingestCourtFilings(query: string): Promise<IntelNode> {
+  try {
+    const cleaned = query.replace(/investigate|search|find|court|lawsuit|filing|judgment|case/gi, '').trim();
+    const searchQuery = `"${cleaned}" site:courtlistener.com OR site:unicourt.com OR site:dockets.justia.com OR site:law.justia.com OR site:scholar.google.com/scholar_case`;
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+    });
+    if (!resp.ok) return emptyNode('Court Filings', 1);
+    const html = await resp.text();
+    const results: string[] = [];
+    const blocks = html.split(/class="result\s/);
+    for (let i = 1; i < blocks.length && results.length < 8; i++) {
+      const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      if (title) results.push(`- ${title}: ${snippet}`);
+    }
+    if (!results.length) return emptyNode('Court Filings', 1);
+    const data = `Court/Filing Portal Results:\n${results.join('\n')}`;
+    return {
+      source: 'Court & Filing Portals (PACER, Justia, UniCourt)',
+      tier: 1,
+      data,
+      provenanceHash: await computeProvenanceHash('court-filings', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.85,
+      entities: extractEntitiesFromText(data, 'Court Filings'),
+    };
+  } catch { return emptyNode('Court Filings', 1); }
+}
+
+// ── 21. Google Maps / Places Intelligence ───────────────────────────────────
+async function ingestMappingTools(query: string): Promise<IntelNode> {
+  try {
+    const apiKey = Deno.env.get('GOOGLE_PLACES_API_KEY') || Deno.env.get('GOOGLE_CSE_API_KEY');
+    if (!apiKey) {
+      // Fallback: DDG search for Google Maps listings
+      const cleaned = query.replace(/investigate|search|find|map|location|address|business/gi, '').trim();
+      const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(cleaned + ' site:google.com/maps OR site:yelp.com OR site:bbb.org')}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+      });
+      if (!resp.ok) return emptyNode('Mapping Tools', 3);
+      const html = await resp.text();
+      const results: string[] = [];
+      const blocks = html.split(/class="result\s/);
+      for (let i = 1; i < blocks.length && results.length < 5; i++) {
+        const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+        const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+        if (title) results.push(`- ${title}: ${snippet}`);
+      }
+      if (!results.length) return emptyNode('Mapping Tools', 3);
+      const data = `Mapping & Location Intelligence:\n${results.join('\n')}`;
+      return {
+        source: 'Mapping Tools (Google Maps, Yelp, BBB)',
+        tier: 3,
+        data,
+        provenanceHash: await computeProvenanceHash('mapping', data),
+        timestamp: new Date().toISOString(),
+        confidence: 0.6,
+        entities: extractEntitiesFromText(data, 'Mapping Tools'),
+      };
+    }
+    // Google Places Text Search
+    const cleaned = query.replace(/investigate|search|find|map|location/gi, '').trim();
+    const resp = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(cleaned)}&key=${apiKey}`);
+    if (!resp.ok) return emptyNode('Google Places', 2);
+    const json = await resp.json();
+    if (!json.results?.length) return emptyNode('Google Places', 2);
+    const data = `Google Places / Maps Intelligence:\n${json.results.slice(0, 8).map((p: any) => 
+      `- ${p.name} | Rating: ${p.rating || 'N/A'} (${p.user_ratings_total || 0} reviews)\n  Address: ${p.formatted_address || 'N/A'}\n  Type: ${p.types?.slice(0, 3).join(', ') || 'N/A'} | Status: ${p.business_status || 'N/A'}`
+    ).join('\n')}`;
+    return {
+      source: 'Google Places / Maps Intelligence',
+      tier: 2,
+      data,
+      provenanceHash: await computeProvenanceHash('google-places', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.82,
+      entities: extractEntitiesFromText(data, 'Google Places'),
+    };
+  } catch { return emptyNode('Mapping Tools', 3); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ESRC STAGE 3: REASON — Entity Resolution + Two-Stage Selection & Verification
 // "Select from shortlist, then verify with advanced reasoning"
 // ══════════════════════════════════════════════════════════════════════════════
