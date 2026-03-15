@@ -291,6 +291,14 @@ const EBookGeneratorView = () => {
 
     let result = "";
     try {
+      const diagramInstruction = settings.includeDiagrams
+        ? `\n9. DIAGRAMS & WORKFLOWS: After every 2-3 text chapters, insert a DIAGRAM chapter. For diagram chapters, set "type": "diagram" and include:
+   - "title": A descriptive diagram title (e.g. "System Architecture Overview", "Workflow: Data Pipeline")
+   - "content": A written explanation of the diagram (2-3 paragraphs)
+   - "diagramDescription": A detailed textual description of the diagram structure — nodes, connections, hierarchy, and flow. Describe it as boxes/steps connected by arrows. Use format like: "[Box A] → [Box B] → [Box C]" or hierarchical lists.
+   Create diagrams that visualize: processes, architectures, hierarchies, workflows, relationships, timelines, or concept maps from the content.`
+        : "";
+
       await streamChat({
         messages: [{
           role: "user",
@@ -300,27 +308,36 @@ BOOK TITLE: "${metadata.title}"
 BOOK DESCRIPTION: "${metadata.description}"
 TONE: ${toneMap[settings.tone]}
 
+CRITICAL RULE — PRESERVE ALL DETAILS:
+- You MUST include EVERY piece of information, data point, fact, example, explanation, and detail from the raw text.
+- Do NOT summarize, condense, shorten, or skip any content. NOTHING gets left out.
+- Your job is to REWRITE and REORGANIZE — not to reduce. The output should be LONGER or EQUAL in length to the input.
+- If the raw text mentions a specific number, name, date, process, step, or technical detail — it MUST appear in the final chapters.
+- Think of yourself as a ghostwriter: every idea the author wrote must be in the book, just polished and restructured.
+
 INSTRUCTIONS:
 1. ${chapterCountInstruction}
-2. ${settings.removeDuplicates ? "Remove duplicate content and merge similar sections." : "Keep all content as-is."}
-3. ${settings.rewriteForConsistency ? "Rewrite content for consistency in tone, style, and voice throughout." : "Preserve original wording as much as possible."}
+2. ${settings.removeDuplicates ? "Merge truly identical duplicate paragraphs, but keep all unique details even if topics overlap." : "Keep all content as-is."}
+3. ${settings.rewriteForConsistency ? "Rewrite content for consistency in tone, style, and voice throughout — but preserve every fact, detail, and data point." : "Preserve original wording as much as possible."}
 4. ${settings.fixGrammar ? "Fix all grammar, spelling, and punctuation errors." : "Keep original grammar."}
 5. ${settings.includeChapterSummaries ? "Write a brief 2-3 sentence summary for each chapter." : "No chapter summaries needed."}
 6. Each chapter must have a compelling title.
 7. Organize content logically — group related topics, ensure flow between chapters.
-8. Ensure each chapter has substantial content (minimum 500 words per chapter).
+8. Ensure each chapter has substantial content (minimum 500 words per chapter). Longer chapters are preferred — do not artificially shorten content.${diagramInstruction}
 
 OUTPUT FORMAT: Return ONLY a valid JSON array. Each element:
 {
   "title": "Chapter Title",
   "content": "Full chapter text with proper paragraphs...",
-  "summary": "Brief chapter summary (if requested)"
+  "summary": "Brief chapter summary (if requested)",
+  "type": "text"
 }
+${settings.includeDiagrams ? 'For diagram chapters, use "type": "diagram" and include "diagramDescription": "detailed visual layout description"' : ""}
 
 Do NOT wrap in markdown. Return ONLY the JSON array.
 
 RAW TEXT TO STRUCTURE:
-${allRawText.slice(0, 100000)}`,
+${allRawText.slice(0, 200000)}`,
         }],
         mode: "chat",
         onDelta: (chunk) => {
