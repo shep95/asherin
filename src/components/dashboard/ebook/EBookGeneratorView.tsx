@@ -663,30 +663,90 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
       // Chapters
       chapters.forEach((chapter, chIdx) => {
         addPage();
-        pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(160);
-        const cn = `CHAPTER ${chIdx + 1}`; pdf.text(cn, (ps.w - pdf.getTextWidth(cn)) / 2, margin.top + 60);
-        pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(240);
-        const ctl = pdf.splitTextToSize(chapter.title, contentW);
-        let cy = margin.top + 95;
-        ctl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, cy); cy += chapterTitleSize + 6; });
-        pdf.setDrawColor(120); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10); cy += 35;
+        const isDiagram = chapter.type === "diagram";
 
-        if (settings.includeChapterSummaries && chapter.summary) {
-          pdf.setFont("helvetica", "italic"); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor(170);
-          pdf.splitTextToSize(chapter.summary, contentW - 40).forEach((l: string) => {
-            if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
-            pdf.text(l, margin.left + 20, cy); cy += lineH;
-          }); cy += lineH;
+        if (isDiagram) {
+          // Diagram page layout
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(160);
+          const dl = "DIAGRAM"; pdf.text(dl, (ps.w - pdf.getTextWidth(dl)) / 2, margin.top + 40);
+          pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(240);
+          const dtl = pdf.splitTextToSize(chapter.title, contentW);
+          let dy = margin.top + 75;
+          dtl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, dy); dy += chapterTitleSize + 6; });
+          pdf.setDrawColor(120); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, dy + 10, ps.w * 0.7, dy + 10); dy += 35;
+
+          // Draw diagram boxes from diagramDescription
+          if (chapter.diagramDescription) {
+            const nodes = chapter.diagramDescription.split(/→|->|➜|➔/).map(n => n.replace(/[\[\]]/g, "").trim()).filter(Boolean);
+            const boxW = Math.min(contentW * 0.6, 240);
+            const boxH = 32;
+            const gap = 18;
+            const startX = (ps.w - boxW) / 2;
+
+            nodes.forEach((node, ni) => {
+              if (dy + boxH + gap > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); dy = margin.top + 30; }
+              // Box
+              pdf.setDrawColor(130, 80, 220); pdf.setLineWidth(1);
+              pdf.setFillColor(40, 20, 60);
+              pdf.roundedRect(startX, dy, boxW, boxH, 6, 6, "FD");
+              pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(220);
+              const nodeLines = pdf.splitTextToSize(node, boxW - 16);
+              nodeLines.forEach((l: string, li: number) => {
+                pdf.text(l, startX + (boxW - pdf.getTextWidth(l)) / 2, dy + 14 + li * 12);
+              });
+              dy += boxH;
+              // Arrow
+              if (ni < nodes.length - 1) {
+                const arrowX = ps.w / 2;
+                pdf.setDrawColor(130, 80, 220); pdf.setLineWidth(1.5);
+                pdf.line(arrowX, dy, arrowX, dy + gap - 4);
+                // arrowhead
+                pdf.setFillColor(130, 80, 220);
+                pdf.triangle(arrowX - 4, dy + gap - 6, arrowX + 4, dy + gap - 6, arrowX, dy + gap - 1, "F");
+                dy += gap;
+              } else {
+                dy += 16;
+              }
+            });
+          }
+
+          // Content explanation below diagram
+          dy += 10;
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(200);
+          chapter.content.split(/\n\n+/).forEach(para => {
+            const trimmed = para.trim(); if (!trimmed) return;
+            pdf.splitTextToSize(trimmed, contentW).forEach((l: string) => {
+              if (dy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); dy = margin.top + 20; }
+              pdf.text(l, margin.left, dy); dy += lineH;
+            }); dy += lineH * 0.5;
+          });
+        } else {
+          // Standard text chapter
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(160);
+          const cn = `CHAPTER ${chIdx + 1}`; pdf.text(cn, (ps.w - pdf.getTextWidth(cn)) / 2, margin.top + 60);
+          pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(240);
+          const ctl = pdf.splitTextToSize(chapter.title, contentW);
+          let cy = margin.top + 95;
+          ctl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, cy); cy += chapterTitleSize + 6; });
+          pdf.setDrawColor(120); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10); cy += 35;
+
+          if (settings.includeChapterSummaries && chapter.summary) {
+            pdf.setFont("helvetica", "italic"); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor(170);
+            pdf.splitTextToSize(chapter.summary, contentW - 40).forEach((l: string) => {
+              if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
+              pdf.text(l, margin.left + 20, cy); cy += lineH;
+            }); cy += lineH;
+          }
+
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(220);
+          chapter.content.split(/\n\n+/).forEach(para => {
+            const trimmed = para.trim(); if (!trimmed) return;
+            pdf.splitTextToSize(trimmed, contentW).forEach((l: string, li: number) => {
+              if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
+              pdf.text(l, margin.left + (li === 0 ? 20 : 0), cy); cy += lineH;
+            }); cy += lineH * 0.5;
+          });
         }
-
-        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(220);
-        chapter.content.split(/\n\n+/).forEach(para => {
-          const trimmed = para.trim(); if (!trimmed) return;
-          pdf.splitTextToSize(trimmed, contentW).forEach((l: string, li: number) => {
-            if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
-            pdf.text(l, margin.left + (li === 0 ? 20 : 0), cy); cy += lineH;
-          }); cy += lineH * 0.5;
-        });
         drawPageNumber(pageNum);
       });
 
