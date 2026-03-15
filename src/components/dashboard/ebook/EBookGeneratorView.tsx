@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS: EBookSettings = {
   includeTableOfContents: true, includeChapterSummaries: true,
   includeDedication: false, includeAboutAuthor: false, includeCopyright: true,
   rewriteForConsistency: true, fixGrammar: true, removeDuplicates: true,
+  includeDiagrams: false,
 };
 
 const EBookGeneratorView = () => {
@@ -290,6 +291,14 @@ const EBookGeneratorView = () => {
 
     let result = "";
     try {
+      const diagramInstruction = settings.includeDiagrams
+        ? `\n9. DIAGRAMS & WORKFLOWS: After every 2-3 text chapters, insert a DIAGRAM chapter. For diagram chapters, set "type": "diagram" and include:
+   - "title": A descriptive diagram title (e.g. "System Architecture Overview", "Workflow: Data Pipeline")
+   - "content": A written explanation of the diagram (2-3 paragraphs)
+   - "diagramDescription": A detailed textual description of the diagram structure — nodes, connections, hierarchy, and flow. Describe it as boxes/steps connected by arrows. Use format like: "[Box A] → [Box B] → [Box C]" or hierarchical lists.
+   Create diagrams that visualize: processes, architectures, hierarchies, workflows, relationships, timelines, or concept maps from the content.`
+        : "";
+
       await streamChat({
         messages: [{
           role: "user",
@@ -299,27 +308,36 @@ BOOK TITLE: "${metadata.title}"
 BOOK DESCRIPTION: "${metadata.description}"
 TONE: ${toneMap[settings.tone]}
 
+CRITICAL RULE — PRESERVE ALL DETAILS:
+- You MUST include EVERY piece of information, data point, fact, example, explanation, and detail from the raw text.
+- Do NOT summarize, condense, shorten, or skip any content. NOTHING gets left out.
+- Your job is to REWRITE and REORGANIZE — not to reduce. The output should be LONGER or EQUAL in length to the input.
+- If the raw text mentions a specific number, name, date, process, step, or technical detail — it MUST appear in the final chapters.
+- Think of yourself as a ghostwriter: every idea the author wrote must be in the book, just polished and restructured.
+
 INSTRUCTIONS:
 1. ${chapterCountInstruction}
-2. ${settings.removeDuplicates ? "Remove duplicate content and merge similar sections." : "Keep all content as-is."}
-3. ${settings.rewriteForConsistency ? "Rewrite content for consistency in tone, style, and voice throughout." : "Preserve original wording as much as possible."}
+2. ${settings.removeDuplicates ? "Merge truly identical duplicate paragraphs, but keep all unique details even if topics overlap." : "Keep all content as-is."}
+3. ${settings.rewriteForConsistency ? "Rewrite content for consistency in tone, style, and voice throughout — but preserve every fact, detail, and data point." : "Preserve original wording as much as possible."}
 4. ${settings.fixGrammar ? "Fix all grammar, spelling, and punctuation errors." : "Keep original grammar."}
 5. ${settings.includeChapterSummaries ? "Write a brief 2-3 sentence summary for each chapter." : "No chapter summaries needed."}
 6. Each chapter must have a compelling title.
 7. Organize content logically — group related topics, ensure flow between chapters.
-8. Ensure each chapter has substantial content (minimum 500 words per chapter).
+8. Ensure each chapter has substantial content (minimum 500 words per chapter). Longer chapters are preferred — do not artificially shorten content.${diagramInstruction}
 
 OUTPUT FORMAT: Return ONLY a valid JSON array. Each element:
 {
   "title": "Chapter Title",
   "content": "Full chapter text with proper paragraphs...",
-  "summary": "Brief chapter summary (if requested)"
+  "summary": "Brief chapter summary (if requested)",
+  "type": "text"
 }
+${settings.includeDiagrams ? 'For diagram chapters, use "type": "diagram" and include "diagramDescription": "detailed visual layout description"' : ""}
 
 Do NOT wrap in markdown. Return ONLY the JSON array.
 
 RAW TEXT TO STRUCTURE:
-${allRawText.slice(0, 100000)}`,
+${allRawText.slice(0, 200000)}`,
         }],
         mode: "chat",
         onDelta: (chunk) => {
@@ -434,7 +452,7 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
     setChapters(prev => [...prev, { id: `ch-new-${Date.now()}`, title: `Chapter ${prev.length + 1}`, content: "", summary: "" }]);
   };
 
-  const updateChapter = (id: string, field: keyof EBookChapter, value: string) => {
+  const updateChapter = (id: string, field: keyof EBookChapter | "diagramDescription", value: string) => {
     setChapters(prev => prev.map(ch => ch.id === id ? { ...ch, [field]: value } : ch));
   };
 
@@ -645,30 +663,90 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
       // Chapters
       chapters.forEach((chapter, chIdx) => {
         addPage();
-        pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(160);
-        const cn = `CHAPTER ${chIdx + 1}`; pdf.text(cn, (ps.w - pdf.getTextWidth(cn)) / 2, margin.top + 60);
-        pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(240);
-        const ctl = pdf.splitTextToSize(chapter.title, contentW);
-        let cy = margin.top + 95;
-        ctl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, cy); cy += chapterTitleSize + 6; });
-        pdf.setDrawColor(120); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10); cy += 35;
+        const isDiagram = chapter.type === "diagram";
 
-        if (settings.includeChapterSummaries && chapter.summary) {
-          pdf.setFont("helvetica", "italic"); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor(170);
-          pdf.splitTextToSize(chapter.summary, contentW - 40).forEach((l: string) => {
-            if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
-            pdf.text(l, margin.left + 20, cy); cy += lineH;
-          }); cy += lineH;
+        if (isDiagram) {
+          // Diagram page layout
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(160);
+          const dl = "DIAGRAM"; pdf.text(dl, (ps.w - pdf.getTextWidth(dl)) / 2, margin.top + 40);
+          pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(240);
+          const dtl = pdf.splitTextToSize(chapter.title, contentW);
+          let dy = margin.top + 75;
+          dtl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, dy); dy += chapterTitleSize + 6; });
+          pdf.setDrawColor(120); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, dy + 10, ps.w * 0.7, dy + 10); dy += 35;
+
+          // Draw diagram boxes from diagramDescription
+          if (chapter.diagramDescription) {
+            const nodes = chapter.diagramDescription.split(/→|->|➜|➔/).map(n => n.replace(/[\[\]]/g, "").trim()).filter(Boolean);
+            const boxW = Math.min(contentW * 0.6, 240);
+            const boxH = 32;
+            const gap = 18;
+            const startX = (ps.w - boxW) / 2;
+
+            nodes.forEach((node, ni) => {
+              if (dy + boxH + gap > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); dy = margin.top + 30; }
+              // Box
+              pdf.setDrawColor(130, 80, 220); pdf.setLineWidth(1);
+              pdf.setFillColor(40, 20, 60);
+              pdf.roundedRect(startX, dy, boxW, boxH, 6, 6, "FD");
+              pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(220);
+              const nodeLines = pdf.splitTextToSize(node, boxW - 16);
+              nodeLines.forEach((l: string, li: number) => {
+                pdf.text(l, startX + (boxW - pdf.getTextWidth(l)) / 2, dy + 14 + li * 12);
+              });
+              dy += boxH;
+              // Arrow
+              if (ni < nodes.length - 1) {
+                const arrowX = ps.w / 2;
+                pdf.setDrawColor(130, 80, 220); pdf.setLineWidth(1.5);
+                pdf.line(arrowX, dy, arrowX, dy + gap - 4);
+                // arrowhead
+                pdf.setFillColor(130, 80, 220);
+                pdf.triangle(arrowX - 4, dy + gap - 6, arrowX + 4, dy + gap - 6, arrowX, dy + gap - 1, "F");
+                dy += gap;
+              } else {
+                dy += 16;
+              }
+            });
+          }
+
+          // Content explanation below diagram
+          dy += 10;
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(200);
+          chapter.content.split(/\n\n+/).forEach(para => {
+            const trimmed = para.trim(); if (!trimmed) return;
+            pdf.splitTextToSize(trimmed, contentW).forEach((l: string) => {
+              if (dy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); dy = margin.top + 20; }
+              pdf.text(l, margin.left, dy); dy += lineH;
+            }); dy += lineH * 0.5;
+          });
+        } else {
+          // Standard text chapter
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(12); pdf.setTextColor(160);
+          const cn = `CHAPTER ${chIdx + 1}`; pdf.text(cn, (ps.w - pdf.getTextWidth(cn)) / 2, margin.top + 60);
+          pdf.setFont("helvetica", "bold"); pdf.setFontSize(chapterTitleSize); pdf.setTextColor(240);
+          const ctl = pdf.splitTextToSize(chapter.title, contentW);
+          let cy = margin.top + 95;
+          ctl.forEach((l: string) => { pdf.text(l, (ps.w - pdf.getTextWidth(l)) / 2, cy); cy += chapterTitleSize + 6; });
+          pdf.setDrawColor(120); pdf.setLineWidth(0.5); pdf.line(ps.w * 0.3, cy + 10, ps.w * 0.7, cy + 10); cy += 35;
+
+          if (settings.includeChapterSummaries && chapter.summary) {
+            pdf.setFont("helvetica", "italic"); pdf.setFontSize(bodyFontSize - 1); pdf.setTextColor(170);
+            pdf.splitTextToSize(chapter.summary, contentW - 40).forEach((l: string) => {
+              if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
+              pdf.text(l, margin.left + 20, cy); cy += lineH;
+            }); cy += lineH;
+          }
+
+          pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(220);
+          chapter.content.split(/\n\n+/).forEach(para => {
+            const trimmed = para.trim(); if (!trimmed) return;
+            pdf.splitTextToSize(trimmed, contentW).forEach((l: string, li: number) => {
+              if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
+              pdf.text(l, margin.left + (li === 0 ? 20 : 0), cy); cy += lineH;
+            }); cy += lineH * 0.5;
+          });
         }
-
-        pdf.setFont("helvetica", "normal"); pdf.setFontSize(bodyFontSize); pdf.setTextColor(220);
-        chapter.content.split(/\n\n+/).forEach(para => {
-          const trimmed = para.trim(); if (!trimmed) return;
-          pdf.splitTextToSize(trimmed, contentW).forEach((l: string, li: number) => {
-            if (cy > ps.h - margin.bottom) { addPage(); drawHeader(metadata.title, chapter.title); drawPageNumber(pageNum); cy = margin.top + 20; }
-            pdf.text(l, margin.left + (li === 0 ? 20 : 0), cy); cy += lineH;
-          }); cy += lineH * 0.5;
-        });
         drawPageNumber(pageNum);
       });
 
@@ -931,6 +1009,7 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
           ["removeDuplicates", "Remove duplicates"],
           ["includeTableOfContents", "Table of Contents"],
           ["includeChapterSummaries", "Chapter summaries"],
+          ["includeDiagrams", "Generate diagrams & workflow pages"],
           ["includeCopyright", "Copyright page"],
           ["includeDedication", "Dedication page"],
           ["includeAboutAuthor", "About the Author page"],
@@ -1021,11 +1100,16 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
           </div>
         </div>
         {chapters.map((ch, i) => (
-          <div key={ch.id} className="rounded-xl border border-border/20 bg-card/20 overflow-hidden">
+          <div key={ch.id} className={`rounded-xl border overflow-hidden ${ch.type === "diagram" ? "border-accent/20 bg-accent/5" : "border-border/20 bg-card/20"}`}>
             <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer" onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)}>
               <GripVertical className="h-3 w-3 text-muted-foreground/30" />
-              <span className="text-[9px] font-light text-accent/60 w-6">#{i + 1}</span>
+              <span className="text-[9px] font-light text-accent/60 w-6">
+                {ch.type === "diagram" ? "◆" : `#${i + 1}`}
+              </span>
               <span className="flex-1 text-xs font-light text-foreground truncate">{ch.title}</span>
+              {ch.type === "diagram" && (
+                <span className="text-[8px] font-light text-accent/50 bg-accent/10 rounded px-1.5 py-0.5">Diagram</span>
+              )}
               <span className="text-[9px] text-muted-foreground/40">{ch.content.split(/\s+/).filter(Boolean).length} words</span>
               <div className="flex items-center gap-1">
                 <button onClick={e => { e.stopPropagation(); moveChapter(ch.id, "up"); }} className="text-muted-foreground/30 hover:text-foreground p-0.5"><ChevronUp className="h-3 w-3" /></button>
@@ -1042,8 +1126,12 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
                   <textarea value={ch.summary || ""} onChange={e => updateChapter(ch.id, "summary", e.target.value)}
                     className="w-full bg-card/30 border border-border/20 rounded-lg px-3 py-2 text-[11px] font-light text-muted-foreground outline-none resize-none" rows={2} placeholder="Chapter Summary" />
                 )}
+                {ch.type === "diagram" && (
+                  <textarea value={ch.diagramDescription || ""} onChange={e => updateChapter(ch.id, "diagramDescription" as any, e.target.value)}
+                    className="w-full bg-accent/5 border border-accent/20 rounded-lg px-3 py-2 text-[11px] font-light text-accent/80 outline-none resize-none" rows={3} placeholder="Diagram flow description (e.g. [Step A] → [Step B] → [Step C])" />
+                )}
                 <textarea value={ch.content} onChange={e => updateChapter(ch.id, "content", e.target.value)}
-                  className="w-full bg-card/30 border border-border/20 rounded-lg px-3 py-2 text-xs font-light text-foreground outline-none resize-none min-h-[200px]" placeholder="Chapter Content" />
+                  className="w-full bg-card/30 border border-border/20 rounded-lg px-3 py-2 text-xs font-light text-foreground outline-none resize-none min-h-[200px]" placeholder={ch.type === "diagram" ? "Diagram explanation text…" : "Chapter Content"} />
               </div>
             )}
           </div>
@@ -1069,21 +1157,49 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
 
           {/* Page previews for each chapter */}
           {chapters.map((ch, i) => {
+            const isDiagram = ch.type === "diagram";
             const words = ch.content.split(/\s+/).filter(Boolean);
-            const previewText = words.slice(0, 80).join(" ") + (words.length > 80 ? "…" : "");
+            const previewText = isDiagram
+              ? (ch.diagramDescription || ch.content).slice(0, 200)
+              : words.slice(0, 80).join(" ") + (words.length > 80 ? "…" : "");
             return (
               <div key={ch.id} className="flex-shrink-0 rounded-xl overflow-hidden border border-border/20 w-[180px] aspect-[3/4] shadow-md flex flex-col cursor-pointer hover:shadow-lg transition-shadow relative"
                 onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)}>
                 <img src={wallpaperSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/75" />
                 <div className="relative z-10 flex flex-col h-full p-4">
-                  <p className="text-[7px] font-normal text-white/40 uppercase tracking-[0.15em] mb-1">Chapter {i + 1}</p>
-                  <p className="text-[10px] font-semibold text-white/90 leading-tight mb-2 line-clamp-2">{ch.title}</p>
-                  {ch.summary && (
-                    <p className="text-[7px] italic text-white/40 leading-snug mb-2 line-clamp-2">{ch.summary}</p>
+                  {isDiagram ? (
+                    <>
+                      <p className="text-[7px] font-normal text-accent/60 uppercase tracking-[0.15em] mb-1">Diagram</p>
+                      <p className="text-[10px] font-semibold text-white/90 leading-tight mb-2 line-clamp-2">{ch.title}</p>
+                      <div className="flex-1 flex flex-col items-center justify-center gap-2">
+                        <div className="w-full rounded-lg border border-accent/20 bg-accent/5 p-2">
+                          <div className="flex flex-col items-center gap-1">
+                            {(ch.diagramDescription || "").split("→").slice(0, 4).map((node, ni) => (
+                              <div key={ni} className="flex flex-col items-center">
+                                <div className="rounded-md bg-accent/15 border border-accent/20 px-2 py-0.5 text-[6px] text-accent/80 text-center truncate max-w-full">
+                                  {node.replace(/[\[\]]/g, "").trim().slice(0, 20) || "Process"}
+                                </div>
+                                {ni < Math.min((ch.diagramDescription || "").split("→").length - 1, 3) && (
+                                  <div className="w-px h-2 bg-accent/30" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[7px] font-normal text-white/40 uppercase tracking-[0.15em] mb-1">Chapter {i + 1}</p>
+                      <p className="text-[10px] font-semibold text-white/90 leading-tight mb-2 line-clamp-2">{ch.title}</p>
+                      {ch.summary && (
+                        <p className="text-[7px] italic text-white/40 leading-snug mb-2 line-clamp-2">{ch.summary}</p>
+                      )}
+                      <div className="h-px bg-white/10 mb-2" />
+                      <p className="text-[7px] font-normal text-white/60 leading-relaxed flex-1 overflow-hidden line-clamp-[12]">{previewText}</p>
+                    </>
                   )}
-                  <div className="h-px bg-white/10 mb-2" />
-                  <p className="text-[7px] font-normal text-white/60 leading-relaxed flex-1 overflow-hidden line-clamp-[12]">{previewText}</p>
                   <div className="mt-auto pt-1 text-center">
                     <span className="text-[7px] text-white/30">{i + 1}</span>
                   </div>

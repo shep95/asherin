@@ -3,6 +3,8 @@ export interface EBookChapter {
   title: string;
   content: string;
   summary?: string;
+  type?: "text" | "diagram";
+  diagramDescription?: string;
 }
 
 export interface EBookMetadata {
@@ -30,6 +32,7 @@ export interface EBookSettings {
   rewriteForConsistency: boolean;
   fixGrammar: boolean;
   removeDuplicates: boolean;
+  includeDiagrams: boolean;
 }
 
 export type EBookStep = "upload" | "settings" | "processing" | "preview";
