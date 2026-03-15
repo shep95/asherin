@@ -3,6 +3,8 @@ export interface EBookChapter {
   title: string;
   content: string;
   summary?: string;
+  type?: "text" | "diagram";
+  diagramDescription?: string;
 }
 
 export interface EBookMetadata {
