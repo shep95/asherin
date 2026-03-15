@@ -32,6 +32,7 @@ export interface EBookSettings {
   rewriteForConsistency: boolean;
   fixGrammar: boolean;
   removeDuplicates: boolean;
+  includeDiagrams: boolean;
 }
 
 export type EBookStep = "upload" | "settings" | "processing" | "preview";
