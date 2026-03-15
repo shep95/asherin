@@ -452,7 +452,7 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
     setChapters(prev => [...prev, { id: `ch-new-${Date.now()}`, title: `Chapter ${prev.length + 1}`, content: "", summary: "" }]);
   };
 
-  const updateChapter = (id: string, field: keyof EBookChapter, value: string) => {
+  const updateChapter = (id: string, field: keyof EBookChapter | "diagramDescription", value: string) => {
     setChapters(prev => prev.map(ch => ch.id === id ? { ...ch, [field]: value } : ch));
   };
 
