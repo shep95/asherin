@@ -1100,11 +1100,16 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
           </div>
         </div>
         {chapters.map((ch, i) => (
-          <div key={ch.id} className="rounded-xl border border-border/20 bg-card/20 overflow-hidden">
+          <div key={ch.id} className={`rounded-xl border overflow-hidden ${ch.type === "diagram" ? "border-accent/20 bg-accent/5" : "border-border/20 bg-card/20"}`}>
             <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer" onClick={() => setExpandedChapter(expandedChapter === ch.id ? null : ch.id)}>
               <GripVertical className="h-3 w-3 text-muted-foreground/30" />
-              <span className="text-[9px] font-light text-accent/60 w-6">#{i + 1}</span>
+              <span className="text-[9px] font-light text-accent/60 w-6">
+                {ch.type === "diagram" ? "◆" : `#${i + 1}`}
+              </span>
               <span className="flex-1 text-xs font-light text-foreground truncate">{ch.title}</span>
+              {ch.type === "diagram" && (
+                <span className="text-[8px] font-light text-accent/50 bg-accent/10 rounded px-1.5 py-0.5">Diagram</span>
+              )}
               <span className="text-[9px] text-muted-foreground/40">{ch.content.split(/\s+/).filter(Boolean).length} words</span>
               <div className="flex items-center gap-1">
                 <button onClick={e => { e.stopPropagation(); moveChapter(ch.id, "up"); }} className="text-muted-foreground/30 hover:text-foreground p-0.5"><ChevronUp className="h-3 w-3" /></button>
@@ -1121,8 +1126,12 @@ ${JSON.stringify(chaptersPayload).slice(0, 100000)}`,
                   <textarea value={ch.summary || ""} onChange={e => updateChapter(ch.id, "summary", e.target.value)}
                     className="w-full bg-card/30 border border-border/20 rounded-lg px-3 py-2 text-[11px] font-light text-muted-foreground outline-none resize-none" rows={2} placeholder="Chapter Summary" />
                 )}
+                {ch.type === "diagram" && (
+                  <textarea value={ch.diagramDescription || ""} onChange={e => updateChapter(ch.id, "diagramDescription" as any, e.target.value)}
+                    className="w-full bg-accent/5 border border-accent/20 rounded-lg px-3 py-2 text-[11px] font-light text-accent/80 outline-none resize-none" rows={3} placeholder="Diagram flow description (e.g. [Step A] → [Step B] → [Step C])" />
+                )}
                 <textarea value={ch.content} onChange={e => updateChapter(ch.id, "content", e.target.value)}
-                  className="w-full bg-card/30 border border-border/20 rounded-lg px-3 py-2 text-xs font-light text-foreground outline-none resize-none min-h-[200px]" placeholder="Chapter Content" />
+                  className="w-full bg-card/30 border border-border/20 rounded-lg px-3 py-2 text-xs font-light text-foreground outline-none resize-none min-h-[200px]" placeholder={ch.type === "diagram" ? "Diagram explanation text…" : "Chapter Content"} />
               </div>
             )}
           </div>
