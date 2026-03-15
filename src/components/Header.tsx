@@ -150,9 +150,9 @@ const Header = () => {
         <div className="hidden sm:block">
           <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
             {!loading && user ? (
-              <Link to="/dashboard" className="group relative rounded-xl bg-gradient-to-r from-accent to-accent/70 px-6 py-2 text-sm font-light tracking-[0.15em] text-accent-foreground transition-all duration-300 hover:shadow-[0_0_20px_hsl(275_95%_43%/0.4)] hover:scale-[1.03] overflow-hidden">
+              <Link to="/dashboard" className="group relative rounded-xl border border-border/40 bg-foreground/5 px-6 py-2 text-sm font-extralight tracking-[0.2em] text-foreground transition-all duration-300 hover:bg-foreground/10 hover:border-foreground/30 overflow-hidden">
                 <span className="relative z-10">Dashboard</span>
-                <span className="absolute inset-0 bg-gradient-to-r from-accent/0 via-accent-foreground/10 to-accent/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
               </Link>
             ) : (
               <>
