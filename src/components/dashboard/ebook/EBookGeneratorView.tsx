@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS: EBookSettings = {
   includeTableOfContents: true, includeChapterSummaries: true,
   includeDedication: false, includeAboutAuthor: false, includeCopyright: true,
   rewriteForConsistency: true, fixGrammar: true, removeDuplicates: true,
+  includeDiagrams: false,
 };
 
 const EBookGeneratorView = () => {
