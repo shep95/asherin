@@ -52,13 +52,19 @@ const OntologyEnginePanel = () => {
   useEffect(() => {
     if (!user || !activeSession) { setLoading(false); return; }
     const load = async () => {
-      // Load entities from asha_document_entities
+      // Get documents in this session first
+      const { data: docs } = await supabase.from("asha_documents").select("id").eq("user_id", user.id).eq("session_id", activeSession.id);
+      const docIds = (docs || []).map((d: any) => d.id);
+      if (docIds.length === 0) { setLoading(false); return; }
+
+      // Load entities from asha_document_entities scoped to session
       const { data: docEntities } = await supabase
         .from("asha_document_entities")
         .select("*")
         .eq("user_id", user.id)
+        .in("document_id", docIds)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (docEntities && docEntities.length > 0) {
         const mapped: OntologyEntity[] = docEntities.map(e => ({
