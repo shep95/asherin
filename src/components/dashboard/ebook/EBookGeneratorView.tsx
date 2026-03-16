@@ -323,7 +323,9 @@ INSTRUCTIONS:
 5. ${settings.includeChapterSummaries ? "Write a brief 2-3 sentence summary for each chapter." : "No chapter summaries needed."}
 6. Each chapter must have a compelling title.
 7. Organize content logically — group related topics, ensure flow between chapters.
-8. Ensure each chapter has substantial content (minimum 500 words per chapter). Longer chapters are preferred — do not artificially shorten content.${diagramInstruction}
+8. Ensure each chapter has substantial content (minimum 500 words per chapter). Longer chapters are preferred — do not artificially shorten content.
+9. DO NOT limit yourself by page count, word count, or number of chapters. Write as much as the content demands. There is NO maximum length. Output the COMPLETE book — every chapter in full — in a single response.
+10. If the source material is extensive, create MORE chapters rather than condensing. Never say "this is too long" or truncate content.${diagramInstruction}
 
 OUTPUT FORMAT: Return ONLY a valid JSON array. Each element:
 {
@@ -337,7 +339,7 @@ ${settings.includeDiagrams ? 'For diagram chapters, use "type": "diagram" and in
 Do NOT wrap in markdown. Return ONLY the JSON array.
 
 RAW TEXT TO STRUCTURE:
-${allRawText.slice(0, 200000)}`,
+${allRawText}`,
         }],
         mode: "chat",
         onDelta: (chunk) => {
@@ -348,6 +350,7 @@ ${allRawText.slice(0, 200000)}`,
         },
         onDone: () => {
           try {
+            // Try full JSON array first
             const jsonMatch = result.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]) as EBookChapter[];
@@ -356,9 +359,56 @@ ${allRawText.slice(0, 200000)}`,
               setProgress("");
               setStep("preview");
             } else {
+              // Truncation recovery: AI output was cut off mid-JSON
+              // Try to find the start of the array and close it properly
+              const arrayStart = result.indexOf("[");
+              if (arrayStart !== -1) {
+                let truncated = result.slice(arrayStart);
+                // Find the last complete object by finding last "},"  or "}" before end
+                const lastCompleteObj = truncated.lastIndexOf("}");
+                if (lastCompleteObj > 0) {
+                  truncated = truncated.slice(0, lastCompleteObj + 1);
+                  // Close any unclosed array
+                  if (!truncated.trim().endsWith("]")) truncated += "]";
+                  // Remove trailing comma before ]
+                  truncated = truncated.replace(/,\s*\]$/, "]");
+                  try {
+                    const parsed = JSON.parse(truncated) as EBookChapter[];
+                    if (parsed.length > 0) {
+                      const newChapters = parsed.map((ch, i) => ({ ...ch, id: `ch-${i}-${Date.now()}` }));
+                      setChapters(newChapters);
+                      setProgress("");
+                      setStep("preview");
+                      return;
+                    }
+                  } catch { /* final fallback below */ }
+                }
+              }
               setProgress("Failed to parse — trying again…");
             }
           } catch {
+            // Truncation recovery on parse error
+            const arrayStart = result.indexOf("[");
+            if (arrayStart !== -1) {
+              let truncated = result.slice(arrayStart);
+              const lastCompleteObj = truncated.lastIndexOf("}");
+              if (lastCompleteObj > 0) {
+                truncated = truncated.slice(0, lastCompleteObj + 1);
+                if (!truncated.trim().endsWith("]")) truncated += "]";
+                truncated = truncated.replace(/,\s*\]$/, "]");
+                try {
+                  const parsed = JSON.parse(truncated) as EBookChapter[];
+                  if (parsed.length > 0) {
+                    const newChapters = parsed.map((ch, i) => ({ ...ch, id: `ch-${i}-${Date.now()}` }));
+                    setChapters(newChapters);
+                    setProgress(`Recovered ${parsed.length} chapters (response may have been truncated). You can regenerate for more.`);
+                    setStep("preview");
+                    setProcessing(false);
+                    return;
+                  }
+                } catch { /* truly broken */ }
+              }
+            }
             setProgress("Error parsing AI response. Please try again.");
           }
           setProcessing(false);
