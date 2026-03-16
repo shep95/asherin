@@ -323,7 +323,9 @@ INSTRUCTIONS:
 5. ${settings.includeChapterSummaries ? "Write a brief 2-3 sentence summary for each chapter." : "No chapter summaries needed."}
 6. Each chapter must have a compelling title.
 7. Organize content logically — group related topics, ensure flow between chapters.
-8. Ensure each chapter has substantial content (minimum 500 words per chapter). Longer chapters are preferred — do not artificially shorten content.${diagramInstruction}
+8. Ensure each chapter has substantial content (minimum 500 words per chapter). Longer chapters are preferred — do not artificially shorten content.
+9. DO NOT limit yourself by page count, word count, or number of chapters. Write as much as the content demands. There is NO maximum length. Output the COMPLETE book — every chapter in full — in a single response.
+10. If the source material is extensive, create MORE chapters rather than condensing. Never say "this is too long" or truncate content.${diagramInstruction}
 
 OUTPUT FORMAT: Return ONLY a valid JSON array. Each element:
 {
