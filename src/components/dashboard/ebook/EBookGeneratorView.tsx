@@ -339,7 +339,7 @@ ${settings.includeDiagrams ? 'For diagram chapters, use "type": "diagram" and in
 Do NOT wrap in markdown. Return ONLY the JSON array.
 
 RAW TEXT TO STRUCTURE:
-${allRawText.slice(0, 200000)}`,
+${allRawText}`,
         }],
         mode: "chat",
         onDelta: (chunk) => {
