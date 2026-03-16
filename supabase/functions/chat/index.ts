@@ -1339,7 +1339,7 @@ ${fullText}
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: geminiMessages,
-              generationConfig: { temperature: 0.7 },
+              generationConfig: { temperature: 0.7, maxOutputTokens: 65536 },
             }),
           },
         );

@@ -348,6 +348,7 @@ ${allRawText.slice(0, 200000)}`,
         },
         onDone: () => {
           try {
+            // Try full JSON array first
             const jsonMatch = result.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0]) as EBookChapter[];
@@ -356,9 +357,56 @@ ${allRawText.slice(0, 200000)}`,
               setProgress("");
               setStep("preview");
             } else {
+              // Truncation recovery: AI output was cut off mid-JSON
+              // Try to find the start of the array and close it properly
+              const arrayStart = result.indexOf("[");
+              if (arrayStart !== -1) {
+                let truncated = result.slice(arrayStart);
+                // Find the last complete object by finding last "},"  or "}" before end
+                const lastCompleteObj = truncated.lastIndexOf("}");
+                if (lastCompleteObj > 0) {
+                  truncated = truncated.slice(0, lastCompleteObj + 1);
+                  // Close any unclosed array
+                  if (!truncated.trim().endsWith("]")) truncated += "]";
+                  // Remove trailing comma before ]
+                  truncated = truncated.replace(/,\s*\]$/, "]");
+                  try {
+                    const parsed = JSON.parse(truncated) as EBookChapter[];
+                    if (parsed.length > 0) {
+                      const newChapters = parsed.map((ch, i) => ({ ...ch, id: `ch-${i}-${Date.now()}` }));
+                      setChapters(newChapters);
+                      setProgress("");
+                      setStep("preview");
+                      return;
+                    }
+                  } catch { /* final fallback below */ }
+                }
+              }
               setProgress("Failed to parse — trying again…");
             }
           } catch {
+            // Truncation recovery on parse error
+            const arrayStart = result.indexOf("[");
+            if (arrayStart !== -1) {
+              let truncated = result.slice(arrayStart);
+              const lastCompleteObj = truncated.lastIndexOf("}");
+              if (lastCompleteObj > 0) {
+                truncated = truncated.slice(0, lastCompleteObj + 1);
+                if (!truncated.trim().endsWith("]")) truncated += "]";
+                truncated = truncated.replace(/,\s*\]$/, "]");
+                try {
+                  const parsed = JSON.parse(truncated) as EBookChapter[];
+                  if (parsed.length > 0) {
+                    const newChapters = parsed.map((ch, i) => ({ ...ch, id: `ch-${i}-${Date.now()}` }));
+                    setChapters(newChapters);
+                    setProgress(`Recovered ${parsed.length} chapters (response may have been truncated). You can regenerate for more.`);
+                    setStep("preview");
+                    setProcessing(false);
+                    return;
+                  }
+                } catch { /* truly broken */ }
+              }
+            }
             setProgress("Error parsing AI response. Please try again.");
           }
           setProcessing(false);
