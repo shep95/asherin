@@ -5,16 +5,37 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') { current += '"'; i++; }
+        else { inQuotes = false; }
+      } else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { fields.push(current.trim()); current = ""; }
+      else { current += ch; }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
 function parseCSV(text: string) {
   const lines = text.trim().split("\n");
   if (lines.length === 0) return [];
-  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ""));
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(",");
+    const values = parseCSVLine(lines[i]);
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => {
-      row[h] = (values[idx] || "").trim().replace(/^"|"$/g, "");
+      row[h] = (values[idx] || "").replace(/^"|"$/g, "");
     });
     rows.push(row);
   }

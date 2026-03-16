@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -6,29 +5,169 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+/** Robust CSV line parser that handles quoted fields with commas, newlines, and escaped quotes */
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        fields.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+/** Parse CSV text into headers + rows using robust parser */
+function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
+  const lines = text.split("\n").filter(l => l.trim());
+  if (lines.length === 0) return { headers: [], rows: [] };
+
+  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, ""));
+  const rows: Record<string, string>[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const row: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      row[h] = (values[idx] || "").replace(/^"|"$/g, "");
+    });
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+
+/** Detect column type from sample values */
+function detectColumnType(name: string, values: string[]): { type: string; role: string; isPII: boolean } {
+  const isPII = /email|phone|ssn|address|name|first.?name|last.?name/i.test(name);
+
+  if (isPII && /email/i.test(name)) return { type: "email", role: "pii", isPII: true };
+  if (isPII && /phone/i.test(name)) return { type: "phone", role: "pii", isPII: true };
+  if (isPII) return { type: "string", role: "pii", isPII: true };
+  if (/^(id|_id|key)$/i.test(name) || name.toLowerCase().endsWith("_id")) return { type: "id", role: "primary_key", isPII: false };
+  if (/date|time|created|updated|timestamp/i.test(name)) return { type: "date", role: "date_field", isPII: false };
+  if (values.every(v => /^-?\d+(\.\d+)?$/.test(v))) {
+    const type = values.some(v => v.includes(".")) ? "float" : "integer";
+    return { type, role: "measure", isPII: false };
+  }
+  if (values.every(v => /^(true|false|0|1|yes|no)$/i.test(v))) return { type: "boolean", role: "dimension", isPII: false };
+  if (/price|amount|cost|revenue|salary|total|budget/i.test(name)) return { type: "currency", role: "measure", isPII: false };
+  if (/percent|pct|rate/i.test(name)) return { type: "percentage", role: "measure", isPII: false };
+  if (/lat|lng|longitude|latitude/i.test(name)) return { type: "latlong", role: "dimension", isPII: false };
+  if (/url|website|link|href/i.test(name)) return { type: "url", role: "auto", isPII: false };
+
+  const uniqueCount = new Set(values).size;
+  if (uniqueCount <= 20 && values.length > 20) return { type: "category", role: "dimension", isPII: false };
+
+  return { type: "string", role: "auto", isPII: false };
+}
+
+/** Extract entity-like values from CSV data for populating Entities tab */
+function extractEntitiesFromCSV(headers: string[], sampleRows: Record<string, string>[]): { entityType: string; entityValue: string; confidence: number; context: string }[] {
+  const entities: { entityType: string; entityValue: string; confidence: number; context: string }[] = [];
+  const seen = new Set<string>();
+
+  for (const header of headers) {
+    const lh = header.toLowerCase();
+    let entityType = "";
+
+    if (/^(name|first.?name|last.?name|full.?name|author|owner|manager|employee|contact|person)/i.test(lh)) entityType = "person";
+    else if (/^(company|organization|org|employer|vendor|supplier|client|customer|brand)/i.test(lh)) entityType = "organization";
+    else if (/^(city|state|country|region|address|location|zip|postal)/i.test(lh)) entityType = "location";
+    else if (/^(email|e.?mail)/i.test(lh)) entityType = "email";
+    else if (/^(phone|tel|mobile|fax)/i.test(lh)) entityType = "phone";
+    else if (/^(url|website|link|domain)/i.test(lh)) entityType = "url";
+    else if (/^(product|item|sku|model)/i.test(lh)) entityType = "product";
+    else if (/^(date|created|updated|timestamp|deadline|due)/i.test(lh)) entityType = "date";
+    else if (/^(amount|price|cost|revenue|salary|total|budget|value)/i.test(lh)) entityType = "amount";
+    else if (/^(title|position|role|job)/i.test(lh)) entityType = "job_title";
+
+    if (!entityType) continue;
+
+    for (const row of sampleRows) {
+      const val = row[header]?.trim();
+      if (!val || val.length < 2 || val.length > 200) continue;
+
+      const key = `${entityType}:${val.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      entities.push({
+        entityType,
+        entityValue: val,
+        confidence: 0.85,
+        context: `Extracted from column "${header}" in CSV data`,
+      });
+
+      if (entities.length >= 500) break;
+    }
+    if (entities.length >= 500) break;
+  }
+
+  return entities;
+}
+
+/** Locale-aware number parser */
+function parseNumericValue(val: string): number | null {
+  if (!val) return null;
+  // Remove currency symbols
+  let cleaned = val.replace(/[$€£¥₹,\s]/g, "");
+  // Handle European format (1.234,56 -> 1234.56)
+  if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(cleaned)) {
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  }
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? null : num;
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No auth header");
 
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
+
+    const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) throw new Error("Unauthorized");
-    const user = { id: claimsData.claims.sub as string };
+    const { data: { user }, error: authErr } = await supabaseUser.auth.getUser(token);
+    if (authErr || !user) throw new Error("Auth failed");
 
     const { datasetId } = await req.json();
     if (!datasetId) throw new Error("Missing datasetId");
 
     // Get the dataset record
-    const { data: dataset, error: dsError } = await supabase
+    const { data: dataset, error: dsError } = await supabaseUser
       .from("asha_datasets")
       .select("*")
       .eq("id", datasetId)
@@ -38,7 +177,7 @@ serve(async (req) => {
     if (dsError || !dataset) throw new Error("Dataset not found");
 
     // Download the file from storage
-    const { data: fileData, error: dlError } = await supabase
+    const { data: fileData, error: dlError } = await supabaseUser
       .storage
       .from("asha-data")
       .download(dataset.storage_path);
@@ -53,69 +192,65 @@ serve(async (req) => {
     let colCount = 0;
     let issues: any[] = [];
     let qualityScore = 85;
+    let csvHeaders: string[] = [];
+    let csvRows: Record<string, string>[] = [];
 
     if (ext === "csv") {
-      const lines = text.split("\n").filter((l: string) => l.trim());
-      if (lines.length > 0) {
-        const headers = lines[0].split(",").map((h: string) => h.trim().replace(/^"|"$/g, ""));
-        colCount = headers.length;
-        rowCount = lines.length - 1;
+      const parsed = parseCSV(text);
+      csvHeaders = parsed.headers;
+      csvRows = parsed.rows;
+      colCount = csvHeaders.length;
+      rowCount = csvRows.length;
 
-        // Sample rows for type detection
-        const sampleRows = lines.slice(1, Math.min(101, lines.length));
-        schema = headers.map((name: string, idx: number) => {
-          const values = sampleRows.map((row: string) => {
-            const cols = row.split(",");
-            return (cols[idx] || "").trim().replace(/^"|"$/g, "");
-          }).filter((v: string) => v !== "");
+      // Sample rows for analysis
+      const sampleRows = csvRows.slice(0, 100);
 
-          const nullCount = sampleRows.length - values.length;
-          const uniqueCount = new Set(values).size;
-          const sampleValues = values.slice(0, 3);
+      schema = csvHeaders.map((name, idx) => {
+        const values = sampleRows
+          .map(row => row[name] || "")
+          .filter(v => v !== "");
 
-          // Type detection
-          let type = "string";
-          let role = "auto";
-          const isPII = /email|phone|ssn|address|name/i.test(name);
-          
-          if (isPII && /email/i.test(name)) { type = "email"; role = "pii"; }
-          else if (isPII && /phone/i.test(name)) { type = "phone"; role = "pii"; }
-          else if (isPII) { type = "string"; role = "pii"; }
-          else if (/^(id|_id|key)$/i.test(name) || name.toLowerCase().endsWith("_id")) { type = "id"; role = "primary_key"; }
-          else if (/date|time|created|updated/i.test(name)) { type = "date"; role = "date_field"; }
-          else if (values.every((v: string) => /^-?\d+(\.\d+)?$/.test(v))) {
-            type = values.some((v: string) => v.includes(".")) ? "float" : "integer";
-            role = "measure";
-          }
-          else if (values.every((v: string) => /^(true|false|0|1|yes|no)$/i.test(v))) { type = "boolean"; role = "dimension"; }
-          else if (uniqueCount <= 20 && values.length > 20) { type = "category"; role = "dimension"; }
-          else if (/price|amount|cost|revenue|salary/i.test(name)) { type = "currency"; role = "measure"; }
+        const nullCount = sampleRows.length - values.length;
+        const uniqueCount = new Set(values).size;
+        const sampleValues = values.slice(0, 3);
 
-          return { name, type, role, nullable: nullCount > 0, uniqueCount, nullCount, sampleValues, isPII };
+        const { type, role, isPII } = detectColumnType(name, values);
+
+        return { name, type, role, nullable: nullCount > 0, uniqueCount, nullCount, sampleValues, isPII };
+      });
+
+      // Detect issues
+      const rowSet = new Set(sampleRows.map(r => JSON.stringify(r)));
+      const dupCount = sampleRows.length - rowSet.size;
+      if (dupCount > 0) {
+        const estimated = Math.round(dupCount * (rowCount / sampleRows.length));
+        issues.push({
+          type: "duplicate",
+          description: `~${estimated} potential duplicate rows detected`,
+          rowCount: estimated,
+          severity: estimated > rowCount * 0.05 ? "high" : "medium",
+          autoFixAvailable: true,
         });
-
-        // Detect issues
-        // Check for duplicates (simple: check if any row appears more than once)
-        const rowSet = new Set(sampleRows);
-        const dupCount = sampleRows.length - rowSet.size;
-        if (dupCount > 0) {
-          const estimated = Math.round(dupCount * (rowCount / sampleRows.length));
-          issues.push({ type: "duplicate", description: `~${estimated} potential duplicate rows detected`, rowCount: estimated, severity: estimated > rowCount * 0.05 ? "high" : "medium", autoFixAvailable: true });
-        }
-
-        // Check for null columns
-        schema.forEach((col: any) => {
-          if (col.nullCount > sampleRows.length * 0.1) {
-            const estimated = Math.round(col.nullCount * (rowCount / sampleRows.length));
-            issues.push({ type: "null", description: `Missing values in [${col.name}] field`, rowCount: estimated, severity: estimated > rowCount * 0.2 ? "high" : "low", autoFixAvailable: true });
-          }
-        });
-
-        // Quality score calculation
-        const nullPenalty = schema.reduce((sum: number, col: any) => sum + (col.nullCount / Math.max(sampleRows.length, 1)), 0) / Math.max(colCount, 1);
-        const dupPenalty = dupCount / Math.max(sampleRows.length, 1);
-        qualityScore = Math.max(50, Math.round(100 - nullPenalty * 30 - dupPenalty * 20 - issues.length * 2));
       }
+
+      schema.forEach((col: any) => {
+        if (col.nullCount > sampleRows.length * 0.1) {
+          const estimated = Math.round(col.nullCount * (rowCount / sampleRows.length));
+          issues.push({
+            type: "null",
+            description: `Missing values in [${col.name}] field`,
+            rowCount: estimated,
+            severity: estimated > rowCount * 0.2 ? "high" : "low",
+            autoFixAvailable: true,
+          });
+        }
+      });
+
+      // Quality score
+      const nullPenalty = schema.reduce((sum: number, col: any) => sum + (col.nullCount / Math.max(sampleRows.length, 1)), 0) / Math.max(colCount, 1);
+      const dupPenalty = dupCount / Math.max(sampleRows.length, 1);
+      qualityScore = Math.max(50, Math.round(100 - nullPenalty * 30 - dupPenalty * 20 - issues.length * 2));
+
     } else if (ext === "json" || ext === "jsonl") {
       try {
         let parsed;
@@ -129,20 +264,36 @@ serve(async (req) => {
         if (parsed.length > 0) {
           const keys = Object.keys(parsed[0]);
           colCount = keys.length;
+          csvHeaders = keys;
           schema = keys.map((name: string) => {
             const values = parsed.slice(0, 100).map((r: any) => r[name]).filter((v: any) => v != null);
-            const type = typeof parsed[0][name] === "number" ? "float" : typeof parsed[0][name] === "boolean" ? "boolean" : "string";
-            return { name, type, role: "auto", nullable: values.length < Math.min(100, parsed.length), uniqueCount: new Set(values.map(String)).size, nullCount: Math.min(100, parsed.length) - values.length, sampleValues: values.slice(0, 3).map(String), isPII: /email|phone|name/i.test(name) };
+            const strValues = values.map(String);
+            const { type, role, isPII } = detectColumnType(name, strValues);
+            return {
+              name,
+              type,
+              role,
+              nullable: values.length < Math.min(100, parsed.length),
+              uniqueCount: new Set(strValues).size,
+              nullCount: Math.min(100, parsed.length) - values.length,
+              sampleValues: strValues.slice(0, 3),
+              isPII,
+            };
+          });
+          // Build rows for entity extraction
+          csvRows = parsed.slice(0, 200).map((r: any) => {
+            const row: Record<string, string> = {};
+            keys.forEach(k => { row[k] = r[k] != null ? String(r[k]) : ""; });
+            return row;
           });
         }
         qualityScore = 90;
-      } catch { 
+      } catch {
         schema = [{ name: "content", type: "freetext", role: "auto", nullable: false, uniqueCount: 0, nullCount: 0, sampleValues: [], isPII: false }];
         rowCount = 1;
         colCount = 1;
       }
     } else {
-      // For other file types, treat as freetext
       schema = [{ name: "content", type: "freetext", role: "auto", nullable: false, uniqueCount: 0, nullCount: 0, sampleValues: [text.slice(0, 100)], isPII: false }];
       rowCount = text.split("\n").length;
       colCount = 1;
@@ -150,7 +301,7 @@ serve(async (req) => {
     }
 
     // Update the dataset with analysis results
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseUser
       .from("asha_datasets")
       .update({
         status: "ready",
@@ -164,18 +315,109 @@ serve(async (req) => {
 
     if (updateError) throw new Error("Failed to update dataset: " + updateError.message);
 
-    // Generate insights using AI
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
-    if (GEMINI_API_KEY && rowCount > 0 && schema.length > 1) {
+    // === AUTO-EXTRACT ENTITIES from CSV/JSON columns ===
+    if (csvHeaders.length > 0 && csvRows.length > 0) {
+      try {
+        const extractedEntities = extractEntitiesFromCSV(csvHeaders, csvRows.slice(0, 200));
+        if (extractedEntities.length > 0) {
+          // We need to create an asha_document record to link entities to, or use a synthetic document
+          // Actually, entities link to asha_documents. Let's create a virtual document for this dataset
+          const { data: docRecord } = await supabaseAdmin
+            .from("asha_documents")
+            .insert({
+              user_id: user.id,
+              file_name: dataset.file_name,
+              file_type: dataset.file_type,
+              file_size: dataset.file_size,
+              storage_path: dataset.storage_path,
+              doc_type: "dataset",
+              status: "ready",
+              session_id: dataset.session_id,
+              extracted_text: `Dataset with ${rowCount} rows and ${colCount} columns`,
+              page_count: 1,
+              summary: `Auto-analyzed dataset: ${csvHeaders.join(", ")}`,
+              tags: ["auto-extracted", "dataset"],
+            })
+            .select("id")
+            .single();
+
+          if (docRecord) {
+            // Batch insert entities
+            const entityInserts = extractedEntities.map(e => ({
+              user_id: user.id,
+              document_id: docRecord.id,
+              entity_type: e.entityType,
+              entity_value: e.entityValue,
+              confidence: e.confidence,
+              context: e.context,
+            }));
+
+            // Insert in batches of 50
+            for (let i = 0; i < entityInserts.length; i += 50) {
+              const batch = entityInserts.slice(i, i + 50);
+              await supabaseAdmin.from("asha_document_entities").insert(batch);
+            }
+            console.log(`Extracted ${extractedEntities.length} entities from ${dataset.file_name}`);
+          }
+        }
+      } catch (entityErr) {
+        console.error("Entity extraction error (non-fatal):", entityErr);
+      }
+    }
+
+    // === GENERATE INSIGHTS using Lovable AI ===
+    if (rowCount > 0 && schema.length > 1) {
       try {
         const schemaDesc = schema.map((c: any) => `${c.name} (${c.type}, ${c.role})`).join(", ");
-        const sampleData = ext === "csv" ? text.split("\n").slice(0, 6).join("\n") : JSON.stringify(JSON.parse(text).slice?.(0, 3) ?? text.slice(0, 500));
+        const sampleData = (ext === "csv")
+          ? text.split("\n").slice(0, 6).join("\n")
+          : (() => { try { return JSON.stringify(JSON.parse(text).slice?.(0, 3) ?? text.slice(0, 500)); } catch { return text.slice(0, 500); } })();
 
-        const aiResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `You are Asha, a data intelligence AI. Analyze this dataset and return exactly 3 insights as JSON array. Each insight has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+
+        let aiText = "";
+
+        // Try Lovable AI first, fall back to Gemini
+        if (LOVABLE_API_KEY) {
+          const aiResp = await fetch("https://ai-gateway.lovable.dev/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "user",
+                  content: `You are Asha, a data intelligence AI. Analyze this dataset and return exactly 3 insights as a JSON array. Each insight object has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
+
+Dataset: ${dataset.file_name}
+Schema: ${schemaDesc}
+Rows: ${rowCount}
+Sample data:
+${sampleData}
+
+Return ONLY a valid JSON array, no markdown, no code fences.`,
+                },
+              ],
+              temperature: 0.7,
+              max_tokens: 1000,
+            }),
+          });
+
+          if (aiResp.ok) {
+            const aiData = await aiResp.json();
+            aiText = aiData.choices?.[0]?.message?.content || "";
+          }
+        } else if (GEMINI_API_KEY) {
+          // Fallback to direct Gemini
+          const aiResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `You are Asha, a data intelligence AI. Analyze this dataset and return exactly 3 insights as JSON array. Each insight has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
 
 Dataset: ${dataset.file_name}
 Schema: ${schemaDesc}
@@ -184,19 +426,24 @@ Sample data:
 ${sampleData}
 
 Return ONLY a valid JSON array, no markdown.` }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
-          }),
-        });
+              generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
+            }),
+          });
 
-        if (aiResp.ok) {
-          const aiData = await aiResp.json();
-          const aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          // Extract JSON from response
-          const jsonMatch = aiText.match(/\[[\s\S]*\]/);
+          if (aiResp.ok) {
+            const aiData = await aiResp.json();
+            aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        }
+
+        if (aiText) {
+          // Clean markdown fences
+          const cleaned = aiText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+          const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
           if (jsonMatch) {
             const insights = JSON.parse(jsonMatch[0]);
             for (const insight of insights) {
-              await supabase.from("asha_insights").insert({
+              await supabaseAdmin.from("asha_insights").insert({
                 user_id: user.id,
                 dataset_id: datasetId,
                 type: insight.type || "trend",
@@ -205,11 +452,11 @@ Return ONLY a valid JSON array, no markdown.` }] }],
                 description: insight.description,
               });
             }
+            console.log(`Generated ${insights.length} insights for ${dataset.file_name}`);
           }
         }
       } catch (e) {
         console.error("Insight generation error:", e);
-        // Non-fatal: dataset still analyzed successfully
       }
     }
 

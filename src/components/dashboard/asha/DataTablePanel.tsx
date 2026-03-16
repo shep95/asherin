@@ -102,13 +102,33 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
         if (ext === "csv") {
           const lines = text.split("\n").filter((l: string) => l.trim());
           if (lines.length > 0) {
-            const headers = lines[0].split(",").map((h: string) => h.trim().replace(/^"|"$/g, ""));
+            const parseCSVLine = (line: string): string[] => {
+              const fields: string[] = [];
+              let current = "";
+              let inQuotes = false;
+              for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (inQuotes) {
+                  if (ch === '"') {
+                    if (i + 1 < line.length && line[i + 1] === '"') { current += '"'; i++; }
+                    else { inQuotes = false; }
+                  } else { current += ch; }
+                } else {
+                  if (ch === '"') { inQuotes = true; }
+                  else if (ch === ',') { fields.push(current.trim()); current = ""; }
+                  else { current += ch; }
+                }
+              }
+              fields.push(current.trim());
+              return fields;
+            };
+            const headers = parseCSVLine(lines[0]).map((h: string) => h.replace(/^"|"$/g, ""));
             setColumns(headers);
             setTotalRows(lines.length - 1);
             const dataRows = lines.slice(1).map((line: string) => {
-              const vals = line.split(",").map((v: string) => v.trim().replace(/^"|"$/g, ""));
+              const vals = parseCSVLine(line);
               const row: Record<string, string> = {};
-              headers.forEach((h, i) => { row[h] = vals[i] || ""; });
+              headers.forEach((h, i) => { row[h] = (vals[i] || "").replace(/^"|"$/g, ""); });
               return row;
             });
             setRows(dataRows);
