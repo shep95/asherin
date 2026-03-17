@@ -170,9 +170,18 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         body: { priceId: TIERS[tier].price_id, mode: isLifetime ? "payment" : "subscription" },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (e) {
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) {
+        // Use location.href to avoid popup blockers
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (e: any) {
       console.error("create-checkout error:", e);
+      // Surface error so UI can react
+      setCheckoutLoading(false);
+      throw e;
     }
     setCheckoutLoading(false);
   }, []);
