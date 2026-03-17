@@ -323,7 +323,14 @@ const SubscriptionView = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => !isActive && startCheckout(plan.id as TierKey)}
+                      onClick={async () => {
+                        if (isActive) return;
+                        try {
+                          await startCheckout(plan.id as TierKey);
+                        } catch (e: any) {
+                          toast({ title: "Checkout failed", description: e?.message || "Could not start checkout. Please try again.", variant: "destructive" });
+                        }
+                      }}
                       disabled={isActive || checkoutLoading}
                       className={`group mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-light tracking-wide transition-all ${
                         isActive
