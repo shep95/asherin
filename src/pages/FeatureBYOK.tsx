@@ -13,6 +13,7 @@ const providers = [
   { icon: "◌", name: "xAI (Grok)", models: "Grok 4, Grok 4 Fast, Grok Code, Grok 3" },
   { icon: "◐", name: "Mistral AI", models: "Medium 3.1, Large, Codestral, Small, Pixtral Large" },
   { icon: "◔", name: "DeepSeek", models: "DeepSeek V3, DeepSeek R1" },
+  { icon: "◈", name: "Perplexity AI", models: "Sonar Pro, Sonar, Reasoning Pro, Deep Research" },
 ];
 
 const capabilities = [
@@ -28,7 +29,7 @@ const FeatureBYOK = () => {
   useEffect(() => {
     document.title = "Bring Your Own AI Key — Aureon | Use Your Preferred Models";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Bring your own API keys from Google, OpenAI, Claude, Meta, Venice, xAI, Mistral & DeepSeek. Use your preferred AI models across all Aureon tools.");
+    if (meta) meta.setAttribute("content", "Bring your own API keys from Google, OpenAI, Claude, Meta, Venice, xAI, Mistral, DeepSeek & Perplexity. Use your preferred AI models across all Aureon tools.");
   }, []);
 
   return (

@@ -130,6 +130,21 @@ export const AI_PROVIDERS: ProviderConfig[] = [
       { id: "deepseek-reasoner", name: "DeepSeek R1", description: "Advanced reasoning" },
     ],
   },
+  {
+    id: "perplexity",
+    name: "Perplexity AI",
+    icon: "◈",
+    placeholder: "pplx-...",
+    helpUrl: "https://www.perplexity.ai/settings/api",
+    helpText: "Get your API key from Perplexity Settings",
+    models: [
+      { id: "sonar-pro", name: "Sonar Pro", description: "Multi-step reasoning, 2x citations" },
+      { id: "sonar", name: "Sonar", description: "Fast search-grounded answers" },
+      { id: "sonar-reasoning-pro", name: "Sonar Reasoning Pro", description: "DeepSeek R1-based reasoning + search" },
+      { id: "sonar-reasoning", name: "Sonar Reasoning", description: "Chain-of-thought with real-time search" },
+      { id: "sonar-deep-research", name: "Sonar Deep Research", description: "Expert multi-query analysis" },
+    ],
+  },
 ];
 
 interface StoredKey {

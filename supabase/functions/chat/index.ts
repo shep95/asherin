@@ -1208,6 +1208,7 @@ ${fullText}
       xai: { url: "https://api.x.ai/v1/chat/completions", streamParam: true, transformResponse: false },
       mistral: { url: "https://api.mistral.ai/v1/chat/completions", streamParam: true, transformResponse: false },
       deepseek: { url: "https://api.deepseek.com/chat/completions", streamParam: true, transformResponse: false },
+      perplexity: { url: "https://api.perplexity.ai/chat/completions", streamParam: true, transformResponse: false },
     };
 
     // Helper: call OpenAI-compatible API (OpenAI, xAI, Mistral, Venice, DeepSeek, Together/Meta)

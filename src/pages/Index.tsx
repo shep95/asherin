@@ -608,6 +608,7 @@ const Index = () => {
                 { name: "DeepSeek", models: "DeepSeek V3, R1" },
                 { name: "Meta", models: "Llama 4 Maverick & Scout" },
                 { name: "Venice AI", models: "Uncensored, zero logging" },
+                { name: "Perplexity", models: "Sonar Pro, Deep Research" },
               ].map(provider => (
                 <div key={provider.name} className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-md p-4 text-left">
                   <p className="text-xs font-light tracking-wide text-foreground">{provider.name}</p>
