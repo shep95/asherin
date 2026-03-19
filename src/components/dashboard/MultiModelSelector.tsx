@@ -91,6 +91,9 @@ const MultiModelSelector = ({ enabled, onToggle, selectedModels, onModelsChange,
                 "gemini-2.5-pro": { speed: "Slow", quality: "Best", cost: "High" },
                 "gpt-5": { speed: "Slow", quality: "Best", cost: "High" },
                 "gpt-5-mini": { speed: "Fast", quality: "Good", cost: "Medium" },
+                "sonar-pro": { speed: "Fast", quality: "Best", cost: "Medium" },
+                "sonar": { speed: "Fast", quality: "Good", cost: "Low" },
+                "sonar-deep-research": { speed: "Slow", quality: "Best", cost: "High" },
               };
               const trait = traits[m.model];
               return (

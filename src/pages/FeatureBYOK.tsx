@@ -29,7 +29,7 @@ const FeatureBYOK = () => {
   useEffect(() => {
     document.title = "Bring Your Own AI Key — Aureon | Use Your Preferred Models";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "Bring your own API keys from Google, OpenAI, Claude, Meta, Venice, xAI, Mistral & DeepSeek. Use your preferred AI models across all Aureon tools.");
+    if (meta) meta.setAttribute("content", "Bring your own API keys from Google, OpenAI, Claude, Meta, Venice, xAI, Mistral, DeepSeek & Perplexity. Use your preferred AI models across all Aureon tools.");
   }, []);
 
   return (
