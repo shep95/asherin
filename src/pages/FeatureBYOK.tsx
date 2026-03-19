@@ -13,6 +13,7 @@ const providers = [
   { icon: "◌", name: "xAI (Grok)", models: "Grok 4, Grok 4 Fast, Grok Code, Grok 3" },
   { icon: "◐", name: "Mistral AI", models: "Medium 3.1, Large, Codestral, Small, Pixtral Large" },
   { icon: "◔", name: "DeepSeek", models: "DeepSeek V3, DeepSeek R1" },
+  { icon: "◈", name: "Perplexity AI", models: "Sonar Pro, Sonar, Reasoning Pro, Deep Research" },
 ];
 
 const capabilities = [
