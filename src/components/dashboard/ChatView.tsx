@@ -299,8 +299,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const navigate = useNavigate();
   const { hasPro } = useAccess();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
-  const [input, setInput] = useState("");
-  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const inputBarRef = useRef<AdaptiveInputBarHandle>(null);
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const [cotId, setCotId] = useState<string | null>(null);
   const [diagramId, setDiagramId] = useState<string | null>(null);
