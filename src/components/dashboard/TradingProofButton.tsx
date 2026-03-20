@@ -29,6 +29,8 @@ export function isTradingWithChart(
   const hasTradingContent = TRADING_KEYWORDS.some((kw) => combined.includes(kw));
   const chartAtt = userMsg.attachments?.find((a) => a.type.startsWith("image/")) || null;
 
+  // Show button if trading content exists AND user had an image attachment
+  // Allow even without base64 — previewUrl is sufficient for display
   return {
     isTradingMsg: hasTradingContent && !!chartAtt,
     chartAttachment: chartAtt,
