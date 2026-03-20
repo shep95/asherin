@@ -332,19 +332,24 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
             <Paperclip className="h-4 w-4" />
           </button>
 
-          {/* Voice record button */}
-          <button
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={disabled || isStreaming}
-            className={`shrink-0 p-2 rounded-xl transition-all disabled:opacity-30 ${
-              isRecording
-                ? "text-destructive bg-destructive/10 hover:bg-destructive/20 animate-pulse"
-                : "text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5"
-            }`}
-            title={isRecording ? `Recording… ${recordingTime}s — click to stop` : "Record voice message"}
-          >
-            {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </button>
+          {/* Voice record — orb when active, mic icon when idle */}
+          {isRecording ? (
+            <VoiceRecordingOrb
+              size={32}
+              isActive
+              onClick={stopRecording}
+              seconds={recordingTime}
+            />
+          ) : (
+            <button
+              onClick={startRecording}
+              disabled={disabled || isStreaming}
+              className="shrink-0 p-2 rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-all disabled:opacity-30"
+              title="Record voice message"
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+          )}
 
           <div className="flex-1 relative min-w-0">
             <textarea
