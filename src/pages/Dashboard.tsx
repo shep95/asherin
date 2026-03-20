@@ -861,16 +861,36 @@ const Dashboard = () => {
         onDone: async () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
-          const encryptedAssistant = await encryptText(assistantContent, user.id);
-          await supabase.from("messages").insert({
-            id: assistantId,
-            conversation_id: convId,
-            user_id: user.id,
-            role: "assistant",
-            content: encryptedAssistant,
-          });
-          const sug = await fetchSuggestions(assistantContent);
-          setSuggestions(sug);
+          // Persist assistant message — retry once on failure to prevent disappearing messages
+          try {
+            const encryptedAssistant = await encryptText(assistantContent, user.id);
+            await supabase.from("messages").insert({
+              id: assistantId,
+              conversation_id: convId,
+              user_id: user.id,
+              role: "assistant",
+              content: encryptedAssistant,
+            });
+          } catch (saveErr) {
+            console.error("Failed to save assistant message, retrying:", saveErr);
+            try {
+              const enc2 = await encryptText(assistantContent, user.id);
+              await supabase.from("messages").insert({
+                id: assistantId,
+                conversation_id: convId,
+                user_id: user.id,
+                role: "assistant",
+                content: enc2,
+              });
+            } catch (retryErr) {
+              console.error("Retry save also failed:", retryErr);
+              // Message remains in local state even if DB save fails
+            }
+          }
+          try {
+            const sug = await fetchSuggestions(assistantContent);
+            setSuggestions(sug);
+          } catch { /* suggestions are non-critical */ }
           pushNotification({
             title: "Aureon responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
