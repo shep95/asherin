@@ -17,6 +17,7 @@ import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
+  { key: "vortex", label: "Vortex", src: wallpaperAbyss, animated: true },
   { key: "raven", label: "Raven", src: wallpaperRaven },
   { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
   { key: "glitch", label: "Glitch", src: wallpaperGlitch },
