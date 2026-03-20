@@ -56,6 +56,7 @@ import MultiModelSelector, { type SelectedModel } from "./MultiModelSelector";
 import ConsensusMessage from "./ConsensusMessage";
 import BrainsManager from "./BrainsManager";
 import ConversationApiToggles from "./ConversationApiToggles";
+import TradingProofButton from "./TradingProofButton";
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -827,6 +828,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                           <CalibrationFeedback
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
+                          />
+                          {/* Trading Proof — show annotated chart with visual reasoning */}
+                          <TradingProofButton
+                            message={msg}
+                            allMessages={conversation.messages}
                           />
                           {/* Answer Controls */}
                           <AnswerControls
