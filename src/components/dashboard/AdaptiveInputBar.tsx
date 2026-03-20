@@ -166,9 +166,13 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [borderColorKey, setBorderColorKey] = useState(() => localStorage.getItem("aureon_send_border_color") || "default");
+  const [btnShape, setBtnShape] = useState(() => localStorage.getItem("aureon_send_btn_shape") || "circle");
 
   useEffect(() => {
-    const handler = () => setBorderColorKey(localStorage.getItem("aureon_send_border_color") || "default");
+    const handler = () => {
+      setBorderColorKey(localStorage.getItem("aureon_send_border_color") || "default");
+      setBtnShape(localStorage.getItem("aureon_send_btn_shape") || "circle");
+    };
     window.addEventListener("aureon-border-color-change", handler);
     return () => window.removeEventListener("aureon-border-color-change", handler);
   }, []);
