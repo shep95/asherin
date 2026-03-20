@@ -829,6 +829,11 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             messageId={msg.id}
                             onFeedback={onCalibrationFeedback ?? (() => {})}
                           />
+                          {/* Trading Proof — show annotated chart with visual reasoning */}
+                          <TradingProofButton
+                            message={msg}
+                            allMessages={conversation.messages}
+                          />
                           {/* Answer Controls */}
                           <AnswerControls
                             onAction={(action) => {
