@@ -103,17 +103,17 @@ const BORDER_COLOR_THEMES: Record<string, { main: string; shimmer: string; glow:
 
 type InputIntent = "text" | "code" | "url" | "image" | "file";
 
+export interface AdaptiveInputBarHandle {
+  insertText: (text: string) => void;
+}
+
 interface AdaptiveInputBarProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSend: () => void;
+  onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
   onStop?: () => void;
   onQuickAction?: (action: string, content: string) => void;
   isStreaming: boolean;
   disabled?: boolean;
   conversationId?: string;
-  attachments?: FileAttachment[];
-  onAttachmentsChange?: (files: FileAttachment[]) => void;
 }
 
 function detectIntent(text: string): InputIntent {
