@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Upload, FileText, Image, FileCode, CheckCircle2, AlertTriangle, Loader2, X, Edit3, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, FileText, Image, FileCode, AlertTriangle, Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
+import IngestStatusBadge from "./IngestStatusBadge";
 import { validateFile, sanitizeDisplayName, MAX_FILE_SIZE_DISPLAY } from "@/lib/file-security";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
