@@ -503,11 +503,19 @@ const Dashboard = () => {
         }
       } else {
         const convIds = convRows.map((c) => c.id);
-        const { data: msgRows } = await supabase
-          .from("messages")
-          .select("*")
-          .in("conversation_id", convIds)
-          .order("created_at", { ascending: true });
+        // Fetch messages per-conversation to avoid Supabase 1000-row global limit
+        const msgRowsBatches = await Promise.all(
+          convIds.map(async (cid) => {
+            const { data } = await supabase
+              .from("messages")
+              .select("*")
+              .eq("conversation_id", cid)
+              .order("created_at", { ascending: true })
+              .limit(500);
+            return data ?? [];
+          })
+        );
+        const msgRows = msgRowsBatches.flat();
 
         const msgMap = new Map<string, Message[]>();
         const decryptPromises = (msgRows ?? []).map(async (m) => {
@@ -853,16 +861,36 @@ const Dashboard = () => {
         onDone: async () => {
           setIsStreaming(false);
           isStreamingRef.current = false;
-          const encryptedAssistant = await encryptText(assistantContent, user.id);
-          await supabase.from("messages").insert({
-            id: assistantId,
-            conversation_id: convId,
-            user_id: user.id,
-            role: "assistant",
-            content: encryptedAssistant,
-          });
-          const sug = await fetchSuggestions(assistantContent);
-          setSuggestions(sug);
+          // Persist assistant message — retry once on failure to prevent disappearing messages
+          try {
+            const encryptedAssistant = await encryptText(assistantContent, user.id);
+            await supabase.from("messages").insert({
+              id: assistantId,
+              conversation_id: convId,
+              user_id: user.id,
+              role: "assistant",
+              content: encryptedAssistant,
+            });
+          } catch (saveErr) {
+            console.error("Failed to save assistant message, retrying:", saveErr);
+            try {
+              const enc2 = await encryptText(assistantContent, user.id);
+              await supabase.from("messages").insert({
+                id: assistantId,
+                conversation_id: convId,
+                user_id: user.id,
+                role: "assistant",
+                content: enc2,
+              });
+            } catch (retryErr) {
+              console.error("Retry save also failed:", retryErr);
+              // Message remains in local state even if DB save fails
+            }
+          }
+          try {
+            const sug = await fetchSuggestions(assistantContent);
+            setSuggestions(sug);
+          } catch { /* suggestions are non-critical */ }
           pushNotification({
             title: "Aureon responded",
             message: assistantContent.slice(0, 80) + (assistantContent.length > 80 ? "…" : ""),
@@ -877,17 +905,32 @@ const Dashboard = () => {
       isStreamingRef.current = false;
       if (e.name === "AbortError") {
         if (assistantContent) {
-          const encryptedPartial = await encryptText(assistantContent, user.id);
-          await supabase.from("messages").insert({
-            id: assistantId,
-            conversation_id: convId,
-            user_id: user.id,
-            role: "assistant",
-            content: encryptedPartial,
-          });
+          try {
+            const encryptedPartial = await encryptText(assistantContent, user.id);
+            await supabase.from("messages").insert({
+              id: assistantId,
+              conversation_id: convId,
+              user_id: user.id,
+              role: "assistant",
+              content: encryptedPartial,
+            });
+          } catch { /* best-effort save */ }
         }
         toast({ title: "Stopped", description: "Generation stopped. Partial response saved." });
       } else {
+        // Save partial content if we got any before the error
+        if (assistantContent) {
+          try {
+            const encPartial = await encryptText(assistantContent, user.id);
+            await supabase.from("messages").insert({
+              id: assistantId,
+              conversation_id: convId,
+              user_id: user.id,
+              role: "assistant",
+              content: encPartial,
+            });
+          } catch { /* best-effort save */ }
+        }
         toast({ title: "AI Error", description: e.message, variant: "destructive" });
       }
     }
