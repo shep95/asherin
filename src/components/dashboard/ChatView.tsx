@@ -279,14 +279,19 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   },
   img({ src, alt, ...props }: any) {
     return (
-      <img
-        src={src}
-        alt={alt || "Chart analysis"}
-        className="rounded-xl border border-border/20 max-w-full my-3 shadow-lg"
-        style={{ maxHeight: "500px", objectFit: "contain" }}
-        loading="lazy"
-        {...props}
-      />
+      <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__aureonLightbox?.(src)}>
+        <img
+          src={src}
+          alt={alt || "Chart analysis"}
+          className="rounded-xl border border-border/20 max-w-full my-3 shadow-lg transition-transform hover:scale-[1.02]"
+          style={{ maxHeight: "500px", objectFit: "contain" }}
+          loading="lazy"
+          {...props}
+        />
+        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-xl">
+          <ZoomIn className="h-6 w-6 text-white drop-shadow-lg" />
+        </span>
+      </span>
     );
   },
 });
