@@ -33,6 +33,7 @@ const WALLPAPERS = [
 ];
 
 const STORAGE_KEY = "aureon_landing_wallpaper";
+const GLASS_KEY = "aureon_glass_refraction";
 
 export const getStoredWallpaper = (): string => {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -44,10 +45,15 @@ export const getStoredWallpaper = (): string => {
   return wp ? wp.src : wallpaperDefault;
 };
 
+export const getGlassRefraction = (): boolean => {
+  return localStorage.getItem(GLASS_KEY) === "on";
+};
+
 const WallpaperSwitcher = () => {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "default");
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [glassOn, setGlassOn] = useState(() => getGlassRefraction());
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,6 +69,13 @@ const WallpaperSwitcher = () => {
     setActive(key);
     localStorage.setItem(STORAGE_KEY, key);
     setOpen(false);
+    window.dispatchEvent(new Event("wallpaper-change"));
+  };
+
+  const toggleGlass = () => {
+    const next = !glassOn;
+    setGlassOn(next);
+    localStorage.setItem(GLASS_KEY, next ? "on" : "off");
     window.dispatchEvent(new Event("wallpaper-change"));
   };
 
@@ -102,6 +115,21 @@ const WallpaperSwitcher = () => {
               {displayLabel}
             </span>
           </div>
+
+          {/* Glass Refraction Toggle */}
+          <button
+            onClick={toggleGlass}
+            className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 mb-2 text-[10px] font-light tracking-[0.12em] uppercase transition-all border ${
+              glassOn
+                ? "border-foreground/20 bg-foreground/[0.06] text-foreground"
+                : "border-border/20 bg-transparent text-muted-foreground/60 hover:text-muted-foreground hover:border-border/30"
+            }`}
+          >
+            <span>Liquid Glass</span>
+            <span className={`inline-block w-7 h-4 rounded-full relative transition-colors ${glassOn ? "bg-foreground/20" : "bg-border/40"}`}>
+              <span className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${glassOn ? "left-3.5 bg-foreground/70" : "left-0.5 bg-muted-foreground/40"}`} />
+            </span>
+          </button>
 
           <div className="grid grid-cols-2 gap-2">
             {WALLPAPERS.map((wp, i) => (
