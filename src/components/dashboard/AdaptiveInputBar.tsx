@@ -249,11 +249,14 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
 
   // Clear draft on send
   const handleSend = () => {
+    if (!value.trim() && attachments.length === 0) return;
     const key = conversationId || "global";
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
     trackPhrase(value.trim());
-    onSend();
+    onSendMessage(value.trim(), attachments.length > 0 ? attachments : undefined);
+    setValue("");
+    setAttachments([]);
   };
 
   // Handle paste from clipboard (images)
