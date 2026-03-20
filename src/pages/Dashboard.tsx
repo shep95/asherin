@@ -1169,26 +1169,41 @@ const Dashboard = () => {
           animation: isDashTransitioning ? "wpFadeIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s forwards" : undefined,
         }}
       />
-      {/* Light streak wipe */}
+      {/* Dark overlay — dims during transition to reveal the light streak */}
+      <div
+        className="fixed inset-0 pointer-events-none transition-opacity duration-500"
+        style={{
+          zIndex: 3,
+          backgroundColor: 'hsl(0 0% 0% / 0.8)',
+          opacity: isDashTransitioning ? 0.5 : 1,
+        }}
+      />
+      {/* Light streak wipe — ABOVE overlay */}
       {isDashTransitioning && (
-        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 4 }}>
           <div style={{
             position: "absolute", top: "-20%", bottom: "-20%", width: "35%",
-            background: "linear-gradient(90deg, transparent 0%, hsla(275,80%,70%,0.08) 15%, hsla(275,80%,85%,0.2) 35%, hsla(0,0%,100%,0.35) 50%, hsla(275,80%,85%,0.2) 65%, hsla(275,80%,70%,0.08) 85%, transparent 100%)",
-            filter: "blur(30px)",
+            background: "linear-gradient(90deg, transparent 0%, hsla(275,80%,70%,0.12) 15%, hsla(275,80%,85%,0.3) 35%, hsla(0,0%,100%,0.5) 50%, hsla(275,80%,85%,0.3) 65%, hsla(275,80%,70%,0.12) 85%, transparent 100%)",
+            filter: "blur(25px)",
             animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
             transform: "translateX(-100%) skewX(-8deg)",
           }} />
           <div style={{
-            position: "absolute", top: "-10%", bottom: "-10%", width: "4px",
-            background: "linear-gradient(180deg, transparent 5%, hsla(0,0%,100%,0.6) 30%, hsla(0,0%,100%,0.9) 50%, hsla(0,0%,100%,0.6) 70%, transparent 95%)",
-            filter: "blur(2px)",
+            position: "absolute", top: "-10%", bottom: "-10%", width: "3px",
+            background: "linear-gradient(180deg, transparent 5%, hsla(275,80%,85%,0.7) 30%, hsla(0,0%,100%,0.95) 50%, hsla(275,80%,85%,0.7) 70%, transparent 95%)",
+            filter: "blur(1px)",
             animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
             transform: "translateX(-100%) skewX(-8deg)",
+          }} />
+          <div style={{
+            position: "absolute", top: "-30%", bottom: "-30%", width: "60%",
+            background: "radial-gradient(ellipse at center, hsla(275,60%,70%,0.18) 0%, transparent 70%)",
+            filter: "blur(40px)",
+            animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
+            transform: "translateX(-100%) skewX(-5deg)",
           }} />
         </div>
       )}
-      <div className="fixed inset-0 bg-background/80 pointer-events-none" style={{ zIndex: 3 }} />
 
       <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
 
