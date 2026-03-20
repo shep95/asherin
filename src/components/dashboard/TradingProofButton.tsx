@@ -52,7 +52,7 @@ export default function TradingProofButton({ message, allMessages }: Props) {
   const [annotatedUrl, setAnnotatedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
-
+  const [zoomedSrc, setZoomedSrc] = useState<string | null>(null);
   const { isTradingMsg, chartAttachment, userQuery } = isTradingWithChart(message, allMessages);
 
   if (!isTradingMsg || !chartAttachment) return null;
