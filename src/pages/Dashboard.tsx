@@ -1301,6 +1301,16 @@ const Dashboard = () => {
         onModeChange={(m) => { setMode(m); setCmdPaletteOpen(false); }}
         onFocusMode={() => setFocusMode((f) => !f)}
       />
+      <style>{`
+        @keyframes wpFadeIn {
+          from { opacity: 0; transform: scale(1.015); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes wpLightStreak {
+          from { transform: translateX(-50%) skewX(-8deg); }
+          to { transform: translateX(calc(100vw + 50%)) skewX(-8deg); }
+        }
+      `}</style>
     </div>
   );
 };
