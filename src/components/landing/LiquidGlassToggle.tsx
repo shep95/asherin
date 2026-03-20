@@ -41,15 +41,9 @@ const LiquidGlassToggle = ({ active: controlledActive, onChange }: LiquidGlassTo
   return (
     <div className="relative inline-flex items-center" ref={containerRef}>
       {/* Outer shell — liquid glass pill */}
-      <div className="relative rounded-full p-[2px] overflow-hidden">
-        {/* Static subtle border */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background:
-              "conic-gradient(from 220deg, hsl(30 80% 40% / 0.35), hsl(200 60% 30% / 0.08), hsl(30 80% 40% / 0.03), hsl(30 80% 40% / 0.35))",
-          }}
-        />
+      <div className="relative rounded-full p-[1px] overflow-hidden">
+        {/* Monochrome border */}
+        <div className="absolute inset-0 rounded-full bg-border/30" />
         {/* Glass inner surface */}
         <div className="relative flex items-center rounded-full bg-background/80 backdrop-blur-xl border border-border/10">
           {/* Sliding active indicator */}
@@ -60,22 +54,9 @@ const LiquidGlassToggle = ({ active: controlledActive, onChange }: LiquidGlassTo
               width: indicator.width - 6,
             }}
           >
-            {/* Inner glow layer */}
-            <div className="absolute inset-0 rounded-full bg-foreground/[0.06]" />
-            {/* Ambient ring */}
-            <div
-              className="absolute -inset-[1px] rounded-full"
-              style={{
-                background:
-                  "conic-gradient(from 180deg, hsl(30 90% 50% / 0.3), transparent 30%, hsl(200 70% 50% / 0.1), transparent 70%, hsl(30 90% 50% / 0.3))",
-              }}
-            />
+            <div className="absolute inset-0 rounded-full bg-foreground/[0.08]" />
+            <div className="absolute -inset-[1px] rounded-full border border-border/40" />
             <div className="absolute inset-[1px] rounded-full bg-background/90 backdrop-blur-md" />
-            {/* Soft ambient shadow */}
-            <div
-              className="absolute -inset-2 rounded-full pointer-events-none opacity-40 blur-md"
-              style={{ background: "radial-gradient(ellipse, hsl(30 80% 45% / 0.3), transparent 70%)" }}
-            />
           </div>
 
           {/* Buttons */}
