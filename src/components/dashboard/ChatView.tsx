@@ -1015,6 +1015,27 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           initialContent={artifactContent}
         />
       )}
+
+      {/* Image Lightbox */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in cursor-zoom-out"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightboxSrc(null); }}
+            className="absolute top-4 right-4 p-2 rounded-full bg-foreground/10 hover:bg-foreground/20 text-white transition-colors z-10"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="Expanded view"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl border border-border/10 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
