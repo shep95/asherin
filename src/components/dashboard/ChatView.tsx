@@ -109,7 +109,7 @@ function MessageCopyButton({ text }: { text: string }) {
 
 // Subscription-gated input wrapper
 import type { AdaptiveInputBarHandle } from "./AdaptiveInputBar";
-import { forwardRef } from "react";
+
 
 const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
   onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
