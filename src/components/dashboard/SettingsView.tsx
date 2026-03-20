@@ -569,13 +569,18 @@ const SettingsView = () => {
                     window.dispatchEvent(new Event("aureon-border-color-change"));
                     toast({ title: "Border updated", description: c.label });
                   }}
-                  className={`relative rounded-xl overflow-hidden border-2 transition-all aspect-square group ${
-                    active ? "border-foreground/50 ring-1 ring-foreground/20" : "border-border/20 hover:border-foreground/30"
+                  className={`relative rounded-xl overflow-hidden transition-all aspect-square group flex items-center justify-center ${
+                    active ? "ring-2 ring-foreground/40" : "hover:ring-1 hover:ring-foreground/20"
                   }`}
+                  style={{ background: "hsl(var(--background))" }}
                 >
-                  <div className="absolute inset-0" style={{ background: c.preview }} />
-                  <div className="absolute inset-0 bg-background/40" />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+                  {/* Animated rotating border — mimics the real send button */}
+                  <span
+                    className="absolute inset-0 rounded-xl animate-[sendBorderSpin_3s_linear_infinite]"
+                    style={{ background: c.preview }}
+                  />
+                  <span className="absolute inset-[2px] rounded-[10px] bg-background z-[1]" />
+                  <div className="relative z-[2] flex flex-col items-center justify-center gap-0.5">
                     {active && <Check className="h-3.5 w-3.5 text-foreground" />}
                     <span className="text-[9px] font-light text-foreground">{c.label}</span>
                   </div>
