@@ -8,6 +8,9 @@ const TRADING_KEYWORDS = [
   "support", "resistance", "trade", "trading", "setup", "signal",
   "bullish", "bearish", "breakout", "breakdown", "tp", "sl",
   "target", "position", "scalp", "swing", "fractal",
+  "chart", "candle", "candlestick", "timeframe", "price", "level",
+  "trend", "momentum", "rsi", "macd", "ema", "sma", "fibonacci",
+  "analysis", "analyze", "pattern", "technical", "indicator",
 ];
 
 export function isTradingWithChart(
@@ -29,6 +32,8 @@ export function isTradingWithChart(
   const hasTradingContent = TRADING_KEYWORDS.some((kw) => combined.includes(kw));
   const chartAtt = userMsg.attachments?.find((a) => a.type.startsWith("image/")) || null;
 
+  // Show button if trading content exists AND user had an image attachment
+  // Allow even without base64 — previewUrl is sufficient for display
   return {
     isTradingMsg: hasTradingContent && !!chartAtt,
     chartAttachment: chartAtt,
