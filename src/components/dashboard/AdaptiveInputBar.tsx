@@ -384,9 +384,30 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
             <button
               onClick={handleSend}
               disabled={(!value.trim() && attachments.length === 0) || disabled}
-              className="shrink-0 rounded-xl bg-foreground p-2.5 text-background transition-all hover:bg-foreground/90 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.02]"
+              className="shrink-0 relative rounded-full w-10 h-10 flex items-center justify-center group disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.02] transition-transform"
+              data-no-ripple
             >
-              <Send className="h-4 w-4" />
+              {/* Rotating prismatic border */}
+              <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]"
+                style={{
+                  background: 'conic-gradient(from 0deg, hsl(var(--foreground)/0.15), hsl(220,80%,75%), hsl(var(--foreground)/0.6), hsl(35,90%,65%), hsl(var(--foreground)/0.8), hsl(0,70%,60%), hsl(var(--foreground)/0.4), hsl(200,85%,70%), hsl(var(--foreground)/0.15))',
+                  padding: '2px',
+                }}
+              />
+              {/* Chrome reflection overlay */}
+              <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-40"
+                style={{
+                  background: 'conic-gradient(from 180deg, transparent 0%, hsl(210,100%,85%) 15%, transparent 30%, hsl(40,100%,80%) 50%, transparent 65%, hsl(330,80%,70%) 80%, transparent 100%)',
+                }}
+              />
+              {/* Inner dark fill */}
+              <span className="absolute inset-[2px] rounded-full bg-background z-[1]"
+                style={{
+                  boxShadow: 'inset 0 1px 3px hsl(var(--foreground)/0.1), 0 0 8px hsl(var(--foreground)/0.05)',
+                }}
+              />
+              {/* Icon */}
+              <Send className="h-4 w-4 text-foreground/70 z-[2] relative" />
             </button>
           )}
         </div>
