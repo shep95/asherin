@@ -905,17 +905,32 @@ const Dashboard = () => {
       isStreamingRef.current = false;
       if (e.name === "AbortError") {
         if (assistantContent) {
-          const encryptedPartial = await encryptText(assistantContent, user.id);
-          await supabase.from("messages").insert({
-            id: assistantId,
-            conversation_id: convId,
-            user_id: user.id,
-            role: "assistant",
-            content: encryptedPartial,
-          });
+          try {
+            const encryptedPartial = await encryptText(assistantContent, user.id);
+            await supabase.from("messages").insert({
+              id: assistantId,
+              conversation_id: convId,
+              user_id: user.id,
+              role: "assistant",
+              content: encryptedPartial,
+            });
+          } catch { /* best-effort save */ }
         }
         toast({ title: "Stopped", description: "Generation stopped. Partial response saved." });
       } else {
+        // Save partial content if we got any before the error
+        if (assistantContent) {
+          try {
+            const encPartial = await encryptText(assistantContent, user.id);
+            await supabase.from("messages").insert({
+              id: assistantId,
+              conversation_id: convId,
+              user_id: user.id,
+              role: "assistant",
+              content: encPartial,
+            });
+          } catch { /* best-effort save */ }
+        }
         toast({ title: "AI Error", description: e.message, variant: "destructive" });
       }
     }
