@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getStoredWallpaper } from "./WallpaperSwitcher";
 import WallpaperSwitcher from "./WallpaperSwitcher";
+import ClickRippleEffect from "./ClickRippleEffect";
 
 interface Props {
   children: React.ReactNode;
