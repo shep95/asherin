@@ -152,7 +152,15 @@ const quickActions: Record<InputIntent, { id: string; icon: React.ElementType; l
   ],
 };
 
-const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isStreaming, disabled, conversationId, attachments = [], onAttachmentsChange }: AdaptiveInputBarProps) => {
+const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProps>(({ onSendMessage, onStop, onQuickAction, isStreaming, disabled, conversationId }, ref) => {
+  const [value, setValue] = useState("");
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const onAttachmentsChange = setAttachments;
+  const onChange = setValue;
+
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => setValue(prev => prev + text),
+  }), []);
   const [intent, setIntent] = useState<InputIntent>("text");
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
