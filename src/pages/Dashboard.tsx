@@ -568,6 +568,19 @@ const Dashboard = () => {
   // Keep ref in sync so sendMessageCore always reads latest conversations
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
 
+  // Re-sync UI when tab becomes visible again (prevents stale/blank messages after tab switch)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // Force a re-render by updating conversations from the ref
+        // This ensures any streaming updates that happened while backgrounded are displayed
+        setConversations(prev => [...prev]);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? conversations[0];
 
   const handleDepthChange = useCallback((newDepth: ResponseDepth) => {
