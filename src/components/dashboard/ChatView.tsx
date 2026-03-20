@@ -388,7 +388,6 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     };
     const prompt = prompts[action] ?? `${action}: ${content}`;
     onSendMessage(prompt);
-    setInput("");
   }, [onSendMessage]);
 
   const handleSelectionAction = useCallback((action: string, text: string) => {
