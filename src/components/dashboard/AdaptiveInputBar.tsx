@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from "react";
 import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff } from "lucide-react";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
@@ -103,17 +103,17 @@ const BORDER_COLOR_THEMES: Record<string, { main: string; shimmer: string; glow:
 
 type InputIntent = "text" | "code" | "url" | "image" | "file";
 
+export interface AdaptiveInputBarHandle {
+  insertText: (text: string) => void;
+}
+
 interface AdaptiveInputBarProps {
-  value: string;
-  onChange: (value: string) => void;
-  onSend: () => void;
+  onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
   onStop?: () => void;
   onQuickAction?: (action: string, content: string) => void;
   isStreaming: boolean;
   disabled?: boolean;
   conversationId?: string;
-  attachments?: FileAttachment[];
-  onAttachmentsChange?: (files: FileAttachment[]) => void;
 }
 
 function detectIntent(text: string): InputIntent {
@@ -152,7 +152,15 @@ const quickActions: Record<InputIntent, { id: string; icon: React.ElementType; l
   ],
 };
 
-const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isStreaming, disabled, conversationId, attachments = [], onAttachmentsChange }: AdaptiveInputBarProps) => {
+const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProps>(({ onSendMessage, onStop, onQuickAction, isStreaming, disabled, conversationId }, ref) => {
+  const [value, setValue] = useState("");
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const onAttachmentsChange = setAttachments;
+  const onChange = setValue;
+
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => setValue(prev => prev + text),
+  }), []);
   const [intent, setIntent] = useState<InputIntent>("text");
   const [draftSaved, setDraftSaved] = useState<string | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
@@ -241,11 +249,14 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
 
   // Clear draft on send
   const handleSend = () => {
+    if (!value.trim() && attachments.length === 0) return;
     const key = conversationId || "global";
     deleteDraft(key).catch(() => {});
     setDraftSaved(null);
     trackPhrase(value.trim());
-    onSend();
+    onSendMessage(value.trim(), attachments.length > 0 ? attachments : undefined);
+    setValue("");
+    setAttachments([]);
   };
 
   // Handle paste from clipboard (images)
@@ -565,6 +576,8 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
       </div>
     </div>
   );
-};
+});
+
+AdaptiveInputBar.displayName = "AdaptiveInputBar";
 
 export default AdaptiveInputBar;

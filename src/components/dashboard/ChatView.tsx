@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, forwardRef } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal, X, ZoomIn } from "lucide-react";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
@@ -108,20 +108,19 @@ function MessageCopyButton({ text }: { text: string }) {
 }
 
 // Subscription-gated input wrapper
-function SubscriptionGatedInput(props: {
-  value: string;
-  onChange: (v: string) => void;
-  onSend: () => void;
+import type { AdaptiveInputBarHandle } from "./AdaptiveInputBar";
+
+
+const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
+  onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
   onStop?: () => void;
   onQuickAction?: (action: string, content: string) => void;
   isStreaming: boolean;
   conversationId?: string;
-  attachments?: FileAttachment[];
-  onAttachmentsChange?: (files: FileAttachment[]) => void;
-}) {
+}>((props, ref) => {
   const { subscribed, loading } = useSubscription();
   if (loading) {
-    return <AdaptiveInputBar {...props} disabled />;
+    return <AdaptiveInputBar ref={ref} {...props} disabled />;
   }
   if (!subscribed) {
     return (
@@ -140,8 +139,8 @@ function SubscriptionGatedInput(props: {
       </div>
     );
   }
-  return <AdaptiveInputBar {...props} disabled={false} />;
-}
+  return <AdaptiveInputBar ref={ref} {...props} disabled={false} />;
+});
 
 // Helper to parse user messages for code blocks and render as file preview cards
 const CODE_BLOCK_RE = /```(\w+)?\n([\s\S]*?)```/g;
@@ -300,8 +299,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const navigate = useNavigate();
   const { hasPro } = useAccess();
   const markdownComponents = useMemo(() => createMarkdownComponents(navigate), [navigate]);
-  const [input, setInput] = useState("");
-  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const inputBarRef = useRef<AdaptiveInputBarHandle>(null);
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const [cotId, setCotId] = useState<string | null>(null);
   const [diagramId, setDiagramId] = useState<string | null>(null);
@@ -361,12 +359,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     agentId: "agent_1701kjqvrqkpfwat79br17vqbdms",
   });
 
-  const handleSend = () => {
-    if (!input.trim() && attachments.length === 0) return;
-    onSendMessage(input.trim(), attachments.length > 0 ? attachments : undefined);
-    setInput("");
-    setAttachments([]);
-  };
+  // handleSend is now inside AdaptiveInputBar
 
   const downloadConversation = () => {
     if (!conversation.messages.length) return;
@@ -395,7 +388,6 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     };
     const prompt = prompts[action] ?? `${action}: ${content}`;
     onSendMessage(prompt);
-    setInput("");
   }, [onSendMessage]);
 
   const handleSelectionAction = useCallback((action: string, text: string) => {
@@ -994,7 +986,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           <ReusableBlocks
             open={blocksOpen}
             onClose={() => { setBlocksOpen(false); setBlockSaveContent(undefined); }}
-            onInsert={(content) => setInput(prev => prev + content)}
+            onInsert={(content) => inputBarRef.current?.insertText(content)}
             contentToSave={blockSaveContent}
           />
         </div>
@@ -1016,15 +1008,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Adaptive Input — gated behind subscription */}
       <SubscriptionGatedInput
-        value={input}
-        onChange={setInput}
-        onSend={handleSend}
+        ref={inputBarRef}
+        onSendMessage={onSendMessage}
         onStop={onStopStreaming}
         onQuickAction={handleQuickAction}
         isStreaming={!!isStreaming}
         conversationId={conversation.id}
-        attachments={attachments}
-        onAttachmentsChange={setAttachments}
       />
 
       {/* Share with Redaction modal */}
