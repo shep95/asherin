@@ -1518,12 +1518,8 @@ Make annotations bold, clear, professional. Use contrasting colors visible on th
 
     (async () => {
       try {
-        // If we have an annotated chart, prepend it to the stream
-        if (chartAnnotationBase64) {
-          const imgMarkdown = `**📊 Annotated Chart Analysis:**\n\n![Annotated Trading Chart](${chartAnnotationBase64})\n\n---\n\n`;
-          const imgChunk = JSON.stringify({ choices: [{ delta: { content: imgMarkdown } }] });
-          await writer.write(encoder.encode(`data: ${imgChunk}\n\n`));
-        }
+        // Chart annotation is handled by the dedicated "Show Proof" button (chart-annotate function)
+        // Do NOT inject base64 images inline — they corrupt SSE streams due to size
 
         const reader = response.body!.getReader();
         const decoder = new TextDecoder();
