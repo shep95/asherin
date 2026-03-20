@@ -578,4 +578,6 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
   );
 });
 
+AdaptiveInputBar.displayName = "AdaptiveInputBar";
+
 export default AdaptiveInputBar;
