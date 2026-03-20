@@ -52,7 +52,7 @@ export default function TradingProofButton({ message, allMessages }: Props) {
   const [annotatedUrl, setAnnotatedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
-
+  const [zoomedSrc, setZoomedSrc] = useState<string | null>(null);
   const { isTradingMsg, chartAttachment, userQuery } = isTradingWithChart(message, allMessages);
 
   if (!isTradingMsg || !chartAttachment) return null;
@@ -211,22 +211,22 @@ export default function TradingProofButton({ message, allMessages }: Props) {
                     {/* Original */}
                     <div className="space-y-2">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-light">Original Chart</p>
-                      <div className="rounded-xl border border-border/20 overflow-hidden bg-black/20">
+                      <div className="rounded-xl border border-border/20 overflow-hidden bg-black/20 cursor-zoom-in" onClick={() => setZoomedSrc(chartPreviewSrc || "")}>
                         <img
                           src={chartPreviewSrc || ""}
                           alt="Original chart"
-                          className="w-full object-contain max-h-[500px]"
+                          className="w-full object-contain max-h-[500px] hover:opacity-90 transition-opacity"
                         />
                       </div>
                     </div>
                     {/* Annotated */}
                     <div className="space-y-2">
                       <p className="text-[10px] uppercase tracking-wider text-emerald-500/70 font-light">📊 Annotated Proof</p>
-                      <div className="rounded-xl border border-emerald-500/20 overflow-hidden bg-black/20">
+                      <div className="rounded-xl border border-emerald-500/20 overflow-hidden bg-black/20 cursor-zoom-in" onClick={() => setZoomedSrc(annotatedUrl)}>
                         <img
                           src={annotatedUrl}
                           alt="Annotated trading chart"
-                          className="w-full object-contain max-h-[500px]"
+                          className="w-full object-contain max-h-[500px] hover:opacity-90 transition-opacity"
                         />
                       </div>
                     </div>
@@ -244,6 +244,26 @@ export default function TradingProofButton({ message, allMessages }: Props) {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Zoom overlay for individual images */}
+      {zoomedSrc && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md cursor-zoom-out animate-fade-in"
+          onClick={() => setZoomedSrc(null)}
+        >
+          <img
+            src={zoomedSrc}
+            alt="Zoomed chart"
+            className="max-w-[95vw] max-h-[95vh] object-contain rounded-lg shadow-2xl"
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); setZoomedSrc(null); }}
+            className="absolute top-4 right-4 p-2 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
       )}
     </>
