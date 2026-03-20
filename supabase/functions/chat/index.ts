@@ -1424,20 +1424,16 @@ ${fullText}
       try {
         const chartAtt = lastUserAttachments2.find((a: any) => a.type?.startsWith("image/"));
         if (chartAtt) {
-          console.log("Annotating trading chart via Gemini...");
-          const annotationResp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    role: "user",
-                    parts: [
-                      { inline_data: { mime_type: chartAtt.type, data: chartAtt.base64 } },
-                      {
-                        text: `You are a professional technical analyst. Edit and annotate this trading chart image with clear visual markings:
+          // Determine which API key to use: user's Google BYOK key or app's Gemini key
+          let annotationApiKey = GEMINI_API_KEY;
+          if (useByok && userApiKey && byokProvider === "google") {
+            annotationApiKey = userApiKey;
+            console.log("Annotating trading chart via user's Google API key...");
+          } else {
+            console.log("Annotating trading chart via app Gemini key...");
+          }
+
+          const annotationPrompt = `You are a professional technical analyst. Edit and annotate this trading chart image with clear visual markings:
 1. Draw horizontal lines at key SUPPORT levels (green) and RESISTANCE levels (red)
 2. Mark the suggested ENTRY point with a green arrow labeled "ENTRY"
 3. Mark the STOP LOSS level with a red line labeled "SL"
@@ -1445,32 +1441,66 @@ ${fullText}
 5. Draw any visible trendlines or pattern boundaries
 6. Add a directional arrow (up for LONG, down for SHORT) showing expected move
 7. Keep the original chart fully visible — overlay annotations cleanly
-Make annotations bold, clear, professional. Use contrasting colors visible on the chart. Return the annotated image.`,
+Make annotations bold, clear, professional. Use contrasting colors visible on the chart. Return the annotated image.`;
+
+          // Try multiple Gemini models that support image generation
+          const imageModels = [
+            "gemini-2.0-flash-exp-image-generation",
+            "gemini-2.0-flash-preview-image-generation",
+            "gemini-2.0-flash-exp",
+          ];
+
+          let annotationSuccess = false;
+          for (const model of imageModels) {
+            if (annotationSuccess) break;
+            try {
+              const annotationResp = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${annotationApiKey}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [
+                      {
+                        role: "user",
+                        parts: [
+                          { inline_data: { mime_type: chartAtt.type, data: chartAtt.base64 } },
+                          { text: annotationPrompt },
+                        ],
                       },
                     ],
-                  },
-                ],
-                generationConfig: {
-                  responseModalities: ["IMAGE", "TEXT"],
+                    generationConfig: {
+                      responseModalities: ["IMAGE", "TEXT"],
+                    },
+                  }),
                 },
-              }),
-            },
-          );
+              );
 
-          if (annotationResp.ok) {
-            const annotationData = await annotationResp.json();
-            // Gemini returns image data in parts with inlineData
-            const parts = annotationData.candidates?.[0]?.content?.parts || [];
-            for (const part of parts) {
-              if (part.inlineData?.mimeType?.startsWith("image/")) {
-                chartAnnotationBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                console.log("Chart annotation generated successfully");
-                break;
+              if (annotationResp.ok) {
+                const annotationData = await annotationResp.json();
+                const parts = annotationData.candidates?.[0]?.content?.parts || [];
+                for (const part of parts) {
+                  if (part.inlineData?.mimeType?.startsWith("image/")) {
+                    chartAnnotationBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                    console.log(`Chart annotation generated successfully via ${model}`);
+                    annotationSuccess = true;
+                    break;
+                  }
+                }
+              } else {
+                const errText = await annotationResp.text();
+                console.warn(`Chart annotation failed with ${model} (${annotationResp.status}):`, errText.slice(0, 200));
               }
+            } catch (modelErr) {
+              console.warn(`Chart annotation model ${model} error:`, modelErr);
             }
-          } else {
-            const errText = await annotationResp.text();
-            console.error("Chart annotation failed:", annotationResp.status, errText.slice(0, 200));
+          }
+
+          // If Gemini image gen failed and user has OpenAI BYOK, try DALL-E style analysis
+          if (!annotationSuccess && useByok && userApiKey && (byokProvider === "openai")) {
+            console.log("Gemini image gen unavailable, using OpenAI vision for text-only chart analysis...");
+            // OpenAI can't generate images via chat completions, but the main response
+            // will still analyze the chart via the vision-capable model
           }
         }
       } catch (e) {
