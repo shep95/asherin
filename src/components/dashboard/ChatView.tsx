@@ -341,6 +341,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     }
   }, [highlightedMsgId]);
 
+  // Wire lightbox for markdown images
+  useEffect(() => {
+    (window as any).__aureonLightbox = (src: string) => setLightboxSrc(src);
+    return () => { delete (window as any).__aureonLightbox; };
+  }, []);
+
   const elevenLabsVoice = useElevenLabsVoice({
     agentId: "agent_1701kjqvrqkpfwat79br17vqbdms",
   });
