@@ -334,6 +334,16 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const messagesRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Auto-scroll to bottom when conversation changes (opening a conversation)
+  useEffect(() => {
+    if (conversation.messages.length > 0) {
+      // Small delay to let DOM render
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      });
+    }
+  }, [conversation.id]);
+
   // Scroll to highlighted message
   useEffect(() => {
     if (highlightedMsgId && messageRefs.current[highlightedMsgId]) {
@@ -742,9 +752,26 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                       </>
                     )}
                   </div>
+                  {/* Timestamp */}
+                  {msg.timestamp && (
+                    <div className={`text-[9px] font-extralight text-muted-foreground/40 mt-1 px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}>
+                      {(() => {
+                        const ts = new Date(msg.timestamp);
+                        const now = new Date();
+                        const isToday = ts.toDateString() === now.toDateString();
+                        const yesterday = new Date(now);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const isYesterday = ts.toDateString() === yesterday.toDateString();
+                        const time = ts.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                        if (isToday) return time;
+                        if (isYesterday) return `Yesterday ${time}`;
+                        return `${ts.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}`;
+                      })()}
+                    </div>
+                  )}
                   {/* Action bar for both message types */}
                   {msg.content && !isStreaming && (
-                    <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mt-1 px-1 flex-wrap animate-fade-in">
                       {msg.role === "user" && (
                         <MessageStatusIndicator status={messageStatuses[msg.id]} />
                       )}

@@ -11,7 +11,7 @@ const ScrollIntelligence = ({ containerRef, isStreaming, messagesEndRef }: Scrol
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const isAutoScrolling = useRef(false);
 
-  // Detect user scrolling up during streaming
+  // Detect user scrolling up
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -41,19 +41,23 @@ const ScrollIntelligence = ({ containerRef, isStreaming, messagesEndRef }: Scrol
 
   const jumpToLatest = useCallback(() => {
     setUserScrolledUp(false);
+    isAutoScrolling.current = true;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    requestAnimationFrame(() => {
+      isAutoScrolling.current = false;
+    });
   }, [messagesEndRef]);
 
-  if (!userScrolledUp || !isStreaming) return null;
+  if (!userScrolledUp) return null;
 
   return (
     <div className="sticky bottom-4 flex justify-center z-30 pointer-events-none">
       <button
         onClick={jumpToLatest}
-        className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/30 bg-card/90 backdrop-blur-xl px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground shadow-lg transition-all hover:scale-[1.02] animate-fade-in"
+        className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/30 bg-card/90 backdrop-blur-xl px-4 py-2 text-xs font-light text-muted-foreground hover:text-foreground shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] animate-fade-in"
       >
         <ArrowDown className="h-3 w-3" />
-        Aureon is still writing — Jump to latest
+        {isStreaming ? "Aureon is still writing — Jump to latest" : "Jump to present"}
       </button>
     </div>
   );
