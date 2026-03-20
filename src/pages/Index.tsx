@@ -3,6 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import AuthOverlay from "@/components/AuthOverlay";
 import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
+import LiquidGlassToggle from "@/components/landing/LiquidGlassToggle";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link } from "react-router-dom";
@@ -215,8 +216,9 @@ const Index = () => {
           {/* Demo Widget */}
           <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden text-left">
             {/* Demo Header */}
-            <div className="flex items-center justify-between border-b border-border/20 px-6 py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between border-b border-border/20 px-6 py-4 gap-3">
               <span className="text-sm font-light tracking-[0.2em] text-foreground">AUREON LIVE</span>
+              <LiquidGlassToggle />
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                 <span className="text-xs font-extralight tracking-wide text-muted-foreground">LIVE</span>
