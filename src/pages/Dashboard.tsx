@@ -503,11 +503,19 @@ const Dashboard = () => {
         }
       } else {
         const convIds = convRows.map((c) => c.id);
-        const { data: msgRows } = await supabase
-          .from("messages")
-          .select("*")
-          .in("conversation_id", convIds)
-          .order("created_at", { ascending: true });
+        // Fetch messages per-conversation to avoid Supabase 1000-row global limit
+        const msgRowsBatches = await Promise.all(
+          convIds.map(async (cid) => {
+            const { data } = await supabase
+              .from("messages")
+              .select("*")
+              .eq("conversation_id", cid)
+              .order("created_at", { ascending: true })
+              .limit(500);
+            return data ?? [];
+          })
+        );
+        const msgRows = msgRowsBatches.flat();
 
         const msgMap = new Map<string, Message[]>();
         const decryptPromises = (msgRows ?? []).map(async (m) => {
