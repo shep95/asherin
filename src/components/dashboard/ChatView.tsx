@@ -715,7 +715,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             {msg.attachments.map((att, aidx) => (
                               <div key={aidx} className="rounded-lg overflow-hidden border border-border/20">
                                 {att.type.startsWith("image/") && att.previewUrl ? (
-                                  <img src={att.previewUrl} alt={att.name} className="max-w-[200px] max-h-[150px] object-cover rounded-lg" />
+                                  <span className="relative group cursor-pointer block" onClick={() => setLightboxSrc(att.previewUrl!)}>
+                                    <img src={att.previewUrl} alt={att.name} className="max-w-[200px] max-h-[150px] object-cover rounded-lg transition-transform hover:scale-[1.02]" />
+                                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                                      <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
+                                    </span>
+                                  </span>
                                 ) : (
                                   <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 text-xs text-muted-foreground">
                                     <FileText className="h-4 w-4" />
