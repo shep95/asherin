@@ -35,8 +35,12 @@ const WALLPAPERS = [
 const STORAGE_KEY = "aureon_landing_wallpaper";
 const GLASS_KEY = "aureon_glass_refraction";
 
+export const getStoredWallpaperKey = (): string => {
+  return localStorage.getItem(STORAGE_KEY) || "default";
+};
+
 export const getStoredWallpaper = (): string => {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = getStoredWallpaperKey();
   if (stored === "custom") {
     const customUrl = localStorage.getItem("aureon_custom_wallpaper_url");
     if (customUrl) return customUrl;
