@@ -498,28 +498,24 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
               className="shrink-0 relative rounded-full w-10 h-10 flex items-center justify-center group disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.04] transition-transform"
               data-no-ripple
             >
-              {/* Rotating prismatic border — theme-matched purple/silver */}
+              {/* Rotating prismatic border — dynamic color theme */}
               <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]"
-                style={{
-                  background: 'conic-gradient(from 0deg, hsl(275 95% 43%/0.2), hsl(275 80% 65%), hsl(0 0% 75%/0.7), hsl(275 95% 50%), hsl(0 0% 85%/0.5), hsl(260 70% 60%), hsl(275 95% 43%/0.2))',
-                }}
+                style={{ background: borderTheme.main }}
               />
-              {/* Counter-rotating silver shimmer overlay */}
+              {/* Counter-rotating shimmer overlay */}
               <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30"
-                style={{
-                  background: 'conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.6) 20%, transparent 35%, hsl(275 60% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.4) 85%, transparent 100%)',
-                }}
+                style={{ background: borderTheme.shimmer }}
               />
               {/* Inner dark fill */}
               <span className="absolute inset-[2px] rounded-full bg-background z-[1]"
                 style={{
-                  boxShadow: 'inset 0 1px 4px hsl(275 95% 43%/0.08), 0 0 12px hsl(275 95% 43%/0.06)',
+                  boxShadow: `inset 0 1px 4px ${borderTheme.glow}14, 0 0 12px ${borderTheme.glow}10`,
                 }}
               />
               {/* Subtle ambient glow on hover */}
               <span className="absolute inset-[-3px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0"
                 style={{
-                  background: 'radial-gradient(circle, hsl(275 95% 43%/0.15) 0%, transparent 70%)',
+                  background: `radial-gradient(circle, ${borderTheme.glow}26 0%, transparent 70%)`,
                 }}
               />
               {/* Icon */}
