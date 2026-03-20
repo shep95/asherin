@@ -216,8 +216,9 @@ const Index = () => {
           {/* Demo Widget */}
           <div className="mt-16 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md overflow-hidden text-left">
             {/* Demo Header */}
-            <div className="flex items-center justify-between border-b border-border/20 px-6 py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between border-b border-border/20 px-6 py-4 gap-3">
               <span className="text-sm font-light tracking-[0.2em] text-foreground">AUREON LIVE</span>
+              <LiquidGlassToggle />
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                 <span className="text-xs font-extralight tracking-wide text-muted-foreground">LIVE</span>
