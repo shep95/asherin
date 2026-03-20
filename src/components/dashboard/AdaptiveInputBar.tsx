@@ -139,9 +139,47 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
     onSend();
   };
 
+  // Handle paste from clipboard (images)
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    if (!onAttachmentsChange) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageItems: DataTransferItem[] = [];
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) imageItems.push(item);
+    }
+    if (imageItems.length === 0) return;
+
+    e.preventDefault();
+    const maxSize = 20 * 1024 * 1024;
+    const maxSlots = Math.max(0, 3 - attachments.length);
+
+    imageItems.slice(0, maxSlots).forEach(async (item) => {
+      const file = item.getAsFile();
+      if (!file || file.size > maxSize || file.size === 0) return;
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const commaIdx = result.indexOf(",");
+            resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+        const previewUrl = URL.createObjectURL(file);
+        const name = file.name || `pasted-image-${Date.now()}.png`;
+        onAttachmentsChange([...attachments, { name, type: file.type, size: file.size, base64, previewUrl }]);
+      } catch (err) {
+        console.error("Failed to paste image:", err);
+      }
+    });
+  }, [attachments, onAttachmentsChange]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Tab" || (e.key === "ArrowRight" && textareaRef.current && textareaRef.current.selectionStart === value.length)) {
-      // Accept autocomplete
       const lower = value.toLowerCase();
       if (lower.length >= 3) {
         e.preventDefault();
@@ -357,6 +395,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder={online ? "Message Aureon…" : "Offline — messages will queue…"}
               rows={1}
               className="w-full resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
