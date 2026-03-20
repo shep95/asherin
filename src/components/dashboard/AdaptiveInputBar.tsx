@@ -166,9 +166,13 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [borderColorKey, setBorderColorKey] = useState(() => localStorage.getItem("aureon_send_border_color") || "default");
+  const [btnShape, setBtnShape] = useState(() => localStorage.getItem("aureon_send_btn_shape") || "circle");
 
   useEffect(() => {
-    const handler = () => setBorderColorKey(localStorage.getItem("aureon_send_border_color") || "default");
+    const handler = () => {
+      setBorderColorKey(localStorage.getItem("aureon_send_border_color") || "default");
+      setBtnShape(localStorage.getItem("aureon_send_btn_shape") || "circle");
+    };
     window.addEventListener("aureon-border-color-change", handler);
     return () => window.removeEventListener("aureon-border-color-change", handler);
   }, []);
@@ -528,30 +532,25 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
             <button
               onClick={handleSend}
               disabled={(!value.trim() && attachments.length === 0) || disabled}
-              className="shrink-0 relative rounded-full w-10 h-10 flex items-center justify-center group disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.04] transition-transform"
+              className={`shrink-0 relative ${btnShape === "square" ? "rounded-xl" : "rounded-full"} w-10 h-10 flex items-center justify-center group disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.04] transition-transform`}
               data-no-ripple
             >
-              {/* Rotating prismatic border — dynamic color theme */}
-              <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]"
+              <span className={`absolute inset-0 ${btnShape === "square" ? "rounded-xl" : "rounded-full"} animate-[sendBorderSpin_3s_linear_infinite]`}
                 style={{ background: borderTheme.main }}
               />
-              {/* Counter-rotating shimmer overlay */}
-              <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30"
+              <span className={`absolute inset-0 ${btnShape === "square" ? "rounded-xl" : "rounded-full"} animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30`}
                 style={{ background: borderTheme.shimmer }}
               />
-              {/* Inner dark fill */}
-              <span className="absolute inset-[2px] rounded-full bg-background z-[1]"
+              <span className={`absolute inset-[2px] ${btnShape === "square" ? "rounded-[10px]" : "rounded-full"} bg-background z-[1]`}
                 style={{
                   boxShadow: `inset 0 1px 4px ${borderTheme.glow}14, 0 0 12px ${borderTheme.glow}10`,
                 }}
               />
-              {/* Subtle ambient glow on hover */}
-              <span className="absolute inset-[-3px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0"
+              <span className={`absolute inset-[-3px] ${btnShape === "square" ? "rounded-2xl" : "rounded-full"} opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0`}
                 style={{
                   background: `radial-gradient(circle, ${borderTheme.glow}26 0%, transparent 70%)`,
                 }}
               />
-              {/* Icon */}
               <Send className="h-4 w-4 text-foreground/70 z-[2] relative group-hover:text-foreground/90 transition-colors" />
             </button>
           )}
