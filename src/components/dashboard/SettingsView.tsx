@@ -646,6 +646,48 @@ const SettingsView = () => {
               </div>
             </div>
           </div>
+
+          {/* Send Button Shape */}
+          <div className="mt-5 pt-4 border-t border-border/15">
+            <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-3">Button Shape</p>
+            <div className="flex items-center gap-6">
+              {([
+                { key: "circle", label: "Circle", radius: "rounded-full" },
+                { key: "square", label: "Rounded Square", radius: "rounded-xl" },
+              ] as const).map((s) => {
+                const activeShape = localStorage.getItem("aureon_send_btn_shape") || "circle";
+                const isActive = activeShape === s.key;
+                const colorKey = localStorage.getItem("aureon_send_border_color") || "default";
+                const themeList = [
+                  { key: "default", main: "conic-gradient(from 0deg, hsl(275 95% 43%/0.2), hsl(275 80% 65%), hsl(0 0% 75%/0.7), hsl(275 95% 50%), hsl(0 0% 85%/0.5), hsl(260 70% 60%), hsl(275 95% 43%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.6) 20%, transparent 35%, hsl(275 60% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.4) 85%, transparent 100%)", glow: "hsl(275 95% 43%)" },
+                ];
+                const currentTheme = themeList.find(t => t.key === colorKey) || themeList[0];
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => {
+                      localStorage.setItem("aureon_send_btn_shape", s.key);
+                      window.dispatchEvent(new Event("aureon-border-color-change"));
+                      toast({ title: "Shape updated", description: s.label });
+                    }}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
+                      isActive ? "bg-foreground/5 ring-1 ring-foreground/20" : "hover:bg-foreground/[0.03]"
+                    }`}
+                  >
+                    <div className={`relative ${s.radius} w-10 h-10 flex items-center justify-center`}>
+                      <span className={`absolute inset-0 ${s.radius} animate-[sendBorderSpin_3s_linear_infinite]`} style={{ background: currentTheme.main }} />
+                      <span className={`absolute inset-0 ${s.radius} animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30`} style={{ background: currentTheme.shimmer }} />
+                      <span className={`absolute inset-[2px] ${s.radius} bg-background z-[1]`} style={{ boxShadow: `inset 0 1px 4px ${currentTheme.glow}14, 0 0 12px ${currentTheme.glow}10` }} />
+                      <span className={`absolute inset-[-3px] ${s.radius} opacity-60 z-0`} style={{ background: `radial-gradient(circle, ${currentTheme.glow}26 0%, transparent 70%)` }} />
+                      <Send className="h-4 w-4 text-foreground/70 z-[2] relative" />
+                    </div>
+                    <span className="text-[9px] font-light text-foreground/70">{s.label}</span>
+                    {isActive && <span className="text-[8px] text-accent">Active</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* AI Model Keys (BYOK) */}
