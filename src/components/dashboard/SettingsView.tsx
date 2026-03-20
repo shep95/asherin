@@ -538,6 +538,53 @@ const SettingsView = () => {
           </div>
         </div>
 
+        {/* Send Button Border Color */}
+        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <Palette className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-sm font-light text-foreground">Send Button Border</h3>
+          </div>
+          <p className="text-[10px] text-muted-foreground/50">Choose the color theme for the rotating border animation on the send button.</p>
+          <div className="grid grid-cols-4 gap-3">
+            {([
+              { key: "default", label: "Aureon", preview: "conic-gradient(from 0deg, hsl(275 95% 43%), hsl(275 80% 65%), hsl(0 0% 75%), hsl(275 95% 50%), hsl(260 70% 60%), hsl(275 95% 43%))" },
+              { key: "gold", label: "Gold", preview: "conic-gradient(from 0deg, hsl(43 80% 35%), hsl(43 90% 55%), hsl(35 95% 70%), hsl(48 85% 60%), hsl(40 75% 45%), hsl(43 80% 35%))" },
+              { key: "silver", label: "Silver", preview: "conic-gradient(from 0deg, hsl(0 0% 45%), hsl(0 0% 70%), hsl(0 0% 85%), hsl(0 0% 60%), hsl(210 5% 55%), hsl(0 0% 45%))" },
+              { key: "bronze", label: "Bronze", preview: "conic-gradient(from 0deg, hsl(25 60% 35%), hsl(30 70% 50%), hsl(20 65% 60%), hsl(35 55% 45%), hsl(28 60% 40%), hsl(25 60% 35%))" },
+              { key: "blue", label: "Sapphire", preview: "conic-gradient(from 0deg, hsl(220 90% 40%), hsl(210 85% 55%), hsl(200 80% 65%), hsl(225 90% 50%), hsl(215 85% 45%), hsl(220 90% 40%))" },
+              { key: "neon", label: "Neon", preview: "conic-gradient(from 0deg, hsl(150 100% 45%), hsl(180 100% 50%), hsl(280 100% 60%), hsl(320 100% 50%), hsl(60 100% 50%), hsl(150 100% 45%))" },
+              { key: "rose", label: "Rose", preview: "conic-gradient(from 0deg, hsl(340 80% 45%), hsl(350 85% 60%), hsl(330 75% 65%), hsl(345 90% 55%), hsl(335 80% 50%), hsl(340 80% 45%))" },
+              { key: "ember", label: "Ember", preview: "conic-gradient(from 0deg, hsl(15 90% 40%), hsl(25 95% 55%), hsl(40 90% 60%), hsl(10 85% 45%), hsl(0 80% 40%), hsl(15 90% 40%))" },
+              { key: "ice", label: "Ice", preview: "conic-gradient(from 0deg, hsl(195 90% 45%), hsl(185 85% 60%), hsl(200 80% 70%), hsl(190 90% 55%), hsl(210 75% 50%), hsl(195 90% 45%))" },
+              { key: "emerald", label: "Emerald", preview: "conic-gradient(from 0deg, hsl(155 80% 30%), hsl(160 75% 45%), hsl(150 70% 55%), hsl(165 80% 40%), hsl(145 75% 35%), hsl(155 80% 30%))" },
+              { key: "phantom", label: "Phantom", preview: "conic-gradient(from 0deg, hsl(0 0% 15%), hsl(0 0% 30%), hsl(0 0% 50%), hsl(0 0% 25%), hsl(0 0% 40%), hsl(0 0% 15%))" },
+              { key: "rainbow", label: "Rainbow", preview: "conic-gradient(from 0deg, hsl(0 85% 55%), hsl(60 85% 55%), hsl(120 85% 45%), hsl(180 85% 50%), hsl(240 85% 55%), hsl(300 85% 55%), hsl(0 85% 55%))" },
+            ] as const).map((c) => {
+              const active = (localStorage.getItem("aureon_send_border_color") || "default") === c.key;
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => {
+                    localStorage.setItem("aureon_send_border_color", c.key);
+                    window.dispatchEvent(new Event("aureon-border-color-change"));
+                    toast({ title: "Border updated", description: c.label });
+                  }}
+                  className={`relative rounded-xl overflow-hidden border-2 transition-all aspect-square group ${
+                    active ? "border-foreground/50 ring-1 ring-foreground/20" : "border-border/20 hover:border-foreground/30"
+                  }`}
+                >
+                  <div className="absolute inset-0" style={{ background: c.preview }} />
+                  <div className="absolute inset-0 bg-background/40" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+                    {active && <Check className="h-3.5 w-3.5 text-foreground" />}
+                    <span className="text-[9px] font-light text-foreground">{c.label}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Appearance */}
         <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
           <div className="flex items-center gap-3">

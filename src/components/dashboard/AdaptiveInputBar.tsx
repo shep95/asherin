@@ -5,6 +5,69 @@ import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 import VoiceRecordingOrb from "./VoiceRecordingOrb";
 import type { FileAttachment } from "./types";
 
+const BORDER_COLOR_THEMES: Record<string, { main: string; shimmer: string; glow: string }> = {
+  default: {
+    main: "conic-gradient(from 0deg, hsl(275 95% 43%/0.2), hsl(275 80% 65%), hsl(0 0% 75%/0.7), hsl(275 95% 50%), hsl(0 0% 85%/0.5), hsl(260 70% 60%), hsl(275 95% 43%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.6) 20%, transparent 35%, hsl(275 60% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.4) 85%, transparent 100%)",
+    glow: "hsl(275 95% 43%)",
+  },
+  gold: {
+    main: "conic-gradient(from 0deg, hsl(43 80% 35%/0.2), hsl(43 90% 55%), hsl(35 95% 70%/0.7), hsl(48 85% 60%), hsl(40 80% 50%/0.5), hsl(43 80% 35%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(43 90% 70%/0.6) 20%, transparent 35%, hsl(35 80% 60%/0.5) 55%, transparent 70%, hsl(48 85% 55%/0.4) 85%, transparent 100%)",
+    glow: "hsl(43 90% 50%)",
+  },
+  silver: {
+    main: "conic-gradient(from 0deg, hsl(0 0% 45%/0.2), hsl(0 0% 70%), hsl(0 0% 85%/0.7), hsl(210 5% 65%), hsl(0 0% 55%/0.5), hsl(0 0% 45%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.7) 20%, transparent 35%, hsl(210 5% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.5) 85%, transparent 100%)",
+    glow: "hsl(0 0% 70%)",
+  },
+  bronze: {
+    main: "conic-gradient(from 0deg, hsl(25 60% 35%/0.2), hsl(30 70% 50%), hsl(20 65% 60%/0.7), hsl(35 55% 45%), hsl(28 60% 40%/0.5), hsl(25 60% 35%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(30 65% 60%/0.6) 20%, transparent 35%, hsl(25 55% 50%/0.5) 55%, transparent 70%, hsl(35 60% 55%/0.4) 85%, transparent 100%)",
+    glow: "hsl(30 70% 45%)",
+  },
+  blue: {
+    main: "conic-gradient(from 0deg, hsl(220 90% 40%/0.2), hsl(210 85% 55%), hsl(200 80% 65%/0.7), hsl(225 90% 50%), hsl(215 85% 45%/0.5), hsl(220 90% 40%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(210 80% 70%/0.6) 20%, transparent 35%, hsl(220 85% 60%/0.5) 55%, transparent 70%, hsl(200 80% 65%/0.4) 85%, transparent 100%)",
+    glow: "hsl(220 90% 50%)",
+  },
+  neon: {
+    main: "conic-gradient(from 0deg, hsl(150 100% 45%/0.3), hsl(180 100% 50%), hsl(280 100% 60%/0.7), hsl(320 100% 50%), hsl(60 100% 50%/0.5), hsl(150 100% 45%/0.3))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(180 100% 60%/0.6) 20%, transparent 35%, hsl(320 100% 55%/0.5) 55%, transparent 70%, hsl(60 100% 55%/0.4) 85%, transparent 100%)",
+    glow: "hsl(150 100% 50%)",
+  },
+  rose: {
+    main: "conic-gradient(from 0deg, hsl(340 80% 45%/0.2), hsl(350 85% 60%), hsl(330 75% 65%/0.7), hsl(345 90% 55%), hsl(335 80% 50%/0.5), hsl(340 80% 45%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(350 80% 70%/0.6) 20%, transparent 35%, hsl(340 75% 60%/0.5) 55%, transparent 70%, hsl(330 80% 65%/0.4) 85%, transparent 100%)",
+    glow: "hsl(345 85% 55%)",
+  },
+  ember: {
+    main: "conic-gradient(from 0deg, hsl(15 90% 40%/0.2), hsl(25 95% 55%), hsl(40 90% 60%/0.7), hsl(10 85% 45%), hsl(0 80% 40%/0.5), hsl(15 90% 40%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(25 90% 60%/0.6) 20%, transparent 35%, hsl(10 85% 50%/0.5) 55%, transparent 70%, hsl(40 85% 55%/0.4) 85%, transparent 100%)",
+    glow: "hsl(20 90% 45%)",
+  },
+  ice: {
+    main: "conic-gradient(from 0deg, hsl(195 90% 45%/0.2), hsl(185 85% 60%), hsl(200 80% 70%/0.7), hsl(190 90% 55%), hsl(210 75% 50%/0.5), hsl(195 90% 45%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(195 85% 70%/0.6) 20%, transparent 35%, hsl(185 80% 60%/0.5) 55%, transparent 70%, hsl(200 80% 65%/0.4) 85%, transparent 100%)",
+    glow: "hsl(195 90% 50%)",
+  },
+  emerald: {
+    main: "conic-gradient(from 0deg, hsl(155 80% 30%/0.2), hsl(160 75% 45%), hsl(150 70% 55%/0.7), hsl(165 80% 40%), hsl(145 75% 35%/0.5), hsl(155 80% 30%/0.2))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(160 70% 55%/0.6) 20%, transparent 35%, hsl(150 75% 45%/0.5) 55%, transparent 70%, hsl(155 70% 50%/0.4) 85%, transparent 100%)",
+    glow: "hsl(155 80% 40%)",
+  },
+  phantom: {
+    main: "conic-gradient(from 0deg, hsl(0 0% 15%/0.3), hsl(0 0% 30%), hsl(0 0% 50%/0.7), hsl(0 0% 25%), hsl(0 0% 40%/0.5), hsl(0 0% 15%/0.3))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 50%/0.5) 20%, transparent 35%, hsl(0 0% 35%/0.4) 55%, transparent 70%, hsl(0 0% 45%/0.3) 85%, transparent 100%)",
+    glow: "hsl(0 0% 35%)",
+  },
+  rainbow: {
+    main: "conic-gradient(from 0deg, hsl(0 85% 55%), hsl(60 85% 55%), hsl(120 85% 45%), hsl(180 85% 50%), hsl(240 85% 55%), hsl(300 85% 55%), hsl(0 85% 55%))",
+    shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(60 80% 65%/0.5) 15%, transparent 30%, hsl(180 80% 55%/0.4) 50%, transparent 65%, hsl(300 80% 60%/0.4) 80%, transparent 100%)",
+    glow: "hsl(180 80% 50%)",
+  },
+};
+
 type InputIntent = "text" | "code" | "url" | "image" | "file";
 
 interface AdaptiveInputBarProps {
