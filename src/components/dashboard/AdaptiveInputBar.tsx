@@ -384,30 +384,35 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
             <button
               onClick={handleSend}
               disabled={(!value.trim() && attachments.length === 0) || disabled}
-              className="shrink-0 relative rounded-full w-10 h-10 flex items-center justify-center group disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.02] transition-transform"
+              className="shrink-0 relative rounded-full w-10 h-10 flex items-center justify-center group disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 hover:scale-[1.04] transition-transform"
               data-no-ripple
             >
-              {/* Rotating prismatic border */}
+              {/* Rotating prismatic border — theme-matched purple/silver */}
               <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]"
                 style={{
-                  background: 'conic-gradient(from 0deg, hsl(var(--foreground)/0.15), hsl(220,80%,75%), hsl(var(--foreground)/0.6), hsl(35,90%,65%), hsl(var(--foreground)/0.8), hsl(0,70%,60%), hsl(var(--foreground)/0.4), hsl(200,85%,70%), hsl(var(--foreground)/0.15))',
-                  padding: '2px',
+                  background: 'conic-gradient(from 0deg, hsl(275 95% 43%/0.2), hsl(275 80% 65%), hsl(0 0% 75%/0.7), hsl(275 95% 50%), hsl(0 0% 85%/0.5), hsl(260 70% 60%), hsl(275 95% 43%/0.2))',
                 }}
               />
-              {/* Chrome reflection overlay */}
-              <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-40"
+              {/* Counter-rotating silver shimmer overlay */}
+              <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30"
                 style={{
-                  background: 'conic-gradient(from 180deg, transparent 0%, hsl(210,100%,85%) 15%, transparent 30%, hsl(40,100%,80%) 50%, transparent 65%, hsl(330,80%,70%) 80%, transparent 100%)',
+                  background: 'conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.6) 20%, transparent 35%, hsl(275 60% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.4) 85%, transparent 100%)',
                 }}
               />
               {/* Inner dark fill */}
               <span className="absolute inset-[2px] rounded-full bg-background z-[1]"
                 style={{
-                  boxShadow: 'inset 0 1px 3px hsl(var(--foreground)/0.1), 0 0 8px hsl(var(--foreground)/0.05)',
+                  boxShadow: 'inset 0 1px 4px hsl(275 95% 43%/0.08), 0 0 12px hsl(275 95% 43%/0.06)',
+                }}
+              />
+              {/* Subtle ambient glow on hover */}
+              <span className="absolute inset-[-3px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0"
+                style={{
+                  background: 'radial-gradient(circle, hsl(275 95% 43%/0.15) 0%, transparent 70%)',
                 }}
               />
               {/* Icon */}
-              <Send className="h-4 w-4 text-foreground/70 z-[2] relative" />
+              <Send className="h-4 w-4 text-foreground/70 z-[2] relative group-hover:text-foreground/90 transition-colors" />
             </button>
           )}
         </div>
