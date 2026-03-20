@@ -323,6 +323,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [determinism, setDeterminism] = useState(33);
   const [qosMode, setQosMode] = useState<QoSMode>("fast");
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
