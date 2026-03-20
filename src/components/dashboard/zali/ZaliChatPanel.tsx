@@ -92,6 +92,18 @@ const markdownComponents = {
       </div>
     );
   },
+  img({ src, alt, ...props }: any) {
+    return (
+      <img
+        src={src}
+        alt={alt || "Chart analysis"}
+        className="rounded-xl border border-border/20 max-w-full my-3 shadow-lg"
+        style={{ maxHeight: "500px", objectFit: "contain" }}
+        loading="lazy"
+        {...props}
+      />
+    );
+  },
 };
 
 // Code block detection in user messages

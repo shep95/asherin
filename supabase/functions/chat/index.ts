@@ -1401,6 +1401,85 @@ ${fullText}
     }
 
     // ══════════════════════════════════════════════════════════════════════════
+    // CHART ANNOTATION — Annotate trading charts with entry/SL/TP levels
+    // ══════════════════════════════════════════════════════════════════════════
+
+    let chartAnnotationBase64: string | null = null;
+
+    const tradingKeywords = [
+      "long", "short", "entry", "stop loss", "take profit", "buy", "sell",
+      "support", "resistance", "chart", "trade", "trading", "setup", "signal",
+      "bullish", "bearish", "breakout", "breakdown", "analysis", "tp", "sl",
+      "target", "position", "scalp", "swing", "fractal",
+    ];
+    const lastUserContent2 = (prunedMessages[prunedMessages.length - 1]?.content || "").toLowerCase();
+    const lastUserAttachments2 = prunedMessages[prunedMessages.length - 1]?.attachments || [];
+    const hasImageAtt2 = lastUserAttachments2.some((a: any) => a.type?.startsWith("image/"));
+    const isTradingQuery = hasImageAtt2 && tradingKeywords.some((kw: string) => lastUserContent2.includes(kw));
+    const isChartUpload = hasImageAtt2 && lastUserContent2.length < 200 && (
+      isTradingQuery || /\b(long|short|buy|sell|entry|sl|tp)\b/i.test(lastUserContent2)
+    );
+
+    if (isTradingQuery || isChartUpload) {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        try {
+          const chartAtt = lastUserAttachments2.find((a: any) => a.type?.startsWith("image/"));
+          if (chartAtt) {
+            console.log("Annotating trading chart...");
+            const annotationResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-image",
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "image_url",
+                        image_url: { url: `data:${chartAtt.type};base64,${chartAtt.base64}` },
+                      },
+                      {
+                        type: "text",
+                        text: `You are a professional technical analyst. Annotate this trading chart image with clear visual markings:
+1. Draw horizontal lines at key SUPPORT levels (green) and RESISTANCE levels (red)
+2. Mark the suggested ENTRY point with a green arrow labeled "ENTRY"
+3. Mark the STOP LOSS level with a red line labeled "SL"
+4. Mark TAKE PROFIT target(s) with blue/cyan lines labeled "TP1", "TP2"
+5. Draw any visible trendlines or pattern boundaries
+6. Add a directional arrow (up for LONG, down for SHORT) showing expected move
+7. Keep the original chart fully visible — overlay annotations cleanly
+Make annotations bold, clear, professional. Use contrasting colors visible on the chart.`,
+                      },
+                    ],
+                  },
+                ],
+                modalities: ["image", "text"],
+              }),
+            });
+
+            if (annotationResp.ok) {
+              const annotationData = await annotationResp.json();
+              const annotatedImg = annotationData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+              if (annotatedImg) {
+                chartAnnotationBase64 = annotatedImg;
+                console.log("Chart annotation generated successfully");
+              }
+            } else {
+              console.error("Chart annotation failed:", annotationResp.status);
+            }
+          }
+        } catch (e) {
+          console.error("Chart annotation error:", e);
+        }
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     // STREAM TRANSFORMER — Normalize all provider formats to OpenAI SSE
     // ══════════════════════════════════════════════════════════════════════════
 
@@ -1410,6 +1489,13 @@ ${fullText}
 
     (async () => {
       try {
+        // If we have an annotated chart, prepend it to the stream
+        if (chartAnnotationBase64) {
+          const imgMarkdown = `**📊 Annotated Chart Analysis:**\n\n![Annotated Trading Chart](${chartAnnotationBase64})\n\n---\n\n`;
+          const imgChunk = JSON.stringify({ choices: [{ delta: { content: imgMarkdown } }] });
+          await writer.write(encoder.encode(`data: ${imgChunk}\n\n`));
+        }
+
         const reader = response.body!.getReader();
         const decoder = new TextDecoder();
         let buf = "";
