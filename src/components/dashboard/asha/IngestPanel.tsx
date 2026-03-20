@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Upload, FileText, Image, FileCode, CheckCircle2, AlertTriangle, Loader2, X, Edit3, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, FileText, Image, FileCode, AlertTriangle, Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
+import IngestStatusBadge from "./IngestStatusBadge";
 import { validateFile, sanitizeDisplayName, MAX_FILE_SIZE_DISPLAY } from "@/lib/file-security";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -262,15 +263,7 @@ const IngestPanel = () => {
                 <div className="flex items-center gap-3 p-4">
                   <Icon className="h-5 w-5 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-light text-foreground truncate">{file.file_name}</p>
-                      {file.status === "analyzing" && <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />}
-                      {file.status === "ready" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
-                      {file.status === "error" && (
-                        <button onClick={() => retryProcessing(file.id)} className="text-[9px] text-accent hover:underline ml-1">Retry</button>
-                      )}
-                      {file.status === "error" && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
-                    </div>
+                    <p className="text-sm font-light text-foreground truncate">{file.file_name}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-[10px] text-muted-foreground/50">{formatSize(file.file_size)}</span>
                       {file.row_count != null && <span className="text-[10px] text-muted-foreground/50">{file.row_count.toLocaleString()} rows</span>}
@@ -282,6 +275,10 @@ const IngestPanel = () => {
                       )}
                     </div>
                   </div>
+                  <IngestStatusBadge
+                    status={file.status as any}
+                    onRetry={() => retryProcessing(file.id)}
+                  />
                   <div className="flex items-center gap-1">
                     {file.status === "ready" && (
                       <button onClick={() => setExpandedFile(isExpanded ? null : file.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
