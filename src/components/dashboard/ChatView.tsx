@@ -108,20 +108,19 @@ function MessageCopyButton({ text }: { text: string }) {
 }
 
 // Subscription-gated input wrapper
-function SubscriptionGatedInput(props: {
-  value: string;
-  onChange: (v: string) => void;
-  onSend: () => void;
+import type { AdaptiveInputBarHandle } from "./AdaptiveInputBar";
+import { forwardRef } from "react";
+
+const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
+  onSendMessage: (content: string, attachments?: FileAttachment[]) => void;
   onStop?: () => void;
   onQuickAction?: (action: string, content: string) => void;
   isStreaming: boolean;
   conversationId?: string;
-  attachments?: FileAttachment[];
-  onAttachmentsChange?: (files: FileAttachment[]) => void;
-}) {
+}>((props, ref) => {
   const { subscribed, loading } = useSubscription();
   if (loading) {
-    return <AdaptiveInputBar {...props} disabled />;
+    return <AdaptiveInputBar ref={ref} {...props} disabled />;
   }
   if (!subscribed) {
     return (
@@ -140,8 +139,8 @@ function SubscriptionGatedInput(props: {
       </div>
     );
   }
-  return <AdaptiveInputBar {...props} disabled={false} />;
-}
+  return <AdaptiveInputBar ref={ref} {...props} disabled={false} />;
+});
 
 // Helper to parse user messages for code blocks and render as file preview cards
 const CODE_BLOCK_RE = /```(\w+)?\n([\s\S]*?)```/g;
