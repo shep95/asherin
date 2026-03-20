@@ -578,16 +578,46 @@ const Dashboard = () => {
 
   // Re-sync UI when tab becomes visible again (prevents stale/blank messages after tab switch)
   useEffect(() => {
-    const handleVisibility = () => {
+    const handleVisibility = async () => {
       if (document.visibilityState === "visible") {
-        // Force a re-render by updating conversations from the ref
-        // This ensures any streaming updates that happened while backgrounded are displayed
-        setConversations(prev => [...prev]);
+        // First, force re-render from the ref (covers streaming updates that happened while backgrounded)
+        const refConvs = conversationsRef.current;
+        setConversations(refConvs.map(c => ({ ...c, messages: [...c.messages] })));
+
+        // If we were NOT streaming when we came back, re-fetch messages for the active conversation
+        // from DB to catch any saves that completed while backgrounded
+        if (!isStreamingRef.current && user && activeConvId) {
+          try {
+            const { data: freshMsgs } = await supabase
+              .from("messages")
+              .select("*")
+              .eq("conversation_id", activeConvId)
+              .order("created_at", { ascending: true })
+              .limit(500);
+            if (freshMsgs && freshMsgs.length > 0) {
+              const decrypted = await Promise.all(
+                freshMsgs.map(async (m) => ({
+                  id: m.id,
+                  role: m.role as "user" | "assistant",
+                  content: await decryptText(m.content, user.id),
+                  timestamp: new Date(m.created_at),
+                  truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+                  sources: (m.sources as { title: string; url: string }[]) ?? [],
+                }))
+              );
+              setConversations(prev => prev.map(c =>
+                c.id === activeConvId ? { ...c, messages: decrypted } : c
+              ));
+            }
+          } catch {
+            // Non-critical — local state is still valid
+          }
+        }
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
+  }, [user, activeConvId]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? conversations[0];
 
