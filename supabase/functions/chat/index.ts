@@ -1421,31 +1421,23 @@ ${fullText}
     );
 
     if (isTradingQuery || isChartUpload) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (LOVABLE_API_KEY) {
-        try {
-          const chartAtt = lastUserAttachments2.find((a: any) => a.type?.startsWith("image/"));
-          if (chartAtt) {
-            console.log("Annotating trading chart...");
-            const annotationResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      try {
+        const chartAtt = lastUserAttachments2.find((a: any) => a.type?.startsWith("image/"));
+        if (chartAtt) {
+          console.log("Annotating trading chart via Gemini...");
+          const annotationResp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+            {
               method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash-image",
-                messages: [
+                contents: [
                   {
                     role: "user",
-                    content: [
+                    parts: [
+                      { inline_data: { mime_type: chartAtt.type, data: chartAtt.base64 } },
                       {
-                        type: "image_url",
-                        image_url: { url: `data:${chartAtt.type};base64,${chartAtt.base64}` },
-                      },
-                      {
-                        type: "text",
-                        text: `You are a professional technical analyst. Annotate this trading chart image with clear visual markings:
+                        text: `You are a professional technical analyst. Edit and annotate this trading chart image with clear visual markings:
 1. Draw horizontal lines at key SUPPORT levels (green) and RESISTANCE levels (red)
 2. Mark the suggested ENTRY point with a green arrow labeled "ENTRY"
 3. Mark the STOP LOSS level with a red line labeled "SL"
@@ -1453,29 +1445,36 @@ ${fullText}
 5. Draw any visible trendlines or pattern boundaries
 6. Add a directional arrow (up for LONG, down for SHORT) showing expected move
 7. Keep the original chart fully visible — overlay annotations cleanly
-Make annotations bold, clear, professional. Use contrasting colors visible on the chart.`,
+Make annotations bold, clear, professional. Use contrasting colors visible on the chart. Return the annotated image.`,
                       },
                     ],
                   },
                 ],
-                modalities: ["image", "text"],
+                generationConfig: {
+                  responseModalities: ["IMAGE", "TEXT"],
+                },
               }),
-            });
+            },
+          );
 
-            if (annotationResp.ok) {
-              const annotationData = await annotationResp.json();
-              const annotatedImg = annotationData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-              if (annotatedImg) {
-                chartAnnotationBase64 = annotatedImg;
+          if (annotationResp.ok) {
+            const annotationData = await annotationResp.json();
+            // Gemini returns image data in parts with inlineData
+            const parts = annotationData.candidates?.[0]?.content?.parts || [];
+            for (const part of parts) {
+              if (part.inlineData?.mimeType?.startsWith("image/")) {
+                chartAnnotationBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
                 console.log("Chart annotation generated successfully");
+                break;
               }
-            } else {
-              console.error("Chart annotation failed:", annotationResp.status);
             }
+          } else {
+            const errText = await annotationResp.text();
+            console.error("Chart annotation failed:", annotationResp.status, errText.slice(0, 200));
           }
-        } catch (e) {
-          console.error("Chart annotation error:", e);
         }
+      } catch (e) {
+        console.error("Chart annotation error:", e);
       }
     }
 
