@@ -395,6 +395,7 @@ const AdaptiveInputBar = ({ value, onChange, onSend, onStop, onQuickAction, isSt
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder={online ? "Message Aureon…" : "Offline — messages will queue…"}
               rows={1}
               className="w-full resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
