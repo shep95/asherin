@@ -17,6 +17,7 @@ import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
+  { key: "vortex", label: "Vortex", src: wallpaperAbyss, animated: true },
   { key: "raven", label: "Raven", src: wallpaperRaven },
   { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
   { key: "glitch", label: "Glitch", src: wallpaperGlitch },
@@ -36,6 +37,7 @@ const STORAGE_KEY = "aureon_landing_wallpaper";
 
 export const getStoredWallpaper = (): string => {
   const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "vortex") return "vortex";
   if (stored === "custom") {
     const customUrl = localStorage.getItem("aureon_custom_wallpaper_url");
     if (customUrl) return customUrl;
@@ -134,6 +136,9 @@ const WallpaperSwitcher = () => {
                 />
                 <span className="absolute inset-0 flex items-end justify-center pb-0.5 bg-gradient-to-t from-black/60 to-transparent">
                   <span className="text-[9px] font-light text-white/90">{wp.label}</span>
+                  {"animated" in wp && wp.animated && (
+                    <span className="ml-1 text-[7px] font-medium tracking-wider text-accent uppercase bg-accent/20 px-1 rounded">LIVE</span>
+                  )}
                 </span>
               </button>
             ))}
