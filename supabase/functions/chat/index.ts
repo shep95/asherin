@@ -1200,12 +1200,25 @@ ${fullText}
     // ══════════════════════════════════════════════════════════════════════════
 
     // Convert messages to OpenAI-compatible format for non-Gemini providers
+    // Support multimodal (vision) by sending image attachments as content parts
     const openaiMessages = [
       { role: "system" as const, content: systemParts },
-      ...prunedMessages.map((m: { role: string; content: string }) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      ...prunedMessages.map((m: { role: string; content: string; attachments?: { name: string; type: string; base64: string }[] }) => {
+        if (m.attachments?.length) {
+          const contentParts: any[] = [];
+          for (const att of m.attachments) {
+            if (att.type.startsWith("image/")) {
+              contentParts.push({
+                type: "image_url",
+                image_url: { url: `data:${att.type};base64,${att.base64}` },
+              });
+            }
+          }
+          contentParts.push({ type: "text", text: m.content || "(see attached files)" });
+          return { role: m.role as "user" | "assistant", content: contentParts };
+        }
+        return { role: m.role as "user" | "assistant", content: m.content };
+      }),
     ];
 
     // Provider endpoint mapping
