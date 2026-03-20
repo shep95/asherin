@@ -3,6 +3,7 @@ import LandingBackground from "@/components/LandingBackground";
 import AuthOverlay from "@/components/AuthOverlay";
 import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
+import LiquidGlassToggle from "@/components/landing/LiquidGlassToggle";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
 import { Link } from "react-router-dom";
