@@ -67,12 +67,12 @@ ANNOTATION INSTRUCTIONS:
 Make annotations bold, clear, and professional. Use high-contrast colors visible on dark charts.
 Return ONLY the annotated image.`;
 
-    // Try Gemini image generation models first
+    // Try Gemini image generation models (correct model names as of 2026)
     if (apiKey) {
       const imageModels = [
-        "gemini-2.0-flash-exp-image-generation",
-        "gemini-2.0-flash-preview-image-generation",
-        "gemini-2.0-flash-exp",
+        "gemini-2.5-flash-image",
+        "gemini-3.1-flash-image-preview",
+        "gemini-3-pro-image-preview",
       ];
 
       for (const model of imageModels) {
@@ -110,6 +110,7 @@ Return ONLY the annotated image.`;
                 });
               }
             }
+            console.warn(`${model} returned OK but no image in parts`);
           } else {
             const errText = await resp.text();
             console.warn(`${model} failed (${resp.status}):`, errText.slice(0, 200));
@@ -131,7 +132,7 @@ Return ONLY the annotated image.`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
+            model: "google/gemini-3.1-flash-image-preview",
             messages: [{
               role: "user",
               content: [

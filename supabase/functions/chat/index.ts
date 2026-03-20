@@ -1445,9 +1445,9 @@ Make annotations bold, clear, professional. Use contrasting colors visible on th
 
           // Try multiple Gemini models that support image generation
           const imageModels = [
-            "gemini-2.0-flash-exp-image-generation",
-            "gemini-2.0-flash-preview-image-generation",
-            "gemini-2.0-flash-exp",
+            "gemini-2.5-flash-image",
+            "gemini-3.1-flash-image-preview",
+            "gemini-3-pro-image-preview",
           ];
 
           let annotationSuccess = false;
