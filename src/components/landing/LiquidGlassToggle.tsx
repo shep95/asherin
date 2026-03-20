@@ -42,12 +42,12 @@ const LiquidGlassToggle = ({ active: controlledActive, onChange }: LiquidGlassTo
     <div className="relative inline-flex items-center" ref={containerRef}>
       {/* Outer shell — liquid glass pill */}
       <div className="relative rounded-full p-[2px] overflow-hidden">
-        {/* Animated border — slow rotating conic glow */}
+        {/* Static subtle border */}
         <div
-          className="absolute inset-0 rounded-full animate-[lgSpin_6s_linear_infinite]"
+          className="absolute inset-0 rounded-full"
           style={{
             background:
-              "conic-gradient(from 0deg, hsl(30 80% 40% / 0.6), hsl(200 60% 30% / 0.1), hsl(30 80% 40% / 0.05), hsl(30 80% 40% / 0.6))",
+              "conic-gradient(from 220deg, hsl(30 80% 40% / 0.35), hsl(200 60% 30% / 0.08), hsl(30 80% 40% / 0.03), hsl(30 80% 40% / 0.35))",
           }}
         />
         {/* Glass inner surface */}
@@ -64,10 +64,10 @@ const LiquidGlassToggle = ({ active: controlledActive, onChange }: LiquidGlassTo
             <div className="absolute inset-0 rounded-full bg-foreground/[0.06]" />
             {/* Ambient ring */}
             <div
-              className="absolute -inset-[1px] rounded-full animate-[lgSpin_4s_linear_infinite]"
+              className="absolute -inset-[1px] rounded-full"
               style={{
                 background:
-                  "conic-gradient(from 180deg, hsl(30 90% 50% / 0.4), transparent 30%, hsl(200 70% 50% / 0.15), transparent 70%, hsl(30 90% 50% / 0.4))",
+                  "conic-gradient(from 180deg, hsl(30 90% 50% / 0.3), transparent 30%, hsl(200 70% 50% / 0.1), transparent 70%, hsl(30 90% 50% / 0.3))",
               }}
             />
             <div className="absolute inset-[1px] rounded-full bg-background/90 backdrop-blur-md" />
@@ -97,12 +97,6 @@ const LiquidGlassToggle = ({ active: controlledActive, onChange }: LiquidGlassTo
         </div>
       </div>
 
-      <style>{`
-        @keyframes lgSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 };
