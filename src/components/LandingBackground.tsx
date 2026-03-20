@@ -118,6 +118,7 @@ const LandingBackground = ({ children, overlayOpacity = "bg-black/80" }: Props) 
         {children}
       </div>
 
+      <ClickRippleEffect />
       <WallpaperSwitcher />
 
       <style>{`
