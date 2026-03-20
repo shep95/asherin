@@ -544,7 +544,7 @@ const SettingsView = () => {
             <Palette className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-sm font-light text-foreground">Send Button Border</h3>
           </div>
-          <p className="text-[10px] text-muted-foreground/50">Choose the color theme for the rotating border animation on the send button.</p>
+          <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-2">Standard</p>
           <div className="grid grid-cols-4 gap-4">
             {([
               { key: "default", label: "Aureon", main: "conic-gradient(from 0deg, hsl(275 95% 43%/0.2), hsl(275 80% 65%), hsl(0 0% 75%/0.7), hsl(275 95% 50%), hsl(0 0% 85%/0.5), hsl(260 70% 60%), hsl(275 95% 43%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.6) 20%, transparent 35%, hsl(275 60% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.4) 85%, transparent 100%)", glow: "hsl(275 95% 43%)" },
@@ -559,43 +559,21 @@ const SettingsView = () => {
               { key: "emerald", label: "Emerald", main: "conic-gradient(from 0deg, hsl(155 80% 30%/0.2), hsl(160 75% 45%), hsl(150 70% 55%/0.7), hsl(165 80% 40%), hsl(145 75% 35%/0.5), hsl(155 80% 30%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(160 70% 55%/0.6) 20%, transparent 35%, hsl(150 75% 45%/0.5) 55%, transparent 70%, hsl(155 70% 50%/0.4) 85%, transparent 100%)", glow: "hsl(155 80% 40%)" },
               { key: "phantom", label: "Phantom", main: "conic-gradient(from 0deg, hsl(0 0% 15%/0.3), hsl(0 0% 30%), hsl(0 0% 50%/0.7), hsl(0 0% 25%), hsl(0 0% 40%/0.5), hsl(0 0% 15%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 50%/0.5) 20%, transparent 35%, hsl(0 0% 35%/0.4) 55%, transparent 70%, hsl(0 0% 45%/0.3) 85%, transparent 100%)", glow: "hsl(0 0% 35%)" },
               { key: "rainbow", label: "Rainbow", main: "conic-gradient(from 0deg, hsl(0 85% 55%), hsl(60 85% 55%), hsl(120 85% 45%), hsl(180 85% 50%), hsl(240 85% 55%), hsl(300 85% 55%), hsl(0 85% 55%))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(60 80% 65%/0.5) 15%, transparent 30%, hsl(180 80% 55%/0.4) 50%, transparent 65%, hsl(300 80% 60%/0.4) 80%, transparent 100%)", glow: "hsl(180 80% 50%)" },
+              { key: "crimson", label: "Crimson", main: "conic-gradient(from 0deg, hsl(0 75% 35%/0.2), hsl(355 80% 50%), hsl(5 70% 55%/0.7), hsl(350 85% 45%), hsl(0 75% 40%/0.5), hsl(0 75% 35%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(355 75% 60%/0.6) 20%, transparent 35%, hsl(0 70% 50%/0.5) 55%, transparent 70%, hsl(5 75% 55%/0.4) 85%, transparent 100%)", glow: "hsl(355 80% 45%)" },
+              { key: "amethyst", label: "Amethyst", main: "conic-gradient(from 0deg, hsl(290 60% 35%/0.2), hsl(285 65% 50%), hsl(295 55% 60%/0.7), hsl(280 70% 45%), hsl(300 60% 40%/0.5), hsl(290 60% 35%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(285 60% 60%/0.6) 20%, transparent 35%, hsl(295 55% 50%/0.5) 55%, transparent 70%, hsl(280 65% 55%/0.4) 85%, transparent 100%)", glow: "hsl(285 65% 45%)" },
+              { key: "arctic", label: "Arctic", main: "conic-gradient(from 0deg, hsl(210 40% 50%/0.2), hsl(200 50% 65%), hsl(190 45% 75%/0.7), hsl(215 55% 60%), hsl(205 40% 55%/0.5), hsl(210 40% 50%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(200 45% 75%/0.6) 20%, transparent 35%, hsl(210 50% 65%/0.5) 55%, transparent 70%, hsl(190 40% 70%/0.4) 85%, transparent 100%)", glow: "hsl(205 50% 60%)" },
+              { key: "sunset", label: "Sunset", main: "conic-gradient(from 0deg, hsl(15 85% 45%/0.2), hsl(30 90% 55%), hsl(45 85% 60%/0.7), hsl(350 80% 50%), hsl(10 90% 45%/0.5), hsl(15 85% 45%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(30 85% 65%/0.6) 20%, transparent 35%, hsl(350 80% 55%/0.5) 55%, transparent 70%, hsl(45 80% 55%/0.4) 85%, transparent 100%)", glow: "hsl(25 90% 50%)" },
             ] as const).map((c) => {
               const active = (localStorage.getItem("aureon_send_border_color") || "default") === c.key;
               return (
-                <button
-                  key={c.key}
-                  onClick={() => {
-                    localStorage.setItem("aureon_send_border_color", c.key);
-                    window.dispatchEvent(new Event("aureon-border-color-change"));
-                    toast({ title: "Border updated", description: c.label });
-                  }}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
-                    active ? "bg-foreground/5 ring-1 ring-foreground/20" : "hover:bg-foreground/[0.03]"
-                  }`}
+                <button key={c.key} onClick={() => { localStorage.setItem("aureon_send_border_color", c.key); window.dispatchEvent(new Event("aureon-border-color-change")); toast({ title: "Border updated", description: c.label }); }}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${active ? "bg-foreground/5 ring-1 ring-foreground/20" : "hover:bg-foreground/[0.03]"}`}
                 >
-                  {/* Exact send button replica */}
                   <div className="relative rounded-full w-10 h-10 flex items-center justify-center">
-                    {/* Rotating prismatic border */}
-                    <span
-                      className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]"
-                      style={{ background: c.main }}
-                    />
-                    {/* Counter-rotating shimmer */}
-                    <span
-                      className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30"
-                      style={{ background: c.shimmer }}
-                    />
-                    {/* Inner dark fill */}
-                    <span
-                      className="absolute inset-[2px] rounded-full bg-background z-[1]"
-                      style={{ boxShadow: `inset 0 1px 4px ${c.glow}14, 0 0 12px ${c.glow}10` }}
-                    />
-                    {/* Ambient glow */}
-                    <span
-                      className="absolute inset-[-3px] rounded-full opacity-60 z-0"
-                      style={{ background: `radial-gradient(circle, ${c.glow}26 0%, transparent 70%)` }}
-                    />
-                    {/* Icon */}
+                    <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]" style={{ background: c.main }} />
+                    <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30" style={{ background: c.shimmer }} />
+                    <span className="absolute inset-[2px] rounded-full bg-background z-[1]" style={{ boxShadow: `inset 0 1px 4px ${c.glow}14, 0 0 12px ${c.glow}10` }} />
+                    <span className="absolute inset-[-3px] rounded-full opacity-60 z-0" style={{ background: `radial-gradient(circle, ${c.glow}26 0%, transparent 70%)` }} />
                     <Send className="h-4 w-4 text-foreground/70 z-[2] relative" />
                   </div>
                   <span className="text-[9px] font-light text-foreground/70">{c.label}</span>
@@ -603,6 +581,44 @@ const SettingsView = () => {
                 </button>
               );
             })}
+          </div>
+
+          {/* Wallpaper-matched themes */}
+          <div className="mt-5 pt-4 border-t border-border/15">
+            <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-2">Wallpaper Themes</p>
+            <div className="grid grid-cols-4 gap-4">
+              {([
+                { key: "wp-raven", label: "Raven", main: "conic-gradient(from 0deg, hsl(230 30% 20%/0.3), hsl(225 35% 35%), hsl(220 25% 50%/0.7), hsl(235 30% 30%), hsl(210 25% 40%/0.5), hsl(230 30% 20%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(225 30% 45%/0.5) 20%, transparent 35%, hsl(220 25% 40%/0.4) 55%, transparent 70%, hsl(230 30% 50%/0.3) 85%, transparent 100%)", glow: "hsl(225 35% 35%)" },
+                { key: "wp-eclipse", label: "Eclipse", main: "conic-gradient(from 0deg, hsl(35 80% 40%/0.2), hsl(25 85% 50%), hsl(45 75% 55%/0.7), hsl(15 80% 45%), hsl(40 70% 40%/0.5), hsl(35 80% 40%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(35 80% 60%/0.6) 20%, transparent 35%, hsl(25 75% 50%/0.5) 55%, transparent 70%, hsl(45 70% 55%/0.4) 85%, transparent 100%)", glow: "hsl(30 85% 50%)" },
+                { key: "wp-glitch", label: "Glitch", main: "conic-gradient(from 0deg, hsl(160 100% 40%/0.3), hsl(320 100% 50%), hsl(180 90% 50%/0.7), hsl(280 100% 55%), hsl(120 100% 45%/0.5), hsl(160 100% 40%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(320 100% 55%/0.6) 20%, transparent 35%, hsl(160 100% 50%/0.5) 55%, transparent 70%, hsl(280 90% 55%/0.4) 85%, transparent 100%)", glow: "hsl(160 100% 45%)" },
+                { key: "wp-aureon", label: "Aureon ✦", main: "conic-gradient(from 0deg, hsl(270 90% 40%/0.2), hsl(280 85% 55%), hsl(260 80% 65%/0.7), hsl(275 95% 50%), hsl(290 75% 45%/0.5), hsl(270 90% 40%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(280 80% 65%/0.6) 20%, transparent 35%, hsl(260 85% 55%/0.5) 55%, transparent 70%, hsl(275 80% 60%/0.4) 85%, transparent 100%)", glow: "hsl(275 90% 50%)" },
+                { key: "wp-seraph", label: "Seraph", main: "conic-gradient(from 0deg, hsl(40 70% 50%/0.2), hsl(45 80% 65%), hsl(35 75% 70%/0.7), hsl(50 85% 60%), hsl(30 70% 55%/0.5), hsl(40 70% 50%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(45 75% 70%/0.6) 20%, transparent 35%, hsl(40 80% 60%/0.5) 55%, transparent 70%, hsl(50 75% 65%/0.4) 85%, transparent 100%)", glow: "hsl(45 80% 60%)" },
+                { key: "wp-prophet", label: "Prophet", main: "conic-gradient(from 0deg, hsl(210 60% 25%/0.2), hsl(200 55% 40%), hsl(220 50% 50%/0.7), hsl(215 60% 35%), hsl(205 55% 30%/0.5), hsl(210 60% 25%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(200 50% 50%/0.5) 20%, transparent 35%, hsl(215 55% 40%/0.4) 55%, transparent 70%, hsl(210 50% 45%/0.3) 85%, transparent 100%)", glow: "hsl(210 60% 35%)" },
+                { key: "wp-nexus", label: "Nexus", main: "conic-gradient(from 0deg, hsl(180 70% 35%/0.2), hsl(170 65% 45%), hsl(190 60% 55%/0.7), hsl(175 70% 40%), hsl(185 65% 35%/0.5), hsl(180 70% 35%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(175 65% 55%/0.6) 20%, transparent 35%, hsl(180 60% 45%/0.5) 55%, transparent 70%, hsl(185 65% 50%/0.4) 85%, transparent 100%)", glow: "hsl(180 70% 42%)" },
+                { key: "wp-sentinel", label: "Sentinel", main: "conic-gradient(from 0deg, hsl(200 75% 30%/0.2), hsl(205 70% 42%), hsl(195 65% 52%/0.7), hsl(210 75% 38%), hsl(200 70% 35%/0.5), hsl(200 75% 30%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(205 65% 52%/0.6) 20%, transparent 35%, hsl(195 70% 42%/0.5) 55%, transparent 70%, hsl(210 60% 48%/0.4) 85%, transparent 100%)", glow: "hsl(205 70% 40%)" },
+                { key: "wp-inferno", label: "Inferno", main: "conic-gradient(from 0deg, hsl(5 90% 35%/0.2), hsl(15 95% 50%), hsl(30 90% 55%/0.7), hsl(0 85% 40%), hsl(10 90% 45%/0.5), hsl(5 90% 35%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(15 90% 55%/0.6) 20%, transparent 35%, hsl(0 85% 45%/0.5) 55%, transparent 70%, hsl(30 85% 50%/0.4) 85%, transparent 100%)", glow: "hsl(10 95% 45%)" },
+                { key: "wp-sorrow", label: "Sorrow", main: "conic-gradient(from 0deg, hsl(220 30% 30%/0.2), hsl(215 35% 42%), hsl(225 25% 50%/0.7), hsl(210 30% 38%), hsl(220 25% 35%/0.5), hsl(220 30% 30%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(215 30% 50%/0.5) 20%, transparent 35%, hsl(220 25% 42%/0.4) 55%, transparent 70%, hsl(225 30% 48%/0.3) 85%, transparent 100%)", glow: "hsl(215 35% 40%)" },
+                { key: "wp-silhouette", label: "Silhouette", main: "conic-gradient(from 0deg, hsl(0 0% 10%/0.3), hsl(0 0% 22%), hsl(0 0% 38%/0.7), hsl(0 0% 18%), hsl(0 0% 28%/0.5), hsl(0 0% 10%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 40%/0.5) 20%, transparent 35%, hsl(0 0% 28%/0.4) 55%, transparent 70%, hsl(0 0% 35%/0.3) 85%, transparent 100%)", glow: "hsl(0 0% 25%)" },
+                { key: "wp-abyss", label: "Abyss", main: "conic-gradient(from 0deg, hsl(240 50% 20%/0.3), hsl(235 55% 30%), hsl(245 45% 40%/0.7), hsl(230 50% 25%), hsl(240 45% 32%/0.5), hsl(240 50% 20%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(235 50% 40%/0.5) 20%, transparent 35%, hsl(240 45% 30%/0.4) 55%, transparent 70%, hsl(245 50% 35%/0.3) 85%, transparent 100%)", glow: "hsl(238 55% 30%)" },
+              ] as const).map((c) => {
+                const active = (localStorage.getItem("aureon_send_border_color") || "default") === c.key;
+                return (
+                  <button key={c.key} onClick={() => { localStorage.setItem("aureon_send_border_color", c.key); window.dispatchEvent(new Event("aureon-border-color-change")); toast({ title: "Border updated", description: c.label }); }}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${active ? "bg-foreground/5 ring-1 ring-foreground/20" : "hover:bg-foreground/[0.03]"}`}
+                  >
+                    <div className="relative rounded-full w-10 h-10 flex items-center justify-center">
+                      <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]" style={{ background: c.main }} />
+                      <span className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30" style={{ background: c.shimmer }} />
+                      <span className="absolute inset-[2px] rounded-full bg-background z-[1]" style={{ boxShadow: `inset 0 1px 4px ${c.glow}14, 0 0 12px ${c.glow}10` }} />
+                      <span className="absolute inset-[-3px] rounded-full opacity-60 z-0" style={{ background: `radial-gradient(circle, ${c.glow}26 0%, transparent 70%)` }} />
+                      <Send className="h-4 w-4 text-foreground/70 z-[2] relative" />
+                    </div>
+                    <span className="text-[9px] font-light text-foreground/70">{c.label}</span>
+                    {active && <span className="text-[8px] text-accent">Active</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
