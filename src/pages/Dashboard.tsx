@@ -183,14 +183,35 @@ const Dashboard = () => {
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
   });
+  const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
+  const [isDashTransitioning, setIsDashTransitioning] = useState(false);
+  const dashTransRef = useRef<ReturnType<typeof setTimeout>>();
   const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
 
   useEffect(() => {
-    const handler = () => setWallpaperKey(localStorage.getItem("aureon_wallpaper") || "default");
+    const handler = () => {
+      const newKey = localStorage.getItem("aureon_wallpaper") || "default";
+      const newSrc = WALLPAPER_MAP[newKey] || WALLPAPER_MAP.default;
+      const oldSrc = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
+      if (newSrc !== oldSrc) {
+        setPrevDashWallpaper(oldSrc);
+        setIsDashTransitioning(true);
+        if (dashTransRef.current) clearTimeout(dashTransRef.current);
+        dashTransRef.current = setTimeout(() => {
+          setIsDashTransitioning(false);
+          setPrevDashWallpaper(null);
+        }, 900);
+      }
+      setWallpaperKey(newKey);
+    };
     window.addEventListener("storage", handler);
     window.addEventListener("aureon-wallpaper-change", handler);
-    return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
-  }, []);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("aureon-wallpaper-change", handler);
+      if (dashTransRef.current) clearTimeout(dashTransRef.current);
+    };
+  }, [wallpaperKey]);
 
   // Global drag detection for split-pane drop zones
   useEffect(() => {
@@ -1134,8 +1155,40 @@ const Dashboard = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${activeWallpaper})` }} />
-      <div className="fixed inset-0 bg-background/80 pointer-events-none" />
+      {/* Previous wallpaper (fades out during transition) */}
+      {prevDashWallpaper && isDashTransitioning && (
+        <div className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${prevDashWallpaper})`, zIndex: 0 }} />
+      )}
+      {/* Current wallpaper (fades in) */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+        style={{
+          backgroundImage: `url(${activeWallpaper})`,
+          zIndex: 1,
+          opacity: isDashTransitioning ? 0 : 1,
+          animation: isDashTransitioning ? "wpFadeIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.1s forwards" : undefined,
+        }}
+      />
+      {/* Light streak wipe */}
+      {isDashTransitioning && (
+        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 2 }}>
+          <div style={{
+            position: "absolute", top: "-20%", bottom: "-20%", width: "35%",
+            background: "linear-gradient(90deg, transparent 0%, hsla(275,80%,70%,0.08) 15%, hsla(275,80%,85%,0.2) 35%, hsla(0,0%,100%,0.35) 50%, hsla(275,80%,85%,0.2) 65%, hsla(275,80%,70%,0.08) 85%, transparent 100%)",
+            filter: "blur(30px)",
+            animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
+            transform: "translateX(-100%) skewX(-8deg)",
+          }} />
+          <div style={{
+            position: "absolute", top: "-10%", bottom: "-10%", width: "4px",
+            background: "linear-gradient(180deg, transparent 5%, hsla(0,0%,100%,0.6) 30%, hsla(0,0%,100%,0.9) 50%, hsla(0,0%,100%,0.6) 70%, transparent 95%)",
+            filter: "blur(2px)",
+            animation: "wpLightStreak 0.85s cubic-bezier(0.25,0.1,0.25,1) forwards",
+            transform: "translateX(-100%) skewX(-8deg)",
+          }} />
+        </div>
+      )}
+      <div className="fixed inset-0 bg-background/80 pointer-events-none" style={{ zIndex: 3 }} />
 
       <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
 
@@ -1248,6 +1301,16 @@ const Dashboard = () => {
         onModeChange={(m) => { setMode(m); setCmdPaletteOpen(false); }}
         onFocusMode={() => setFocusMode((f) => !f)}
       />
+      <style>{`
+        @keyframes wpFadeIn {
+          from { opacity: 0; transform: scale(1.015); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes wpLightStreak {
+          from { transform: translateX(-50%) skewX(-8deg); }
+          to { transform: translateX(calc(100vw + 50%)) skewX(-8deg); }
+        }
+      `}</style>
     </div>
   );
 };

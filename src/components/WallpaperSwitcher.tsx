@@ -47,6 +47,7 @@ export const getStoredWallpaper = (): string => {
 const WallpaperSwitcher = () => {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "default");
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,11 +59,21 @@ const WallpaperSwitcher = () => {
   }, []);
 
   const select = (key: string) => {
+    if (key === active) return;
     setActive(key);
     localStorage.setItem(STORAGE_KEY, key);
     setOpen(false);
     window.dispatchEvent(new Event("wallpaper-change"));
   };
+
+  const activeIndex = WALLPAPERS.findIndex(w => w.key === active);
+  const displayIndex = hoveredKey
+    ? WALLPAPERS.findIndex(w => w.key === hoveredKey)
+    : activeIndex;
+  const displayLabel = hoveredKey
+    ? WALLPAPERS.find(w => w.key === hoveredKey)?.label
+    : WALLPAPERS[activeIndex]?.label;
+  const indexStr = String(displayIndex + 1).padStart(2, "0");
 
   return (
     <div ref={ref} className="fixed bottom-6 right-6 z-50">
@@ -75,20 +86,52 @@ const WallpaperSwitcher = () => {
       </button>
 
       {open && (
-        <div className="absolute bottom-12 right-0 rounded-2xl border border-border/30 bg-card/80 backdrop-blur-xl p-3 shadow-2xl min-w-[220px] max-h-[400px] overflow-y-auto">
-          <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase mb-2 px-1">Wallpaper</p>
+        <div
+          className="absolute bottom-12 right-0 rounded-2xl border border-border/30 bg-card/80 backdrop-blur-xl p-3 shadow-2xl min-w-[220px] max-h-[400px] overflow-y-auto"
+          style={{ animation: "wpPanelIn 0.25s cubic-bezier(0.16,1,0.3,1)" }}
+        >
+          {/* Number + Label header */}
+          <div className="flex items-end gap-2 mb-2 px-1">
+            <span
+              className="text-[28px] font-extralight leading-none text-foreground/15 tracking-tight"
+              style={{ fontFamily: "serif", fontStyle: "italic" }}
+            >
+              {indexStr}
+            </span>
+            <span className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase pb-1">
+              {displayLabel}
+            </span>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
-            {WALLPAPERS.map((wp) => (
+            {WALLPAPERS.map((wp, i) => (
               <button
                 key={wp.key}
                 onClick={() => select(wp.key)}
-                className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                onMouseEnter={() => setHoveredKey(wp.key)}
+                onMouseLeave={() => setHoveredKey(null)}
+                className={`relative rounded-xl overflow-hidden border-2 transition-all group ${
                   active === wp.key
                     ? "border-foreground/40 ring-1 ring-foreground/20"
                     : "border-border/20 hover:border-border/40"
                 }`}
+                style={{
+                  animation: `wpThumbIn 0.3s cubic-bezier(0.16,1,0.3,1) ${i * 0.03}s both`,
+                }}
               >
-                <img src={wp.src} alt={wp.label} className="w-full h-12 object-cover" />
+                <img
+                  src={wp.src}
+                  alt={wp.label}
+                  className="w-full h-12 object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                {/* Light sweep on hover */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none"
+                  style={{
+                    background: "linear-gradient(105deg, transparent 40%, hsla(0,0%,100%,0.15) 50%, transparent 60%)",
+                    animation: "wpThumbSweep 0.6s ease-out",
+                  }}
+                />
                 <span className="absolute inset-0 flex items-end justify-center pb-0.5 bg-gradient-to-t from-black/60 to-transparent">
                   <span className="text-[9px] font-light text-white/90">{wp.label}</span>
                 </span>
@@ -97,6 +140,21 @@ const WallpaperSwitcher = () => {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes wpPanelIn {
+          from { opacity: 0; transform: translateY(8px) scale(0.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes wpThumbIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes wpThumbSweep {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 };
