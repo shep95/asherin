@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal } from "lucide-react";
+import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal, X, ZoomIn } from "lucide-react";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
@@ -279,14 +279,19 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   },
   img({ src, alt, ...props }: any) {
     return (
-      <img
-        src={src}
-        alt={alt || "Chart analysis"}
-        className="rounded-xl border border-border/20 max-w-full my-3 shadow-lg"
-        style={{ maxHeight: "500px", objectFit: "contain" }}
-        loading="lazy"
-        {...props}
-      />
+      <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__aureonLightbox?.(src)}>
+        <img
+          src={src}
+          alt={alt || "Chart analysis"}
+          className="rounded-xl border border-border/20 max-w-full my-3 shadow-lg transition-transform hover:scale-[1.02]"
+          style={{ maxHeight: "500px", objectFit: "contain" }}
+          loading="lazy"
+          {...props}
+        />
+        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-xl">
+          <ZoomIn className="h-6 w-6 text-white drop-shadow-lg" />
+        </span>
+      </span>
     );
   },
 });
@@ -323,6 +328,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [determinism, setDeterminism] = useState(33);
   const [qosMode, setQosMode] = useState<QoSMode>("fast");
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -334,6 +340,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       messageRefs.current[highlightedMsgId]?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }, [highlightedMsgId]);
+
+  // Wire lightbox for markdown images
+  useEffect(() => {
+    (window as any).__aureonLightbox = (src: string) => setLightboxSrc(src);
+    return () => { delete (window as any).__aureonLightbox; };
+  }, []);
 
   const elevenLabsVoice = useElevenLabsVoice({
     agentId: "agent_1701kjqvrqkpfwat79br17vqbdms",
@@ -709,7 +721,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             {msg.attachments.map((att, aidx) => (
                               <div key={aidx} className="rounded-lg overflow-hidden border border-border/20">
                                 {att.type.startsWith("image/") && att.previewUrl ? (
-                                  <img src={att.previewUrl} alt={att.name} className="max-w-[200px] max-h-[150px] object-cover rounded-lg" />
+                                  <span className="relative group cursor-pointer block" onClick={() => setLightboxSrc(att.previewUrl!)}>
+                                    <img src={att.previewUrl} alt={att.name} className="max-w-[200px] max-h-[150px] object-cover rounded-lg transition-transform hover:scale-[1.02]" />
+                                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                                      <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
+                                    </span>
+                                  </span>
                                 ) : (
                                   <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 text-xs text-muted-foreground">
                                     <FileText className="h-4 w-4" />
@@ -997,6 +1014,27 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
           onClose={() => setArtifactOpen(false)}
           initialContent={artifactContent}
         />
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in cursor-zoom-out"
+          onClick={() => setLightboxSrc(null)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightboxSrc(null); }}
+            className="absolute top-4 right-4 p-2 rounded-full bg-foreground/10 hover:bg-foreground/20 text-white transition-colors z-10"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={lightboxSrc}
+            alt="Expanded view"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl border border-border/10 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )}
     </div>
   );
