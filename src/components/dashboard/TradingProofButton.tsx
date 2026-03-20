@@ -211,22 +211,22 @@ export default function TradingProofButton({ message, allMessages }: Props) {
                     {/* Original */}
                     <div className="space-y-2">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-light">Original Chart</p>
-                      <div className="rounded-xl border border-border/20 overflow-hidden bg-black/20">
+                      <div className="rounded-xl border border-border/20 overflow-hidden bg-black/20 cursor-zoom-in" onClick={() => setZoomedSrc(chartPreviewSrc || "")}>
                         <img
                           src={chartPreviewSrc || ""}
                           alt="Original chart"
-                          className="w-full object-contain max-h-[500px]"
+                          className="w-full object-contain max-h-[500px] hover:opacity-90 transition-opacity"
                         />
                       </div>
                     </div>
                     {/* Annotated */}
                     <div className="space-y-2">
                       <p className="text-[10px] uppercase tracking-wider text-emerald-500/70 font-light">📊 Annotated Proof</p>
-                      <div className="rounded-xl border border-emerald-500/20 overflow-hidden bg-black/20">
+                      <div className="rounded-xl border border-emerald-500/20 overflow-hidden bg-black/20 cursor-zoom-in" onClick={() => setZoomedSrc(annotatedUrl)}>
                         <img
                           src={annotatedUrl}
                           alt="Annotated trading chart"
-                          className="w-full object-contain max-h-[500px]"
+                          className="w-full object-contain max-h-[500px] hover:opacity-90 transition-opacity"
                         />
                       </div>
                     </div>
