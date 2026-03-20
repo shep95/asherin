@@ -334,6 +334,16 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const messagesRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  // Auto-scroll to bottom when conversation changes (opening a conversation)
+  useEffect(() => {
+    if (conversation.messages.length > 0) {
+      // Small delay to let DOM render
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      });
+    }
+  }, [conversation.id]);
+
   // Scroll to highlighted message
   useEffect(() => {
     if (highlightedMsgId && messageRefs.current[highlightedMsgId]) {
