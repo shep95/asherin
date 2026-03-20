@@ -1400,113 +1400,8 @@ ${fullText}
       });
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // CHART ANNOTATION — Annotate trading charts with entry/SL/TP levels
-    // ══════════════════════════════════════════════════════════════════════════
-
-    let chartAnnotationBase64: string | null = null;
-
-    const tradingKeywords = [
-      "long", "short", "entry", "stop loss", "take profit", "buy", "sell",
-      "support", "resistance", "chart", "trade", "trading", "setup", "signal",
-      "bullish", "bearish", "breakout", "breakdown", "analysis", "tp", "sl",
-      "target", "position", "scalp", "swing", "fractal",
-    ];
-    const lastUserContent2 = (prunedMessages[prunedMessages.length - 1]?.content || "").toLowerCase();
-    const lastUserAttachments2 = prunedMessages[prunedMessages.length - 1]?.attachments || [];
-    const hasImageAtt2 = lastUserAttachments2.some((a: any) => a.type?.startsWith("image/"));
-    const isTradingQuery = hasImageAtt2 && tradingKeywords.some((kw: string) => lastUserContent2.includes(kw));
-    const isChartUpload = hasImageAtt2 && lastUserContent2.length < 200 && (
-      isTradingQuery || /\b(long|short|buy|sell|entry|sl|tp)\b/i.test(lastUserContent2)
-    );
-
-    if (isTradingQuery || isChartUpload) {
-      try {
-        const chartAtt = lastUserAttachments2.find((a: any) => a.type?.startsWith("image/"));
-        if (chartAtt) {
-          // Determine which API key to use: user's Google BYOK key or app's Gemini key
-          let annotationApiKey = GEMINI_API_KEY;
-          if (useByok && userApiKey && byokProvider === "google") {
-            annotationApiKey = userApiKey;
-            console.log("Annotating trading chart via user's Google API key...");
-          } else {
-            console.log("Annotating trading chart via app Gemini key...");
-          }
-
-          const annotationPrompt = `You are a professional technical analyst. Edit and annotate this trading chart image with clear visual markings:
-1. Draw horizontal lines at key SUPPORT levels (green) and RESISTANCE levels (red)
-2. Mark the suggested ENTRY point with a green arrow labeled "ENTRY"
-3. Mark the STOP LOSS level with a red line labeled "SL"
-4. Mark TAKE PROFIT target(s) with blue/cyan lines labeled "TP1", "TP2"
-5. Draw any visible trendlines or pattern boundaries
-6. Add a directional arrow (up for LONG, down for SHORT) showing expected move
-7. Keep the original chart fully visible — overlay annotations cleanly
-Make annotations bold, clear, professional. Use contrasting colors visible on the chart. Return the annotated image.`;
-
-          // Try multiple Gemini models that support image generation
-          const imageModels = [
-            "gemini-2.5-flash-image",
-            "gemini-3.1-flash-image-preview",
-            "gemini-3-pro-image-preview",
-          ];
-
-          let annotationSuccess = false;
-          for (const model of imageModels) {
-            if (annotationSuccess) break;
-            try {
-              const annotationResp = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${annotationApiKey}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    contents: [
-                      {
-                        role: "user",
-                        parts: [
-                          { inline_data: { mime_type: chartAtt.type, data: chartAtt.base64 } },
-                          { text: annotationPrompt },
-                        ],
-                      },
-                    ],
-                    generationConfig: {
-                      responseModalities: ["IMAGE", "TEXT"],
-                    },
-                  }),
-                },
-              );
-
-              if (annotationResp.ok) {
-                const annotationData = await annotationResp.json();
-                const parts = annotationData.candidates?.[0]?.content?.parts || [];
-                for (const part of parts) {
-                  if (part.inlineData?.mimeType?.startsWith("image/")) {
-                    chartAnnotationBase64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                    console.log(`Chart annotation generated successfully via ${model}`);
-                    annotationSuccess = true;
-                    break;
-                  }
-                }
-              } else {
-                const errText = await annotationResp.text();
-                console.warn(`Chart annotation failed with ${model} (${annotationResp.status}):`, errText.slice(0, 200));
-              }
-            } catch (modelErr) {
-              console.warn(`Chart annotation model ${model} error:`, modelErr);
-            }
-          }
-
-          // If Gemini image gen failed and user has OpenAI BYOK, try DALL-E style analysis
-          if (!annotationSuccess && useByok && userApiKey && (byokProvider === "openai")) {
-            console.log("Gemini image gen unavailable, using OpenAI vision for text-only chart analysis...");
-            // OpenAI can't generate images via chat completions, but the main response
-            // will still analyze the chart via the vision-capable model
-          }
-        }
-      } catch (e) {
-        console.error("Chart annotation error:", e);
-      }
-    }
+    // Chart annotation is handled separately via the "Show Proof" button
+    // which calls the dedicated chart-annotate edge function
 
     // ══════════════════════════════════════════════════════════════════════════
     // STREAM TRANSFORMER — Normalize all provider formats to OpenAI SSE
@@ -1518,12 +1413,8 @@ Make annotations bold, clear, professional. Use contrasting colors visible on th
 
     (async () => {
       try {
-        // If we have an annotated chart, prepend it to the stream
-        if (chartAnnotationBase64) {
-          const imgMarkdown = `**📊 Annotated Chart Analysis:**\n\n![Annotated Trading Chart](${chartAnnotationBase64})\n\n---\n\n`;
-          const imgChunk = JSON.stringify({ choices: [{ delta: { content: imgMarkdown } }] });
-          await writer.write(encoder.encode(`data: ${imgChunk}\n\n`));
-        }
+        // Chart annotation is handled by the dedicated "Show Proof" button (chart-annotate function)
+        // Do NOT inject base64 images inline — they corrupt SSE streams due to size
 
         const reader = response.body!.getReader();
         const decoder = new TextDecoder();
