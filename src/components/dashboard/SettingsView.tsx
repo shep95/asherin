@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X, Upload, Lock, Plus } from "lucide-react";
+import { User, Shield, Palette, Loader2, Camera, Download, Trash2, AlertTriangle, FileText, ImageIcon, Check, Keyboard, GitBranch, X, Upload, Lock, Plus, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -545,20 +545,20 @@ const SettingsView = () => {
             <h3 className="text-sm font-light text-foreground">Send Button Border</h3>
           </div>
           <p className="text-[10px] text-muted-foreground/50">Choose the color theme for the rotating border animation on the send button.</p>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-4">
             {([
-              { key: "default", label: "Aureon", preview: "conic-gradient(from 0deg, hsl(275 95% 43%), hsl(275 80% 65%), hsl(0 0% 75%), hsl(275 95% 50%), hsl(260 70% 60%), hsl(275 95% 43%))" },
-              { key: "gold", label: "Gold", preview: "conic-gradient(from 0deg, hsl(43 80% 35%), hsl(43 90% 55%), hsl(35 95% 70%), hsl(48 85% 60%), hsl(40 75% 45%), hsl(43 80% 35%))" },
-              { key: "silver", label: "Silver", preview: "conic-gradient(from 0deg, hsl(0 0% 45%), hsl(0 0% 70%), hsl(0 0% 85%), hsl(0 0% 60%), hsl(210 5% 55%), hsl(0 0% 45%))" },
-              { key: "bronze", label: "Bronze", preview: "conic-gradient(from 0deg, hsl(25 60% 35%), hsl(30 70% 50%), hsl(20 65% 60%), hsl(35 55% 45%), hsl(28 60% 40%), hsl(25 60% 35%))" },
-              { key: "blue", label: "Sapphire", preview: "conic-gradient(from 0deg, hsl(220 90% 40%), hsl(210 85% 55%), hsl(200 80% 65%), hsl(225 90% 50%), hsl(215 85% 45%), hsl(220 90% 40%))" },
-              { key: "neon", label: "Neon", preview: "conic-gradient(from 0deg, hsl(150 100% 45%), hsl(180 100% 50%), hsl(280 100% 60%), hsl(320 100% 50%), hsl(60 100% 50%), hsl(150 100% 45%))" },
-              { key: "rose", label: "Rose", preview: "conic-gradient(from 0deg, hsl(340 80% 45%), hsl(350 85% 60%), hsl(330 75% 65%), hsl(345 90% 55%), hsl(335 80% 50%), hsl(340 80% 45%))" },
-              { key: "ember", label: "Ember", preview: "conic-gradient(from 0deg, hsl(15 90% 40%), hsl(25 95% 55%), hsl(40 90% 60%), hsl(10 85% 45%), hsl(0 80% 40%), hsl(15 90% 40%))" },
-              { key: "ice", label: "Ice", preview: "conic-gradient(from 0deg, hsl(195 90% 45%), hsl(185 85% 60%), hsl(200 80% 70%), hsl(190 90% 55%), hsl(210 75% 50%), hsl(195 90% 45%))" },
-              { key: "emerald", label: "Emerald", preview: "conic-gradient(from 0deg, hsl(155 80% 30%), hsl(160 75% 45%), hsl(150 70% 55%), hsl(165 80% 40%), hsl(145 75% 35%), hsl(155 80% 30%))" },
-              { key: "phantom", label: "Phantom", preview: "conic-gradient(from 0deg, hsl(0 0% 15%), hsl(0 0% 30%), hsl(0 0% 50%), hsl(0 0% 25%), hsl(0 0% 40%), hsl(0 0% 15%))" },
-              { key: "rainbow", label: "Rainbow", preview: "conic-gradient(from 0deg, hsl(0 85% 55%), hsl(60 85% 55%), hsl(120 85% 45%), hsl(180 85% 50%), hsl(240 85% 55%), hsl(300 85% 55%), hsl(0 85% 55%))" },
+              { key: "default", label: "Aureon", main: "conic-gradient(from 0deg, hsl(275 95% 43%/0.2), hsl(275 80% 65%), hsl(0 0% 75%/0.7), hsl(275 95% 50%), hsl(0 0% 85%/0.5), hsl(260 70% 60%), hsl(275 95% 43%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.6) 20%, transparent 35%, hsl(275 60% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.4) 85%, transparent 100%)", glow: "hsl(275 95% 43%)" },
+              { key: "gold", label: "Gold", main: "conic-gradient(from 0deg, hsl(43 80% 35%/0.2), hsl(43 90% 55%), hsl(35 95% 70%/0.7), hsl(48 85% 60%), hsl(40 80% 50%/0.5), hsl(43 80% 35%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(43 90% 70%/0.6) 20%, transparent 35%, hsl(35 80% 60%/0.5) 55%, transparent 70%, hsl(48 85% 55%/0.4) 85%, transparent 100%)", glow: "hsl(43 90% 50%)" },
+              { key: "silver", label: "Silver", main: "conic-gradient(from 0deg, hsl(0 0% 45%/0.2), hsl(0 0% 70%), hsl(0 0% 85%/0.7), hsl(210 5% 65%), hsl(0 0% 55%/0.5), hsl(0 0% 45%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 92%/0.7) 20%, transparent 35%, hsl(210 5% 75%/0.5) 55%, transparent 70%, hsl(0 0% 80%/0.5) 85%, transparent 100%)", glow: "hsl(0 0% 70%)" },
+              { key: "bronze", label: "Bronze", main: "conic-gradient(from 0deg, hsl(25 60% 35%/0.2), hsl(30 70% 50%), hsl(20 65% 60%/0.7), hsl(35 55% 45%), hsl(28 60% 40%/0.5), hsl(25 60% 35%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(30 65% 60%/0.6) 20%, transparent 35%, hsl(25 55% 50%/0.5) 55%, transparent 70%, hsl(35 60% 55%/0.4) 85%, transparent 100%)", glow: "hsl(30 70% 45%)" },
+              { key: "blue", label: "Sapphire", main: "conic-gradient(from 0deg, hsl(220 90% 40%/0.2), hsl(210 85% 55%), hsl(200 80% 65%/0.7), hsl(225 90% 50%), hsl(215 85% 45%/0.5), hsl(220 90% 40%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(210 80% 70%/0.6) 20%, transparent 35%, hsl(220 85% 60%/0.5) 55%, transparent 70%, hsl(200 80% 65%/0.4) 85%, transparent 100%)", glow: "hsl(220 90% 50%)" },
+              { key: "neon", label: "Neon", main: "conic-gradient(from 0deg, hsl(150 100% 45%/0.3), hsl(180 100% 50%), hsl(280 100% 60%/0.7), hsl(320 100% 50%), hsl(60 100% 50%/0.5), hsl(150 100% 45%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(180 100% 60%/0.6) 20%, transparent 35%, hsl(320 100% 55%/0.5) 55%, transparent 70%, hsl(60 100% 55%/0.4) 85%, transparent 100%)", glow: "hsl(150 100% 50%)" },
+              { key: "rose", label: "Rose", main: "conic-gradient(from 0deg, hsl(340 80% 45%/0.2), hsl(350 85% 60%), hsl(330 75% 65%/0.7), hsl(345 90% 55%), hsl(335 80% 50%/0.5), hsl(340 80% 45%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(350 80% 70%/0.6) 20%, transparent 35%, hsl(340 75% 60%/0.5) 55%, transparent 70%, hsl(330 80% 65%/0.4) 85%, transparent 100%)", glow: "hsl(345 85% 55%)" },
+              { key: "ember", label: "Ember", main: "conic-gradient(from 0deg, hsl(15 90% 40%/0.2), hsl(25 95% 55%), hsl(40 90% 60%/0.7), hsl(10 85% 45%), hsl(0 80% 40%/0.5), hsl(15 90% 40%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(25 90% 60%/0.6) 20%, transparent 35%, hsl(10 85% 50%/0.5) 55%, transparent 70%, hsl(40 85% 55%/0.4) 85%, transparent 100%)", glow: "hsl(20 90% 45%)" },
+              { key: "ice", label: "Ice", main: "conic-gradient(from 0deg, hsl(195 90% 45%/0.2), hsl(185 85% 60%), hsl(200 80% 70%/0.7), hsl(190 90% 55%), hsl(210 75% 50%/0.5), hsl(195 90% 45%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(195 85% 70%/0.6) 20%, transparent 35%, hsl(185 80% 60%/0.5) 55%, transparent 70%, hsl(200 80% 65%/0.4) 85%, transparent 100%)", glow: "hsl(195 90% 50%)" },
+              { key: "emerald", label: "Emerald", main: "conic-gradient(from 0deg, hsl(155 80% 30%/0.2), hsl(160 75% 45%), hsl(150 70% 55%/0.7), hsl(165 80% 40%), hsl(145 75% 35%/0.5), hsl(155 80% 30%/0.2))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(160 70% 55%/0.6) 20%, transparent 35%, hsl(150 75% 45%/0.5) 55%, transparent 70%, hsl(155 70% 50%/0.4) 85%, transparent 100%)", glow: "hsl(155 80% 40%)" },
+              { key: "phantom", label: "Phantom", main: "conic-gradient(from 0deg, hsl(0 0% 15%/0.3), hsl(0 0% 30%), hsl(0 0% 50%/0.7), hsl(0 0% 25%), hsl(0 0% 40%/0.5), hsl(0 0% 15%/0.3))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(0 0% 50%/0.5) 20%, transparent 35%, hsl(0 0% 35%/0.4) 55%, transparent 70%, hsl(0 0% 45%/0.3) 85%, transparent 100%)", glow: "hsl(0 0% 35%)" },
+              { key: "rainbow", label: "Rainbow", main: "conic-gradient(from 0deg, hsl(0 85% 55%), hsl(60 85% 55%), hsl(120 85% 45%), hsl(180 85% 50%), hsl(240 85% 55%), hsl(300 85% 55%), hsl(0 85% 55%))", shimmer: "conic-gradient(from 180deg, transparent 0%, hsl(60 80% 65%/0.5) 15%, transparent 30%, hsl(180 80% 55%/0.4) 50%, transparent 65%, hsl(300 80% 60%/0.4) 80%, transparent 100%)", glow: "hsl(180 80% 50%)" },
             ] as const).map((c) => {
               const active = (localStorage.getItem("aureon_send_border_color") || "default") === c.key;
               return (
@@ -569,21 +569,37 @@ const SettingsView = () => {
                     window.dispatchEvent(new Event("aureon-border-color-change"));
                     toast({ title: "Border updated", description: c.label });
                   }}
-                  className={`relative rounded-xl overflow-hidden transition-all aspect-square group flex items-center justify-center ${
-                    active ? "ring-2 ring-foreground/40" : "hover:ring-1 hover:ring-foreground/20"
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
+                    active ? "bg-foreground/5 ring-1 ring-foreground/20" : "hover:bg-foreground/[0.03]"
                   }`}
-                  style={{ background: "hsl(var(--background))" }}
                 >
-                  {/* Animated rotating border — mimics the real send button */}
-                  <span
-                    className="absolute inset-0 rounded-xl animate-[sendBorderSpin_3s_linear_infinite]"
-                    style={{ background: c.preview }}
-                  />
-                  <span className="absolute inset-[2px] rounded-[10px] bg-background z-[1]" />
-                  <div className="relative z-[2] flex flex-col items-center justify-center gap-0.5">
-                    {active && <Check className="h-3.5 w-3.5 text-foreground" />}
-                    <span className="text-[9px] font-light text-foreground">{c.label}</span>
+                  {/* Exact send button replica */}
+                  <div className="relative rounded-full w-10 h-10 flex items-center justify-center">
+                    {/* Rotating prismatic border */}
+                    <span
+                      className="absolute inset-0 rounded-full animate-[sendBorderSpin_3s_linear_infinite]"
+                      style={{ background: c.main }}
+                    />
+                    {/* Counter-rotating shimmer */}
+                    <span
+                      className="absolute inset-0 rounded-full animate-[sendBorderSpin_5s_linear_infinite_reverse] opacity-30"
+                      style={{ background: c.shimmer }}
+                    />
+                    {/* Inner dark fill */}
+                    <span
+                      className="absolute inset-[2px] rounded-full bg-background z-[1]"
+                      style={{ boxShadow: `inset 0 1px 4px ${c.glow}14, 0 0 12px ${c.glow}10` }}
+                    />
+                    {/* Ambient glow */}
+                    <span
+                      className="absolute inset-[-3px] rounded-full opacity-60 z-0"
+                      style={{ background: `radial-gradient(circle, ${c.glow}26 0%, transparent 70%)` }}
+                    />
+                    {/* Icon */}
+                    <Send className="h-4 w-4 text-foreground/70 z-[2] relative" />
                   </div>
+                  <span className="text-[9px] font-light text-foreground/70">{c.label}</span>
+                  {active && <span className="text-[8px] text-accent">Active</span>}
                 </button>
               );
             })}
