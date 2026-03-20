@@ -359,12 +359,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     agentId: "agent_1701kjqvrqkpfwat79br17vqbdms",
   });
 
-  const handleSend = () => {
-    if (!input.trim() && attachments.length === 0) return;
-    onSendMessage(input.trim(), attachments.length > 0 ? attachments : undefined);
-    setInput("");
-    setAttachments([]);
-  };
+  // handleSend is now inside AdaptiveInputBar
 
   const downloadConversation = () => {
     if (!conversation.messages.length) return;
