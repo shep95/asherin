@@ -1008,15 +1008,12 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Adaptive Input — gated behind subscription */}
       <SubscriptionGatedInput
-        value={input}
-        onChange={setInput}
-        onSend={handleSend}
+        ref={inputBarRef}
+        onSendMessage={onSendMessage}
         onStop={onStopStreaming}
         onQuickAction={handleQuickAction}
         isStreaming={!!isStreaming}
         conversationId={conversation.id}
-        attachments={attachments}
-        onAttachmentsChange={setAttachments}
       />
 
       {/* Share with Redaction modal */}
