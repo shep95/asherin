@@ -276,6 +276,18 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   a({ href, children }: any) {
     return <MarkdownLink href={href} navigate={navigate}>{children}</MarkdownLink>;
   },
+  img({ src, alt, ...props }: any) {
+    return (
+      <img
+        src={src}
+        alt={alt || "Chart analysis"}
+        className="rounded-xl border border-border/20 max-w-full my-3 shadow-lg"
+        style={{ maxHeight: "500px", objectFit: "contain" }}
+        loading="lazy"
+        {...props}
+      />
+    );
+  },
 });
 
 const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDepthChange, isStreaming, suggestions = [], onCalibrationFeedback, onStopStreaming, focusMode, messageStatuses = {}, queueItems = [], onRemoveFromQueue, onClearQueue, onProcessQueueNow, queuePaused, onToggleQueuePause, personaSystemPrompt, consensusEnabled = false, onConsensusToggle, consensusModels = [], onConsensusModelsChange, storedProviders = [], activeBrainId, onBrainChange }: ChatViewProps) => {
