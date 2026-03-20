@@ -64,10 +64,10 @@ const LiquidGlassToggle = ({ active: controlledActive, onChange }: LiquidGlassTo
             <div className="absolute inset-0 rounded-full bg-foreground/[0.06]" />
             {/* Ambient ring */}
             <div
-              className="absolute -inset-[1px] rounded-full animate-[lgSpin_4s_linear_infinite]"
+              className="absolute -inset-[1px] rounded-full"
               style={{
                 background:
-                  "conic-gradient(from 180deg, hsl(30 90% 50% / 0.4), transparent 30%, hsl(200 70% 50% / 0.15), transparent 70%, hsl(30 90% 50% / 0.4))",
+                  "conic-gradient(from 180deg, hsl(30 90% 50% / 0.3), transparent 30%, hsl(200 70% 50% / 0.1), transparent 70%, hsl(30 90% 50% / 0.3))",
               }}
             />
             <div className="absolute inset-[1px] rounded-full bg-background/90 backdrop-blur-md" />
