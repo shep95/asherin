@@ -246,6 +246,26 @@ export default function TradingProofButton({ message, allMessages }: Props) {
           </div>
         </div>
       )}
+
+      {/* Zoom overlay for individual images */}
+      {zoomedSrc && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md cursor-zoom-out animate-fade-in"
+          onClick={() => setZoomedSrc(null)}
+        >
+          <img
+            src={zoomedSrc}
+            alt="Zoomed chart"
+            className="max-w-[95vw] max-h-[95vh] object-contain rounded-lg shadow-2xl"
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); setZoomedSrc(null); }}
+            className="absolute top-4 right-4 p-2 rounded-full bg-foreground/10 hover:bg-foreground/20 text-foreground transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
     </>
   );
 }
