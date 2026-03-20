@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Square, Lock, Copy, Check, Eye, Download, ArrowRight, Sparkles, Code2 } from "lucide-react";
+import { Send, Square, Lock, Copy, Check, Eye, Download, ArrowRight, Sparkles, Code2, X, ZoomIn } from "lucide-react";
 import type { ZaliMessage, ZaliProject } from "./types";
 import type { ResponseDepth } from "../DepthSelector";
 import type { ChatMode } from "../types";
