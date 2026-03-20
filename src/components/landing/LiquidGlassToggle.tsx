@@ -97,12 +97,6 @@ const LiquidGlassToggle = ({ active: controlledActive, onChange }: LiquidGlassTo
         </div>
       </div>
 
-      <style>{`
-        @keyframes lgSpin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 };
