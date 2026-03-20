@@ -183,14 +183,35 @@ const Dashboard = () => {
   const [wallpaperKey, setWallpaperKey] = useState(() => {
     try { return localStorage.getItem("aureon_wallpaper") || "default"; } catch { return "default"; }
   });
+  const [prevDashWallpaper, setPrevDashWallpaper] = useState<string | null>(null);
+  const [isDashTransitioning, setIsDashTransitioning] = useState(false);
+  const dashTransRef = useRef<ReturnType<typeof setTimeout>>();
   const activeWallpaper = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
 
   useEffect(() => {
-    const handler = () => setWallpaperKey(localStorage.getItem("aureon_wallpaper") || "default");
+    const handler = () => {
+      const newKey = localStorage.getItem("aureon_wallpaper") || "default";
+      const newSrc = WALLPAPER_MAP[newKey] || WALLPAPER_MAP.default;
+      const oldSrc = WALLPAPER_MAP[wallpaperKey] || WALLPAPER_MAP.default;
+      if (newSrc !== oldSrc) {
+        setPrevDashWallpaper(oldSrc);
+        setIsDashTransitioning(true);
+        if (dashTransRef.current) clearTimeout(dashTransRef.current);
+        dashTransRef.current = setTimeout(() => {
+          setIsDashTransitioning(false);
+          setPrevDashWallpaper(null);
+        }, 900);
+      }
+      setWallpaperKey(newKey);
+    };
     window.addEventListener("storage", handler);
     window.addEventListener("aureon-wallpaper-change", handler);
-    return () => { window.removeEventListener("storage", handler); window.removeEventListener("aureon-wallpaper-change", handler); };
-  }, []);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("aureon-wallpaper-change", handler);
+      if (dashTransRef.current) clearTimeout(dashTransRef.current);
+    };
+  }, [wallpaperKey]);
 
   // Global drag detection for split-pane drop zones
   useEffect(() => {
