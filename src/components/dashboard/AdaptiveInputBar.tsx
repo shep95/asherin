@@ -573,6 +573,6 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
       </div>
     </div>
   );
-};
+});
 
 export default AdaptiveInputBar;
