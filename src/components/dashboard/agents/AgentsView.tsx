@@ -140,6 +140,12 @@ const AgentsView = () => {
   const createAgent = async () => {
     if (!user || !newName.trim()) return;
     setCreating(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Session expired", description: "Please sign in again", variant: "destructive" });
+      setCreating(false);
+      return;
+    }
     try {
       const triggerConfig = {
         type: newTriggerType,
