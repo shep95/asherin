@@ -174,7 +174,7 @@ const AgentsView = () => {
       };
 
       const { data, error } = await supabase.from("automated_agents").insert({
-        user_id: user.id,
+        user_id: session.user.id,
         name: newName.trim(),
         description: newDescription.trim() || null,
         trigger_type: newTriggerType,
