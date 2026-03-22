@@ -155,40 +155,94 @@ serve(async (req) => {
       if (!imageUrl) throw new Error("No image URL provided");
       if (!instruction) throw new Error("No instruction provided");
 
-      const aiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: instruction },
-                  { inlineData: { mimeType: "image/jpeg", data: imageUrl.replace(/^data:image\/\w+;base64,/, "") } },
-                ],
-              },
-            ],
-          }),
+      // Fetch image and convert to base64 if it's a URL
+      let imageBase64 = "";
+      let imageMimeType = "image/jpeg";
+      if (imageUrl.startsWith("data:")) {
+        const match = imageUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (match) {
+          imageMimeType = match[1];
+          imageBase64 = match[2];
+        } else {
+          throw new Error("Invalid data URL format");
         }
-      );
-
-      if (!aiResponse.ok) {
-        if (aiResponse.status === 429)
-          return new Response(JSON.stringify({ error: "Rate limited. Please wait a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        const errText = await aiResponse.text();
-        console.error("Gemini image edit error:", aiResponse.status, errText);
-        throw new Error("Image editing failed");
+      } else {
+        const imgResp = await fetch(imageUrl);
+        if (!imgResp.ok) throw new Error("Failed to fetch image from storage");
+        const contentType = imgResp.headers.get("content-type") || "image/jpeg";
+        imageMimeType = contentType.split(";")[0].trim();
+        const arrayBuf = await imgResp.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuf);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        imageBase64 = btoa(binary);
       }
 
-      const aiData = await aiResponse.json();
-      const textReply = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      // Use image generation model for actual editing
+      const imageModels = [
+        "gemini-2.5-flash-preview-image-generation",
+        "gemini-2.0-flash-exp",
+      ];
 
-      // Gemini text model can't generate images directly - return text advice
-      return new Response(
-        JSON.stringify({ reply: textReply || "I've analyzed the image. Here's my editing advice.", editedImageUrl: null }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      for (const model of imageModels) {
+        try {
+          console.log(`Trying image edit with ${model}...`);
+          const aiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{
+                  role: "user",
+                  parts: [
+                    { text: instruction },
+                    { inline_data: { mime_type: imageMimeType, data: imageBase64 } },
+                  ],
+                }],
+                generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+              }),
+            }
+          );
+
+          if (!aiResponse.ok) {
+            if (aiResponse.status === 429) {
+              return new Response(JSON.stringify({ error: "Rate limited. Please wait a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            }
+            const errText = await aiResponse.text();
+            console.warn(`${model} failed (${aiResponse.status}):`, errText.slice(0, 300));
+            continue;
+          }
+
+          const aiData = await aiResponse.json();
+          const parts = aiData.candidates?.[0]?.content?.parts || [];
+
+          // Look for image in response
+          for (const part of parts) {
+            if (part.inlineData?.mimeType?.startsWith("image/")) {
+              const editedImageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+              console.log(`Image edit succeeded with ${model}`);
+              return new Response(
+                JSON.stringify({ editedImageUrl, reply: "Image edited successfully." }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          }
+
+          // Model returned text only
+          const textReply = parts.find((p: any) => p.text)?.text || "";
+          if (textReply) {
+            return new Response(
+              JSON.stringify({ reply: textReply, editedImageUrl: null }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (e) {
+          console.warn(`${model} error:`, e);
+        }
+      }
+
+      throw new Error("Image editing failed — all models exhausted");
     }
 
     // ── CHAT: General editing advice (no image edit) ──────────
