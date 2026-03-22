@@ -236,10 +236,12 @@ const VibeVideoView = () => {
   // ── Create project ──────────────────────────────────────────
   const createProject = async (template?: string) => {
     if (!user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast({ title: "Error", description: "Please sign in again", variant: "destructive" }); return; }
     const name = template ? `${template.charAt(0).toUpperCase() + template.slice(1)} Project` : "New Video Project";
     const { data, error } = await supabase
       .from("vibe_video_projects")
-      .insert({ user_id: user.id, name, template: template || null })
+      .insert({ user_id: session.user.id, name, template: template || null })
       .select().single();
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     const project = data as VideoProject;
