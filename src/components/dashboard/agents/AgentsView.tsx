@@ -140,6 +140,12 @@ const AgentsView = () => {
   const createAgent = async () => {
     if (!user || !newName.trim()) return;
     setCreating(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Session expired", description: "Please sign in again", variant: "destructive" });
+      setCreating(false);
+      return;
+    }
     try {
       const triggerConfig = {
         type: newTriggerType,
@@ -168,7 +174,7 @@ const AgentsView = () => {
       };
 
       const { data, error } = await supabase.from("automated_agents").insert({
-        user_id: user.id,
+        user_id: session.user.id,
         name: newName.trim(),
         description: newDescription.trim() || null,
         trigger_type: newTriggerType,
