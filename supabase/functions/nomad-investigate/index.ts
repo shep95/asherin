@@ -3127,6 +3127,7 @@ ${deepAnalysisSection}
 RAW INTELLIGENCE DATA:
 ${intelSections || 'No intelligence gathered.'}
 ${publicRecordLinks}
+${priorInvestigationContext}
 
 INSTRUCTIONS:
 Produce a NOMAD v8.0 response following the mandatory output format. Include:
