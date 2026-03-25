@@ -180,8 +180,9 @@ serve(async (req) => {
 
       // Use image generation model for actual editing
       const imageModels = [
-        "gemini-2.5-flash-preview-image-generation",
-        "gemini-2.0-flash-exp",
+        "gemini-2.5-flash-image",
+        "gemini-3.1-flash-image-preview",
+        "gemini-3-pro-image-preview",
       ];
 
       for (const model of imageModels) {
