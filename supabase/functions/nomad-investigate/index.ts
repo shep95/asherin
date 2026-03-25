@@ -2948,117 +2948,71 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
       console.log('NOMAD v8.0: Starting Passes 7-12 (Advanced Intelligence Layers) in parallel...');
 
-      const [p7, p8, p9, p10, p11] = await Promise.allSettled([
+      const [p7, p8, p9, p10, p11, p12, p13, p14] = await Promise.allSettled([
         // PASS 7: GEOSPATIAL INTELLIGENCE
-        aiPass(GEMINI_API_KEY, 'You are a geospatial intelligence analyst. Extract and analyze every location signal with forensic precision. Output structured analysis only.', `From all collected intelligence, extract every location signal and execute geospatial analysis.
+        aiPass(GEMINI_API_KEY, 'You are a geospatial research analyst. Extract and analyze location signals. Output structured analysis only.', `From all collected data, extract every location signal.
 
-GEOSPATIAL ANALYSIS PROTOCOL:
+GEOSPATIAL ANALYSIS: 1) Primary Residence Triangulation vs public records. 2) Movement Pattern Reconstruction with migration triggers. 3) Shadow Location Detection (in data but unacknowledged). 4) Jurisdiction Intelligence (shell structures, multi-state). 5) Physical Proximity Network (co-located but unacknowledged associates).
 
-1. PRIMARY RESIDENCE TRIANGULATION — What location appears most frequently in Tier 1-2 sources? Does stated residence match property tax / voter registration / business registration? CONFLICT = tax avoidance, privacy protection, or jurisdiction shopping.
-
-2. MOVEMENT PATTERN RECONSTRUCTION — Order all location signals chronologically. Identify MIGRATION EVENTS. Cross-reference timing against: job changes / legal events / relationship changes / business failures. Every relocation has a trigger. Find it.
-
-3. SHADOW LOCATION DETECTION — Locations that appear in data but target never publicly acknowledges. Example: claims NYC but court filing lists Miami. Shadow locations = second residence / hidden partner / legal shelter / undisclosed asset.
-
-4. JURISDICTION INTELLIGENCE — Multiple state registrations = legitimate multi-state OR jurisdiction arbitrage (weak disclosure laws). Delaware/Wyoming/Nevada with no operational presence = shell structure. International addresses with US entities = FBAR/FATCA exposure.
-
-5. PHYSICAL PROXIMITY NETWORK — Which associates are geographically co-located? Co-location never publicly acknowledged = covert operational relationship.
-
-Output: GEOSPATIAL PROFILE with primary anchor, shadow locations, migration timeline with triggers, jurisdiction risk.
+Output: GEOSPATIAL PROFILE with primary anchor, shadow locations, migration timeline, jurisdiction risk.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 8: SURVIVORSHIP BIAS AUDIT
-        aiPass(GEMINI_API_KEY, 'You are a forensic intelligence auditor specializing in narrative verification. Identify what SHOULD exist but DOES NOT. Output structured gap analysis only.', `Execute SURVIVORSHIP BIAS AUDIT on this investigation corpus.
+        // PASS 8: DATA COMPLETENESS AUDIT
+        aiPass(GEMINI_API_KEY, 'You are a research verification analyst. Identify expected artifacts that are missing. Output structured gap analysis only.', `Execute DATA COMPLETENESS AUDIT. Generate expected digital artifacts for this subject's stated biography. Audit presence vs absence.
 
-For this target's stated profile (career, education, financials, relationships), generate the complete list of digital artifacts that SHOULD exist if their biography is accurate. Audit which are present vs absent.
+CAREER: SEC filings, company pages, reviews, co-founder mentions. EDUCATION: alumni directories, professor citations. FINANCIAL: property records, political donations, charitable giving. LEGAL: court dockets, regulatory filings.
 
-EXPECTED ARTIFACTS BY CATEGORY:
-
-CAREER — If CEO: SEC filings, Delaware/state registration, LinkedIn company page, press release, Crunchbase, Glassdoor reviews. If founder: incorporation docs, co-founder mentions, pitch deck leaks, investor announcements.
-
-EDUCATION — If Ivy League: alumni directory, reunion mentions, professor citations, yearbook. If MBA: business school alumni network, case study mentions.
-
-FINANCIAL — If high net worth: property records, vehicle registrations (luxury tier), charitable donations, political donations (FEC), club memberships. If investor: AngelList, Crunchbase investor profile, Form D filings.
-
-LEGAL — If clean record: absence of court filings should be CONFIRMED not assumed. If lawsuit mentioned: full docket must be traceable.
-
-For each: PRESENT = confirms narrative. ABSENT = NARRATIVE GAP. CONTRADICTED = NARRATIVE CONFLICT.
-
-Rank all narrative gaps by severity. Highest expected + complete absence = most likely suppression/fabrication area.
+For each: PRESENT=confirms, ABSENT=NARRATIVE GAP, CONTRADICTED=CONFLICT. Rank gaps by severity.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 9: SENTIMENT VELOCITY ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a sentiment analysis expert specializing in temporal reputation dynamics. Track sentiment changes over time with forensic precision. Output structured analysis only.', `Run SENTIMENT VELOCITY ANALYSIS on all third-party mentions of this target.
+        // PASS 9: SENTIMENT VELOCITY
+        aiPass(GEMINI_API_KEY, 'You are a reputation research analyst. Track sentiment changes over time. Output structured analysis only.', `Run SENTIMENT VELOCITY ANALYSIS on third-party mentions.
 
-TEMPORAL SENTIMENT PROTOCOL:
+1) BASELINE (earliest 20%). 2) INFLECTION POINTS (>20% shift in 90 days) cross-referenced with events. 3) DIVERGENCE MAP (professional vs anonymous gap >40% = managed reputation). 4) ACCELERATION (accelerating negative = active issue). 5) CRITICISM LANGUAGE (emotional vs factual).
 
-1. BASELINE SENTIMENT — Earliest 20% of mentions: what is baseline? (Positive/Neutral/Negative ratio). This is who they were before reputation management.
-
-2. SENTIMENT INFLECTION POINTS — Every moment sentiment shifted >20% in either direction within 90 days. Cross-reference EACH against: business events / legal filings / public statements / relationship changes. The cause is more valuable than the score.
-
-3. SENTIMENT DIVERGENCE MAP — Professional sources (LinkedIn, press) vs Anonymous sources (Reddit, Glassdoor, forums). Gap >40% = MANAGED REPUTATION. Anonymous reflects lived experience.
-
-4. SENTIMENT ACCELERATION — Is negative sentiment increasing at accelerating rate in last 90 days? = something breaking down RIGHT NOW, not yet in mainstream coverage. Most forward-looking signal.
-
-5. CRITICISM LANGUAGE — Emotional (angry, betrayed) = personal grievance, weight lower. Factual with specifics (lied, stole, misrepresented) = operational intelligence, weight higher.
-
-Output: SENTIMENT VELOCITY CHART (timeline), top 5 inflection events with causes, divergence score, 90-day acceleration indicator.
+Output: Timeline, top 5 inflections, divergence score, 90-day acceleration.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 10: NETWORK CENTRALITY SCORING
-        aiPass(GEMINI_API_KEY, 'You are a network theory analyst specializing in graph centrality and power structure analysis. Apply formal graph theory to intelligence networks. Output structured scoring only.', `Apply network centrality analysis to the entity graph for this investigation.
+        // PASS 10: NETWORK CENTRALITY
+        aiPass(GEMINI_API_KEY, 'You are a network theory analyst. Apply graph centrality scoring. Output structured scoring only.', `Apply network centrality analysis.
 
-CENTRALITY SCORING PROTOCOL:
+1) DEGREE CENTRALITY. 2) BETWEENNESS (high+low degree = hidden broker). 3) EIGENVECTOR (quality of connections). 4) STRUCTURAL HOLES (deliberate network separation). 5) BRIDGE NODE (single point of failure).
 
-1. DEGREE CENTRALITY — Count connections per node. High degree alone means nothing (celebrity = high degree). A shadow operator has low degree but high everything else.
-
-2. BETWEENNESS CENTRALITY — Which nodes sit on most paths between other nodes? High betweenness + low degree = HIDDEN BROKER controlling information/resource flow without appearing important. The highest betweenness non-target node is the most important secondary target.
-
-3. EIGENVECTOR CENTRALITY — Not how many connections but how IMPORTANT are those connections. High eigenvector = REAL power. Low eigenvector despite high degree = social noise.
-
-4. STRUCTURAL HOLES — Where does a connection SHOULD exist but doesn't? If A and B both connect to target but not to each other, that gap is deliberate. WHY? Common: one side legitimate, one not. Legal liability separation.
-
-5. BRIDGE NODE IDENTIFICATION — Which single node, if removed, fragments the network? This is the target's critical dependency AND greatest vulnerability.
-
-Output: CENTRALITY SCORECARD for all nodes, TOP 3 hidden brokers, structural hole map, bridge node.
+Output: CENTRALITY SCORECARD, TOP 3 hidden brokers, structural holes, bridge node.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 11: BAYESIAN CONFIDENCE ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a Bayesian intelligence analyst. Apply rigorous probabilistic reasoning to update confidence in intelligence claims. Output structured probability chains only.', `Run Bayesian confidence update protocol on this intelligence corpus.
+        // PASS 11: BAYESIAN CONFIDENCE
+        aiPass(GEMINI_API_KEY, 'You are a probabilistic reasoning analyst. Apply Bayesian updating. Output structured probability chains only.', `Bayesian confidence update protocol. For each CORE CLAIM: Prior from source tier (self=0.40, T3=0.50, T2=0.75, T1=0.90). Updates: T1 corroboration x1.4, T2 x1.2, T1 contradiction x0.3, T2 x0.5, echo chamber x1.05, absent x0.6. <0.40=LIKELY FALSE, 0.40-0.60=CONTESTED, 0.60-0.80=PROBABLE, >0.80=CONFIRMED. Identify most dangerous assumption.
 
-For each CORE CLAIM (fact that materially affects the profile):
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-BAYESIAN UPDATE CHAIN:
+        // PASS 12: DATA INTEGRITY ASSESSMENT
+        aiPass(GEMINI_API_KEY, 'You are a data quality analyst. Assess source reliability and consistency. Output structured findings only.', `Analyze data corpus for consistency and reliability.
 
-1. Set PRIOR based on source tier:
-   - Self-stated only: Prior = 0.40
-   - Tier 3 (social/forum): Prior = 0.50
-   - Tier 2 (institutional): Prior = 0.75
-   - Tier 1 (government): Prior = 0.90
+1) NARRATIVE UNIFORMITY (near-identical phrasing across 5+ sources = single origin). 2) BIOGRAPHICAL COMPLETENESS (curated highlights only vs full arc). 3) SOURCE TIER CONSISTENCY (lower-tier claims unsupported by higher-tier). 4) NUMERICAL QUALITY (Benford's Law on figures >$1,000). 5) SELF-DESCRIPTION CONSISTENCY (ownership vs passive language by topic).
 
-2. Apply LIKELIHOOD UPDATES for additional evidence:
-   - Independent Tier 1 corroboration: x1.4
-   - Independent Tier 2 corroboration: x1.2
-   - Contradicted by Tier 1: x0.3
-   - Contradicted by Tier 2: x0.5
-   - Same-tier sources citing each other (echo chamber): x1.05
-   - ABSENT from sources where it should appear if true: x0.6
+Output: DATA INTEGRITY SCORE (0-100) with flags and citations.
 
-3. Calculate POSTERIOR for each claim.
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-4. FLAG: <0.40 = LIKELY FALSE | 0.40-0.60 = CONTESTED | 0.60-0.80 = PROBABLE | >0.80 = CONFIRMED
+        // PASS 13: FINANCIAL DATA ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a financial research analyst. Analyze public financial records. Output structured findings only.', `Analyze financial data points. 1) Benford's Law on figures >$1,000. 2) Stated role vs public asset indicators. 3) Entity structure (registered agents, virtual offices, formation timing). 4) Financial event timeline with proximities. Output: FINANCIAL DATA SUMMARY.
 
-5. IDENTIFY the claim with biggest gap between stated confidence and Bayesian posterior = most dangerous assumption in the entire dossier.
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-Output: BAYESIAN EVIDENCE CHAIN for top 10 core claims with prior, update chain, posterior. Highlight the most dangerous assumption.
+        // PASS 14: DIGITAL PRESENCE ASSESSMENT
+        aiPass(GEMINI_API_KEY, 'You are a digital footprint analyst. Assess public information accessibility. Output structured profile only.', `Assess digital footprint. 1) Presence density vs role baseline. 2) Architecture (professional/personal separation, privacy protection). 3) Historical content (deleted/cached). 4) Indirect exposure (high-footprint associates). 5) Records subject may not know are public. Output: DIGITAL PRESENCE PROFILE.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
@@ -3069,8 +3023,11 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
       sentimentVelocityAnalysis = p9.status === 'fulfilled' ? p9.value : '';
       networkCentralityAnalysis = p10.status === 'fulfilled' ? p10.value : '';
       bayesianConfidenceAnalysis = p11.status === 'fulfilled' ? p11.value : '';
+      const dataIntegrityAnalysis = p12.status === 'fulfilled' ? p12.value : '';
+      const financialForensicsAnalysis = p13.status === 'fulfilled' ? p13.value : '';
+      const digitalPresenceAnalysis = p14.status === 'fulfilled' ? p14.value : '';
 
-      console.log(`NOMAD v8.0: Passes 7-12 complete — G:${geospatialAnalysis.length} SB:${survivorshipBiasAnalysis.length} SV:${sentimentVelocityAnalysis.length} NC:${networkCentralityAnalysis.length} BC:${bayesianConfidenceAnalysis.length} chars`);
+      console.log(`NOMAD v9.0: Passes 7-14 complete — G:${geospatialAnalysis.length} SB:${survivorshipBiasAnalysis.length} SV:${sentimentVelocityAnalysis.length} NC:${networkCentralityAnalysis.length} BC:${bayesianConfidenceAnalysis.length} DI:${dataIntegrityAnalysis.length} FF:${financialForensicsAnalysis.length} DP:${digitalPresenceAnalysis.length} chars`);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
