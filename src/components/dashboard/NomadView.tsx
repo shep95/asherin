@@ -885,7 +885,7 @@ const NomadView = () => {
       <NomadCommandPalette
         open={commandOpen}
         onClose={() => setCommandOpen(false)}
-        onSwitchTab={setActiveTab}
+        onSwitchTab={(tab) => setActiveTab(tab as NomadTab)}
         onAction={handleCommandAction}
         entities={allEntities}
       />
