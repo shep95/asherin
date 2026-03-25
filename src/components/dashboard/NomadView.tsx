@@ -736,7 +736,7 @@ const NomadView = () => {
                               <div className="mt-4 border-t border-border/10 pt-3">
                                 <button
                                   onClick={() => setExpandedImages(expandedImages === msg.id ? null : msg.id)}
-                                  className="flex items-center gap-2 text-[10px] font-light text-accent/70 hover:text-accent transition-colors mb-2"
+                                  className="flex items-center gap-2 text-[10px] font-light text-foreground/50 hover:text-foreground/70 transition-colors mb-2"
                                 >
                                   <Image className="h-3 w-3" />
                                   {msg.images.length} {msg.images.length !== 1 ? "images" : "image"} collected
