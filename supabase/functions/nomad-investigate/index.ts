@@ -2562,10 +2562,35 @@ Output: OCEAN estimate + Deception Probability + Dark Triad Risk Score (0-10)
 
 PHASE 5 — NETWORK CENTRALITY ANALYSIS
 From all extracted relationships and co-occurring entities:
-- Who appears most frequently ADJACENT to this target? (High betweenness = gatekeeper)
-- Which organizations does this target BRIDGE between?
-- Are there sudden NEW connections after a gap? (Acquisitions, alliances, legal arrangements)
+- Degree Centrality: raw connection count (high degree alone means nothing)
+- Betweenness Centrality: nodes on most paths between others = HIDDEN BROKERS (high betweenness + low degree = shadow operator)
+- Eigenvector Centrality: quality of connections (one senator > 50 randoms = REAL power)
+- Structural Holes: gaps where connection SHOULD exist but doesn't = deliberate separation (one side legitimate, one side not)
+- Bridge Node Identification: single node whose removal fragments the network = critical dependency
 - Apply PageRank logic: connections from high-tier sources worth more
+
+PHASE 6 — GEOSPATIAL INTELLIGENCE
+Extract every location signal (addresses, IP-inferred, check-ins, court jurisdictions, property records, conferences):
+- Primary Residence Triangulation vs legal/financial anchor (conflict = tax avoidance/privacy/jurisdiction shopping)
+- Movement Pattern Reconstruction with migration event triggers (job change, legal event, relationship change)
+- Shadow Location Detection (locations in Tier 1 data absent from self-stated biography = second residence/hidden partner/legal shelter)
+- Jurisdiction Intelligence (Delaware/Wyoming/Nevada registrations with no operational presence = shell structure)
+- Physical Proximity Network (co-located associates who only describe each other as online contacts)
+
+PHASE 7 — SURVIVORSHIP BIAS AUDIT
+Generate the complete list of digital artifacts that SHOULD exist if stated biography is accurate. Audit presence vs absence:
+- Career: SEC filings, LinkedIn company page, Glassdoor reviews, Crunchbase, co-founder mentions, pitch deck leaks
+- Education: alumni directories, professor mentions, yearbook traces, reunion records
+- Financial: property records, political donations (FEC), charitable giving records, vehicle registrations
+- Legal: full court dockets, regulatory filings, expungement traces
+Rank narrative gaps by severity. Highest expected presence + complete absence = most likely area of suppression/fabrication.
+
+PHASE 8 — BAYESIAN CONFIDENCE CHAIN
+For each core claim:
+- Prior from source tier (self-stated=0.40, Tier 3=0.50, Tier 2=0.75, Tier 1=0.90)
+- Likelihood updates: independent Tier 1 corroboration x1.4, Tier 2 x1.2, Tier 1 contradiction x0.3, Tier 2 contradiction x0.5, echo chamber x1.05, absent from expected sources x0.6
+- Posterior <0.40 = LIKELY FALSE, 0.40-0.60 = CONTESTED, 0.60-0.80 = PROBABLE, >0.80 = CONFIRMED
+- Identify claim with biggest gap between stated confidence and Bayesian posterior = most dangerous assumption
 
 PHASE 6 — FINAL SYNTHESIS + PREDICTION
 Only now write the dossier.
