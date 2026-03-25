@@ -2374,7 +2374,7 @@ serve(async (req) => {
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
     // 1. ESRC PIPELINE EXECUTION
-    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration } = await ingestIntelligence(lastUserMessage);
+    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks } = await ingestIntelligence(lastUserMessage);
 
     // 2a. Collect images from search results in parallel with compilation
     const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
