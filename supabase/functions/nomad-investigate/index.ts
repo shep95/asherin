@@ -1588,6 +1588,197 @@ async function ingestMappingTools(query: string): Promise<IntelNode> {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// MONAD-GRADE SECTOR DORK QUERIES (Agency-Level Investigation Vectors)
+// Based on: MONAD OSINT Framework — Zophiel Engine Sectors
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function ingestSectorDork(sectorName: string, dorkQuery: string, tier: 1 | 2 | 3 | 4): Promise<IntelNode> {
+  try {
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(dorkQuery)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+    });
+    if (!resp.ok) return emptyNode(`Sector: ${sectorName}`, tier);
+    const html = await resp.text();
+    const results: string[] = [];
+    const blocks = html.split(/class="result\s/);
+    for (let i = 1; i < blocks.length && results.length < 6; i++) {
+      const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const urlMatch = blocks[i].match(/class="result__url"[^>]*>([\s\S]*?)<\/a>/);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const url = urlMatch ? urlMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      if (title) results.push(`- ${title} [${url}]: ${snippet}`);
+    }
+    if (!results.length) return emptyNode(`Sector: ${sectorName}`, tier);
+    const data = `${sectorName} Intelligence:\n${results.join('\n')}`;
+    return {
+      source: `MONAD Sector: ${sectorName}`,
+      tier,
+      data,
+      provenanceHash: await computeProvenanceHash(`sector-${sectorName}`, data),
+      timestamp: new Date().toISOString(),
+      confidence: tier === 1 ? 0.85 : tier === 2 ? 0.75 : 0.6,
+      entities: extractEntitiesFromText(data, sectorName),
+    };
+  } catch { return emptyNode(`Sector: ${sectorName}`, tier); }
+}
+
+function generateSectorDorks(targetName: string, location?: string): { sector: string; query: string; tier: 1 | 2 | 3 | 4 }[] {
+  const q = `"${targetName}"`;
+  const loc = location ? `"${location}"` : '';
+  
+  return [
+    // File Hunter (Echelon Level)
+    { sector: 'File Hunter', query: `${q} filetype:pdf OR ${q} filetype:docx OR ${q} filetype:xlsx OR ${q} filetype:pptx`, tier: 2 },
+    // Legal & Court Archives
+    { sector: 'Legal Archives', query: `${q} site:courtlistener.com OR ${q} site:justia.com OR ${q} site:trellis.law OR ${q} plaintiff OR ${q} defendant OR ${q} docket`, tier: 1 },
+    // Property & Asset Tracing
+    { sector: 'Asset Tracing', query: `${q} "property tax" OR ${q} "deed" OR ${q} "assessment" OR ${q} "parcel id"`, tier: 1 },
+    // Corporate & LLC Hunting
+    { sector: 'Corporate Registry', query: `${q} LLC OR ${q} Ltd OR ${q} Inc OR ${q} Director OR ${q} Shareholder OR ${q} "registered agent"`, tier: 1 },
+    // Background & Origins
+    { sector: 'Background Origins', query: `${q} biography OR ${q} "born in" OR ${q} "early life" OR ${q} "family background"`, tier: 3 },
+    // Employment & Professional
+    { sector: 'Employment', query: `${q} ${loc} job title employer resume OR ${q} "business owner" OR ${q} founder`, tier: 3 },
+    // Criminal & Legal Records
+    { sector: 'Criminal Records', query: `${q} arrest mugshot "court record" ${loc} OR ${q} lawsuit OR ${q} "criminal record"`, tier: 1 },
+    // Financial Records
+    { sector: 'Financial Intelligence', query: `${q} ${loc} bankrupt judgment lien tax OR ${q} "net worth"`, tier: 2 },
+    // Data Brokers
+    { sector: 'Data Brokers', query: `${q} ${loc} site:fastpeoplesearch.com OR site:truepeoplesearch.com OR site:familytreenow.com OR site:cyberbackgroundchecks.com`, tier: 3 },
+    // Community & Reputation
+    { sector: 'Reputation', query: `${q} ${loc} volunteer church club member OR ${q} controversy OR ${q} scandal`, tier: 4 },
+    // Educational Background
+    { sector: 'Education', query: `${q} ${loc} school student graduate alumni university`, tier: 3 },
+    // Residential History
+    { sector: 'Residential', query: `${q} ${loc} address resident OR ${q} "property records" OR ${q} "current address"`, tier: 2 },
+    // Leak & Breach Lookup
+    { sector: 'Leak Intelligence', query: `${q} site:pastebin.com OR ${q} site:ghostbin.com OR ${q} "password" filetype:txt`, tier: 4 },
+    // Image Context
+    { sector: 'Image Context', query: `${q} ${loc} photo OR ${q} mugshot OR ${q} headshot OR ${q} portrait`, tier: 4 },
+  ];
+}
+
+// ── Recursive PII Spider (MONAD: When phones/emails found, chase them) ──────
+
+async function recursivePIISpider(entities: ExtractedEntity[]): Promise<IntelNode[]> {
+  const phones = entities.filter(e => e.type === 'phone').slice(0, 2);
+  const emails = entities.filter(e => e.type === 'email').slice(0, 2);
+  const targets = [...phones.map(e => e.value), ...emails.map(e => e.value)];
+  
+  if (targets.length === 0) return [];
+  
+  const tasks: Promise<IntelNode>[] = targets.map(async (target) => {
+    try {
+      const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${target}"`)}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+      });
+      if (!resp.ok) return emptyNode('Recursive PII Spider', 2);
+      const html = await resp.text();
+      const results: string[] = [];
+      const blocks = html.split(/class="result\s/);
+      for (let i = 1; i < blocks.length && results.length < 3; i++) {
+        const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+        const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+        if (title) results.push(`- ${title}: ${snippet}`);
+      }
+      if (!results.length) return emptyNode('Recursive PII Spider', 2);
+      const data = `PII Spider Trace [${target}]:\n${results.join('\n')}`;
+      return {
+        source: `Recursive PII Spider (${target})`,
+        tier: 2 as const,
+        data,
+        provenanceHash: await computeProvenanceHash('pii-spider', data),
+        timestamp: new Date().toISOString(),
+        confidence: 0.88,
+        entities: extractEntitiesFromText(data, 'PII Spider'),
+      };
+    } catch { return emptyNode('Recursive PII Spider', 2); }
+  });
+  
+  const results = await Promise.allSettled(tasks);
+  return results
+    .filter((r): r is PromiseFulfilledResult<IntelNode> => r.status === 'fulfilled')
+    .map(r => r.value)
+    .filter(n => n.data);
+}
+
+// ── Behavioral Profiling Engine (MONAD: keyword-based trait detection) ───────
+
+function extractBehavioralProfile(text: string): string[] {
+  const traits: string[] = [];
+  const t = text.toLowerCase();
+  
+  if (/passionate|dedicated|advocate|volunteer|nonprofit|charity|donate/i.test(t)) traits.push('Community Oriented');
+  if (/entrepreneur|founder|ceo|owner|startup|investor|venture/i.test(t)) traits.push('Business/Leadership');
+  if (/arrest|charged|court|lawsuit|defendant|plaintiff|indicted|convicted/i.test(t)) traits.push('Legal History');
+  if (/academic|university|research|published|professor|phd|doctoral/i.test(t)) traits.push('Academic/Intellectual');
+  if (/military|veteran|served|deployment|armed forces|navy|army|air force/i.test(t)) traits.push('Military/Government');
+  if (/patent|inventor|innovation|technology|engineering/i.test(t)) traits.push('Technical/Innovation');
+  if (/real estate|property|landlord|developer|construction|broker/i.test(t)) traits.push('Real Estate/Property');
+  if (/offshore|cayman|swiss|panama|shell company|nominee|trust/i.test(t)) traits.push('⚠️ Offshore/Opacity Signals');
+  if (/fraud|scam|ponzi|embezzle|launder|rico|conspiracy/i.test(t)) traits.push('🔴 Fraud/Criminal Indicators');
+  if (/political|campaign|lobby|pac|donor|committee|governor|senator/i.test(t)) traits.push('Political Activity');
+  if (/athlete|sports|team|championship|draft|contract/i.test(t)) traits.push('Sports/Athletics');
+  if (/doctor|medical|hospital|clinic|patient|surgery|health/i.test(t)) traits.push('Medical/Healthcare');
+  
+  return [...new Set(traits)];
+}
+
+// ── Public Record Link Generator (MONAD: passive OSINT reference URLs) ──────
+
+function generatePublicRecordLinks(name: string, location?: string): string {
+  const encoded = name.replace(/\s+/g, '+');
+  const parts = name.split(/\s+/);
+  const first = parts[0] || '';
+  const last = parts[parts.length - 1] || '';
+  
+  const links: string[] = [
+    `— CORPORATE: OpenCorporates: https://opencorporates.com/companies?q=${encoded}`,
+    `— CORPORATE: CorporationWiki: https://www.corporationwiki.com/search/results?term=${encoded}`,
+    `— CORPORATE: Bizapedia: https://www.bizapedia.com/search.aspx?q=${encoded}`,
+    `— LEGAL: CourtListener: https://www.courtlistener.com/?q=${encoded}`,
+    `— LEGAL: Justia: https://www.justia.com/search?q=${encoded}`,
+    `— GENEALOGY: FamilySearch: https://www.familysearch.org/search/record/results?q.givenName=${first}&q.surname=${last}`,
+    `— PEOPLE: Spokeo: https://www.spokeo.com/${name.replace(/\s+/g, '-')}`,
+    `— PEOPLE: BeenVerified: https://www.beenverified.com/people/${name.replace(/\s+/g, '-')}`,
+    `— PEOPLE: Whitepages: https://www.whitepages.com/name/${name.replace(/\s+/g, '-')}`,
+    `— PROFESSIONAL: ZoomInfo: https://www.zoominfo.com/people/${name.replace(/\s+/g, '-')}`,
+    `— PROFESSIONAL: Crunchbase: https://www.crunchbase.com/textsearch?q=${encoded}`,
+    `— ACADEMIC: Google Scholar: https://scholar.google.com/scholar?q=${encoded}`,
+    `— ACADEMIC: ORCID: https://orcid.org/orcid-search/search?searchQuery=${encoded}`,
+    `— LEAKS: DeHashed: https://dehashed.com/search?query=${encoded}`,
+    `— LEAKS: Intelligence X: https://intelx.io/?s=${encoded}`,
+    `— IMAGES: Yandex Images: https://yandex.com/images/search?text=${encoded}`,
+    `— ARCHIVE: Wayback Machine: https://web.archive.org/web/*/${encoded}`,
+    `— PROPERTY: PropertyShark: https://www.propertyshark.com/mason/search?q=${encoded}`,
+  ];
+  
+  if (location) {
+    const loc = location.toLowerCase();
+    if (loc.includes('florida') || loc.includes('fl')) {
+      links.push(`— STATE: Florida Sunbiz (Corp Registry): https://search.sunbiz.org/Inquiry/CorporationSearch/ByName`);
+      links.push(`— STATE: Florida DBPR (Licenses): https://www.myfloridalicense.com/`);
+    }
+    if (loc.includes('california') || loc.includes('ca')) {
+      links.push(`— STATE: CA Secretary of State: https://bizfileonline.sos.ca.gov/search/business`);
+    }
+    if (loc.includes('new york') || loc.includes('ny')) {
+      links.push(`— STATE: NY DOS Corp Search: https://apps.dos.ny.gov/publicInquiry/`);
+    }
+    if (loc.includes('texas') || loc.includes('tx')) {
+      links.push(`— STATE: TX SOS: https://www.sos.state.tx.us/corp/sosda/index.shtml`);
+    }
+  }
+  
+  return `\n\nPASSIVE OSINT REFERENCE LINKS (${links.length} sources):\n${links.join('\n')}`;
+}
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ESRC STAGE 3: REASON — Entity Resolution + Two-Stage Selection & Verification
 // "Select from shortlist, then verify with advanced reasoning"
 // ══════════════════════════════════════════════════════════════════════════════
