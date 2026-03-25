@@ -1,13 +1,14 @@
-import { useMemo, useState, useRef, useEffect } from "react";
-import { ZoomIn, ZoomOut, Maximize2, Hash, X, ArrowRight, Search } from "lucide-react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import { X, Search, ArrowRight } from "lucide-react";
 
 /* ─── Types ─── */
 interface GraphNode {
   id: string;
   label: string;
-  type: string;           // person | organization | legal | document | subject | financial | location
-  confidence: number;
+  type: string;           // person | organization | legal | document | subject
+  confidence: number;     // 0-1
   tier?: number;
+  tierLabel?: string;
   sourceCount?: number;
   tags?: string[];
   bridge?: boolean;
@@ -15,6 +16,7 @@ interface GraphNode {
   cluster?: "professional" | "financial" | "legal";
   x: number;
   y: number;
+  pivotQuery?: string;
 }
 
 interface GraphEdge {
@@ -33,72 +35,98 @@ interface NomadGraphAnalysisProps {
   onPivot?: (query: string) => void;
 }
 
-/* ─── Cluster definitions ─── */
-const CLUSTER_CONFIG: Record<string, { color: string; label: string; fill: string; border: string }> = {
-  professional: { color: "#3b82f6", label: "Professional", fill: "rgba(59,130,246,0.04)", border: "rgba(59,130,246,0.15)" },
-  financial:    { color: "#10b981", label: "Financial",    fill: "rgba(16,185,129,0.04)", border: "rgba(16,185,129,0.15)" },
-  legal:        { color: "#ef4444", label: "Legal",        fill: "rgba(239,68,68,0.04)",  border: "rgba(239,68,68,0.15)"  },
+/* ─── Color palette matching the HTML reference exactly ─── */
+const NODE_COLORS: Record<string, { fill: string; stroke: string; text: string; textDark: string }> = {
+  subject:      { fill: "#FAEEDA", stroke: "#BA7517", text: "#633806", textDark: "#854F0B" },
+  person:       { fill: "#EEEDFE", stroke: "#7F77DD", text: "#3C3489", textDark: "#534AB7" },
+  person_alt:   { fill: "#FBEAF0", stroke: "#D4537E", text: "#4B1528", textDark: "#993556" },
+  org_pro:      { fill: "#E6F1FB", stroke: "#378ADD", text: "#0C447C", textDark: "#185FA5" },
+  org_fin:      { fill: "#E1F5EE", stroke: "#1D9E75", text: "#085041", textDark: "#0F6E56" },
+  org_fin_alt:  { fill: "#EAF3DE", stroke: "#639922", text: "#173404", textDark: "#3B6D11" },
+  legal:        { fill: "#FCEBEB", stroke: "#E24B4A", text: "#501313", textDark: "#A32D2D" },
 };
 
-/* ─── Node color by type ─── */
-function getNodeColor(type: string, isSubject: boolean): string {
-  if (isSubject) return "#d97706";            // amber
-  if (type.includes("person"))       return "#8b5cf6"; // purple
-  if (type.includes("organization") || type.includes("institution")) return "#3b82f6"; // blue
-  if (type.includes("financial") || type.includes("transaction")) return "#10b981"; // teal
-  if (type.includes("legal") || type.includes("case") || type.includes("filing")) return "#ef4444"; // red
-  if (type.includes("location"))     return "#14b8a6";
-  if (type.includes("email"))        return "#06b6d4";
-  if (type.includes("phone"))        return "#22c55e";
-  return "#64748b";
+const CLUSTER_CONFIG: Record<string, { fill: string; stroke: string; labelColor: string; label: string }> = {
+  professional: { fill: "#185FA5", stroke: "#185FA5", labelColor: "#0C447C", label: "Professional" },
+  financial:    { fill: "#1D9E75", stroke: "#1D9E75", labelColor: "#0F6E56", label: "Financial" },
+  legal:        { fill: "#E24B4A", stroke: "#E24B4A", labelColor: "#A32D2D", label: "Legal" },
+};
+
+/* ─── Helpers ─── */
+function getNodeColorSet(type: string, cluster?: string, index?: number): typeof NODE_COLORS.subject {
+  if (type === "subject") return NODE_COLORS.subject;
+  if (type.includes("legal") || type.includes("case") || type.includes("filing") || type.includes("court") || type.includes("document"))
+    return NODE_COLORS.legal;
+  if (type.includes("person")) {
+    return (index !== undefined && index % 2 === 1) ? NODE_COLORS.person_alt : NODE_COLORS.person;
+  }
+  if (type.includes("organization") || type.includes("institution") || type.includes("company") || type.includes("holding")) {
+    if (cluster === "financial") {
+      return (index !== undefined && index % 2 === 1) ? NODE_COLORS.org_fin_alt : NODE_COLORS.org_fin;
+    }
+    return NODE_COLORS.org_pro;
+  }
+  return NODE_COLORS.person;
 }
 
-/* ─── Cluster assignment ─── */
 function assignCluster(type: string): GraphNode["cluster"] {
-  if (type.includes("legal") || type.includes("case") || type.includes("filing") || type.includes("court")) return "legal";
-  if (type.includes("financial") || type.includes("transaction") || type.includes("investor") || type.includes("company") || type.includes("holding")) return "financial";
+  if (type.includes("legal") || type.includes("case") || type.includes("filing") || type.includes("court") || type.includes("document")) return "legal";
+  if (type.includes("financial") || type.includes("transaction") || type.includes("investor") || type.includes("holding")) return "financial";
   return "professional";
+}
+
+function isPerson(type: string): boolean {
+  return type.includes("person") || type === "subject";
+}
+
+function isOrg(type: string): boolean {
+  return type.includes("organization") || type.includes("institution") || type.includes("company") || type.includes("holding");
+}
+
+function isLegal(type: string): boolean {
+  return type.includes("legal") || type.includes("case") || type.includes("filing") || type.includes("court") || type.includes("document");
 }
 
 /* ─── Force-directed layout ─── */
 function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], width: number, height: number): GraphNode[] {
-  // Cluster center targets
   const clusterCenters: Record<string, { x: number; y: number }> = {
-    professional: { x: width * 0.5,  y: height * 0.25 },
-    financial:    { x: width * 0.25, y: height * 0.72 },
-    legal:        { x: width * 0.75, y: height * 0.72 },
+    professional: { x: width * 0.5,  y: height * 0.22 },
+    financial:    { x: width * 0.18, y: height * 0.72 },
+    legal:        { x: width * 0.82, y: height * 0.72 },
   };
 
   const positioned = nodes.map((n, i) => {
     const center = clusterCenters[n.cluster || "professional"];
     const angle = (i / Math.max(1, nodes.length)) * Math.PI * 2;
-    const spread = Math.min(width, height) * 0.18;
+    const spread = Math.min(width, height) * 0.15;
     return {
       ...n,
-      x: center.x + Math.cos(angle) * spread + (Math.random() - 0.5) * 40,
-      y: center.y + Math.sin(angle) * spread + (Math.random() - 0.5) * 40,
+      x: center.x + Math.cos(angle) * spread + (Math.random() - 0.5) * 30,
+      y: center.y + Math.sin(angle) * spread + (Math.random() - 0.5) * 30,
     };
   });
 
-  // Force simulation — 40 iterations
-  for (let iter = 0; iter < 40; iter++) {
-    // Repulsion
+  // Subject always centered
+  const subjectNode = positioned.find(n => n.type === "subject");
+  if (subjectNode) {
+    subjectNode.x = width * 0.45;
+    subjectNode.y = height * 0.48;
+  }
+
+  for (let iter = 0; iter < 50; iter++) {
     for (let i = 0; i < positioned.length; i++) {
       for (let j = i + 1; j < positioned.length; j++) {
         const dx = positioned[j].x - positioned[i].x;
         const dy = positioned[j].y - positioned[i].y;
         const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-        const force = 4000 / (dist * dist);
+        const force = 5000 / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
-        positioned[i].x -= fx;
-        positioned[i].y -= fy;
-        positioned[j].x += fx;
-        positioned[j].y += fy;
+        if (positioned[i].type !== "subject") { positioned[i].x -= fx; positioned[i].y -= fy; }
+        if (positioned[j].type !== "subject") { positioned[j].x += fx; positioned[j].y += fy; }
       }
     }
 
-    // Edge attraction
     for (const edge of edges) {
       const src = positioned.find(n => n.id === edge.source);
       const tgt = positioned.find(n => n.id === edge.target);
@@ -106,26 +134,20 @@ function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], width: number, heig
       const dx = tgt.x - src.x;
       const dy = tgt.y - src.y;
       const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-      const force = (dist - 140) * 0.012;
+      const force = (dist - 130) * 0.01;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
-      src.x += fx; src.y += fy;
-      tgt.x -= fx; tgt.y -= fy;
+      if (src.type !== "subject") { src.x += fx; src.y += fy; }
+      if (tgt.type !== "subject") { tgt.x -= fx; tgt.y -= fy; }
     }
 
-    // Cluster gravity
     for (const node of positioned) {
+      if (node.type === "subject") continue;
       const target = clusterCenters[node.cluster || "professional"];
-      node.x += (target.x - node.x) * 0.008;
-      node.y += (target.y - node.y) * 0.008;
-    }
-
-    // Center gravity
-    for (const node of positioned) {
-      node.x += (width / 2 - node.x) * 0.003;
-      node.y += (height / 2 - node.y) * 0.003;
-      node.x = Math.max(80, Math.min(width - 80, node.x));
-      node.y = Math.max(60, Math.min(height - 60, node.y));
+      node.x += (target.x - node.x) * 0.006;
+      node.y += (target.y - node.y) * 0.006;
+      node.x = Math.max(70, Math.min(width - 70, node.x));
+      node.y = Math.max(50, Math.min(height - 50, node.y));
     }
   }
 
@@ -135,63 +157,77 @@ function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], width: number, heig
 /* ─── Component ─── */
 const NomadGraphAnalysis = ({ entities, crossRefMap, subjectName, onPivot }: NomadGraphAnalysisProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 900, height: 560 });
+  const [dimensions, setDimensions] = useState({ width: 760, height: 440 });
   const [zoom, setZoom] = useState(1);
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
-  const [filter, setFilter] = useState<"all" | "people" | "orgs" | "legal">("all");
+  const [filter, setFilter] = useState<"all" | "person" | "org" | "legal">("all");
 
   useEffect(() => {
     if (!containerRef.current) return;
     const obs = new ResizeObserver(entries => {
       for (const entry of entries) {
-        setDimensions({ width: entry.contentRect.width, height: Math.max(500, entry.contentRect.height) });
+        setDimensions({ width: entry.contentRect.width || 760, height: Math.max(440, entry.contentRect.height || 440) });
       }
     });
     obs.observe(containerRef.current);
     return () => obs.disconnect();
   }, []);
 
-  /* Build graph */
-  const { nodes, edges, clusterBounds } = useMemo(() => {
-    const graphNodes: GraphNode[] = [];
-    const graphEdges: GraphEdge[] = [];
+  /* Build graph from entities */
+  const { graphNodes, graphEdges, clusterBounds } = useMemo(() => {
+    const nodes: GraphNode[] = [];
+    const edges: GraphEdge[] = [];
     const nodeIds = new Set<string>();
 
     const topEntities = [...entities]
       .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 40);
+      .slice(0, 35);
 
-    // Detect primary subject
     const subjectNameLower = (subjectName || "").toLowerCase().trim();
+    let personIdx = 0;
+    let orgIdx = 0;
 
     for (const e of topEntities) {
       const id = `${e.type}:${e.value}`.replace(/[^a-zA-Z0-9:]/g, "_");
       if (nodeIds.has(id)) continue;
       nodeIds.add(id);
 
-      const isSubject = subjectNameLower && e.value.toLowerCase().includes(subjectNameLower);
-      const cluster = assignCluster(e.type);
+      const isSubject = subjectNameLower.length > 2 && e.value.toLowerCase().includes(subjectNameLower);
+      const nodeType = isSubject ? "subject" : e.type;
+      const cluster = isSubject ? "professional" as const : assignCluster(e.type);
       const sourceKey = `${e.type}:${e.value.toLowerCase().trim()}`;
       const sources = crossRefMap[sourceKey] || [];
       const isBridge = sources.length >= 3;
       const isSingleSource = sources.length <= 1;
 
-      graphNodes.push({
-        id, label: e.value.length > 22 ? e.value.slice(0, 19) + "…" : e.value,
-        type: isSubject ? "subject" : e.type,
+      const tierMatch = e.source?.match(/T(\d)/);
+      const tier = tierMatch ? parseInt(tierMatch[1]) : 3;
+      const tierLabel = e.source || `T${tier}`;
+
+      if (isPerson(nodeType)) personIdx++;
+      if (isOrg(nodeType)) orgIdx++;
+
+      nodes.push({
+        id,
+        label: e.value.length > 20 ? e.value.slice(0, 18) + "…" : e.value,
+        type: nodeType,
         confidence: e.confidence,
-        tier: e.source?.includes("T1") ? 1 : e.source?.includes("T2") ? 2 : 3,
-        sourceCount: sources.length,
+        tier,
+        tierLabel,
+        sourceCount: Math.max(sources.length, 1),
         tags: e.source ? [e.source] : [],
         bridge: isBridge,
         singleSource: isSingleSource,
         cluster,
         x: 0, y: 0,
+        pivotQuery: `${e.value} ${e.type} background investigation`,
       });
     }
 
-    // Edges from crossRefMap
+    // Build edges from shared sources
     const entityKeys = topEntities.map(e => `${e.type}:${e.value.toLowerCase().trim()}`);
     for (let i = 0; i < entityKeys.length; i++) {
       const sourcesA = crossRefMap[entityKeys[i]] || [];
@@ -202,11 +238,11 @@ const NomadGraphAnalysis = ({ entities, crossRefMap, subjectName, onPivot }: Nom
           const srcId = `${topEntities[i].type}:${topEntities[i].value}`.replace(/[^a-zA-Z0-9:]/g, "_");
           const tgtId = `${topEntities[j].type}:${topEntities[j].value}`.replace(/[^a-zA-Z0-9:]/g, "_");
           if (nodeIds.has(srcId) && nodeIds.has(tgtId)) {
-            const isLegal = topEntities[i].type.includes("legal") || topEntities[j].type.includes("legal");
-            graphEdges.push({
+            const isLegalEdge = topEntities[i].type.includes("legal") || topEntities[j].type.includes("legal");
+            edges.push({
               source: srcId, target: tgtId,
-              label: shared.length > 1 ? `${shared.length} sources` : shared[0]?.slice(0, 30) || "",
-              edgeType: isLegal ? "adversarial" : shared.length >= 2 ? "confirmed" : "probable",
+              label: shared.length > 1 ? `${shared.length} sources` : shared[0]?.slice(0, 28) || "",
+              edgeType: isLegalEdge ? "adversarial" : shared.length >= 2 ? "confirmed" : "probable",
               confidence: shared.length >= 2 ? undefined : Math.round(Math.min(topEntities[i].confidence, topEntities[j].confidence) * 100),
             });
           }
@@ -214,91 +250,64 @@ const NomadGraphAnalysis = ({ entities, crossRefMap, subjectName, onPivot }: Nom
       }
     }
 
-    const positioned = layoutGraph(graphNodes, graphEdges, dimensions.width, dimensions.height);
+    const positioned = layoutGraph(nodes, edges, dimensions.width, dimensions.height);
 
-    // Compute cluster bounding boxes
+    // Cluster bounds
     const bounds: Record<string, { x: number; y: number; w: number; h: number }> = {};
-    for (const key of ["professional", "financial", "legal"]) {
-      const clusterNodes = positioned.filter(n => n.cluster === key);
-      if (clusterNodes.length === 0) continue;
-      const pad = 45;
-      const minX = Math.min(...clusterNodes.map(n => n.x)) - pad;
-      const minY = Math.min(...clusterNodes.map(n => n.y)) - pad;
-      const maxX = Math.max(...clusterNodes.map(n => n.x)) + pad;
-      const maxY = Math.max(...clusterNodes.map(n => n.y)) + pad;
+    for (const key of ["professional", "financial", "legal"] as const) {
+      const cn = positioned.filter(n => n.cluster === key && n.type !== "subject");
+      if (cn.length === 0) continue;
+      const pad = 40;
+      const minX = Math.min(...cn.map(n => n.x)) - pad - (isOrg(cn[0]?.type || "") ? 54 : 22);
+      const minY = Math.min(...cn.map(n => n.y)) - pad;
+      const maxX = Math.max(...cn.map(n => n.x)) + pad + (isOrg(cn[0]?.type || "") ? 54 : 22);
+      const maxY = Math.max(...cn.map(n => n.y)) + pad + 30;
       bounds[key] = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
     }
 
-    return { nodes: positioned, edges: graphEdges, clusterBounds: bounds };
+    return { graphNodes: positioned, graphEdges: edges, clusterBounds: bounds };
   }, [entities, crossRefMap, dimensions, subjectName]);
 
-  /* Filter logic */
-  const isNodeVisible = (node: GraphNode): boolean => {
+  /* Filter visibility */
+  const isVisible = useCallback((node: GraphNode): boolean => {
     if (filter === "all") return true;
-    if (filter === "people") return node.type.includes("person") || node.type === "subject";
-    if (filter === "orgs") return node.type.includes("organization") || node.type.includes("institution") || node.type.includes("company");
-    if (filter === "legal") return node.type.includes("legal") || node.type.includes("filing") || node.type.includes("case");
+    if (filter === "person") return isPerson(node.type);
+    if (filter === "org") return isOrg(node.type);
+    if (filter === "legal") return isLegal(node.type);
     return true;
+  }, [filter]);
+
+  /* Pan handlers */
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if ((e.target as SVGElement).closest(".node-group")) return;
+    setDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!dragging) return;
+    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  };
+  const handleMouseUp = () => setDragging(false);
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setZoom(z => Math.max(0.4, Math.min(2.5, z - e.deltaY * 0.001)));
   };
 
-  /* Node shape renderer */
-  const renderNodeShape = (node: GraphNode, isSubject: boolean, isHovered: boolean) => {
-    const color = getNodeColor(node.type, isSubject);
-    const radius = isSubject ? 26 : node.type.includes("person") ? 22 : 20;
-
-    if (node.type.includes("person") || isSubject) {
-      return (
-        <>
-          {/* Pulse ring for subject */}
-          {isSubject && (
-            <circle cx={node.x} cy={node.y} r={radius + 6}
-              fill="none" stroke={color} strokeWidth={1.5} opacity={0.3}>
-              <animate attributeName="r" from={String(radius + 4)} to={String(radius + 14)} dur="1.8s" repeatCount="indefinite" />
-              <animate attributeName="opacity" from="0.4" to="0" dur="1.8s" repeatCount="indefinite" />
-            </circle>
-          )}
-          {/* Glow */}
-          {isHovered && <circle cx={node.x} cy={node.y} r={radius + 6} fill={color} opacity={0.12} />}
-          {/* Circle */}
-          <circle cx={node.x} cy={node.y} r={radius}
-            fill={color} fillOpacity={isSubject ? 0.4 : 0.25}
-            stroke={color} strokeWidth={isHovered ? 2.5 : 1.5} />
-        </>
-      );
-    }
-
-    if (node.type.includes("organization") || node.type.includes("institution") || node.type.includes("company") || node.type.includes("holding")) {
-      const w = 110, h = 36, rx = 8;
-      return (
-        <>
-          {isHovered && <rect x={node.x - w / 2 - 3} y={node.y - h / 2 - 3} width={w + 6} height={h + 6} rx={rx + 2} fill={color} opacity={0.1} />}
-          <rect x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} rx={rx}
-            fill={color} fillOpacity={0.15}
-            stroke={color} strokeWidth={isHovered ? 2 : 1} />
-        </>
-      );
-    }
-
-    // Legal / document: sharp rect with diamond
-    const w = 110, h = 36;
-    return (
-      <>
-        {isHovered && <rect x={node.x - w / 2 - 3} y={node.y - h / 2 - 3} width={w + 6} height={h + 6} rx={3} fill={color} opacity={0.1} />}
-        <rect x={node.x - w / 2} y={node.y - h / 2} width={w} height={h} rx={2}
-          fill={color} fillOpacity={0.15}
-          stroke={color} strokeWidth={isHovered ? 2 : 1} />
-        {/* Diamond indicator */}
-        <polygon
-          points={`${node.x - w / 2 - 6},${node.y} ${node.x - w / 2 - 1},${node.y - 5} ${node.x - w / 2 + 4},${node.y} ${node.x - w / 2 - 1},${node.y + 5}`}
-          fill={color} fillOpacity={0.6} />
-      </>
-    );
+  /* Reset view */
+  const resetView = () => {
+    setFilter("all");
+    setSelectedNode(null);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   };
 
   if (entities.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center py-20">
-        <Hash className="h-10 w-10 text-muted-foreground/30 mb-4" />
+        <svg width="40" height="40" viewBox="0 0 14 14" fill="none" className="mb-4 opacity-20">
+          <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1" />
+          <circle cx="7" cy="7" r="2" fill="currentColor" />
+        </svg>
         <p className="text-sm font-extralight text-muted-foreground">No graph data available.</p>
         <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1">Run investigations to build the network graph.</p>
       </div>
@@ -306,23 +315,30 @@ const NomadGraphAnalysis = ({ entities, crossRefMap, subjectName, onPivot }: Nom
   }
 
   const FILTERS: { id: typeof filter; label: string }[] = [
-    { id: "all", label: "All" }, { id: "people", label: "People" },
-    { id: "orgs", label: "Orgs" }, { id: "legal", label: "Legal" },
+    { id: "all", label: "All" }, { id: "person", label: "People" },
+    { id: "org", label: "Orgs" }, { id: "legal", label: "Legal" },
   ];
 
+  const vw = dimensions.width;
+  const vh = dimensions.height;
+
   return (
-    <div className="relative h-full flex flex-col">
-      {/* Header bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/15">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <div className="h-3.5 w-3.5 rounded-full border border-border/30 flex items-center justify-center">
-              <div className="h-1.5 w-1.5 rounded-full bg-foreground/50" />
-            </div>
-            <span className="text-[12px] font-light tracking-wide text-foreground/80">Intelligence graph</span>
-          </div>
+    <div className="relative flex flex-col rounded-xl border border-border/20 overflow-hidden bg-background">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20 bg-secondary/30">
+        <div className="flex items-center gap-2 text-[13px] font-medium text-foreground">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="opacity-60">
+            <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1" />
+            <circle cx="7" cy="7" r="2" fill="currentColor" />
+            <line x1="7" y1="1" x2="7" y2="4" stroke="currentColor" strokeWidth="1" />
+            <line x1="7" y1="10" x2="7" y2="13" stroke="currentColor" strokeWidth="1" />
+            <line x1="1" y1="7" x2="4" y2="7" stroke="currentColor" strokeWidth="1" />
+            <line x1="10" y1="7" x2="13" y2="7" stroke="currentColor" strokeWidth="1" />
+          </svg>
+          Intelligence graph
           {subjectName && (
-            <span className="text-[10px] font-extralight px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
               {subjectName}
             </span>
           )}
@@ -331,89 +347,123 @@ const NomadGraphAnalysis = ({ entities, crossRefMap, subjectName, onPivot }: Nom
         <div className="flex items-center gap-1.5">
           {FILTERS.map(f => (
             <button key={f.id} onClick={() => setFilter(f.id)}
-              className={`px-3 py-1 rounded-lg text-[10px] font-extralight tracking-wide transition-colors ${
+              className={`px-2.5 py-1 rounded-md text-[11px] border transition-all duration-150 cursor-pointer ${
                 filter === f.id
-                  ? "bg-foreground/10 text-foreground border border-foreground/15"
-                  : "text-muted-foreground/40 hover:text-muted-foreground/70 border border-transparent"
+                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                  : "text-muted-foreground/60 border-border/20 hover:bg-secondary/50 hover:text-foreground"
               }`}>
               {f.label}
             </button>
           ))}
-          <button onClick={() => { setFilter("all"); setSelectedNode(null); }}
-            className="px-3 py-1 rounded-lg text-[10px] font-extralight text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors">
+          <button onClick={resetView}
+            className="px-2.5 py-1 rounded-md text-[11px] text-muted-foreground/40 border border-border/20 hover:bg-secondary/50 hover:text-foreground transition-all cursor-pointer">
             Reset
           </button>
         </div>
       </div>
 
-      {/* Canvas + Detail Panel */}
-      <div className="flex-1 relative overflow-hidden">
-        {/* Zoom controls */}
-        <div className="absolute top-3 left-3 z-20 flex items-center gap-1">
-          <button onClick={() => setZoom(z => Math.min(2, z + 0.2))} className="p-1.5 rounded-lg bg-card/60 border border-border/15 text-muted-foreground/50 hover:text-foreground transition-colors backdrop-blur-sm">
-            <ZoomIn className="h-3 w-3" />
-          </button>
-          <button onClick={() => setZoom(z => Math.max(0.3, z - 0.2))} className="p-1.5 rounded-lg bg-card/60 border border-border/15 text-muted-foreground/50 hover:text-foreground transition-colors backdrop-blur-sm">
-            <ZoomOut className="h-3 w-3" />
-          </button>
-          <button onClick={() => setZoom(1)} className="p-1.5 rounded-lg bg-card/60 border border-border/15 text-muted-foreground/50 hover:text-foreground transition-colors backdrop-blur-sm">
-            <Maximize2 className="h-3 w-3" />
-          </button>
-        </div>
+      {/* ── Canvas ── */}
+      <div className="relative overflow-hidden" style={{ height: `${vh}px` }} ref={containerRef}>
+        <svg
+          width="100%" height="100%"
+          viewBox={`0 0 ${vw} ${vh}`}
+          style={{ cursor: dragging ? "grabbing" : "grab" }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <defs>
+            {/* Arrow markers */}
+            <marker id="arr-conf" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </marker>
+            <marker id="arr-prob" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="#B4B2A9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </marker>
+            <marker id="arr-adv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="#E24B4A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </marker>
+            <filter id="soft-shadow">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.08" />
+            </filter>
+          </defs>
 
-        {/* SVG Canvas */}
-        <div ref={containerRef} className="w-full h-full">
-          <svg
-            width={dimensions.width} height={dimensions.height}
-            viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-            className="w-full h-full"
-            style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
-          >
-            {/* Cluster backgrounds */}
+          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`} style={{ transformOrigin: `${vw / 2}px ${vh / 2}px` }}>
+
+            {/* ── Cluster backgrounds ── */}
             {Object.entries(clusterBounds).map(([key, b]) => {
               const cfg = CLUSTER_CONFIG[key];
               if (!cfg) return null;
               return (
                 <g key={`cluster-${key}`}>
-                  <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={12}
-                    fill={cfg.fill} stroke={cfg.border}
-                    strokeWidth={1} strokeDasharray="6 4" />
-                  <text x={b.x + 8} y={b.y + 14} fontSize={9} fill={cfg.color} opacity={0.5} fontWeight={300}>
+                  <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={10}
+                    fill={cfg.fill} fillOpacity={0.04}
+                    stroke={cfg.stroke} strokeWidth={0.5} strokeOpacity={0.2}
+                    strokeDasharray="4 3" />
+                  <text x={b.x + 10} y={b.y + 16} fontSize={10}
+                    fill={cfg.labelColor} fillOpacity={0.7}
+                    fontWeight={500} style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                     {cfg.label}
                   </text>
                 </g>
               );
             })}
 
-            {/* Edges */}
-            {edges.map((edge, idx) => {
-              const src = nodes.find(n => n.id === edge.source);
-              const tgt = nodes.find(n => n.id === edge.target);
+            {/* ── Edges ── */}
+            {graphEdges.map((edge, idx) => {
+              const src = graphNodes.find(n => n.id === edge.source);
+              const tgt = graphNodes.find(n => n.id === edge.target);
               if (!src || !tgt) return null;
-              const srcVis = isNodeVisible(src);
-              const tgtVis = isNodeVisible(tgt);
-              if (!srcVis && !tgtVis) return null;
+              if (!isVisible(src) && !isVisible(tgt)) return null;
+              const opacity = (!isVisible(src) || !isVisible(tgt)) ? 0.15 : 1;
 
-              const isHighlighted = hoveredNode === edge.source || hoveredNode === edge.target;
-              const dimmed = hoveredNode && !isHighlighted;
               const midX = (src.x + tgt.x) / 2;
               const midY = (src.y + tgt.y) / 2;
 
-              let strokeColor = "hsl(var(--muted-foreground) / 0.25)";
+              let strokeColor = "#5F5E5A";
+              let strokeWidth = 1.2;
               let dash = "none";
-              if (edge.edgeType === "adversarial") { strokeColor = "#ef4444"; dash = "6 3"; }
-              else if (edge.edgeType === "probable") { strokeColor = "hsl(var(--muted-foreground) / 0.2)"; dash = "5 3"; }
-              if (isHighlighted) strokeColor = edge.edgeType === "adversarial" ? "#f87171" : "hsl(var(--foreground) / 0.5)";
+              let markerEnd = "url(#arr-conf)";
+
+              if (edge.edgeType === "probable") {
+                strokeColor = "#B4B2A9";
+                strokeWidth = 1;
+                dash = "5 3";
+                markerEnd = "url(#arr-prob)";
+              } else if (edge.edgeType === "adversarial") {
+                strokeColor = "#E24B4A";
+                strokeWidth = 1.2;
+                dash = "4 2";
+                markerEnd = "url(#arr-adv)";
+              }
+
+              // Use curved path for adversarial edges
+              if (edge.edgeType === "adversarial") {
+                const cx = midX + (tgt.y - src.y) * 0.3;
+                const cy = midY - (tgt.x - src.x) * 0.15;
+                return (
+                  <g key={`edge-${idx}`} style={{ opacity, transition: "opacity 0.2s" }}>
+                    <path d={`M${src.x} ${src.y} Q${cx} ${cy} ${tgt.x} ${tgt.y}`}
+                      stroke={strokeColor} strokeWidth={strokeWidth}
+                      strokeDasharray={dash} markerEnd={markerEnd} fill="none" />
+                    <text x={cx} y={cy - 6} fontSize={9} fill={strokeColor}
+                      textAnchor="middle" style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                      {edge.label}{edge.dateRange ? ` · ${edge.dateRange}` : ""}
+                    </text>
+                  </g>
+                );
+              }
 
               return (
-                <g key={`edge-${idx}`} opacity={dimmed ? 0.08 : 1} style={{ transition: "opacity 0.25s" }}>
+                <g key={`edge-${idx}`} style={{ opacity, transition: "opacity 0.2s" }}>
                   <line x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y}
-                    stroke={strokeColor} strokeWidth={edge.edgeType === "confirmed" ? 1.2 : 1}
-                    strokeDasharray={dash} />
-                  {/* Edge label */}
-                  <text x={midX} y={midY - 4} textAnchor="middle" fontSize={8.5}
-                    fill="hsl(var(--muted-foreground))" opacity={isHighlighted ? 0.7 : 0.35}
-                    fontWeight={200}>
+                    stroke={strokeColor} strokeWidth={strokeWidth}
+                    strokeDasharray={dash} markerEnd={markerEnd} />
+                  <text x={midX} y={midY - 6} fontSize={9}
+                    fill={edge.edgeType === "probable" ? "#B4B2A9" : "#888780"}
+                    textAnchor="middle" style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                     {edge.label}{edge.dateRange ? ` · ${edge.dateRange}` : ""}
                     {edge.edgeType === "probable" && edge.confidence ? ` · ${edge.confidence}%` : ""}
                   </text>
@@ -421,173 +471,245 @@ const NomadGraphAnalysis = ({ entities, crossRefMap, subjectName, onPivot }: Nom
               );
             })}
 
-            {/* Nodes */}
-            {nodes.map(node => {
+            {/* ── Nodes ── */}
+            {graphNodes.map((node, nodeIdx) => {
               const isSubject = node.type === "subject";
-              const color = getNodeColor(node.type, isSubject);
-              const isHovered = hoveredNode === node.id;
-              const visible = isNodeVisible(node);
-              const isConnected = hoveredNode
-                ? edges.some(e => (e.source === hoveredNode && e.target === node.id) || (e.target === hoveredNode && e.source === node.id))
-                : false;
-              const dimmed = (!visible || (hoveredNode && !isHovered && !isConnected));
-              const isPerson = node.type.includes("person") || isSubject;
-              const isOrg = node.type.includes("organization") || node.type.includes("institution") || node.type.includes("company") || node.type.includes("holding");
+              const colors = getNodeColorSet(node.type, node.cluster, nodeIdx);
+              const vis = isVisible(node);
+              const nodeOpacity = vis ? 1 : 0.15;
 
               return (
-                <g key={node.id}
-                  onMouseEnter={() => setHoveredNode(node.id)}
-                  onMouseLeave={() => setHoveredNode(null)}
-                  onClick={() => setSelectedNode(node)}
-                  style={{ cursor: "pointer", opacity: dimmed ? 0.12 : 1, transition: "opacity 0.25s" }}>
+                <g key={node.id} className="node-group"
+                  style={{ cursor: "pointer", opacity: nodeOpacity, transition: "opacity 0.2s" }}
+                  onClick={() => setSelectedNode(node)}>
 
-                  {renderNodeShape(node, isSubject, isHovered)}
-
-                  {/* Label inside rect nodes, below circle nodes */}
-                  {isPerson ? (
+                  {/* ── SUBJECT NODE (large circle, pulsing ring) ── */}
+                  {isSubject && (
                     <>
-                      <text x={node.x} y={node.y + (isSubject ? 26 : 22) + 14}
-                        textAnchor="middle" fontSize={isSubject ? 12 : 10.5}
-                        fill="hsl(var(--foreground))" fontWeight={isSubject ? 500 : 300}>
-                        {node.label}
-                      </text>
-                      {/* Subtitle */}
-                      {node.tags?.[0] && (
-                        <text x={node.x} y={node.y + (isSubject ? 26 : 22) + 26}
-                          textAnchor="middle" fontSize={8} fill={color} opacity={0.6} fontWeight={200}>
-                          {node.tags[0]}
+                      {/* Pulse ring */}
+                      <circle cx={node.x} cy={node.y} r={18} fill="none"
+                        stroke={colors.stroke} strokeWidth={0.5} opacity={0}>
+                        <animate attributeName="r" from="18" to="28" dur="1.8s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" from="0.5" to="0" dur="1.8s" repeatCount="indefinite" />
+                      </circle>
+                      {/* Main circle */}
+                      <circle cx={node.x} cy={node.y} r={26}
+                        fill={colors.fill} stroke={colors.stroke} strokeWidth={1.5}
+                        className="node-bg" />
+                      {/* Name (2 lines inside) */}
+                      {node.label.includes(" ") ? (
+                        <>
+                          <text x={node.x} y={node.y - 4} fontSize={11} fontWeight={500}
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                            {node.label.split(" ").slice(0, -1).join(" ")}
+                          </text>
+                          <text x={node.x} y={node.y + 10} fontSize={11} fontWeight={500}
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                            {node.label.split(" ").slice(-1)[0]}
+                          </text>
+                        </>
+                      ) : (
+                        <text x={node.x} y={node.y + 4} fontSize={11} fontWeight={500}
+                          textAnchor="middle" fill={colors.text}
+                          style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                          {node.label}
+                        </text>
+                      )}
+                      {/* BRIDGE badge below */}
+                      {node.bridge && (
+                        <>
+                          <rect x={node.x - 28} y={node.y + 30} width={56} height={13} rx={6}
+                            fill={colors.stroke} fillOpacity={0.15}
+                            stroke={colors.stroke} strokeWidth={0.5} />
+                          <text x={node.x} y={node.y + 40} fontSize={8} fontWeight={500}
+                            textAnchor="middle" fill={colors.textDark}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                            BRIDGE
+                          </text>
+                        </>
+                      )}
+                      {/* Confidence badge top-right */}
+                      <g transform={`translate(${node.x + 26}, ${node.y - 27})`}>
+                        <rect x={0} y={0} width={52} height={18} rx={9}
+                          fill={colors.stroke} fillOpacity={0.12}
+                          stroke={colors.stroke} strokeWidth={0.5} />
+                        <text x={26} y={13} fontSize={9} fontWeight={500}
+                          textAnchor="middle" fill={colors.textDark}
+                          style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                          conf {Math.round(node.confidence * 100)}%
+                        </text>
+                      </g>
+                    </>
+                  )}
+
+                  {/* ── PERSON NODE (circle, r=22) ── */}
+                  {isPerson(node.type) && !isSubject && (
+                    <>
+                      <circle cx={node.x} cy={node.y} r={22}
+                        fill={colors.fill} stroke={colors.stroke} strokeWidth={0.8}
+                        className="node-bg" />
+                      {node.label.includes(" ") ? (
+                        <>
+                          <text x={node.x} y={node.y - 3} fontSize={10} fontWeight={500}
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                            {node.label.split(" ")[0]}
+                          </text>
+                          <text x={node.x} y={node.y + 10} fontSize={10} fontWeight={500}
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                            {node.label.split(" ").slice(1).join(" ")}
+                          </text>
+                        </>
+                      ) : (
+                        <text x={node.x} y={node.y + 4} fontSize={10} fontWeight={500}
+                          textAnchor="middle" fill={colors.text}
+                          style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                          {node.label}
                         </text>
                       )}
                     </>
-                  ) : (
+                  )}
+
+                  {/* ── ORG NODE (rounded rect) ── */}
+                  {isOrg(node.type) && (
                     <>
-                      <text x={node.x} y={node.y - 2} textAnchor="middle" fontSize={10.5}
-                        fill="hsl(var(--foreground))" fontWeight={300}>
+                      <rect x={node.x - 54} y={node.y - 25} width={108} height={50} rx={6}
+                        fill={colors.fill} stroke={colors.stroke} strokeWidth={0.8}
+                        className="node-bg" />
+                      <text x={node.x} y={node.y - 4} fontSize={11} fontWeight={500}
+                        textAnchor="middle" fill={colors.text}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                         {node.label}
                       </text>
-                      {node.tags?.[0] && (
-                        <text x={node.x} y={node.y + 12} textAnchor="middle" fontSize={8}
-                          fill={color} opacity={0.6} fontWeight={200}>
-                          {node.tags[0]}
-                        </text>
+                      <text x={node.x} y={node.y + 11} fontSize={9}
+                        textAnchor="middle" fill={colors.textDark}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                        {node.tags?.[0] ? `${node.tags[0].slice(0, 20)} · T${node.tier}` : `T${node.tier}`}
+                      </text>
+                      {/* SINGLE SOURCE badge */}
+                      {node.singleSource && !node.bridge && (
+                        <>
+                          <rect x={node.x - 37} y={node.y + 22} width={74} height={11} rx={5}
+                            fill={colors.stroke} fillOpacity={0.15}
+                            stroke={colors.stroke} strokeWidth={0.4} />
+                          <text x={node.x} y={node.y + 30} fontSize={7.5}
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                            SINGLE SOURCE
+                          </text>
+                        </>
                       )}
                     </>
                   )}
 
-                  {/* Confidence badge */}
-                  {node.confidence > 0 && (
-                    <g>
-                      <rect x={node.x + (isPerson ? (isSubject ? 18 : 14) : 38)} y={node.y - (isPerson ? (isSubject ? 30 : 26) : 22)}
-                        width={30} height={14} rx={7} fill={color} fillOpacity={0.2} stroke={color} strokeWidth={0.5} />
-                      <text x={node.x + (isPerson ? (isSubject ? 33 : 29) : 53)} y={node.y - (isPerson ? (isSubject ? 20 : 16) : 12)}
-                        textAnchor="middle" fontSize={8} fill={color} fontWeight={400}>
-                        {Math.round(node.confidence * 100)}%
+                  {/* ── LEGAL / DOCUMENT NODE (sharp rect + diamond) ── */}
+                  {isLegal(node.type) && (
+                    <>
+                      <rect x={node.x - 52} y={node.y - 26} width={104} height={52} rx={4}
+                        fill={colors.fill} stroke={colors.stroke}
+                        strokeWidth={node.confidence > 0.8 ? 1 : 0.5}
+                        strokeDasharray={node.confidence < 0.7 ? "4 2" : "none"}
+                        className="node-bg" />
+                      {/* Diamond indicator */}
+                      <rect x={node.x - 47} y={node.y - 20} width={10} height={10} rx={1}
+                        transform={`rotate(45 ${node.x - 42} ${node.y - 15})`}
+                        fill={colors.stroke} fillOpacity={0.4} />
+                      <text x={node.x + 5} y={node.y - 4} fontSize={10} fontWeight={500}
+                        textAnchor="middle" fill={colors.text}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                        {node.label}
                       </text>
-                    </g>
+                      <text x={node.x + 5} y={node.y + 11} fontSize={9}
+                        textAnchor="middle" fill={colors.textDark}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                        {node.tags?.[0] || `T${node.tier}`}
+                      </text>
+                    </>
                   )}
 
-                  {/* BRIDGE badge */}
-                  {node.bridge && (
-                    <g>
-                      <rect x={node.x - 20} y={node.y + (isPerson ? (isSubject ? 28 : 24) + 24 : 22)}
-                        width={40} height={12} rx={6}
-                        fill="rgba(217,119,6,0.15)" stroke="rgba(217,119,6,0.3)" strokeWidth={0.5} />
-                      <text x={node.x} y={node.y + (isPerson ? (isSubject ? 28 : 24) + 33 : 31)}
-                        textAnchor="middle" fontSize={7} fill="#d97706" fontWeight={500} letterSpacing={0.8}>
-                        BRIDGE
-                      </text>
-                    </g>
-                  )}
-
-                  {/* SINGLE SOURCE badge */}
-                  {node.singleSource && !node.bridge && (
-                    <g>
-                      <rect x={node.x - 30} y={node.y + (isPerson ? (isSubject ? 28 : 24) + 24 : 22)}
-                        width={60} height={12} rx={6}
-                        fill="rgba(239,68,68,0.1)" stroke="rgba(239,68,68,0.2)" strokeWidth={0.5} />
-                      <text x={node.x} y={node.y + (isPerson ? (isSubject ? 28 : 24) + 33 : 31)}
-                        textAnchor="middle" fontSize={7} fill="#ef4444" fontWeight={400} opacity={0.7} letterSpacing={0.5}>
-                        SINGLE SOURCE
-                      </text>
-                    </g>
-                  )}
                 </g>
               );
             })}
-          </svg>
-        </div>
 
-        {/* ── Detail Panel (slides in from right) ── */}
-        <div className={`absolute top-3 right-3 z-30 w-[220px] rounded-xl border border-border/20 bg-card/80 backdrop-blur-xl transition-opacity duration-200 ${
+          </g>
+        </svg>
+
+        {/* ── Detail Panel ── */}
+        <div className={`absolute top-3 right-3 z-30 w-[220px] rounded-xl bg-background border border-border/30 transition-opacity duration-200 ${
           selectedNode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}>
+        }`} style={{ fontSize: "12px" }}>
           {selectedNode && (() => {
-            const isSubject = selectedNode.type === "subject";
-            const color = getNodeColor(selectedNode.type, isSubject);
+            const colors = getNodeColorSet(selectedNode.type, selectedNode.cluster);
+            const confPct = Math.round(selectedNode.confidence * 100);
             return (
-              <div className="p-3 space-y-3">
+              <div className="p-3.5 space-y-2.5 relative">
                 {/* Close */}
-                <button onClick={() => setSelectedNode(null)}
-                  className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground/30 hover:text-foreground transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); setSelectedNode(null); }}
+                  className="absolute top-2.5 right-2.5 w-5 h-5 flex items-center justify-center rounded text-muted-foreground/50 hover:bg-secondary transition-colors cursor-pointer">
                   <X className="h-3 w-3" />
                 </button>
 
-                {/* Type label */}
-                <span className="text-[8px] font-extralight tracking-[0.15em] text-muted-foreground/50 uppercase">
+                {/* Type */}
+                <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50">
                   {selectedNode.type.replace(/_/g, " ")}
-                </span>
+                </div>
 
                 {/* Name */}
-                <p className="text-[14px] font-medium text-foreground leading-tight pr-4">{selectedNode.label}</p>
+                <div className="text-[14px] font-medium text-foreground leading-tight pr-5">
+                  {selectedNode.label}
+                </div>
 
                 {/* Confidence bar */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[8px] font-extralight text-muted-foreground/50">
-                    <span>Confidence</span>
-                    <span style={{ color }}>{Math.round(selectedNode.confidence * 100)}%</span>
+                <div className="h-1 rounded-full bg-border/30 overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${confPct}%`, backgroundColor: colors.stroke }} />
+                </div>
+
+                {/* Stats rows */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground/60">Confidence</span>
+                    <span className="font-medium text-foreground">{confPct}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-foreground/5 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${selectedNode.confidence * 100}%`, backgroundColor: color }} />
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground/60">Tier</span>
+                    <span className="font-medium text-foreground">{selectedNode.tierLabel || `T${selectedNode.tier}`}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground/60">Sources</span>
+                    <span className="font-medium text-foreground">{selectedNode.sourceCount} source{(selectedNode.sourceCount || 0) !== 1 ? "s" : ""}</span>
                   </div>
                 </div>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-1">
-                  {selectedNode.tier && (
-                    <span className="text-[7px] font-extralight px-1.5 py-0.5 rounded-full bg-foreground/5 text-muted-foreground/60">
-                      Tier {selectedNode.tier}
-                    </span>
-                  )}
-                  {selectedNode.sourceCount !== undefined && (
-                    <span className="text-[7px] font-extralight px-1.5 py-0.5 rounded-full bg-foreground/5 text-muted-foreground/60">
-                      {selectedNode.sourceCount} sources
-                    </span>
-                  )}
-                  {selectedNode.bridge && (
-                    <span className="text-[7px] font-extralight px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      BRIDGE
-                    </span>
-                  )}
-                  {selectedNode.singleSource && (
-                    <span className="text-[7px] font-extralight px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-                      SINGLE SOURCE
-                    </span>
-                  )}
-                  {selectedNode.cluster && (
-                    <span className="text-[7px] font-extralight px-1.5 py-0.5 rounded-full bg-foreground/5 text-muted-foreground/60">
-                      {selectedNode.cluster}
-                    </span>
-                  )}
-                </div>
+                {selectedNode.tags && selectedNode.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedNode.tags.map((t, i) => (
+                      <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary border border-border/20 text-muted-foreground/70">
+                        {t}
+                      </span>
+                    ))}
+                    {selectedNode.bridge && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                        BRIDGE NODE
+                      </span>
+                    )}
+                    {selectedNode.singleSource && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                        SINGLE SOURCE
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Investigate button */}
                 {onPivot && (
-                  <button onClick={() => onPivot(`Investigate ${selectedNode.type.replace(/_/g, " ")}: ${selectedNode.label}`)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-accent/10 border border-accent/20 px-3 py-1.5 text-[9px] font-extralight text-accent hover:bg-accent/20 transition-colors">
-                    <Search className="h-3 w-3" />
-                    Investigate
-                    <ArrowRight className="h-2.5 w-2.5" />
+                  <button onClick={() => onPivot(selectedNode.pivotQuery || `Investigate ${selectedNode.label}`)}
+                    className="w-full flex items-center gap-1.5 rounded-md border border-border/30 px-2.5 py-1.5 text-[12px] text-foreground hover:bg-secondary transition-all cursor-pointer text-left">
+                    Investigate → <span className="font-medium">{selectedNode.label}</span>
                   </button>
                 )}
               </div>
@@ -597,39 +719,40 @@ const NomadGraphAnalysis = ({ entities, crossRefMap, subjectName, onPivot }: Nom
       </div>
 
       {/* ── Legend ── */}
-      <div className="flex items-center justify-center gap-5 px-4 py-2 border-t border-border/10 bg-card/5">
+      <div className="flex items-center flex-wrap gap-4 px-4 py-2.5 border-t border-border/20 bg-secondary/30">
         {/* Node types */}
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-amber-500/40 border border-amber-500/60" />
-          <span className="text-[9px] font-extralight text-muted-foreground/50">Subject</span>
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#FAEEDA", border: "1.5px solid #BA7517" }} />
+          <span className="text-[11px] text-muted-foreground/70">Subject</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-purple-500/30 border border-purple-500/50" />
-          <span className="text-[9px] font-extralight text-muted-foreground/50">Person</span>
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#EEEDFE", border: "1px solid #7F77DD" }} />
+          <span className="text-[11px] text-muted-foreground/70">Person</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-3 rounded-md bg-blue-500/20 border border-blue-500/40" />
-          <span className="text-[9px] font-extralight text-muted-foreground/50">Organization</span>
+          <div className="w-3 h-2" style={{ background: "#E6F1FB", border: "1px solid #378ADD", borderRadius: "2px" }} />
+          <span className="text-[11px] text-muted-foreground/70">Organization</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-3 rounded-sm bg-red-500/20 border border-red-500/40" />
-          <span className="text-[9px] font-extralight text-muted-foreground/50">Legal event</span>
+          <div className="w-3 h-2" style={{ background: "#FCEBEB", border: "1px solid #E24B4A", borderRadius: "2px" }} />
+          <span className="text-[11px] text-muted-foreground/70">Legal event</span>
         </div>
 
-        <div className="w-px h-3 bg-border/15" />
+        {/* Separator */}
+        <div className="w-px h-3 bg-border/20" />
 
         {/* Edge types */}
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0 border-t border-foreground/30" />
-          <span className="text-[9px] font-extralight text-muted-foreground/50">Confirmed</span>
+          <div className="w-4 h-0" style={{ borderTop: "1.5px solid #5F5E5A" }} />
+          <span className="text-[11px] text-muted-foreground/70">Confirmed</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0 border-t border-dashed border-foreground/20" />
-          <span className="text-[9px] font-extralight text-muted-foreground/50">Probable</span>
+          <div className="w-4 h-0" style={{ borderTop: "2px dashed #B4B2A9", opacity: 0.7 }} />
+          <span className="text-[11px] text-muted-foreground/70">Probable</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-5 h-0 border-t border-dashed border-red-400/60" />
-          <span className="text-[9px] font-extralight text-muted-foreground/50">Adversarial</span>
+          <div className="w-4 h-0" style={{ borderTop: "1.5px solid #E24B4A" }} />
+          <span className="text-[11px] text-muted-foreground/70">Adversarial</span>
         </div>
       </div>
     </div>
