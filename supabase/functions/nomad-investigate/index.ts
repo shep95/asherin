@@ -2873,13 +2873,18 @@ STAGE 4 — CALIBRATE: BT=${esrcCalibration.bradleyTerryRating} | Precision=${es
 Processing: ${Date.now() - startTime}ms | Sources: ${activeNodes.length}/${nodes.length} | Candidates: ${esrcCandidates.length}`;
 
     // ══════════════════════════════════════════════════════════════════════════
-    // GAP 1: MULTI-STAGE AI SYNTHESIS PIPELINE
-    // Pass 1 (Flash): Raw data → Entity cluster summaries per source group
-    // Pass 2 (Pro): Final BLUF synthesis + behavioral profile + structured dossier
+    // NOMAD v7.0: 7-PASS AI SYNTHESIS PIPELINE
+    // Pass 1: Cluster summaries (Flash)
+    // Pass 2-6: Deep analysis passes (parallel) — Linguistic, Social, Relationship, Narrative, Identity
+    // Pass 7: Final synthesis (Flash — high quality)
     // ══════════════════════════════════════════════════════════════════════════
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
+
+    // Detect if this is a person investigation for deep analysis passes
+    const qLower = lastUserMessage.toLowerCase();
+    const isPersonInvestigation = /person|individual|who is|about|officer|director|ceo|cto|founder|profile|investigate/i.test(qLower);
 
     // PASS 1: Cluster summaries (Flash — fast, cheap)
     const pass1Prompt = `Analyze this raw intelligence data and produce CONCISE cluster summaries. Group findings by: CORPORATE, LEGAL, FINANCIAL, DIGITAL FOOTPRINT, SOCIAL, THREAT/SECURITY. For each cluster, list the 3 most important facts with source attribution. Flag any contradictions between sources. Output as structured text, max 2000 words.
@@ -2888,12 +2893,155 @@ USER QUERY: "${lastUserMessage}"
 
 ${intelSections || 'No intelligence data.'}`;
 
-    console.log('NOMAD v6.0: Starting Pass 1 (Flash cluster summaries)...');
+    console.log('NOMAD v7.0: Starting Pass 1 (Flash cluster summaries)...');
     const pass1Result = await aiPass(GEMINI_API_KEY, 
       'You are an intelligence analyst. Summarize raw OSINT data into structured cluster summaries. Be precise. No filler.',
       pass1Prompt, 'gemini-2.5-flash', 4000, 0.15);
 
-    // PASS 2: Final synthesis (Pro — high quality)
+    // ══════════════════════════════════════════════════════════════════════════
+    // PASSES 2-6: DEEP ANALYSIS (run in parallel for person investigations)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    let linguisticAnalysis = '';
+    let socialAvatarAnalysis = '';
+    let relationshipVelocityAnalysis = '';
+    let narrativeConsistencyAnalysis = '';
+    let crossPlatformIdentityAnalysis = '';
+
+    if (isPersonInvestigation && allText.length > 500) {
+      console.log('NOMAD v7.0: Starting Passes 2-6 (Deep Person Intelligence) in parallel...');
+      
+      const truncatedText = allText.slice(0, 12000); // Keep within context limits
+      
+      const [p2, p3, p4, p5, p6] = await Promise.allSettled([
+        // PASS 2: LINGUISTIC FINGERPRINT ENGINE
+        aiPass(GEMINI_API_KEY, 'You are a forensic psycholinguist. Analyze text samples with scientific precision. Output structured metrics only.', `You are a forensic psycholinguist. Analyze ALL text samples collected from this target across sources.
+
+LINGUISTIC FINGERPRINT ANALYSIS:
+
+1. FUNCTION WORD RATIO — Count the 20 most common function words (the, of, and, to, a, in, that, is, it, for, on, with, as, at, this, by, from, or, an, but). Normal English: 'the' ~7%, 'of' ~3.5%. Flag >2x or <0.5x expected. 'I' underuse = deception/distancing. 'We' overuse = authority-claiming.
+
+2. TYPE-TOKEN RATIO — Count unique words vs total words. TTR > 0.72 = high intelligence. TTR < 0.45 = stress/deception. Does TTR drop >30% between professional and personal writing? = ghostwritten persona.
+
+3. SENTENCE LENGTH VARIANCE — Mean and SD of sentence lengths. High SD (>15) = natural. Low SD (<5) = templated/PR. Short→long clusters = emotional arousal.
+
+4. HAPAX LEGOMENA — Words appearing only once. These are linguistic fingerprints. Note neologisms, recurring metaphors.
+
+5. TENSE FORENSICS — Past tense for history = truth retrieval. Present tense for biography = construction/fabrication. Flag biographical claims in present tense.
+
+6. PRONOUN DROP DETECTION — FBI SCAN protocol: sentences where 'I' is dropped. Rate >15% = distancing from events. Map WHICH events.
+
+7. BRIDGE PHRASE DETECTION — Flag: 'after that', 'later on', 'the next thing', 'moving on', 'eventually'. Map where skips occur — that's where real events are.
+
+Output: LINGUISTIC FINGERPRINT CARD with all 7 metrics, anomalies, and DECEPTION RISK MAP.
+
+TEXT SAMPLES:
+${truncatedText}`, 'gemini-2.5-flash', 3000, 0.1),
+
+        // PASS 3: SOCIAL AVATAR ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a behavioral psychologist specializing in digital identity analysis. Output structured assessments only.', `Analyze the social media presence and public persona collected for this target.
+
+AVATAR PSYCHOLOGY ANALYSIS:
+
+1. POSTING FREQUENCY PATTERN — >5 posts/day = validation-seeking. 1-2/week = controlled. Gaps >30 days = life event. Surges after silence = comeback narrative.
+
+2. CONTENT THEME ANALYSIS — What % is: professional achievement / personal / political / humor / complaints / inspirational? Heavy achievement (>60%) = status insecurity. Zero personal = compartmentalization. Complaint-heavy = external locus of control.
+
+3. ENGAGEMENT PATTERN — Do they respond to criticism? Ignoring ALL = narcissism/PR. Aggressive response = fragile ego. Selective praise-only = validation loop.
+
+4. NETWORK COMPOSITION — Broadcast ratio (followers:following). >100:1 = status-focused. Who are the 5 most-engaged accounts? = real social circle.
+
+5. DARK TRIAD SIGNAL SCAN — Love-bombing → silence/conflict. Triangulation ('Unlike X, I...'). Word salad under pressure. Breadcrumbing dormant connections.
+
+Output: Dark Triad Risk Score (0-10), Attachment Style, Validation Dependency Score, top 3 behavioral predictions.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+
+        // PASS 4: RELATIONSHIP VELOCITY ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a forensic network analyst specializing in relationship dynamics and temporal intelligence. Output structured analysis only.', `Using ALL temporal data points (dated posts, filings, mentions, co-appearances), analyze VELOCITY of this target's key relationships.
+
+RELATIONSHIP VELOCITY PROTOCOL:
+
+1. FORMATION SPEED — First mention → formal arrangement <90 days = opportunistic/preexisting covert. >2 years = genuine trust-building.
+
+2. TERMINATION PATTERNS — Mutual announcements = amicable. Sudden disappearance = conflict/NDA. One-sided silence = severed. Repeating pattern = behavioral signature.
+
+3. REPLACEMENT CYCLES — After key relationship ends, how quickly does replacement appear? <30 days = premeditated exit. >1 year = genuinely important. Exact role replacement = transactional.
+
+4. CLUSTER MIGRATION — Has network shifted (tech→finance, etc.)? Cross-reference: legal events before migration?
+
+5. DORMANT REACTIVATION — Connections silent >1 year then reactivated. Timing relative to: funding, legal, announcements. Almost always indicates specific operational need.
+
+Output: RELATIONSHIP VELOCITY MAP with formation speeds, termination patterns, cluster migration, BEHAVIORAL SIGNATURE.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+
+        // PASS 5: SELF-NARRATIVE CONSISTENCY AUDIT
+        aiPass(GEMINI_API_KEY, 'You are a statement analysis expert trained in FBI SCAN (Scientific Content Analysis) protocol. Output structured forensic analysis only.', `Collect ALL self-authored biographical statements about this target from the intelligence corpus.
+
+NARRATIVE CONSISTENCY AUDIT:
+
+1. TIMELINE TRIANGULATION — Build self-stated timeline from all sources. Where do timelines CONTRADICT? Where are GAPS never addressed? Where does narrative OVER-EXPLAIN? (Defensive elaboration = hiding something)
+
+2. CREDENTIAL VERIFICATION FLAGS — List every credential claimed. Flag: appears in only one source / changed description / cannot cross-reference.
+
+3. ACHIEVEMENT CLAIM ANALYSIS — List achievements. Do OTHER people corroborate? Solo-claimed with no corroboration = inflated.
+
+4. VICTIMHOOD NARRATIVE DETECTION — Recurring themes of being wronged? One instance = possibly true. Pattern = they are the constant variable.
+
+5. PRONOUN OWNERSHIP MAPPING — 'I' for successes + 'they/we/market' for failures = deceptive self-presentation.
+
+Output: NARRATIVE INTEGRITY SCORE (0-100), contradictions with sources, unverifiable claims, SELF-PRESENTATION ARCHETYPE (Genuine Builder / Status Inflator / Victim Narcissist / Deliberate Obscurantist).
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+
+        // PASS 6: CROSS-PLATFORM IDENTITY CONTINUITY
+        aiPass(GEMINI_API_KEY, 'You are a digital forensics expert specializing in cross-platform identity resolution and stylometric analysis. Output structured findings only.', `Given all text samples from different platform accounts attributed to or potentially linked to this target:
+
+IDENTITY CONTINUITY ANALYSIS:
+
+1. STYLOMETRIC CONSISTENCY — Compare function word ratios, sentence length, punctuation habits (Oxford comma? Em-dash? Ellipsis?), capitalization style across platforms. Same writer? Confidence %?
+
+2. VOCABULARY OVERLAP — Extract 50 most distinctive words from each platform. Overlap >40% = same author. <15% = different author OR sophisticated OPSEC.
+
+3. TOPIC CONSISTENCY — Recurring subjects across ALL platforms = genuine obsessions. LinkedIn persona vs Reddit reality = the costume vs the person.
+
+4. SOCK PUPPET DETECTION — Multiple accounts with: zero history / created same window / only interact with target's content / unusually formal? = astroturf.
+
+5. TEMPORAL POSTING OVERLAP — Identical time-of-day posting patterns across accounts = same operator.
+
+Output: IDENTITY CONTINUITY SCORE (0-100), confirmed links, suspected sock puppets, REAL PERSONALITY vs CURATED PERSONA.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+      ]);
+
+      linguisticAnalysis = p2.status === 'fulfilled' ? p2.value : '';
+      socialAvatarAnalysis = p3.status === 'fulfilled' ? p3.value : '';
+      relationshipVelocityAnalysis = p4.status === 'fulfilled' ? p4.value : '';
+      narrativeConsistencyAnalysis = p5.status === 'fulfilled' ? p5.value : '';
+      crossPlatformIdentityAnalysis = p6.status === 'fulfilled' ? p6.value : '';
+      
+      console.log(`NOMAD v7.0: Deep analysis complete — L:${linguisticAnalysis.length} S:${socialAvatarAnalysis.length} R:${relationshipVelocityAnalysis.length} N:${narrativeConsistencyAnalysis.length} I:${crossPlatformIdentityAnalysis.length} chars`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PASS 7: FINAL SYNTHESIS — All intelligence + deep analysis passes
+    // ══════════════════════════════════════════════════════════════════════════
+
+    const deepAnalysisSection = isPersonInvestigation ? `
+═══ DEEP PERSON INTELLIGENCE ANALYSIS (AI Passes 2-6) ═══
+
+${linguisticAnalysis ? `--- LINGUISTIC FINGERPRINT ENGINE (Pass 2) ---\n${linguisticAnalysis}\n` : ''}
+${socialAvatarAnalysis ? `--- SOCIAL AVATAR ANALYSIS (Pass 3) ---\n${socialAvatarAnalysis}\n` : ''}
+${relationshipVelocityAnalysis ? `--- RELATIONSHIP VELOCITY MAP (Pass 4) ---\n${relationshipVelocityAnalysis}\n` : ''}
+${narrativeConsistencyAnalysis ? `--- NARRATIVE CONSISTENCY AUDIT (Pass 5) ---\n${narrativeConsistencyAnalysis}\n` : ''}
+${crossPlatformIdentityAnalysis ? `--- CROSS-PLATFORM IDENTITY CONTINUITY (Pass 6) ---\n${crossPlatformIdentityAnalysis}\n` : ''}
+` : '';
+
     const pass2Prompt = `
 USER QUERY: "${lastUserMessage}"
 
@@ -2909,23 +3057,29 @@ ${esrcReport}
 
 CLUSTERED INTELLIGENCE SUMMARIES (from Pass 1 analysis):
 ${pass1Result || 'Pass 1 analysis unavailable — use raw data below.'}
+${deepAnalysisSection}
 
 RAW INTELLIGENCE DATA:
 ${intelSections || 'No intelligence gathered.'}
 ${publicRecordLinks}
 
 INSTRUCTIONS:
-Produce a NOMAD v6.0 response following the mandatory output format. Include:
-1. Temporal mermaid digraph with hot/cold/anomaly edges
+Produce a NOMAD v7.0 response following the mandatory output format. Include:
+1. Temporal mermaid digraph with PROPER topology (not star graph — use clusters, bridges, isolated nodes)
 2. Tiered intelligence (Confirmed → Probable → Unverified)
 3. OCEAN behavioral profile with deception indicators and predicted actions
-4. Dead Ends & Intelligence Gaps section (what's MISSING is critical intelligence)
-5. Cross-Investigation Links if entity overlaps were found
-6. Benford analysis results if financial data was flagged
-7. Single-source warnings inline with ⚠️ markers
+4. Linguistic Fingerprint section (if analysis provided) — TTR, pronoun drops, tense forensics, deception map
+5. Social Avatar Profile (if analysis provided) — Dark Triad score, attachment style, predictions
+6. Relationship Velocity Map (if analysis provided) — formation speeds, termination patterns, cluster migration
+7. Narrative Integrity Audit (if analysis provided) — Stated Self vs Evidenced Self DELTA
+8. Identity Continuity (if analysis provided) — cross-platform links, sock puppets, real vs curated persona
+9. Dead Ends & Intelligence Gaps (what's MISSING is critical intelligence)
+10. Cross-Investigation Links if entity overlaps were found
+11. Benford analysis results if financial data was flagged
+12. Single-source warnings inline with ⚠️ markers
 Be direct, intelligence-grade. Include BT confidence inline.`;
 
-    console.log('NOMAD v6.0: Starting Pass 2 (Pro synthesis)...');
+    console.log('NOMAD v7.0: Starting Final Synthesis Pass...');
     
     // Build conversation history for memory continuity
     const conversationHistory: { role: string; parts: { text: string }[] }[] = [
