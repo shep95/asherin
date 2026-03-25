@@ -2975,9 +2975,15 @@ ${intelSections || 'No intelligence data.'}`;
     let relationshipVelocityAnalysis = '';
     let narrativeConsistencyAnalysis = '';
     let crossPlatformIdentityAnalysis = '';
+    let geospatialAnalysis = '';
+    let survivorshipBiasAnalysis = '';
+    let sentimentVelocityAnalysis = '';
+    let networkCentralityAnalysis = '';
+    let bayesianConfidenceAnalysis = '';
+    let redTeamAnalysis = '';
 
     if (isPersonInvestigation && allText.length > 500) {
-      console.log('NOMAD v7.0: Starting Passes 2-6 (Deep Person Intelligence) in parallel...');
+      console.log('NOMAD v8.0: Starting Passes 2-6 (Deep Person Intelligence) in parallel...');
       
       const truncatedText = allText.slice(0, 12000); // Keep within context limits
       
