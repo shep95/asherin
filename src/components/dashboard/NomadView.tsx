@@ -707,6 +707,9 @@ const NomadView = () => {
             {activeTab === "diff" && (
               <NomadNetworkDiff entities={allEntities} investigations={sessionInvestigations} />
             )}
+            {activeTab === "predictive" && <NomadPredictiveIntel />}
+            {activeTab === "imagine" && <NomadImagineIntel />}
+            {activeTab === "video-intel" && <NomadVideoIntel />}
           </Suspense>
         )}
       </div>
