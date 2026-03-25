@@ -1588,6 +1588,196 @@ async function ingestMappingTools(query: string): Promise<IntelNode> {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// MONAD-GRADE SECTOR DORK QUERIES (Agency-Level Investigation Vectors)
+// Based on: MONAD OSINT Framework — Zophiel Engine Sectors
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function ingestSectorDork(sectorName: string, dorkQuery: string, tier: 1 | 2 | 3 | 4): Promise<IntelNode> {
+  try {
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(dorkQuery)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+    });
+    if (!resp.ok) return emptyNode(`Sector: ${sectorName}`, tier);
+    const html = await resp.text();
+    const results: string[] = [];
+    const blocks = html.split(/class="result\s/);
+    for (let i = 1; i < blocks.length && results.length < 6; i++) {
+      const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const urlMatch = blocks[i].match(/class="result__url"[^>]*>([\s\S]*?)<\/a>/);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const url = urlMatch ? urlMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      if (title) results.push(`- ${title} [${url}]: ${snippet}`);
+    }
+    if (!results.length) return emptyNode(`Sector: ${sectorName}`, tier);
+    const data = `${sectorName} Intelligence:\n${results.join('\n')}`;
+    return {
+      source: `MONAD Sector: ${sectorName}`,
+      tier,
+      data,
+      provenanceHash: await computeProvenanceHash(`sector-${sectorName}`, data),
+      timestamp: new Date().toISOString(),
+      confidence: tier === 1 ? 0.85 : tier === 2 ? 0.75 : 0.6,
+      entities: extractEntitiesFromText(data, sectorName),
+    };
+  } catch { return emptyNode(`Sector: ${sectorName}`, tier); }
+}
+
+function generateSectorDorks(targetName: string, location?: string): { sector: string; query: string; tier: 1 | 2 | 3 | 4 }[] {
+  const q = `"${targetName}"`;
+  const loc = location ? `"${location}"` : '';
+  
+  return [
+    // File Hunter (Echelon Level)
+    { sector: 'File Hunter', query: `${q} filetype:pdf OR ${q} filetype:docx OR ${q} filetype:xlsx OR ${q} filetype:pptx`, tier: 2 },
+    // Legal & Court Archives
+    { sector: 'Legal Archives', query: `${q} site:courtlistener.com OR ${q} site:justia.com OR ${q} site:trellis.law OR ${q} plaintiff OR ${q} defendant OR ${q} docket`, tier: 1 },
+    // Property & Asset Tracing
+    { sector: 'Asset Tracing', query: `${q} "property tax" OR ${q} "deed" OR ${q} "assessment" OR ${q} "parcel id"`, tier: 1 },
+    // Corporate & LLC Hunting
+    { sector: 'Corporate Registry', query: `${q} LLC OR ${q} Ltd OR ${q} Inc OR ${q} Director OR ${q} Shareholder OR ${q} "registered agent"`, tier: 1 },
+    // Background & Origins
+    { sector: 'Background Origins', query: `${q} biography OR ${q} "born in" OR ${q} "early life" OR ${q} "family background"`, tier: 3 },
+    // Employment & Professional
+    { sector: 'Employment', query: `${q} ${loc} job title employer resume OR ${q} "business owner" OR ${q} founder`, tier: 3 },
+    // Criminal & Legal Records
+    { sector: 'Criminal Records', query: `${q} arrest mugshot "court record" ${loc} OR ${q} lawsuit OR ${q} "criminal record"`, tier: 1 },
+    // Financial Records
+    { sector: 'Financial Intelligence', query: `${q} ${loc} bankrupt judgment lien tax OR ${q} "net worth"`, tier: 2 },
+    // Data Brokers
+    { sector: 'Data Brokers', query: `${q} ${loc} site:fastpeoplesearch.com OR site:truepeoplesearch.com OR site:familytreenow.com OR site:cyberbackgroundchecks.com`, tier: 3 },
+    // Community & Reputation
+    { sector: 'Reputation', query: `${q} ${loc} volunteer church club member OR ${q} controversy OR ${q} scandal`, tier: 4 },
+    // Educational Background
+    { sector: 'Education', query: `${q} ${loc} school student graduate alumni university`, tier: 3 },
+    // Residential History
+    { sector: 'Residential', query: `${q} ${loc} address resident OR ${q} "property records" OR ${q} "current address"`, tier: 2 },
+    // Leak & Breach Lookup
+    { sector: 'Leak Intelligence', query: `${q} site:pastebin.com OR ${q} site:ghostbin.com OR ${q} "password" filetype:txt`, tier: 4 },
+    // Image Context
+    { sector: 'Image Context', query: `${q} ${loc} photo OR ${q} mugshot OR ${q} headshot OR ${q} portrait`, tier: 4 },
+  ];
+}
+
+// ── Recursive PII Spider (MONAD: When phones/emails found, chase them) ──────
+
+async function recursivePIISpider(entities: ExtractedEntity[]): Promise<IntelNode[]> {
+  const phones = entities.filter(e => e.type === 'phone').slice(0, 2);
+  const emails = entities.filter(e => e.type === 'email').slice(0, 2);
+  const targets = [...phones.map(e => e.value), ...emails.map(e => e.value)];
+  
+  if (targets.length === 0) return [];
+  
+  const tasks: Promise<IntelNode>[] = targets.map(async (target) => {
+    try {
+      const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${target}"`)}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+      });
+      if (!resp.ok) return emptyNode('Recursive PII Spider', 2);
+      const html = await resp.text();
+      const results: string[] = [];
+      const blocks = html.split(/class="result\s/);
+      for (let i = 1; i < blocks.length && results.length < 3; i++) {
+        const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+        const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+        const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+        if (title) results.push(`- ${title}: ${snippet}`);
+      }
+      if (!results.length) return emptyNode('Recursive PII Spider', 2);
+      const data = `PII Spider Trace [${target}]:\n${results.join('\n')}`;
+      return {
+        source: `Recursive PII Spider (${target})`,
+        tier: 2 as const,
+        data,
+        provenanceHash: await computeProvenanceHash('pii-spider', data),
+        timestamp: new Date().toISOString(),
+        confidence: 0.88,
+        entities: extractEntitiesFromText(data, 'PII Spider'),
+      };
+    } catch { return emptyNode('Recursive PII Spider', 2); }
+  });
+  
+  const results = await Promise.allSettled(tasks);
+  return results
+    .filter((r): r is PromiseFulfilledResult<IntelNode> => r.status === 'fulfilled')
+    .map(r => r.value)
+    .filter(n => n.data);
+}
+
+// ── Behavioral Profiling Engine (MONAD: keyword-based trait detection) ───────
+
+function extractBehavioralProfile(text: string): string[] {
+  const traits: string[] = [];
+  const t = text.toLowerCase();
+  
+  if (/passionate|dedicated|advocate|volunteer|nonprofit|charity|donate/i.test(t)) traits.push('Community Oriented');
+  if (/entrepreneur|founder|ceo|owner|startup|investor|venture/i.test(t)) traits.push('Business/Leadership');
+  if (/arrest|charged|court|lawsuit|defendant|plaintiff|indicted|convicted/i.test(t)) traits.push('Legal History');
+  if (/academic|university|research|published|professor|phd|doctoral/i.test(t)) traits.push('Academic/Intellectual');
+  if (/military|veteran|served|deployment|armed forces|navy|army|air force/i.test(t)) traits.push('Military/Government');
+  if (/patent|inventor|innovation|technology|engineering/i.test(t)) traits.push('Technical/Innovation');
+  if (/real estate|property|landlord|developer|construction|broker/i.test(t)) traits.push('Real Estate/Property');
+  if (/offshore|cayman|swiss|panama|shell company|nominee|trust/i.test(t)) traits.push('⚠️ Offshore/Opacity Signals');
+  if (/fraud|scam|ponzi|embezzle|launder|rico|conspiracy/i.test(t)) traits.push('🔴 Fraud/Criminal Indicators');
+  if (/political|campaign|lobby|pac|donor|committee|governor|senator/i.test(t)) traits.push('Political Activity');
+  if (/athlete|sports|team|championship|draft|contract/i.test(t)) traits.push('Sports/Athletics');
+  if (/doctor|medical|hospital|clinic|patient|surgery|health/i.test(t)) traits.push('Medical/Healthcare');
+  
+  return [...new Set(traits)];
+}
+
+// ── Public Record Link Generator (MONAD: passive OSINT reference URLs) ──────
+
+function generatePublicRecordLinks(name: string, location?: string): string {
+  const encoded = name.replace(/\s+/g, '+');
+  const parts = name.split(/\s+/);
+  const first = parts[0] || '';
+  const last = parts[parts.length - 1] || '';
+  
+  const links: string[] = [
+    `— CORPORATE: OpenCorporates: https://opencorporates.com/companies?q=${encoded}`,
+    `— CORPORATE: CorporationWiki: https://www.corporationwiki.com/search/results?term=${encoded}`,
+    `— CORPORATE: Bizapedia: https://www.bizapedia.com/search.aspx?q=${encoded}`,
+    `— LEGAL: CourtListener: https://www.courtlistener.com/?q=${encoded}`,
+    `— LEGAL: Justia: https://www.justia.com/search?q=${encoded}`,
+    `— GENEALOGY: FamilySearch: https://www.familysearch.org/search/record/results?q.givenName=${first}&q.surname=${last}`,
+    `— PEOPLE: Spokeo: https://www.spokeo.com/${name.replace(/\s+/g, '-')}`,
+    `— PEOPLE: BeenVerified: https://www.beenverified.com/people/${name.replace(/\s+/g, '-')}`,
+    `— PEOPLE: Whitepages: https://www.whitepages.com/name/${name.replace(/\s+/g, '-')}`,
+    `— PROFESSIONAL: ZoomInfo: https://www.zoominfo.com/people/${name.replace(/\s+/g, '-')}`,
+    `— PROFESSIONAL: Crunchbase: https://www.crunchbase.com/textsearch?q=${encoded}`,
+    `— ACADEMIC: Google Scholar: https://scholar.google.com/scholar?q=${encoded}`,
+    `— ACADEMIC: ORCID: https://orcid.org/orcid-search/search?searchQuery=${encoded}`,
+    `— LEAKS: DeHashed: https://dehashed.com/search?query=${encoded}`,
+    `— LEAKS: Intelligence X: https://intelx.io/?s=${encoded}`,
+    `— IMAGES: Yandex Images: https://yandex.com/images/search?text=${encoded}`,
+    `— ARCHIVE: Wayback Machine: https://web.archive.org/web/*/${encoded}`,
+    `— PROPERTY: PropertyShark: https://www.propertyshark.com/mason/search?q=${encoded}`,
+  ];
+  
+  if (location) {
+    const loc = location.toLowerCase();
+    if (loc.includes('florida') || loc.includes('fl')) {
+      links.push(`— STATE: Florida Sunbiz (Corp Registry): https://search.sunbiz.org/Inquiry/CorporationSearch/ByName`);
+      links.push(`— STATE: Florida DBPR (Licenses): https://www.myfloridalicense.com/`);
+    }
+    if (loc.includes('california') || loc.includes('ca')) {
+      links.push(`— STATE: CA Secretary of State: https://bizfileonline.sos.ca.gov/search/business`);
+    }
+    if (loc.includes('new york') || loc.includes('ny')) {
+      links.push(`— STATE: NY DOS Corp Search: https://apps.dos.ny.gov/publicInquiry/`);
+    }
+    if (loc.includes('texas') || loc.includes('tx')) {
+      links.push(`— STATE: TX SOS: https://www.sos.state.tx.us/corp/sosda/index.shtml`);
+    }
+  }
+  
+  return `\n\nPASSIVE OSINT REFERENCE LINKS (${links.length} sources):\n${links.join('\n')}`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ESRC STAGE 3: REASON — Entity Resolution + Two-Stage Selection & Verification
 // "Select from shortlist, then verify with advanced reasoning"
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1933,6 +2123,18 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestYandex(query));
     tasks.push(ingestOpenCorporates(query));
     tasks.push(ingestMappingTools(query));
+    
+    // ── MONAD: Sector-Based Dork Queries (Agency-Level Deep Dive) ──
+    const cleaned = query.replace(/investigate|person|research|find|who is|look up|about|company|search/gi, '').trim();
+    const locationMatch = query.match(/(?:in|from|at|near)\s+([A-Z][A-Za-z\s,]+)/);
+    const detectedLocation = locationMatch ? locationMatch[1].trim() : undefined;
+    const sectors = generateSectorDorks(cleaned, detectedLocation);
+    // Run top 8 most critical sectors in parallel (legal, corporate, financial, asset)
+    const prioritySectors = sectors.filter(s => s.tier <= 2).slice(0, 6);
+    const secondarySectors = sectors.filter(s => s.tier > 2).slice(0, 4);
+    for (const sector of [...prioritySectors, ...secondarySectors]) {
+      tasks.push(ingestSectorDork(sector.sector, sector.query, sector.tier));
+    }
   }
 
   // Company/corporate
@@ -2028,9 +2230,22 @@ async function ingestIntelligence(query: string): Promise<{
   const attestation = attestProvenance(nodes);
   const { resolved, crossRefMap } = resolveEntities(nodes);
 
+  // ── MONAD: Recursive PII Spider — chase found phones/emails back through search ──
+  const piiSpiderResults = await recursivePIISpider(resolved);
+  if (piiSpiderResults.length > 0) {
+    nodes.push(...piiSpiderResults);
+    // Re-resolve with new data
+    const { resolved: reResolved, crossRefMap: reCrossRefMap } = resolveEntities(nodes);
+    Object.assign(crossRefMap, reCrossRefMap);
+    resolved.push(...reResolved.filter(e => !resolved.some(r => r.type === e.type && r.value === e.value)));
+  }
+
   // ── ESRC STAGE 1: EXTRACT ──
   const allText = nodes.filter(n => n.data).map(n => n.data).join('\n\n');
   const esrcProfile = extractMicrodataProfile(query + '\n' + allText, resolved);
+
+  // ── MONAD: Behavioral Profiling ──
+  const behavioralTraits = extractBehavioralProfile(allText);
 
   // ── ESRC STAGE 2+3: SEARCH + REASON (Candidate scoring) ──
   const esrcCandidates = nodes
@@ -2038,21 +2253,36 @@ async function ingestIntelligence(query: string): Promise<{
     .map(n => scoreCandidate(esrcProfile, n, resolved))
     .filter(c => c.matchEvidence.length > 0)
     .sort((a, b) => b.similarityScore - a.similarityScore)
-    .slice(0, 15); // Top-15 candidates (from paper: "top-100 candidates" scaled to our source count)
+    .slice(0, 15);
 
   // ── ESRC STAGE 4: CALIBRATE ──
   const esrcCalibration = calibrateConfidence(esrcCandidates, nodes.filter(n => n.data).length);
 
-  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration };
+  // ── MONAD: Public Record Links ──
+  const cleanedTarget = query.replace(/investigate|person|research|find|who is|look up|about|company|search/gi, '').trim();
+  const locMatch = query.match(/(?:in|from|at|near)\s+([A-Z][A-Za-z\s,]+)/);
+  const publicRecordLinks = generatePublicRecordLinks(cleanedTarget, locMatch?.[1]?.trim());
+
+  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// NOMAD v3.0 SYSTEM PROMPT — ESRC DEANONYMIZATION FRAMEWORK
+// NOMAD v5.0 SYSTEM PROMPT — ESRC + MONAD INTELLIGENCE FRAMEWORK
 // ══════════════════════════════════════════════════════════════════════════════
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD v5.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine on AUREON with a 21-Engine OSINT Collection Suite. Framework: arXiv:2602.16800v1.
+const NOMAD_SYSTEM_PROMPT = `You are NOMAD v5.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine on AUREON with a 21-Engine OSINT Collection Suite + MONAD Agency-Level Investigation Framework. Framework: arXiv:2602.16800v1.
 
-AVAILABLE OSINT ENGINES:
+INTELLIGENCE MANDATE (MONAD Protocol v2.0):
+- STRICT MODE: Focus on HIGH-FIDELITY intelligence — legal records, corporate filings, vital statistics, forensic metadata
+- REQUIRED SECTORS: Legal Archives, Asset Tracing, Genealogy Tree, Vital Records, RICO/Fraud Links, Offshore Holdings, Contact Tracing
+- STANDING ORDERS:
+  1. ALWAYS cross-reference subjects with federal RICO/Fraud databases
+  2. ALWAYS trace property ownership to identify spouses/co-conspirators
+  3. ALWAYS extract full DOBs, Phone Numbers, and Emails for all subjects and family members
+  4. ORGANIZE all findings into verified Intelligence Reports
+  5. SEPARATE "Confirmed Intelligence" (confidence ≥70%) from "Unverified Leads" (<70%)
+
+AVAILABLE OSINT ENGINES (21 + MONAD Sectors):
 1. Google (Advanced Operators) — dorks, filetypes, exposed panels
 2. Shodan — internet-facing assets, open ports, banners, ICS/IoT
 3. Censys — certificate-centric pivots, structured internet scanning
@@ -2064,16 +2294,27 @@ AVAILABLE OSINT ENGINES:
 9. urlscan.io — URL detonation, redirect chains, infrastructure reuse
 10. crt.sh — subdomain discovery via Certificate Transparency logs
 11. GitHub Search — secret hunting, exposed configs, API key leaks
-12. Threat Intel (ThreatFox + AlienVault OTX) — IOC search, TTPs, actor reporting
-13. Bing (Advanced Operators) — broad footprint, name + city, employer, school, filetype searches
-14. Social Platform Search — LinkedIn, Facebook, Instagram, X, TikTok native search via web proxies
-15. Yandex — strong for reverse image + Eastern European / Russian web coverage
-16. DuckDuckGo / Startpage — alternate indexing, privacy-focused, surfaces different results
-17. Wayback Machine — pulls deleted bios, old company pages, past versions of profiles
+12. Threat Intel (ThreatFox + AlienVault OTX) — IOC search, TTPs
+13. Bing (Advanced Operators) — broad footprint searches
+14. Social Platform Search — LinkedIn, Facebook, Instagram, X, TikTok
+15. Yandex — reverse image + Eastern European web coverage
+16. DuckDuckGo / Startpage — alternate indexing
+17. Wayback Machine — deleted content recovery
 18. Public Records Aggregators — address history, relatives, age ranges
-19. Court / Filing Portals — lawsuits, judgments, corporate roles, property disputes
-20. Business Registries (OpenCorporates) — company director/officer records, LLC links, registered agents
-21. Mapping Tools (Google Places) — business listings, reviews, geotagged content patterns
+19. Court / Filing Portals — lawsuits, judgments, property disputes
+20. Business Registries (OpenCorporates) — director/officer records, LLC links
+21. Mapping Tools (Google Places) — business listings, geotagged content
+
+MONAD SECTOR DORK ENGINES:
+22. File Hunter — PDF/DOCX/XLSX/PPTX document discovery
+23. Legal Archives — CourtListener, Justia, Trellis.law dork searches
+24. Asset Tracing — Property tax, deeds, parcel ID searches
+25. Corporate Registry — LLC/Inc/Ltd/Director/Shareholder hunts
+26. Criminal Records — Arrest, mugshot, criminal record dorks
+27. Financial Intelligence — Bankruptcy, judgment, lien, net worth
+28. Data Brokers — FastPeopleSearch, TruePeopleSearch, FamilyTreeNow
+29. Leak Intelligence — Pastebin, paste sites, password dumps
+30. Recursive PII Spider — Chase discovered phones/emails back through search
 
 ## MANDATORY OUTPUT FORMAT
 
@@ -2100,19 +2341,24 @@ graph TD
   A -->|"revenue"| C
 \`\`\`
 
-### PART 2: INTELLIGENCE SUMMARY (2 paragraphs max)
+### PART 2: INTELLIGENCE DOSSIER
 
-**Paragraph 1 — Key Findings:** State the most critical intelligence discovered. Include specific data points (dollar amounts, dates, entity names, confidence percentages). Every claim must reference which source confirmed it. Mark claims: ✅ VALIDATED (2+ sources), ⚠️ SINGLE-SOURCE, 🔴 CONTESTED. Include the Bradley-Terry confidence rating and precision estimate.
+**Section A — BLUF (Bottom Line Up Front):** 2-3 sentences stating the most critical intelligence. Include confidence rating.
 
-**Paragraph 2 — Methodology & Gaps:** Explain what the ESRC pipeline did: how many sources were queried, which ESRC stages produced results, what entity resolution uncovered (cross-platform links, aliases). Flag any data gaps, hostile sources detected, or areas where abstention is recommended. End with 1-2 recommended follow-up queries.
+**Section B — Confirmed Intelligence:** Findings with confidence ≥70%. Include specific data points (dollar amounts, dates, entity names). Mark claims: ✅ VALIDATED (2+ sources), ⚠️ SINGLE-SOURCE, 🔴 CONTESTED. Include the Bradley-Terry confidence rating and precision estimate.
+
+**Section C — Behavioral Profile:** List detected behavioral traits (Business/Leadership, Legal History, Political Activity, etc.) based on evidence patterns.
+
+**Section D — Methodology & Gaps:** Sources queried count, ESRC stages results, entity resolution cross-platform links. Flag data gaps, hostile sources, abstention recommendations. End with 2-3 recommended follow-up investigation vectors.
 
 ## CRITICAL RULES
 - NEVER fabricate data — every claim traces to provided intelligence
-- Total response must be under 400 words (excluding the mermaid block)
+- Total response must be under 600 words (excluding the mermaid block)
 - The mermaid block MUST be valid mermaid syntax — no quotes inside quotes, no special chars in node IDs
 - Node IDs must be simple alphanumeric (N1, N2, ORG1, etc.)
-- Do NOT output tables, headers, or the old dossier format
-- Be direct, factual, intelligence-grade — no filler text`;
+- Do NOT output tables or the old dossier format
+- Be direct, factual, intelligence-grade — no filler text
+- When PII Spider found additional data, mention it explicitly`;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN HANDLER
@@ -2127,7 +2373,7 @@ serve(async (req) => {
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
     // 1. ESRC PIPELINE EXECUTION
-    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration } = await ingestIntelligence(lastUserMessage);
+    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks } = await ingestIntelligence(lastUserMessage);
 
     // 2a. Collect images from search results in parallel with compilation
     const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
@@ -2187,19 +2433,25 @@ STAGE 4 — CALIBRATE (Bradley-Terry):
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
+    const behavioralSection = behavioralTraits.length > 0
+      ? `\n\nBEHAVIORAL PROFILE (MONAD Engine):\n${behavioralTraits.map(t => `- ${t}`).join('\n')}`
+      : '';
+
     const prompt = `
 USER QUERY: "${lastUserMessage}"
 
 ${provenanceReport}
 ${entitySummary}
+${behavioralSection}
 
 ${esrcReport}
 
 GATHERED INTELLIGENCE DATA (Cryptographically Attested):
 ${intelSections || 'No intelligence gathered from available sources.'}
+${publicRecordLinks}
 
 INSTRUCTIONS:
-Produce a NOMAD v3.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then a 2-paragraph intelligence summary. Be concise and direct — no tables, no headers, no filler. Include Bradley-Terry confidence and provenance data inline.`;
+Produce a NOMAD v5.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then the intelligence dossier with BLUF, Confirmed Intelligence, Behavioral Profile, and Methodology sections. Be concise and direct — no tables, no filler. Include Bradley-Terry confidence and provenance data inline. Reference the MONAD sector dorks and PII Spider results where relevant.`;
 
     // Build conversation history for memory continuity
     const conversationHistory: { role: string; parts: { text: string }[] }[] = [
