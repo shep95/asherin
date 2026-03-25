@@ -87,7 +87,7 @@ interface NomadMessage {
   images?: CollectedImage[];
 }
 
-type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff";
+type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff" | "predictive" | "imagine" | "video-intel";
 
 const INVESTIGATION_TYPES = [
   { id: "person", icon: User, label: "Person", desc: "Deep profile & predictions" },
