@@ -483,6 +483,15 @@ const NomadView = () => {
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             {messages.length > 0 && (
               <button
+                onClick={() => setShareRedactOpen(true)}
+                className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Shield className="h-3 w-3" />
+                Share
+              </button>
+            )}
+            {messages.length > 0 && (
+              <button
                 onClick={exportFullDossier}
                 className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
               >
