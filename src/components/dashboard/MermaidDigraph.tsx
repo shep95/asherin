@@ -22,40 +22,79 @@ function parseMermaid(code: string): { nodes: ParsedNode[]; edges: ParsedEdge[] 
   const nodeMap = new Map<string, string>();
   const incomingSet = new Set<string>();
 
+  let currentSubgraph: string | null = null;
+  const subgraphLabels = new Map<string, string>();
+
   for (const line of code.split("\n")) {
     const trimmed = line.trim();
 
-    // Round node: N1(("Label"))
-    const roundNode = trimmed.match(/^(\w+)\(\("(.+?)"\)\)/);
-    if (roundNode) {
+    // Skip graph declaration line
+    if (/^graph\s+(TD|LR|TB|BT|RL)\s*$/.test(trimmed)) continue;
+
+    // Subgraph start: subgraph Label Text
+    const sgMatch = trimmed.match(/^subgraph\s+(.+)/);
+    if (sgMatch) {
+      currentSubgraph = sgMatch[1].trim();
+      continue;
+    }
+    if (trimmed === 'end') {
+      currentSubgraph = null;
+      continue;
+    }
+
+    // Round node: N1(("Label")) or N1("Label")
+    const roundNode = trimmed.match(/^(\w+)\(?\("(.+?)"\)?\)?/);
+    if (roundNode && !trimmed.includes('--')) {
       nodeMap.set(roundNode[1], roundNode[2]);
+      if (currentSubgraph) subgraphLabels.set(roundNode[1], currentSubgraph);
       continue;
     }
 
     // Square node: N1["Label"]
     const squareNode = trimmed.match(/^(\w+)\["(.+?)"\]/);
-    if (squareNode) {
+    if (squareNode && !trimmed.includes('--')) {
       nodeMap.set(squareNode[1], squareNode[2]);
+      if (currentSubgraph) subgraphLabels.set(squareNode[1], currentSubgraph);
       continue;
     }
 
-    // Labeled edge: N1 -->|"label"| N2  or  N1 -->|label| N2
-    const labeledEdge = trimmed.match(/^(\w+)\s*(?:-->|==>|---)\|"?(.+?)"?\|\s*(\w+)/);
+    // Labeled edge: N1 -->|"label"| N2  or  N1 -- "label" --> N2
+    const labeledEdge = trimmed.match(/^(\w+)\s*(?:-->|==>|---?)\|"?(.+?)"?\|\s*(\w+)/);
     if (labeledEdge) {
       edges.push({ from: labeledEdge[1], to: labeledEdge[3], label: labeledEdge[2] });
       incomingSet.add(labeledEdge[3]);
+      if (currentSubgraph) {
+        subgraphLabels.set(labeledEdge[1], currentSubgraph);
+        subgraphLabels.set(labeledEdge[3], currentSubgraph);
+      }
+      continue;
+    }
+
+    // Edge with quoted label: N1 -- "label" --> N2
+    const quotedLabelEdge = trimmed.match(/^(\w+)\s*--\s*"(.+?)"\s*-->\s*(\w+)/);
+    if (quotedLabelEdge) {
+      edges.push({ from: quotedLabelEdge[1], to: quotedLabelEdge[3], label: quotedLabelEdge[2] });
+      incomingSet.add(quotedLabelEdge[3]);
+      if (currentSubgraph) {
+        subgraphLabels.set(quotedLabelEdge[1], currentSubgraph);
+        subgraphLabels.set(quotedLabelEdge[3], currentSubgraph);
+      }
       continue;
     }
 
     // Simple edge: N1 --> N2
-    const simpleEdge = trimmed.match(/^(\w+)\s*(?:-->|==>|---)\s*(\w+)/);
+    const simpleEdge = trimmed.match(/^(\w+)\s*(?:-->|==>|---?)\s*(\w+)/);
     if (simpleEdge) {
       edges.push({ from: simpleEdge[1], to: simpleEdge[2] });
       incomingSet.add(simpleEdge[2]);
+      if (currentSubgraph) {
+        subgraphLabels.set(simpleEdge[1], currentSubgraph);
+        subgraphLabels.set(simpleEdge[2], currentSubgraph);
+      }
       continue;
     }
 
-    // Inline node definitions on edge lines (re-parse for any missed)
+    // Inline node definitions on edge lines
     const inlineRound = trimmed.match(/(\w+)\(\("(.+?)"\)\)/g);
     if (inlineRound) {
       for (const m of inlineRound) {
@@ -67,6 +106,30 @@ function parseMermaid(code: string): { nodes: ParsedNode[]; edges: ParsedEdge[] 
     if (inlineSquare) {
       for (const m of inlineSquare) {
         const match = m.match(/(\w+)\["(.+?)"\]/);
+        if (match) nodeMap.set(match[1], match[2]);
+      }
+    }
+    // Inline nodes from edge lines: WO_Aroda(Wendy A Owens) -- "..." --> Target
+    const inlineParenNode = trimmed.match(/(\w+)\(([^)]+)\)/g);
+    if (inlineParenNode) {
+      for (const m of inlineParenNode) {
+        const match = m.match(/(\w+)\(([^)]+)\)/);
+        if (match && !match[2].startsWith('"')) nodeMap.set(match[1], match[2]);
+      }
+    }
+    // Inline bracket nodes from edge target: --> LOC_Aroda[Aroda, VA]
+    const inlineBracket = trimmed.match(/(\w+)\[([^\]]+)\]/g);
+    if (inlineBracket) {
+      for (const m of inlineBracket) {
+        const match = m.match(/(\w+)\[([^\]]+)\]/);
+        if (match) nodeMap.set(match[1], match[2]);
+      }
+    }
+    // Inline brace nodes: DOB1{12/01/1960}
+    const inlineBrace = trimmed.match(/(\w+)\{([^}]+)\}/g);
+    if (inlineBrace) {
+      for (const m of inlineBrace) {
+        const match = m.match(/(\w+)\{([^}]+)\}/);
         if (match) nodeMap.set(match[1], match[2]);
       }
     }
