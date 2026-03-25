@@ -779,7 +779,7 @@ const NomadView = () => {
                               onClick={() => { navigator.clipboard.writeText(msg.content); setCopiedId(msg.id); setTimeout(() => setCopiedId(null), 2000); }}
                               className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                             >
-                              {copiedId === msg.id ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
+                              {copiedId === msg.id ? <Check className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3" />}
                               {copiedId === msg.id ? "Copied" : "Copy"}
                             </button>
                             <button onClick={() => setDiagramId(diagramId === msg.id ? null : msg.id)} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
