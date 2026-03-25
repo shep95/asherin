@@ -623,19 +623,32 @@ const NomadView = () => {
               ) : pastInvestigations.length === 0 ? (
                 <p className="text-center text-sm font-extralight text-muted-foreground py-12">No past investigations.</p>
               ) : pastInvestigations.map(inv => (
-                <div key={inv.id} className="rounded-2xl border border-border/20 bg-card/20 p-5">
+                <div key={inv.id} className="rounded-2xl border border-border/20 bg-card/20 p-5 hover:border-border/30 transition-colors">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
+                    <button
+                      onClick={() => {
+                        setMessages([
+                          { id: `hist-q-${inv.id}`, role: "user", content: inv.query, timestamp: new Date(inv.created_at) },
+                          { id: `hist-a-${inv.id}`, role: "assistant", content: inv.findings, timestamp: new Date(inv.created_at) },
+                        ]);
+                        setShowHistory(false);
+                        toast({ title: "Investigation loaded", description: inv.query.slice(0, 60) });
+                      }}
+                      className="flex-1 min-w-0 text-left"
+                    >
                       <p className="text-sm font-light text-foreground truncate">{inv.query}</p>
                       <div className="flex items-center gap-3 mt-1.5">
                         <span className="text-[10px] font-extralight text-muted-foreground">{new Date(inv.created_at).toLocaleDateString()}</span>
                         <span className="text-[10px] font-extralight text-muted-foreground/50">{inv.sources_checked?.length || 0} sources</span>
                         <span className="text-[10px] font-extralight text-muted-foreground/50">{inv.entities_found?.length || 0} entities</span>
                       </div>
-                    </div>
-                    <button onClick={() => exportInvestigation(inv)} className="rounded-2xl p-2 text-muted-foreground hover:text-foreground transition-colors">
-                      <Download className="h-3.5 w-3.5" />
+                      <p className="text-[10px] font-extralight text-muted-foreground/40 mt-2 line-clamp-2">{inv.findings?.slice(0, 150)}…</p>
                     </button>
+                    <div className="flex items-center gap-1 ml-3">
+                      <button onClick={() => exportInvestigation(inv)} className="rounded-2xl p-2 text-muted-foreground hover:text-foreground transition-colors" title="Download">
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
