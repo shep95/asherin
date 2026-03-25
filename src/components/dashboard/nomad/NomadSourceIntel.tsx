@@ -145,7 +145,7 @@ const NomadSourceIntel = ({ investigations }: NomadSourceIntelProps) => {
                   <input value={newDomain} onChange={e => setNewDomain(e.target.value)} placeholder="Domain (e.g. reuters.com)" className="w-full bg-transparent text-xs text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] text-muted-foreground/40">Accuracy:</span>
-                    <input type="range" min={0} max={100} value={newAccuracy} onChange={e => setNewAccuracy(Number(e.target.value))} className="w-24 h-1 accent-accent" />
+                    <input type="range" min={0} max={100} value={newAccuracy} onChange={e => setNewAccuracy(Number(e.target.value))} className="w-24 h-1 accent-foreground" />
                     <span className="text-[10px] text-foreground/60">{newAccuracy}%</span>
                   </div>
                   <input value={newBias} onChange={e => setNewBias(e.target.value)} placeholder="Bias vector (e.g. left-center, corporate)" className="w-full bg-transparent text-[11px] text-foreground outline-none border-b border-border/20 pb-1" />

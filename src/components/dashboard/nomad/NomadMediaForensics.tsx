@@ -347,7 +347,7 @@ Provide forensic analysis:
                       <div key={i} className="flex items-center gap-2">
                         <MapPin className="h-3 w-3 text-foreground/50" />
                         <span className="text-xs text-foreground/70 flex-1">{c.name}</span>
-                        <input type="range" min={0} max={100} value={c.confidence} onChange={e => updateCandidateConfidence(i, Number(e.target.value))} className="w-20 h-1 accent-accent" />
+                        <input type="range" min={0} max={100} value={c.confidence} onChange={e => updateCandidateConfidence(i, Number(e.target.value))} className="w-20 h-1 accent-foreground" />
                         <span className="text-[9px] text-muted-foreground/40 w-8">{c.confidence}%</span>
                       </div>
                     ))}

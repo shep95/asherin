@@ -23,7 +23,7 @@ const typeIcons: Record<string, React.ElementType> = {
 };
 
 const typeColors: Record<string, string> = {
-  person: "border-foreground/15 bg-accent/8", email: "border-foreground/15 bg-accent/8",
+  person: "border-foreground/15 bg-foreground/[0.04]", email: "border-foreground/15 bg-foreground/[0.04]",
   organization: "border-emerald-500/30 bg-emerald-500/8", company: "border-emerald-500/30 bg-emerald-500/8",
   location: "border-rose-500/30 bg-rose-500/8", us_location: "border-rose-500/30 bg-rose-500/8",
   vehicle: "border-sky-500/30 bg-sky-500/8",
@@ -150,7 +150,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
                             if (linkingFrom && linkingFrom !== node.id) { handleLink(node.id); return; }
                             setSelectedId(isSelected ? null : node.id);
                           }}
-                          className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${isSelected ? `${colors} ring-1 ring-accent/20` : `border-border/12 bg-card/15 hover:bg-card/30`}`}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${isSelected ? `${colors} ring-1 ring-foreground/15` : `border-border/12 bg-card/15 hover:bg-card/30`}`}
                         >
                           <div className="flex items-center gap-2">
                             <Icon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
