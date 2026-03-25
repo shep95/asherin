@@ -2476,10 +2476,39 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestAcademicSearch(query));
   }
 
-  const results = await Promise.allSettled(tasks);
+  // ── Source Telemetry Tracking (Gap 4) ──
+  const sourceTimings: { source: string; startMs: number; promise: Promise<IntelNode> }[] = [];
+  const wrappedTasks = tasks.map((task, i) => {
+    const startMs = Date.now();
+    return task.then(node => {
+      (node as any)._telemetry = {
+        source_name: node.source,
+        response_time_ms: Date.now() - startMs,
+        status: node.data && node.data !== 'No results found.' && !node.data.startsWith('No ') ? 'SUCCESS' : 'NO_RESULTS',
+        result_count: node.data ? node.data.split('\n').filter((l: string) => l.startsWith('-')).length : 0,
+        entity_yield: node.entities?.length || 0,
+      };
+      return node;
+    }).catch(err => {
+      const empty = emptyNode('Unknown', 4);
+      (empty as any)._telemetry = {
+        source_name: 'Unknown',
+        response_time_ms: Date.now() - startMs,
+        status: 'ERROR',
+        result_count: 0,
+        entity_yield: 0,
+      };
+      return empty;
+    });
+  });
+
+  const results = await Promise.allSettled(wrappedTasks);
   const nodes: IntelNode[] = results
     .filter((r): r is PromiseFulfilledResult<IntelNode> => r.status === 'fulfilled')
     .map(r => r.value);
+
+  // Collect source telemetry
+  const sourceTelemetry = nodes.map(n => (n as any)._telemetry).filter(Boolean);
 
   const attestation = attestProvenance(nodes);
   const { resolved, crossRefMap } = resolveEntities(nodes);
@@ -2488,7 +2517,6 @@ async function ingestIntelligence(query: string): Promise<{
   const piiSpiderResults = await recursivePIISpider(resolved);
   if (piiSpiderResults.length > 0) {
     nodes.push(...piiSpiderResults);
-    // Re-resolve with new data
     const { resolved: reResolved, crossRefMap: reCrossRefMap } = resolveEntities(nodes);
     Object.assign(crossRefMap, reCrossRefMap);
     resolved.push(...reResolved.filter(e => !resolved.some(r => r.type === e.type && r.value === e.value)));
@@ -2501,7 +2529,7 @@ async function ingestIntelligence(query: string): Promise<{
   // ── MONAD: Behavioral Profiling ──
   const behavioralTraits = extractBehavioralProfile(allText);
 
-  // ── ESRC STAGE 2+3: SEARCH + REASON (Candidate scoring) ──
+  // ── ESRC STAGE 2+3: SEARCH + REASON ──
   const esrcCandidates = nodes
     .filter(n => n.data)
     .map(n => scoreCandidate(esrcProfile, n, resolved))
@@ -2517,7 +2545,12 @@ async function ingestIntelligence(query: string): Promise<{
   const locMatch = query.match(/(?:in|from|at|near)\s+([A-Z][A-Za-z\s,]+)/);
   const publicRecordLinks = generatePublicRecordLinks(cleanedTarget, locMatch?.[1]?.trim());
 
-  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks };
+  // ── Subject Fingerprint for cross-investigation matching (Gap 1) ──
+  const normalizedSubject = cleanedTarget.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fingerprintBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalizedSubject));
+  const subjectFingerprint = Array.from(new Uint8Array(fingerprintBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks, sourceTelemetry, subjectFingerprint };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
