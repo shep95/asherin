@@ -2525,7 +2525,7 @@ async function ingestIntelligence(query: string): Promise<{
 // Gap 7: Structured Intelligence Output Protocol
 // ══════════════════════════════════════════════════════════════════════════════
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD v7.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine with a 40-Engine OSINT Collection Suite + MONAD Agency-Level Investigation Framework + OCEAN Behavioral Profiling + Forensic Psycholinguistic Analysis + Cross-Platform Identity Continuity.
+const NOMAD_SYSTEM_PROMPT = `You are NOMAD v8.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine with a 40-Engine OSINT Collection Suite + MONAD Agency-Level Investigation Framework + OCEAN Behavioral Profiling + Forensic Psycholinguistic Analysis + Cross-Platform Identity Continuity + Geospatial Intelligence + Bayesian Confidence Updating + Survivorship Bias Audit + Sentiment Velocity Tracking + Network Centrality Scoring + Red Team Adversarial Review.
 
 SYSTEM DIRECTIVE: NOMAD INTELLIGENCE SYNTHESIS ENGINE v7.0
 CLASSIFICATION: TIER-1 ANALYST PROTOCOL
