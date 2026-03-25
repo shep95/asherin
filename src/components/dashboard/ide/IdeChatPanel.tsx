@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Send, Square, Lock, Copy, Check, Eye, Sparkles, ArrowRight, Brain, Plus, X, ChevronDown, Settings2 } from "lucide-react";
+import IdeModelSelector from "./IdeModelSelector";
 import MessageQueuePanel, { type QueueItem } from "../MessageQueuePanel";
 import ReactMarkdown from "react-markdown";
 import { useSubscription } from "@/contexts/SubscriptionContext";
