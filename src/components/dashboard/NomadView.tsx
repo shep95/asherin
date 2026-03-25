@@ -543,7 +543,7 @@ const NomadView = () => {
             <button
               onClick={() => setNotepadOpen(!notepadOpen)}
               className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-extralight tracking-wider transition-colors ${
-                notepadOpen ? "border-accent/30 bg-accent/10 text-accent" : "border-border/20 bg-card/30 text-muted-foreground hover:text-foreground"
+                notepadOpen ? "border-foreground/20 bg-foreground/[0.06] text-foreground" : "border-border/20 bg-card/30 text-muted-foreground hover:text-foreground"
               }`}
             >
               <StickyNote className="h-3 w-3" /> Notepad
