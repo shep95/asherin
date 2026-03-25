@@ -140,8 +140,10 @@ const NomadView = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<NomadTab>("chat");
   const [expandedImages, setExpandedImages] = useState<string | null>(null);
+  const [notepadOpen, setNotepadOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const chatContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
