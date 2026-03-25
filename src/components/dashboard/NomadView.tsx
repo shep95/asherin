@@ -407,7 +407,32 @@ const NomadView = () => {
     toast({ title: "Dossier exported", description: `${messages.filter(m => m.role === "assistant").length} findings, ${allEntities.length} entities` });
   }, [messages, allEntities, toast]);
 
-  const handleSelectionAction = useCallback((action: string, text: string) => {
+  const screenshotChat = useCallback(async () => {
+    if (!chatContentRef.current || messages.length === 0) return;
+    toast({ title: "Capturing screenshot…" });
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(chatContentRef.current, {
+        backgroundColor: "#0a0a0a",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `nomad-screenshot-${new Date().toISOString().slice(0, 10)}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "Screenshot saved", description: "Chat output downloaded as PNG" });
+      }, "image/png");
+    } catch {
+      toast({ title: "Screenshot failed", variant: "destructive" });
+    }
+  }, [messages, toast]);
+
     switch (action) {
       case "investigate": setInput(`Investigate: ${text}`); inputRef.current?.focus(); break;
       case "profile": setInput(`Build a complete profile on: ${text}`); inputRef.current?.focus(); break;
