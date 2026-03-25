@@ -517,7 +517,8 @@ const NomadView = () => {
         {activeTab === "chat" ? (
           <>
             <ScrollArea className="flex-1">
-              <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+              <div ref={chatContentRef} className="relative max-w-3xl mx-auto px-4 py-6 space-y-6">
+                <NomadSelectionMenu containerRef={chatContentRef} onAction={handleSelectionAction} />
                 {messages.length === 0 ? (
                   <div className="space-y-8 pt-12">
                     <div className="text-center space-y-4">
