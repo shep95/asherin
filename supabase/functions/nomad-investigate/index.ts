@@ -2679,7 +2679,32 @@ serve(async (req) => {
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
     // 1. ESRC PIPELINE EXECUTION
-    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks } = await ingestIntelligence(lastUserMessage);
+    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks, sourceTelemetry, subjectFingerprint } = await ingestIntelligence(lastUserMessage);
+
+    // ── GAP 1: Prior Investigation Context Injection ──
+    let priorInvestigationContext = '';
+    let priorFindings = '';
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+    const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (userId && SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        const priorResp = await fetch(
+          `${SUPABASE_URL}/rest/v1/nomad_investigations?user_id=eq.${userId}&subject_fingerprint=eq.${subjectFingerprint}&order=created_at.desc&limit=3`,
+          { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+        );
+        if (priorResp.ok) {
+          const priorInvs = await priorResp.json();
+          if (priorInvs.length > 0) {
+            priorFindings = priorInvs[0]?.findings?.slice(0, 3000) || '';
+            priorInvestigationContext = `\n\n═══ PRIOR INVESTIGATION MEMORY ═══\nThis subject has been investigated ${priorInvs.length} time(s) before.\n` +
+              priorInvs.map((inv: any) => 
+                `- Date: ${inv.created_at?.split('T')[0]} | Type: ${inv.investigation_type} | Query: "${inv.query?.slice(0, 100)}"`
+              ).join('\n') +
+              `\n\nMost recent findings summary (for DIFFERENTIAL ANALYSIS — identify what is NEW, CHANGED, or DISAPPEARED):\n${priorFindings.slice(0, 2000)}\n═══ END PRIOR MEMORY ═══`;
+          }
+        }
+      } catch (err) { console.error('Prior investigation lookup error:', err); }
+    }
 
     // 2a. Collect images in parallel
     const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
