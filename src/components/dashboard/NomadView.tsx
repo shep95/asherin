@@ -420,6 +420,48 @@ const NomadView = () => {
     inputRef.current?.focus();
   }, [messages]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setCommandOpen(true); }
+      if (e.key === "f" && (e.ctrlKey || e.metaKey) && activeTab === "chat") { e.preventDefault(); setSearchOpen(true); }
+      if (e.key === "e" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); exportFullDossier(); }
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+        e.preventDefault(); inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeTab, exportFullDossier]);
+
+  const handleScrollToMessage = useCallback((id: string) => {
+    const el = document.getElementById(`nomad-msg-${id}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
+  const handleCommandAction = useCallback((action: string) => {
+    if (action === "export") exportFullDossier();
+    else if (action === "search") setSearchOpen(true);
+    else if (action === "notepad") setNotepadOpen(p => !p);
+    else if (action === "history") loadHistory();
+    else if (action.startsWith("investigate:")) {
+      setInput(`Investigate: ${action.slice(12)}`);
+      setActiveTab("chat");
+      inputRef.current?.focus();
+    }
+  }, [exportFullDossier, loadHistory]);
+
+  const handleRedactedExport = useCallback((redactedContent: string) => {
+    const blob = new Blob([redactedContent], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nomad-dossier-redacted-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Redacted dossier exported" });
+  }, [toast]);
+
   // Entity count badge for tabs
   const entityCount = allEntities.length;
 
