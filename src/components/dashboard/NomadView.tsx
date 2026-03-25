@@ -14,6 +14,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
 import MermaidDigraph from "./MermaidDigraph";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
+import NomadFollowUps from "./nomad/NomadFollowUps";
+import NomadSelectionMenu from "./nomad/NomadSelectionMenu";
+import FloatingNotepad from "./FloatingNotepad";
 
 const NomadObjectExplorer = lazy(() => import("./nomad/NomadObjectExplorer"));
 const NomadTimeline = lazy(() => import("./nomad/NomadTimeline"));
