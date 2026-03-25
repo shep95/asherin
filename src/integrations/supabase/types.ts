@@ -1835,6 +1835,53 @@ export type Database = {
           },
         ]
       }
+      investigation_annotations: {
+        Row: {
+          added_sources: string[] | null
+          confidence_override: number | null
+          created_at: string
+          finding_text: string
+          id: string
+          investigation_id: string
+          status: string
+          updated_at: string
+          user_id: string
+          user_note: string | null
+        }
+        Insert: {
+          added_sources?: string[] | null
+          confidence_override?: number | null
+          created_at?: string
+          finding_text: string
+          id?: string
+          investigation_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_note?: string | null
+        }
+        Update: {
+          added_sources?: string[] | null
+          confidence_override?: number | null
+          created_at?: string
+          finding_text?: string
+          id?: string
+          investigation_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investigation_annotations_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "nomad_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       library_files: {
         Row: {
           created_at: string
@@ -1926,6 +1973,50 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nomad_calibration_events: {
+        Row: {
+          ai_confidence: number
+          created_at: string
+          entity_type: string | null
+          finding_text: string
+          id: string
+          investigation_id: string | null
+          source_tiers: number[] | null
+          user_id: string
+          user_verdict: string
+        }
+        Insert: {
+          ai_confidence: number
+          created_at?: string
+          entity_type?: string | null
+          finding_text: string
+          id?: string
+          investigation_id?: string | null
+          source_tiers?: number[] | null
+          user_id: string
+          user_verdict?: string
+        }
+        Update: {
+          ai_confidence?: number
+          created_at?: string
+          entity_type?: string | null
+          finding_text?: string
+          id?: string
+          investigation_id?: string | null
+          source_tiers?: number[] | null
+          user_id?: string
+          user_verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomad_calibration_events_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "nomad_investigations"
             referencedColumns: ["id"]
           },
         ]
@@ -2026,36 +2117,98 @@ export type Database = {
       }
       nomad_investigations: {
         Row: {
+          actionable_intel: Json | null
           created_at: string
+          dark_zones: string[] | null
           entities_found: Json | null
+          esrc_profile: Json | null
           findings: string
           id: string
           investigation_type: string | null
+          pivot_suggestions: Json | null
           query: string
+          source_telemetry: Json | null
           sources_checked: string[] | null
+          subject_fingerprint: string | null
+          user_id: string
+        }
+        Insert: {
+          actionable_intel?: Json | null
+          created_at?: string
+          dark_zones?: string[] | null
+          entities_found?: Json | null
+          esrc_profile?: Json | null
+          findings: string
+          id?: string
+          investigation_type?: string | null
+          pivot_suggestions?: Json | null
+          query: string
+          source_telemetry?: Json | null
+          sources_checked?: string[] | null
+          subject_fingerprint?: string | null
+          user_id: string
+        }
+        Update: {
+          actionable_intel?: Json | null
+          created_at?: string
+          dark_zones?: string[] | null
+          entities_found?: Json | null
+          esrc_profile?: Json | null
+          findings?: string
+          id?: string
+          investigation_type?: string | null
+          pivot_suggestions?: Json | null
+          query?: string
+          source_telemetry?: Json | null
+          sources_checked?: string[] | null
+          subject_fingerprint?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nomad_source_telemetry: {
+        Row: {
+          created_at: string
+          entity_yield: number | null
+          id: string
+          investigation_id: string | null
+          response_time_ms: number | null
+          result_count: number | null
+          source_name: string
+          status: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          entities_found?: Json | null
-          findings: string
+          entity_yield?: number | null
           id?: string
-          investigation_type?: string | null
-          query: string
-          sources_checked?: string[] | null
+          investigation_id?: string | null
+          response_time_ms?: number | null
+          result_count?: number | null
+          source_name: string
+          status?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          entities_found?: Json | null
-          findings?: string
+          entity_yield?: number | null
           id?: string
-          investigation_type?: string | null
-          query?: string
-          sources_checked?: string[] | null
+          investigation_id?: string | null
+          response_time_ms?: number | null
+          result_count?: number | null
+          source_name?: string
+          status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nomad_source_telemetry_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "nomad_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notebook_cells: {
         Row: {
