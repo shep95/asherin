@@ -882,6 +882,20 @@ const NomadView = () => {
         onClose={() => setNotepadOpen(false)}
         conversationId={`nomad-session-${user?.id || "anon"}`}
       />
+      <NomadCommandPalette
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        onSwitchTab={setActiveTab}
+        onAction={handleCommandAction}
+        entities={allEntities}
+      />
+      <NomadShareRedaction
+        content={messages.filter(m => m.role === "assistant").map(m => m.content).join("\n\n---\n\n")}
+        entities={allEntities}
+        onExport={handleRedactedExport}
+        open={shareRedactOpen}
+        onClose={() => setShareRedactOpen(false)}
+      />
     </div>
   );
 };
