@@ -65,7 +65,7 @@ const NomadShareRedaction = ({ content, entities, onExport, open, onClose }: Nom
     let result = content;
     for (const item of items) {
       if (item.enabled) {
-        result = result.replaceAll(item.original, item.redacted);
+        result = result.split(item.original).join(item.redacted);
       }
     }
     return result;
