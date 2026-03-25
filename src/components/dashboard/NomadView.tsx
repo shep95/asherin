@@ -8,7 +8,7 @@ import {
   Fingerprint, MapPin, Phone, Image, Shield, Sparkles,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
   Brain, TrendingUp, Network, ShieldCheck,
-  Layers, Map, BarChart3, MessageSquare, Search,
+  Layers, Map, BarChart3, MessageSquare, Search, Eye, Video,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
@@ -31,6 +31,9 @@ const NomadMediaForensics = lazy(() => import("./nomad/NomadMediaForensics"));
 const NomadCollectionPipeline = lazy(() => import("./nomad/NomadCollectionPipeline"));
 const NomadHandleHunter = lazy(() => import("./nomad/NomadHandleHunter"));
 const NomadNetworkDiff = lazy(() => import("./nomad/NomadNetworkDiff"));
+const NomadPredictiveIntel = lazy(() => import("./nomad/NomadPredictiveIntel"));
+const NomadImagineIntel = lazy(() => import("./nomad/NomadImagineIntel"));
+const NomadVideoIntel = lazy(() => import("./nomad/NomadVideoIntel"));
 
 interface NomadInvestigation {
   id: string;
@@ -84,7 +87,7 @@ interface NomadMessage {
   images?: CollectedImage[];
 }
 
-type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff";
+type NomadTab = "chat" | "objects" | "timeline" | "graph" | "map" | "lineage" | "ontology" | "quiver" | "entities" | "claims" | "sources" | "case" | "adversary" | "media" | "pipeline" | "handles" | "diff" | "predictive" | "imagine" | "video-intel";
 
 const INVESTIGATION_TYPES = [
   { id: "person", icon: User, label: "Person", desc: "Deep profile & predictions" },
@@ -115,6 +118,9 @@ const TABS: { id: NomadTab; icon: any; label: string }[] = [
   { id: "lineage", icon: GitBranch, label: "Lineage" },
   { id: "ontology", icon: Layers, label: "Ontology" },
   { id: "quiver", icon: Sparkles, label: "Quiver" },
+  { id: "predictive", icon: TrendingUp, label: "Predictive" },
+  { id: "imagine", icon: Eye, label: "Imagine" },
+  { id: "video-intel", icon: Video, label: "Video Intel" },
 ];
 
 const NomadView = () => {
@@ -701,6 +707,9 @@ const NomadView = () => {
             {activeTab === "diff" && (
               <NomadNetworkDiff entities={allEntities} investigations={sessionInvestigations} />
             )}
+            {activeTab === "predictive" && <NomadPredictiveIntel />}
+            {activeTab === "imagine" && <NomadImagineIntel />}
+            {activeTab === "video-intel" && <NomadVideoIntel />}
           </Suspense>
         )}
       </div>
