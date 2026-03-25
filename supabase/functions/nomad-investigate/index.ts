@@ -2476,10 +2476,39 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestAcademicSearch(query));
   }
 
-  const results = await Promise.allSettled(tasks);
+  // ── Source Telemetry Tracking (Gap 4) ──
+  const sourceTimings: { source: string; startMs: number; promise: Promise<IntelNode> }[] = [];
+  const wrappedTasks = tasks.map((task, i) => {
+    const startMs = Date.now();
+    return task.then(node => {
+      (node as any)._telemetry = {
+        source_name: node.source,
+        response_time_ms: Date.now() - startMs,
+        status: node.data && node.data !== 'No results found.' && !node.data.startsWith('No ') ? 'SUCCESS' : 'NO_RESULTS',
+        result_count: node.data ? node.data.split('\n').filter((l: string) => l.startsWith('-')).length : 0,
+        entity_yield: node.entities?.length || 0,
+      };
+      return node;
+    }).catch(err => {
+      const empty = emptyNode('Unknown', 4);
+      (empty as any)._telemetry = {
+        source_name: 'Unknown',
+        response_time_ms: Date.now() - startMs,
+        status: 'ERROR',
+        result_count: 0,
+        entity_yield: 0,
+      };
+      return empty;
+    });
+  });
+
+  const results = await Promise.allSettled(wrappedTasks);
   const nodes: IntelNode[] = results
     .filter((r): r is PromiseFulfilledResult<IntelNode> => r.status === 'fulfilled')
     .map(r => r.value);
+
+  // Collect source telemetry
+  const sourceTelemetry = nodes.map(n => (n as any)._telemetry).filter(Boolean);
 
   const attestation = attestProvenance(nodes);
   const { resolved, crossRefMap } = resolveEntities(nodes);
@@ -2488,7 +2517,6 @@ async function ingestIntelligence(query: string): Promise<{
   const piiSpiderResults = await recursivePIISpider(resolved);
   if (piiSpiderResults.length > 0) {
     nodes.push(...piiSpiderResults);
-    // Re-resolve with new data
     const { resolved: reResolved, crossRefMap: reCrossRefMap } = resolveEntities(nodes);
     Object.assign(crossRefMap, reCrossRefMap);
     resolved.push(...reResolved.filter(e => !resolved.some(r => r.type === e.type && r.value === e.value)));
@@ -2501,7 +2529,7 @@ async function ingestIntelligence(query: string): Promise<{
   // ── MONAD: Behavioral Profiling ──
   const behavioralTraits = extractBehavioralProfile(allText);
 
-  // ── ESRC STAGE 2+3: SEARCH + REASON (Candidate scoring) ──
+  // ── ESRC STAGE 2+3: SEARCH + REASON ──
   const esrcCandidates = nodes
     .filter(n => n.data)
     .map(n => scoreCandidate(esrcProfile, n, resolved))
@@ -2517,7 +2545,12 @@ async function ingestIntelligence(query: string): Promise<{
   const locMatch = query.match(/(?:in|from|at|near)\s+([A-Z][A-Za-z\s,]+)/);
   const publicRecordLinks = generatePublicRecordLinks(cleanedTarget, locMatch?.[1]?.trim());
 
-  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks };
+  // ── Subject Fingerprint for cross-investigation matching (Gap 1) ──
+  const normalizedSubject = cleanedTarget.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fingerprintBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalizedSubject));
+  const subjectFingerprint = Array.from(new Uint8Array(fingerprintBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks, sourceTelemetry, subjectFingerprint };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2646,7 +2679,32 @@ serve(async (req) => {
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
     // 1. ESRC PIPELINE EXECUTION
-    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks } = await ingestIntelligence(lastUserMessage);
+    const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks, sourceTelemetry, subjectFingerprint } = await ingestIntelligence(lastUserMessage);
+
+    // ── GAP 1: Prior Investigation Context Injection ──
+    let priorInvestigationContext = '';
+    let priorFindings = '';
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+    const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (userId && SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        const priorResp = await fetch(
+          `${SUPABASE_URL}/rest/v1/nomad_investigations?user_id=eq.${userId}&subject_fingerprint=eq.${subjectFingerprint}&order=created_at.desc&limit=3`,
+          { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+        );
+        if (priorResp.ok) {
+          const priorInvs = await priorResp.json();
+          if (priorInvs.length > 0) {
+            priorFindings = priorInvs[0]?.findings?.slice(0, 3000) || '';
+            priorInvestigationContext = `\n\n═══ PRIOR INVESTIGATION MEMORY ═══\nThis subject has been investigated ${priorInvs.length} time(s) before.\n` +
+              priorInvs.map((inv: any) => 
+                `- Date: ${inv.created_at?.split('T')[0]} | Type: ${inv.investigation_type} | Query: "${inv.query?.slice(0, 100)}"`
+              ).join('\n') +
+              `\n\nMost recent findings summary (for DIFFERENTIAL ANALYSIS — identify what is NEW, CHANGED, or DISAPPEARED):\n${priorFindings.slice(0, 2000)}\n═══ END PRIOR MEMORY ═══`;
+          }
+        }
+      } catch (err) { console.error('Prior investigation lookup error:', err); }
+    }
 
     // 2a. Collect images in parallel
     const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
@@ -3069,6 +3127,7 @@ ${deepAnalysisSection}
 RAW INTELLIGENCE DATA:
 ${intelSections || 'No intelligence gathered.'}
 ${publicRecordLinks}
+${priorInvestigationContext}
 
 INSTRUCTIONS:
 Produce a NOMAD v8.0 response following the mandatory output format. Include:
@@ -3089,6 +3148,8 @@ Produce a NOMAD v8.0 response following the mandatory output format. Include:
 15. Cross-Investigation Links if entity overlaps were found
 16. Benford analysis results if financial data was flagged
 17. Single-source warnings inline with ⚠️ markers
+18. If PRIOR INVESTIGATION data was provided: produce a DIFFERENTIAL ANALYSIS section showing what is NEW, what CHANGED, what DISAPPEARED since last investigation. Disappearing entities are the most critical signal.
+19. Include source telemetry summary — which sources fired successfully vs failed
 Be direct, intelligence-grade. Include BT confidence inline.`;
 
     console.log('NOMAD v8.0: Starting Final Synthesis Pass...');
@@ -3184,19 +3245,140 @@ ${aiText.slice(0, 8000)}`, 'gemini-2.5-flash', 2500, 0.2);
       }
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // POST-SYNTHESIS: ACTIONABLE INTELLIGENCE MODULE (Gap 7)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    if (isPersonInvestigation && aiText.length > 500) {
+      console.log('NOMAD v9.0: Starting Actionable Intelligence Pass...');
+      const actionableIntel = await aiPass(GEMINI_API_KEY,
+        'You are a strategic intelligence advisor. Produce decision-support output, not more data. Output structured actionable guidance only.',
+        `Based on this completed intelligence dossier, produce the ACTIONABLE INTELLIGENCE LAYER.
+
+This section is NOT more data. It is decision support.
+
+DUE DILIGENCE USE CASE:
+- Top 3 specific questions to ask this person based on gaps/inconsistencies found
+- Top 3 documents to request for verification
+- Single biggest risk factor as a decision trigger
+
+NEGOTIATION USE CASE:
+- Primary decision-making driver based on behavioral profile
+- Most effective proposal framing
+- Most likely objection and pressure point
+
+RISK ASSESSMENT USE CASE:
+- Probability of material misrepresentation: [%] with evidence
+- Probability of undisclosed legal exposure: [%] with evidence
+- Priority verification steps
+
+MONITORING TRIGGERS:
+- Specific future events that would change this assessment
+- Recommended search alerts / monitoring keywords
+
+DOSSIER:
+${aiText.slice(0, 6000)}`, 'gemini-2.5-flash', 2000, 0.2);
+
+      if (actionableIntel) {
+        aiText += `\n\n---\n\n## ACTIONABLE INTELLIGENCE — DECISION SUPPORT\n\n${actionableIntel}`;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PIVOT SUGGESTIONS — Identify high-value secondary targets (Gap 2)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    const pivotSuggestions: any[] = [];
+    const entityCounts: Record<string, { count: number; type: string; sources: string[] }> = {};
+    for (const node of nodes) {
+      for (const entity of node.entities || []) {
+        const key = entity.value.toLowerCase().trim();
+        if (!entityCounts[key]) entityCounts[key] = { count: 0, type: entity.type, sources: [] };
+        entityCounts[key].count++;
+        if (!entityCounts[key].sources.includes(node.source)) entityCounts[key].sources.push(node.source);
+      }
+    }
+    // Identify entities appearing in 3+ sources that aren't the primary target
+    const cleanedQuery = lastUserMessage.toLowerCase().replace(/investigate|person|company|research|find|who is|look up|about|search/gi, '').trim();
+    Object.entries(entityCounts)
+      .filter(([key, data]) => data.count >= 3 && !cleanedQuery.includes(key) && data.type !== 'date' && data.type !== 'url')
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .forEach(([key, data]) => {
+        pivotSuggestions.push({
+          name: key,
+          type: data.type,
+          appearances: data.count,
+          sources: data.sources.length,
+          pivot_query: `Investigate ${data.type}: ${key}`,
+          reason: `Appears in ${data.count} data points across ${data.sources.length} sources`,
+        });
+      });
+
+    // ── Source Telemetry Summary for dossier ──
+    const telemetrySummary = sourceTelemetry.length > 0
+      ? `\n\n## SOURCE TELEMETRY\n\n| Source | Status | Time (ms) | Results | Entities |\n|--------|--------|-----------|---------|----------|\n` +
+        sourceTelemetry.slice(0, 20).map((t: any) => 
+          `| ${t.source_name?.slice(0, 30)} | ${t.status} | ${t.response_time_ms} | ${t.result_count} | ${t.entity_yield} |`
+        ).join('\n')
+      : '';
+    
+    aiText += telemetrySummary;
+
     // 4. Await collected images
     const collectedImages = await imagePromise;
 
-    // 5. STREAM RESPONSE
+    // ══════════════════════════════════════════════════════════════════════════
+    // PERSIST: Save investigation with full context (Gap 1, 4, 8)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    if (userId && SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        // Save source telemetry
+        const telemetryInserts = sourceTelemetry.slice(0, 50).map((t: any) => ({
+          user_id: userId,
+          source_name: t.source_name,
+          response_time_ms: t.response_time_ms,
+          status: t.status,
+          result_count: t.result_count,
+          entity_yield: t.entity_yield,
+        }));
+        if (telemetryInserts.length > 0) {
+          fetch(`${SUPABASE_URL}/rest/v1/nomad_source_telemetry`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(telemetryInserts),
+          }).catch(err => console.error('Telemetry insert error:', err));
+        }
+      } catch (err) { console.error('Post-investigation persistence error:', err); }
+    }
+
+    // 5. STREAM RESPONSE with metadata
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
+        // Main dossier content
         const chunk = { choices: [{ delta: { content: aiText } }] };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+        // Images
         if (collectedImages.length > 0) {
           const imgChunk = { type: 'images', images: collectedImages };
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(imgChunk)}\n\n`));
         }
+        // Pivot suggestions (Gap 2)
+        if (pivotSuggestions.length > 0) {
+          const pivotChunk = { type: 'pivot_suggestions', entities: pivotSuggestions };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(pivotChunk)}\n\n`));
+        }
+        // Source telemetry (Gap 4)
+        if (sourceTelemetry.length > 0) {
+          const telemetryChunk = { type: 'source_telemetry', telemetry: sourceTelemetry };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(telemetryChunk)}\n\n`));
+        }
+        // Subject fingerprint for diff tracking (Gap 8)
+        const metaChunk = { type: 'investigation_meta', subjectFingerprint, priorInvestigationCount: priorFindings ? 1 : 0 };
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(metaChunk)}\n\n`));
+        
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       },
