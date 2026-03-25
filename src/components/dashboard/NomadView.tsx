@@ -698,29 +698,60 @@ const NomadView = () => {
                           ) : msg.role === "assistant" ? (<>
                             <div className="prose prose-invert prose-sm max-w-none font-extralight [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_h1]:text-base [&_h1]:font-light [&_h2]:text-sm [&_h2]:font-light [&_h3]:text-sm [&_h3]:font-light [&_li]:text-sm [&_code]:bg-secondary/50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-lg [&_pre]:bg-secondary/30 [&_pre]:rounded-2xl [&_pre]:p-4 [&_strong]:text-foreground [&_a]:text-foreground/70 [&_a]:underline">
                               {(() => {
-                                // Match fenced mermaid blocks OR unfenced graph TD/LR blocks
-                                const fencedPattern = /(```mermaid[\s\S]*?```)/g;
-                                const unfencedPattern = /((?:^|\n)(graph\s+(?:TD|LR|TB|BT|RL)\s*\n(?:[\t ]+\S[^\n]*\n?)+))/gm;
+                                // Detect mermaid content: fenced blocks, graph headers, or subgraph/edge patterns
+                                const fencedPattern = /(```(?:mermaid|graph)[\s\S]*?```)/g;
+                                
+                                // Also detect unfenced mermaid: graph TD/LR blocks OR subgraph blocks OR lines with --> / -- edges
+                                const unfencedGraphPattern = /((?:^|\n)(graph\s+(?:TD|LR|TB|BT|RL)\s*\n(?:[\t ]+\S[^\n]*\n?)+))/gm;
+                                const subgraphPattern = /((?:^|\n)\s*subgraph\s+.+\n(?:[\s\S]*?\n)\s*end(?:\n|$)(?:\s*\n\s*subgraph\s+.+\n(?:[\s\S]*?\n)\s*end(?:\n|$))*)/gm;
+                                
+                                // Helper: does a text chunk look like raw mermaid syntax?
+                                const looksLikeMermaid = (text: string) => {
+                                  const lines = text.trim().split('\n').filter(l => l.trim());
+                                  if (lines.length < 3) return false;
+                                  const edgeLines = lines.filter(l => /\w+\s*--[->|]/.test(l) || /subgraph\s+/.test(l) || /^\s*end\s*$/.test(l));
+                                  return edgeLines.length >= 2;
+                                };
                                 
                                 // First split on fenced mermaid
                                 let parts = msg.content.split(fencedPattern);
                                 
-                                // Then process each non-mermaid part for unfenced graph blocks
                                 const finalParts: { type: 'text' | 'mermaid'; content: string }[] = [];
                                 for (const part of parts) {
-                                  const fencedMatch = part.match(/```mermaid\s*([\s\S]*?)```/);
+                                  const fencedMatch = part.match(/```(?:mermaid|graph)\s*([\s\S]*?)```/);
                                   if (fencedMatch) {
                                     finalParts.push({ type: 'mermaid', content: fencedMatch[1] });
                                     continue;
                                   }
-                                  // Check for unfenced graph blocks
-                                  const subParts = part.split(unfencedPattern);
-                                  for (const sub of subParts) {
-                                    const graphMatch = sub.match(/^(graph\s+(?:TD|LR|TB|BT|RL)\s*\n(?:[\t ]+\S[^\n]*\n?)+)/m);
-                                    if (graphMatch) {
-                                      finalParts.push({ type: 'mermaid', content: graphMatch[1] });
-                                    } else if (sub.trim()) {
-                                      finalParts.push({ type: 'text', content: sub });
+                                  
+                                  // Check for subgraph blocks first
+                                  let remaining = part;
+                                  let hasSubgraph = false;
+                                  const sgParts = remaining.split(subgraphPattern);
+                                  if (sgParts.length > 1) {
+                                    hasSubgraph = true;
+                                    for (const sub of sgParts) {
+                                      if (sub.trim().startsWith('subgraph') || looksLikeMermaid(sub)) {
+                                        finalParts.push({ type: 'mermaid', content: 'graph TD\n' + sub.trim() });
+                                      } else if (sub.trim()) {
+                                        finalParts.push({ type: 'text', content: sub });
+                                      }
+                                    }
+                                  }
+                                  
+                                  if (!hasSubgraph) {
+                                    // Check for unfenced graph blocks
+                                    const subParts = part.split(unfencedGraphPattern);
+                                    for (const sub of subParts) {
+                                      const graphMatch = sub.match(/^(graph\s+(?:TD|LR|TB|BT|RL)\s*\n(?:[\t ]+\S[^\n]*\n?)+)/m);
+                                      if (graphMatch) {
+                                        finalParts.push({ type: 'mermaid', content: graphMatch[1] });
+                                      } else if (looksLikeMermaid(sub)) {
+                                        // Raw edge syntax without graph header
+                                        finalParts.push({ type: 'mermaid', content: 'graph TD\n' + sub.trim() });
+                                      } else if (sub.trim()) {
+                                        finalParts.push({ type: 'text', content: sub });
+                                      }
                                     }
                                   }
                                 }
