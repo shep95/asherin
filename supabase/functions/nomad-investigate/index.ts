@@ -2355,6 +2355,40 @@ async function ingestIntelligence(query: string): Promise<{
     for (const sector of [...prioritySectors, ...secondarySectors]) {
       tasks.push(ingestSectorDork(sector.sector, sector.query, sector.tier));
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // MISSING LAYER 5: 9 ADVANCED PERSON SEARCH QUERY TYPES
+    // These go beyond SEO-optimized content to find real intelligence
+    // ══════════════════════════════════════════════════════════════════════════
+    const personQ = `"${cleaned}"`;
+    
+    // 1. THE CRITICISM QUERY — unfiltered community reactions
+    tasks.push(ingestSectorDork('Criticism Query', `${personQ} site:reddit.com OR site:news.ycombinator.com OR site:glassdoor.com`, 4));
+    
+    // 2. THE OLD IDENTITY QUERY — pre-reputation-management content
+    tasks.push(ingestSectorDork('Old Identity', `${personQ} before:2015`, 3));
+    
+    // 3. THE LEGAL PAPER TRAIL QUERY — beyond CourtListener
+    tasks.push(ingestSectorDork('Legal Paper Trail', `${personQ} "plaintiff" OR "defendant" OR "deposition" OR "settlement" OR "restraining order"`, 1));
+    
+    // 4. THE CONTRADICTION QUERY — excludes self-authored sources
+    tasks.push(ingestSectorDork('Contradiction Query', `${personQ} -site:linkedin.com -site:about.me`, 3));
+    
+    // 5. THE DELETED CONTENT QUERY — Wayback Machine cached content
+    tasks.push(ingestSectorDork('Deleted Content', `site:web.archive.org ${personQ}`, 2));
+    
+    // 6. THE FAMILY/CIRCLE EXPOSURE QUERY — lowest OPSEC layer
+    tasks.push(ingestSectorDork('Family Exposure', `${personQ} "wife" OR "husband" OR "brother" OR "sister" OR "parents" OR "grew up"`, 3));
+    
+    // 7. THE EMPLOYMENT HISTORY QUERY — third-party descriptions
+    tasks.push(ingestSectorDork('Employment History', `${personQ} "formerly" OR "previously" OR "ex-" OR "used to" OR "left"`, 3));
+    
+    // 8. THE FINANCIAL DISTRESS QUERY — state court & credit records
+    tasks.push(ingestSectorDork('Financial Distress', `${personQ} "judgment" OR "garnishment" OR "eviction" OR "foreclosure" OR "collections"`, 1));
+    
+    // 9. THE ASSOCIATE INVESTIGATION QUERY — two-person searches
+    // We'll use extracted entities to find known associates for cross-queries later (post-ingestion)
+    tasks.push(ingestSectorDork('Associate Search', `${personQ} "partner" OR "co-founder" OR "colleague" OR "associate" OR "advisor"`, 3));
   }
 
   // Company/corporate
