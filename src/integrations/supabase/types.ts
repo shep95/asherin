@@ -1971,6 +1971,59 @@ export type Database = {
           },
         ]
       }
+      nomad_entity_graph: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          entity_type: string
+          entity_value: string
+          first_seen: string
+          frequency: number | null
+          id: string
+          investigation_id: string | null
+          last_seen: string
+          metadata: Json | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          entity_type: string
+          entity_value: string
+          first_seen?: string
+          frequency?: number | null
+          id?: string
+          investigation_id?: string | null
+          last_seen?: string
+          metadata?: Json | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          entity_type?: string
+          entity_value?: string
+          first_seen?: string
+          frequency?: number | null
+          id?: string
+          investigation_id?: string | null
+          last_seen?: string
+          metadata?: Json | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomad_entity_graph_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "nomad_investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nomad_investigations: {
         Row: {
           created_at: string
