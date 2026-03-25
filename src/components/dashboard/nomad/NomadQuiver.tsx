@@ -117,7 +117,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
     <div className="flex flex-col h-full max-w-3xl mx-auto">
       <div className="flex-shrink-0 px-6 pt-6 pb-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
+          <Sparkles className="h-5 w-5 text-foreground" />
           <h2 className="text-lg font-extralight tracking-wide text-foreground">Quiver</h2>
         </div>
         <p className="text-xs font-extralight text-muted-foreground mt-1">Ask questions in plain language about your intelligence data.</p>
@@ -130,7 +130,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
             <p className="text-xs text-muted-foreground/40 mb-4">Query your intelligence graph</p>
             <div className="grid grid-cols-1 gap-1.5 w-full max-w-md">
               {EXAMPLES.map((q, i) => (
-                <button key={i} onClick={() => setInput(q)} className="text-left px-3 py-2 rounded-xl border border-border/12 bg-card/15 text-[11px] font-light text-foreground/60 hover:border-accent/20 hover:bg-accent/5 transition-all">
+                <button key={i} onClick={() => setInput(q)} className="text-left px-3 py-2 rounded-xl border border-border/12 bg-card/15 text-[11px] font-light text-foreground/60 hover:border-border/25 hover:bg-foreground/[0.03] transition-all">
                   {q}
                 </button>
               ))}
@@ -140,7 +140,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
 
         {messages.map(msg => (
           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-accent/10 border border-accent/20" : "bg-card/30 border border-border/15"}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-foreground/[0.06] border border-border/25" : "bg-card/30 border border-border/15"}`}>
               {msg.role === "assistant" ? (
                 <div className="prose prose-sm prose-invert max-w-none">
                   <ReactMarkdown
@@ -157,7 +157,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
               {msg.role === "assistant" && msg.content && (
                 <div className="flex gap-1 mt-2 pt-1 border-t border-border/10">
                   <button onClick={() => copyMsg(msg.id, msg.content)} className="p-1 text-muted-foreground/30 hover:text-foreground transition-colors">
-                    {copiedId === msg.id ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
+                    {copiedId === msg.id ? <Check className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3" />}
                   </button>
                 </div>
               )}
@@ -168,7 +168,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
         {loading && (
           <div className="flex justify-start">
             <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-card/30 border border-border/15">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground" />
               <span className="text-[11px] text-muted-foreground/50">Querying intelligence graph…</span>
             </div>
           </div>
@@ -186,7 +186,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
             rows={1}
             className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/40 outline-none resize-none"
           />
-          <button onClick={handleSend} disabled={!input.trim() || loading} className="p-2 rounded-xl bg-accent/10 text-accent hover:bg-accent/20 disabled:opacity-30 transition-all">
+          <button onClick={handleSend} disabled={!input.trim() || loading} className="p-2 rounded-xl bg-foreground/[0.06] text-foreground hover:bg-foreground/[0.1] disabled:opacity-30 transition-all">
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </button>
         </div>

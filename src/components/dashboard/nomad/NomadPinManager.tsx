@@ -11,8 +11,8 @@ const NomadPinManager = ({ pinnedIds, onTogglePin, messages }: NomadPinManagerPr
   if (pinned.length === 0) return null;
 
   return (
-    <div className="border-b border-border/15 bg-accent/5 px-4 py-2">
-      <div className="flex items-center gap-1.5 text-[9px] font-extralight tracking-wider text-accent/60 uppercase mb-1.5">
+    <div className="border-b border-border/15 bg-foreground/[0.03] px-4 py-2">
+      <div className="flex items-center gap-1.5 text-[9px] font-extralight tracking-wider text-foreground/50 uppercase mb-1.5">
         <Pin className="h-3 w-3" />
         Pinned Findings ({pinned.length})
       </div>

@@ -134,7 +134,7 @@ const NomadCollectionPipeline = () => {
             {p.name}
           </button>
         ))}
-        <button onClick={createPipeline} className="px-2 py-1.5 rounded-lg text-[10px] text-accent/60 hover:text-accent">
+        <button onClick={createPipeline} className="px-2 py-1.5 rounded-lg text-[10px] text-foreground/50 hover:text-foreground">
           <Plus className="h-3 w-3" />
         </button>
       </div>
@@ -145,7 +145,7 @@ const NomadCollectionPipeline = () => {
             <div className="text-center py-12">
               <GitBranch className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
               <p className="text-[11px] text-muted-foreground/40 font-light mb-4">Create a collection pipeline to automate your OSINT workflow.</p>
-              <button onClick={createPipeline} className="px-4 py-2 rounded-xl text-xs bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 transition-colors">
+              <button onClick={createPipeline} className="px-4 py-2 rounded-xl text-xs bg-foreground/[0.1] text-foreground border border-foreground/15 hover:bg-foreground/[0.12] transition-colors">
                 Create Pipeline
               </button>
             </div>
@@ -155,7 +155,7 @@ const NomadCollectionPipeline = () => {
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-light text-foreground">{activePipeline.name}</h3>
                 <div className="flex items-center gap-2">
-                  <button onClick={simulateRun} className="px-3 py-1.5 rounded-xl text-[10px] bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 transition-colors">
+                  <button onClick={simulateRun} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-foreground border border-foreground/15 hover:bg-foreground/[0.12] transition-colors">
                     <Play className="h-3 w-3 inline mr-1" /> Run
                   </button>
                   <button onClick={togglePipeline} className={`px-3 py-1.5 rounded-xl text-[10px] border transition-colors ${activePipeline.active ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" : "text-muted-foreground/40 border-border/20"}`}>
@@ -206,7 +206,7 @@ const NomadCollectionPipeline = () => {
               {addingNode ? (
                 <div className="grid grid-cols-3 gap-2">
                   {NODE_TYPES.map(n => (
-                    <button key={n.type} onClick={() => addNode(n.type)} className={`rounded-xl border p-3 text-left transition-colors hover:border-accent/20 ${NODE_COLORS[n.type]}`}>
+                    <button key={n.type} onClick={() => addNode(n.type)} className={`rounded-xl border p-3 text-left transition-colors hover:border-border/25 ${NODE_COLORS[n.type]}`}>
                       <n.icon className="h-3.5 w-3.5 mb-1 opacity-60" />
                       <p className="text-[10px] font-light">{n.label}</p>
                       <p className="text-[8px] opacity-40">{n.desc}</p>

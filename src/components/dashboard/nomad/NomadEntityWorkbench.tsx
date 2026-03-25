@@ -49,7 +49,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 };
 
 const EPISTEMIC_COLORS: Record<string, string> = {
-  observation: "bg-accent/20 text-accent",
+  observation: "bg-foreground/[0.1] text-foreground",
   inference: "bg-blue-500/20 text-blue-400",
   speculation: "bg-amber-500/20 text-amber-400",
   tasking: "bg-emerald-500/20 text-emerald-400",
@@ -192,14 +192,14 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
         <button
           onClick={() => { setMergeMode(!mergeMode); setMergeSelection([]); }}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-light transition-colors ${
-            mergeMode ? "bg-accent/20 text-accent border border-accent/30" : "text-muted-foreground/50 border border-border/20 hover:text-foreground"
+            mergeMode ? "bg-foreground/[0.1] text-foreground border border-foreground/15" : "text-muted-foreground/50 border border-border/20 hover:text-foreground"
           }`}
         >
           <Merge className="h-3 w-3" />
           {mergeMode ? `Merge (${mergeSelection.length})` : "Merge"}
         </button>
         {mergeMode && mergeSelection.length >= 2 && (
-          <button onClick={handleMerge} className="px-3 py-1.5 rounded-xl text-[10px] bg-accent/20 text-accent border border-accent/30">
+          <button onClick={handleMerge} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-foreground border border-foreground/15">
             Execute Merge
           </button>
         )}
@@ -223,7 +223,7 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                 key={card.id}
                 className={`rounded-2xl border backdrop-blur-sm transition-all ${
                   mergeMode && mergeSelection.includes(card.id)
-                    ? "border-accent/40 bg-accent/5"
+                    ? "border-foreground/20 bg-foreground/[0.03]"
                     : "border-border/20 bg-card/20 hover:border-border/40"
                 }`}
               >
@@ -241,12 +241,12 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                 >
                   {mergeMode && (
                     <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                      mergeSelection.includes(card.id) ? "border-accent bg-accent/20" : "border-border/30"
+                      mergeSelection.includes(card.id) ? "border-foreground/20 bg-foreground/[0.1]" : "border-border/30"
                     }`}>
-                      {mergeSelection.includes(card.id) && <Check className="h-2.5 w-2.5 text-accent" />}
+                      {mergeSelection.includes(card.id) && <Check className="h-2.5 w-2.5 text-foreground" />}
                     </div>
                   )}
-                  <IconComp className="h-4 w-4 text-accent/60 shrink-0" />
+                  <IconComp className="h-4 w-4 text-foreground/50 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-light text-foreground truncate">{card.primaryValue}</p>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -255,7 +255,7 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                         <span className="text-[9px] text-muted-foreground/30">+{card.aliases.length} aliases</span>
                       )}
                       {card.mergedFrom && (
-                        <span className="text-[9px] text-accent/50">merged</span>
+                        <span className="text-[9px] text-foreground/50">merged</span>
                       )}
                     </div>
                   </div>
@@ -282,7 +282,7 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                         {addingAlias === card.id ? (
                           <div className="flex items-center gap-1">
                             <input value={aliasText} onChange={e => setAliasText(e.target.value)} onKeyDown={e => e.key === "Enter" && addAlias(card.id)} placeholder="New alias" className="bg-transparent text-[10px] text-foreground outline-none w-24 border-b border-border/30" autoFocus />
-                            <button onClick={() => addAlias(card.id)} className="text-accent"><Check className="h-3 w-3" /></button>
+                            <button onClick={() => addAlias(card.id)} className="text-foreground"><Check className="h-3 w-3" /></button>
                             <button onClick={() => setAddingAlias(null)} className="text-muted-foreground/30"><X className="h-3 w-3" /></button>
                           </div>
                         ) : (
@@ -328,7 +328,7 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                         <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-1">Linked Evidence ({card.linkedEvidence.length})</p>
                         <div className="flex flex-wrap gap-1">
                           {card.linkedEvidence.map((ev, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded-lg text-[9px] bg-accent/10 text-accent/60 font-mono">{ev.slice(0, 8)}</span>
+                            <span key={i} className="px-2 py-0.5 rounded-lg text-[9px] bg-foreground/[0.06] text-foreground/50 font-mono">{ev.slice(0, 8)}</span>
                           ))}
                         </div>
                       </div>
@@ -357,7 +357,7 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                           </div>
                           <div className="flex gap-1">
                             <input value={noteText} onChange={e => setNoteText(e.target.value)} onKeyDown={e => e.key === "Enter" && addNote(card.id)} placeholder="Add analyst note..." className="flex-1 bg-transparent text-[10px] text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
-                            <button onClick={() => addNote(card.id)} className="text-accent text-[10px]">Save</button>
+                            <button onClick={() => addNote(card.id)} className="text-foreground text-[10px]">Save</button>
                           </div>
                         </div>
                       )}

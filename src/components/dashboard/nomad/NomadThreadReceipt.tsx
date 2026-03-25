@@ -11,7 +11,7 @@ const NomadThreadReceipt = ({ status, timestamp }: NomadThreadReceiptProps) => {
     queued: { icon: Clock, color: "text-muted-foreground/30", label: "Queued" },
     sent: { icon: Check, color: "text-muted-foreground/40", label: "Sent" },
     delivered: { icon: CheckCheck, color: "text-muted-foreground/50", label: "Delivered" },
-    read: { icon: CheckCheck, color: "text-accent/60", label: "Read" },
+    read: { icon: CheckCheck, color: "text-foreground/50", label: "Read" },
     failed: { icon: Clock, color: "text-destructive/60", label: "Failed" },
   };
 

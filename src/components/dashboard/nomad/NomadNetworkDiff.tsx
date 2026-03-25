@@ -196,7 +196,7 @@ const NomadNetworkDiff = ({ entities, investigations }: NomadNetworkDiffProps) =
               <h3 className="text-sm font-light text-foreground">Entity Mutation Alerts</h3>
               <p className="text-[10px] text-muted-foreground/40">Notify when an entity changes username, WHOIS, officers, wallet activity, or deletes posts.</p>
 
-              <button onClick={() => setAddingAlert(true)} className="flex items-center gap-1 text-[10px] text-accent/60 hover:text-accent">
+              <button onClick={() => setAddingAlert(true)} className="flex items-center gap-1 text-[10px] text-foreground/50 hover:text-foreground">
                 <Plus className="h-3 w-3" /> Add Alert Rule
               </button>
 
@@ -204,14 +204,14 @@ const NomadNetworkDiff = ({ entities, investigations }: NomadNetworkDiffProps) =
                 <div className="rounded-xl border border-border/20 bg-card/20 p-3 space-y-2">
                   <input value={alertEntity} onChange={e => setAlertEntity(e.target.value)} placeholder="Entity to watch (name, domain, handle)" className="w-full bg-transparent text-xs text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
                   <input value={alertWatch} onChange={e => setAlertWatch(e.target.value)} placeholder="Watch for (e.g. username change, WHOIS update)" className="w-full bg-transparent text-[11px] text-foreground outline-none border-b border-border/20 pb-1" />
-                  <div className="flex gap-2"><button onClick={addAlert} className="text-[10px] text-accent">Save</button><button onClick={() => setAddingAlert(false)} className="text-[10px] text-muted-foreground/40">Cancel</button></div>
+                  <div className="flex gap-2"><button onClick={addAlert} className="text-[10px] text-foreground">Save</button><button onClick={() => setAddingAlert(false)} className="text-[10px] text-muted-foreground/40">Cancel</button></div>
                 </div>
               )}
 
               {data.alerts.map(a => (
-                <div key={a.id} className={`rounded-xl border p-3 ${a.active ? "border-accent/20 bg-accent/5" : "border-border/15 bg-card/10 opacity-50"}`}>
+                <div key={a.id} className={`rounded-xl border p-3 ${a.active ? "border-border/25 bg-foreground/[0.03]" : "border-border/15 bg-card/10 opacity-50"}`}>
                   <div className="flex items-center gap-2">
-                    <Bell className={`h-3.5 w-3.5 ${a.active ? "text-accent" : "text-muted-foreground/30"}`} />
+                    <Bell className={`h-3.5 w-3.5 ${a.active ? "text-foreground" : "text-muted-foreground/30"}`} />
                     <span className="text-xs text-foreground/70 font-light flex-1">{a.entityValue}</span>
                     <button onClick={() => toggleAlert(a.id)} className="text-[9px] text-muted-foreground/40 hover:text-foreground">
                       {a.active ? "Disable" : "Enable"}

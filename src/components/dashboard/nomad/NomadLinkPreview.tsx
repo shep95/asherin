@@ -19,7 +19,7 @@ const NomadLinkPreview = ({ url }: NomadLinkPreviewProps) => {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-accent/70 hover:text-accent transition-colors inline-flex items-center gap-0.5 text-[10px] font-extralight"
+        className="text-foreground/60 hover:text-foreground transition-colors inline-flex items-center gap-0.5 text-[10px] font-extralight"
       >
         <Globe className="h-3 w-3" />
         {domain}

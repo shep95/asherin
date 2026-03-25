@@ -23,7 +23,7 @@ const typeIcons: Record<string, React.ElementType> = {
 };
 
 const typeColors: Record<string, string> = {
-  person: "border-accent/30 bg-accent/8", email: "border-accent/30 bg-accent/8",
+  person: "border-foreground/15 bg-foreground/[0.04]", email: "border-foreground/15 bg-foreground/[0.04]",
   organization: "border-emerald-500/30 bg-emerald-500/8", company: "border-emerald-500/30 bg-emerald-500/8",
   location: "border-rose-500/30 bg-rose-500/8", us_location: "border-rose-500/30 bg-rose-500/8",
   vehicle: "border-sky-500/30 bg-sky-500/8",
@@ -100,7 +100,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <Layers className="h-5 w-5 text-accent" />
+          <Layers className="h-5 w-5 text-foreground" />
           <h2 className="text-lg font-extralight tracking-wide text-foreground">Ontology Engine</h2>
         </div>
         <p className="text-xs font-extralight text-muted-foreground mt-1">
@@ -108,7 +108,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
         </p>
       </div>
 
-      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ontology…" className="w-full bg-card/20 border border-border/20 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30 transition-colors" />
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ontology…" className="w-full bg-card/20 border border-border/20 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-foreground/15 transition-colors" />
 
       {/* Stats bar */}
       <div className="flex gap-2 flex-wrap">
@@ -150,7 +150,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
                             if (linkingFrom && linkingFrom !== node.id) { handleLink(node.id); return; }
                             setSelectedId(isSelected ? null : node.id);
                           }}
-                          className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${isSelected ? `${colors} ring-1 ring-accent/20` : `border-border/12 bg-card/15 hover:bg-card/30`}`}
+                          className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${isSelected ? `${colors} ring-1 ring-foreground/15` : `border-border/12 bg-card/15 hover:bg-card/30`}`}
                         >
                           <div className="flex items-center gap-2">
                             <Icon className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
@@ -159,7 +159,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
                               <p className="text-[8px] text-muted-foreground/40">{node.links.length} link{node.links.length !== 1 ? "s" : ""} · {Math.round(node.confidence * 100)}%</p>
                             </div>
                             {linkingFrom && linkingFrom !== node.id && (
-                              <span className="text-[8px] text-accent px-1.5 py-0.5 bg-accent/10 rounded">Link</span>
+                              <span className="text-[8px] text-foreground px-1.5 py-0.5 bg-foreground/[0.06] rounded">Link</span>
                             )}
                           </div>
                         </button>
@@ -178,7 +178,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-light text-foreground truncate">{selected.value}</h3>
-                <button onClick={() => setLinkingFrom(selected.id)} className="p-1 text-muted-foreground/50 hover:text-accent transition-colors" title="Link to entity">
+                <button onClick={() => setLinkingFrom(selected.id)} className="p-1 text-muted-foreground/50 hover:text-foreground transition-colors" title="Link to entity">
                   <Link2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -192,14 +192,14 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
                   <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-1.5">Relationships</p>
                   {selectedLinks.map((l, i) => (
                     <div key={i} className="flex items-center gap-2 text-[10px] py-1 border-b border-border/10 last:border-0">
-                      <span className="text-accent/50">{l.label}</span>
+                      <span className="text-foreground/50">{l.label}</span>
                       <span className="text-foreground/70 truncate">{l.target?.value}</span>
                     </div>
                   ))}
                 </div>
               )}
               {linkingFrom === selected.id && (
-                <p className="text-[9px] text-accent animate-pulse">Click a target entity to link →</p>
+                <p className="text-[9px] text-foreground animate-pulse">Click a target entity to link →</p>
               )}
             </div>
           ) : (

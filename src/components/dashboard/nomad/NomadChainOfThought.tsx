@@ -39,7 +39,7 @@ const stepConfig = {
   entity: { icon: CheckCircle2, color: "text-emerald-400", label: "Entity" },
   pattern: { icon: Lightbulb, color: "text-amber-400", label: "Pattern" },
   caveat: { icon: AlertTriangle, color: "text-red-400", label: "Caveat" },
-  conclusion: { icon: Brain, color: "text-accent", label: "Conclusion" },
+  conclusion: { icon: Brain, color: "text-foreground", label: "Conclusion" },
 };
 
 const NomadChainOfThought = ({ content }: NomadChainOfThoughtProps) => {

@@ -146,7 +146,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
                   onClick={() => setSelectedType(type.id)}
                   className={`flex flex-col items-center gap-1.5 rounded-xl border p-2.5 text-center transition-all ${
                     selectedType === type.id
-                      ? "border-accent/30 bg-accent/10 text-accent"
+                      ? "border-foreground/15 bg-foreground/[0.06] text-foreground"
                       : "border-border/15 bg-card/15 text-muted-foreground/60 hover:text-foreground hover:border-border/30"
                   }`}
                 >
@@ -180,7 +180,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
                       value={personFields[field.key]}
                       onChange={e => setPersonFields(prev => ({ ...prev, [field.key]: e.target.value }))}
                       placeholder={field.placeholder}
-                      className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/25 outline-none focus:border-accent/30 transition-colors"
+                      className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/25 outline-none focus:border-foreground/15 transition-colors"
                     />
                   </div>
                 ))}
@@ -202,7 +202,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
                       value={companyFields[field.key]}
                       onChange={e => setCompanyFields(prev => ({ ...prev, [field.key]: e.target.value }))}
                       placeholder={field.placeholder}
-                      className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/25 outline-none focus:border-accent/30 transition-colors"
+                      className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-1.5 text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/25 outline-none focus:border-foreground/15 transition-colors"
                     />
                   </div>
                 ))}
@@ -218,7 +218,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
                   selectedType === "username" ? "jsmith99" :
                   "john@example.com or +1-555-0100"
                 }
-                className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/25 outline-none focus:border-accent/30 transition-colors"
+                className="w-full rounded-lg border border-border/20 bg-card/20 px-3 py-2 text-[11px] font-extralight text-foreground placeholder:text-muted-foreground/25 outline-none focus:border-foreground/15 transition-colors"
               />
             )}
           </div>
@@ -235,7 +235,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
                   onClick={() => setPurpose(p.id)}
                   className={`rounded-full px-3 py-1 text-[9px] font-extralight transition-colors ${
                     purpose === p.id
-                      ? "bg-accent/15 border border-accent/30 text-accent"
+                      ? "bg-foreground/[0.08] border border-foreground/15 text-foreground"
                       : "bg-card/15 border border-border/15 text-muted-foreground/50 hover:text-foreground"
                   }`}
                 >
@@ -269,7 +269,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
           <button
             onClick={handleSubmit}
             disabled={!isValid}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent/15 border border-accent/25 px-4 py-2.5 text-[11px] font-extralight text-accent hover:bg-accent/25 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-foreground/[0.08] border border-border/30 px-4 py-2.5 text-[11px] font-extralight text-foreground hover:bg-foreground/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <Search className="h-3.5 w-3.5" />
             Launch Investigation

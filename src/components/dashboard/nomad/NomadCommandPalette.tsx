@@ -121,10 +121,10 @@ const NomadCommandPalette = ({ open, onClose, onSwitchTab, onAction, entities }:
                 onClick={() => execute(cmd)}
                 onMouseEnter={() => setSelectedIndex(i)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                  i === selectedIndex ? "bg-accent/10" : "hover:bg-foreground/5"
+                  i === selectedIndex ? "bg-foreground/[0.06]" : "hover:bg-foreground/5"
                 }`}
               >
-                <cmd.icon className={`h-3.5 w-3.5 ${i === selectedIndex ? "text-accent" : "text-muted-foreground"}`} />
+                <cmd.icon className={`h-3.5 w-3.5 ${i === selectedIndex ? "text-foreground" : "text-muted-foreground"}`} />
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs font-light truncate ${i === selectedIndex ? "text-foreground" : "text-muted-foreground"}`}>{cmd.label}</p>
                 </div>

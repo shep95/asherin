@@ -103,7 +103,7 @@ const NomadDossierAnnotations = ({ investigationId, userId, content }: NomadDoss
               value={selectedText}
               onChange={e => setSelectedText(e.target.value)}
               placeholder="Paste or type the finding to annotate..."
-              className="w-full rounded-lg border border-border/20 bg-card/20 px-2.5 py-1.5 text-[10px] font-extralight text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30 transition-colors"
+              className="w-full rounded-lg border border-border/20 bg-card/20 px-2.5 py-1.5 text-[10px] font-extralight text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-foreground/15 transition-colors"
             />
             <div className="flex items-center gap-1">
               {(["VERIFIED", "FALSE_POSITIVE", "NEEDS_VERIFICATION"] as const).map(s => {
@@ -127,12 +127,12 @@ const NomadDossierAnnotations = ({ investigationId, userId, content }: NomadDoss
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="Add a note..."
-                className="flex-1 rounded-lg border border-border/20 bg-card/20 px-2.5 py-1 text-[9px] font-extralight text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/30 transition-colors"
+                className="flex-1 rounded-lg border border-border/20 bg-card/20 px-2.5 py-1 text-[9px] font-extralight text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-foreground/15 transition-colors"
               />
               <button
                 onClick={handleAnnotate}
                 disabled={!selectedText.trim()}
-                className="rounded-lg bg-accent/15 border border-accent/25 px-2.5 py-1 text-[9px] font-extralight text-accent hover:bg-accent/25 disabled:opacity-30 transition-colors"
+                className="rounded-lg bg-foreground/[0.08] border border-border/30 px-2.5 py-1 text-[9px] font-extralight text-foreground hover:bg-foreground/[0.12] disabled:opacity-30 transition-colors"
               >
                 Save
               </button>

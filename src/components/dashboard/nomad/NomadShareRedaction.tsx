@@ -82,7 +82,7 @@ const NomadShareRedaction = ({ content, entities, onExport, open, onClose }: Nom
       <div onClick={e => e.stopPropagation()} className="relative w-full max-w-lg rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/15">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-accent" />
+            <Shield className="h-4 w-4 text-foreground" />
             <h3 className="text-sm font-light tracking-wide text-foreground">Share with Redaction</h3>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors text-xs">✕</button>
@@ -140,12 +140,12 @@ const NomadShareRedaction = ({ content, entities, onExport, open, onClose }: Nom
               onClick={() => { navigator.clipboard.writeText(redactedContent); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
               className="flex items-center gap-1.5 rounded-xl border border-border/20 px-3 py-1.5 text-[10px] font-extralight text-muted-foreground hover:text-foreground transition-colors"
             >
-              {copied ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
+              {copied ? <Check className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3" />}
               {copied ? "Copied" : "Copy"}
             </button>
             <button
               onClick={() => { onExport(redactedContent); onClose(); }}
-              className="flex items-center gap-1.5 rounded-xl bg-accent/20 border border-accent/30 px-3 py-1.5 text-[10px] font-extralight text-accent hover:bg-accent/30 transition-colors"
+              className="flex items-center gap-1.5 rounded-xl bg-foreground/[0.1] border border-foreground/15 px-3 py-1.5 text-[10px] font-extralight text-foreground hover:bg-foreground/[0.12] transition-colors"
             >
               <Download className="h-3 w-3" />
               Export Redacted

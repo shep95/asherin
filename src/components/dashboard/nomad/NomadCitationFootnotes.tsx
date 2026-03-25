@@ -67,7 +67,7 @@ const NomadCitationFootnotes = ({ content }: NomadCitationFootnoteProps) => {
                 onClick={() => { navigator.clipboard.writeText(c.url); setCopied(c.index); setTimeout(() => setCopied(null), 1500); }}
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                {copied === c.index ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
+                {copied === c.index ? <Check className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
               </button>
               <a href={c.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <ExternalLink className="h-3 w-3 text-muted-foreground/40 hover:text-foreground" />

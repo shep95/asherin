@@ -137,7 +137,7 @@ const NomadSourceIntel = ({ investigations }: NomadSourceIntelProps) => {
                   <Search className="h-3 w-3 text-muted-foreground/40" />
                   <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search sources..." className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" />
                 </div>
-                <button onClick={() => setAddingSource(true)} className="text-[10px] text-accent/60 hover:text-accent">+ Add</button>
+                <button onClick={() => setAddingSource(true)} className="text-[10px] text-foreground/50 hover:text-foreground">+ Add</button>
               </div>
 
               {addingSource && (
@@ -145,12 +145,12 @@ const NomadSourceIntel = ({ investigations }: NomadSourceIntelProps) => {
                   <input value={newDomain} onChange={e => setNewDomain(e.target.value)} placeholder="Domain (e.g. reuters.com)" className="w-full bg-transparent text-xs text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] text-muted-foreground/40">Accuracy:</span>
-                    <input type="range" min={0} max={100} value={newAccuracy} onChange={e => setNewAccuracy(Number(e.target.value))} className="w-24 h-1 accent-accent" />
+                    <input type="range" min={0} max={100} value={newAccuracy} onChange={e => setNewAccuracy(Number(e.target.value))} className="w-24 h-1 accent-foreground" />
                     <span className="text-[10px] text-foreground/60">{newAccuracy}%</span>
                   </div>
                   <input value={newBias} onChange={e => setNewBias(e.target.value)} placeholder="Bias vector (e.g. left-center, corporate)" className="w-full bg-transparent text-[11px] text-foreground outline-none border-b border-border/20 pb-1" />
                   <div className="flex gap-2">
-                    <button onClick={addSource} className="text-[10px] text-accent">Save</button>
+                    <button onClick={addSource} className="text-[10px] text-foreground">Save</button>
                     <button onClick={() => setAddingSource(false)} className="text-[10px] text-muted-foreground/40">Cancel</button>
                   </div>
                 </div>
@@ -193,7 +193,7 @@ const NomadSourceIntel = ({ investigations }: NomadSourceIntelProps) => {
                   <div className="flex items-center gap-2">
                     <Search className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
                     <span className="text-xs text-foreground/70 font-light flex-1 truncate">{q.query}</span>
-                    <button onClick={() => replayQuery(q)} className="flex items-center gap-1 text-[9px] text-accent/60 hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => replayQuery(q)} className="flex items-center gap-1 text-[9px] text-foreground/50 hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                       <RefreshCw className="h-3 w-3" /> Replay
                     </button>
                   </div>
