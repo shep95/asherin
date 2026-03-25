@@ -3351,6 +3351,42 @@ Be direct, intelligence-grade. Include BT confidence inline.`;
       throw new Error(`AI generation failed (${resp.status})`);
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // POST-SYNTHESIS: RED TEAM ADVERSARIAL REVIEW (Pass 13)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    if (isPersonInvestigation && aiText.length > 500) {
+      console.log('NOMAD v8.0: Starting Red Team Protocol (Pass 13)...');
+      
+      redTeamAnalysis = await aiPass(GEMINI_API_KEY, 
+        'You are the target\'s defense attorney. Your job is to DESTROY every finding in this dossier. You are hostile, adversarial, and forensically precise. Output structured challenge report only.',
+        `You have just received this intelligence dossier. Run the RED TEAM PROTOCOL.
+
+Switch roles. You are NOT the analyst. You are the TARGET'S DEFENSE ATTORNEY. Destroy every finding.
+
+RED TEAM CHALLENGE PROTOCOL:
+
+1. ATTACK THE SOURCES — Which findings rely on a SINGLE source? Which sources have known bias/inaccuracy/SEO manipulation? (Spokeo = inaccurate. Reddit = anonymous. LinkedIn = self-reported.) Could ANY finding be explained by a DIFFERENT person with similar name? (False attribution = #1 OSINT error.)
+
+2. ATTACK THE TIMELINE — Alternative explanations for every dark period? Gap in 2020 = COVID. Gap in 2008 = financial crisis. Don't assume malice when circumstance explains it. Which conclusions REQUIRE specific interpretation when equally valid alternatives exist?
+
+3. ATTACK THE BEHAVIORAL PROFILE — Every OCEAN score, Dark Triad assessment, deception indicator is INFERENCE not FACT. What would the profile look like under most charitable interpretation?
+
+4. ATTACK THE CONFIDENCE SCORES — Which high-confidence (>80%) findings are built on chains of low-confidence inferences? Chain of 4x 80% inferences = 0.8^4 = 41% actual confidence. Flag these chains.
+
+5. IDENTIFY THE SINGLE MOST DANGEROUS ASSUMPTION — The ONE assumption that, if wrong, collapses the most conclusions. This is the dossier's critical vulnerability.
+
+Output: RED TEAM REPORT with challenged findings and severity, the single most dangerous assumption, and REVISED CONFIDENCE DISTRIBUTION.
+
+DOSSIER TO CHALLENGE:
+${aiText.slice(0, 8000)}`, 'gemini-2.5-flash', 2500, 0.2);
+
+      if (redTeamAnalysis) {
+        aiText += `\n\n---\n\n## ADVERSARIAL REVIEW — RED TEAM FINDINGS\n\n${redTeamAnalysis}`;
+        console.log(`NOMAD v8.0: Red Team analysis complete — ${redTeamAnalysis.length} chars`);
+      }
+    }
+
     // 4. Await collected images
     const collectedImages = await imagePromise;
 
