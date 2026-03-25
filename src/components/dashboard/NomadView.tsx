@@ -8,7 +8,7 @@ import {
   Fingerprint, MapPin, Phone, Image, Shield, Sparkles, StickyNote, FileText,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
   Brain, TrendingUp, Network, ShieldCheck, Pin,
-  Layers, Map, BarChart3, MessageSquare, Search, Eye, Video, Maximize2,
+  Layers, Map, BarChart3, MessageSquare, Search, Eye, Video, Maximize2, Camera,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
@@ -407,6 +407,32 @@ const NomadView = () => {
     toast({ title: "Dossier exported", description: `${messages.filter(m => m.role === "assistant").length} findings, ${allEntities.length} entities` });
   }, [messages, allEntities, toast]);
 
+  const screenshotChat = useCallback(async () => {
+    if (!chatContentRef.current || messages.length === 0) return;
+    toast({ title: "Capturing screenshot…" });
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(chatContentRef.current, {
+        backgroundColor: "#0a0a0a",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `nomad-screenshot-${new Date().toISOString().slice(0, 10)}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "Screenshot saved", description: "Chat output downloaded as PNG" });
+      }, "image/png");
+    } catch {
+      toast({ title: "Screenshot failed", variant: "destructive" });
+    }
+  }, [messages, toast]);
+
   const handleSelectionAction = useCallback((action: string, text: string) => {
     switch (action) {
       case "investigate": setInput(`Investigate: ${text}`); inputRef.current?.focus(); break;
@@ -538,6 +564,11 @@ const NomadView = () => {
             {messages.length > 0 && (
               <button onClick={exportFullDossier} className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors">
                 <FileText className="h-3 w-3" /> Export
+              </button>
+            )}
+            {messages.length > 0 && (
+              <button onClick={screenshotChat} className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                <Camera className="h-3 w-3" /> Screenshot
               </button>
             )}
             <button
