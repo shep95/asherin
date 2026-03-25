@@ -16,6 +16,14 @@ import MermaidDigraph from "./MermaidDigraph";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 import NomadFollowUps from "./nomad/NomadFollowUps";
 import NomadSelectionMenu from "./nomad/NomadSelectionMenu";
+import NomadConfidenceBadge from "./nomad/NomadConfidenceBadge";
+import NomadChainOfThought from "./nomad/NomadChainOfThought";
+import NomadAssumptionTracker from "./nomad/NomadAssumptionTracker";
+import NomadSearchBar from "./nomad/NomadSearchBar";
+import NomadCommandPalette from "./nomad/NomadCommandPalette";
+import NomadScrollIntel from "./nomad/NomadScrollIntel";
+import NomadCitationFootnotes from "./nomad/NomadCitationFootnotes";
+import NomadShareRedaction from "./nomad/NomadShareRedaction";
 import FloatingNotepad from "./FloatingNotepad";
 
 const NomadObjectExplorer = lazy(() => import("./nomad/NomadObjectExplorer"));
@@ -141,6 +149,11 @@ const NomadView = () => {
   const [activeTab, setActiveTab] = useState<NomadTab>("chat");
   const [expandedImages, setExpandedImages] = useState<string | null>(null);
   const [notepadOpen, setNotepadOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [shareRedactOpen, setShareRedactOpen] = useState(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -148,6 +161,7 @@ const NomadView = () => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
 
   // Aggregate all entities from messages for panels
   const allEntities = useMemo(() => {
@@ -406,6 +420,48 @@ const NomadView = () => {
     inputRef.current?.focus();
   }, [messages]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setCommandOpen(true); }
+      if (e.key === "f" && (e.ctrlKey || e.metaKey) && activeTab === "chat") { e.preventDefault(); setSearchOpen(true); }
+      if (e.key === "e" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); exportFullDossier(); }
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+        e.preventDefault(); inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeTab, exportFullDossier]);
+
+  const handleScrollToMessage = useCallback((id: string) => {
+    const el = document.getElementById(`nomad-msg-${id}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
+  const handleCommandAction = useCallback((action: string) => {
+    if (action === "export") exportFullDossier();
+    else if (action === "search") setSearchOpen(true);
+    else if (action === "notepad") setNotepadOpen(p => !p);
+    else if (action === "history") loadHistory();
+    else if (action.startsWith("investigate:")) {
+      setInput(`Investigate: ${action.slice(12)}`);
+      setActiveTab("chat");
+      inputRef.current?.focus();
+    }
+  }, [exportFullDossier, loadHistory]);
+
+  const handleRedactedExport = useCallback((redactedContent: string) => {
+    const blob = new Blob([redactedContent], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nomad-dossier-redacted-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Redacted dossier exported" });
+  }, [toast]);
+
   // Entity count badge for tabs
   const entityCount = allEntities.length;
 
@@ -425,6 +481,15 @@ const NomadView = () => {
           </div>
           <div className="flex items-center gap-2">
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
+            {messages.length > 0 && (
+              <button
+                onClick={() => setShareRedactOpen(true)}
+                className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Shield className="h-3 w-3" />
+                Share
+              </button>
+            )}
             {messages.length > 0 && (
               <button
                 onClick={exportFullDossier}
@@ -516,6 +581,7 @@ const NomadView = () => {
       <div className="flex flex-1 flex-col min-h-0">
         {activeTab === "chat" ? (
           <>
+            <NomadSearchBar messages={messages} onScrollToMessage={handleScrollToMessage} open={searchOpen} onClose={() => setSearchOpen(false)} />
             <ScrollArea className="flex-1">
               <div ref={chatContentRef} className="relative max-w-3xl mx-auto px-4 py-6 space-y-6">
                 <NomadSelectionMenu containerRef={chatContentRef} onAction={handleSelectionAction} />
@@ -575,7 +641,7 @@ const NomadView = () => {
                   </div>
                 ) : (
                   messages.map(msg => (
-                    <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div id={`nomad-msg-${msg.id}`} key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                       <div className="max-w-[85%]">
                         <div className={`rounded-2xl px-5 py-4 ${
                           msg.role === "user"
@@ -644,6 +710,13 @@ const NomadView = () => {
                                 )}
                               </div>
                             )}
+                            {msg.role === "assistant" && msg.content && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <NomadConfidenceBadge content={msg.content} />
+                              </div>
+                            )}
+                            {msg.role === "assistant" && msg.content && <NomadCitationFootnotes content={msg.content} />}
+                            {msg.role === "assistant" && msg.content && <NomadChainOfThought content={msg.content} />}
                             </>
                           ) : (
                             <p className="text-sm font-extralight text-foreground">{msg.content}</p>
@@ -703,6 +776,10 @@ const NomadView = () => {
                       </div>
                     </div>
                   ))
+                )}
+                {/* Assumption tracker */}
+                {messages.filter(m => m.role === "assistant" && m.content).length >= 2 && (
+                  <NomadAssumptionTracker messages={messages} />
                 )}
                 {/* Follow-up suggestions after last assistant message */}
                 {messages.length > 0 && !isLoading && messages[messages.length - 1]?.role === "assistant" && messages[messages.length - 1]?.content && (
@@ -804,6 +881,20 @@ const NomadView = () => {
         open={notepadOpen}
         onClose={() => setNotepadOpen(false)}
         conversationId={`nomad-session-${user?.id || "anon"}`}
+      />
+      <NomadCommandPalette
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        onSwitchTab={(tab) => setActiveTab(tab as NomadTab)}
+        onAction={handleCommandAction}
+        entities={allEntities}
+      />
+      <NomadShareRedaction
+        content={messages.filter(m => m.role === "assistant").map(m => m.content).join("\n\n---\n\n")}
+        entities={allEntities}
+        onExport={handleRedactedExport}
+        open={shareRedactOpen}
+        onClose={() => setShareRedactOpen(false)}
       />
     </div>
   );
