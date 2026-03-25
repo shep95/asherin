@@ -687,7 +687,7 @@ const NomadView = () => {
                       <div className="max-w-[85%]">
                         <div className={`rounded-2xl px-5 py-4 ${
                           msg.role === "user"
-                            ? "bg-accent/15 border border-accent/20"
+                            ? "bg-foreground/[0.06] border border-foreground/[0.08]"
                             : "bg-card/30 border border-border/20"
                         }`}>
                           {msg.role === "assistant" && !msg.content ? (
