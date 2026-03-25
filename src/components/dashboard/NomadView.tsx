@@ -566,6 +566,11 @@ const NomadView = () => {
                 <FileText className="h-3 w-3" /> Export
               </button>
             )}
+            {messages.length > 0 && (
+              <button onClick={screenshotChat} className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                <Camera className="h-3 w-3" /> Screenshot
+              </button>
+            )}
             <button
               onClick={() => setNotepadOpen(!notepadOpen)}
               className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-extralight tracking-wider transition-colors ${
