@@ -517,8 +517,8 @@ const NomadView = () => {
       <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-md px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-              <Crosshair className="h-4 w-4 text-accent" />
+            <div className="h-9 w-9 rounded-2xl bg-foreground/[0.06] border border-foreground/[0.08] flex items-center justify-center">
+              <Crosshair className="h-4 w-4 text-foreground/70" />
             </div>
             <div>
               <h1 className="text-sm font-light tracking-[0.2em] text-foreground uppercase">NOMAD</h1>
@@ -543,7 +543,7 @@ const NomadView = () => {
             <button
               onClick={() => setNotepadOpen(!notepadOpen)}
               className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-extralight tracking-wider transition-colors ${
-                notepadOpen ? "border-accent/30 bg-accent/10 text-accent" : "border-border/20 bg-card/30 text-muted-foreground hover:text-foreground"
+                notepadOpen ? "border-foreground/20 bg-foreground/[0.06] text-foreground" : "border-border/20 bg-card/30 text-muted-foreground hover:text-foreground"
               }`}
             >
               <StickyNote className="h-3 w-3" /> Notepad
@@ -562,14 +562,14 @@ const NomadView = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-extralight tracking-wider transition-all shrink-0 ${
                 activeTab === tab.id
-                  ? "bg-accent/15 text-accent border border-accent/20"
+                  ? "bg-foreground/[0.08] text-foreground border border-foreground/[0.12]"
                   : "text-muted-foreground/60 hover:text-foreground hover:bg-card/30 border border-transparent"
               }`}
             >
               <tab.icon className="h-3.5 w-3.5" />
               {tab.label}
               {tab.id !== "chat" && entityCount > 0 && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent/70">{entityCount}</span>
+                <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/50">{entityCount}</span>
               )}
             </button>
           ))}
@@ -625,8 +625,8 @@ const NomadView = () => {
                 {messages.length === 0 ? (
                   <div className="space-y-8 pt-12">
                     <div className="text-center space-y-4">
-                      <div className="h-16 w-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto">
-                        <Crosshair className="h-7 w-7 text-accent" />
+                      <div className="h-16 w-16 rounded-2xl bg-foreground/[0.06] border border-foreground/[0.08] flex items-center justify-center mx-auto">
+                        <Crosshair className="h-7 w-7 text-foreground/60" />
                       </div>
                       <h2 className="text-xl font-extralight tracking-wide text-foreground">NOMAD v3.0</h2>
                       <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
@@ -647,9 +647,9 @@ const NomadView = () => {
                         <button
                           key={type.id}
                           onClick={() => handleQuickInvestigate(type)}
-                          className="group relative flex flex-col items-center gap-2.5 rounded-2xl border border-border/20 bg-card/20 hover:bg-card/40 hover:border-accent/20 p-4 text-center transition-all"
+                          className="group relative flex flex-col items-center gap-2.5 rounded-2xl border border-border/20 bg-card/20 hover:bg-card/40 hover:border-foreground/15 p-4 text-center transition-all"
                         >
-                          <type.icon className="h-5 w-5 text-accent/60 group-hover:text-accent transition-colors" />
+                          <type.icon className="h-5 w-5 text-foreground/40 group-hover:text-foreground/70 transition-colors" />
                           <span className="text-[11px] font-light text-foreground">{type.label}</span>
                           <span className="text-[9px] font-extralight text-muted-foreground leading-tight">{type.desc}</span>
                         </button>
@@ -687,7 +687,7 @@ const NomadView = () => {
                       <div className="max-w-[85%]">
                         <div className={`rounded-2xl px-5 py-4 ${
                           msg.role === "user"
-                            ? "bg-accent/15 border border-accent/20"
+                            ? "bg-foreground/[0.06] border border-foreground/[0.08]"
                             : "bg-card/30 border border-border/20"
                         }`}>
                           {msg.role === "assistant" && !msg.content ? (
@@ -696,7 +696,7 @@ const NomadView = () => {
                               <span className="text-xs font-extralight text-muted-foreground animate-pulse">Investigating…</span>
                             </div>
                           ) : msg.role === "assistant" ? (<>
-                            <div className="prose prose-invert prose-sm max-w-none font-extralight [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_h1]:text-base [&_h1]:font-light [&_h2]:text-sm [&_h2]:font-light [&_h3]:text-sm [&_h3]:font-light [&_li]:text-sm [&_code]:bg-secondary/50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-lg [&_pre]:bg-secondary/30 [&_pre]:rounded-2xl [&_pre]:p-4 [&_strong]:text-foreground [&_a]:text-accent">
+                            <div className="prose prose-invert prose-sm max-w-none font-extralight [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_h1]:text-base [&_h1]:font-light [&_h2]:text-sm [&_h2]:font-light [&_h3]:text-sm [&_h3]:font-light [&_li]:text-sm [&_code]:bg-secondary/50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-lg [&_pre]:bg-secondary/30 [&_pre]:rounded-2xl [&_pre]:p-4 [&_strong]:text-foreground [&_a]:text-foreground/70 [&_a]:underline">
                               {(() => {
                                 // Match fenced mermaid blocks OR unfenced graph TD/LR blocks
                                 const fencedPattern = /(```mermaid[\s\S]*?```)/g;
@@ -736,7 +736,7 @@ const NomadView = () => {
                               <div className="mt-4 border-t border-border/10 pt-3">
                                 <button
                                   onClick={() => setExpandedImages(expandedImages === msg.id ? null : msg.id)}
-                                  className="flex items-center gap-2 text-[10px] font-light text-accent/70 hover:text-accent transition-colors mb-2"
+                                  className="flex items-center gap-2 text-[10px] font-light text-foreground/50 hover:text-foreground/70 transition-colors mb-2"
                                 >
                                   <Image className="h-3 w-3" />
                                   {msg.images.length} {msg.images.length !== 1 ? "images" : "image"} collected
@@ -745,7 +745,7 @@ const NomadView = () => {
                                 {expandedImages === msg.id && (
                                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 animate-fade-in">
                                     {msg.images.map((img, imgIdx) => (
-                                      <a key={imgIdx} href={img.url} target="_blank" rel="noopener noreferrer" className="group relative rounded-xl overflow-hidden border border-border/15 bg-card/20 hover:border-accent/30 transition-all">
+                                      <a key={imgIdx} href={img.url} target="_blank" rel="noopener noreferrer" className="group relative rounded-xl overflow-hidden border border-border/15 bg-card/20 hover:border-foreground/15 transition-all">
                                         <img src={img.thumbnail || img.url} alt={img.title || 'Investigation image'} className="w-full h-24 object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/90 to-transparent p-1.5">
                                           <p className="text-[8px] font-extralight text-foreground/70 truncate">{img.title || img.source}</p>
@@ -779,13 +779,13 @@ const NomadView = () => {
                               onClick={() => { navigator.clipboard.writeText(msg.content); setCopiedId(msg.id); setTimeout(() => setCopiedId(null), 2000); }}
                               className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                             >
-                              {copiedId === msg.id ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
+                              {copiedId === msg.id ? <Check className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3" />}
                               {copiedId === msg.id ? "Copied" : "Copy"}
                             </button>
                             <button onClick={() => setDiagramId(diagramId === msg.id ? null : msg.id)} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
                               <GitBranch className="h-3 w-3" /> Diagram
                             </button>
-                            <button onClick={() => handleTogglePin(msg.id)} className={`flex items-center gap-1 text-[10px] font-light transition-colors ${pinnedIds.has(msg.id) ? "text-accent" : "text-muted-foreground/50 hover:text-muted-foreground"}`}>
+                            <button onClick={() => handleTogglePin(msg.id)} className={`flex items-center gap-1 text-[10px] font-light transition-colors ${pinnedIds.has(msg.id) ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"}`}>
                               <Pin className="h-3 w-3" /> {pinnedIds.has(msg.id) ? "Pinned" : "Pin"}
                             </button>
                             <button onClick={() => setFocusModeContent(msg.content)} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
@@ -796,13 +796,13 @@ const NomadView = () => {
                             <NomadCalibrationFeedback messageId={msg.id} onFeedback={handleCalibrationFeedback} />
                             {allEntities.length > 0 && (
                               <>
-                                <button onClick={() => setActiveTab("objects")} className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors">
+                                <button onClick={() => setActiveTab("objects")} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-foreground transition-colors">
                                   <Layers className="h-3 w-3" /> Objects
                                 </button>
-                                <button onClick={() => setActiveTab("graph")} className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors">
+                                <button onClick={() => setActiveTab("graph")} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-foreground transition-colors">
                                   <Network className="h-3 w-3" /> Graph
                                 </button>
-                                <button onClick={() => setActiveTab("map")} className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors">
+                                <button onClick={() => setActiveTab("map")} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-foreground transition-colors">
                                   <Map className="h-3 w-3" /> Map
                                 </button>
                               </>
@@ -842,7 +842,7 @@ const NomadView = () => {
                 {attachedFiles.length > 0 && (
                   <div className="flex items-center gap-1.5 mb-2">
                     {attachedFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-1 rounded-lg bg-accent/10 border border-accent/20 px-2 py-1 text-[9px] font-extralight text-accent">
+                      <div key={i} className="flex items-center gap-1 rounded-lg bg-foreground/[0.06] border border-foreground/[0.08] px-2 py-1 text-[9px] font-extralight text-foreground/70">
                         <Image className="h-3 w-3" />
                         <span className="truncate max-w-[80px]">{f.name}</span>
                         <button onClick={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-destructive transition-colors">
@@ -874,7 +874,7 @@ const NomadView = () => {
                       <button
                         onClick={handleSend}
                         disabled={!input.trim() || isLoading}
-                        className="rounded-2xl bg-accent/20 border border-accent/30 p-3 text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
+                        className="rounded-2xl bg-foreground/[0.08] border border-foreground/[0.12] p-3 text-foreground hover:bg-foreground/[0.12] transition-colors disabled:opacity-30"
                       >
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       </button>
