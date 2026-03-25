@@ -31,6 +31,9 @@ const NomadMediaForensics = lazy(() => import("./nomad/NomadMediaForensics"));
 const NomadCollectionPipeline = lazy(() => import("./nomad/NomadCollectionPipeline"));
 const NomadHandleHunter = lazy(() => import("./nomad/NomadHandleHunter"));
 const NomadNetworkDiff = lazy(() => import("./nomad/NomadNetworkDiff"));
+const NomadPredictiveIntel = lazy(() => import("./nomad/NomadPredictiveIntel"));
+const NomadImagineIntel = lazy(() => import("./nomad/NomadImagineIntel"));
+const NomadVideoIntel = lazy(() => import("./nomad/NomadVideoIntel"));
 
 interface NomadInvestigation {
   id: string;
