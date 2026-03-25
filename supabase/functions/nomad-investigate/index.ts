@@ -2691,6 +2691,39 @@ If cross-platform analysis data is provided, include:
 - Suspected sock puppet accounts
 - REAL PERSONALITY vs CURATED PERSONA
 
+**## GEOSPATIAL INTELLIGENCE**
+If geospatial analysis data is provided, include:
+- Primary Residence Anchor vs stated location (conflict = jurisdiction shopping/privacy/tax)
+- Shadow Locations (in data but never acknowledged)
+- Migration Timeline with triggers
+- Jurisdiction Risk Assessment (shell structures, multi-state registrations)
+- Physical Proximity Network (co-located but unacknowledged associates)
+
+**## SENTIMENT VELOCITY**
+If sentiment analysis data is provided, include:
+- Baseline Sentiment (earliest 20% of mentions)
+- Inflection Points (>20% shift in 90 days) with cross-referenced causes
+- Divergence Score: professional vs anonymous source sentiment gap (>40% = managed reputation)
+- 90-day Acceleration Indicator (accelerating negative = active breakdown)
+- Criticism Language Type: emotional (weight lower) vs factual with specifics (weight higher)
+
+**## NETWORK CENTRALITY SCORECARD**
+If network centrality analysis data is provided, include:
+- Degree/Betweenness/Eigenvector scores for key nodes
+- Top 3 Hidden Brokers (high betweenness, low degree)
+- Structural Holes (deliberate network separation)
+- Bridge Node (single point of failure)
+
+**## SURVIVORSHIP BIAS AUDIT**
+If survivorship analysis data is provided, include:
+- Expected vs Present artifact checklist
+- Top narrative gaps by severity
+- Most likely area of deliberate suppression/fabrication
+
+**## BAYESIAN CONFIDENCE CHAIN**
+Top 10 core claims with: Prior → Update chain → Posterior probability.
+Highlight the single most dangerous assumption (biggest gap between stated and Bayesian posterior).
+
 **## NETWORK MAP**
 GRAPH GENERATION RULES:
 1. Do NOT create a star topology. The target is NOT always the center node.
@@ -2709,9 +2742,18 @@ Include 2-3 recommended follow-up investigation vectors.
 If entities from this investigation overlap with prior investigations, surface them here.
 Format: [Entity] appeared in Investigation [X] on [date] — potential connection: [reasoning]
 
+**## ADVERSARIAL REVIEW — RED TEAM FINDINGS**
+If Red Team analysis is provided, include:
+- Challenged findings with severity ratings
+- Source reliability attacks (single-source, bias, SEO manipulation, false attribution risk)
+- Alternative timeline explanations (COVID, market crash, not malice)
+- Behavioral inference caveats (OCEAN/Dark Triad = inference not fact)
+- Confidence chain vulnerabilities (chain of 4x 80% inferences = 41% actual)
+- The SINGLE most dangerous assumption in the dossier
+
 ## CRITICAL RULES
 - NEVER fabricate data — every claim traces to provided intelligence
-- Total response must be under 1200 words (excluding the mermaid block)
+- Total response must be under 1500 words (excluding the mermaid block)
 - The mermaid block MUST be valid mermaid syntax
 - When Benford analysis flags financial numbers, mention it explicitly
 - When single-source claims are flagged, mark them ⚠️ SINGLE-SOURCE
@@ -2719,7 +2761,7 @@ Format: [Entity] appeared in Investigation [X] on [date] — potential connectio
 - Be direct, factual, intelligence-grade — no filler text
 - Include Bradley-Terry confidence and provenance data inline
 - The DELTA between Stated Self and Evidenced Self is the most critical output
-- Include all 6 AI analysis pass results when provided`;
+- Include all analysis pass results when provided`;
 
 // ── Multi-Stage AI Helper (Gap 1) ───────────────────────────────────────────
 
