@@ -2124,6 +2124,18 @@ async function ingestIntelligence(query: string): Promise<{
     tasks.push(ingestYandex(query));
     tasks.push(ingestOpenCorporates(query));
     tasks.push(ingestMappingTools(query));
+    
+    // ── MONAD: Sector-Based Dork Queries (Agency-Level Deep Dive) ──
+    const cleaned = query.replace(/investigate|person|research|find|who is|look up|about|company|search/gi, '').trim();
+    const locationMatch = query.match(/(?:in|from|at|near)\s+([A-Z][A-Za-z\s,]+)/);
+    const detectedLocation = locationMatch ? locationMatch[1].trim() : undefined;
+    const sectors = generateSectorDorks(cleaned, detectedLocation);
+    // Run top 8 most critical sectors in parallel (legal, corporate, financial, asset)
+    const prioritySectors = sectors.filter(s => s.tier <= 2).slice(0, 6);
+    const secondarySectors = sectors.filter(s => s.tier > 2).slice(0, 4);
+    for (const sector of [...prioritySectors, ...secondarySectors]) {
+      tasks.push(ingestSectorDork(sector.sector, sector.query, sector.tier));
+    }
   }
 
   // Company/corporate
