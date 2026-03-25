@@ -1815,7 +1815,118 @@ async function recursivePIISpider(entities: ExtractedEntity[], depth = 0, visite
   return [...nodes, ...deeperNodes];
 }
 
-// ── Behavioral Profiling Engine (MONAD: keyword-based trait detection) ───────
+// ── OCEAN Behavioral Profiling Engine (Gap 2: Enhanced) ─────────────────────
+
+function computeOCEANProfile(text: string): OCEANProfile {
+  const t = text.toLowerCase();
+  const words = t.split(/\s+/);
+  const totalWords = words.length || 1;
+  
+  // Function word ratio (deception indicator)
+  const functionWords = ['the', 'a', 'an', 'is', 'was', 'were', 'are', 'been', 'be', 'have', 'has', 'had',
+    'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can',
+    'of', 'in', 'to', 'for', 'with', 'on', 'at', 'from', 'by', 'about', 'as', 'into',
+    'through', 'during', 'before', 'after', 'above', 'below', 'between', 'and', 'but', 'or',
+    'not', 'no', 'nor', 'so', 'yet', 'both', 'either', 'neither', 'each', 'every',
+    'i', 'me', 'my', 'mine', 'we', 'us', 'our', 'ours', 'you', 'your', 'yours',
+    'he', 'him', 'his', 'she', 'her', 'hers', 'it', 'its', 'they', 'them', 'their'];
+  const functionWordCount = words.filter(w => functionWords.includes(w)).length;
+  const functionWordRatio = functionWordCount / totalWords;
+  
+  // Burstiness scoring (timestamp-based if available, otherwise content density)
+  const dateMatches = text.match(/\b(?:19|20)\d{2}-\d{2}-\d{2}\b/g) || [];
+  let burstinessScore = 0;
+  if (dateMatches.length >= 3) {
+    const timestamps = dateMatches.map(d => new Date(d).getTime()).filter(t => !isNaN(t)).sort();
+    if (timestamps.length >= 3) {
+      const intervals = timestamps.slice(1).map((t, i) => t - timestamps[i]);
+      const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const variance = intervals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / intervals.length;
+      burstinessScore = Math.min(1, Math.sqrt(variance) / (mean || 1));
+    }
+  }
+  
+  // OCEAN scoring from content patterns
+  const openness = (
+    (/creative|innovat|experiment|novel|curious|explor|diverse|abstract|artistic|imaginat/i.test(t) ? 0.3 : 0) +
+    (/beta|early adopter|new platform|switching|trying out/i.test(t) ? 0.2 : 0) +
+    (/travel|abroad|international|global|multicultural/i.test(t) ? 0.2 : 0) +
+    (/philosophy|theory|concept|paradigm|framework/i.test(t) ? 0.3 : 0)
+  );
+  
+  const conscientiousness = (
+    (/deadline|schedule|organized|systematic|plan|budget|quarterly|annual report/i.test(t) ? 0.3 : 0) +
+    (/compliance|regulation|standard|certified|audit|quality/i.test(t) ? 0.3 : 0) +
+    (/milestone|achievement|award|recognition|accomplished/i.test(t) ? 0.2 : 0) +
+    (/warranty|guarantee|insurance|protection|secure/i.test(t) ? 0.2 : 0)
+  );
+  
+  const extraversion = (
+    (/conference|speaking|keynote|panel|networking|event|social|party/i.test(t) ? 0.3 : 0) +
+    (/followers|subscribers|audience|community|fans|supporters/i.test(t) ? 0.3 : 0) +
+    (/interview|podcast|media|press|coverage|spotlight/i.test(t) ? 0.2 : 0) +
+    (/team|collaborate|partnership|alliance|coalition/i.test(t) ? 0.2 : 0)
+  );
+  
+  const agreeableness = (
+    (/volunteer|charity|donate|nonprofit|mentor|support|help/i.test(t) ? 0.3 : 0) +
+    (/thank|grateful|appreciate|kind|generous|empathy/i.test(t) ? 0.3 : 0) -
+    (/lawsuit|attack|criticize|condemn|oppose|fight|destroy/i.test(t) ? 0.3 : 0) -
+    (/confrontat|aggressive|hostile|combative|adversarial/i.test(t) ? 0.3 : 0)
+  );
+  
+  const neuroticism = (
+    (/stress|anxiety|worry|fear|concern|risk|threat|danger|crisis/i.test(t) ? 0.3 : 0) +
+    (/security|protection|defense|shield|guard|safe/i.test(t) ? 0.2 : 0) +
+    (/cancel|delete|remove|scrub|privacy|anonymous/i.test(t) ? 0.2 : 0) +
+    (/warranty|insurance|backup|contingency|emergency/i.test(t) ? 0.2 : 0)
+  );
+  
+  // Deception indicators
+  const deceptionIndicators: string[] = [];
+  if (functionWordRatio < 0.25) deceptionIndicators.push('Low function word ratio (possible deception)');
+  if (functionWordRatio > 0.55) deceptionIndicators.push('High function word ratio (possible scripted content)');
+  const firstPersonCount = (t.match(/\b(i|me|my|mine|myself)\b/g) || []).length;
+  const firstPersonRatio = firstPersonCount / totalWords;
+  if (firstPersonRatio < 0.01 && totalWords > 200) deceptionIndicators.push('Abnormally low self-reference (distancing language)');
+  if (/never|always|absolutely|certainly|definitely|impossible/i.test(t)) deceptionIndicators.push('Absolute language detected (certainty signals)');
+  
+  // Predicted actions based on OCEAN
+  const predictedActions: string[] = [];
+  if (openness > 0.5) predictedActions.push('Likely to adopt new platforms/technologies early');
+  if (conscientiousness > 0.5) predictedActions.push('Will maintain structured public records, filings on time');
+  if (extraversion > 0.5) predictedActions.push('Expect public appearances, media engagement');
+  if (agreeableness < 0) predictedActions.push('May engage in confrontational responses if contacted');
+  if (neuroticism > 0.5) predictedActions.push('Likely to scrub/protect digital footprint proactively');
+  if (burstinessScore > 0.7) predictedActions.push('Activity pattern suggests stress events or life changes');
+  
+  // Posting time heatmap (from timestamps found)
+  const postingHeatmap: Record<string, number> = {};
+  const timeMatches = text.match(/\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\b/g) || [];
+  for (const time of timeMatches) {
+    const hourMatch = time.match(/(\d{1,2}):/);
+    if (hourMatch) {
+      let hour = parseInt(hourMatch[1]);
+      if (/pm/i.test(time) && hour < 12) hour += 12;
+      if (/am/i.test(time) && hour === 12) hour = 0;
+      const slot = `${String(hour).padStart(2, '0')}:00`;
+      postingHeatmap[slot] = (postingHeatmap[slot] || 0) + 1;
+    }
+  }
+  
+  return {
+    openness: Math.max(0, Math.min(1, openness)),
+    conscientiousness: Math.max(0, Math.min(1, conscientiousness)),
+    extraversion: Math.max(0, Math.min(1, extraversion)),
+    agreeableness: Math.max(-1, Math.min(1, agreeableness)),
+    neuroticism: Math.max(0, Math.min(1, neuroticism)),
+    deceptionIndicators,
+    predictedActions,
+    postingHeatmap,
+    functionWordRatio: Math.round(functionWordRatio * 1000) / 1000,
+    burstinessScore: Math.round(burstinessScore * 100) / 100,
+  };
+}
 
 function extractBehavioralProfile(text: string): string[] {
   const traits: string[] = [];
