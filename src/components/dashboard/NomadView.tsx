@@ -562,7 +562,7 @@ const NomadView = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-extralight tracking-wider transition-all shrink-0 ${
                 activeTab === tab.id
-                  ? "bg-accent/15 text-accent border border-accent/20"
+                  ? "bg-foreground/[0.08] text-foreground border border-foreground/[0.12]"
                   : "text-muted-foreground/60 hover:text-foreground hover:bg-card/30 border border-transparent"
               }`}
             >
