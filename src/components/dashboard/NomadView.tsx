@@ -7,13 +7,15 @@ import {
   Send, Loader2, Crosshair, Globe, Building2, User, AtSign,
   Fingerprint, MapPin, Phone, Image, Shield, Sparkles, StickyNote, FileText,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
-  Brain, TrendingUp, Network, ShieldCheck,
-  Layers, Map, BarChart3, MessageSquare, Search, Eye, Video,
+  Brain, TrendingUp, Network, ShieldCheck, Pin,
+  Layers, Map, BarChart3, MessageSquare, Search, Eye, Video, Maximize2,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
 import MermaidDigraph from "./MermaidDigraph";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
+import SafePasteMode from "./SafePasteMode";
+// NOMAD sub-components
 import NomadFollowUps from "./nomad/NomadFollowUps";
 import NomadSelectionMenu from "./nomad/NomadSelectionMenu";
 import NomadConfidenceBadge from "./nomad/NomadConfidenceBadge";
@@ -24,6 +26,20 @@ import NomadCommandPalette from "./nomad/NomadCommandPalette";
 import NomadScrollIntel from "./nomad/NomadScrollIntel";
 import NomadCitationFootnotes from "./nomad/NomadCitationFootnotes";
 import NomadShareRedaction from "./nomad/NomadShareRedaction";
+import NomadDecisionLog from "./nomad/NomadDecisionLog";
+import NomadCalibrationFeedback from "./nomad/NomadCalibrationFeedback";
+import NomadContextHealth from "./nomad/NomadContextHealth";
+import NomadTokenCost from "./nomad/NomadTokenCost";
+import NomadEncryptionBadge from "./nomad/NomadEncryptionBadge";
+import NomadFocusMode from "./nomad/NomadFocusMode";
+import NomadMessageNote from "./nomad/NomadMessageNote";
+import NomadOutputFormat from "./nomad/NomadOutputFormat";
+import NomadPinManager from "./nomad/NomadPinManager";
+import NomadThreadReceipt from "./nomad/NomadThreadReceipt";
+import NomadFileUpload from "./nomad/NomadFileUpload";
+import NomadVoiceInput from "./nomad/NomadVoiceInput";
+import NomadStructuredForms from "./nomad/NomadStructuredForms";
+import NomadLinkPreview from "./nomad/NomadLinkPreview";
 import FloatingNotepad from "./FloatingNotepad";
 
 const NomadObjectExplorer = lazy(() => import("./nomad/NomadObjectExplorer"));
@@ -68,7 +84,6 @@ function extractEntitiesFromText(text: string) {
   (text.match(/\$[\d,]+(?:\.\d{2})?/g) || []).forEach(v => add("money", v, 0.95));
   (text.match(/\b[A-Z][A-Za-z\s&]+(?:Inc\.|LLC|Corp\.|Corporation)\b/g) || []).forEach(v => add("organization", v.trim(), 0.85));
   (text.match(/https?:\/\/[^\s)]+/g) || []).forEach(v => add("url", v, 1.0));
-  // Extended extraction
   (text.match(/\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g) || []).forEach(v => add("phone", v, 0.9));
   (text.match(/\b(?:Toyota|Honda|Ford|BMW|Mercedes|Tesla|Chevrolet|Audi|Porsche)\s+[A-Z][A-Za-z0-9\s-]{2,15}/g) || []).forEach(v => add("vehicle", v.trim(), 0.8));
   (text.match(/\btransaction[:\s#]*[A-Za-z0-9-]{8,36}\b/gi) || []).forEach(v => add("transaction_id", v, 0.85));
@@ -94,7 +109,7 @@ interface NomadMessage {
   content: string;
   timestamp: Date;
   investigationType?: string;
-  status?: "sending" | "queued" | "sent" | "failed";
+  status?: "sending" | "queued" | "sent" | "delivered" | "read" | "failed";
   images?: CollectedImage[];
 }
 
@@ -148,12 +163,17 @@ const NomadView = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<NomadTab>("chat");
   const [expandedImages, setExpandedImages] = useState<string | null>(null);
+  // Feature state
   const [notepadOpen, setNotepadOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [shareRedactOpen, setShareRedactOpen] = useState(false);
-  const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [focusModeContent, setFocusModeContent] = useState<string | null>(null);
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
+  const [messageNotes, setMessageNotes] = useState<Record<string, string>>({});
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [showStructuredForms, setShowStructuredForms] = useState(false);
+  // Refs
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -162,8 +182,7 @@ const NomadView = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-
-  // Aggregate all entities from messages for panels
+  // Aggregate all entities
   const allEntities = useMemo(() => {
     const entities: { type: string; value: string; confidence: number; source?: string }[] = [];
     const seen = new Set<string>();
@@ -177,7 +196,6 @@ const NomadView = () => {
     return entities;
   }, [messages]);
 
-  // Build cross-reference map
   const crossRefMap = useMemo(() => {
     const map: Record<string, string[]> = {};
     for (const msg of messages) {
@@ -192,9 +210,8 @@ const NomadView = () => {
     return map;
   }, [messages]);
 
-  // Convert messages to investigation-like format for Timeline/Map
   const sessionInvestigations = useMemo(() => {
-    return messages.filter(m => m.role === "assistant" && m.content).map((m, idx) => {
+    return messages.filter(m => m.role === "assistant" && m.content).map((m) => {
       const userMsg = messages.slice(0, messages.indexOf(m)).reverse().find(u => u.role === "user");
       return {
         query: userMsg?.content || "",
@@ -251,7 +268,6 @@ const NomadView = () => {
         if (jsonStr === "[DONE]") break;
         try {
           const parsed = JSON.parse(jsonStr);
-          // Handle image events
           if (parsed.type === 'images' && parsed.images) {
             const imgs = parsed.images as CollectedImage[];
             setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, images: imgs } : m));
@@ -317,13 +333,15 @@ const NomadView = () => {
 
     setMessages(prev => [...prev, userMsg]);
     setInput("");
+    setAttachedFiles([]);
     setIsLoading(true);
 
     try {
       await actualSend(userMsg);
-      setMessages(prev => prev.map(m => m.id === userMsg.id ? { ...m, status: "sent" } : m));
+      setMessages(prev => prev.map(m => m.id === userMsg.id ? { ...m, status: "delivered" } : m));
     } catch (e: any) {
       toast({ title: "NOMAD Error", description: e.message, variant: "destructive" });
+      setMessages(prev => prev.map(m => m.id === userMsg.id ? { ...m, status: "failed" } : m));
     } finally {
       setIsLoading(false);
     }
@@ -391,25 +409,11 @@ const NomadView = () => {
 
   const handleSelectionAction = useCallback((action: string, text: string) => {
     switch (action) {
-      case "investigate":
-        setInput(`Investigate: ${text}`);
-        inputRef.current?.focus();
-        break;
-      case "profile":
-        setInput(`Build a complete profile on: ${text}`);
-        inputRef.current?.focus();
-        break;
-      case "search-web":
-        setInput(`Search all OSINT sources for: ${text}`);
-        inputRef.current?.focus();
-        break;
-      case "add-case":
-        toast({ title: "Added to case file", description: `"${text.slice(0, 50)}…" saved` });
-        break;
-      case "copy":
-        navigator.clipboard.writeText(text);
-        toast({ title: "Copied" });
-        break;
+      case "investigate": setInput(`Investigate: ${text}`); inputRef.current?.focus(); break;
+      case "profile": setInput(`Build a complete profile on: ${text}`); inputRef.current?.focus(); break;
+      case "search-web": setInput(`Search all OSINT sources for: ${text}`); inputRef.current?.focus(); break;
+      case "add-case": toast({ title: "Added to case file", description: `"${text.slice(0, 50)}…" saved` }); break;
+      case "copy": navigator.clipboard.writeText(text); toast({ title: "Copied" }); break;
     }
   }, [toast]);
 
@@ -426,13 +430,20 @@ const NomadView = () => {
       if (e.key === "k" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setCommandOpen(true); }
       if (e.key === "f" && (e.ctrlKey || e.metaKey) && activeTab === "chat") { e.preventDefault(); setSearchOpen(true); }
       if (e.key === "e" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); exportFullDossier(); }
+      if (e.key === "n" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setMessages([]);
+        setInput("");
+        toast({ title: "New Investigation" });
+      }
       if (e.key === "/" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
         e.preventDefault(); inputRef.current?.focus();
       }
+      if (e.key === "Escape" && focusModeContent) setFocusModeContent(null);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeTab, exportFullDossier]);
+  }, [activeTab, exportFullDossier, focusModeContent, toast]);
 
   const handleScrollToMessage = useCallback((id: string) => {
     const el = document.getElementById(`nomad-msg-${id}`);
@@ -462,7 +473,42 @@ const NomadView = () => {
     toast({ title: "Redacted dossier exported" });
   }, [toast]);
 
-  // Entity count badge for tabs
+  const handleTogglePin = useCallback((id: string) => {
+    setPinnedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleSaveNote = useCallback((msgId: string, note: string) => {
+    setMessageNotes(prev => ({ ...prev, [msgId]: note }));
+    toast({ title: "Note saved" });
+  }, [toast]);
+
+  const handleCalibrationFeedback = useCallback((msgId: string, feedback: string) => {
+    toast({ title: "Calibration recorded", description: `Feedback: ${feedback}` });
+  }, [toast]);
+
+  // Clipboard paste handler for images
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const images = items.filter(i => i.type.startsWith("image/"));
+    if (images.length > 0) {
+      e.preventDefault();
+      const files = images.map(i => i.getAsFile()).filter(Boolean) as File[];
+      setAttachedFiles(prev => [...prev, ...files].slice(0, 3));
+      toast({ title: "Image pasted", description: `${files.length} image(s) attached` });
+    }
+  }, [toast]);
+
+  const handleStructuredSubmit = useCallback((query: string) => {
+    setInput(query);
+    setShowStructuredForms(false);
+    setActiveTab("chat");
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
+
   const entityCount = allEntities.length;
 
   return (
@@ -478,25 +524,20 @@ const NomadView = () => {
               <h1 className="text-sm font-light tracking-[0.2em] text-foreground uppercase">NOMAD</h1>
               <p className="text-[10px] font-extralight tracking-wider text-muted-foreground">Gotham-Grade Intelligence Platform</p>
             </div>
+            <NomadEncryptionBadge />
           </div>
           <div className="flex items-center gap-2">
+            <NomadContextHealth messages={messages} />
+            <NomadTokenCost messages={messages} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             {messages.length > 0 && (
-              <button
-                onClick={() => setShareRedactOpen(true)}
-                className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Shield className="h-3 w-3" />
-                Share
+              <button onClick={() => setShareRedactOpen(true)} className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                <Shield className="h-3 w-3" /> Share
               </button>
             )}
             {messages.length > 0 && (
-              <button
-                onClick={exportFullDossier}
-                className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <FileText className="h-3 w-3" />
-                Export Dossier
+              <button onClick={exportFullDossier} className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                <FileText className="h-3 w-3" /> Export
               </button>
             )}
             <button
@@ -505,26 +546,21 @@ const NomadView = () => {
                 notepadOpen ? "border-accent/30 bg-accent/10 text-accent" : "border-border/20 bg-card/30 text-muted-foreground hover:text-foreground"
               }`}
             >
-              <StickyNote className="h-3 w-3" />
-              Notepad
+              <StickyNote className="h-3 w-3" /> Notepad
             </button>
-            <button
-              onClick={loadHistory}
-              className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <History className="h-3 w-3" />
-              History
+            <button onClick={loadHistory} className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+              <History className="h-3 w-3" /> History
             </button>
           </div>
         </div>
 
         {/* Tab Bar */}
-        <div className="flex items-center gap-1 mt-4">
+        <div className="flex items-center gap-1 mt-4 overflow-x-auto">
           {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-extralight tracking-wider transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-extralight tracking-wider transition-all shrink-0 ${
                 activeTab === tab.id
                   ? "bg-accent/15 text-accent border border-accent/20"
                   : "text-muted-foreground/60 hover:text-foreground hover:bg-card/30 border border-transparent"
@@ -582,6 +618,7 @@ const NomadView = () => {
         {activeTab === "chat" ? (
           <>
             <NomadSearchBar messages={messages} onScrollToMessage={handleScrollToMessage} open={searchOpen} onClose={() => setSearchOpen(false)} />
+            <NomadPinManager pinnedIds={pinnedIds} onTogglePin={handleTogglePin} messages={messages} />
             <ScrollArea className="flex-1">
               <div ref={chatContentRef} className="relative max-w-3xl mx-auto px-4 py-6 space-y-6">
                 <NomadSelectionMenu containerRef={chatContentRef} onAction={handleSelectionAction} />
@@ -617,6 +654,11 @@ const NomadView = () => {
                           <span className="text-[9px] font-extralight text-muted-foreground leading-tight">{type.desc}</span>
                         </button>
                       ))}
+                    </div>
+
+                    {/* Structured Investigation Forms */}
+                    <div className="max-w-2xl mx-auto">
+                      <NomadStructuredForms onSubmit={handleStructuredSubmit} />
                     </div>
 
                     <div className="space-y-2 max-w-2xl mx-auto">
@@ -659,12 +701,8 @@ const NomadView = () => {
                                 const parts = msg.content.split(/(```mermaid[\s\S]*?```)/g);
                                 return parts.map((part, idx) => {
                                   const mermaidMatch = part.match(/```mermaid\s*([\s\S]*?)```/);
-                                  if (mermaidMatch) {
-                                    return <MermaidDigraph key={idx} code={mermaidMatch[1]} />;
-                                  }
-                                  if (part.trim()) {
-                                    return <ReactMarkdown key={idx}>{part}</ReactMarkdown>;
-                                  }
+                                  if (mermaidMatch) return <MermaidDigraph key={idx} code={mermaidMatch[1]} />;
+                                  if (part.trim()) return <ReactMarkdown key={idx}>{part}</ReactMarkdown>;
                                   return null;
                                 });
                               })()}
@@ -678,31 +716,15 @@ const NomadView = () => {
                                 >
                                   <Image className="h-3 w-3" />
                                   {msg.images.length} {msg.images.length !== 1 ? "images" : "image"} collected
-                                  <span className="text-[8px] text-muted-foreground/50">
-                                    {expandedImages === msg.id ? '▼' : '▶'}
-                                  </span>
+                                  <span className="text-[8px] text-muted-foreground/50">{expandedImages === msg.id ? '▼' : '▶'}</span>
                                 </button>
                                 {expandedImages === msg.id && (
                                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 animate-fade-in">
                                     {msg.images.map((img, imgIdx) => (
-                                      <a
-                                        key={imgIdx}
-                                        href={img.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="group relative rounded-xl overflow-hidden border border-border/15 bg-card/20 hover:border-accent/30 transition-all"
-                                      >
-                                        <img
-                                          src={img.thumbnail || img.url}
-                                          alt={img.title || 'Investigation image'}
-                                          className="w-full h-24 object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                          loading="lazy"
-                                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                        />
+                                      <a key={imgIdx} href={img.url} target="_blank" rel="noopener noreferrer" className="group relative rounded-xl overflow-hidden border border-border/15 bg-card/20 hover:border-accent/30 transition-all">
+                                        <img src={img.thumbnail || img.url} alt={img.title || 'Investigation image'} className="w-full h-24 object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/90 to-transparent p-1.5">
-                                          <p className="text-[8px] font-extralight text-foreground/70 truncate">
-                                            {img.title || img.source}
-                                          </p>
+                                          <p className="text-[8px] font-extralight text-foreground/70 truncate">{img.title || img.source}</p>
                                         </div>
                                       </a>
                                     ))}
@@ -710,47 +732,44 @@ const NomadView = () => {
                                 )}
                               </div>
                             )}
-                            {msg.role === "assistant" && msg.content && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <NomadConfidenceBadge content={msg.content} />
-                              </div>
-                            )}
-                            {msg.role === "assistant" && msg.content && <NomadCitationFootnotes content={msg.content} />}
-                            {msg.role === "assistant" && msg.content && <NomadChainOfThought content={msg.content} />}
-                            </>
-                          ) : (
+                            {/* Verification Suite */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <NomadConfidenceBadge content={msg.content} />
+                            </div>
+                            <NomadCitationFootnotes content={msg.content} />
+                            <NomadChainOfThought content={msg.content} />
+                          </>) : (
                             <p className="text-sm font-extralight text-foreground">{msg.content}</p>
                           )}
-                          {msg.role === "user" && msg.status && msg.status !== "sent" && (
-                            <div className="flex items-center gap-1.5 mt-2">
-                              {msg.status === "sending" && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-                              {msg.status === "queued" && <Clock className="h-3 w-3 text-muted-foreground" />}
-                              {msg.status === "failed" && <X className="h-3 w-3 text-destructive" />}
-                              <span className="text-[9px] font-extralight text-muted-foreground capitalize">{msg.status}</span>
+                          {/* Thread Receipt for user messages */}
+                          {msg.role === "user" && msg.status && (
+                            <div className="flex justify-end mt-1">
+                              <NomadThreadReceipt status={msg.status} timestamp={msg.timestamp} />
                             </div>
                           )}
                         </div>
+                        {/* Action bar under assistant messages */}
                         {msg.role === "assistant" && msg.content && !isLoading && (
-                          <div className="flex items-center gap-2 mt-1.5 px-1 animate-fade-in">
+                          <div className="flex items-center gap-2 mt-1.5 px-1 animate-fade-in flex-wrap">
                             <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(msg.content);
-                                setCopiedId(msg.id);
-                                setTimeout(() => setCopiedId(null), 2000);
-                              }}
+                              onClick={() => { navigator.clipboard.writeText(msg.content); setCopiedId(msg.id); setTimeout(() => setCopiedId(null), 2000); }}
                               className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                             >
                               {copiedId === msg.id ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
                               {copiedId === msg.id ? "Copied" : "Copy"}
                             </button>
-                            <button
-                              onClick={() => setDiagramId(diagramId === msg.id ? null : msg.id)}
-                              className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                            >
-                              <GitBranch className="h-3 w-3" />
-                              Diagram
+                            <button onClick={() => setDiagramId(diagramId === msg.id ? null : msg.id)} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                              <GitBranch className="h-3 w-3" /> Diagram
                             </button>
-                            {/* Quick nav to panels */}
+                            <button onClick={() => handleTogglePin(msg.id)} className={`flex items-center gap-1 text-[10px] font-light transition-colors ${pinnedIds.has(msg.id) ? "text-accent" : "text-muted-foreground/50 hover:text-muted-foreground"}`}>
+                              <Pin className="h-3 w-3" /> {pinnedIds.has(msg.id) ? "Pinned" : "Pin"}
+                            </button>
+                            <button onClick={() => setFocusModeContent(msg.content)} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                              <Maximize2 className="h-3 w-3" /> Focus
+                            </button>
+                            <NomadMessageNote messageId={msg.id} existingNote={messageNotes[msg.id]} onSave={handleSaveNote} />
+                            <NomadOutputFormat content={msg.content} entities={allEntities} />
+                            <NomadCalibrationFeedback messageId={msg.id} onFeedback={handleCalibrationFeedback} />
                             {allEntities.length > 0 && (
                               <>
                                 <button onClick={() => setActiveTab("objects")} className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors">
@@ -767,21 +786,20 @@ const NomadView = () => {
                           </div>
                         )}
                         {msg.role === "assistant" && diagramId === msg.id && (
-                          <MessageDiagramPanel
-                            open={true}
-                            content={msg.content}
-                            onClose={() => setDiagramId(null)}
-                          />
+                          <MessageDiagramPanel open={true} content={msg.content} onClose={() => setDiagramId(null)} />
                         )}
                       </div>
                     </div>
                   ))
                 )}
-                {/* Assumption tracker */}
+                {/* Decision Log + Assumption Tracker */}
                 {messages.filter(m => m.role === "assistant" && m.content).length >= 2 && (
-                  <NomadAssumptionTracker messages={messages} />
+                  <>
+                    <NomadDecisionLog messages={messages} />
+                    <NomadAssumptionTracker messages={messages} />
+                  </>
                 )}
-                {/* Follow-up suggestions after last assistant message */}
+                {/* Follow-up suggestions */}
                 {messages.length > 0 && !isLoading && messages[messages.length - 1]?.role === "assistant" && messages[messages.length - 1]?.content && (
                   <NomadFollowUps
                     lastContent={messages[messages.length - 1].content}
@@ -793,27 +811,60 @@ const NomadView = () => {
               </div>
             </ScrollArea>
 
-            {/* Input */}
+            {/* Input Bar */}
             <div className="flex-shrink-0 border-t border-border/20 bg-card/20 backdrop-blur-md px-4 py-4">
-              <div className="max-w-3xl mx-auto flex items-end gap-3">
-                <div className="flex-1 rounded-2xl border border-border/20 bg-card/30 px-4 py-3">
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Describe your investigation target..."
-                    rows={1}
-                    className="w-full bg-transparent text-sm font-extralight text-foreground placeholder:text-muted-foreground/40 outline-none resize-none"
-                  />
+              <div className="max-w-3xl mx-auto">
+                {/* Attached files preview */}
+                {attachedFiles.length > 0 && (
+                  <div className="flex items-center gap-1.5 mb-2">
+                    {attachedFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-1 rounded-lg bg-accent/10 border border-accent/20 px-2 py-1 text-[9px] font-extralight text-accent">
+                        <Image className="h-3 w-3" />
+                        <span className="truncate max-w-[80px]">{f.name}</span>
+                        <button onClick={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-destructive transition-colors">
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <SafePasteMode onCleanPaste={(text) => setInput(prev => prev + text)}>
+                  {({ onPaste }) => (
+                    <div className="flex items-end gap-3">
+                      <div className="flex items-center gap-1">
+                        <NomadFileUpload onFilesSelected={setAttachedFiles} disabled={isLoading} />
+                        <NomadVoiceInput onTranscript={(text) => setInput(prev => prev + text)} disabled={isLoading} />
+                      </div>
+                      <div className="flex-1 rounded-2xl border border-border/20 bg-card/30 px-4 py-3">
+                        <textarea
+                          ref={inputRef}
+                          value={input}
+                          onChange={e => setInput(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          onPaste={(e) => { handlePaste(e); onPaste(e); }}
+                          placeholder="Describe your investigation target... (/ to focus, Ctrl+K commands)"
+                          rows={1}
+                          className="w-full bg-transparent text-sm font-extralight text-foreground placeholder:text-muted-foreground/40 outline-none resize-none"
+                        />
+                      </div>
+                      <button
+                        onClick={handleSend}
+                        disabled={!input.trim() || isLoading}
+                        className="rounded-2xl bg-accent/20 border border-accent/30 p-3 text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
+                      >
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  )}
+                </SafePasteMode>
+                {/* Keyboard shortcut hints */}
+                <div className="flex items-center justify-center gap-4 mt-2 text-[8px] font-extralight text-muted-foreground/30">
+                  <span><kbd className="px-1 py-0.5 rounded border border-border/15 bg-card/20">/</kbd> focus</span>
+                  <span><kbd className="px-1 py-0.5 rounded border border-border/15 bg-card/20">Ctrl+K</kbd> commands</span>
+                  <span><kbd className="px-1 py-0.5 rounded border border-border/15 bg-card/20">Ctrl+F</kbd> search</span>
+                  <span><kbd className="px-1 py-0.5 rounded border border-border/15 bg-card/20">Ctrl+E</kbd> export</span>
+                  <span><kbd className="px-1 py-0.5 rounded border border-border/15 bg-card/20">Ctrl+N</kbd> new</span>
                 </div>
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
-                  className="rounded-2xl bg-accent/20 border border-accent/30 p-3 text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </button>
               </div>
             </div>
           </>
@@ -823,79 +874,34 @@ const NomadView = () => {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           }>
-            {activeTab === "objects" && (
-              <NomadObjectExplorer entities={allEntities} crossRefMap={crossRefMap} />
-            )}
-            {activeTab === "timeline" && (
-              <NomadTimeline investigations={sessionInvestigations} sessionEntities={allEntities} />
-            )}
-            {activeTab === "graph" && (
-              <NomadGraphAnalysis entities={allEntities} crossRefMap={crossRefMap} />
-            )}
-            {activeTab === "map" && (
-              <NomadMapLayer entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "lineage" && (
-              <NomadLineage entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "ontology" && (
-              <NomadOntology entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "quiver" && (
-              <NomadQuiver entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "entities" && (
-              <NomadEntityWorkbench entities={allEntities} crossRefMap={crossRefMap} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "claims" && (
-              <NomadClaimsEvidence entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "sources" && (
-              <NomadSourceIntel investigations={sessionInvestigations} />
-            )}
-            {activeTab === "case" && (
-              <NomadCaseManager entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "adversary" && (
-              <NomadAdversaryView entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "media" && (
-              <NomadMediaForensics entities={allEntities} investigations={sessionInvestigations} />
-            )}
-            {activeTab === "pipeline" && (
-              <NomadCollectionPipeline />
-            )}
-            {activeTab === "handles" && (
-              <NomadHandleHunter entities={allEntities} />
-            )}
-            {activeTab === "diff" && (
-              <NomadNetworkDiff entities={allEntities} investigations={sessionInvestigations} />
-            )}
+            {activeTab === "objects" && <NomadObjectExplorer entities={allEntities} crossRefMap={crossRefMap} />}
+            {activeTab === "timeline" && <NomadTimeline investigations={sessionInvestigations} sessionEntities={allEntities} />}
+            {activeTab === "graph" && <NomadGraphAnalysis entities={allEntities} crossRefMap={crossRefMap} />}
+            {activeTab === "map" && <NomadMapLayer entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "lineage" && <NomadLineage entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "ontology" && <NomadOntology entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "quiver" && <NomadQuiver entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "entities" && <NomadEntityWorkbench entities={allEntities} crossRefMap={crossRefMap} investigations={sessionInvestigations} />}
+            {activeTab === "claims" && <NomadClaimsEvidence entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "sources" && <NomadSourceIntel investigations={sessionInvestigations} />}
+            {activeTab === "case" && <NomadCaseManager entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "adversary" && <NomadAdversaryView entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "media" && <NomadMediaForensics entities={allEntities} investigations={sessionInvestigations} />}
+            {activeTab === "pipeline" && <NomadCollectionPipeline />}
+            {activeTab === "handles" && <NomadHandleHunter entities={allEntities} />}
+            {activeTab === "diff" && <NomadNetworkDiff entities={allEntities} investigations={sessionInvestigations} />}
             {activeTab === "predictive" && <NomadPredictiveIntel />}
             {activeTab === "imagine" && <NomadImagineIntel />}
             {activeTab === "video-intel" && <NomadVideoIntel />}
           </Suspense>
         )}
       </div>
-      <FloatingNotepad
-        open={notepadOpen}
-        onClose={() => setNotepadOpen(false)}
-        conversationId={`nomad-session-${user?.id || "anon"}`}
-      />
-      <NomadCommandPalette
-        open={commandOpen}
-        onClose={() => setCommandOpen(false)}
-        onSwitchTab={(tab) => setActiveTab(tab as NomadTab)}
-        onAction={handleCommandAction}
-        entities={allEntities}
-      />
-      <NomadShareRedaction
-        content={messages.filter(m => m.role === "assistant").map(m => m.content).join("\n\n---\n\n")}
-        entities={allEntities}
-        onExport={handleRedactedExport}
-        open={shareRedactOpen}
-        onClose={() => setShareRedactOpen(false)}
-      />
+
+      {/* Floating overlays & modals */}
+      <FloatingNotepad open={notepadOpen} onClose={() => setNotepadOpen(false)} conversationId={`nomad-session-${user?.id || "anon"}`} />
+      <NomadCommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} onSwitchTab={(tab) => setActiveTab(tab as NomadTab)} onAction={handleCommandAction} entities={allEntities} />
+      <NomadShareRedaction content={messages.filter(m => m.role === "assistant").map(m => m.content).join("\n\n---\n\n")} entities={allEntities} onExport={handleRedactedExport} open={shareRedactOpen} onClose={() => setShareRedactOpen(false)} />
+      <NomadFocusMode content={focusModeContent || ""} open={!!focusModeContent} onClose={() => setFocusModeContent(null)} />
     </div>
   );
 };
