@@ -625,8 +625,8 @@ const NomadView = () => {
                 {messages.length === 0 ? (
                   <div className="space-y-8 pt-12">
                     <div className="text-center space-y-4">
-                      <div className="h-16 w-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto">
-                        <Crosshair className="h-7 w-7 text-accent" />
+                      <div className="h-16 w-16 rounded-2xl bg-foreground/[0.06] border border-foreground/[0.08] flex items-center justify-center mx-auto">
+                        <Crosshair className="h-7 w-7 text-foreground/60" />
                       </div>
                       <h2 className="text-xl font-extralight tracking-wide text-foreground">NOMAD v3.0</h2>
                       <p className="text-sm font-extralight text-muted-foreground max-w-md mx-auto leading-relaxed">
