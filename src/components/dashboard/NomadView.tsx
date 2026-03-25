@@ -710,6 +710,13 @@ const NomadView = () => {
                                 )}
                               </div>
                             )}
+                            {msg.role === "assistant" && msg.content && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <NomadConfidenceBadge content={msg.content} />
+                              </div>
+                            )}
+                            {msg.role === "assistant" && msg.content && <NomadCitationFootnotes content={msg.content} />}
+                            {msg.role === "assistant" && msg.content && <NomadChainOfThought content={msg.content} />}
                             </>
                           ) : (
                             <p className="text-sm font-extralight text-foreground">{msg.content}</p>
