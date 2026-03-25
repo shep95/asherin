@@ -2231,9 +2231,22 @@ async function ingestIntelligence(query: string): Promise<{
   const attestation = attestProvenance(nodes);
   const { resolved, crossRefMap } = resolveEntities(nodes);
 
+  // ── MONAD: Recursive PII Spider — chase found phones/emails back through search ──
+  const piiSpiderResults = await recursivePIISpider(resolved);
+  if (piiSpiderResults.length > 0) {
+    nodes.push(...piiSpiderResults);
+    // Re-resolve with new data
+    const { resolved: reResolved, crossRefMap: reCrossRefMap } = resolveEntities(nodes);
+    Object.assign(crossRefMap, reCrossRefMap);
+    resolved.push(...reResolved.filter(e => !resolved.some(r => r.type === e.type && r.value === e.value)));
+  }
+
   // ── ESRC STAGE 1: EXTRACT ──
   const allText = nodes.filter(n => n.data).map(n => n.data).join('\n\n');
   const esrcProfile = extractMicrodataProfile(query + '\n' + allText, resolved);
+
+  // ── MONAD: Behavioral Profiling ──
+  const behavioralTraits = extractBehavioralProfile(allText);
 
   // ── ESRC STAGE 2+3: SEARCH + REASON (Candidate scoring) ──
   const esrcCandidates = nodes
@@ -2241,13 +2254,17 @@ async function ingestIntelligence(query: string): Promise<{
     .map(n => scoreCandidate(esrcProfile, n, resolved))
     .filter(c => c.matchEvidence.length > 0)
     .sort((a, b) => b.similarityScore - a.similarityScore)
-    .slice(0, 15); // Top-15 candidates (from paper: "top-100 candidates" scaled to our source count)
+    .slice(0, 15);
 
   // ── ESRC STAGE 4: CALIBRATE ──
   const esrcCalibration = calibrateConfidence(esrcCandidates, nodes.filter(n => n.data).length);
 
-  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration };
-}
+  // ── MONAD: Public Record Links ──
+  const cleanedTarget = query.replace(/investigate|person|research|find|who is|look up|about|company|search/gi, '').trim();
+  const locMatch = query.match(/(?:in|from|at|near)\s+([A-Z][A-Za-z\s,]+)/);
+  const publicRecordLinks = generatePublicRecordLinks(cleanedTarget, locMatch?.[1]?.trim());
+
+  return { nodes, attestation, entities: resolved, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks };
 
 // ══════════════════════════════════════════════════════════════════════════════
 // NOMAD v3.0 SYSTEM PROMPT — ESRC DEANONYMIZATION FRAMEWORK
