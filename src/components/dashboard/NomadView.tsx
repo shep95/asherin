@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import {
   Send, Loader2, Crosshair, Globe, Building2, User, AtSign,
-  Fingerprint, MapPin, Phone, Image, Shield, Sparkles,
+  Fingerprint, MapPin, Phone, Image, Shield, Sparkles, StickyNote, FileText,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
   Brain, TrendingUp, Network, ShieldCheck,
   Layers, Map, BarChart3, MessageSquare, Search, Eye, Video,
