@@ -3093,21 +3093,157 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
       narrativeConsistencyAnalysis = p5.status === 'fulfilled' ? p5.value : '';
       crossPlatformIdentityAnalysis = p6.status === 'fulfilled' ? p6.value : '';
       
-      console.log(`NOMAD v7.0: Deep analysis complete — L:${linguisticAnalysis.length} S:${socialAvatarAnalysis.length} R:${relationshipVelocityAnalysis.length} N:${narrativeConsistencyAnalysis.length} I:${crossPlatformIdentityAnalysis.length} chars`);
+      console.log(`NOMAD v8.0: Passes 2-6 complete — L:${linguisticAnalysis.length} S:${socialAvatarAnalysis.length} R:${relationshipVelocityAnalysis.length} N:${narrativeConsistencyAnalysis.length} I:${crossPlatformIdentityAnalysis.length} chars`);
+
+      // ══════════════════════════════════════════════════════════════════════════
+      // PASSES 7-12: ADVANCED INTELLIGENCE LAYERS (parallel batch 2)
+      // Geospatial, Bayesian, Survivorship Bias, Sentiment Velocity, Network Centrality, Query Intelligence
+      // ══════════════════════════════════════════════════════════════════════════
+
+      console.log('NOMAD v8.0: Starting Passes 7-12 (Advanced Intelligence Layers) in parallel...');
+
+      const [p7, p8, p9, p10, p11] = await Promise.allSettled([
+        // PASS 7: GEOSPATIAL INTELLIGENCE
+        aiPass(GEMINI_API_KEY, 'You are a geospatial intelligence analyst. Extract and analyze every location signal with forensic precision. Output structured analysis only.', `From all collected intelligence, extract every location signal and execute geospatial analysis.
+
+GEOSPATIAL ANALYSIS PROTOCOL:
+
+1. PRIMARY RESIDENCE TRIANGULATION — What location appears most frequently in Tier 1-2 sources? Does stated residence match property tax / voter registration / business registration? CONFLICT = tax avoidance, privacy protection, or jurisdiction shopping.
+
+2. MOVEMENT PATTERN RECONSTRUCTION — Order all location signals chronologically. Identify MIGRATION EVENTS. Cross-reference timing against: job changes / legal events / relationship changes / business failures. Every relocation has a trigger. Find it.
+
+3. SHADOW LOCATION DETECTION — Locations that appear in data but target never publicly acknowledges. Example: claims NYC but court filing lists Miami. Shadow locations = second residence / hidden partner / legal shelter / undisclosed asset.
+
+4. JURISDICTION INTELLIGENCE — Multiple state registrations = legitimate multi-state OR jurisdiction arbitrage (weak disclosure laws). Delaware/Wyoming/Nevada with no operational presence = shell structure. International addresses with US entities = FBAR/FATCA exposure.
+
+5. PHYSICAL PROXIMITY NETWORK — Which associates are geographically co-located? Co-location never publicly acknowledged = covert operational relationship.
+
+Output: GEOSPATIAL PROFILE with primary anchor, shadow locations, migration timeline with triggers, jurisdiction risk.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+
+        // PASS 8: SURVIVORSHIP BIAS AUDIT
+        aiPass(GEMINI_API_KEY, 'You are a forensic intelligence auditor specializing in narrative verification. Identify what SHOULD exist but DOES NOT. Output structured gap analysis only.', `Execute SURVIVORSHIP BIAS AUDIT on this investigation corpus.
+
+For this target's stated profile (career, education, financials, relationships), generate the complete list of digital artifacts that SHOULD exist if their biography is accurate. Audit which are present vs absent.
+
+EXPECTED ARTIFACTS BY CATEGORY:
+
+CAREER — If CEO: SEC filings, Delaware/state registration, LinkedIn company page, press release, Crunchbase, Glassdoor reviews. If founder: incorporation docs, co-founder mentions, pitch deck leaks, investor announcements.
+
+EDUCATION — If Ivy League: alumni directory, reunion mentions, professor citations, yearbook. If MBA: business school alumni network, case study mentions.
+
+FINANCIAL — If high net worth: property records, vehicle registrations (luxury tier), charitable donations, political donations (FEC), club memberships. If investor: AngelList, Crunchbase investor profile, Form D filings.
+
+LEGAL — If clean record: absence of court filings should be CONFIRMED not assumed. If lawsuit mentioned: full docket must be traceable.
+
+For each: PRESENT = confirms narrative. ABSENT = NARRATIVE GAP. CONTRADICTED = NARRATIVE CONFLICT.
+
+Rank all narrative gaps by severity. Highest expected + complete absence = most likely suppression/fabrication area.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+
+        // PASS 9: SENTIMENT VELOCITY ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a sentiment analysis expert specializing in temporal reputation dynamics. Track sentiment changes over time with forensic precision. Output structured analysis only.', `Run SENTIMENT VELOCITY ANALYSIS on all third-party mentions of this target.
+
+TEMPORAL SENTIMENT PROTOCOL:
+
+1. BASELINE SENTIMENT — Earliest 20% of mentions: what is baseline? (Positive/Neutral/Negative ratio). This is who they were before reputation management.
+
+2. SENTIMENT INFLECTION POINTS — Every moment sentiment shifted >20% in either direction within 90 days. Cross-reference EACH against: business events / legal filings / public statements / relationship changes. The cause is more valuable than the score.
+
+3. SENTIMENT DIVERGENCE MAP — Professional sources (LinkedIn, press) vs Anonymous sources (Reddit, Glassdoor, forums). Gap >40% = MANAGED REPUTATION. Anonymous reflects lived experience.
+
+4. SENTIMENT ACCELERATION — Is negative sentiment increasing at accelerating rate in last 90 days? = something breaking down RIGHT NOW, not yet in mainstream coverage. Most forward-looking signal.
+
+5. CRITICISM LANGUAGE — Emotional (angry, betrayed) = personal grievance, weight lower. Factual with specifics (lied, stole, misrepresented) = operational intelligence, weight higher.
+
+Output: SENTIMENT VELOCITY CHART (timeline), top 5 inflection events with causes, divergence score, 90-day acceleration indicator.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+
+        // PASS 10: NETWORK CENTRALITY SCORING
+        aiPass(GEMINI_API_KEY, 'You are a network theory analyst specializing in graph centrality and power structure analysis. Apply formal graph theory to intelligence networks. Output structured scoring only.', `Apply network centrality analysis to the entity graph for this investigation.
+
+CENTRALITY SCORING PROTOCOL:
+
+1. DEGREE CENTRALITY — Count connections per node. High degree alone means nothing (celebrity = high degree). A shadow operator has low degree but high everything else.
+
+2. BETWEENNESS CENTRALITY — Which nodes sit on most paths between other nodes? High betweenness + low degree = HIDDEN BROKER controlling information/resource flow without appearing important. The highest betweenness non-target node is the most important secondary target.
+
+3. EIGENVECTOR CENTRALITY — Not how many connections but how IMPORTANT are those connections. High eigenvector = REAL power. Low eigenvector despite high degree = social noise.
+
+4. STRUCTURAL HOLES — Where does a connection SHOULD exist but doesn't? If A and B both connect to target but not to each other, that gap is deliberate. WHY? Common: one side legitimate, one not. Legal liability separation.
+
+5. BRIDGE NODE IDENTIFICATION — Which single node, if removed, fragments the network? This is the target's critical dependency AND greatest vulnerability.
+
+Output: CENTRALITY SCORECARD for all nodes, TOP 3 hidden brokers, structural hole map, bridge node.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+
+        // PASS 11: BAYESIAN CONFIDENCE ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a Bayesian intelligence analyst. Apply rigorous probabilistic reasoning to update confidence in intelligence claims. Output structured probability chains only.', `Run Bayesian confidence update protocol on this intelligence corpus.
+
+For each CORE CLAIM (fact that materially affects the profile):
+
+BAYESIAN UPDATE CHAIN:
+
+1. Set PRIOR based on source tier:
+   - Self-stated only: Prior = 0.40
+   - Tier 3 (social/forum): Prior = 0.50
+   - Tier 2 (institutional): Prior = 0.75
+   - Tier 1 (government): Prior = 0.90
+
+2. Apply LIKELIHOOD UPDATES for additional evidence:
+   - Independent Tier 1 corroboration: x1.4
+   - Independent Tier 2 corroboration: x1.2
+   - Contradicted by Tier 1: x0.3
+   - Contradicted by Tier 2: x0.5
+   - Same-tier sources citing each other (echo chamber): x1.05
+   - ABSENT from sources where it should appear if true: x0.6
+
+3. Calculate POSTERIOR for each claim.
+
+4. FLAG: <0.40 = LIKELY FALSE | 0.40-0.60 = CONTESTED | 0.60-0.80 = PROBABLE | >0.80 = CONFIRMED
+
+5. IDENTIFY the claim with biggest gap between stated confidence and Bayesian posterior = most dangerous assumption in the entire dossier.
+
+Output: BAYESIAN EVIDENCE CHAIN for top 10 core claims with prior, update chain, posterior. Highlight the most dangerous assumption.
+
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
+      ]);
+
+      geospatialAnalysis = p7.status === 'fulfilled' ? p7.value : '';
+      survivorshipBiasAnalysis = p8.status === 'fulfilled' ? p8.value : '';
+      sentimentVelocityAnalysis = p9.status === 'fulfilled' ? p9.value : '';
+      networkCentralityAnalysis = p10.status === 'fulfilled' ? p10.value : '';
+      bayesianConfidenceAnalysis = p11.status === 'fulfilled' ? p11.value : '';
+
+      console.log(`NOMAD v8.0: Passes 7-12 complete — G:${geospatialAnalysis.length} SB:${survivorshipBiasAnalysis.length} SV:${sentimentVelocityAnalysis.length} NC:${networkCentralityAnalysis.length} BC:${bayesianConfidenceAnalysis.length} chars`);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // PASS 7: FINAL SYNTHESIS — All intelligence + deep analysis passes
+    // FINAL SYNTHESIS — All intelligence + all deep analysis passes
     // ══════════════════════════════════════════════════════════════════════════
 
     const deepAnalysisSection = isPersonInvestigation ? `
-═══ DEEP PERSON INTELLIGENCE ANALYSIS (AI Passes 2-6) ═══
+═══ DEEP PERSON INTELLIGENCE ANALYSIS (AI Passes 2-12) ═══
 
 ${linguisticAnalysis ? `--- LINGUISTIC FINGERPRINT ENGINE (Pass 2) ---\n${linguisticAnalysis}\n` : ''}
 ${socialAvatarAnalysis ? `--- SOCIAL AVATAR ANALYSIS (Pass 3) ---\n${socialAvatarAnalysis}\n` : ''}
 ${relationshipVelocityAnalysis ? `--- RELATIONSHIP VELOCITY MAP (Pass 4) ---\n${relationshipVelocityAnalysis}\n` : ''}
 ${narrativeConsistencyAnalysis ? `--- NARRATIVE CONSISTENCY AUDIT (Pass 5) ---\n${narrativeConsistencyAnalysis}\n` : ''}
 ${crossPlatformIdentityAnalysis ? `--- CROSS-PLATFORM IDENTITY CONTINUITY (Pass 6) ---\n${crossPlatformIdentityAnalysis}\n` : ''}
+${geospatialAnalysis ? `--- GEOSPATIAL INTELLIGENCE (Pass 7) ---\n${geospatialAnalysis}\n` : ''}
+${survivorshipBiasAnalysis ? `--- SURVIVORSHIP BIAS AUDIT (Pass 8) ---\n${survivorshipBiasAnalysis}\n` : ''}
+${sentimentVelocityAnalysis ? `--- SENTIMENT VELOCITY ANALYSIS (Pass 9) ---\n${sentimentVelocityAnalysis}\n` : ''}
+${networkCentralityAnalysis ? `--- NETWORK CENTRALITY SCORECARD (Pass 10) ---\n${networkCentralityAnalysis}\n` : ''}
+${bayesianConfidenceAnalysis ? `--- BAYESIAN CONFIDENCE CHAIN (Pass 11) ---\n${bayesianConfidenceAnalysis}\n` : ''}
 ` : '';
 
     const pass2Prompt = `
@@ -3132,22 +3268,27 @@ ${intelSections || 'No intelligence gathered.'}
 ${publicRecordLinks}
 
 INSTRUCTIONS:
-Produce a NOMAD v7.0 response following the mandatory output format. Include:
+Produce a NOMAD v8.0 response following the mandatory output format. Include:
 1. Temporal mermaid digraph with PROPER topology (not star graph — use clusters, bridges, isolated nodes)
 2. Tiered intelligence (Confirmed → Probable → Unverified)
-3. OCEAN behavioral profile with deception indicators and predicted actions
-4. Linguistic Fingerprint section (if analysis provided) — TTR, pronoun drops, tense forensics, deception map
-5. Social Avatar Profile (if analysis provided) — Dark Triad score, attachment style, predictions
-6. Relationship Velocity Map (if analysis provided) — formation speeds, termination patterns, cluster migration
-7. Narrative Integrity Audit (if analysis provided) — Stated Self vs Evidenced Self DELTA
-8. Identity Continuity (if analysis provided) — cross-platform links, sock puppets, real vs curated persona
-9. Dead Ends & Intelligence Gaps (what's MISSING is critical intelligence)
-10. Cross-Investigation Links if entity overlaps were found
-11. Benford analysis results if financial data was flagged
-12. Single-source warnings inline with ⚠️ markers
+3. Bayesian Confidence Chain — top 10 claims with prior/posterior, highlight most dangerous assumption
+4. OCEAN behavioral profile with deception indicators and predicted actions
+5. Linguistic Fingerprint section (if analysis provided) — TTR, pronoun drops, tense forensics, deception map
+6. Social Avatar Profile (if analysis provided) — Dark Triad score, attachment style, predictions
+7. Relationship Velocity Map (if analysis provided) — formation speeds, termination patterns, cluster migration
+8. Narrative Integrity Audit (if analysis provided) — Stated Self vs Evidenced Self DELTA
+9. Identity Continuity (if analysis provided) — cross-platform links, sock puppets, real vs curated persona
+10. Geospatial Intelligence (if analysis provided) — shadow locations, migration triggers, jurisdiction risk
+11. Sentiment Velocity (if analysis provided) — inflection points, divergence, acceleration
+12. Network Centrality Scorecard (if analysis provided) — hidden brokers, structural holes, bridge nodes
+13. Survivorship Bias Audit (if analysis provided) — expected vs present artifacts, suppression indicators
+14. Dead Ends & Intelligence Gaps (what's MISSING is critical intelligence)
+15. Cross-Investigation Links if entity overlaps were found
+16. Benford analysis results if financial data was flagged
+17. Single-source warnings inline with ⚠️ markers
 Be direct, intelligence-grade. Include BT confidence inline.`;
 
-    console.log('NOMAD v7.0: Starting Final Synthesis Pass...');
+    console.log('NOMAD v8.0: Starting Final Synthesis Pass...');
     
     // Build conversation history for memory continuity
     const conversationHistory: { role: string; parts: { text: string }[] }[] = [
