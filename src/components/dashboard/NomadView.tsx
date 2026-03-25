@@ -647,9 +647,9 @@ const NomadView = () => {
                         <button
                           key={type.id}
                           onClick={() => handleQuickInvestigate(type)}
-                          className="group relative flex flex-col items-center gap-2.5 rounded-2xl border border-border/20 bg-card/20 hover:bg-card/40 hover:border-accent/20 p-4 text-center transition-all"
+                          className="group relative flex flex-col items-center gap-2.5 rounded-2xl border border-border/20 bg-card/20 hover:bg-card/40 hover:border-foreground/15 p-4 text-center transition-all"
                         >
-                          <type.icon className="h-5 w-5 text-accent/60 group-hover:text-accent transition-colors" />
+                          <type.icon className="h-5 w-5 text-foreground/40 group-hover:text-foreground/70 transition-colors" />
                           <span className="text-[11px] font-light text-foreground">{type.label}</span>
                           <span className="text-[9px] font-extralight text-muted-foreground leading-tight">{type.desc}</span>
                         </button>
