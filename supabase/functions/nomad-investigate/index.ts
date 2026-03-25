@@ -2593,7 +2593,7 @@ async function aiPass(apiKey: string, systemPrompt: string, userPrompt: string, 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN HANDLER
+// MAIN HANDLER — NOMAD v6.0 with Multi-Stage AI Pipeline + Cross-Investigation Memory
 // ══════════════════════════════════════════════════════════════════════════════
 
 serve(async (req) => {
@@ -2601,16 +2601,77 @@ serve(async (req) => {
 
   try {
     const startTime = Date.now();
-    const { messages } = await req.json();
+    const { messages, userId } = await req.json();
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
     // 1. ESRC PIPELINE EXECUTION
     const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks } = await ingestIntelligence(lastUserMessage);
 
-    // 2a. Collect images from search results in parallel with compilation
+    // 2a. Collect images in parallel
     const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
 
-    // 2. Compile intelligence payload with ESRC metadata
+    // 2b. OCEAN Behavioral Profiling (Gap 2)
+    const allText = nodes.filter(n => n.data).map(n => n.data).join('\n\n');
+    const oceanProfile = computeOCEANProfile(allText);
+
+    // 2c. Benford's Law Analysis (Gap 6)
+    const financialNumbers = extractFinancialNumbers(allText);
+    const benfordResult = benfordAnalysis(financialNumbers);
+    
+    // 2d. Single-source claim flagging (Gap 6)
+    const singleSourceFlags = flagSingleSourceClaims(nodes, crossRefMap);
+
+    // 2e. Cross-Investigation Memory (Gap 5) — Query for overlapping entities
+    let crossInvestigationLinks = '';
+    if (userId) {
+      try {
+        const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+        const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        if (SUPABASE_URL && SUPABASE_KEY) {
+          // Query existing entity graph for overlaps
+          const topEntities = entities.slice(0, 20).map(e => e.value.toLowerCase().trim());
+          if (topEntities.length > 0) {
+            const orFilter = topEntities.map(v => `entity_value.ilike.%${v}%`).join(',');
+            const graphResp = await fetch(
+              `${SUPABASE_URL}/rest/v1/nomad_entity_graph?user_id=eq.${userId}&or=(${orFilter})&select=entity_type,entity_value,investigation_id,first_seen,last_seen,frequency&limit=50`,
+              { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+            );
+            if (graphResp.ok) {
+              const existingEntities = await graphResp.json();
+              if (existingEntities.length > 0) {
+                crossInvestigationLinks = `\n\nCROSS-INVESTIGATION MEMORY (${existingEntities.length} entity overlaps found):\n` +
+                  existingEntities.slice(0, 15).map((e: any) => 
+                    `- [${e.entity_type}] ${e.entity_value} — seen ${e.frequency}x (first: ${e.first_seen?.split('T')[0]}, last: ${e.last_seen?.split('T')[0]}) — Investigation: ${e.investigation_id?.slice(0, 8)}...`
+                  ).join('\n');
+              }
+            }
+          }
+
+          // Store current investigation's entities for future cross-reference
+          const entityInserts = entities.slice(0, 50).map(e => ({
+            user_id: userId,
+            entity_type: e.type,
+            entity_value: e.value,
+            confidence: e.confidence,
+            source: e.source,
+          }));
+          if (entityInserts.length > 0) {
+            await fetch(`${SUPABASE_URL}/rest/v1/nomad_entity_graph`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates',
+              },
+              body: JSON.stringify(entityInserts),
+            }).catch(err => console.error('Entity graph insert error:', err));
+          }
+        }
+      } catch (err) { console.error('Cross-investigation memory error:', err); }
+    }
+
+    // 3. Compile intelligence payload
     const activeNodes = nodes.filter(n => n.data);
     const intelSections = activeNodes.map(n =>
       `### SOURCE: ${n.source} [Tier ${n.tier}] [Confidence: ${Math.round(n.confidence * 100)}%] [Hash: ${n.provenanceHash}]\n${n.data}`
@@ -2632,89 +2693,127 @@ PROVENANCE ATTESTATION:
 - Provenance Integrity: ${attestation.provenanceIntegrity}%
 - Hostile Sources Flagged: ${attestation.hostileSourceFlags.length > 0 ? attestation.hostileSourceFlags.join(', ') : 'None'}`;
 
-    // ESRC Pipeline metadata for the AI
+    const behavioralSection = behavioralTraits.length > 0
+      ? `\n\nBEHAVIORAL TRAITS (MONAD Engine):\n${behavioralTraits.map(t => `- ${t}`).join('\n')}`
+      : '';
+
+    const oceanSection = `
+OCEAN BEHAVIORAL PROFILE (Gap 2 — Stylometric + OCEAN Inference):
+- Openness: ${oceanProfile.openness.toFixed(2)}
+- Conscientiousness: ${oceanProfile.conscientiousness.toFixed(2)}
+- Extraversion: ${oceanProfile.extraversion.toFixed(2)}
+- Agreeableness: ${oceanProfile.agreeableness.toFixed(2)}
+- Neuroticism: ${oceanProfile.neuroticism.toFixed(2)}
+- Function Word Ratio: ${oceanProfile.functionWordRatio} (normal: 0.35-0.50)
+- Burstiness Score: ${oceanProfile.burstinessScore} (>0.7 = stress events)
+- Deception Indicators: ${oceanProfile.deceptionIndicators.length > 0 ? oceanProfile.deceptionIndicators.join('; ') : 'None detected'}
+- Predicted Actions: ${oceanProfile.predictedActions.length > 0 ? oceanProfile.predictedActions.join('; ') : 'Insufficient data'}
+- Posting Heatmap: ${Object.keys(oceanProfile.postingHeatmap).length > 0 ? JSON.stringify(oceanProfile.postingHeatmap) : 'No time data available'}`;
+
+    const benfordSection = financialNumbers.length >= 10
+      ? `\nBENFORD'S LAW ANALYSIS (Financial Data Integrity):
+- Numbers Analyzed: ${financialNumbers.length}
+- Chi-Square: ${benfordResult.chiSquare}
+- Distribution: ${benfordResult.isNatural ? '✅ NATURAL (follows Benford distribution)' : '🔴 ANOMALOUS (possible fabrication)'}
+- Suspicious Leading Digits: ${benfordResult.suspiciousDigits.length > 0 ? benfordResult.suspiciousDigits.join(', ') : 'None'}`
+      : '';
+
+    const singleSourceSection = singleSourceFlags.length > 0
+      ? `\nSINGLE-SOURCE WARNINGS (${singleSourceFlags.length}):\n${singleSourceFlags.slice(0, 10).join('\n')}`
+      : '';
+
     const esrcReport = `
 ═══ ESRC PIPELINE EXECUTION RESULTS ═══
 
-STAGE 1 — EXTRACT (Microdata Profile):
-${JSON.stringify(esrcProfile, null, 2)}
+STAGE 1 — EXTRACT: ${JSON.stringify(esrcProfile, null, 2)}
 
-STAGE 2 — SEARCH (Top Candidates by Similarity):
-${esrcCandidates.slice(0, 10).map((c, i) => 
-  `Candidate ${i + 1}: ${c.source} — Similarity: ${Math.round(c.similarityScore * 100)}%\n  Evidence: ${c.matchEvidence.join('; ')}\n  Contradictions: ${c.contradictions.length > 0 ? c.contradictions.join('; ') : 'None'}`
-).join('\n\n')}
+STAGE 2 — SEARCH (Top Candidates):
+${esrcCandidates.slice(0, 5).map((c, i) => 
+  `${i + 1}. ${c.source} — ${Math.round(c.similarityScore * 100)}% | Evidence: ${c.matchEvidence.slice(0, 3).join('; ')}`
+).join('\n')}
 
-STAGE 3 — REASON (Selection & Verification):
-- Top candidate: ${esrcCandidates[0]?.source || 'None identified'}
-- Match evidence count: ${esrcCandidates[0]?.matchEvidence.length || 0}
-- Similarity score: ${Math.round((esrcCandidates[0]?.similarityScore || 0) * 100)}%
-- Second candidate gap: ${Math.round(((esrcCandidates[0]?.similarityScore || 0) - (esrcCandidates[1]?.similarityScore || 0)) * 100)}%
+STAGE 3 — REASON: Top: ${esrcCandidates[0]?.source || 'None'} (${Math.round((esrcCandidates[0]?.similarityScore || 0) * 100)}%)
 
-STAGE 4 — CALIBRATE (Bradley-Terry):
-- Bradley-Terry Rating: ${esrcCalibration.bradleyTerryRating}
-- Precision Estimate: ${esrcCalibration.precisionEstimate}%
-- Recall Band: ${esrcCalibration.recallBand}
-- Abstain Recommendation: ${esrcCalibration.abstainRecommendation ? 'YES — Confidence too low' : 'NO — Proceed with analysis'}
-- Calibration Method: ${esrcCalibration.calibrationMethod}
-- Processing Time: ${Date.now() - startTime}ms
-- Total Sources Queried: ${nodes.length}
-- Active Sources: ${activeNodes.length}
-- Candidate Pool Size: ${esrcCandidates.length}`;
+STAGE 4 — CALIBRATE: BT=${esrcCalibration.bradleyTerryRating} | Precision=${esrcCalibration.precisionEstimate}% | Recall=${esrcCalibration.recallBand} | Abstain=${esrcCalibration.abstainRecommendation ? 'YES' : 'NO'}
+Processing: ${Date.now() - startTime}ms | Sources: ${activeNodes.length}/${nodes.length} | Candidates: ${esrcCandidates.length}`;
 
-    // 3. SYNTHESIZE WITH AI (with exponential backoff retry)
+    // ══════════════════════════════════════════════════════════════════════════
+    // GAP 1: MULTI-STAGE AI SYNTHESIS PIPELINE
+    // Pass 1 (Flash): Raw data → Entity cluster summaries per source group
+    // Pass 2 (Pro): Final BLUF synthesis + behavioral profile + structured dossier
+    // ══════════════════════════════════════════════════════════════════════════
+
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
-    const behavioralSection = behavioralTraits.length > 0
-      ? `\n\nBEHAVIORAL PROFILE (MONAD Engine):\n${behavioralTraits.map(t => `- ${t}`).join('\n')}`
-      : '';
+    // PASS 1: Cluster summaries (Flash — fast, cheap)
+    const pass1Prompt = `Analyze this raw intelligence data and produce CONCISE cluster summaries. Group findings by: CORPORATE, LEGAL, FINANCIAL, DIGITAL FOOTPRINT, SOCIAL, THREAT/SECURITY. For each cluster, list the 3 most important facts with source attribution. Flag any contradictions between sources. Output as structured text, max 2000 words.
 
-    const prompt = `
+USER QUERY: "${lastUserMessage}"
+
+${intelSections || 'No intelligence data.'}`;
+
+    console.log('NOMAD v6.0: Starting Pass 1 (Flash cluster summaries)...');
+    const pass1Result = await aiPass(GEMINI_API_KEY, 
+      'You are an intelligence analyst. Summarize raw OSINT data into structured cluster summaries. Be precise. No filler.',
+      pass1Prompt, 'gemini-2.5-flash', 4000, 0.15);
+
+    // PASS 2: Final synthesis (Pro — high quality)
+    const pass2Prompt = `
 USER QUERY: "${lastUserMessage}"
 
 ${provenanceReport}
 ${entitySummary}
 ${behavioralSection}
+${oceanSection}
+${benfordSection}
+${singleSourceSection}
+${crossInvestigationLinks}
 
 ${esrcReport}
 
-GATHERED INTELLIGENCE DATA (Cryptographically Attested):
-${intelSections || 'No intelligence gathered from available sources.'}
+CLUSTERED INTELLIGENCE SUMMARIES (from Pass 1 analysis):
+${pass1Result || 'Pass 1 analysis unavailable — use raw data below.'}
+
+RAW INTELLIGENCE DATA:
+${intelSections || 'No intelligence gathered.'}
 ${publicRecordLinks}
 
 INSTRUCTIONS:
-Produce a NOMAD v5.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then the intelligence dossier with BLUF, Confirmed Intelligence, Behavioral Profile, and Methodology sections. Be concise and direct — no tables, no filler. Include Bradley-Terry confidence and provenance data inline. Reference the MONAD sector dorks and PII Spider results where relevant.`;
+Produce a NOMAD v6.0 response following the mandatory output format. Include:
+1. Temporal mermaid digraph with hot/cold/anomaly edges
+2. Tiered intelligence (Confirmed → Probable → Unverified)
+3. OCEAN behavioral profile with deception indicators and predicted actions
+4. Dead Ends & Intelligence Gaps section (what's MISSING is critical intelligence)
+5. Cross-Investigation Links if entity overlaps were found
+6. Benford analysis results if financial data was flagged
+7. Single-source warnings inline with ⚠️ markers
+Be direct, intelligence-grade. Include BT confidence inline.`;
 
+    console.log('NOMAD v6.0: Starting Pass 2 (Pro synthesis)...');
+    
     // Build conversation history for memory continuity
     const conversationHistory: { role: string; parts: { text: string }[] }[] = [
       { role: 'user', parts: [{ text: NOMAD_SYSTEM_PROMPT }] },
     ];
 
-    // Inject prior conversation turns (skip the last user message — it's in `prompt`)
     const priorMessages = messages.slice(0, -1);
     if (priorMessages.length > 0) {
-      // Summarize prior turns to stay within context limits (last 10 exchanges max)
       const recentHistory = priorMessages.slice(-20);
       const historyBlock = recentHistory.map((m: { role: string; content: string }) => 
         `[${m.role.toUpperCase()}]: ${m.content.slice(0, 2000)}`
       ).join('\n\n');
-      
       conversationHistory.push({
         role: 'user',
-        parts: [{ text: `═══ CONVERSATION HISTORY (${recentHistory.length} prior messages) ═══\nThe user has been in an ongoing NOMAD session. Here is the conversation so far. Use this context to maintain continuity, resolve pronouns (e.g. "he", "they", "that company"), and build on previous findings.\n\n${historyBlock}\n\n═══ END CONVERSATION HISTORY ═══` }],
+        parts: [{ text: `═══ CONVERSATION HISTORY ═══\n${historyBlock}\n═══ END ═══` }],
       });
       conversationHistory.push({
         role: 'model',
-        parts: [{ text: 'Understood. I have full context of the prior conversation and will maintain continuity in my analysis.' }],
+        parts: [{ text: 'Context loaded. Maintaining continuity.' }],
       });
     }
 
-    conversationHistory.push({ role: 'user', parts: [{ text: prompt }] });
-
-    const geminiBody = JSON.stringify({
-      contents: conversationHistory,
-      generationConfig: { temperature: 0.2, maxOutputTokens: 16000 },
-    });
+    conversationHistory.push({ role: 'user', parts: [{ text: pass2Prompt }] });
 
     let aiText = "NOMAD could not generate a report.";
     const MAX_RETRIES = 4;
@@ -2722,7 +2821,10 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: geminiBody,
+        body: JSON.stringify({
+          contents: conversationHistory,
+          generationConfig: { temperature: 0.2, maxOutputTokens: 16000 },
+        }),
       });
 
       if (resp.ok) {
@@ -2732,7 +2834,6 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
       }
 
       if (resp.status === 429 && attempt < MAX_RETRIES - 1) {
-        // Exponential backoff with jitter
         const baseDelay = Math.pow(2, attempt + 1) * 1000;
         const jitter = Math.random() * 1000;
         console.log(`NOMAD: Rate limited (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${Math.round((baseDelay + jitter) / 1000)}s...`);
@@ -2742,9 +2843,7 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
 
       const err = await resp.text();
       console.error('Gemini API Error:', err);
-      if (resp.status === 429) {
-        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-      }
+      if (resp.status === 429) throw new Error('Rate limit exceeded. Please wait a moment and try again.');
       throw new Error(`AI generation failed (${resp.status})`);
     }
 
@@ -2757,7 +2856,6 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
       start(controller) {
         const chunk = { choices: [{ delta: { content: aiText } }] };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-        // Send images as a separate event
         if (collectedImages.length > 0) {
           const imgChunk = { type: 'images', images: collectedImages };
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(imgChunk)}\n\n`));
