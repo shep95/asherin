@@ -874,7 +874,7 @@ const NomadView = () => {
                       <button
                         onClick={handleSend}
                         disabled={!input.trim() || isLoading}
-                        className="rounded-2xl bg-accent/20 border border-accent/30 p-3 text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
+                        className="rounded-2xl bg-foreground/[0.08] border border-foreground/[0.12] p-3 text-foreground hover:bg-foreground/[0.12] transition-colors disabled:opacity-30"
                       >
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       </button>
