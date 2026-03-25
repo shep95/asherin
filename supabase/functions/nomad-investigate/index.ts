@@ -191,11 +191,17 @@ function extractEntitiesFromText(text: string, source: string): ExtractedEntity[
   return entities;
 }
 
-// ── HOSTILE SOURCE DETECTION ─────────────────────────────────────────────────
+// ── HOSTILE SOURCE DETECTION (Enhanced — Gap 6) ─────────────────────────────
 
 const HOSTILE_DOMAINS = [
   'reddit.com', 'quora.com', '4chan.org', 'pastebin.com',
   'medium.com/@anonymous', 'blogspot.com',
+];
+
+const SEO_POISONED_DOMAINS = [
+  'spokeo.com', 'whitepages.com', 'beenverified.com', 'intelius.com',
+  'peoplefinder.com', 'pipl.com', 'radaris.com', 'mylife.com',
+  'instantcheckmate.com', 'truthfinder.com', 'ussearch.com',
 ];
 
 function detectHostileSources(text: string): string[] {
@@ -203,10 +209,75 @@ function detectHostileSources(text: string): string[] {
   for (const domain of HOSTILE_DOMAINS) {
     if (text.toLowerCase().includes(domain)) flags.push(domain);
   }
+  for (const domain of SEO_POISONED_DOMAINS) {
+    if (text.toLowerCase().includes(domain)) flags.push(`SEO_POISONED:${domain}`);
+  }
   if (/unverified|alleged|rumored|supposedly|unconfirmed/i.test(text)) {
     flags.push('UNVERIFIED_LANGUAGE_DETECTED');
   }
+  // Detect AI-generated content farm patterns
+  if (/this article was (auto-?generated|written by ai|produced automatically)/i.test(text)) {
+    flags.push('AI_CONTENT_FARM_DETECTED');
+  }
+  // Detect Wikipedia vandalism indicators
+  if (/\[citation needed\].*\[citation needed\].*\[citation needed\]/i.test(text)) {
+    flags.push('WIKIPEDIA_CITATION_GAPS');
+  }
   return flags;
+}
+
+// ── Benford's Law Analysis (Gap 6) ──────────────────────────────────────────
+
+function benfordAnalysis(numbers: number[]): { isNatural: boolean; chiSquare: number; suspiciousDigits: number[] } {
+  if (numbers.length < 10) return { isNatural: true, chiSquare: 0, suspiciousDigits: [] };
+  
+  const expected = [0, 0.301, 0.176, 0.125, 0.097, 0.079, 0.067, 0.058, 0.051, 0.046];
+  const observed: number[] = new Array(10).fill(0);
+  let validCount = 0;
+  
+  for (const num of numbers) {
+    const absNum = Math.abs(num);
+    if (absNum < 1) continue;
+    const firstDigit = parseInt(String(absNum)[0]);
+    if (firstDigit >= 1 && firstDigit <= 9) {
+      observed[firstDigit]++;
+      validCount++;
+    }
+  }
+  
+  if (validCount < 10) return { isNatural: true, chiSquare: 0, suspiciousDigits: [] };
+  
+  let chiSquare = 0;
+  const suspiciousDigits: number[] = [];
+  for (let d = 1; d <= 9; d++) {
+    const obs = observed[d] / validCount;
+    const exp = expected[d];
+    const contribution = Math.pow(obs - exp, 2) / exp;
+    chiSquare += contribution;
+    if (Math.abs(obs - exp) > 0.1) suspiciousDigits.push(d);
+  }
+  
+  // Chi-square critical value for 8 df at 0.05 = 15.507
+  return { isNatural: chiSquare < 15.507, chiSquare: Math.round(chiSquare * 100) / 100, suspiciousDigits };
+}
+
+function extractFinancialNumbers(text: string): number[] {
+  const matches = text.match(/\$[\d,]+(?:\.\d{2})?/g) || [];
+  return matches.map(m => parseFloat(m.replace(/[$,]/g, ''))).filter(n => n > 0);
+}
+
+function flagSingleSourceClaims(nodes: IntelNode[], crossRefMap: Record<string, string[]>): string[] {
+  const flags: string[] = [];
+  for (const [key, sources] of Object.entries(crossRefMap)) {
+    if (sources.length === 1) {
+      const [type, value] = key.split(':');
+      const sourceTier = nodes.find(n => n.source === sources[0])?.tier || 4;
+      if (sourceTier >= 3) {
+        flags.push(`[UNVERIFIED — SINGLE SOURCE] ${type}: ${value} (only from ${sources[0]})`);
+      }
+    }
+  }
+  return flags.slice(0, 20);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
