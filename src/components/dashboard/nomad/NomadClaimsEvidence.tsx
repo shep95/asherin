@@ -146,13 +146,13 @@ const NomadClaimsEvidence = ({ entities, investigations }: NomadClaimsEvidencePr
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Claims ({data.claims.length})</h3>
-              <button onClick={() => setAddingClaim(true)} className="flex items-center gap-1 text-[10px] text-accent/60 hover:text-accent transition-colors">
+              <button onClick={() => setAddingClaim(true)} className="flex items-center gap-1 text-[10px] text-foreground/50 hover:text-foreground transition-colors">
                 <Plus className="h-3 w-3" /> Add Claim
               </button>
             </div>
 
             {addingClaim && (
-              <div className="mb-3 rounded-xl border border-accent/20 bg-accent/5 p-3 space-y-2">
+              <div className="mb-3 rounded-xl border border-border/25 bg-foreground/[0.03] p-3 space-y-2">
                 <input value={claimText} onChange={e => setClaimText(e.target.value)} onKeyDown={e => e.key === "Enter" && addClaim()} placeholder='e.g. "X controls Y through shell company Z"' className="w-full bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" autoFocus />
                 <div className="flex gap-2">
                   <button onClick={addClaim} className="text-[10px] text-accent">Save</button>
@@ -233,7 +233,7 @@ const NomadClaimsEvidence = ({ entities, investigations }: NomadClaimsEvidencePr
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Sources ({data.sources.length})</h3>
-              <button onClick={() => setAddingSource(true)} className="flex items-center gap-1 text-[10px] text-accent/60 hover:text-accent transition-colors">
+              <button onClick={() => setAddingSource(true)} className="flex items-center gap-1 text-[10px] text-foreground/50 hover:text-foreground transition-colors">
                 <Plus className="h-3 w-3" /> Add Source
               </button>
             </div>

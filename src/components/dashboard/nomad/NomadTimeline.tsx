@@ -148,7 +148,7 @@ const NomadTimeline = ({ investigations, sessionEntities }: NomadTimelineProps) 
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
                           <div className="h-7 w-7 rounded-lg bg-card/40 flex items-center justify-center shrink-0 mt-0.5">
-                            <Icon className="h-3.5 w-3.5 text-accent/70" />
+                            <Icon className="h-3.5 w-3.5 text-foreground/60" />
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-light text-foreground truncate">{event.entityValue}</p>

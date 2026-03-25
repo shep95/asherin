@@ -130,7 +130,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
             <p className="text-xs text-muted-foreground/40 mb-4">Query your intelligence graph</p>
             <div className="grid grid-cols-1 gap-1.5 w-full max-w-md">
               {EXAMPLES.map((q, i) => (
-                <button key={i} onClick={() => setInput(q)} className="text-left px-3 py-2 rounded-xl border border-border/12 bg-card/15 text-[11px] font-light text-foreground/60 hover:border-accent/20 hover:bg-accent/5 transition-all">
+                <button key={i} onClick={() => setInput(q)} className="text-left px-3 py-2 rounded-xl border border-border/12 bg-card/15 text-[11px] font-light text-foreground/60 hover:border-border/25 hover:bg-foreground/[0.03] transition-all">
                   {q}
                 </button>
               ))}
@@ -140,7 +140,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
 
         {messages.map(msg => (
           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-accent/10 border border-accent/20" : "bg-card/30 border border-border/15"}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-foreground/[0.06] border border-border/25" : "bg-card/30 border border-border/15"}`}>
               {msg.role === "assistant" ? (
                 <div className="prose prose-sm prose-invert max-w-none">
                   <ReactMarkdown
@@ -186,7 +186,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
             rows={1}
             className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/40 outline-none resize-none"
           />
-          <button onClick={handleSend} disabled={!input.trim() || loading} className="p-2 rounded-xl bg-accent/10 text-accent hover:bg-accent/20 disabled:opacity-30 transition-all">
+          <button onClick={handleSend} disabled={!input.trim() || loading} className="p-2 rounded-xl bg-foreground/[0.06] text-accent hover:bg-foreground/[0.1] disabled:opacity-30 transition-all">
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </button>
         </div>

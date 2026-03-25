@@ -144,7 +144,7 @@ const NomadObjectExplorer = ({ entities, crossRefMap }: NomadObjectExplorerProps
             <button
               onClick={() => setSelectedType(null)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-extralight transition-colors ${
-                !selectedType ? "bg-accent/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
+                !selectedType ? "bg-foreground/[0.06] text-accent" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
               }`}
             >
               <span className="flex items-center gap-2"><Filter className="h-3 w-3" /> All Objects</span>
@@ -157,7 +157,7 @@ const NomadObjectExplorer = ({ entities, crossRefMap }: NomadObjectExplorerProps
                   key={type}
                   onClick={() => setSelectedType(type === selectedType ? null : type)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-extralight transition-colors ${
-                    selectedType === type ? "bg-accent/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
+                    selectedType === type ? "bg-foreground/[0.06] text-accent" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -189,13 +189,13 @@ const NomadObjectExplorer = ({ entities, crossRefMap }: NomadObjectExplorerProps
                   onClick={() => setSelectedObject(isSelected ? null : entity)}
                   className={`w-full text-left rounded-2xl border px-4 py-3 transition-all ${
                     isSelected
-                      ? "border-accent/30 bg-accent/10"
+                      ? "border-foreground/15 bg-foreground/[0.06]"
                       : "border-border/20 bg-card/20 hover:bg-card/40 hover:border-border/30"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${isSelected ? "bg-accent/20" : "bg-card/40"}`}>
+                      <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${isSelected ? "bg-foreground/[0.1]" : "bg-card/40"}`}>
                         <Icon className={`h-4 w-4 ${getObjectColor(entity.type)}`} />
                       </div>
                       <div className="min-w-0">
@@ -210,7 +210,7 @@ const NomadObjectExplorer = ({ entities, crossRefMap }: NomadObjectExplorerProps
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {linkCount > 0 && (
-                        <span className="flex items-center gap-1 text-[9px] font-extralight text-accent/70">
+                        <span className="flex items-center gap-1 text-[9px] font-extralight text-foreground/60">
                           <Link2 className="h-3 w-3" /> {linkCount}
                         </span>
                       )}

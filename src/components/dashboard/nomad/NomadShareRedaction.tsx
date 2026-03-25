@@ -145,7 +145,7 @@ const NomadShareRedaction = ({ content, entities, onExport, open, onClose }: Nom
             </button>
             <button
               onClick={() => { onExport(redactedContent); onClose(); }}
-              className="flex items-center gap-1.5 rounded-xl bg-accent/20 border border-accent/30 px-3 py-1.5 text-[10px] font-extralight text-accent hover:bg-accent/30 transition-colors"
+              className="flex items-center gap-1.5 rounded-xl bg-foreground/[0.1] border border-foreground/15 px-3 py-1.5 text-[10px] font-extralight text-accent hover:bg-accent/30 transition-colors"
             >
               <Download className="h-3 w-3" />
               Export Redacted

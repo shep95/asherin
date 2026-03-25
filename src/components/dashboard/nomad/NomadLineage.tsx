@@ -85,7 +85,7 @@ const NomadLineage = ({ entities, investigations }: NomadLineageProps) => {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search entities…"
-        className="w-full bg-card/20 border border-border/20 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30 transition-colors"
+        className="w-full bg-card/20 border border-border/20 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-foreground/15 transition-colors"
       />
 
       {filtered.length === 0 ? (
@@ -106,7 +106,7 @@ const NomadLineage = ({ entities, investigations }: NomadLineageProps) => {
                   onClick={() => setExpandedNode(isOpen ? null : node.id)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-foreground/5 transition-colors"
                 >
-                  <Icon className="h-4 w-4 text-accent/60 shrink-0" />
+                  <Icon className="h-4 w-4 text-foreground/50 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-light text-foreground truncate">{node.entityValue}</p>
                     <p className="text-[9px] text-muted-foreground/50">{node.entityType} · {node.appearances.length} appearance{node.appearances.length !== 1 ? "s" : ""} · {node.derivedFrom.length} linked</p>
@@ -120,7 +120,7 @@ const NomadLineage = ({ entities, investigations }: NomadLineageProps) => {
                     <div>
                       <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-2">Provenance Chain</p>
                       <div className="relative pl-4">
-                        <div className="absolute left-[7px] top-0 bottom-0 w-px bg-accent/20" />
+                        <div className="absolute left-[7px] top-0 bottom-0 w-px bg-foreground/[0.1]" />
                         {node.appearances.map((app, i) => (
                           <div key={i} className="flex items-start gap-3 mb-2 relative">
                             <div className="h-2 w-2 rounded-full bg-accent/40 mt-1.5 z-10 shrink-0" />
@@ -131,7 +131,7 @@ const NomadLineage = ({ entities, investigations }: NomadLineageProps) => {
                                   <Clock className="h-2.5 w-2.5 inline mr-0.5" />
                                   {new Date(app.timestamp).toLocaleString()}
                                 </span>
-                                <span className="text-[8px] text-accent/50">{Math.round(app.confidence * 100)}% confidence</span>
+                                <span className="text-[8px] text-foreground/50">{Math.round(app.confidence * 100)}% confidence</span>
                               </div>
                             </div>
                           </div>
@@ -148,7 +148,7 @@ const NomadLineage = ({ entities, investigations }: NomadLineageProps) => {
                             const [type, ...val] = d.split(":");
                             return (
                               <span key={d} className="inline-flex items-center gap-1 text-[9px] bg-card/50 border border-border/15 px-2 py-0.5 rounded-full text-foreground/70">
-                                <Link2 className="h-2.5 w-2.5 text-accent/40" />
+                                <Link2 className="h-2.5 w-2.5 text-foreground/40" />
                                 {val.join(":")}
                               </span>
                             );

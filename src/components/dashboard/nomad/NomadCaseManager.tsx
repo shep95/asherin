@@ -148,7 +148,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-light text-foreground">Case Brief Generator</h3>
                 <div className="flex gap-2">
-                  <button onClick={generateBrief} className="px-3 py-1.5 rounded-xl text-[10px] bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 transition-colors">
+                  <button onClick={generateBrief} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-accent border border-foreground/15 hover:bg-accent/30 transition-colors">
                     Generate Brief
                   </button>
                   {briefGenerated && (
@@ -175,7 +175,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
             <div className="space-y-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Evidence-Linked Tasks</h3>
-                <button onClick={() => setAddingTask(true)} className="text-[10px] text-accent/60 hover:text-accent"><Plus className="h-3 w-3 inline" /> Add Task</button>
+                <button onClick={() => setAddingTask(true)} className="text-[10px] text-foreground/50 hover:text-foreground"><Plus className="h-3 w-3 inline" /> Add Task</button>
               </div>
               <p className="text-[10px] text-muted-foreground/30 mb-2">Each task links to a claim gap and closes only when evidence is attached.</p>
 
@@ -188,7 +188,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
               )}
 
               {data.tasks.map(t => (
-                <div key={t.id} className={`rounded-xl border p-3 ${t.status === "closed" ? "border-emerald-500/20 bg-emerald-500/5" : t.status === "in_progress" ? "border-accent/20 bg-accent/5" : "border-border/15 bg-card/10"}`}>
+                <div key={t.id} className={`rounded-xl border p-3 ${t.status === "closed" ? "border-emerald-500/20 bg-emerald-500/5" : t.status === "in_progress" ? "border-border/25 bg-foreground/[0.03]" : "border-border/15 bg-card/10"}`}>
                   <div className="flex items-center gap-2">
                     <Link2 className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
                     <span className="text-xs text-foreground/70 font-light flex-1">{t.claim}</span>
@@ -211,7 +211,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
               <p className="text-[10px] text-muted-foreground/40 mb-3">Prevent duplicate work. Track who is investigating which entity.</p>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Team ({data.team.length})</h3>
-                <button onClick={() => setAddingMember(true)} className="text-[10px] text-accent/60 hover:text-accent"><Plus className="h-3 w-3 inline" /> Add Analyst</button>
+                <button onClick={() => setAddingMember(true)} className="text-[10px] text-foreground/50 hover:text-foreground"><Plus className="h-3 w-3 inline" /> Add Analyst</button>
               </div>
               {addingMember && (
                 <div className="flex items-center gap-2 mb-2">
@@ -222,7 +222,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
               {data.team.map(m => (
                 <div key={m.id} className="rounded-xl border border-border/15 bg-card/10 p-3">
                   <div className="flex items-center gap-2">
-                    <Users className="h-3.5 w-3.5 text-accent/50" />
+                    <Users className="h-3.5 w-3.5 text-foreground/50" />
                     <span className="text-xs text-foreground/70">{m.name}</span>
                     <span className="text-[9px] text-muted-foreground/30 ml-auto">{m.investigating.length} assigned</span>
                   </div>
@@ -240,7 +240,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
                     <Eye className="h-3 w-3 inline mr-1" /> Scan PII
                   </button>
                   {redactionItems.length > 0 && (
-                    <button onClick={exportRedacted} className="px-3 py-1.5 rounded-xl text-[10px] bg-accent/20 text-accent border border-accent/30 hover:bg-accent/30 transition-colors">
+                    <button onClick={exportRedacted} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-accent border border-foreground/15 hover:bg-accent/30 transition-colors">
                       Export Redacted
                     </button>
                   )}
@@ -265,14 +265,14 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
               <h3 className="text-sm font-light text-foreground">Compliance Export Packs</h3>
               <p className="text-[10px] text-muted-foreground/40">Generate sanitized report + sealed evidence appendix + chain-of-custody log with separate permissions.</p>
               <div className="grid grid-cols-1 gap-3">
-                <button onClick={complianceExport} className="rounded-xl border border-border/20 bg-card/20 p-4 text-left hover:border-accent/20 transition-colors">
+                <button onClick={complianceExport} className="rounded-xl border border-border/20 bg-card/20 p-4 text-left hover:border-border/25 transition-colors">
                   <div className="flex items-center gap-2 mb-2">
-                    <Briefcase className="h-4 w-4 text-accent/60" />
+                    <Briefcase className="h-4 w-4 text-foreground/50" />
                     <span className="text-xs font-light text-foreground">Full Compliance Pack</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground/40">Downloads sanitized report + chain-of-custody log as separate files.</p>
                 </button>
-                <button onClick={exportBrief} className="rounded-xl border border-border/20 bg-card/20 p-4 text-left hover:border-accent/20 transition-colors">
+                <button onClick={exportBrief} className="rounded-xl border border-border/20 bg-card/20 p-4 text-left hover:border-border/25 transition-colors">
                   <div className="flex items-center gap-2 mb-2">
                     <FileText className="h-4 w-4 text-muted-foreground/50" />
                     <span className="text-xs font-light text-foreground">Brief Only</span>

@@ -222,7 +222,7 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
             </select>
           </div>
           {geocoding && (
-            <div className="flex items-center gap-1.5 rounded-xl bg-accent/10 border border-accent/20 px-3 py-2 backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 rounded-xl bg-foreground/[0.06] border border-border/25 px-3 py-2 backdrop-blur-sm">
               <Loader2 className="h-3 w-3 text-accent animate-spin" />
               <span className="text-[10px] font-extralight text-accent">Geocoding…</span>
             </div>
@@ -301,12 +301,12 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
                   key={idx}
                   onClick={() => hasCoords ? setSelectedPin(loc) : null}
                   className={`w-full text-left px-3 py-2 rounded-xl transition-colors ${
-                    selectedPin === loc ? "bg-accent/10 border border-accent/20" : "hover:bg-card/30 border border-transparent"
+                    selectedPin === loc ? "bg-foreground/[0.06] border border-border/25" : "hover:bg-card/30 border border-transparent"
                   } ${!hasCoords ? "opacity-40" : ""}`}
                 >
                   <div className="flex items-center gap-2">
                     {hasCoords ? (
-                      <Navigation className="h-3 w-3 text-accent/60 shrink-0" />
+                      <Navigation className="h-3 w-3 text-foreground/50 shrink-0" />
                     ) : (
                       <MapPin className="h-3 w-3 text-muted-foreground/30 shrink-0" />
                     )}

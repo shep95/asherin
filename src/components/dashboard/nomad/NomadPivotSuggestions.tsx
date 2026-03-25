@@ -18,8 +18,8 @@ const NomadPivotSuggestions = ({ suggestions, onPivot }: NomadPivotSuggestionsPr
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-accent/15 bg-accent/5 p-3 space-y-2 animate-fade-in">
-      <div className="flex items-center gap-1.5 text-[9px] font-extralight tracking-wider text-accent/60 uppercase">
+    <div className="rounded-xl border border-border/20 bg-foreground/[0.03] p-3 space-y-2 animate-fade-in">
+      <div className="flex items-center gap-1.5 text-[9px] font-extralight tracking-wider text-foreground/50 uppercase">
         <Crosshair className="h-3 w-3" />
         Investigation Branches — High-Value Secondary Targets
       </div>
@@ -28,7 +28,7 @@ const NomadPivotSuggestions = ({ suggestions, onPivot }: NomadPivotSuggestionsPr
           <button
             key={idx}
             onClick={() => onPivot(entity.pivot_query)}
-            className="w-full flex items-center justify-between rounded-lg border border-border/15 bg-card/20 hover:bg-card/40 hover:border-accent/20 px-3 py-2 text-left transition-all group"
+            className="w-full flex items-center justify-between rounded-lg border border-border/15 bg-card/20 hover:bg-card/40 hover:border-border/25 px-3 py-2 text-left transition-all group"
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -42,7 +42,7 @@ const NomadPivotSuggestions = ({ suggestions, onPivot }: NomadPivotSuggestionsPr
                 <Layers className="h-2.5 w-2.5" />
                 {entity.appearances}×
               </div>
-              <ArrowRight className="h-3 w-3 text-accent/40 group-hover:text-accent transition-colors" />
+              <ArrowRight className="h-3 w-3 text-foreground/40 group-hover:text-foreground transition-colors" />
             </div>
           </button>
         ))}

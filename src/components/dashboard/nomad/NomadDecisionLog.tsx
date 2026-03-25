@@ -63,7 +63,7 @@ const NomadDecisionLog = ({ messages }: NomadDecisionLogProps) => {
         className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
       >
         <div className="flex items-center gap-2">
-          <BookOpen className="h-3 w-3 text-accent/60" />
+          <BookOpen className="h-3 w-3 text-foreground/50" />
           <span>{decisions.length} intelligence decision{decisions.length !== 1 ? "s" : ""} logged</span>
         </div>
         {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
