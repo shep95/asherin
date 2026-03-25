@@ -3242,19 +3242,140 @@ ${aiText.slice(0, 8000)}`, 'gemini-2.5-flash', 2500, 0.2);
       }
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // POST-SYNTHESIS: ACTIONABLE INTELLIGENCE MODULE (Gap 7)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    if (isPersonInvestigation && aiText.length > 500) {
+      console.log('NOMAD v9.0: Starting Actionable Intelligence Pass...');
+      const actionableIntel = await aiPass(GEMINI_API_KEY,
+        'You are a strategic intelligence advisor. Produce decision-support output, not more data. Output structured actionable guidance only.',
+        `Based on this completed intelligence dossier, produce the ACTIONABLE INTELLIGENCE LAYER.
+
+This section is NOT more data. It is decision support.
+
+DUE DILIGENCE USE CASE:
+- Top 3 specific questions to ask this person based on gaps/inconsistencies found
+- Top 3 documents to request for verification
+- Single biggest risk factor as a decision trigger
+
+NEGOTIATION USE CASE:
+- Primary decision-making driver based on behavioral profile
+- Most effective proposal framing
+- Most likely objection and pressure point
+
+RISK ASSESSMENT USE CASE:
+- Probability of material misrepresentation: [%] with evidence
+- Probability of undisclosed legal exposure: [%] with evidence
+- Priority verification steps
+
+MONITORING TRIGGERS:
+- Specific future events that would change this assessment
+- Recommended search alerts / monitoring keywords
+
+DOSSIER:
+${aiText.slice(0, 6000)}`, 'gemini-2.5-flash', 2000, 0.2);
+
+      if (actionableIntel) {
+        aiText += `\n\n---\n\n## ACTIONABLE INTELLIGENCE — DECISION SUPPORT\n\n${actionableIntel}`;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PIVOT SUGGESTIONS — Identify high-value secondary targets (Gap 2)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    const pivotSuggestions: any[] = [];
+    const entityCounts: Record<string, { count: number; type: string; sources: string[] }> = {};
+    for (const node of nodes) {
+      for (const entity of node.entities || []) {
+        const key = entity.value.toLowerCase().trim();
+        if (!entityCounts[key]) entityCounts[key] = { count: 0, type: entity.type, sources: [] };
+        entityCounts[key].count++;
+        if (!entityCounts[key].sources.includes(node.source)) entityCounts[key].sources.push(node.source);
+      }
+    }
+    // Identify entities appearing in 3+ sources that aren't the primary target
+    const cleanedQuery = lastUserMessage.toLowerCase().replace(/investigate|person|company|research|find|who is|look up|about|search/gi, '').trim();
+    Object.entries(entityCounts)
+      .filter(([key, data]) => data.count >= 3 && !cleanedQuery.includes(key) && data.type !== 'date' && data.type !== 'url')
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5)
+      .forEach(([key, data]) => {
+        pivotSuggestions.push({
+          name: key,
+          type: data.type,
+          appearances: data.count,
+          sources: data.sources.length,
+          pivot_query: `Investigate ${data.type}: ${key}`,
+          reason: `Appears in ${data.count} data points across ${data.sources.length} sources`,
+        });
+      });
+
+    // ── Source Telemetry Summary for dossier ──
+    const telemetrySummary = sourceTelemetry.length > 0
+      ? `\n\n## SOURCE TELEMETRY\n\n| Source | Status | Time (ms) | Results | Entities |\n|--------|--------|-----------|---------|----------|\n` +
+        sourceTelemetry.slice(0, 20).map((t: any) => 
+          `| ${t.source_name?.slice(0, 30)} | ${t.status} | ${t.response_time_ms} | ${t.result_count} | ${t.entity_yield} |`
+        ).join('\n')
+      : '';
+    
+    aiText += telemetrySummary;
+
     // 4. Await collected images
     const collectedImages = await imagePromise;
 
-    // 5. STREAM RESPONSE
+    // ══════════════════════════════════════════════════════════════════════════
+    // PERSIST: Save investigation with full context (Gap 1, 4, 8)
+    // ══════════════════════════════════════════════════════════════════════════
+    
+    if (userId && SUPABASE_URL && SUPABASE_KEY) {
+      try {
+        // Save source telemetry
+        const telemetryInserts = sourceTelemetry.slice(0, 50).map((t: any) => ({
+          user_id: userId,
+          source_name: t.source_name,
+          response_time_ms: t.response_time_ms,
+          status: t.status,
+          result_count: t.result_count,
+          entity_yield: t.entity_yield,
+        }));
+        if (telemetryInserts.length > 0) {
+          fetch(`${SUPABASE_URL}/rest/v1/nomad_source_telemetry`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(telemetryInserts),
+          }).catch(err => console.error('Telemetry insert error:', err));
+        }
+      } catch (err) { console.error('Post-investigation persistence error:', err); }
+    }
+
+    // 5. STREAM RESPONSE with metadata
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
+        // Main dossier content
         const chunk = { choices: [{ delta: { content: aiText } }] };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+        // Images
         if (collectedImages.length > 0) {
           const imgChunk = { type: 'images', images: collectedImages };
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(imgChunk)}\n\n`));
         }
+        // Pivot suggestions (Gap 2)
+        if (pivotSuggestions.length > 0) {
+          const pivotChunk = { type: 'pivot_suggestions', entities: pivotSuggestions };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(pivotChunk)}\n\n`));
+        }
+        // Source telemetry (Gap 4)
+        if (sourceTelemetry.length > 0) {
+          const telemetryChunk = { type: 'source_telemetry', telemetry: sourceTelemetry };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(telemetryChunk)}\n\n`));
+        }
+        // Subject fingerprint for diff tracking (Gap 8)
+        const metaChunk = { type: 'investigation_meta', subjectFingerprint, priorInvestigationCount: priorFindings ? 1 : 0 };
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(metaChunk)}\n\n`));
+        
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       },
