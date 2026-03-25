@@ -704,6 +704,14 @@ const NomadView = () => {
                     </div>
                   ))
                 )}
+                {/* Follow-up suggestions after last assistant message */}
+                {messages.length > 0 && !isLoading && messages[messages.length - 1]?.role === "assistant" && messages[messages.length - 1]?.content && (
+                  <NomadFollowUps
+                    lastContent={messages[messages.length - 1].content}
+                    investigationType={messages.find(m => m.role === "user" && m.investigationType)?.investigationType}
+                    onSelect={handleFollowUp}
+                  />
+                )}
                 <div ref={bottomRef} />
               </div>
             </ScrollArea>
