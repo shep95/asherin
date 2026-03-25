@@ -785,7 +785,7 @@ const NomadView = () => {
                             <button onClick={() => setDiagramId(diagramId === msg.id ? null : msg.id)} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
                               <GitBranch className="h-3 w-3" /> Diagram
                             </button>
-                            <button onClick={() => handleTogglePin(msg.id)} className={`flex items-center gap-1 text-[10px] font-light transition-colors ${pinnedIds.has(msg.id) ? "text-accent" : "text-muted-foreground/50 hover:text-muted-foreground"}`}>
+                            <button onClick={() => handleTogglePin(msg.id)} className={`flex items-center gap-1 text-[10px] font-light transition-colors ${pinnedIds.has(msg.id) ? "text-foreground" : "text-muted-foreground/50 hover:text-muted-foreground"}`}>
                               <Pin className="h-3 w-3" /> {pinnedIds.has(msg.id) ? "Pinned" : "Pin"}
                             </button>
                             <button onClick={() => setFocusModeContent(msg.content)} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors">
