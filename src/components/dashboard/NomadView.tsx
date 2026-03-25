@@ -517,8 +517,8 @@ const NomadView = () => {
       <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-md px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-              <Crosshair className="h-4 w-4 text-accent" />
+            <div className="h-9 w-9 rounded-2xl bg-foreground/[0.06] border border-foreground/[0.08] flex items-center justify-center">
+              <Crosshair className="h-4 w-4 text-foreground/70" />
             </div>
             <div>
               <h1 className="text-sm font-light tracking-[0.2em] text-foreground uppercase">NOMAD</h1>
