@@ -796,13 +796,13 @@ const NomadView = () => {
                             <NomadCalibrationFeedback messageId={msg.id} onFeedback={handleCalibrationFeedback} />
                             {allEntities.length > 0 && (
                               <>
-                                <button onClick={() => setActiveTab("objects")} className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors">
+                                <button onClick={() => setActiveTab("objects")} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-foreground transition-colors">
                                   <Layers className="h-3 w-3" /> Objects
                                 </button>
-                                <button onClick={() => setActiveTab("graph")} className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors">
+                                <button onClick={() => setActiveTab("graph")} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-foreground transition-colors">
                                   <Network className="h-3 w-3" /> Graph
                                 </button>
-                                <button onClick={() => setActiveTab("map")} className="flex items-center gap-1 text-[10px] font-light text-accent/50 hover:text-accent transition-colors">
+                                <button onClick={() => setActiveTab("map")} className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-foreground transition-colors">
                                   <Map className="h-3 w-3" /> Map
                                 </button>
                               </>
