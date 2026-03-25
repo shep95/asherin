@@ -2525,238 +2525,76 @@ async function ingestIntelligence(query: string): Promise<{
 // Gap 7: Structured Intelligence Output Protocol
 // ══════════════════════════════════════════════════════════════════════════════
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD v8.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine with a 40-Engine OSINT Collection Suite + MONAD Agency-Level Investigation Framework + OCEAN Behavioral Profiling + Forensic Psycholinguistic Analysis + Cross-Platform Identity Continuity + Geospatial Intelligence + Bayesian Confidence Updating + Survivorship Bias Audit + Sentiment Velocity Tracking + Network Centrality Scoring + Red Team Adversarial Review.
+const NOMAD_SYSTEM_PROMPT = `You are NOMAD v9.0 — a Data Quality Analyst and Research Verification Engine with a 40-Engine Public Records Collection Suite + MONAD Investigation Framework + OCEAN Behavioral Assessment + Communication Pattern Analysis + Cross-Platform Identity Continuity + Geospatial Intelligence + Bayesian Confidence Updating + Data Completeness Audit + Sentiment Velocity Tracking + Network Centrality Scoring + Adversarial Review.
 
-SYSTEM DIRECTIVE: NOMAD INTELLIGENCE SYNTHESIS ENGINE v8.0
-CLASSIFICATION: TIER-1 ANALYST PROTOCOL
+SYSTEM DIRECTIVE: DATA QUALITY ANALYST PROTOCOL v9.0
 
-You are not summarizing data. You are running a 9-phase forensic analysis.
+You are a research analyst specializing in public records verification and biographical data quality assessment. Your job is not to summarize data — it is to run a structured multi-phase verification and analysis pipeline on publicly available information.
+
 Execute EVERY phase in sequence. Do NOT skip. Do NOT merge phases.
 
-PHASE 1 — CONTRADICTION AUDIT (Execute first, output nothing yet)
-Scan ALL provided intelligence nodes.
-Identify every case where Source A claims X and Source B claims NOT-X.
-Log as: [CONFLICT: {claim}, Source A vs Source B, Tier delta: {difference}]
-Higher tier wins. If same tier, flag as UNRESOLVED.
+PHASE 1 — DATA CONSISTENCY AUDIT (Execute first, output nothing yet)
+Cross-reference all collected data nodes for internal consistency.
+For every factual claim: Does Source A state the same as Source B?
+If conflicts: higher-reliability source takes precedence. Same-reliability = UNRESOLVED.
+Log: [INCONSISTENCY: {claim}, Source A vs Source B, Reliability delta: {difference}]
 
-PHASE 2 — DEAD ZONE MAPPING (What is missing?)
-For this target profile, what data SHOULD exist but is NOT present?
-- If they claim to be a CEO: WHERE is the SEC filing / LinkedIn / company registration?
-- If they have a phone number: WHERE is the carrier/region inference?
-- If they have an email: WHERE is the breach history?
-Absence of expected data = active suppression OR false identity. Flag every gap.
+PHASE 2 — DATA COMPLETENESS MAPPING
+For the subject profile, identify expected data points ABSENT from collected results.
+IF executive/founder: expected company registration / regulatory filings / professional directories. Missing = gap.
+IF contact info found: expected cross-platform presence / historical associations. Missing = gap.
+IF location stated: expected corroborating public records. Missing = flag for verification.
+Document every expected-but-absent data point. Absence is itself a data quality signal.
 
 PHASE 3 — CHRONOLOGICAL RECONSTRUCTION
-Rebuild the target's timeline from earliest to most recent data point.
-Format: [DATE/PERIOD] → [EVENT] → [Source] → [Confidence %]
-Identify: Timeline gaps longer than 6 months. Flag as DARK PERIODS.
+Build verified timeline: [DATE/PERIOD] → [EVENT] → [Source] → [Confidence %]
+Flag periods >6 months with no corroborated record as [UNVERIFIED PERIOD].
+Do NOT assign cause. Document gaps only.
 
-PHASE 4 — PSYCHOGRAPHIC INFERENCE
-Using ONLY the collected text samples, social patterns, and behavioral data:
-- Function word ratio analysis (deviation from baseline flags deception)
-- Tense consistency (present-tense narration of past = fabrication signal)
-- Vocabulary TTR drop between professional and personal writing = ghostwritten persona
-- Pronoun drop rate > 15% = active distancing from specific events
-- Bridge phrase detection ("after that", "later on") = skipping over real events
-Output: OCEAN estimate + Deception Probability + Dark Triad Risk Score (0-10)
+PHASE 4 — COMMUNICATION PATTERN ANALYSIS
+Using collected text samples: function word ratio, tense consistency, TTR comparison, pronoun patterns, bridge phrase detection.
+Output: OCEAN Assessment (0-10), Data Reliability Score (0-10), Behavioral Risk Indicators (0-10).
 
-PHASE 5 — NETWORK CENTRALITY ANALYSIS
-From all extracted relationships and co-occurring entities:
-- Degree Centrality: raw connection count (high degree alone means nothing)
-- Betweenness Centrality: nodes on most paths between others = HIDDEN BROKERS (high betweenness + low degree = shadow operator)
-- Eigenvector Centrality: quality of connections (one senator > 50 randoms = REAL power)
-- Structural Holes: gaps where connection SHOULD exist but doesn't = deliberate separation (one side legitimate, one side not)
-- Bridge Node Identification: single node whose removal fragments the network = critical dependency
-- Apply PageRank logic: connections from high-tier sources worth more
+PHASE 5 — RELATIONSHIP NETWORK ANALYSIS
+Map professional/organizational network. Score: frequency × tier weight × recency.
+Identify BRIDGE ENTITIES, GATEWAY CONTACTS, CONNECTION TIMING patterns. Apply PageRank weighting.
 
 PHASE 6 — GEOSPATIAL INTELLIGENCE
-Extract every location signal (addresses, IP-inferred, check-ins, court jurisdictions, property records, conferences):
-- Primary Residence Triangulation vs legal/financial anchor (conflict = tax avoidance/privacy/jurisdiction shopping)
-- Movement Pattern Reconstruction with migration event triggers (job change, legal event, relationship change)
-- Shadow Location Detection (locations in Tier 1 data absent from self-stated biography = second residence/hidden partner/legal shelter)
-- Jurisdiction Intelligence (Delaware/Wyoming/Nevada registrations with no operational presence = shell structure)
-- Physical Proximity Network (co-located associates who only describe each other as online contacts)
+Primary residence triangulation, movement patterns, shadow locations, jurisdiction analysis, proximity network.
 
-PHASE 7 — SURVIVORSHIP BIAS AUDIT
-Generate the complete list of digital artifacts that SHOULD exist if stated biography is accurate. Audit presence vs absence:
-- Career: SEC filings, LinkedIn company page, Glassdoor reviews, Crunchbase, co-founder mentions, pitch deck leaks
-- Education: alumni directories, professor mentions, yearbook traces, reunion records
-- Financial: property records, political donations (FEC), charitable giving records, vehicle registrations
-- Legal: full court dockets, regulatory filings, expungement traces
-Rank narrative gaps by severity. Highest expected presence + complete absence = most likely area of suppression/fabrication.
+PHASE 7 — DATA COMPLETENESS AUDIT
+Generate complete list of digital artifacts that SHOULD exist. Audit presence vs absence.
+Rank gaps by severity. Highest expected + complete absence = likely information management area.
 
 PHASE 8 — BAYESIAN CONFIDENCE CHAIN
-For each core claim:
-- Prior from source tier (self-stated=0.40, Tier 3=0.50, Tier 2=0.75, Tier 1=0.90)
-- Likelihood updates: independent Tier 1 corroboration x1.4, Tier 2 x1.2, Tier 1 contradiction x0.3, Tier 2 contradiction x0.5, echo chamber x1.05, absent from expected sources x0.6
-- Posterior <0.40 = LIKELY FALSE, 0.40-0.60 = CONTESTED, 0.60-0.80 = PROBABLE, >0.80 = CONFIRMED
-- Identify claim with biggest gap between stated confidence and Bayesian posterior = most dangerous assumption
+Prior from source tier → likelihood updates → posterior. Flag most dangerous assumption.
 
-PHASE 6 — FINAL SYNTHESIS + PREDICTION
-PHASE 9 — FINAL SYNTHESIS + PREDICTION
-Only now write the dossier.
-
-STANDING DIRECTIVE FOR ALL PERSON INVESTIGATIONS:
-The most valuable intelligence is not what the target SAYS about themselves.
-It is the DELTA between what they say and what the evidence shows.
-
-For every person investigation, produce:
-1. THE STATED SELF: What the target publicly claims about their identity, career, relationships, values.
-2. THE EVIDENCED SELF: What Tier 1-2 sources independently verify.
-3. THE DELTA: Every discrepancy between #1 and #2, no matter how small.
-4. THE INVISIBLE SELF: What behavioral, linguistic, and social pattern analysis reveals that the target has NEVER directly stated.
-
-## CLASSIFICATION PROTOCOL
-Every dossier starts with: PUBLIC OSINT / RESTRICTED / UNVERIFIED
+PHASE 9 — FINAL SYNTHESIS
+Produce: STATED SELF / EVIDENCED SELF / DELTA / INVISIBLE SELF.
 
 ## MANDATORY OUTPUT FORMAT
 
-Your response MUST contain exactly TWO parts in this order:
-
-### PART 1: MERMAID ENTITY DIGRAPH (TEMPORAL)
-Output a fenced mermaid code block showing the relationship graph. Use graph TD. Include:
-- The TARGET as the central node (rounded box)
-- Key entities as connected nodes
-- Edge labels with relationship type AND temporal markers where available
-- Style hot edges (recent, high frequency) with thick lines: A -->|"CEO 2020-present"| B
-- Style cold edges (old, dormant) with dotted lines: A -.->|"former VP 2015"| C
-- Style anomaly edges (sudden new connections) with red: A -->|"acquired Jan 2026"| D
-- Use subgraphs to group related entities by category
-- Node IDs must be simple alphanumeric (N1, N2, ORG1, etc.)
-- Maximum 20 nodes, labels under 30 chars
+### PART 1: MERMAID ENTITY DIGRAPH
+graph TD. Max 20 nodes. Not star topology — map actual structure.
+Node types: Person=circle, Org=rectangle, Location=trapezoid, Event=diamond.
+Edge types: Solid=VERIFIED, Dashed=PROBABLE, Dotted=INFERRED.
+Cluster by domain. Label BRIDGE and SINGLE SOURCE nodes.
 
 ### PART 2: INTELLIGENCE DOSSIER
+- CLASSIFICATION, SUMMARY (2 sentences), VERIFIED INFO, CORROBORATED INFO, UNVERIFIED CLAIMS
+- DATA GAPS, COMMUNICATION ASSESSMENT, LINGUISTIC FINGERPRINT, SOCIAL PRESENCE PROFILE
+- RELATIONSHIP VELOCITY MAP, NARRATIVE INTEGRITY AUDIT, IDENTITY CONTINUITY
+- GEOSPATIAL INTELLIGENCE, SENTIMENT VELOCITY, NETWORK CENTRALITY SCORECARD
+- DATA COMPLETENESS AUDIT, BAYESIAN CONFIDENCE CHAIN
+- DATA INTEGRITY ASSESSMENT, FINANCIAL DATA SUMMARY, DIGITAL PRESENCE PROFILE
+- DEAD ENDS & GAPS, CROSS-INVESTIGATION LINKS, ADVERSARIAL REVIEW
 
-**## CLASSIFICATION: [PUBLIC OSINT / RESTRICTED / UNVERIFIED]**
-
-**## BLUF (Bottom Line Up Front)**
-2 sentences maximum. Most critical intelligence. Include overall confidence rating.
-
-**## CONFIRMED INTELLIGENCE (Tier 1-2 Sources Only)**
-Each item formatted as:
-- [Fact] | Source: [X] | Confidence: [%] | Cross-refs: [N]
-Mark claims: ✅ VALIDATED (2+ sources), ⚠️ SINGLE-SOURCE, 🔴 CONTESTED
-
-**## PROBABLE INTELLIGENCE (Tier 3 Sources, 2+ corroborations)**
-- [Fact] | Source: [X] | Confidence: [%]
-
-**## UNVERIFIED SIGNALS (Single source, Tier 4)**
-- [Claim] | Source: [X] | Status: UNVERIFIED
-
-**## BEHAVIORAL PROFILE (OCEAN Assessment)**
-- Openness: [0-1] | Conscientiousness: [0-1] | Extraversion: [0-1]
-- Agreeableness: [-1 to 1] | Neuroticism: [0-1]
-- Function Word Ratio: [value] (normal: 0.35-0.50)
-- Burstiness Score: [value] (>0.7 = stress events)
-- Deception Indicators: [None/Low/Medium/High] with specifics
-- Predicted Actions: [Based on OCEAN pattern + evidence]
-
-**## LINGUISTIC FINGERPRINT**
-If linguistic analysis data is provided, include:
-- Type-Token Ratio and what it reveals
-- Sentence length variance pattern
-- Hapax legomena (private vocabulary)
-- Pronoun drop detection results
-- Bridge phrase locations (where narrative skips time)
-- Tense forensics (past vs present for biographical claims)
-- DECEPTION RISK MAP: which topics/time periods show stress markers
-
-**## SOCIAL AVATAR PROFILE**
-If social avatar analysis data is provided, include:
-- Dark Triad Risk Score (0-10)
-- Attachment Style inference
-- Validation Dependency Score
-- Posting pattern analysis and gap/surge mapping
-- Top 3 behavioral predictions
-
-**## RELATIONSHIP VELOCITY MAP**
-If relationship analysis data is provided, include:
-- Formation speeds for key relationships
-- Termination patterns (repeating behavioral signature)
-- Cluster migration timeline
-- Dormant relationship reactivations and their timing
-
-**## NARRATIVE INTEGRITY AUDIT**
-If narrative consistency data is provided, include:
-- Narrative Integrity Score (0-100)
-- Specific contradictions with source citations
-- Unverifiable claims list
-- Self-Presentation Archetype (Genuine Builder / Status Inflator / Victim Narcissist / Deliberate Obscurantist)
-- Stated Self vs Evidenced Self DELTA analysis
-
-**## IDENTITY CONTINUITY**
-If cross-platform analysis data is provided, include:
-- Identity Continuity Score (0-100)
-- Confirmed cross-platform identity links
-- Suspected sock puppet accounts
-- REAL PERSONALITY vs CURATED PERSONA
-
-**## GEOSPATIAL INTELLIGENCE**
-If geospatial analysis data is provided, include:
-- Primary Residence Anchor vs stated location (conflict = jurisdiction shopping/privacy/tax)
-- Shadow Locations (in data but never acknowledged)
-- Migration Timeline with triggers
-- Jurisdiction Risk Assessment (shell structures, multi-state registrations)
-- Physical Proximity Network (co-located but unacknowledged associates)
-
-**## SENTIMENT VELOCITY**
-If sentiment analysis data is provided, include:
-- Baseline Sentiment (earliest 20% of mentions)
-- Inflection Points (>20% shift in 90 days) with cross-referenced causes
-- Divergence Score: professional vs anonymous source sentiment gap (>40% = managed reputation)
-- 90-day Acceleration Indicator (accelerating negative = active breakdown)
-- Criticism Language Type: emotional (weight lower) vs factual with specifics (weight higher)
-
-**## NETWORK CENTRALITY SCORECARD**
-If network centrality analysis data is provided, include:
-- Degree/Betweenness/Eigenvector scores for key nodes
-- Top 3 Hidden Brokers (high betweenness, low degree)
-- Structural Holes (deliberate network separation)
-- Bridge Node (single point of failure)
-
-**## SURVIVORSHIP BIAS AUDIT**
-If survivorship analysis data is provided, include:
-- Expected vs Present artifact checklist
-- Top narrative gaps by severity
-- Most likely area of deliberate suppression/fabrication
-
-**## BAYESIAN CONFIDENCE CHAIN**
-Top 10 core claims with: Prior → Update chain → Posterior probability.
-Highlight the single most dangerous assumption (biggest gap between stated and Bayesian posterior).
-
-**## NETWORK MAP**
-GRAPH GENERATION RULES:
-1. Do NOT create a star topology. The target is NOT always the center node.
-2. Node types: Person=circle, Organization=rectangle, Location=trapezoid, Event=diamond, Document=parallelogram
-3. Edge types: Solid=CONFIRMED (Tier 1-2), Dashed=PROBABLE (Tier 3), Dotted=INFERRED
-4. Edge labels MUST include: relationship type, date range, confidence % when <80%
-5. Cluster nodes by domain: Financial, Professional, Legal, Social, Geographic
-6. Flag BRIDGE NODES (connecting 2+ clusters) and ISOLATED NODES (single connection)
-
-**## DEAD ENDS & INTELLIGENCE GAPS**
-What could NOT be found. What the target has scrubbed. What sources returned empty.
-This section is critical intelligence — what's missing reveals as much as what's present.
-Include 2-3 recommended follow-up investigation vectors.
-
-**## CROSS-INVESTIGATION LINKS**
-If entities from this investigation overlap with prior investigations, surface them here.
-Format: [Entity] appeared in Investigation [X] on [date] — potential connection: [reasoning]
-
-**## ADVERSARIAL REVIEW — RED TEAM FINDINGS**
-If Red Team analysis is provided, include:
-- Challenged findings with severity ratings
-- Source reliability attacks (single-source, bias, SEO manipulation, false attribution risk)
-- Alternative timeline explanations (COVID, market crash, not malice)
-- Behavioral inference caveats (OCEAN/Dark Triad = inference not fact)
-- Confidence chain vulnerabilities (chain of 4x 80% inferences = 41% actual)
-- The SINGLE most dangerous assumption in the dossier
-
-## CRITICAL RULES
+RULES:
 - NEVER fabricate data — every claim traces to provided intelligence
-- Total response must be under 1500 words (excluding the mermaid block)
-- The mermaid block MUST be valid mermaid syntax
-- When Benford analysis flags financial numbers, mention it explicitly
-- When single-source claims are flagged, mark them ⚠️ SINGLE-SOURCE
+- Total response must be under 1500 words (excluding mermaid block)
+- Valid mermaid syntax required
+- Mark single-source claims ⚠️ SINGLE-SOURCE
+- When Benford analysis flags numbers, mention explicitly
 - When PII Spider depth > 1 found data, mention the hop depth
 - Be direct, factual, intelligence-grade — no filler text
 - Include Bradley-Terry confidence and provenance data inline
@@ -2990,106 +2828,106 @@ ${intelSections || 'No intelligence data.'}`;
       const truncatedText = allText.slice(0, 12000); // Keep within context limits
       
       const [p2, p3, p4, p5, p6] = await Promise.allSettled([
-        // PASS 2: LINGUISTIC FINGERPRINT ENGINE
-        aiPass(GEMINI_API_KEY, 'You are a forensic psycholinguist. Analyze text samples with scientific precision. Output structured metrics only.', `You are a forensic psycholinguist. Analyze ALL text samples collected from this target across sources.
+        // PASS 2: COMMUNICATION PATTERN ANALYSIS (Linguistic Assessment)
+        aiPass(GEMINI_API_KEY, 'You are a research linguist specializing in communication pattern assessment and text analysis. Output structured metrics only.', `You are a communication pattern analyst. Analyze ALL text samples collected from this subject across sources.
 
-LINGUISTIC FINGERPRINT ANALYSIS:
+COMMUNICATION PATTERN ANALYSIS:
 
-1. FUNCTION WORD RATIO — Count the 20 most common function words (the, of, and, to, a, in, that, is, it, for, on, with, as, at, this, by, from, or, an, but). Normal English: 'the' ~7%, 'of' ~3.5%. Flag >2x or <0.5x expected. 'I' underuse = deception/distancing. 'We' overuse = authority-claiming.
+1. FUNCTION WORD RATIO — Count the 20 most common function words (the, of, and, to, a, in, that, is, it, for, on, with, as, at, this, by, from, or, an, but). Normal English: 'the' ~7%, 'of' ~3.5%. Flag >2x or <0.5x expected. First-person underuse = distancing from specific topics. 'We' overuse = authority-claiming or co-dependent identity.
 
-2. TYPE-TOKEN RATIO — Count unique words vs total words. TTR > 0.72 = high intelligence. TTR < 0.45 = stress/deception. Does TTR drop >30% between professional and personal writing? = ghostwritten persona.
+2. TYPE-TOKEN RATIO (VOCABULARY RICHNESS) — Count unique words vs total words. TTR > 0.72 = High intelligence, deliberate communication. TTR < 0.45 = Stress or limited scope. Does TTR drop >30% between professional and personal writing? = possible ghostwriting of professional content.
 
-3. SENTENCE LENGTH VARIANCE — Mean and SD of sentence lengths. High SD (>15) = natural. Low SD (<5) = templated/PR. Short→long clusters = emotional arousal.
+3. SENTENCE LENGTH VARIANCE — Mean and SD of sentence lengths. High SD (>15) = natural human variation. Low SD (<5) = templated/managed communication. Short→long clusters = emotional arousal moments.
 
-4. HAPAX LEGOMENA — Words appearing only once. These are linguistic fingerprints. Note neologisms, recurring metaphors.
+4. HAPAX LEGOMENA (PRIVATE VOCABULARY) — Words appearing only once. These are linguistic fingerprints — specific phrases, neologisms, recurring metaphors. Cross-reference against other unattributed content.
 
-5. TENSE FORENSICS — Past tense for history = truth retrieval. Present tense for biography = construction/fabrication. Flag biographical claims in present tense.
+5. TENSE CONSISTENCY IN BIOGRAPHICAL STATEMENTS — Past tense for history = memory retrieval (consistent with truth). Present tense for biography = construction. Flag specific statements showing tense inconsistency.
 
-6. PRONOUN DROP DETECTION — FBI SCAN protocol: sentences where 'I' is dropped. Rate >15% = distancing from events. Map WHICH events.
+6. PRONOUN PATTERN DETECTION — Count sentences where first-person is dropped as subject. Rate >15% = active distancing from specific events. Map WHICH events correlate with drops.
 
-7. BRIDGE PHRASE DETECTION — Flag: 'after that', 'later on', 'the next thing', 'moving on', 'eventually'. Map where skips occur — that's where real events are.
+7. BRIDGE PHRASE DETECTION — Flag: 'after that', 'later on', 'the next thing', 'moving on', 'eventually'. These skip over time. Map where the skips occur in their public narrative. That is where significant events are.
 
-Output: LINGUISTIC FINGERPRINT CARD with all 7 metrics, anomalies, and DECEPTION RISK MAP.
+Output: COMMUNICATION FINGERPRINT CARD with all 7 metrics scored, anomalies highlighted, and a CONSISTENCY RISK MAP showing which time periods and topics trigger the most linguistic variation.
 
 TEXT SAMPLES:
 ${truncatedText}`, 'gemini-2.5-flash', 3000, 0.1),
 
-        // PASS 3: SOCIAL AVATAR ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a behavioral psychologist specializing in digital identity analysis. Output structured assessments only.', `Analyze the social media presence and public persona collected for this target.
+        // PASS 3: SOCIAL PRESENCE ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a behavioral researcher specializing in digital presence analysis and public persona assessment. Output structured assessments only.', `Analyze the social media presence and public persona collected for this subject.
 
-AVATAR PSYCHOLOGY ANALYSIS:
+SOCIAL PRESENCE ANALYSIS:
 
-1. POSTING FREQUENCY PATTERN — >5 posts/day = validation-seeking. 1-2/week = controlled. Gaps >30 days = life event. Surges after silence = comeback narrative.
+1. POSTING FREQUENCY PATTERN — Calculate average posts per week. >5/day = high engagement dependency. 1-2/week = deliberate, controlled. Gaps >30 days = significant life event. Surges after silence = narrative reconstruction. Map ALL gaps and surges to known events.
 
-2. CONTENT THEME ANALYSIS — What % is: professional achievement / personal / political / humor / complaints / inspirational? Heavy achievement (>60%) = status insecurity. Zero personal = compartmentalization. Complaint-heavy = external locus of control.
+2. CONTENT THEME ANALYSIS — What % is: professional achievement / personal / political / humor / complaints / inspirational? Heavy achievement (>60%) = status-focused identity. Zero personal = compartmentalization. Complaint-heavy = external locus of control. Inspirational-heavy = often projection.
 
-3. ENGAGEMENT PATTERN — Do they respond to criticism? Ignoring ALL = narcissism/PR. Aggressive response = fragile ego. Selective praise-only = validation loop.
+3. ENGAGEMENT PATTERN ANALYSIS — Do they respond to comments? To criticism? Ignoring ALL criticism = managed account or high narcissism. Aggressive response = low frustration tolerance. Selective praise-only = validation loop.
 
-4. NETWORK COMPOSITION — Broadcast ratio (followers:following). >100:1 = status-focused. Who are the 5 most-engaged accounts? = real social circle.
+4. NETWORK COMPOSITION — Follow vs follower ratio. >100:1 = broadcast/status personality. Who are the 5 most-engaged accounts? These are their real social circle.
 
-5. DARK TRIAD SIGNAL SCAN — Love-bombing → silence/conflict. Triangulation ('Unlike X, I...'). Word salad under pressure. Breadcrumbing dormant connections.
+5. BEHAVIORAL SIGNAL SCAN — Rapid intense praise of individuals followed by silence/conflict (escalation→disengagement). Strategic mentions of competitors for relative positioning. Long circular deflective responses to direct questions. Sporadic low-investment check-ins with dormant contacts.
 
-Output: Dark Triad Risk Score (0-10), Attachment Style, Validation Dependency Score, top 3 behavioral predictions.
+Output: Behavioral Risk Score (0-10), Attachment Style inference, Validation Dependency Score, top 3 behavioral predictions.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
         // PASS 4: RELATIONSHIP VELOCITY ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a forensic network analyst specializing in relationship dynamics and temporal intelligence. Output structured analysis only.', `Using ALL temporal data points (dated posts, filings, mentions, co-appearances), analyze VELOCITY of this target's key relationships.
+        aiPass(GEMINI_API_KEY, 'You are a research analyst specializing in professional relationship dynamics and temporal network analysis. Output structured analysis only.', `Using ALL temporal data points (dated posts, filings, mentions, co-appearances), analyze the VELOCITY of this subject's key relationships.
 
 RELATIONSHIP VELOCITY PROTOCOL:
 
-1. FORMATION SPEED — First mention → formal arrangement <90 days = opportunistic/preexisting covert. >2 years = genuine trust-building.
+1. FORMATION SPEED — First public mention → formal arrangement. <90 days = opportunistic, transactional, or pre-existing relationship made public. >2 years = organic trust-building, likely genuine.
 
-2. TERMINATION PATTERNS — Mutual announcements = amicable. Sudden disappearance = conflict/NDA. One-sided silence = severed. Repeating pattern = behavioral signature.
+2. TERMINATION PATTERNS — How do professional relationships END? Mutual announcements = amicable. Sudden disappearance from mentions = conflict or legal restriction. One-sided silence = the silent party severed. Repeating pattern = behavioral signature (they are the constant variable).
 
-3. REPLACEMENT CYCLES — After key relationship ends, how quickly does replacement appear? <30 days = premeditated exit. >1 year = genuinely important. Exact role replacement = transactional.
+3. REPLACEMENT CYCLES — After key relationship ends, how quickly does equivalent replacement appear? <30 days = replacement was lined up (premeditated exit). >1 year = genuinely important. Exact role replacement = transactional (needed the ROLE not the PERSON).
 
-4. CLUSTER MIGRATION — Has network shifted (tech→finance, etc.)? Cross-reference: legal events before migration?
+4. CLUSTER MIGRATION — Has social/professional network shifted significantly? (tech→finance, etc.) Cross-reference: any legal, regulatory, or public events immediately before migration?
 
-5. DORMANT REACTIVATION — Connections silent >1 year then reactivated. Timing relative to: funding, legal, announcements. Almost always indicates specific operational need.
+5. DORMANT REACTIVATION — Connection silent >1 year then reactivated. Timing relative to: funding rounds, legal filings, announcements. Reactivated dormant connections almost always indicate specific operational need.
 
-Output: RELATIONSHIP VELOCITY MAP with formation speeds, termination patterns, cluster migration, BEHAVIORAL SIGNATURE.
+Output: RELATIONSHIP VELOCITY MAP with formation speeds, termination patterns, cluster migration timeline, and BEHAVIORAL SIGNATURE.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
         // PASS 5: SELF-NARRATIVE CONSISTENCY AUDIT
-        aiPass(GEMINI_API_KEY, 'You are a statement analysis expert trained in FBI SCAN (Scientific Content Analysis) protocol. Output structured forensic analysis only.', `Collect ALL self-authored biographical statements about this target from the intelligence corpus.
+        aiPass(GEMINI_API_KEY, 'You are a statement analysis expert specializing in biographical verification and narrative consistency assessment. Output structured forensic analysis only.', `Collect ALL self-authored biographical statements about this subject from the intelligence corpus.
 
 NARRATIVE CONSISTENCY AUDIT:
 
-1. TIMELINE TRIANGULATION — Build self-stated timeline from all sources. Where do timelines CONTRADICT? Where are GAPS never addressed? Where does narrative OVER-EXPLAIN? (Defensive elaboration = hiding something)
+1. TIMELINE TRIANGULATION — Build self-stated timeline from all sources. Where do timelines CONTRADICT? (Different dates for same event across sources.) Where are GAPS never addressed? Where does narrative OVER-EXPLAIN one period with unusual detail? (Defensive elaboration = something happened there requiring preemptive explanation.)
 
-2. CREDENTIAL VERIFICATION FLAGS — List every credential claimed. Flag: appears in only one source / changed description / cannot cross-reference.
+2. CREDENTIAL VERIFICATION FLAGS — List every credential, degree, award, title claimed. Flag any that: appears in only one source / changed description across sources / cannot be cross-referenced against institutional records.
 
-3. ACHIEVEMENT CLAIM ANALYSIS — List achievements. Do OTHER people corroborate? Solo-claimed with no corroboration = inflated.
+3. ACHIEVEMENT CLAIM ANALYSIS — List achievements claimed. Cross-reference: Do OTHER people from the same organization corroborate? Solo-claimed with no corroboration = inflated self-presentation.
 
-4. VICTIMHOOD NARRATIVE DETECTION — Recurring themes of being wronged? One instance = possibly true. Pattern = they are the constant variable.
+4. RECURRING GRIEVANCE DETECTION — Does the self-narrative contain recurring themes of being wronged by previous employers / investors / partners? One instance = possibly true. Repeating pattern = they are the constant variable.
 
-5. PRONOUN OWNERSHIP MAPPING — 'I' for successes + 'they/we/market' for failures = deceptive self-presentation.
+5. PRONOUN OWNERSHIP MAPPING — In quotes about successes: 'I' (ownership) or 'we' (deflection)? In quotes about failures: 'we' (diffused blame) or 'they' (externalized)? Pattern of 'I' for wins + 'they/market/team' for losses = self-serving presentation.
 
-Output: NARRATIVE INTEGRITY SCORE (0-100), contradictions with sources, unverifiable claims, SELF-PRESENTATION ARCHETYPE (Genuine Builder / Status Inflator / Victim Narcissist / Deliberate Obscurantist).
+Output: NARRATIVE INTEGRITY SCORE (0-100), contradictions with sources, unverifiable claims, SELF-PRESENTATION ARCHETYPE (Genuine Builder / Status Inflator / Grievance Pattern / Deliberate Obscurantist).
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
         // PASS 6: CROSS-PLATFORM IDENTITY CONTINUITY
-        aiPass(GEMINI_API_KEY, 'You are a digital forensics expert specializing in cross-platform identity resolution and stylometric analysis. Output structured findings only.', `Given all text samples from different platform accounts attributed to or potentially linked to this target:
+        aiPass(GEMINI_API_KEY, 'You are a digital research analyst specializing in cross-platform identity resolution and stylometric analysis. Output structured findings only.', `Given all text samples from different platform accounts attributed to or potentially linked to this subject:
 
 IDENTITY CONTINUITY ANALYSIS:
 
-1. STYLOMETRIC CONSISTENCY — Compare function word ratios, sentence length, punctuation habits (Oxford comma? Em-dash? Ellipsis?), capitalization style across platforms. Same writer? Confidence %?
+1. STYLOMETRIC CONSISTENCY TEST — Compare function word ratios, sentence length, punctuation habits (Oxford comma? Em-dash vs parentheses? Ellipsis frequency?), capitalization style across platforms. Same writer? Confidence %?
 
-2. VOCABULARY OVERLAP — Extract 50 most distinctive words from each platform. Overlap >40% = same author. <15% = different author OR sophisticated OPSEC.
+2. VOCABULARY OVERLAP ANALYSIS — Extract 50 most distinctive words from each platform. Overlap >40% = same author. <15% = different author OR deliberate style-switching.
 
-3. TOPIC CONSISTENCY — Recurring subjects across ALL platforms = genuine obsessions. LinkedIn persona vs Reddit reality = the costume vs the person.
+3. TOPIC CONSISTENCY FINGERPRINT — Recurring subjects across ALL platforms = genuine interests/expertise. Professional persona vs informal platform topics divergence = the informal content reveals the real person.
 
-4. SOCK PUPPET DETECTION — Multiple accounts with: zero history / created same window / only interact with target's content / unusually formal? = astroturf.
+4. COORDINATED ACCOUNT DETECTION — Multiple accounts with: zero follower history / created within same 30-day window / only interact with subject's content / unusually formal for platform? = managed/astroturf accounts. Map as [SUBJECT → CONTROLS → ACCOUNT].
 
-5. TEMPORAL POSTING OVERLAP — Identical time-of-day posting patterns across accounts = same operator.
+5. TEMPORAL POSTING OVERLAP — Do multiple accounts post at identical times of day? Time-of-day signature is one of the hardest behaviors to fake consistently. Identical circadian patterns = same operator.
 
-Output: IDENTITY CONTINUITY SCORE (0-100), confirmed links, suspected sock puppets, REAL PERSONALITY vs CURATED PERSONA.
+Output: IDENTITY CONTINUITY SCORE (0-100), confirmed cross-platform links, suspected managed accounts, AUTHENTIC PERSONALITY SIGNATURE vs CURATED PERSONA.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
@@ -3110,117 +2948,71 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
       console.log('NOMAD v8.0: Starting Passes 7-12 (Advanced Intelligence Layers) in parallel...');
 
-      const [p7, p8, p9, p10, p11] = await Promise.allSettled([
+      const [p7, p8, p9, p10, p11, p12, p13, p14] = await Promise.allSettled([
         // PASS 7: GEOSPATIAL INTELLIGENCE
-        aiPass(GEMINI_API_KEY, 'You are a geospatial intelligence analyst. Extract and analyze every location signal with forensic precision. Output structured analysis only.', `From all collected intelligence, extract every location signal and execute geospatial analysis.
+        aiPass(GEMINI_API_KEY, 'You are a geospatial research analyst. Extract and analyze location signals. Output structured analysis only.', `From all collected data, extract every location signal.
 
-GEOSPATIAL ANALYSIS PROTOCOL:
+GEOSPATIAL ANALYSIS: 1) Primary Residence Triangulation vs public records. 2) Movement Pattern Reconstruction with migration triggers. 3) Shadow Location Detection (in data but unacknowledged). 4) Jurisdiction Intelligence (shell structures, multi-state). 5) Physical Proximity Network (co-located but unacknowledged associates).
 
-1. PRIMARY RESIDENCE TRIANGULATION — What location appears most frequently in Tier 1-2 sources? Does stated residence match property tax / voter registration / business registration? CONFLICT = tax avoidance, privacy protection, or jurisdiction shopping.
-
-2. MOVEMENT PATTERN RECONSTRUCTION — Order all location signals chronologically. Identify MIGRATION EVENTS. Cross-reference timing against: job changes / legal events / relationship changes / business failures. Every relocation has a trigger. Find it.
-
-3. SHADOW LOCATION DETECTION — Locations that appear in data but target never publicly acknowledges. Example: claims NYC but court filing lists Miami. Shadow locations = second residence / hidden partner / legal shelter / undisclosed asset.
-
-4. JURISDICTION INTELLIGENCE — Multiple state registrations = legitimate multi-state OR jurisdiction arbitrage (weak disclosure laws). Delaware/Wyoming/Nevada with no operational presence = shell structure. International addresses with US entities = FBAR/FATCA exposure.
-
-5. PHYSICAL PROXIMITY NETWORK — Which associates are geographically co-located? Co-location never publicly acknowledged = covert operational relationship.
-
-Output: GEOSPATIAL PROFILE with primary anchor, shadow locations, migration timeline with triggers, jurisdiction risk.
+Output: GEOSPATIAL PROFILE with primary anchor, shadow locations, migration timeline, jurisdiction risk.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 8: SURVIVORSHIP BIAS AUDIT
-        aiPass(GEMINI_API_KEY, 'You are a forensic intelligence auditor specializing in narrative verification. Identify what SHOULD exist but DOES NOT. Output structured gap analysis only.', `Execute SURVIVORSHIP BIAS AUDIT on this investigation corpus.
+        // PASS 8: DATA COMPLETENESS AUDIT
+        aiPass(GEMINI_API_KEY, 'You are a research verification analyst. Identify expected artifacts that are missing. Output structured gap analysis only.', `Execute DATA COMPLETENESS AUDIT. Generate expected digital artifacts for this subject's stated biography. Audit presence vs absence.
 
-For this target's stated profile (career, education, financials, relationships), generate the complete list of digital artifacts that SHOULD exist if their biography is accurate. Audit which are present vs absent.
+CAREER: SEC filings, company pages, reviews, co-founder mentions. EDUCATION: alumni directories, professor citations. FINANCIAL: property records, political donations, charitable giving. LEGAL: court dockets, regulatory filings.
 
-EXPECTED ARTIFACTS BY CATEGORY:
-
-CAREER — If CEO: SEC filings, Delaware/state registration, LinkedIn company page, press release, Crunchbase, Glassdoor reviews. If founder: incorporation docs, co-founder mentions, pitch deck leaks, investor announcements.
-
-EDUCATION — If Ivy League: alumni directory, reunion mentions, professor citations, yearbook. If MBA: business school alumni network, case study mentions.
-
-FINANCIAL — If high net worth: property records, vehicle registrations (luxury tier), charitable donations, political donations (FEC), club memberships. If investor: AngelList, Crunchbase investor profile, Form D filings.
-
-LEGAL — If clean record: absence of court filings should be CONFIRMED not assumed. If lawsuit mentioned: full docket must be traceable.
-
-For each: PRESENT = confirms narrative. ABSENT = NARRATIVE GAP. CONTRADICTED = NARRATIVE CONFLICT.
-
-Rank all narrative gaps by severity. Highest expected + complete absence = most likely suppression/fabrication area.
+For each: PRESENT=confirms, ABSENT=NARRATIVE GAP, CONTRADICTED=CONFLICT. Rank gaps by severity.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 9: SENTIMENT VELOCITY ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a sentiment analysis expert specializing in temporal reputation dynamics. Track sentiment changes over time with forensic precision. Output structured analysis only.', `Run SENTIMENT VELOCITY ANALYSIS on all third-party mentions of this target.
+        // PASS 9: SENTIMENT VELOCITY
+        aiPass(GEMINI_API_KEY, 'You are a reputation research analyst. Track sentiment changes over time. Output structured analysis only.', `Run SENTIMENT VELOCITY ANALYSIS on third-party mentions.
 
-TEMPORAL SENTIMENT PROTOCOL:
+1) BASELINE (earliest 20%). 2) INFLECTION POINTS (>20% shift in 90 days) cross-referenced with events. 3) DIVERGENCE MAP (professional vs anonymous gap >40% = managed reputation). 4) ACCELERATION (accelerating negative = active issue). 5) CRITICISM LANGUAGE (emotional vs factual).
 
-1. BASELINE SENTIMENT — Earliest 20% of mentions: what is baseline? (Positive/Neutral/Negative ratio). This is who they were before reputation management.
-
-2. SENTIMENT INFLECTION POINTS — Every moment sentiment shifted >20% in either direction within 90 days. Cross-reference EACH against: business events / legal filings / public statements / relationship changes. The cause is more valuable than the score.
-
-3. SENTIMENT DIVERGENCE MAP — Professional sources (LinkedIn, press) vs Anonymous sources (Reddit, Glassdoor, forums). Gap >40% = MANAGED REPUTATION. Anonymous reflects lived experience.
-
-4. SENTIMENT ACCELERATION — Is negative sentiment increasing at accelerating rate in last 90 days? = something breaking down RIGHT NOW, not yet in mainstream coverage. Most forward-looking signal.
-
-5. CRITICISM LANGUAGE — Emotional (angry, betrayed) = personal grievance, weight lower. Factual with specifics (lied, stole, misrepresented) = operational intelligence, weight higher.
-
-Output: SENTIMENT VELOCITY CHART (timeline), top 5 inflection events with causes, divergence score, 90-day acceleration indicator.
+Output: Timeline, top 5 inflections, divergence score, 90-day acceleration.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 10: NETWORK CENTRALITY SCORING
-        aiPass(GEMINI_API_KEY, 'You are a network theory analyst specializing in graph centrality and power structure analysis. Apply formal graph theory to intelligence networks. Output structured scoring only.', `Apply network centrality analysis to the entity graph for this investigation.
+        // PASS 10: NETWORK CENTRALITY
+        aiPass(GEMINI_API_KEY, 'You are a network theory analyst. Apply graph centrality scoring. Output structured scoring only.', `Apply network centrality analysis.
 
-CENTRALITY SCORING PROTOCOL:
+1) DEGREE CENTRALITY. 2) BETWEENNESS (high+low degree = hidden broker). 3) EIGENVECTOR (quality of connections). 4) STRUCTURAL HOLES (deliberate network separation). 5) BRIDGE NODE (single point of failure).
 
-1. DEGREE CENTRALITY — Count connections per node. High degree alone means nothing (celebrity = high degree). A shadow operator has low degree but high everything else.
-
-2. BETWEENNESS CENTRALITY — Which nodes sit on most paths between other nodes? High betweenness + low degree = HIDDEN BROKER controlling information/resource flow without appearing important. The highest betweenness non-target node is the most important secondary target.
-
-3. EIGENVECTOR CENTRALITY — Not how many connections but how IMPORTANT are those connections. High eigenvector = REAL power. Low eigenvector despite high degree = social noise.
-
-4. STRUCTURAL HOLES — Where does a connection SHOULD exist but doesn't? If A and B both connect to target but not to each other, that gap is deliberate. WHY? Common: one side legitimate, one not. Legal liability separation.
-
-5. BRIDGE NODE IDENTIFICATION — Which single node, if removed, fragments the network? This is the target's critical dependency AND greatest vulnerability.
-
-Output: CENTRALITY SCORECARD for all nodes, TOP 3 hidden brokers, structural hole map, bridge node.
+Output: CENTRALITY SCORECARD, TOP 3 hidden brokers, structural holes, bridge node.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-        // PASS 11: BAYESIAN CONFIDENCE ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a Bayesian intelligence analyst. Apply rigorous probabilistic reasoning to update confidence in intelligence claims. Output structured probability chains only.', `Run Bayesian confidence update protocol on this intelligence corpus.
+        // PASS 11: BAYESIAN CONFIDENCE
+        aiPass(GEMINI_API_KEY, 'You are a probabilistic reasoning analyst. Apply Bayesian updating. Output structured probability chains only.', `Bayesian confidence update protocol. For each CORE CLAIM: Prior from source tier (self=0.40, T3=0.50, T2=0.75, T1=0.90). Updates: T1 corroboration x1.4, T2 x1.2, T1 contradiction x0.3, T2 x0.5, echo chamber x1.05, absent x0.6. <0.40=LIKELY FALSE, 0.40-0.60=CONTESTED, 0.60-0.80=PROBABLE, >0.80=CONFIRMED. Identify most dangerous assumption.
 
-For each CORE CLAIM (fact that materially affects the profile):
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-BAYESIAN UPDATE CHAIN:
+        // PASS 12: DATA INTEGRITY ASSESSMENT
+        aiPass(GEMINI_API_KEY, 'You are a data quality analyst. Assess source reliability and consistency. Output structured findings only.', `Analyze data corpus for consistency and reliability.
 
-1. Set PRIOR based on source tier:
-   - Self-stated only: Prior = 0.40
-   - Tier 3 (social/forum): Prior = 0.50
-   - Tier 2 (institutional): Prior = 0.75
-   - Tier 1 (government): Prior = 0.90
+1) NARRATIVE UNIFORMITY (near-identical phrasing across 5+ sources = single origin). 2) BIOGRAPHICAL COMPLETENESS (curated highlights only vs full arc). 3) SOURCE TIER CONSISTENCY (lower-tier claims unsupported by higher-tier). 4) NUMERICAL QUALITY (Benford's Law on figures >$1,000). 5) SELF-DESCRIPTION CONSISTENCY (ownership vs passive language by topic).
 
-2. Apply LIKELIHOOD UPDATES for additional evidence:
-   - Independent Tier 1 corroboration: x1.4
-   - Independent Tier 2 corroboration: x1.2
-   - Contradicted by Tier 1: x0.3
-   - Contradicted by Tier 2: x0.5
-   - Same-tier sources citing each other (echo chamber): x1.05
-   - ABSENT from sources where it should appear if true: x0.6
+Output: DATA INTEGRITY SCORE (0-100) with flags and citations.
 
-3. Calculate POSTERIOR for each claim.
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-4. FLAG: <0.40 = LIKELY FALSE | 0.40-0.60 = CONTESTED | 0.60-0.80 = PROBABLE | >0.80 = CONFIRMED
+        // PASS 13: FINANCIAL DATA ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a financial research analyst. Analyze public financial records. Output structured findings only.', `Analyze financial data points. 1) Benford's Law on figures >$1,000. 2) Stated role vs public asset indicators. 3) Entity structure (registered agents, virtual offices, formation timing). 4) Financial event timeline with proximities. Output: FINANCIAL DATA SUMMARY.
 
-5. IDENTIFY the claim with biggest gap between stated confidence and Bayesian posterior = most dangerous assumption in the entire dossier.
+INTELLIGENCE DATA:
+${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
-Output: BAYESIAN EVIDENCE CHAIN for top 10 core claims with prior, update chain, posterior. Highlight the most dangerous assumption.
+        // PASS 14: DIGITAL PRESENCE ASSESSMENT
+        aiPass(GEMINI_API_KEY, 'You are a digital footprint analyst. Assess public information accessibility. Output structured profile only.', `Assess digital footprint. 1) Presence density vs role baseline. 2) Architecture (professional/personal separation, privacy protection). 3) Historical content (deleted/cached). 4) Indirect exposure (high-footprint associates). 5) Records subject may not know are public. Output: DIGITAL PRESENCE PROFILE.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
@@ -3231,8 +3023,11 @@ ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
       sentimentVelocityAnalysis = p9.status === 'fulfilled' ? p9.value : '';
       networkCentralityAnalysis = p10.status === 'fulfilled' ? p10.value : '';
       bayesianConfidenceAnalysis = p11.status === 'fulfilled' ? p11.value : '';
+      const dataIntegrityAnalysis = p12.status === 'fulfilled' ? p12.value : '';
+      const financialForensicsAnalysis = p13.status === 'fulfilled' ? p13.value : '';
+      const digitalPresenceAnalysis = p14.status === 'fulfilled' ? p14.value : '';
 
-      console.log(`NOMAD v8.0: Passes 7-12 complete — G:${geospatialAnalysis.length} SB:${survivorshipBiasAnalysis.length} SV:${sentimentVelocityAnalysis.length} NC:${networkCentralityAnalysis.length} BC:${bayesianConfidenceAnalysis.length} chars`);
+      console.log(`NOMAD v9.0: Passes 7-14 complete — G:${geospatialAnalysis.length} SB:${survivorshipBiasAnalysis.length} SV:${sentimentVelocityAnalysis.length} NC:${networkCentralityAnalysis.length} BC:${bayesianConfidenceAnalysis.length} DI:${dataIntegrityAnalysis.length} FF:${financialForensicsAnalysis.length} DP:${digitalPresenceAnalysis.length} chars`);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
