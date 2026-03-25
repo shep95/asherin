@@ -118,6 +118,9 @@ const TABS: { id: NomadTab; icon: any; label: string }[] = [
   { id: "lineage", icon: GitBranch, label: "Lineage" },
   { id: "ontology", icon: Layers, label: "Ontology" },
   { id: "quiver", icon: Sparkles, label: "Quiver" },
+  { id: "predictive", icon: TrendingUp, label: "Predictive" },
+  { id: "imagine", icon: Eye, label: "Imagine" },
+  { id: "video-intel", icon: Video, label: "Video Intel" },
 ];
 
 const NomadView = () => {
