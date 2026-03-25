@@ -2941,10 +2941,12 @@ STAGE 4 — CALIBRATE: BT=${esrcCalibration.bradleyTerryRating} | Precision=${es
 Processing: ${Date.now() - startTime}ms | Sources: ${activeNodes.length}/${nodes.length} | Candidates: ${esrcCandidates.length}`;
 
     // ══════════════════════════════════════════════════════════════════════════
-    // NOMAD v7.0: 7-PASS AI SYNTHESIS PIPELINE
+    // NOMAD v8.0: 13-PASS AI SYNTHESIS PIPELINE
     // Pass 1: Cluster summaries (Flash)
-    // Pass 2-6: Deep analysis passes (parallel) — Linguistic, Social, Relationship, Narrative, Identity
-    // Pass 7: Final synthesis (Flash — high quality)
+    // Pass 2-6: Deep analysis passes (parallel batch 1) — Linguistic, Social, Relationship, Narrative, Identity
+    // Pass 7-11: Advanced intelligence (parallel batch 2) — Geospatial, Survivorship, Sentiment, Network, Bayesian
+    // Pass 12: Final synthesis (Flash — high quality)
+    // Pass 13: Red Team adversarial review (post-synthesis)
     // ══════════════════════════════════════════════════════════════════════════
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
