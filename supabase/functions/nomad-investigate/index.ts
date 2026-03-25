@@ -20,6 +20,22 @@ interface IntelNode {
   confidence: number;
   entities: ExtractedEntity[];
   images?: CollectedImage[];
+  firstSeen?: string;
+  lastSeen?: string;
+  frequency?: number;
+}
+
+interface OCEANProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  deceptionIndicators: string[];
+  predictedActions: string[];
+  postingHeatmap: Record<string, number>;
+  functionWordRatio: number;
+  burstinessScore: number;
 }
 
 interface CollectedImage {
@@ -175,11 +191,17 @@ function extractEntitiesFromText(text: string, source: string): ExtractedEntity[
   return entities;
 }
 
-// ── HOSTILE SOURCE DETECTION ─────────────────────────────────────────────────
+// ── HOSTILE SOURCE DETECTION (Enhanced — Gap 6) ─────────────────────────────
 
 const HOSTILE_DOMAINS = [
   'reddit.com', 'quora.com', '4chan.org', 'pastebin.com',
   'medium.com/@anonymous', 'blogspot.com',
+];
+
+const SEO_POISONED_DOMAINS = [
+  'spokeo.com', 'whitepages.com', 'beenverified.com', 'intelius.com',
+  'peoplefinder.com', 'pipl.com', 'radaris.com', 'mylife.com',
+  'instantcheckmate.com', 'truthfinder.com', 'ussearch.com',
 ];
 
 function detectHostileSources(text: string): string[] {
@@ -187,10 +209,75 @@ function detectHostileSources(text: string): string[] {
   for (const domain of HOSTILE_DOMAINS) {
     if (text.toLowerCase().includes(domain)) flags.push(domain);
   }
+  for (const domain of SEO_POISONED_DOMAINS) {
+    if (text.toLowerCase().includes(domain)) flags.push(`SEO_POISONED:${domain}`);
+  }
   if (/unverified|alleged|rumored|supposedly|unconfirmed/i.test(text)) {
     flags.push('UNVERIFIED_LANGUAGE_DETECTED');
   }
+  // Detect AI-generated content farm patterns
+  if (/this article was (auto-?generated|written by ai|produced automatically)/i.test(text)) {
+    flags.push('AI_CONTENT_FARM_DETECTED');
+  }
+  // Detect Wikipedia vandalism indicators
+  if (/\[citation needed\].*\[citation needed\].*\[citation needed\]/i.test(text)) {
+    flags.push('WIKIPEDIA_CITATION_GAPS');
+  }
   return flags;
+}
+
+// ── Benford's Law Analysis (Gap 6) ──────────────────────────────────────────
+
+function benfordAnalysis(numbers: number[]): { isNatural: boolean; chiSquare: number; suspiciousDigits: number[] } {
+  if (numbers.length < 10) return { isNatural: true, chiSquare: 0, suspiciousDigits: [] };
+  
+  const expected = [0, 0.301, 0.176, 0.125, 0.097, 0.079, 0.067, 0.058, 0.051, 0.046];
+  const observed: number[] = new Array(10).fill(0);
+  let validCount = 0;
+  
+  for (const num of numbers) {
+    const absNum = Math.abs(num);
+    if (absNum < 1) continue;
+    const firstDigit = parseInt(String(absNum)[0]);
+    if (firstDigit >= 1 && firstDigit <= 9) {
+      observed[firstDigit]++;
+      validCount++;
+    }
+  }
+  
+  if (validCount < 10) return { isNatural: true, chiSquare: 0, suspiciousDigits: [] };
+  
+  let chiSquare = 0;
+  const suspiciousDigits: number[] = [];
+  for (let d = 1; d <= 9; d++) {
+    const obs = observed[d] / validCount;
+    const exp = expected[d];
+    const contribution = Math.pow(obs - exp, 2) / exp;
+    chiSquare += contribution;
+    if (Math.abs(obs - exp) > 0.1) suspiciousDigits.push(d);
+  }
+  
+  // Chi-square critical value for 8 df at 0.05 = 15.507
+  return { isNatural: chiSquare < 15.507, chiSquare: Math.round(chiSquare * 100) / 100, suspiciousDigits };
+}
+
+function extractFinancialNumbers(text: string): number[] {
+  const matches = text.match(/\$[\d,]+(?:\.\d{2})?/g) || [];
+  return matches.map(m => parseFloat(m.replace(/[$,]/g, ''))).filter(n => n > 0);
+}
+
+function flagSingleSourceClaims(nodes: IntelNode[], crossRefMap: Record<string, string[]>): string[] {
+  const flags: string[] = [];
+  for (const [key, sources] of Object.entries(crossRefMap)) {
+    if (sources.length === 1) {
+      const [type, value] = key.split(':');
+      const sourceTier = nodes.find(n => n.source === sources[0])?.tier || 4;
+      if (sourceTier >= 3) {
+        flags.push(`[UNVERIFIED — SINGLE SOURCE] ${type}: ${value} (only from ${sources[0]})`);
+      }
+    }
+  }
+  return flags.slice(0, 20);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1660,53 +1747,186 @@ function generateSectorDorks(targetName: string, location?: string): { sector: s
   ];
 }
 
-// ── Recursive PII Spider (MONAD: When phones/emails found, chase them) ──────
+// ── Depth-3 Recursive PII Spider (Gap 3: Enhanced) ──────────────────────────
 
-async function recursivePIISpider(entities: ExtractedEntity[]): Promise<IntelNode[]> {
-  const phones = entities.filter(e => e.type === 'phone').slice(0, 2);
-  const emails = entities.filter(e => e.type === 'email').slice(0, 2);
-  const targets = [...phones.map(e => e.value), ...emails.map(e => e.value)];
+async function searchSingleEntity(target: string): Promise<IntelNode> {
+  try {
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${target}"`)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+    });
+    if (!resp.ok) return emptyNode('PII Spider', 2);
+    const html = await resp.text();
+    const results: string[] = [];
+    const blocks = html.split(/class="result\s/);
+    for (let i = 1; i < blocks.length && results.length < 3; i++) {
+      const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      if (title) results.push(`- ${title}: ${snippet}`);
+    }
+    if (!results.length) return emptyNode('PII Spider', 2);
+    const data = `PII Spider Trace [${target}]:\n${results.join('\n')}`;
+    return {
+      source: `Recursive PII Spider (${target})`,
+      tier: 2 as const,
+      data,
+      provenanceHash: await computeProvenanceHash('pii-spider', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.88,
+      entities: extractEntitiesFromText(data, 'PII Spider'),
+    };
+  } catch { return emptyNode('PII Spider', 2); }
+}
+
+async function recursivePIISpider(entities: ExtractedEntity[], depth = 0, visited = new Set<string>()): Promise<IntelNode[]> {
+  if (depth >= 3 || entities.length === 0) return [];
+  
+  const piiTypes = ['phone', 'email', 'handle'];
+  const targets = entities
+    .filter(e => piiTypes.includes(e.type))
+    .map(e => e.value)
+    .filter(v => !visited.has(v.toLowerCase()))
+    .slice(0, depth === 0 ? 4 : 2); // More aggressive at depth 0
   
   if (targets.length === 0) return [];
   
-  const tasks: Promise<IntelNode>[] = targets.map(async (target) => {
-    try {
-      const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${target}"`)}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
-      });
-      if (!resp.ok) return emptyNode('Recursive PII Spider', 2);
-      const html = await resp.text();
-      const results: string[] = [];
-      const blocks = html.split(/class="result\s/);
-      for (let i = 1; i < blocks.length && results.length < 3; i++) {
-        const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
-        const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
-        const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
-        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
-        if (title) results.push(`- ${title}: ${snippet}`);
-      }
-      if (!results.length) return emptyNode('Recursive PII Spider', 2);
-      const data = `PII Spider Trace [${target}]:\n${results.join('\n')}`;
-      return {
-        source: `Recursive PII Spider (${target})`,
-        tier: 2 as const,
-        data,
-        provenanceHash: await computeProvenanceHash('pii-spider', data),
-        timestamp: new Date().toISOString(),
-        confidence: 0.88,
-        entities: extractEntitiesFromText(data, 'PII Spider'),
-      };
-    } catch { return emptyNode('Recursive PII Spider', 2); }
-  });
+  // Mark as visited
+  targets.forEach(t => visited.add(t.toLowerCase()));
   
-  const results = await Promise.allSettled(tasks);
-  return results
+  // Search all targets at this depth in parallel
+  const results = await Promise.allSettled(targets.map(t => searchSingleEntity(t)));
+  const nodes = results
     .filter((r): r is PromiseFulfilledResult<IntelNode> => r.status === 'fulfilled')
     .map(r => r.value)
     .filter(n => n.data);
+  
+  // Extract new entities from this depth's results
+  const newEntities: ExtractedEntity[] = [];
+  for (const node of nodes) {
+    newEntities.push(...node.entities.filter(e => 
+      piiTypes.includes(e.type) && !visited.has(e.value.toLowerCase())
+    ));
+  }
+  
+  // Recurse deeper with newly discovered entities
+  const deeperNodes = await recursivePIISpider(newEntities, depth + 1, visited);
+  
+  return [...nodes, ...deeperNodes];
 }
 
-// ── Behavioral Profiling Engine (MONAD: keyword-based trait detection) ───────
+// ── OCEAN Behavioral Profiling Engine (Gap 2: Enhanced) ─────────────────────
+
+function computeOCEANProfile(text: string): OCEANProfile {
+  const t = text.toLowerCase();
+  const words = t.split(/\s+/);
+  const totalWords = words.length || 1;
+  
+  // Function word ratio (deception indicator)
+  const functionWords = ['the', 'a', 'an', 'is', 'was', 'were', 'are', 'been', 'be', 'have', 'has', 'had',
+    'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'can',
+    'of', 'in', 'to', 'for', 'with', 'on', 'at', 'from', 'by', 'about', 'as', 'into',
+    'through', 'during', 'before', 'after', 'above', 'below', 'between', 'and', 'but', 'or',
+    'not', 'no', 'nor', 'so', 'yet', 'both', 'either', 'neither', 'each', 'every',
+    'i', 'me', 'my', 'mine', 'we', 'us', 'our', 'ours', 'you', 'your', 'yours',
+    'he', 'him', 'his', 'she', 'her', 'hers', 'it', 'its', 'they', 'them', 'their'];
+  const functionWordCount = words.filter(w => functionWords.includes(w)).length;
+  const functionWordRatio = functionWordCount / totalWords;
+  
+  // Burstiness scoring (timestamp-based if available, otherwise content density)
+  const dateMatches = text.match(/\b(?:19|20)\d{2}-\d{2}-\d{2}\b/g) || [];
+  let burstinessScore = 0;
+  if (dateMatches.length >= 3) {
+    const timestamps = dateMatches.map(d => new Date(d).getTime()).filter(t => !isNaN(t)).sort();
+    if (timestamps.length >= 3) {
+      const intervals = timestamps.slice(1).map((t, i) => t - timestamps[i]);
+      const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const variance = intervals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / intervals.length;
+      burstinessScore = Math.min(1, Math.sqrt(variance) / (mean || 1));
+    }
+  }
+  
+  // OCEAN scoring from content patterns
+  const openness = (
+    (/creative|innovat|experiment|novel|curious|explor|diverse|abstract|artistic|imaginat/i.test(t) ? 0.3 : 0) +
+    (/beta|early adopter|new platform|switching|trying out/i.test(t) ? 0.2 : 0) +
+    (/travel|abroad|international|global|multicultural/i.test(t) ? 0.2 : 0) +
+    (/philosophy|theory|concept|paradigm|framework/i.test(t) ? 0.3 : 0)
+  );
+  
+  const conscientiousness = (
+    (/deadline|schedule|organized|systematic|plan|budget|quarterly|annual report/i.test(t) ? 0.3 : 0) +
+    (/compliance|regulation|standard|certified|audit|quality/i.test(t) ? 0.3 : 0) +
+    (/milestone|achievement|award|recognition|accomplished/i.test(t) ? 0.2 : 0) +
+    (/warranty|guarantee|insurance|protection|secure/i.test(t) ? 0.2 : 0)
+  );
+  
+  const extraversion = (
+    (/conference|speaking|keynote|panel|networking|event|social|party/i.test(t) ? 0.3 : 0) +
+    (/followers|subscribers|audience|community|fans|supporters/i.test(t) ? 0.3 : 0) +
+    (/interview|podcast|media|press|coverage|spotlight/i.test(t) ? 0.2 : 0) +
+    (/team|collaborate|partnership|alliance|coalition/i.test(t) ? 0.2 : 0)
+  );
+  
+  const agreeableness = (
+    (/volunteer|charity|donate|nonprofit|mentor|support|help/i.test(t) ? 0.3 : 0) +
+    (/thank|grateful|appreciate|kind|generous|empathy/i.test(t) ? 0.3 : 0) -
+    (/lawsuit|attack|criticize|condemn|oppose|fight|destroy/i.test(t) ? 0.3 : 0) -
+    (/confrontat|aggressive|hostile|combative|adversarial/i.test(t) ? 0.3 : 0)
+  );
+  
+  const neuroticism = (
+    (/stress|anxiety|worry|fear|concern|risk|threat|danger|crisis/i.test(t) ? 0.3 : 0) +
+    (/security|protection|defense|shield|guard|safe/i.test(t) ? 0.2 : 0) +
+    (/cancel|delete|remove|scrub|privacy|anonymous/i.test(t) ? 0.2 : 0) +
+    (/warranty|insurance|backup|contingency|emergency/i.test(t) ? 0.2 : 0)
+  );
+  
+  // Deception indicators
+  const deceptionIndicators: string[] = [];
+  if (functionWordRatio < 0.25) deceptionIndicators.push('Low function word ratio (possible deception)');
+  if (functionWordRatio > 0.55) deceptionIndicators.push('High function word ratio (possible scripted content)');
+  const firstPersonCount = (t.match(/\b(i|me|my|mine|myself)\b/g) || []).length;
+  const firstPersonRatio = firstPersonCount / totalWords;
+  if (firstPersonRatio < 0.01 && totalWords > 200) deceptionIndicators.push('Abnormally low self-reference (distancing language)');
+  if (/never|always|absolutely|certainly|definitely|impossible/i.test(t)) deceptionIndicators.push('Absolute language detected (certainty signals)');
+  
+  // Predicted actions based on OCEAN
+  const predictedActions: string[] = [];
+  if (openness > 0.5) predictedActions.push('Likely to adopt new platforms/technologies early');
+  if (conscientiousness > 0.5) predictedActions.push('Will maintain structured public records, filings on time');
+  if (extraversion > 0.5) predictedActions.push('Expect public appearances, media engagement');
+  if (agreeableness < 0) predictedActions.push('May engage in confrontational responses if contacted');
+  if (neuroticism > 0.5) predictedActions.push('Likely to scrub/protect digital footprint proactively');
+  if (burstinessScore > 0.7) predictedActions.push('Activity pattern suggests stress events or life changes');
+  
+  // Posting time heatmap (from timestamps found)
+  const postingHeatmap: Record<string, number> = {};
+  const timeMatches = text.match(/\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?\b/g) || [];
+  for (const time of timeMatches) {
+    const hourMatch = time.match(/(\d{1,2}):/);
+    if (hourMatch) {
+      let hour = parseInt(hourMatch[1]);
+      if (/pm/i.test(time) && hour < 12) hour += 12;
+      if (/am/i.test(time) && hour === 12) hour = 0;
+      const slot = `${String(hour).padStart(2, '0')}:00`;
+      postingHeatmap[slot] = (postingHeatmap[slot] || 0) + 1;
+    }
+  }
+  
+  return {
+    openness: Math.max(0, Math.min(1, openness)),
+    conscientiousness: Math.max(0, Math.min(1, conscientiousness)),
+    extraversion: Math.max(0, Math.min(1, extraversion)),
+    agreeableness: Math.max(-1, Math.min(1, agreeableness)),
+    neuroticism: Math.max(0, Math.min(1, neuroticism)),
+    deceptionIndicators,
+    predictedActions,
+    postingHeatmap,
+    functionWordRatio: Math.round(functionWordRatio * 1000) / 1000,
+    burstinessScore: Math.round(burstinessScore * 100) / 100,
+  };
+}
 
 function extractBehavioralProfile(text: string): string[] {
   const traits: string[] = [];
@@ -2267,101 +2487,113 @@ async function ingestIntelligence(query: string): Promise<{
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// NOMAD v5.0 SYSTEM PROMPT — ESRC + MONAD INTELLIGENCE FRAMEWORK
+// NOMAD v6.0 SYSTEM PROMPT — ESRC + MONAD + OCEAN INTELLIGENCE FRAMEWORK
+// Gap 7: Structured Intelligence Output Protocol
 // ══════════════════════════════════════════════════════════════════════════════
 
-const NOMAD_SYSTEM_PROMPT = `You are NOMAD v5.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine on AUREON with a 21-Engine OSINT Collection Suite + MONAD Agency-Level Investigation Framework. Framework: arXiv:2602.16800v1.
+const NOMAD_SYSTEM_PROMPT = `You are NOMAD v6.0 — an ESRC (Extract-Search-Reason-Calibrate) Intelligence Engine with a 30-Engine OSINT Collection Suite + MONAD Agency-Level Investigation Framework + OCEAN Behavioral Profiling.
 
-INTELLIGENCE MANDATE (MONAD Protocol v2.0):
-- STRICT MODE: Focus on HIGH-FIDELITY intelligence — legal records, corporate filings, vital statistics, forensic metadata
-- REQUIRED SECTORS: Legal Archives, Asset Tracing, Genealogy Tree, Vital Records, RICO/Fraud Links, Offshore Holdings, Contact Tracing
-- STANDING ORDERS:
-  1. ALWAYS cross-reference subjects with federal RICO/Fraud databases
-  2. ALWAYS trace property ownership to identify spouses/co-conspirators
-  3. ALWAYS extract full DOBs, Phone Numbers, and Emails for all subjects and family members
-  4. ORGANIZE all findings into verified Intelligence Reports
-  5. SEPARATE "Confirmed Intelligence" (confidence ≥70%) from "Unverified Leads" (<70%)
-
-AVAILABLE OSINT ENGINES (21 + MONAD Sectors):
-1. Google (Advanced Operators) — dorks, filetypes, exposed panels
-2. Shodan — internet-facing assets, open ports, banners, ICS/IoT
-3. Censys — certificate-centric pivots, structured internet scanning
-4. SecurityTrails — DNS history, subdomains, passive recon
-5. VirusTotal — malware, IOCs, domain/IP/hash reputation
-6. GreyNoise — background noise vs targeted scanning classification
-7. BinaryEdge — external attack surface, historical exposure
-8. FOFA — global device/service discovery
-9. urlscan.io — URL detonation, redirect chains, infrastructure reuse
-10. crt.sh — subdomain discovery via Certificate Transparency logs
-11. GitHub Search — secret hunting, exposed configs, API key leaks
-12. Threat Intel (ThreatFox + AlienVault OTX) — IOC search, TTPs
-13. Bing (Advanced Operators) — broad footprint searches
-14. Social Platform Search — LinkedIn, Facebook, Instagram, X, TikTok
-15. Yandex — reverse image + Eastern European web coverage
-16. DuckDuckGo / Startpage — alternate indexing
-17. Wayback Machine — deleted content recovery
-18. Public Records Aggregators — address history, relatives, age ranges
-19. Court / Filing Portals — lawsuits, judgments, property disputes
-20. Business Registries (OpenCorporates) — director/officer records, LLC links
-21. Mapping Tools (Google Places) — business listings, geotagged content
-
-MONAD SECTOR DORK ENGINES:
-22. File Hunter — PDF/DOCX/XLSX/PPTX document discovery
-23. Legal Archives — CourtListener, Justia, Trellis.law dork searches
-24. Asset Tracing — Property tax, deeds, parcel ID searches
-25. Corporate Registry — LLC/Inc/Ltd/Director/Shareholder hunts
-26. Criminal Records — Arrest, mugshot, criminal record dorks
-27. Financial Intelligence — Bankruptcy, judgment, lien, net worth
-28. Data Brokers — FastPeopleSearch, TruePeopleSearch, FamilyTreeNow
-29. Leak Intelligence — Pastebin, paste sites, password dumps
-30. Recursive PII Spider — Chase discovered phones/emails back through search
+## CLASSIFICATION PROTOCOL
+Every dossier starts with: PUBLIC OSINT / RESTRICTED / UNVERIFIED
 
 ## MANDATORY OUTPUT FORMAT
 
 Your response MUST contain exactly TWO parts in this order:
 
-### PART 1: MERMAID ENTITY DIGRAPH
-Output a fenced mermaid code block showing the relationship graph. Use \`digraph\` style (graph TD). Include:
+### PART 1: MERMAID ENTITY DIGRAPH (TEMPORAL)
+Output a fenced mermaid code block showing the relationship graph. Use graph TD. Include:
 - The TARGET as the central node (rounded box)
-- Key entities discovered (organizations, people, locations, financials) as connected nodes
-- Edge labels showing the relationship type (e.g., "founded", "located in", "donated to", "linked to")
-- Use subgraphs to group related entities by category when there are 6+ nodes
-- Keep node labels SHORT (under 30 chars), no special characters except hyphens
-- Maximum 20 nodes to keep it readable
-
-Example format:
-\`\`\`mermaid
-graph TD
-  T(("Target Name"))
-  A["Organization A"]
-  B["Location B"]
-  C["$1.2M Revenue"]
-  T -->|"CEO of"| A
-  T -->|"based in"| B
-  A -->|"revenue"| C
-\`\`\`
+- Key entities as connected nodes
+- Edge labels with relationship type AND temporal markers where available
+- Style hot edges (recent, high frequency) with thick lines: A -->|"CEO 2020-present"| B
+- Style cold edges (old, dormant) with dotted lines: A -.->|"former VP 2015"| C
+- Style anomaly edges (sudden new connections) with red: A -->|"acquired Jan 2026"| D
+- Use subgraphs to group related entities by category
+- Node IDs must be simple alphanumeric (N1, N2, ORG1, etc.)
+- Maximum 20 nodes, labels under 30 chars
 
 ### PART 2: INTELLIGENCE DOSSIER
 
-**Section A — BLUF (Bottom Line Up Front):** 2-3 sentences stating the most critical intelligence. Include confidence rating.
+**## CLASSIFICATION: [PUBLIC OSINT / RESTRICTED / UNVERIFIED]**
 
-**Section B — Confirmed Intelligence:** Findings with confidence ≥70%. Include specific data points (dollar amounts, dates, entity names). Mark claims: ✅ VALIDATED (2+ sources), ⚠️ SINGLE-SOURCE, 🔴 CONTESTED. Include the Bradley-Terry confidence rating and precision estimate.
+**## BLUF (Bottom Line Up Front)**
+2 sentences maximum. Most critical intelligence. Include overall confidence rating.
 
-**Section C — Behavioral Profile:** List detected behavioral traits (Business/Leadership, Legal History, Political Activity, etc.) based on evidence patterns.
+**## CONFIRMED INTELLIGENCE (Tier 1-2 Sources Only)**
+Each item formatted as:
+- [Fact] | Source: [X] | Confidence: [%] | Cross-refs: [N]
+Mark claims: ✅ VALIDATED (2+ sources), ⚠️ SINGLE-SOURCE, 🔴 CONTESTED
 
-**Section D — Methodology & Gaps:** Sources queried count, ESRC stages results, entity resolution cross-platform links. Flag data gaps, hostile sources, abstention recommendations. End with 2-3 recommended follow-up investigation vectors.
+**## PROBABLE INTELLIGENCE (Tier 3 Sources, 2+ corroborations)**
+- [Fact] | Source: [X] | Confidence: [%]
+
+**## UNVERIFIED SIGNALS (Single source, Tier 4)**
+- [Claim] | Source: [X] | Status: UNVERIFIED
+
+**## BEHAVIORAL PROFILE (OCEAN Assessment)**
+- Openness: [0-1] | Conscientiousness: [0-1] | Extraversion: [0-1]
+- Agreeableness: [-1 to 1] | Neuroticism: [0-1]
+- Function Word Ratio: [value] (normal: 0.35-0.50)
+- Burstiness Score: [value] (>0.7 = stress events)
+- Deception Indicators: [None/Low/Medium/High] with specifics
+- Predicted Actions: [Based on OCEAN pattern + evidence]
+
+**## NETWORK MAP**
+Reference the mermaid graph above. Describe hot/cold/anomaly edges.
+
+**## DEAD ENDS & INTELLIGENCE GAPS**
+What could NOT be found. What the target has scrubbed. What sources returned empty.
+This section is critical intelligence — what's missing reveals as much as what's present.
+Include 2-3 recommended follow-up investigation vectors.
+
+**## CROSS-INVESTIGATION LINKS**
+If entities from this investigation overlap with prior investigations, surface them here.
+Format: [Entity] appeared in Investigation [X] on [date] — potential connection: [reasoning]
 
 ## CRITICAL RULES
 - NEVER fabricate data — every claim traces to provided intelligence
-- Total response must be under 600 words (excluding the mermaid block)
-- The mermaid block MUST be valid mermaid syntax — no quotes inside quotes, no special chars in node IDs
-- Node IDs must be simple alphanumeric (N1, N2, ORG1, etc.)
-- Do NOT output tables or the old dossier format
+- Total response must be under 800 words (excluding the mermaid block)
+- The mermaid block MUST be valid mermaid syntax
+- When Benford analysis flags financial numbers, mention it explicitly
+- When single-source claims are flagged, mark them ⚠️ SINGLE-SOURCE
+- When PII Spider depth > 1 found data, mention the hop depth
 - Be direct, factual, intelligence-grade — no filler text
-- When PII Spider found additional data, mention it explicitly`;
+- Include Bradley-Terry confidence and provenance data inline`;
+
+// ── Multi-Stage AI Helper (Gap 1) ───────────────────────────────────────────
+
+async function aiPass(apiKey: string, systemPrompt: string, userPrompt: string, model: string, maxTokens: number, temp: number): Promise<string> {
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          { role: 'user', parts: [{ text: systemPrompt }] },
+          { role: 'model', parts: [{ text: 'Understood. Executing.' }] },
+          { role: 'user', parts: [{ text: userPrompt }] },
+        ],
+        generationConfig: { temperature: temp, maxOutputTokens: maxTokens },
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+    if (resp.status === 429 && attempt < MAX_RETRIES - 1) {
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000 + Math.random() * 1000));
+      continue;
+    }
+    const err = await resp.text();
+    console.error(`AI Pass (${model}) Error:`, err);
+    return '';
+  }
+  return '';
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN HANDLER
+// MAIN HANDLER — NOMAD v6.0 with Multi-Stage AI Pipeline + Cross-Investigation Memory
 // ══════════════════════════════════════════════════════════════════════════════
 
 serve(async (req) => {
@@ -2369,16 +2601,77 @@ serve(async (req) => {
 
   try {
     const startTime = Date.now();
-    const { messages } = await req.json();
+    const { messages, userId } = await req.json();
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
     // 1. ESRC PIPELINE EXECUTION
     const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks } = await ingestIntelligence(lastUserMessage);
 
-    // 2a. Collect images from search results in parallel with compilation
+    // 2a. Collect images in parallel
     const imagePromise = collectInvestigationImages(lastUserMessage, nodes);
 
-    // 2. Compile intelligence payload with ESRC metadata
+    // 2b. OCEAN Behavioral Profiling (Gap 2)
+    const allText = nodes.filter(n => n.data).map(n => n.data).join('\n\n');
+    const oceanProfile = computeOCEANProfile(allText);
+
+    // 2c. Benford's Law Analysis (Gap 6)
+    const financialNumbers = extractFinancialNumbers(allText);
+    const benfordResult = benfordAnalysis(financialNumbers);
+    
+    // 2d. Single-source claim flagging (Gap 6)
+    const singleSourceFlags = flagSingleSourceClaims(nodes, crossRefMap);
+
+    // 2e. Cross-Investigation Memory (Gap 5) — Query for overlapping entities
+    let crossInvestigationLinks = '';
+    if (userId) {
+      try {
+        const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+        const SUPABASE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        if (SUPABASE_URL && SUPABASE_KEY) {
+          // Query existing entity graph for overlaps
+          const topEntities = entities.slice(0, 20).map(e => e.value.toLowerCase().trim());
+          if (topEntities.length > 0) {
+            const orFilter = topEntities.map(v => `entity_value.ilike.%${v}%`).join(',');
+            const graphResp = await fetch(
+              `${SUPABASE_URL}/rest/v1/nomad_entity_graph?user_id=eq.${userId}&or=(${orFilter})&select=entity_type,entity_value,investigation_id,first_seen,last_seen,frequency&limit=50`,
+              { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+            );
+            if (graphResp.ok) {
+              const existingEntities = await graphResp.json();
+              if (existingEntities.length > 0) {
+                crossInvestigationLinks = `\n\nCROSS-INVESTIGATION MEMORY (${existingEntities.length} entity overlaps found):\n` +
+                  existingEntities.slice(0, 15).map((e: any) => 
+                    `- [${e.entity_type}] ${e.entity_value} — seen ${e.frequency}x (first: ${e.first_seen?.split('T')[0]}, last: ${e.last_seen?.split('T')[0]}) — Investigation: ${e.investigation_id?.slice(0, 8)}...`
+                  ).join('\n');
+              }
+            }
+          }
+
+          // Store current investigation's entities for future cross-reference
+          const entityInserts = entities.slice(0, 50).map(e => ({
+            user_id: userId,
+            entity_type: e.type,
+            entity_value: e.value,
+            confidence: e.confidence,
+            source: e.source,
+          }));
+          if (entityInserts.length > 0) {
+            await fetch(`${SUPABASE_URL}/rest/v1/nomad_entity_graph`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates',
+              },
+              body: JSON.stringify(entityInserts),
+            }).catch(err => console.error('Entity graph insert error:', err));
+          }
+        }
+      } catch (err) { console.error('Cross-investigation memory error:', err); }
+    }
+
+    // 3. Compile intelligence payload
     const activeNodes = nodes.filter(n => n.data);
     const intelSections = activeNodes.map(n =>
       `### SOURCE: ${n.source} [Tier ${n.tier}] [Confidence: ${Math.round(n.confidence * 100)}%] [Hash: ${n.provenanceHash}]\n${n.data}`
@@ -2400,89 +2693,127 @@ PROVENANCE ATTESTATION:
 - Provenance Integrity: ${attestation.provenanceIntegrity}%
 - Hostile Sources Flagged: ${attestation.hostileSourceFlags.length > 0 ? attestation.hostileSourceFlags.join(', ') : 'None'}`;
 
-    // ESRC Pipeline metadata for the AI
+    const behavioralSection = behavioralTraits.length > 0
+      ? `\n\nBEHAVIORAL TRAITS (MONAD Engine):\n${behavioralTraits.map(t => `- ${t}`).join('\n')}`
+      : '';
+
+    const oceanSection = `
+OCEAN BEHAVIORAL PROFILE (Gap 2 — Stylometric + OCEAN Inference):
+- Openness: ${oceanProfile.openness.toFixed(2)}
+- Conscientiousness: ${oceanProfile.conscientiousness.toFixed(2)}
+- Extraversion: ${oceanProfile.extraversion.toFixed(2)}
+- Agreeableness: ${oceanProfile.agreeableness.toFixed(2)}
+- Neuroticism: ${oceanProfile.neuroticism.toFixed(2)}
+- Function Word Ratio: ${oceanProfile.functionWordRatio} (normal: 0.35-0.50)
+- Burstiness Score: ${oceanProfile.burstinessScore} (>0.7 = stress events)
+- Deception Indicators: ${oceanProfile.deceptionIndicators.length > 0 ? oceanProfile.deceptionIndicators.join('; ') : 'None detected'}
+- Predicted Actions: ${oceanProfile.predictedActions.length > 0 ? oceanProfile.predictedActions.join('; ') : 'Insufficient data'}
+- Posting Heatmap: ${Object.keys(oceanProfile.postingHeatmap).length > 0 ? JSON.stringify(oceanProfile.postingHeatmap) : 'No time data available'}`;
+
+    const benfordSection = financialNumbers.length >= 10
+      ? `\nBENFORD'S LAW ANALYSIS (Financial Data Integrity):
+- Numbers Analyzed: ${financialNumbers.length}
+- Chi-Square: ${benfordResult.chiSquare}
+- Distribution: ${benfordResult.isNatural ? '✅ NATURAL (follows Benford distribution)' : '🔴 ANOMALOUS (possible fabrication)'}
+- Suspicious Leading Digits: ${benfordResult.suspiciousDigits.length > 0 ? benfordResult.suspiciousDigits.join(', ') : 'None'}`
+      : '';
+
+    const singleSourceSection = singleSourceFlags.length > 0
+      ? `\nSINGLE-SOURCE WARNINGS (${singleSourceFlags.length}):\n${singleSourceFlags.slice(0, 10).join('\n')}`
+      : '';
+
     const esrcReport = `
 ═══ ESRC PIPELINE EXECUTION RESULTS ═══
 
-STAGE 1 — EXTRACT (Microdata Profile):
-${JSON.stringify(esrcProfile, null, 2)}
+STAGE 1 — EXTRACT: ${JSON.stringify(esrcProfile, null, 2)}
 
-STAGE 2 — SEARCH (Top Candidates by Similarity):
-${esrcCandidates.slice(0, 10).map((c, i) => 
-  `Candidate ${i + 1}: ${c.source} — Similarity: ${Math.round(c.similarityScore * 100)}%\n  Evidence: ${c.matchEvidence.join('; ')}\n  Contradictions: ${c.contradictions.length > 0 ? c.contradictions.join('; ') : 'None'}`
-).join('\n\n')}
+STAGE 2 — SEARCH (Top Candidates):
+${esrcCandidates.slice(0, 5).map((c, i) => 
+  `${i + 1}. ${c.source} — ${Math.round(c.similarityScore * 100)}% | Evidence: ${c.matchEvidence.slice(0, 3).join('; ')}`
+).join('\n')}
 
-STAGE 3 — REASON (Selection & Verification):
-- Top candidate: ${esrcCandidates[0]?.source || 'None identified'}
-- Match evidence count: ${esrcCandidates[0]?.matchEvidence.length || 0}
-- Similarity score: ${Math.round((esrcCandidates[0]?.similarityScore || 0) * 100)}%
-- Second candidate gap: ${Math.round(((esrcCandidates[0]?.similarityScore || 0) - (esrcCandidates[1]?.similarityScore || 0)) * 100)}%
+STAGE 3 — REASON: Top: ${esrcCandidates[0]?.source || 'None'} (${Math.round((esrcCandidates[0]?.similarityScore || 0) * 100)}%)
 
-STAGE 4 — CALIBRATE (Bradley-Terry):
-- Bradley-Terry Rating: ${esrcCalibration.bradleyTerryRating}
-- Precision Estimate: ${esrcCalibration.precisionEstimate}%
-- Recall Band: ${esrcCalibration.recallBand}
-- Abstain Recommendation: ${esrcCalibration.abstainRecommendation ? 'YES — Confidence too low' : 'NO — Proceed with analysis'}
-- Calibration Method: ${esrcCalibration.calibrationMethod}
-- Processing Time: ${Date.now() - startTime}ms
-- Total Sources Queried: ${nodes.length}
-- Active Sources: ${activeNodes.length}
-- Candidate Pool Size: ${esrcCandidates.length}`;
+STAGE 4 — CALIBRATE: BT=${esrcCalibration.bradleyTerryRating} | Precision=${esrcCalibration.precisionEstimate}% | Recall=${esrcCalibration.recallBand} | Abstain=${esrcCalibration.abstainRecommendation ? 'YES' : 'NO'}
+Processing: ${Date.now() - startTime}ms | Sources: ${activeNodes.length}/${nodes.length} | Candidates: ${esrcCandidates.length}`;
 
-    // 3. SYNTHESIZE WITH AI (with exponential backoff retry)
+    // ══════════════════════════════════════════════════════════════════════════
+    // GAP 1: MULTI-STAGE AI SYNTHESIS PIPELINE
+    // Pass 1 (Flash): Raw data → Entity cluster summaries per source group
+    // Pass 2 (Pro): Final BLUF synthesis + behavioral profile + structured dossier
+    // ══════════════════════════════════════════════════════════════════════════
+
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
-    const behavioralSection = behavioralTraits.length > 0
-      ? `\n\nBEHAVIORAL PROFILE (MONAD Engine):\n${behavioralTraits.map(t => `- ${t}`).join('\n')}`
-      : '';
+    // PASS 1: Cluster summaries (Flash — fast, cheap)
+    const pass1Prompt = `Analyze this raw intelligence data and produce CONCISE cluster summaries. Group findings by: CORPORATE, LEGAL, FINANCIAL, DIGITAL FOOTPRINT, SOCIAL, THREAT/SECURITY. For each cluster, list the 3 most important facts with source attribution. Flag any contradictions between sources. Output as structured text, max 2000 words.
 
-    const prompt = `
+USER QUERY: "${lastUserMessage}"
+
+${intelSections || 'No intelligence data.'}`;
+
+    console.log('NOMAD v6.0: Starting Pass 1 (Flash cluster summaries)...');
+    const pass1Result = await aiPass(GEMINI_API_KEY, 
+      'You are an intelligence analyst. Summarize raw OSINT data into structured cluster summaries. Be precise. No filler.',
+      pass1Prompt, 'gemini-2.5-flash', 4000, 0.15);
+
+    // PASS 2: Final synthesis (Pro — high quality)
+    const pass2Prompt = `
 USER QUERY: "${lastUserMessage}"
 
 ${provenanceReport}
 ${entitySummary}
 ${behavioralSection}
+${oceanSection}
+${benfordSection}
+${singleSourceSection}
+${crossInvestigationLinks}
 
 ${esrcReport}
 
-GATHERED INTELLIGENCE DATA (Cryptographically Attested):
-${intelSections || 'No intelligence gathered from available sources.'}
+CLUSTERED INTELLIGENCE SUMMARIES (from Pass 1 analysis):
+${pass1Result || 'Pass 1 analysis unavailable — use raw data below.'}
+
+RAW INTELLIGENCE DATA:
+${intelSections || 'No intelligence gathered.'}
 ${publicRecordLinks}
 
 INSTRUCTIONS:
-Produce a NOMAD v5.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then the intelligence dossier with BLUF, Confirmed Intelligence, Behavioral Profile, and Methodology sections. Be concise and direct — no tables, no filler. Include Bradley-Terry confidence and provenance data inline. Reference the MONAD sector dorks and PII Spider results where relevant.`;
+Produce a NOMAD v6.0 response following the mandatory output format. Include:
+1. Temporal mermaid digraph with hot/cold/anomaly edges
+2. Tiered intelligence (Confirmed → Probable → Unverified)
+3. OCEAN behavioral profile with deception indicators and predicted actions
+4. Dead Ends & Intelligence Gaps section (what's MISSING is critical intelligence)
+5. Cross-Investigation Links if entity overlaps were found
+6. Benford analysis results if financial data was flagged
+7. Single-source warnings inline with ⚠️ markers
+Be direct, intelligence-grade. Include BT confidence inline.`;
 
+    console.log('NOMAD v6.0: Starting Pass 2 (Pro synthesis)...');
+    
     // Build conversation history for memory continuity
     const conversationHistory: { role: string; parts: { text: string }[] }[] = [
       { role: 'user', parts: [{ text: NOMAD_SYSTEM_PROMPT }] },
     ];
 
-    // Inject prior conversation turns (skip the last user message — it's in `prompt`)
     const priorMessages = messages.slice(0, -1);
     if (priorMessages.length > 0) {
-      // Summarize prior turns to stay within context limits (last 10 exchanges max)
       const recentHistory = priorMessages.slice(-20);
       const historyBlock = recentHistory.map((m: { role: string; content: string }) => 
         `[${m.role.toUpperCase()}]: ${m.content.slice(0, 2000)}`
       ).join('\n\n');
-      
       conversationHistory.push({
         role: 'user',
-        parts: [{ text: `═══ CONVERSATION HISTORY (${recentHistory.length} prior messages) ═══\nThe user has been in an ongoing NOMAD session. Here is the conversation so far. Use this context to maintain continuity, resolve pronouns (e.g. "he", "they", "that company"), and build on previous findings.\n\n${historyBlock}\n\n═══ END CONVERSATION HISTORY ═══` }],
+        parts: [{ text: `═══ CONVERSATION HISTORY ═══\n${historyBlock}\n═══ END ═══` }],
       });
       conversationHistory.push({
         role: 'model',
-        parts: [{ text: 'Understood. I have full context of the prior conversation and will maintain continuity in my analysis.' }],
+        parts: [{ text: 'Context loaded. Maintaining continuity.' }],
       });
     }
 
-    conversationHistory.push({ role: 'user', parts: [{ text: prompt }] });
-
-    const geminiBody = JSON.stringify({
-      contents: conversationHistory,
-      generationConfig: { temperature: 0.2, maxOutputTokens: 16000 },
-    });
+    conversationHistory.push({ role: 'user', parts: [{ text: pass2Prompt }] });
 
     let aiText = "NOMAD could not generate a report.";
     const MAX_RETRIES = 4;
@@ -2490,7 +2821,10 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
       const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: geminiBody,
+        body: JSON.stringify({
+          contents: conversationHistory,
+          generationConfig: { temperature: 0.2, maxOutputTokens: 16000 },
+        }),
       });
 
       if (resp.ok) {
@@ -2500,7 +2834,6 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
       }
 
       if (resp.status === 429 && attempt < MAX_RETRIES - 1) {
-        // Exponential backoff with jitter
         const baseDelay = Math.pow(2, attempt + 1) * 1000;
         const jitter = Math.random() * 1000;
         console.log(`NOMAD: Rate limited (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${Math.round((baseDelay + jitter) / 1000)}s...`);
@@ -2510,9 +2843,7 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
 
       const err = await resp.text();
       console.error('Gemini API Error:', err);
-      if (resp.status === 429) {
-        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-      }
+      if (resp.status === 429) throw new Error('Rate limit exceeded. Please wait a moment and try again.');
       throw new Error(`AI generation failed (${resp.status})`);
     }
 
@@ -2525,7 +2856,6 @@ Produce a NOMAD v5.0 response following the mandatory output format: a mermaid d
       start(controller) {
         const chunk = { choices: [{ delta: { content: aiText } }] };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-        // Send images as a separate event
         if (collectedImages.length > 0) {
           const imgChunk = { type: 'images', images: collectedImages };
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(imgChunk)}\n\n`));
