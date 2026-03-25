@@ -709,7 +709,7 @@ const NomadView = () => {
                                 const looksLikeMermaid = (text: string) => {
                                   const lines = text.trim().split('\n').filter(l => l.trim());
                                   if (lines.length < 3) return false;
-                                  const edgeLines = lines.filter(l => /\w+\s*--[->|]/.test(l) || /subgraph\s+/.test(l) || /^\s*end\s*$/.test(l));
+                                  const edgeLines = lines.filter(l => /\w+\s*--[->|]/.test(l) || /subgraph\s+/.test(l) || /^\s*end\s*$/.test(l) || /^style\s+\w+/.test(l.trim()) || /^linkStyle\s+\d+/.test(l.trim()));
                                   return edgeLines.length >= 2;
                                 };
                                 
