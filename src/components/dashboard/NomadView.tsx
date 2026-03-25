@@ -162,6 +162,38 @@ const NomadView = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setCommandOpen(true); }
+      if (e.key === "f" && (e.ctrlKey || e.metaKey) && activeTab === "chat") { e.preventDefault(); setSearchOpen(true); }
+      if (e.key === "e" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); exportFullDossier(); }
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+        e.preventDefault(); inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeTab]);
+
+  // Scroll intelligence
+  const handleScrollToMessage = useCallback((id: string) => {
+    const el = document.getElementById(`nomad-msg-${id}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
+  const handleCommandAction = useCallback((action: string) => {
+    if (action === "export") exportFullDossier();
+    else if (action === "search") setSearchOpen(true);
+    else if (action === "notepad") setNotepadOpen(p => !p);
+    else if (action === "history") loadHistory();
+    else if (action.startsWith("investigate:")) {
+      setInput(`Investigate: ${action.slice(12)}`);
+      setActiveTab("chat");
+      inputRef.current?.focus();
+    }
+  }, [exportFullDossier, loadHistory]);
+
   // Aggregate all entities from messages for panels
   const allEntities = useMemo(() => {
     const entities: { type: string; value: string; confidence: number; source?: string }[] = [];
