@@ -433,6 +433,7 @@ const NomadView = () => {
     }
   }, [messages, toast]);
 
+  const handleSelectionAction = useCallback((action: string, text: string) => {
     switch (action) {
       case "investigate": setInput(`Investigate: ${text}`); inputRef.current?.focus(); break;
       case "profile": setInput(`Build a complete profile on: ${text}`); inputRef.current?.focus(); break;
