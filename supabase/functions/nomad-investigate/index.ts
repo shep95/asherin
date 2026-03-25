@@ -2678,6 +2678,79 @@ serve(async (req) => {
     const { messages, userId } = await req.json();
     const lastUserMessage = messages[messages.length - 1]?.content || '';
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // PRE-FLIGHT: QUERY TRIAGE — Determine if the query has enough specificity
+    // ══════════════════════════════════════════════════════════════════════════
+
+    const GEMINI_API_KEY_TRIAGE = Deno.env.get('GEMINI_API_KEY_APP');
+    
+    // Only triage if this looks like a first message (no prior assistant responses)
+    const hasConversationContext = messages.some((m: any) => m.role === 'assistant' && m.content && m.content.length > 100);
+    
+    if (GEMINI_API_KEY_TRIAGE && !hasConversationContext) {
+      const triageResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY_TRIAGE}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: `You are NOMAD, an intelligence investigation system. A user has submitted this query for investigation:
+
+"${lastUserMessage}"
+
+Evaluate if this query contains enough SPECIFIC, ACTIONABLE information to run a meaningful OSINT investigation. Consider:
+- Does it name a specific person, organization, domain, phone number, email, or entity?
+- Is the target identifiable (not too vague like "investigate fraud" without a subject)?
+- Does it provide enough context to know WHAT to search for?
+
+If the query IS specific enough to investigate (has a clear target entity), respond with EXACTLY: PROCEED
+
+If the query is too vague, ambiguous, or lacks a specific target, respond with EXACTLY: CLARIFY followed by 2-4 short, direct questions that would help you run a better investigation. Format questions as a numbered list. Be concise and intelligence-grade — no fluff.
+
+Examples of queries that need clarification:
+- "investigate fraud" → needs WHO or WHAT entity
+- "find connections" → needs a starting point
+- "look into this company" → needs the company name
+- "help me with research" → needs a specific subject
+
+Examples that are ready to investigate:
+- "Investigate John Smith CEO of Acme Corp"
+- "Research domain example.com"
+- "Find information about +1-555-0100"
+- "Who is @username on Twitter"` }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 300 },
+          }),
+        }
+      );
+
+      if (triageResp.ok) {
+        const triageData = await triageResp.json();
+        const triageResult = triageData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'PROCEED';
+        
+        if (triageResult.startsWith('CLARIFY')) {
+          console.log('NOMAD TRIAGE: Query needs clarification');
+          const clarificationText = triageResult.replace(/^CLARIFY\s*/i, '').trim();
+          
+          const responseText = `**I need a bit more context to run an effective investigation.**\n\n${clarificationText}\n\nProvide these details and I'll execute a full intelligence sweep.`;
+          
+          const encoder = new TextEncoder();
+          const stream = new ReadableStream({
+            start(controller) {
+              const chunk = { choices: [{ delta: { content: responseText } }] };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+              controller.close();
+            },
+          });
+
+          return new Response(stream, {
+            headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+          });
+        }
+        console.log('NOMAD TRIAGE: Query is specific enough, proceeding with investigation');
+      }
+    }
+
     // 1. ESRC PIPELINE EXECUTION
     const { nodes, attestation, entities, crossRefMap, esrcProfile, esrcCandidates, esrcCalibration, behavioralTraits, publicRecordLinks, sourceTelemetry, subjectFingerprint } = await ingestIntelligence(lastUserMessage);
 
