@@ -30,6 +30,8 @@ function parseMermaid(code: string): { nodes: ParsedNode[]; edges: ParsedEdge[];
   for (const line of code.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || /^graph\s+(TD|LR|TB|BT|RL)\s*$/.test(trimmed)) continue;
+    // Skip mermaid styling directives
+    if (/^(style\s+\w+|linkStyle\s+\d+|classDef\s+|class\s+)/.test(trimmed)) continue;
 
     const sgMatch = trimmed.match(/^subgraph\s+(.+)/);
     if (sgMatch) {
