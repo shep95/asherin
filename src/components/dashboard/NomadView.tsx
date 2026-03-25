@@ -569,7 +569,7 @@ const NomadView = () => {
               <tab.icon className="h-3.5 w-3.5" />
               {tab.label}
               {tab.id !== "chat" && entityCount > 0 && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent/70">{entityCount}</span>
+                <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-foreground/[0.06] text-foreground/50">{entityCount}</span>
               )}
             </button>
           ))}
