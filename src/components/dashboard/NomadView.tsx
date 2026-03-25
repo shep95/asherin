@@ -641,7 +641,7 @@ const NomadView = () => {
                   </div>
                 ) : (
                   messages.map(msg => (
-                    <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div id={`nomad-msg-${msg.id}`} key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                       <div className="max-w-[85%]">
                         <div className={`rounded-2xl px-5 py-4 ${
                           msg.role === "user"
