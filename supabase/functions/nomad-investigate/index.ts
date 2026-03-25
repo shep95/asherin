@@ -2625,8 +2625,54 @@ Mark claims: ✅ VALIDATED (2+ sources), ⚠️ SINGLE-SOURCE, 🔴 CONTESTED
 - Deception Indicators: [None/Low/Medium/High] with specifics
 - Predicted Actions: [Based on OCEAN pattern + evidence]
 
+**## LINGUISTIC FINGERPRINT**
+If linguistic analysis data is provided, include:
+- Type-Token Ratio and what it reveals
+- Sentence length variance pattern
+- Hapax legomena (private vocabulary)
+- Pronoun drop detection results
+- Bridge phrase locations (where narrative skips time)
+- Tense forensics (past vs present for biographical claims)
+- DECEPTION RISK MAP: which topics/time periods show stress markers
+
+**## SOCIAL AVATAR PROFILE**
+If social avatar analysis data is provided, include:
+- Dark Triad Risk Score (0-10)
+- Attachment Style inference
+- Validation Dependency Score
+- Posting pattern analysis and gap/surge mapping
+- Top 3 behavioral predictions
+
+**## RELATIONSHIP VELOCITY MAP**
+If relationship analysis data is provided, include:
+- Formation speeds for key relationships
+- Termination patterns (repeating behavioral signature)
+- Cluster migration timeline
+- Dormant relationship reactivations and their timing
+
+**## NARRATIVE INTEGRITY AUDIT**
+If narrative consistency data is provided, include:
+- Narrative Integrity Score (0-100)
+- Specific contradictions with source citations
+- Unverifiable claims list
+- Self-Presentation Archetype (Genuine Builder / Status Inflator / Victim Narcissist / Deliberate Obscurantist)
+- Stated Self vs Evidenced Self DELTA analysis
+
+**## IDENTITY CONTINUITY**
+If cross-platform analysis data is provided, include:
+- Identity Continuity Score (0-100)
+- Confirmed cross-platform identity links
+- Suspected sock puppet accounts
+- REAL PERSONALITY vs CURATED PERSONA
+
 **## NETWORK MAP**
-Reference the mermaid graph above. Describe hot/cold/anomaly edges.
+GRAPH GENERATION RULES:
+1. Do NOT create a star topology. The target is NOT always the center node.
+2. Node types: Person=circle, Organization=rectangle, Location=trapezoid, Event=diamond, Document=parallelogram
+3. Edge types: Solid=CONFIRMED (Tier 1-2), Dashed=PROBABLE (Tier 3), Dotted=INFERRED
+4. Edge labels MUST include: relationship type, date range, confidence % when <80%
+5. Cluster nodes by domain: Financial, Professional, Legal, Social, Geographic
+6. Flag BRIDGE NODES (connecting 2+ clusters) and ISOLATED NODES (single connection)
 
 **## DEAD ENDS & INTELLIGENCE GAPS**
 What could NOT be found. What the target has scrubbed. What sources returned empty.
@@ -2639,13 +2685,15 @@ Format: [Entity] appeared in Investigation [X] on [date] — potential connectio
 
 ## CRITICAL RULES
 - NEVER fabricate data — every claim traces to provided intelligence
-- Total response must be under 800 words (excluding the mermaid block)
+- Total response must be under 1200 words (excluding the mermaid block)
 - The mermaid block MUST be valid mermaid syntax
 - When Benford analysis flags financial numbers, mention it explicitly
 - When single-source claims are flagged, mark them ⚠️ SINGLE-SOURCE
 - When PII Spider depth > 1 found data, mention the hop depth
 - Be direct, factual, intelligence-grade — no filler text
-- Include Bradley-Terry confidence and provenance data inline`;
+- Include Bradley-Terry confidence and provenance data inline
+- The DELTA between Stated Self and Evidenced Self is the most critical output
+- Include all 6 AI analysis pass results when provided`;
 
 // ── Multi-Stage AI Helper (Gap 1) ───────────────────────────────────────────
 
