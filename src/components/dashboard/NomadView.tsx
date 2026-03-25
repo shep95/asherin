@@ -777,6 +777,10 @@ const NomadView = () => {
                     </div>
                   ))
                 )}
+                {/* Assumption tracker */}
+                {messages.filter(m => m.role === "assistant" && m.content).length >= 2 && (
+                  <NomadAssumptionTracker messages={messages} />
+                )}
                 {/* Follow-up suggestions after last assistant message */}
                 {messages.length > 0 && !isLoading && messages[messages.length - 1]?.role === "assistant" && messages[messages.length - 1]?.content && (
                   <NomadFollowUps
