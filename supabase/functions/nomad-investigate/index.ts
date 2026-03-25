@@ -1776,7 +1776,6 @@ function generatePublicRecordLinks(name: string, location?: string): string {
   
   return `\n\nPASSIVE OSINT REFERENCE LINKS (${links.length} sources):\n${links.join('\n')}`;
 }
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ESRC STAGE 3: REASON — Entity Resolution + Two-Stage Selection & Verification
