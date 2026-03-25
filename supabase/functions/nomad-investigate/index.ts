@@ -2593,6 +2593,7 @@ For each core claim:
 - Identify claim with biggest gap between stated confidence and Bayesian posterior = most dangerous assumption
 
 PHASE 6 — FINAL SYNTHESIS + PREDICTION
+PHASE 9 — FINAL SYNTHESIS + PREDICTION
 Only now write the dossier.
 
 STANDING DIRECTIVE FOR ALL PERSON INVESTIGATIONS:
