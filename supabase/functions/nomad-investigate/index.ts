@@ -3148,6 +3148,8 @@ Produce a NOMAD v8.0 response following the mandatory output format. Include:
 15. Cross-Investigation Links if entity overlaps were found
 16. Benford analysis results if financial data was flagged
 17. Single-source warnings inline with ⚠️ markers
+18. If PRIOR INVESTIGATION data was provided: produce a DIFFERENTIAL ANALYSIS section showing what is NEW, what CHANGED, what DISAPPEARED since last investigation. Disappearing entities are the most critical signal.
+19. Include source telemetry summary — which sources fired successfully vs failed
 Be direct, intelligence-grade. Include BT confidence inline.`;
 
     console.log('NOMAD v8.0: Starting Final Synthesis Pass...');
