@@ -698,12 +698,36 @@ const NomadView = () => {
                           ) : msg.role === "assistant" ? (<>
                             <div className="prose prose-invert prose-sm max-w-none font-extralight [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-foreground/90 [&_h1]:text-base [&_h1]:font-light [&_h2]:text-sm [&_h2]:font-light [&_h3]:text-sm [&_h3]:font-light [&_li]:text-sm [&_code]:bg-secondary/50 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-lg [&_pre]:bg-secondary/30 [&_pre]:rounded-2xl [&_pre]:p-4 [&_strong]:text-foreground [&_a]:text-accent">
                               {(() => {
-                                const parts = msg.content.split(/(```mermaid[\s\S]*?```)/g);
-                                return parts.map((part, idx) => {
-                                  const mermaidMatch = part.match(/```mermaid\s*([\s\S]*?)```/);
-                                  if (mermaidMatch) return <MermaidDigraph key={idx} code={mermaidMatch[1]} />;
-                                  if (part.trim()) return <ReactMarkdown key={idx}>{part}</ReactMarkdown>;
-                                  return null;
+                                // Match fenced mermaid blocks OR unfenced graph TD/LR blocks
+                                const fencedPattern = /(```mermaid[\s\S]*?```)/g;
+                                const unfencedPattern = /((?:^|\n)(graph\s+(?:TD|LR|TB|BT|RL)\s*\n(?:[\t ]+\S[^\n]*\n?)+))/gm;
+                                
+                                // First split on fenced mermaid
+                                let parts = msg.content.split(fencedPattern);
+                                
+                                // Then process each non-mermaid part for unfenced graph blocks
+                                const finalParts: { type: 'text' | 'mermaid'; content: string }[] = [];
+                                for (const part of parts) {
+                                  const fencedMatch = part.match(/```mermaid\s*([\s\S]*?)```/);
+                                  if (fencedMatch) {
+                                    finalParts.push({ type: 'mermaid', content: fencedMatch[1] });
+                                    continue;
+                                  }
+                                  // Check for unfenced graph blocks
+                                  const subParts = part.split(unfencedPattern);
+                                  for (const sub of subParts) {
+                                    const graphMatch = sub.match(/^(graph\s+(?:TD|LR|TB|BT|RL)\s*\n(?:[\t ]+\S[^\n]*\n?)+)/m);
+                                    if (graphMatch) {
+                                      finalParts.push({ type: 'mermaid', content: graphMatch[1] });
+                                    } else if (sub.trim()) {
+                                      finalParts.push({ type: 'text', content: sub });
+                                    }
+                                  }
+                                }
+                                
+                                return finalParts.map((part, idx) => {
+                                  if (part.type === 'mermaid') return <MermaidDigraph key={idx} code={part.content} />;
+                                  return <ReactMarkdown key={idx}>{part.content}</ReactMarkdown>;
                                 });
                               })()}
                             </div>
