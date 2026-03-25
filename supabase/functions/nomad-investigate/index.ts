@@ -20,6 +20,22 @@ interface IntelNode {
   confidence: number;
   entities: ExtractedEntity[];
   images?: CollectedImage[];
+  firstSeen?: string;
+  lastSeen?: string;
+  frequency?: number;
+}
+
+interface OCEANProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  deceptionIndicators: string[];
+  predictedActions: string[];
+  postingHeatmap: Record<string, number>;
+  functionWordRatio: number;
+  burstinessScore: number;
 }
 
 interface CollectedImage {
