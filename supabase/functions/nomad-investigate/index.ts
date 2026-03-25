@@ -1747,50 +1747,72 @@ function generateSectorDorks(targetName: string, location?: string): { sector: s
   ];
 }
 
-// ── Recursive PII Spider (MONAD: When phones/emails found, chase them) ──────
+// ── Depth-3 Recursive PII Spider (Gap 3: Enhanced) ──────────────────────────
 
-async function recursivePIISpider(entities: ExtractedEntity[]): Promise<IntelNode[]> {
-  const phones = entities.filter(e => e.type === 'phone').slice(0, 2);
-  const emails = entities.filter(e => e.type === 'email').slice(0, 2);
-  const targets = [...phones.map(e => e.value), ...emails.map(e => e.value)];
+async function searchSingleEntity(target: string): Promise<IntelNode> {
+  try {
+    const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${target}"`)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+    });
+    if (!resp.ok) return emptyNode('PII Spider', 2);
+    const html = await resp.text();
+    const results: string[] = [];
+    const blocks = html.split(/class="result\s/);
+    for (let i = 1; i < blocks.length && results.length < 3; i++) {
+      const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
+      const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
+      const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
+      if (title) results.push(`- ${title}: ${snippet}`);
+    }
+    if (!results.length) return emptyNode('PII Spider', 2);
+    const data = `PII Spider Trace [${target}]:\n${results.join('\n')}`;
+    return {
+      source: `Recursive PII Spider (${target})`,
+      tier: 2 as const,
+      data,
+      provenanceHash: await computeProvenanceHash('pii-spider', data),
+      timestamp: new Date().toISOString(),
+      confidence: 0.88,
+      entities: extractEntitiesFromText(data, 'PII Spider'),
+    };
+  } catch { return emptyNode('PII Spider', 2); }
+}
+
+async function recursivePIISpider(entities: ExtractedEntity[], depth = 0, visited = new Set<string>()): Promise<IntelNode[]> {
+  if (depth >= 3 || entities.length === 0) return [];
+  
+  const piiTypes = ['phone', 'email', 'handle'];
+  const targets = entities
+    .filter(e => piiTypes.includes(e.type))
+    .map(e => e.value)
+    .filter(v => !visited.has(v.toLowerCase()))
+    .slice(0, depth === 0 ? 4 : 2); // More aggressive at depth 0
   
   if (targets.length === 0) return [];
   
-  const tasks: Promise<IntelNode>[] = targets.map(async (target) => {
-    try {
-      const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(`"${target}"`)}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
-      });
-      if (!resp.ok) return emptyNode('Recursive PII Spider', 2);
-      const html = await resp.text();
-      const results: string[] = [];
-      const blocks = html.split(/class="result\s/);
-      for (let i = 1; i < blocks.length && results.length < 3; i++) {
-        const titleMatch = blocks[i].match(/class="result__a"[^>]*>([\s\S]*?)<\/a>/);
-        const snippetMatch = blocks[i].match(/class="result__snippet"[^>]*>([\s\S]*?)<\/a>/);
-        const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, '').trim() : '';
-        const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : '';
-        if (title) results.push(`- ${title}: ${snippet}`);
-      }
-      if (!results.length) return emptyNode('Recursive PII Spider', 2);
-      const data = `PII Spider Trace [${target}]:\n${results.join('\n')}`;
-      return {
-        source: `Recursive PII Spider (${target})`,
-        tier: 2 as const,
-        data,
-        provenanceHash: await computeProvenanceHash('pii-spider', data),
-        timestamp: new Date().toISOString(),
-        confidence: 0.88,
-        entities: extractEntitiesFromText(data, 'PII Spider'),
-      };
-    } catch { return emptyNode('Recursive PII Spider', 2); }
-  });
+  // Mark as visited
+  targets.forEach(t => visited.add(t.toLowerCase()));
   
-  const results = await Promise.allSettled(tasks);
-  return results
+  // Search all targets at this depth in parallel
+  const results = await Promise.allSettled(targets.map(t => searchSingleEntity(t)));
+  const nodes = results
     .filter((r): r is PromiseFulfilledResult<IntelNode> => r.status === 'fulfilled')
     .map(r => r.value)
     .filter(n => n.data);
+  
+  // Extract new entities from this depth's results
+  const newEntities: ExtractedEntity[] = [];
+  for (const node of nodes) {
+    newEntities.push(...node.entities.filter(e => 
+      piiTypes.includes(e.type) && !visited.has(e.value.toLowerCase())
+    ));
+  }
+  
+  // Recurse deeper with newly discovered entities
+  const deeperNodes = await recursivePIISpider(newEntities, depth + 1, visited);
+  
+  return [...nodes, ...deeperNodes];
 }
 
 // ── Behavioral Profiling Engine (MONAD: keyword-based trait detection) ───────
