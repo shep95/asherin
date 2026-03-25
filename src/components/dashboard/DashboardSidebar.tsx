@@ -90,7 +90,7 @@ const navGroups: NavGroup[] = [
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
       { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },
-      { id: "vibe-video" as DashboardView, icon: Sparkles, label: "Vibe Video", access: "pro" },
+      // { id: "vibe-video" as DashboardView, icon: Sparkles, label: "Vibe Video", access: "pro" },
       { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
       { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
       { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
