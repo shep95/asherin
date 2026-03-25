@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import {
   Send, Loader2, Crosshair, Globe, Building2, User, AtSign,
-  Fingerprint, MapPin, Phone, Image, Shield, Sparkles,
+  Fingerprint, MapPin, Phone, Image, Shield, Sparkles, StickyNote, FileText,
   History, X, Download, Clock, Check, WifiOff, GitBranch, Copy,
   Brain, TrendingUp, Network, ShieldCheck,
   Layers, Map, BarChart3, MessageSquare, Search, Eye, Video,
@@ -14,6 +14,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import MessageDiagramPanel from "./MessageDiagramPanel";
 import MermaidDigraph from "./MermaidDigraph";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
+import NomadFollowUps from "./nomad/NomadFollowUps";
+import NomadSelectionMenu from "./nomad/NomadSelectionMenu";
+import FloatingNotepad from "./FloatingNotepad";
 
 const NomadObjectExplorer = lazy(() => import("./nomad/NomadObjectExplorer"));
 const NomadTimeline = lazy(() => import("./nomad/NomadTimeline"));
@@ -137,8 +140,10 @@ const NomadView = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<NomadTab>("chat");
   const [expandedImages, setExpandedImages] = useState<string | null>(null);
+  const [notepadOpen, setNotepadOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const chatContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -346,6 +351,61 @@ const NomadView = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportFullDossier = useCallback(() => {
+    if (messages.length === 0) return;
+    const header = `# NOMAD Intelligence Dossier\n**Date:** ${new Date().toISOString()}\n**Entities Found:** ${allEntities.length}\n\n---\n\n`;
+    const entitiesSection = allEntities.length > 0
+      ? `## Extracted Entities\n\n| Type | Value | Confidence |\n|------|-------|------------|\n${allEntities.map(e => `| ${e.type} | ${e.value} | ${(e.confidence * 100).toFixed(0)}% |`).join("\n")}\n\n---\n\n`
+      : "";
+    const findings = messages
+      .filter(m => m.role === "assistant" && m.content)
+      .map((m, i) => {
+        const userMsg = messages.slice(0, messages.indexOf(m)).reverse().find(u => u.role === "user");
+        return `## Investigation ${i + 1}\n**Query:** ${userMsg?.content || "N/A"}\n**Time:** ${m.timestamp.toLocaleString()}\n\n${m.content}`;
+      })
+      .join("\n\n---\n\n");
+    const content = header + entitiesSection + `## Investigation Findings\n\n` + findings;
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nomad-dossier-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Dossier exported", description: `${messages.filter(m => m.role === "assistant").length} findings, ${allEntities.length} entities` });
+  }, [messages, allEntities, toast]);
+
+  const handleSelectionAction = useCallback((action: string, text: string) => {
+    switch (action) {
+      case "investigate":
+        setInput(`Investigate: ${text}`);
+        inputRef.current?.focus();
+        break;
+      case "profile":
+        setInput(`Build a complete profile on: ${text}`);
+        inputRef.current?.focus();
+        break;
+      case "search-web":
+        setInput(`Search all OSINT sources for: ${text}`);
+        inputRef.current?.focus();
+        break;
+      case "add-case":
+        toast({ title: "Added to case file", description: `"${text.slice(0, 50)}…" saved` });
+        break;
+      case "copy":
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copied" });
+        break;
+    }
+  }, [toast]);
+
+  const handleFollowUp = useCallback((suggestion: string) => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
+    const context = lastAssistant ? ` (based on previous findings)` : "";
+    setInput(suggestion + context);
+    inputRef.current?.focus();
+  }, [messages]);
+
   // Entity count badge for tabs
   const entityCount = allEntities.length;
 
@@ -363,8 +423,26 @@ const NomadView = () => {
               <p className="text-[10px] font-extralight tracking-wider text-muted-foreground">Gotham-Grade Intelligence Platform</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
+            {messages.length > 0 && (
+              <button
+                onClick={exportFullDossier}
+                className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <FileText className="h-3 w-3" />
+                Export Dossier
+              </button>
+            )}
+            <button
+              onClick={() => setNotepadOpen(!notepadOpen)}
+              className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-extralight tracking-wider transition-colors ${
+                notepadOpen ? "border-accent/30 bg-accent/10 text-accent" : "border-border/20 bg-card/30 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <StickyNote className="h-3 w-3" />
+              Notepad
+            </button>
             <button
               onClick={loadHistory}
               className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
@@ -439,7 +517,8 @@ const NomadView = () => {
         {activeTab === "chat" ? (
           <>
             <ScrollArea className="flex-1">
-              <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+              <div ref={chatContentRef} className="relative max-w-3xl mx-auto px-4 py-6 space-y-6">
+                <NomadSelectionMenu containerRef={chatContentRef} onAction={handleSelectionAction} />
                 {messages.length === 0 ? (
                   <div className="space-y-8 pt-12">
                     <div className="text-center space-y-4">
@@ -625,6 +704,14 @@ const NomadView = () => {
                     </div>
                   ))
                 )}
+                {/* Follow-up suggestions after last assistant message */}
+                {messages.length > 0 && !isLoading && messages[messages.length - 1]?.role === "assistant" && messages[messages.length - 1]?.content && (
+                  <NomadFollowUps
+                    lastContent={messages[messages.length - 1].content}
+                    investigationType={messages.find(m => m.role === "user" && m.investigationType)?.investigationType}
+                    onSelect={handleFollowUp}
+                  />
+                )}
                 <div ref={bottomRef} />
               </div>
             </ScrollArea>
@@ -713,6 +800,11 @@ const NomadView = () => {
           </Suspense>
         )}
       </div>
+      <FloatingNotepad
+        open={notepadOpen}
+        onClose={() => setNotepadOpen(false)}
+        conversationId={`nomad-session-${user?.id || "anon"}`}
+      />
     </div>
   );
 };
