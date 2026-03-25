@@ -842,7 +842,7 @@ const NomadView = () => {
                 {attachedFiles.length > 0 && (
                   <div className="flex items-center gap-1.5 mb-2">
                     {attachedFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-1 rounded-lg bg-accent/10 border border-accent/20 px-2 py-1 text-[9px] font-extralight text-accent">
+                      <div key={i} className="flex items-center gap-1 rounded-lg bg-foreground/[0.06] border border-foreground/[0.08] px-2 py-1 text-[9px] font-extralight text-foreground/70">
                         <Image className="h-3 w-3" />
                         <span className="truncate max-w-[80px]">{f.name}</span>
                         <button onClick={() => setAttachedFiles(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-destructive transition-colors">
