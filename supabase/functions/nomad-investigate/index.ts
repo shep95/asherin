@@ -2990,106 +2990,106 @@ ${intelSections || 'No intelligence data.'}`;
       const truncatedText = allText.slice(0, 12000); // Keep within context limits
       
       const [p2, p3, p4, p5, p6] = await Promise.allSettled([
-        // PASS 2: LINGUISTIC FINGERPRINT ENGINE
-        aiPass(GEMINI_API_KEY, 'You are a forensic psycholinguist. Analyze text samples with scientific precision. Output structured metrics only.', `You are a forensic psycholinguist. Analyze ALL text samples collected from this target across sources.
+        // PASS 2: COMMUNICATION PATTERN ANALYSIS (Linguistic Assessment)
+        aiPass(GEMINI_API_KEY, 'You are a research linguist specializing in communication pattern assessment and text analysis. Output structured metrics only.', `You are a communication pattern analyst. Analyze ALL text samples collected from this subject across sources.
 
-LINGUISTIC FINGERPRINT ANALYSIS:
+COMMUNICATION PATTERN ANALYSIS:
 
-1. FUNCTION WORD RATIO — Count the 20 most common function words (the, of, and, to, a, in, that, is, it, for, on, with, as, at, this, by, from, or, an, but). Normal English: 'the' ~7%, 'of' ~3.5%. Flag >2x or <0.5x expected. 'I' underuse = deception/distancing. 'We' overuse = authority-claiming.
+1. FUNCTION WORD RATIO — Count the 20 most common function words (the, of, and, to, a, in, that, is, it, for, on, with, as, at, this, by, from, or, an, but). Normal English: 'the' ~7%, 'of' ~3.5%. Flag >2x or <0.5x expected. First-person underuse = distancing from specific topics. 'We' overuse = authority-claiming or co-dependent identity.
 
-2. TYPE-TOKEN RATIO — Count unique words vs total words. TTR > 0.72 = high intelligence. TTR < 0.45 = stress/deception. Does TTR drop >30% between professional and personal writing? = ghostwritten persona.
+2. TYPE-TOKEN RATIO (VOCABULARY RICHNESS) — Count unique words vs total words. TTR > 0.72 = High intelligence, deliberate communication. TTR < 0.45 = Stress or limited scope. Does TTR drop >30% between professional and personal writing? = possible ghostwriting of professional content.
 
-3. SENTENCE LENGTH VARIANCE — Mean and SD of sentence lengths. High SD (>15) = natural. Low SD (<5) = templated/PR. Short→long clusters = emotional arousal.
+3. SENTENCE LENGTH VARIANCE — Mean and SD of sentence lengths. High SD (>15) = natural human variation. Low SD (<5) = templated/managed communication. Short→long clusters = emotional arousal moments.
 
-4. HAPAX LEGOMENA — Words appearing only once. These are linguistic fingerprints. Note neologisms, recurring metaphors.
+4. HAPAX LEGOMENA (PRIVATE VOCABULARY) — Words appearing only once. These are linguistic fingerprints — specific phrases, neologisms, recurring metaphors. Cross-reference against other unattributed content.
 
-5. TENSE FORENSICS — Past tense for history = truth retrieval. Present tense for biography = construction/fabrication. Flag biographical claims in present tense.
+5. TENSE CONSISTENCY IN BIOGRAPHICAL STATEMENTS — Past tense for history = memory retrieval (consistent with truth). Present tense for biography = construction. Flag specific statements showing tense inconsistency.
 
-6. PRONOUN DROP DETECTION — FBI SCAN protocol: sentences where 'I' is dropped. Rate >15% = distancing from events. Map WHICH events.
+6. PRONOUN PATTERN DETECTION — Count sentences where first-person is dropped as subject. Rate >15% = active distancing from specific events. Map WHICH events correlate with drops.
 
-7. BRIDGE PHRASE DETECTION — Flag: 'after that', 'later on', 'the next thing', 'moving on', 'eventually'. Map where skips occur — that's where real events are.
+7. BRIDGE PHRASE DETECTION — Flag: 'after that', 'later on', 'the next thing', 'moving on', 'eventually'. These skip over time. Map where the skips occur in their public narrative. That is where significant events are.
 
-Output: LINGUISTIC FINGERPRINT CARD with all 7 metrics, anomalies, and DECEPTION RISK MAP.
+Output: COMMUNICATION FINGERPRINT CARD with all 7 metrics scored, anomalies highlighted, and a CONSISTENCY RISK MAP showing which time periods and topics trigger the most linguistic variation.
 
 TEXT SAMPLES:
 ${truncatedText}`, 'gemini-2.5-flash', 3000, 0.1),
 
-        // PASS 3: SOCIAL AVATAR ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a behavioral psychologist specializing in digital identity analysis. Output structured assessments only.', `Analyze the social media presence and public persona collected for this target.
+        // PASS 3: SOCIAL PRESENCE ANALYSIS
+        aiPass(GEMINI_API_KEY, 'You are a behavioral researcher specializing in digital presence analysis and public persona assessment. Output structured assessments only.', `Analyze the social media presence and public persona collected for this subject.
 
-AVATAR PSYCHOLOGY ANALYSIS:
+SOCIAL PRESENCE ANALYSIS:
 
-1. POSTING FREQUENCY PATTERN — >5 posts/day = validation-seeking. 1-2/week = controlled. Gaps >30 days = life event. Surges after silence = comeback narrative.
+1. POSTING FREQUENCY PATTERN — Calculate average posts per week. >5/day = high engagement dependency. 1-2/week = deliberate, controlled. Gaps >30 days = significant life event. Surges after silence = narrative reconstruction. Map ALL gaps and surges to known events.
 
-2. CONTENT THEME ANALYSIS — What % is: professional achievement / personal / political / humor / complaints / inspirational? Heavy achievement (>60%) = status insecurity. Zero personal = compartmentalization. Complaint-heavy = external locus of control.
+2. CONTENT THEME ANALYSIS — What % is: professional achievement / personal / political / humor / complaints / inspirational? Heavy achievement (>60%) = status-focused identity. Zero personal = compartmentalization. Complaint-heavy = external locus of control. Inspirational-heavy = often projection.
 
-3. ENGAGEMENT PATTERN — Do they respond to criticism? Ignoring ALL = narcissism/PR. Aggressive response = fragile ego. Selective praise-only = validation loop.
+3. ENGAGEMENT PATTERN ANALYSIS — Do they respond to comments? To criticism? Ignoring ALL criticism = managed account or high narcissism. Aggressive response = low frustration tolerance. Selective praise-only = validation loop.
 
-4. NETWORK COMPOSITION — Broadcast ratio (followers:following). >100:1 = status-focused. Who are the 5 most-engaged accounts? = real social circle.
+4. NETWORK COMPOSITION — Follow vs follower ratio. >100:1 = broadcast/status personality. Who are the 5 most-engaged accounts? These are their real social circle.
 
-5. DARK TRIAD SIGNAL SCAN — Love-bombing → silence/conflict. Triangulation ('Unlike X, I...'). Word salad under pressure. Breadcrumbing dormant connections.
+5. BEHAVIORAL SIGNAL SCAN — Rapid intense praise of individuals followed by silence/conflict (escalation→disengagement). Strategic mentions of competitors for relative positioning. Long circular deflective responses to direct questions. Sporadic low-investment check-ins with dormant contacts.
 
-Output: Dark Triad Risk Score (0-10), Attachment Style, Validation Dependency Score, top 3 behavioral predictions.
+Output: Behavioral Risk Score (0-10), Attachment Style inference, Validation Dependency Score, top 3 behavioral predictions.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
         // PASS 4: RELATIONSHIP VELOCITY ANALYSIS
-        aiPass(GEMINI_API_KEY, 'You are a forensic network analyst specializing in relationship dynamics and temporal intelligence. Output structured analysis only.', `Using ALL temporal data points (dated posts, filings, mentions, co-appearances), analyze VELOCITY of this target's key relationships.
+        aiPass(GEMINI_API_KEY, 'You are a research analyst specializing in professional relationship dynamics and temporal network analysis. Output structured analysis only.', `Using ALL temporal data points (dated posts, filings, mentions, co-appearances), analyze the VELOCITY of this subject's key relationships.
 
 RELATIONSHIP VELOCITY PROTOCOL:
 
-1. FORMATION SPEED — First mention → formal arrangement <90 days = opportunistic/preexisting covert. >2 years = genuine trust-building.
+1. FORMATION SPEED — First public mention → formal arrangement. <90 days = opportunistic, transactional, or pre-existing relationship made public. >2 years = organic trust-building, likely genuine.
 
-2. TERMINATION PATTERNS — Mutual announcements = amicable. Sudden disappearance = conflict/NDA. One-sided silence = severed. Repeating pattern = behavioral signature.
+2. TERMINATION PATTERNS — How do professional relationships END? Mutual announcements = amicable. Sudden disappearance from mentions = conflict or legal restriction. One-sided silence = the silent party severed. Repeating pattern = behavioral signature (they are the constant variable).
 
-3. REPLACEMENT CYCLES — After key relationship ends, how quickly does replacement appear? <30 days = premeditated exit. >1 year = genuinely important. Exact role replacement = transactional.
+3. REPLACEMENT CYCLES — After key relationship ends, how quickly does equivalent replacement appear? <30 days = replacement was lined up (premeditated exit). >1 year = genuinely important. Exact role replacement = transactional (needed the ROLE not the PERSON).
 
-4. CLUSTER MIGRATION — Has network shifted (tech→finance, etc.)? Cross-reference: legal events before migration?
+4. CLUSTER MIGRATION — Has social/professional network shifted significantly? (tech→finance, etc.) Cross-reference: any legal, regulatory, or public events immediately before migration?
 
-5. DORMANT REACTIVATION — Connections silent >1 year then reactivated. Timing relative to: funding, legal, announcements. Almost always indicates specific operational need.
+5. DORMANT REACTIVATION — Connection silent >1 year then reactivated. Timing relative to: funding rounds, legal filings, announcements. Reactivated dormant connections almost always indicate specific operational need.
 
-Output: RELATIONSHIP VELOCITY MAP with formation speeds, termination patterns, cluster migration, BEHAVIORAL SIGNATURE.
+Output: RELATIONSHIP VELOCITY MAP with formation speeds, termination patterns, cluster migration timeline, and BEHAVIORAL SIGNATURE.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
         // PASS 5: SELF-NARRATIVE CONSISTENCY AUDIT
-        aiPass(GEMINI_API_KEY, 'You are a statement analysis expert trained in FBI SCAN (Scientific Content Analysis) protocol. Output structured forensic analysis only.', `Collect ALL self-authored biographical statements about this target from the intelligence corpus.
+        aiPass(GEMINI_API_KEY, 'You are a statement analysis expert specializing in biographical verification and narrative consistency assessment. Output structured forensic analysis only.', `Collect ALL self-authored biographical statements about this subject from the intelligence corpus.
 
 NARRATIVE CONSISTENCY AUDIT:
 
-1. TIMELINE TRIANGULATION — Build self-stated timeline from all sources. Where do timelines CONTRADICT? Where are GAPS never addressed? Where does narrative OVER-EXPLAIN? (Defensive elaboration = hiding something)
+1. TIMELINE TRIANGULATION — Build self-stated timeline from all sources. Where do timelines CONTRADICT? (Different dates for same event across sources.) Where are GAPS never addressed? Where does narrative OVER-EXPLAIN one period with unusual detail? (Defensive elaboration = something happened there requiring preemptive explanation.)
 
-2. CREDENTIAL VERIFICATION FLAGS — List every credential claimed. Flag: appears in only one source / changed description / cannot cross-reference.
+2. CREDENTIAL VERIFICATION FLAGS — List every credential, degree, award, title claimed. Flag any that: appears in only one source / changed description across sources / cannot be cross-referenced against institutional records.
 
-3. ACHIEVEMENT CLAIM ANALYSIS — List achievements. Do OTHER people corroborate? Solo-claimed with no corroboration = inflated.
+3. ACHIEVEMENT CLAIM ANALYSIS — List achievements claimed. Cross-reference: Do OTHER people from the same organization corroborate? Solo-claimed with no corroboration = inflated self-presentation.
 
-4. VICTIMHOOD NARRATIVE DETECTION — Recurring themes of being wronged? One instance = possibly true. Pattern = they are the constant variable.
+4. RECURRING GRIEVANCE DETECTION — Does the self-narrative contain recurring themes of being wronged by previous employers / investors / partners? One instance = possibly true. Repeating pattern = they are the constant variable.
 
-5. PRONOUN OWNERSHIP MAPPING — 'I' for successes + 'they/we/market' for failures = deceptive self-presentation.
+5. PRONOUN OWNERSHIP MAPPING — In quotes about successes: 'I' (ownership) or 'we' (deflection)? In quotes about failures: 'we' (diffused blame) or 'they' (externalized)? Pattern of 'I' for wins + 'they/market/team' for losses = self-serving presentation.
 
-Output: NARRATIVE INTEGRITY SCORE (0-100), contradictions with sources, unverifiable claims, SELF-PRESENTATION ARCHETYPE (Genuine Builder / Status Inflator / Victim Narcissist / Deliberate Obscurantist).
+Output: NARRATIVE INTEGRITY SCORE (0-100), contradictions with sources, unverifiable claims, SELF-PRESENTATION ARCHETYPE (Genuine Builder / Status Inflator / Grievance Pattern / Deliberate Obscurantist).
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
 
         // PASS 6: CROSS-PLATFORM IDENTITY CONTINUITY
-        aiPass(GEMINI_API_KEY, 'You are a digital forensics expert specializing in cross-platform identity resolution and stylometric analysis. Output structured findings only.', `Given all text samples from different platform accounts attributed to or potentially linked to this target:
+        aiPass(GEMINI_API_KEY, 'You are a digital research analyst specializing in cross-platform identity resolution and stylometric analysis. Output structured findings only.', `Given all text samples from different platform accounts attributed to or potentially linked to this subject:
 
 IDENTITY CONTINUITY ANALYSIS:
 
-1. STYLOMETRIC CONSISTENCY — Compare function word ratios, sentence length, punctuation habits (Oxford comma? Em-dash? Ellipsis?), capitalization style across platforms. Same writer? Confidence %?
+1. STYLOMETRIC CONSISTENCY TEST — Compare function word ratios, sentence length, punctuation habits (Oxford comma? Em-dash vs parentheses? Ellipsis frequency?), capitalization style across platforms. Same writer? Confidence %?
 
-2. VOCABULARY OVERLAP — Extract 50 most distinctive words from each platform. Overlap >40% = same author. <15% = different author OR sophisticated OPSEC.
+2. VOCABULARY OVERLAP ANALYSIS — Extract 50 most distinctive words from each platform. Overlap >40% = same author. <15% = different author OR deliberate style-switching.
 
-3. TOPIC CONSISTENCY — Recurring subjects across ALL platforms = genuine obsessions. LinkedIn persona vs Reddit reality = the costume vs the person.
+3. TOPIC CONSISTENCY FINGERPRINT — Recurring subjects across ALL platforms = genuine interests/expertise. Professional persona vs informal platform topics divergence = the informal content reveals the real person.
 
-4. SOCK PUPPET DETECTION — Multiple accounts with: zero history / created same window / only interact with target's content / unusually formal? = astroturf.
+4. COORDINATED ACCOUNT DETECTION — Multiple accounts with: zero follower history / created within same 30-day window / only interact with subject's content / unusually formal for platform? = managed/astroturf accounts. Map as [SUBJECT → CONTROLS → ACCOUNT].
 
-5. TEMPORAL POSTING OVERLAP — Identical time-of-day posting patterns across accounts = same operator.
+5. TEMPORAL POSTING OVERLAP — Do multiple accounts post at identical times of day? Time-of-day signature is one of the hardest behaviors to fake consistently. Identical circadian patterns = same operator.
 
-Output: IDENTITY CONTINUITY SCORE (0-100), confirmed links, suspected sock puppets, REAL PERSONALITY vs CURATED PERSONA.
+Output: IDENTITY CONTINUITY SCORE (0-100), confirmed cross-platform links, suspected managed accounts, AUTHENTIC PERSONALITY SIGNATURE vs CURATED PERSONA.
 
 INTELLIGENCE DATA:
 ${truncatedText}`, 'gemini-2.5-flash', 2500, 0.15),
