@@ -236,6 +236,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
 
         {/* Brain selector dropdown */}
         <div className="relative ml-auto flex items-center gap-1">
+          <IdeModelSelector />
           {activeFileName && (
             <span className="text-[8px] font-light text-accent/50 bg-accent/10 rounded-full px-1.5 py-0.5 truncate max-w-[80px]">
               {activeFileName}
