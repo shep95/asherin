@@ -2434,19 +2434,25 @@ STAGE 4 — CALIBRATE (Bradley-Terry):
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP');
     if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_APP not configured');
 
+    const behavioralSection = behavioralTraits.length > 0
+      ? `\n\nBEHAVIORAL PROFILE (MONAD Engine):\n${behavioralTraits.map(t => `- ${t}`).join('\n')}`
+      : '';
+
     const prompt = `
 USER QUERY: "${lastUserMessage}"
 
 ${provenanceReport}
 ${entitySummary}
+${behavioralSection}
 
 ${esrcReport}
 
 GATHERED INTELLIGENCE DATA (Cryptographically Attested):
 ${intelSections || 'No intelligence gathered from available sources.'}
+${publicRecordLinks}
 
 INSTRUCTIONS:
-Produce a NOMAD v3.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then a 2-paragraph intelligence summary. Be concise and direct — no tables, no headers, no filler. Include Bradley-Terry confidence and provenance data inline.`;
+Produce a NOMAD v5.0 response following the mandatory output format: a mermaid digraph showing entity relationships, then the intelligence dossier with BLUF, Confirmed Intelligence, Behavioral Profile, and Methodology sections. Be concise and direct — no tables, no filler. Include Bradley-Terry confidence and provenance data inline. Reference the MONAD sector dorks and PII Spider results where relevant.`;
 
     // Build conversation history for memory continuity
     const conversationHistory: { role: string; parts: { text: string }[] }[] = [
