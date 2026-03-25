@@ -150,7 +150,7 @@ const NomadSourceIntel = ({ investigations }: NomadSourceIntelProps) => {
                   </div>
                   <input value={newBias} onChange={e => setNewBias(e.target.value)} placeholder="Bias vector (e.g. left-center, corporate)" className="w-full bg-transparent text-[11px] text-foreground outline-none border-b border-border/20 pb-1" />
                   <div className="flex gap-2">
-                    <button onClick={addSource} className="text-[10px] text-accent">Save</button>
+                    <button onClick={addSource} className="text-[10px] text-foreground">Save</button>
                     <button onClick={() => setAddingSource(false)} className="text-[10px] text-muted-foreground/40">Cancel</button>
                   </div>
                 </div>

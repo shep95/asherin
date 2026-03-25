@@ -223,8 +223,8 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
           </div>
           {geocoding && (
             <div className="flex items-center gap-1.5 rounded-xl bg-foreground/[0.06] border border-border/25 px-3 py-2 backdrop-blur-sm">
-              <Loader2 className="h-3 w-3 text-accent animate-spin" />
-              <span className="text-[10px] font-extralight text-accent">Geocoding…</span>
+              <Loader2 className="h-3 w-3 text-foreground animate-spin" />
+              <span className="text-[10px] font-extralight text-foreground">Geocoding…</span>
             </div>
           )}
         </div>
@@ -253,7 +253,7 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
               return (
                 <line key={`conn-${i}-${j}`}
                   x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                  stroke="hsl(var(--accent) / 0.15)" strokeWidth={0.5}
+                  stroke="hsl(var(--foreground) / 0.1)" strokeWidth={0.5}
                   strokeDasharray="4 4"
                 />
               );
@@ -268,11 +268,11 @@ const NomadMapLayer = ({ entities, investigations }: NomadMapLayerProps) => {
 
             return (
               <g key={idx} onClick={() => setSelectedPin(isSelected ? null : pin)} style={{ cursor: "pointer" }}>
-                <circle cx={x} cy={y} r={pulseRadius} fill="hsl(var(--accent))" opacity={0.08}>
+                <circle cx={x} cy={y} r={pulseRadius} fill="hsl(var(--foreground))" opacity={0.08}>
                   <animate attributeName="r" values={`${pulseRadius};${pulseRadius + 10};${pulseRadius}`} dur="3s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.08;0.02;0.08" dur="3s" repeatCount="indefinite" />
                 </circle>
-                <circle cx={x} cy={y} r={isSelected ? 6 : 4} fill="hsl(var(--accent))" opacity={0.8} stroke="hsl(var(--accent))" strokeWidth={isSelected ? 2 : 0} />
+                <circle cx={x} cy={y} r={isSelected ? 6 : 4} fill="hsl(var(--foreground))" opacity={0.8} stroke="hsl(var(--foreground))" strokeWidth={isSelected ? 2 : 0} />
                 <text x={x} y={y - 10} textAnchor="middle" fontSize={isSelected ? 10 : 8} fill="hsl(var(--foreground))" opacity={0.7} fontWeight={isSelected ? 400 : 200}>
                   {pin.value.length > 20 ? pin.value.slice(0, 17) + "…" : pin.value}
                 </text>

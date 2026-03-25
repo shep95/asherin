@@ -52,7 +52,7 @@ const NomadFileUpload = ({ onFilesSelected, disabled }: NomadFileUploadProps) =>
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`transition-colors ${dragOver ? "border-accent/50 bg-foreground/[0.03]" : ""}`}
+        className={`transition-colors ${dragOver ? "border-foreground/25 bg-foreground/[0.03]" : ""}`}
       >
         <input
           ref={inputRef}
@@ -78,7 +78,7 @@ const NomadFileUpload = ({ onFilesSelected, disabled }: NomadFileUploadProps) =>
           {files.map((f, i) => {
             const Icon = getIcon(f.type);
             return (
-              <div key={i} className="flex items-center gap-1 rounded-lg bg-foreground/[0.06] border border-border/25 px-2 py-1 text-[9px] font-extralight text-accent">
+              <div key={i} className="flex items-center gap-1 rounded-lg bg-foreground/[0.06] border border-border/25 px-2 py-1 text-[9px] font-extralight text-foreground">
                 <Icon className="h-3 w-3" />
                 <span className="truncate max-w-[80px]">{f.name}</span>
                 <button onClick={() => removeFile(i)} className="hover:text-destructive transition-colors">

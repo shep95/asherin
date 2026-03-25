@@ -187,7 +187,7 @@ const NomadAdversaryView = ({ entities, investigations }: NomadAdversaryViewProp
             placeholder={mode === "adversary" ? "Ask: what would they do next?" : mode === "redteam" ? "Challenge a finding..." : "Audit a specific claim..."}
             className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none rounded-xl border border-border/20 px-4 py-2.5"
           />
-          <button onClick={() => sendMessage()} disabled={!input.trim() || loading} className="p-2.5 rounded-xl bg-foreground/[0.1] text-accent hover:bg-accent/30 transition-colors disabled:opacity-30">
+          <button onClick={() => sendMessage()} disabled={!input.trim() || loading} className="p-2.5 rounded-xl bg-foreground/[0.1] text-foreground hover:bg-foreground/[0.12] transition-colors disabled:opacity-30">
             <Send className="h-4 w-4" />
           </button>
         </div>

@@ -117,7 +117,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
     <div className="flex flex-col h-full max-w-3xl mx-auto">
       <div className="flex-shrink-0 px-6 pt-6 pb-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
+          <Sparkles className="h-5 w-5 text-foreground" />
           <h2 className="text-lg font-extralight tracking-wide text-foreground">Quiver</h2>
         </div>
         <p className="text-xs font-extralight text-muted-foreground mt-1">Ask questions in plain language about your intelligence data.</p>
@@ -157,7 +157,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
               {msg.role === "assistant" && msg.content && (
                 <div className="flex gap-1 mt-2 pt-1 border-t border-border/10">
                   <button onClick={() => copyMsg(msg.id, msg.content)} className="p-1 text-muted-foreground/30 hover:text-foreground transition-colors">
-                    {copiedId === msg.id ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
+                    {copiedId === msg.id ? <Check className="h-3 w-3 text-foreground" /> : <Copy className="h-3 w-3" />}
                   </button>
                 </div>
               )}
@@ -168,7 +168,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
         {loading && (
           <div className="flex justify-start">
             <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-card/30 border border-border/15">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-foreground" />
               <span className="text-[11px] text-muted-foreground/50">Querying intelligence graph…</span>
             </div>
           </div>
@@ -186,7 +186,7 @@ const NomadQuiver = ({ entities, investigations }: NomadQuiverProps) => {
             rows={1}
             className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/40 outline-none resize-none"
           />
-          <button onClick={handleSend} disabled={!input.trim() || loading} className="p-2 rounded-xl bg-foreground/[0.06] text-accent hover:bg-foreground/[0.1] disabled:opacity-30 transition-all">
+          <button onClick={handleSend} disabled={!input.trim() || loading} className="p-2 rounded-xl bg-foreground/[0.06] text-foreground hover:bg-foreground/[0.1] disabled:opacity-30 transition-all">
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </button>
         </div>

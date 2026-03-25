@@ -255,7 +255,7 @@ Provide forensic analysis:
                   <p className="text-[11px] text-muted-foreground/40 font-light">Upload media files for metadata extraction, AI forensic analysis, and geolocation.</p>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="mt-4 px-4 py-2 rounded-xl border border-border/25 text-[10px] text-accent hover:bg-foreground/[0.06] transition-colors"
+                    className="mt-4 px-4 py-2 rounded-xl border border-border/25 text-[10px] text-foreground hover:bg-foreground/[0.06] transition-colors"
                   >
                     <Upload className="h-3 w-3 inline mr-1.5" />
                     Upload Files
@@ -292,8 +292,8 @@ Provide forensic analysis:
                     <p className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mb-1">AI Forensic Analysis</p>
                     {analyzing === a.id ? (
                       <div className="flex items-center gap-2 py-2">
-                        <Loader2 className="h-3 w-3 animate-spin text-accent" />
-                        <span className="text-[10px] text-accent animate-pulse">Analyzing…</span>
+                        <Loader2 className="h-3 w-3 animate-spin text-foreground" />
+                        <span className="text-[10px] text-foreground animate-pulse">Analyzing…</span>
                       </div>
                     ) : a.aiAnalysis ? (
                       <div className="text-[10px] text-foreground/60 font-light whitespace-pre-wrap leading-relaxed">
@@ -320,7 +320,7 @@ Provide forensic analysis:
 
               <div className="flex items-center gap-1 mb-6">
                 {IMAGE_TO_LOCATION_STEPS.map(s => (
-                  <button key={s.step} onClick={() => setActiveStep(s.step)} className={`flex-1 text-center py-2 rounded-lg text-[9px] transition-colors ${activeStep === s.step ? "bg-foreground/[0.08] text-accent border border-border/25" : activeStep > s.step ? "bg-emerald-500/10 text-emerald-400" : "text-muted-foreground/30 border border-border/15"}`}>
+                  <button key={s.step} onClick={() => setActiveStep(s.step)} className={`flex-1 text-center py-2 rounded-lg text-[9px] transition-colors ${activeStep === s.step ? "bg-foreground/[0.08] text-foreground border border-border/25" : activeStep > s.step ? "bg-emerald-500/10 text-emerald-400" : "text-muted-foreground/30 border border-border/15"}`}>
                     <span className="block font-mono text-[8px]">Step {s.step}</span>
                     <span className="block mt-0.5">{s.label}</span>
                   </button>
@@ -353,7 +353,7 @@ Provide forensic analysis:
                     ))}
                     <div className="flex gap-2">
                       <input value={newCandidate} onChange={e => setNewCandidate(e.target.value)} onKeyDown={e => e.key === "Enter" && addCandidate()} placeholder="Add candidate location" className="flex-1 bg-transparent text-xs text-foreground outline-none border-b border-border/20 pb-1" />
-                      <button onClick={addCandidate} className="text-[10px] text-accent">Add</button>
+                      <button onClick={addCandidate} className="text-[10px] text-foreground">Add</button>
                     </div>
                   </div>
                 )}
@@ -364,7 +364,7 @@ Provide forensic analysis:
 
                 <div className="flex justify-between mt-4">
                   <button onClick={() => setActiveStep(Math.max(1, activeStep - 1))} disabled={activeStep === 1} className="text-[10px] text-muted-foreground/40 hover:text-foreground disabled:opacity-30">← Previous</button>
-                  <button onClick={() => setActiveStep(Math.min(5, activeStep + 1))} disabled={activeStep === 5} className="text-[10px] text-accent hover:text-foreground/70 disabled:opacity-30">Next →</button>
+                  <button onClick={() => setActiveStep(Math.min(5, activeStep + 1))} disabled={activeStep === 5} className="text-[10px] text-foreground hover:text-foreground/70 disabled:opacity-30">Next →</button>
                 </div>
               </div>
             </div>

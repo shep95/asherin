@@ -146,7 +146,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
                   onClick={() => setSelectedType(type.id)}
                   className={`flex flex-col items-center gap-1.5 rounded-xl border p-2.5 text-center transition-all ${
                     selectedType === type.id
-                      ? "border-foreground/15 bg-foreground/[0.06] text-accent"
+                      ? "border-foreground/15 bg-foreground/[0.06] text-foreground"
                       : "border-border/15 bg-card/15 text-muted-foreground/60 hover:text-foreground hover:border-border/30"
                   }`}
                 >
@@ -235,7 +235,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
                   onClick={() => setPurpose(p.id)}
                   className={`rounded-full px-3 py-1 text-[9px] font-extralight transition-colors ${
                     purpose === p.id
-                      ? "bg-foreground/[0.08] border border-foreground/15 text-accent"
+                      ? "bg-foreground/[0.08] border border-foreground/15 text-foreground"
                       : "bg-card/15 border border-border/15 text-muted-foreground/50 hover:text-foreground"
                   }`}
                 >
@@ -269,7 +269,7 @@ const NomadStructuredForms = ({ onSubmit }: NomadStructuredFormsProps) => {
           <button
             onClick={handleSubmit}
             disabled={!isValid}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-foreground/[0.08] border border-border/30 px-4 py-2.5 text-[11px] font-extralight text-accent hover:bg-foreground/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-foreground/[0.08] border border-border/30 px-4 py-2.5 text-[11px] font-extralight text-foreground hover:bg-foreground/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <Search className="h-3.5 w-3.5" />
             Launch Investigation

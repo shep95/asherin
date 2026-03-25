@@ -46,7 +46,7 @@ const NomadMessageNote = ({ messageId, existingNote, onSave }: NomadMessageNoteP
         className="flex-1 rounded-lg border border-border/20 bg-card/20 px-2 py-1 text-[10px] font-extralight text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-foreground/15"
         autoFocus
       />
-      <button onClick={() => { onSave(messageId, note); setEditing(false); }} className="text-accent hover:text-foreground/70 transition-colors">
+      <button onClick={() => { onSave(messageId, note); setEditing(false); }} className="text-foreground hover:text-foreground/70 transition-colors">
         <Check className="h-3 w-3" />
       </button>
       <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground transition-colors">

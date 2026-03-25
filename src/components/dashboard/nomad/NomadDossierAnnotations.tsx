@@ -132,7 +132,7 @@ const NomadDossierAnnotations = ({ investigationId, userId, content }: NomadDoss
               <button
                 onClick={handleAnnotate}
                 disabled={!selectedText.trim()}
-                className="rounded-lg bg-foreground/[0.08] border border-border/30 px-2.5 py-1 text-[9px] font-extralight text-accent hover:bg-foreground/[0.12] disabled:opacity-30 transition-colors"
+                className="rounded-lg bg-foreground/[0.08] border border-border/30 px-2.5 py-1 text-[9px] font-extralight text-foreground hover:bg-foreground/[0.12] disabled:opacity-30 transition-colors"
               >
                 Save
               </button>

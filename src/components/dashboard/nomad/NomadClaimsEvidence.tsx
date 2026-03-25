@@ -155,7 +155,7 @@ const NomadClaimsEvidence = ({ entities, investigations }: NomadClaimsEvidencePr
               <div className="mb-3 rounded-xl border border-border/25 bg-foreground/[0.03] p-3 space-y-2">
                 <input value={claimText} onChange={e => setClaimText(e.target.value)} onKeyDown={e => e.key === "Enter" && addClaim()} placeholder='e.g. "X controls Y through shell company Z"' className="w-full bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" autoFocus />
                 <div className="flex gap-2">
-                  <button onClick={addClaim} className="text-[10px] text-accent">Save</button>
+                  <button onClick={addClaim} className="text-[10px] text-foreground">Save</button>
                   <button onClick={() => setAddingClaim(false)} className="text-[10px] text-muted-foreground/40">Cancel</button>
                 </div>
               </div>
@@ -243,7 +243,7 @@ const NomadClaimsEvidence = ({ entities, investigations }: NomadClaimsEvidencePr
                 <input value={sourceUrl} onChange={e => setSourceUrl(e.target.value)} placeholder="Source URL" className="w-full bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none border-b border-border/20 pb-1" autoFocus />
                 <input value={sourceTitle} onChange={e => setSourceTitle(e.target.value)} placeholder="Title (optional)" className="w-full bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none border-b border-border/20 pb-1" />
                 <div className="flex gap-2">
-                  <button onClick={addSource} className="text-[10px] text-accent">Save</button>
+                  <button onClick={addSource} className="text-[10px] text-foreground">Save</button>
                   <button onClick={() => setAddingSource(false)} className="text-[10px] text-muted-foreground/40">Cancel</button>
                 </div>
               </div>

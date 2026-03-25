@@ -73,7 +73,7 @@ const NomadLineage = ({ entities, investigations }: NomadLineageProps) => {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <GitBranch className="h-5 w-5 text-accent" />
+          <GitBranch className="h-5 w-5 text-foreground" />
           <h2 className="text-lg font-extralight tracking-wide text-foreground">Data Lineage</h2>
         </div>
         <p className="text-xs font-extralight text-muted-foreground mt-1">
@@ -123,7 +123,7 @@ const NomadLineage = ({ entities, investigations }: NomadLineageProps) => {
                         <div className="absolute left-[7px] top-0 bottom-0 w-px bg-foreground/[0.1]" />
                         {node.appearances.map((app, i) => (
                           <div key={i} className="flex items-start gap-3 mb-2 relative">
-                            <div className="h-2 w-2 rounded-full bg-accent/40 mt-1.5 z-10 shrink-0" />
+                            <div className="h-2 w-2 rounded-full bg-foreground/[0.15] mt-1.5 z-10 shrink-0" />
                             <div>
                               <p className="text-[10px] font-light text-foreground/80">{app.investigationQuery}</p>
                               <div className="flex gap-2 mt-0.5">

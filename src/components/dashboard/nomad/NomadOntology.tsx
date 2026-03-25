@@ -100,7 +100,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <div>
         <div className="flex items-center gap-2">
-          <Layers className="h-5 w-5 text-accent" />
+          <Layers className="h-5 w-5 text-foreground" />
           <h2 className="text-lg font-extralight tracking-wide text-foreground">Ontology Engine</h2>
         </div>
         <p className="text-xs font-extralight text-muted-foreground mt-1">
@@ -159,7 +159,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
                               <p className="text-[8px] text-muted-foreground/40">{node.links.length} link{node.links.length !== 1 ? "s" : ""} · {Math.round(node.confidence * 100)}%</p>
                             </div>
                             {linkingFrom && linkingFrom !== node.id && (
-                              <span className="text-[8px] text-accent px-1.5 py-0.5 bg-foreground/[0.06] rounded">Link</span>
+                              <span className="text-[8px] text-foreground px-1.5 py-0.5 bg-foreground/[0.06] rounded">Link</span>
                             )}
                           </div>
                         </button>
@@ -199,7 +199,7 @@ const NomadOntology = ({ entities, investigations }: NomadOntologyProps) => {
                 </div>
               )}
               {linkingFrom === selected.id && (
-                <p className="text-[9px] text-accent animate-pulse">Click a target entity to link →</p>
+                <p className="text-[9px] text-foreground animate-pulse">Click a target entity to link →</p>
               )}
             </div>
           ) : (

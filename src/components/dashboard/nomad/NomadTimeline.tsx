@@ -142,7 +142,7 @@ const NomadTimeline = ({ investigations, sessionEntities }: NomadTimelineProps) 
                 return (
                   <div key={idx} className="relative mb-4 animate-fade-in" style={{ animationDelay: `${idx * 30}ms` }}>
                     {/* Dot on timeline */}
-                    <div className="absolute -left-5 top-3 h-2.5 w-2.5 rounded-full bg-accent/40 border border-accent/60" />
+                    <div className="absolute -left-5 top-3 h-2.5 w-2.5 rounded-full bg-foreground/[0.15] border border-foreground/20/60" />
 
                     <div className="rounded-2xl border border-border/20 bg-card/20 hover:bg-card/30 transition-colors p-4">
                       <div className="flex items-start justify-between gap-3">

@@ -353,7 +353,7 @@ List all variants clearly.` },
                   <Fingerprint className="h-3.5 w-3.5 text-muted-foreground/40" />
                   <input value={handle} onChange={e => setHandle(e.target.value)} onKeyDown={e => e.key === "Enter" && huntHandle()} placeholder="Enter handle/username (e.g. johndoe)" className="flex-1 bg-transparent text-xs font-light text-foreground placeholder:text-muted-foreground/30 outline-none" />
                 </div>
-                <button onClick={huntHandle} disabled={!handle.trim() || loading} className="p-2.5 rounded-xl bg-foreground/[0.1] text-accent hover:bg-accent/30 transition-colors disabled:opacity-30">
+                <button onClick={huntHandle} disabled={!handle.trim() || loading} className="p-2.5 rounded-xl bg-foreground/[0.1] text-foreground hover:bg-foreground/[0.12] transition-colors disabled:opacity-30">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 </button>
               </div>
@@ -421,7 +421,7 @@ List all variants clearly.` },
               <p className="text-[10px] text-muted-foreground/40">Inline translate + transliteration for cross-language investigation.</p>
               <div className="flex items-end gap-2">
                 <textarea value={translateText} onChange={e => setTranslateText(e.target.value)} placeholder="Paste text in any language..." rows={3} className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/30 outline-none rounded-xl border border-border/20 p-3 resize-none" />
-                <button onClick={translate} disabled={!translateText.trim() || translating} className="p-2.5 rounded-xl bg-foreground/[0.1] text-accent hover:bg-accent/30 transition-colors disabled:opacity-30">
+                <button onClick={translate} disabled={!translateText.trim() || translating} className="p-2.5 rounded-xl bg-foreground/[0.1] text-foreground hover:bg-foreground/[0.12] transition-colors disabled:opacity-30">
                   {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
                 </button>
               </div>
@@ -441,7 +441,7 @@ List all variants clearly.` },
               <p className="text-[10px] text-muted-foreground/40">Generate name variants across Arabic, Russian, Chinese scripts with saved variant sets per case.</p>
               <div className="flex items-center gap-2">
                 <input value={variantName} onChange={e => setVariantName(e.target.value)} onKeyDown={e => e.key === "Enter" && generateVariants()} placeholder="Enter a name (e.g. Mohammad Ali)" className="flex-1 bg-transparent text-xs text-foreground outline-none rounded-xl border border-border/20 px-3 py-2.5" />
-                <button onClick={generateVariants} disabled={!variantName.trim() || generatingVariants} className="p-2.5 rounded-xl bg-foreground/[0.1] text-accent hover:bg-accent/30 transition-colors disabled:opacity-30">
+                <button onClick={generateVariants} disabled={!variantName.trim() || generatingVariants} className="p-2.5 rounded-xl bg-foreground/[0.1] text-foreground hover:bg-foreground/[0.12] transition-colors disabled:opacity-30">
                   {generatingVariants ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
               </div>

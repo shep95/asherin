@@ -144,7 +144,7 @@ const NomadObjectExplorer = ({ entities, crossRefMap }: NomadObjectExplorerProps
             <button
               onClick={() => setSelectedType(null)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-extralight transition-colors ${
-                !selectedType ? "bg-foreground/[0.06] text-accent" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
+                !selectedType ? "bg-foreground/[0.06] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
               }`}
             >
               <span className="flex items-center gap-2"><Filter className="h-3 w-3" /> All Objects</span>
@@ -157,7 +157,7 @@ const NomadObjectExplorer = ({ entities, crossRefMap }: NomadObjectExplorerProps
                   key={type}
                   onClick={() => setSelectedType(type === selectedType ? null : type)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[11px] font-extralight transition-colors ${
-                    selectedType === type ? "bg-foreground/[0.06] text-accent" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
+                    selectedType === type ? "bg-foreground/[0.06] text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-card/30"
                   }`}
                 >
                   <span className="flex items-center gap-2">

@@ -204,7 +204,7 @@ const NomadNetworkDiff = ({ entities, investigations }: NomadNetworkDiffProps) =
                 <div className="rounded-xl border border-border/20 bg-card/20 p-3 space-y-2">
                   <input value={alertEntity} onChange={e => setAlertEntity(e.target.value)} placeholder="Entity to watch (name, domain, handle)" className="w-full bg-transparent text-xs text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
                   <input value={alertWatch} onChange={e => setAlertWatch(e.target.value)} placeholder="Watch for (e.g. username change, WHOIS update)" className="w-full bg-transparent text-[11px] text-foreground outline-none border-b border-border/20 pb-1" />
-                  <div className="flex gap-2"><button onClick={addAlert} className="text-[10px] text-accent">Save</button><button onClick={() => setAddingAlert(false)} className="text-[10px] text-muted-foreground/40">Cancel</button></div>
+                  <div className="flex gap-2"><button onClick={addAlert} className="text-[10px] text-foreground">Save</button><button onClick={() => setAddingAlert(false)} className="text-[10px] text-muted-foreground/40">Cancel</button></div>
                 </div>
               )}
 

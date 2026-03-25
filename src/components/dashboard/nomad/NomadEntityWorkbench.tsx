@@ -49,7 +49,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 };
 
 const EPISTEMIC_COLORS: Record<string, string> = {
-  observation: "bg-foreground/[0.1] text-accent",
+  observation: "bg-foreground/[0.1] text-foreground",
   inference: "bg-blue-500/20 text-blue-400",
   speculation: "bg-amber-500/20 text-amber-400",
   tasking: "bg-emerald-500/20 text-emerald-400",
@@ -192,14 +192,14 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
         <button
           onClick={() => { setMergeMode(!mergeMode); setMergeSelection([]); }}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-light transition-colors ${
-            mergeMode ? "bg-foreground/[0.1] text-accent border border-foreground/15" : "text-muted-foreground/50 border border-border/20 hover:text-foreground"
+            mergeMode ? "bg-foreground/[0.1] text-foreground border border-foreground/15" : "text-muted-foreground/50 border border-border/20 hover:text-foreground"
           }`}
         >
           <Merge className="h-3 w-3" />
           {mergeMode ? `Merge (${mergeSelection.length})` : "Merge"}
         </button>
         {mergeMode && mergeSelection.length >= 2 && (
-          <button onClick={handleMerge} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-accent border border-foreground/15">
+          <button onClick={handleMerge} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-foreground border border-foreground/15">
             Execute Merge
           </button>
         )}
@@ -223,7 +223,7 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                 key={card.id}
                 className={`rounded-2xl border backdrop-blur-sm transition-all ${
                   mergeMode && mergeSelection.includes(card.id)
-                    ? "border-accent/40 bg-foreground/[0.03]"
+                    ? "border-foreground/20 bg-foreground/[0.03]"
                     : "border-border/20 bg-card/20 hover:border-border/40"
                 }`}
               >
@@ -241,9 +241,9 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                 >
                   {mergeMode && (
                     <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                      mergeSelection.includes(card.id) ? "border-accent bg-foreground/[0.1]" : "border-border/30"
+                      mergeSelection.includes(card.id) ? "border-foreground/20 bg-foreground/[0.1]" : "border-border/30"
                     }`}>
-                      {mergeSelection.includes(card.id) && <Check className="h-2.5 w-2.5 text-accent" />}
+                      {mergeSelection.includes(card.id) && <Check className="h-2.5 w-2.5 text-foreground" />}
                     </div>
                   )}
                   <IconComp className="h-4 w-4 text-foreground/50 shrink-0" />
@@ -357,7 +357,7 @@ const NomadEntityWorkbench = ({ entities, crossRefMap, investigations }: NomadEn
                           </div>
                           <div className="flex gap-1">
                             <input value={noteText} onChange={e => setNoteText(e.target.value)} onKeyDown={e => e.key === "Enter" && addNote(card.id)} placeholder="Add analyst note..." className="flex-1 bg-transparent text-[10px] text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
-                            <button onClick={() => addNote(card.id)} className="text-accent text-[10px]">Save</button>
+                            <button onClick={() => addNote(card.id)} className="text-foreground text-[10px]">Save</button>
                           </div>
                         </div>
                       )}

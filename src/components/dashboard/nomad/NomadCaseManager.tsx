@@ -148,7 +148,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-light text-foreground">Case Brief Generator</h3>
                 <div className="flex gap-2">
-                  <button onClick={generateBrief} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-accent border border-foreground/15 hover:bg-accent/30 transition-colors">
+                  <button onClick={generateBrief} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-foreground border border-foreground/15 hover:bg-foreground/[0.12] transition-colors">
                     Generate Brief
                   </button>
                   {briefGenerated && (
@@ -183,7 +183,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
                 <div className="rounded-xl border border-border/20 bg-card/20 p-3 space-y-2 mb-3">
                   <input value={taskClaim} onChange={e => setTaskClaim(e.target.value)} placeholder='Claim gap (e.g. "Need proof of control relationship")' className="w-full bg-transparent text-xs text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
                   <input value={taskAssignee} onChange={e => setTaskAssignee(e.target.value)} placeholder="Assignee (optional)" className="w-full bg-transparent text-[11px] text-foreground outline-none border-b border-border/20 pb-1" />
-                  <div className="flex gap-2"><button onClick={addTask} className="text-[10px] text-accent">Save</button><button onClick={() => setAddingTask(false)} className="text-[10px] text-muted-foreground/40">Cancel</button></div>
+                  <div className="flex gap-2"><button onClick={addTask} className="text-[10px] text-foreground">Save</button><button onClick={() => setAddingTask(false)} className="text-[10px] text-muted-foreground/40">Cancel</button></div>
                 </div>
               )}
 
@@ -216,7 +216,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
               {addingMember && (
                 <div className="flex items-center gap-2 mb-2">
                   <input value={memberName} onChange={e => setMemberName(e.target.value)} onKeyDown={e => e.key === "Enter" && addTeamMember()} placeholder="Analyst name" className="bg-transparent text-xs text-foreground outline-none border-b border-border/20 pb-1" autoFocus />
-                  <button onClick={addTeamMember} className="text-[10px] text-accent">Add</button>
+                  <button onClick={addTeamMember} className="text-[10px] text-foreground">Add</button>
                 </div>
               )}
               {data.team.map(m => (
@@ -240,7 +240,7 @@ const NomadCaseManager = ({ entities, investigations }: NomadCaseManagerProps) =
                     <Eye className="h-3 w-3 inline mr-1" /> Scan PII
                   </button>
                   {redactionItems.length > 0 && (
-                    <button onClick={exportRedacted} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-accent border border-foreground/15 hover:bg-accent/30 transition-colors">
+                    <button onClick={exportRedacted} className="px-3 py-1.5 rounded-xl text-[10px] bg-foreground/[0.1] text-foreground border border-foreground/15 hover:bg-foreground/[0.12] transition-colors">
                       Export Redacted
                     </button>
                   )}
