@@ -581,6 +581,7 @@ const NomadView = () => {
       <div className="flex flex-1 flex-col min-h-0">
         {activeTab === "chat" ? (
           <>
+            <NomadSearchBar messages={messages} onScrollToMessage={handleScrollToMessage} open={searchOpen} onClose={() => setSearchOpen(false)} />
             <ScrollArea className="flex-1">
               <div ref={chatContentRef} className="relative max-w-3xl mx-auto px-4 py-6 space-y-6">
                 <NomadSelectionMenu containerRef={chatContentRef} onAction={handleSelectionAction} />
