@@ -800,6 +800,11 @@ const NomadView = () => {
           </Suspense>
         )}
       </div>
+      <FloatingNotepad
+        open={notepadOpen}
+        onClose={() => setNotepadOpen(false)}
+        conversationId={`nomad-session-${user?.id || "anon"}`}
+      />
     </div>
   );
 };
