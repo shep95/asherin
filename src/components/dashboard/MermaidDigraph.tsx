@@ -8,6 +8,7 @@ interface ParsedNode {
   id: string;
   label: string;
   isCenter: boolean;
+  subgraph?: string;
 }
 
 interface ParsedEdge {
@@ -16,151 +17,128 @@ interface ParsedEdge {
   label?: string;
 }
 
-function parseMermaid(code: string): { nodes: ParsedNode[]; edges: ParsedEdge[] } {
+function parseMermaid(code: string): { nodes: ParsedNode[]; edges: ParsedEdge[]; subgraphs: string[] } {
   const nodes: ParsedNode[] = [];
   const edges: ParsedEdge[] = [];
   const nodeMap = new Map<string, string>();
   const incomingSet = new Set<string>();
+  const subgraphMap = new Map<string, string>();
+  const subgraphOrder: string[] = [];
 
   let currentSubgraph: string | null = null;
-  const subgraphLabels = new Map<string, string>();
 
   for (const line of code.split("\n")) {
     const trimmed = line.trim();
+    if (!trimmed || /^graph\s+(TD|LR|TB|BT|RL)\s*$/.test(trimmed)) continue;
 
-    // Skip graph declaration line
-    if (/^graph\s+(TD|LR|TB|BT|RL)\s*$/.test(trimmed)) continue;
-
-    // Subgraph start: subgraph Label Text
     const sgMatch = trimmed.match(/^subgraph\s+(.+)/);
     if (sgMatch) {
-      currentSubgraph = sgMatch[1].trim();
+      currentSubgraph = sgMatch[1].trim().replace(/^["']|["']$/g, '');
+      if (!subgraphOrder.includes(currentSubgraph)) subgraphOrder.push(currentSubgraph);
       continue;
     }
-    if (trimmed === 'end') {
-      currentSubgraph = null;
+    if (/^\s*end\s*$/.test(trimmed)) { currentSubgraph = null; continue; }
+
+    const markSg = (id: string) => { if (currentSubgraph && !subgraphMap.has(id)) subgraphMap.set(id, currentSubgraph); };
+
+    // Edge with quoted label: A -- "label" --> B
+    const quotedEdge = trimmed.match(/^(\w+)\s*--\s*"(.+?)"\s*-->\s*(\w+)/);
+    if (quotedEdge) {
+      edges.push({ from: quotedEdge[1], to: quotedEdge[3], label: quotedEdge[2] });
+      incomingSet.add(quotedEdge[3]);
+      markSg(quotedEdge[1]); markSg(quotedEdge[3]);
+      // Extract inline nodes from this line
+      extractInlineNodes(trimmed, nodeMap);
       continue;
     }
 
-    // Round node: N1(("Label")) or N1("Label")
-    const roundNode = trimmed.match(/^(\w+)\(?\("(.+?)"\)?\)?/);
-    if (roundNode && !trimmed.includes('--')) {
-      nodeMap.set(roundNode[1], roundNode[2]);
-      if (currentSubgraph) subgraphLabels.set(roundNode[1], currentSubgraph);
-      continue;
-    }
-
-    // Square node: N1["Label"]
-    const squareNode = trimmed.match(/^(\w+)\["(.+?)"\]/);
-    if (squareNode && !trimmed.includes('--')) {
-      nodeMap.set(squareNode[1], squareNode[2]);
-      if (currentSubgraph) subgraphLabels.set(squareNode[1], currentSubgraph);
-      continue;
-    }
-
-    // Labeled edge: N1 -->|"label"| N2  or  N1 -- "label" --> N2
+    // Labeled edge: A -->|label| B
     const labeledEdge = trimmed.match(/^(\w+)\s*(?:-->|==>|---?)\|"?(.+?)"?\|\s*(\w+)/);
     if (labeledEdge) {
       edges.push({ from: labeledEdge[1], to: labeledEdge[3], label: labeledEdge[2] });
       incomingSet.add(labeledEdge[3]);
-      if (currentSubgraph) {
-        subgraphLabels.set(labeledEdge[1], currentSubgraph);
-        subgraphLabels.set(labeledEdge[3], currentSubgraph);
-      }
+      markSg(labeledEdge[1]); markSg(labeledEdge[3]);
+      extractInlineNodes(trimmed, nodeMap);
       continue;
     }
 
-    // Edge with quoted label: N1 -- "label" --> N2
-    const quotedLabelEdge = trimmed.match(/^(\w+)\s*--\s*"(.+?)"\s*-->\s*(\w+)/);
-    if (quotedLabelEdge) {
-      edges.push({ from: quotedLabelEdge[1], to: quotedLabelEdge[3], label: quotedLabelEdge[2] });
-      incomingSet.add(quotedLabelEdge[3]);
-      if (currentSubgraph) {
-        subgraphLabels.set(quotedLabelEdge[1], currentSubgraph);
-        subgraphLabels.set(quotedLabelEdge[3], currentSubgraph);
-      }
-      continue;
-    }
-
-    // Simple edge: N1 --> N2
+    // Simple edge: A --> B
     const simpleEdge = trimmed.match(/^(\w+)\s*(?:-->|==>|---?)\s*(\w+)/);
     if (simpleEdge) {
       edges.push({ from: simpleEdge[1], to: simpleEdge[2] });
       incomingSet.add(simpleEdge[2]);
-      if (currentSubgraph) {
-        subgraphLabels.set(simpleEdge[1], currentSubgraph);
-        subgraphLabels.set(simpleEdge[2], currentSubgraph);
-      }
+      markSg(simpleEdge[1]); markSg(simpleEdge[2]);
+      extractInlineNodes(trimmed, nodeMap);
       continue;
     }
 
-    // Inline node definitions on edge lines
-    const inlineRound = trimmed.match(/(\w+)\(\("(.+?)"\)\)/g);
-    if (inlineRound) {
-      for (const m of inlineRound) {
-        const match = m.match(/(\w+)\(\("(.+?)"\)\)/);
-        if (match) nodeMap.set(match[1], match[2]);
-      }
-    }
-    const inlineSquare = trimmed.match(/(\w+)\["(.+?)"\]/g);
-    if (inlineSquare) {
-      for (const m of inlineSquare) {
-        const match = m.match(/(\w+)\["(.+?)"\]/);
-        if (match) nodeMap.set(match[1], match[2]);
-      }
-    }
-    // Inline nodes from edge lines: WO_Aroda(Wendy A Owens) -- "..." --> Target
-    const inlineParenNode = trimmed.match(/(\w+)\(([^)]+)\)/g);
-    if (inlineParenNode) {
-      for (const m of inlineParenNode) {
-        const match = m.match(/(\w+)\(([^)]+)\)/);
-        if (match && !match[2].startsWith('"')) nodeMap.set(match[1], match[2]);
-      }
-    }
-    // Inline bracket nodes from edge target: --> LOC_Aroda[Aroda, VA]
-    const inlineBracket = trimmed.match(/(\w+)\[([^\]]+)\]/g);
-    if (inlineBracket) {
-      for (const m of inlineBracket) {
-        const match = m.match(/(\w+)\[([^\]]+)\]/);
-        if (match) nodeMap.set(match[1], match[2]);
-      }
-    }
-    // Inline brace nodes: DOB1{12/01/1960}
-    const inlineBrace = trimmed.match(/(\w+)\{([^}]+)\}/g);
-    if (inlineBrace) {
-      for (const m of inlineBrace) {
-        const match = m.match(/(\w+)\{([^}]+)\}/);
-        if (match) nodeMap.set(match[1], match[2]);
-      }
-    }
+    // Standalone node declarations
+    const roundNode = trimmed.match(/^(\w+)\(?\("(.+?)"\)?\)?$/);
+    if (roundNode) { nodeMap.set(roundNode[1], roundNode[2]); markSg(roundNode[1]); continue; }
+    const squareNode = trimmed.match(/^(\w+)\["(.+?)"\]$/);
+    if (squareNode) { nodeMap.set(squareNode[1], squareNode[2]); markSg(squareNode[1]); continue; }
   }
 
-  // Also extract node IDs from edges that weren't declared
   for (const e of edges) {
     if (!nodeMap.has(e.from)) nodeMap.set(e.from, e.from);
     if (!nodeMap.has(e.to)) nodeMap.set(e.to, e.to);
   }
 
   for (const [id, label] of nodeMap) {
-    nodes.push({ id, label, isCenter: !incomingSet.has(id) });
+    nodes.push({ id, label, isCenter: !incomingSet.has(id), subgraph: subgraphMap.get(id) });
   }
 
-  return { nodes, edges };
+  return { nodes, edges, subgraphs: subgraphOrder };
+}
+
+function extractInlineNodes(line: string, nodeMap: Map<string, string>) {
+  // Paren nodes: WO_Aroda(Wendy A Owens)
+  const parenNodes = line.match(/(\w+)\(([^)"]+)\)/g);
+  if (parenNodes) for (const m of parenNodes) {
+    const match = m.match(/(\w+)\(([^)"]+)\)/);
+    if (match && !match[2].startsWith('"')) nodeMap.set(match[1], match[2]);
+  }
+  // Bracket nodes: LOC_Aroda[Aroda, VA]
+  const bracketNodes = line.match(/(\w+)\[([^\]]+)\]/g);
+  if (bracketNodes) for (const m of bracketNodes) {
+    const match = m.match(/(\w+)\[([^\]]+)\]/);
+    if (match) nodeMap.set(match[1], match[2]);
+  }
+  // Brace nodes: DOB1{12/01/1960}
+  const braceNodes = line.match(/(\w+)\{([^}]+)\}/g);
+  if (braceNodes) for (const m of braceNodes) {
+    const match = m.match(/(\w+)\{([^}]+)\}/);
+    if (match) nodeMap.set(match[1], match[2]);
+  }
+  // Double-paren: N1(("Label"))
+  const dblParen = line.match(/(\w+)\(\("(.+?)"\)\)/g);
+  if (dblParen) for (const m of dblParen) {
+    const match = m.match(/(\w+)\(\("(.+?)"\)\)/);
+    if (match) nodeMap.set(match[1], match[2]);
+  }
 }
 
 const MermaidDigraph = ({ code }: MermaidDigraphProps) => {
-  const { nodes, edges } = useMemo(() => parseMermaid(code), [code]);
-
-  const centerNodes = nodes.filter(n => n.isCenter);
-  const childNodes = nodes.filter(n => !n.isCenter);
+  const { nodes, edges, subgraphs } = useMemo(() => parseMermaid(code), [code]);
 
   if (nodes.length === 0) return null;
 
+  const hasSubgraphs = subgraphs.length > 0;
+
+  // Group nodes by subgraph
+  const groupedNodes = hasSubgraphs
+    ? subgraphs.map(sg => ({
+        label: sg,
+        nodes: nodes.filter(n => n.subgraph === sg),
+      }))
+    : [];
+  const ungroupedNodes = nodes.filter(n => !n.subgraph);
+
   return (
-    <div className="my-3 rounded-2xl border border-accent/20 bg-accent/5 backdrop-blur-sm overflow-hidden">
+    <div className="my-3 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-2 border-b border-accent/10 flex items-center gap-2">
-        <svg className="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <div className="px-4 py-2 border-b border-border/10 flex items-center gap-2">
+        <svg className="h-3.5 w-3.5 text-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="5" r="3" />
           <line x1="12" y1="8" x2="12" y2="14" />
           <circle cx="6" cy="19" r="3" />
@@ -168,43 +146,63 @@ const MermaidDigraph = ({ code }: MermaidDigraphProps) => {
           <line x1="12" y1="14" x2="6" y2="16" />
           <line x1="12" y1="14" x2="18" y2="16" />
         </svg>
-        <span className="text-[10px] font-light text-accent tracking-wider uppercase">Entity Relationship Graph</span>
+        <span className="text-[10px] font-light text-foreground/50 tracking-wider uppercase">Entity Relationship Graph</span>
       </div>
 
-      <div className="p-4">
-        {/* Center / root nodes */}
-        {centerNodes.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center mb-3">
-            {centerNodes.map(node => (
-              <div
-                key={node.id}
-                className="rounded-xl border border-accent/30 bg-accent/15 px-4 py-2.5 text-[12px] font-medium text-accent text-center max-w-[220px] shadow-sm shadow-accent/10"
-              >
+      <div className="p-4 space-y-4">
+        {/* Subgraph groups */}
+        {groupedNodes.map(group => (
+          <div key={group.label} className="rounded-xl border border-border/15 bg-foreground/[0.02] p-3">
+            <div className="text-[10px] font-medium text-foreground/60 uppercase tracking-wider mb-2.5 px-1">
+              {group.label}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {group.nodes.map(node => {
+                const edge = edges.find(e => e.to === node.id || e.from === node.id);
+                return (
+                  <div key={node.id} className="rounded-xl border border-border/15 bg-card/40 px-3 py-2.5 hover:border-foreground/15 hover:bg-card/60 transition-all">
+                    {edge?.label && (
+                      <div className="text-[9px] text-foreground/40 font-light mb-1 uppercase tracking-wider">
+                        {edge.label}
+                      </div>
+                    )}
+                    <div className="text-[11px] font-light text-foreground/90 leading-relaxed">
+                      {node.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* Ungrouped center nodes */}
+        {ungroupedNodes.filter(n => n.isCenter).length > 0 && (
+          <div className="flex flex-wrap gap-2 justify-center">
+            {ungroupedNodes.filter(n => n.isCenter).map(node => (
+              <div key={node.id} className="rounded-xl border border-foreground/20 bg-foreground/[0.06] px-4 py-2.5 text-[12px] font-medium text-foreground/90 text-center max-w-[220px] shadow-sm">
                 {node.label}
               </div>
             ))}
           </div>
         )}
 
-        {/* Connector line */}
-        {centerNodes.length > 0 && childNodes.length > 0 && (
-          <div className="flex justify-center mb-3">
-            <div className="h-6 w-px bg-accent/25" />
+        {/* Connector */}
+        {ungroupedNodes.filter(n => n.isCenter).length > 0 && ungroupedNodes.filter(n => !n.isCenter).length > 0 && (
+          <div className="flex justify-center">
+            <div className="h-6 w-px bg-foreground/15" />
           </div>
         )}
 
-        {/* Child entity nodes */}
-        {childNodes.length > 0 && (
+        {/* Ungrouped child nodes */}
+        {ungroupedNodes.filter(n => !n.isCenter).length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {childNodes.map(node => {
+            {ungroupedNodes.filter(n => !n.isCenter).map(node => {
               const edge = edges.find(e => e.to === node.id);
               return (
-                <div
-                  key={node.id}
-                  className="rounded-xl border border-border/20 bg-card/40 px-3 py-2.5 hover:border-accent/20 hover:bg-card/60 transition-all"
-                >
+                <div key={node.id} className="rounded-xl border border-border/15 bg-card/40 px-3 py-2.5 hover:border-foreground/15 hover:bg-card/60 transition-all">
                   {edge?.label && (
-                    <div className="text-[9px] text-accent/60 font-light mb-1 uppercase tracking-wider">
+                    <div className="text-[9px] text-foreground/40 font-light mb-1 uppercase tracking-wider">
                       {edge.label}
                     </div>
                   )}
