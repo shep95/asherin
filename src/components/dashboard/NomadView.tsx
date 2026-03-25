@@ -351,6 +351,61 @@ const NomadView = () => {
     URL.revokeObjectURL(url);
   };
 
+  const exportFullDossier = useCallback(() => {
+    if (messages.length === 0) return;
+    const header = `# NOMAD Intelligence Dossier\n**Date:** ${new Date().toISOString()}\n**Entities Found:** ${allEntities.length}\n\n---\n\n`;
+    const entitiesSection = allEntities.length > 0
+      ? `## Extracted Entities\n\n| Type | Value | Confidence |\n|------|-------|------------|\n${allEntities.map(e => `| ${e.type} | ${e.value} | ${(e.confidence * 100).toFixed(0)}% |`).join("\n")}\n\n---\n\n`
+      : "";
+    const findings = messages
+      .filter(m => m.role === "assistant" && m.content)
+      .map((m, i) => {
+        const userMsg = messages.slice(0, messages.indexOf(m)).reverse().find(u => u.role === "user");
+        return `## Investigation ${i + 1}\n**Query:** ${userMsg?.content || "N/A"}\n**Time:** ${m.timestamp.toLocaleString()}\n\n${m.content}`;
+      })
+      .join("\n\n---\n\n");
+    const content = header + entitiesSection + `## Investigation Findings\n\n` + findings;
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nomad-dossier-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Dossier exported", description: `${messages.filter(m => m.role === "assistant").length} findings, ${allEntities.length} entities` });
+  }, [messages, allEntities, toast]);
+
+  const handleSelectionAction = useCallback((action: string, text: string) => {
+    switch (action) {
+      case "investigate":
+        setInput(`Investigate: ${text}`);
+        inputRef.current?.focus();
+        break;
+      case "profile":
+        setInput(`Build a complete profile on: ${text}`);
+        inputRef.current?.focus();
+        break;
+      case "search-web":
+        setInput(`Search all OSINT sources for: ${text}`);
+        inputRef.current?.focus();
+        break;
+      case "add-case":
+        toast({ title: "Added to case file", description: `"${text.slice(0, 50)}…" saved` });
+        break;
+      case "copy":
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copied" });
+        break;
+    }
+  }, [toast]);
+
+  const handleFollowUp = useCallback((suggestion: string) => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
+    const context = lastAssistant ? ` (based on previous findings)` : "";
+    setInput(suggestion + context);
+    inputRef.current?.focus();
+  }, [messages]);
+
   // Entity count badge for tabs
   const entityCount = allEntities.length;
 
