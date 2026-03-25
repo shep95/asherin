@@ -423,8 +423,26 @@ const NomadView = () => {
               <p className="text-[10px] font-extralight tracking-wider text-muted-foreground">Gotham-Grade Intelligence Platform</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
+            {messages.length > 0 && (
+              <button
+                onClick={exportFullDossier}
+                className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <FileText className="h-3 w-3" />
+                Export Dossier
+              </button>
+            )}
+            <button
+              onClick={() => setNotepadOpen(!notepadOpen)}
+              className={`flex items-center gap-2 rounded-2xl border px-4 py-2 text-[10px] font-extralight tracking-wider transition-colors ${
+                notepadOpen ? "border-accent/30 bg-accent/10 text-accent" : "border-border/20 bg-card/30 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <StickyNote className="h-3 w-3" />
+              Notepad
+            </button>
             <button
               onClick={loadHistory}
               className="flex items-center gap-2 rounded-2xl border border-border/20 bg-card/30 px-4 py-2 text-[10px] font-extralight tracking-wider text-muted-foreground hover:text-foreground transition-colors"
