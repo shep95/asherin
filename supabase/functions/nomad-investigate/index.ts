@@ -2728,7 +2728,7 @@ async function aiPass(apiKey: string, systemPrompt: string, userPrompt: string, 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN HANDLER — NOMAD v6.0 with Multi-Stage AI Pipeline + Cross-Investigation Memory
+// MAIN HANDLER — NOMAD v7.0 with 6-Layer Deep Intelligence Pipeline
 // ══════════════════════════════════════════════════════════════════════════════
 
 serve(async (req) => {
