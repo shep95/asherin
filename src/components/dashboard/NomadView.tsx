@@ -16,6 +16,14 @@ import MermaidDigraph from "./MermaidDigraph";
 import ReasoningToggle, { type ReasoningMode } from "./ReasoningToggle";
 import NomadFollowUps from "./nomad/NomadFollowUps";
 import NomadSelectionMenu from "./nomad/NomadSelectionMenu";
+import NomadConfidenceBadge from "./nomad/NomadConfidenceBadge";
+import NomadChainOfThought from "./nomad/NomadChainOfThought";
+import NomadAssumptionTracker from "./nomad/NomadAssumptionTracker";
+import NomadSearchBar from "./nomad/NomadSearchBar";
+import NomadCommandPalette from "./nomad/NomadCommandPalette";
+import NomadScrollIntel from "./nomad/NomadScrollIntel";
+import NomadCitationFootnotes from "./nomad/NomadCitationFootnotes";
+import NomadShareRedaction from "./nomad/NomadShareRedaction";
 import FloatingNotepad from "./FloatingNotepad";
 
 const NomadObjectExplorer = lazy(() => import("./nomad/NomadObjectExplorer"));
