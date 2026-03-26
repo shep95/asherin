@@ -473,7 +473,9 @@ const BriefingView = () => {
             <Settings2 className="h-4 w-4" />
           </button>
           <button onClick={() => { if (confirm("Delete your briefing profile and start over?")) deleteProfile(); }} className="rounded-lg p-2 text-muted-foreground hover:text-destructive hover:bg-foreground/5 transition-colors" title="Delete profile & reset">
-            <Trash2 className="h-4 w-4" />
+          </button>
+          <button onClick={generateBriefing} disabled={generating}
+            className="flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-4 py-2 text-xs font-light hover:bg-accent/90 transition-all disabled:opacity-50">
             {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             {generating ? "Analyzing…" : "Generate Now"}
           </button>
