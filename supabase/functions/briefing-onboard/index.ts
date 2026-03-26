@@ -109,18 +109,44 @@ ${profileContext}`;
     const geminiData = await geminiResp.json();
     const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having trouble responding. Please try again.";
 
-    // Check if there's a profile JSON in the response
-    const profileMatch = reply.match(/```aureon_profile\s*([\s\S]*?)```/);
+    // Check if there's a profile JSON in the response — try multiple patterns
     let extractedProfile = null;
     let cleanReply = reply;
 
+    // Pattern 1: ```aureon_profile ... ```
+    const profileMatch = reply.match(/```aureon_profile\s*([\s\S]*?)```/);
     if (profileMatch) {
       try {
         extractedProfile = JSON.parse(profileMatch[1].trim());
-        // Remove the JSON block from the visible reply
         cleanReply = reply.replace(/```aureon_profile[\s\S]*?```/, "").trim();
-      } catch {
-        // ignore parse errors
+      } catch { /* ignore */ }
+    }
+
+    // Pattern 2: ```json ... ``` with "ready": true
+    if (!extractedProfile) {
+      const jsonMatch = reply.match(/```json\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[1].trim());
+          if (parsed.ready || parsed.company_name || parsed.industry) {
+            extractedProfile = { ...parsed, ready: true };
+            cleanReply = reply.replace(/```json[\s\S]*?```/, "").trim();
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    // Pattern 3: raw JSON object in response
+    if (!extractedProfile) {
+      const rawJsonMatch = reply.match(/\{[\s\S]*?"(?:company_name|industry)"[\s\S]*?\}/);
+      if (rawJsonMatch) {
+        try {
+          const parsed = JSON.parse(rawJsonMatch[0]);
+          if (parsed.company_name || parsed.industry) {
+            extractedProfile = { ...parsed, ready: true };
+            cleanReply = reply.replace(rawJsonMatch[0], "").trim();
+          }
+        } catch { /* ignore */ }
       }
     }
 
