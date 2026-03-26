@@ -560,6 +560,7 @@ const Dashboard = () => {
 
   // Persist active conversation id so tab-switching remembers it
   useEffect(() => {
+    activeConvIdRef.current = activeConvId;
     if (activeConvId) {
       localStorage.setItem("aureon_active_conv_id", activeConvId);
     }
