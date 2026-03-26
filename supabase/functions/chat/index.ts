@@ -1129,6 +1129,87 @@ ${fullText}
       }
     }
 
+    // ── WAR STRATEGY & LOGISTICS BRAIN AUTO-INJECTION ─────────────────────
+    // Detect war, military, strategy, logistics, empire, conquest queries and auto-load Rome brain
+    let warStrategyBrainContent = "";
+    const warTriggers = [
+      "war", "battle", "military", "strategy", "logistics", "army", "armies",
+      "invasion", "siege", "tactics", "tactical", "strategic", "conquest",
+      "empire", "emperor", "legion", "legions", "infantry", "cavalry",
+      "supply lines", "supply chain", "flanking", "envelopment", "encirclement",
+      "rome", "roman", "hannibal", "cannae", "alexander", "napoleon",
+      "warfare", "guerrilla", "asymmetric", "attrition", "blitzkrieg",
+      "fortification", "defense", "offensive", "campaign", "theater of war",
+      "troop", "troops", "regiment", "battalion", "division", "corps",
+      "artillery", "ammunition", "weapons", "armament", "armaments",
+      "general", "commander", "command", "deploy", "deployment",
+      "allied forces", "coalition", "alliance", "front line", "frontline",
+      "occupation", "retreat", "advance", "flank", "vanguard", "rearguard",
+      "scorched earth", "blockade", "embargo", "sanctions", "war economy",
+      "conscription", "mobilization", "demobilization", "ceasefire",
+      "treaty", "surrender", "capitulation", "annexation", "territorial",
+      "geopolitical", "geostrategy", "power projection", "force multiplier",
+      "counterinsurgency", "insurgency", "proxy war", "cold war",
+      "nuclear", "deterrence", "escalation", "de-escalation",
+      "military history", "art of war", "sun tzu", "clausewitz", "machiavelli",
+      "punic", "peloponnesian", "civil war", "world war",
+      "ancient warfare", "medieval warfare", "modern warfare"
+    ];
+    const warLastMsg = (messages || []).filter((m: any) => m.role === "user").slice(-1)[0]?.content?.toLowerCase() || "";
+    const isWarQuery = warTriggers.some(t => warLastMsg.includes(t)) ||
+                       warTriggers.filter(t => allUserContent.includes(t)).length >= 3;
+    
+    if (isWarQuery) {
+      try {
+        const SUPABASE_URL3 = Deno.env.get("SUPABASE_URL") || "";
+        const SERVICE_ROLE3 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const romePath = `${SUPABASE_URL3}/storage/v1/object/library/483b8000-cc19-43f7-9598-3825393562e8/project_rome.txt`;
+        const romeResp = await fetch(romePath, {
+          headers: { Authorization: `Bearer ${SERVICE_ROLE3}` },
+        });
+        if (romeResp.ok) {
+          const romeText = await romeResp.text();
+          // Truncate to 80K chars to fit context window alongside other brains
+          const MAX_WAR_CHARS = 80000;
+          const truncatedRome = romeText.length > MAX_WAR_CHARS
+            ? romeText.slice(0, MAX_WAR_CHARS) + `\n\n[... Truncated at ${MAX_WAR_CHARS} characters.]`
+            : romeText;
+          warStrategyBrainContent = `
+
+## ═══════════════════════════════════════════════════════════════════
+## WAR STRATEGY & LOGISTICS BRAIN — PROJECT ROME (MANDATORY REFERENCE)
+## ═══════════════════════════════════════════════════════════════════
+
+CRITICAL INSTRUCTION: The following is the COMPLETE transcript of Gregory Aldrete's masterclass on Ancient Rome,
+military strategy, logistics, and civilizational patterns. This is your PRIMARY reference for all questions about:
+- War strategy, tactics, and military doctrine (ancient through modern)
+- Logistics, supply chains, and the economics of war
+- Empire building, governance, and civilizational rise-and-fall patterns
+- Hannibal's campaigns, Roman legion tactics, double envelopment, Cannae
+- How Rome raised armies from allies, the concept of half-citizens
+- Gladiatorial combat, slavery systems, engineering (aqueducts, roads, concrete)
+- The Fall of Rome and its parallels to modern civilizations
+
+ANALYTICAL FRAMEWORK:
+1. Apply the "Physics of War" — logistics wins wars, not heroes. Trace supply lines, production capacity, manpower reserves.
+2. Use Rome as the MASTER CASE STUDY — every modern military doctrine has Roman DNA in it.
+3. Draw SPECIFIC parallels: "Rome's ally system = NATO's collective defense" / "Hannibal's invasion of Italy = Germany's invasion of France"
+4. When analyzing modern conflicts, map them onto Roman precedents for pattern recognition.
+5. Quantify everything: troop numbers, kill ratios, production rates, territory gained/lost per day.
+6. The "Cannae Test" — for any proposed strategy, ask: "Can this be double-enveloped? Where is the flanking vulnerability?"
+
+${truncatedRome}
+
+## END OF WAR STRATEGY BRAIN
+`;
+        } else {
+          console.error("Failed to fetch Rome brain:", romeResp.status);
+        }
+      } catch (e) {
+        console.error("Failed to load War Strategy Brain:", e);
+      }
+    }
+
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
     const prunedMessages = messages.length > MAX_HISTORY_MESSAGES
@@ -1144,6 +1225,7 @@ ${fullText}
       AUREON_FORENSIC_LINGUISTICS,
       AUREON_VEDIC_INTELLIGENCE,
       vedicBrainContent,
+      warStrategyBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
