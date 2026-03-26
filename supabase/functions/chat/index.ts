@@ -1225,6 +1225,7 @@ ${truncatedRome}
       AUREON_FORENSIC_LINGUISTICS,
       AUREON_VEDIC_INTELLIGENCE,
       vedicBrainContent,
+      warStrategyBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
