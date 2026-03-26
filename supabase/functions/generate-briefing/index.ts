@@ -80,62 +80,116 @@ async function robustSearch(query: string): Promise<{ title: string; url: string
   return results;
 }
 
-// ── Identify Parties & Perspectives ─────────────────────────────────────────
+// ── Identify Parties & Build Comprehensive Intelligence Queries ──────────────
 
 function buildMultiPerspectiveSearches(profile: any): { category: string; query: string; perspective?: string }[] {
   const searches: { category: string; query: string; perspective?: string }[] = [];
+  const company = profile.company_name || "";
+  const industry = profile.industry || "";
 
-  // Standard profile-based searches
-  if (profile.company_name) {
-    searches.push({ category: "company_mentions", query: `"${profile.company_name}" news` });
-    searches.push({ category: "company_mentions", query: `${profile.company_name} latest updates` });
+  // ── CORE: Company & Competitor Intelligence ────────────────────────────
+  if (company) {
+    searches.push({ category: "company_mentions", query: `"${company}" news` });
+    searches.push({ category: "company_mentions", query: `${company} latest updates` });
+    searches.push({ category: "fact_check", query: `${company} fact check analysis independent review`, perspective: "validation" });
   }
   if (profile.competitors?.length) {
     for (const comp of profile.competitors.slice(0, 6)) {
       searches.push({ category: "competitor", query: `${comp} news latest announcement` });
     }
   }
-  if (profile.industry) {
-    searches.push({ category: "industry", query: `${profile.industry} industry news latest` });
-    searches.push({ category: "industry", query: `${profile.industry} trends developments` });
-    searches.push({ category: "regulation", query: `${profile.industry} regulation policy government` });
-    // Multi-perspective: search for critical views
-    searches.push({ category: "industry_critical", query: `${profile.industry} criticism concerns risks`, perspective: "critical" });
-    searches.push({ category: "industry_bullish", query: `${profile.industry} growth opportunity bullish`, perspective: "optimistic" });
+
+  // ── INDUSTRY: Multi-perspective ────────────────────────────────────────
+  if (industry) {
+    searches.push({ category: "industry", query: `${industry} industry news latest` });
+    searches.push({ category: "industry", query: `${industry} trends developments` });
+    searches.push({ category: "regulation", query: `${industry} regulation policy government` });
+    searches.push({ category: "industry_critical", query: `${industry} criticism concerns risks`, perspective: "critical" });
+    searches.push({ category: "industry_bullish", query: `${industry} growth opportunity bullish`, perspective: "optimistic" });
+    searches.push({ category: "fact_check", query: `${industry} independent analysis fact check`, perspective: "validation" });
   }
+
+  // ── MARKETS: Economic & Financial Intelligence ─────────────────────────
   if (profile.key_markets?.length) {
     for (const market of profile.key_markets.slice(0, 3)) {
       searches.push({ category: "market", query: `${market} market trends economic news` });
-      // Multi-perspective: opposing views
       searches.push({ category: "market_risk", query: `${market} market risk downturn concerns`, perspective: "bearish" });
-    }
-  }
-  if (profile.tracked_people?.length) {
-    for (const person of profile.tracked_people.slice(0, 5)) {
-      searches.push({ category: "person", query: `"${person}" latest news statement` });
-      // Criticism/opposition perspective
-      searches.push({ category: "person_critical", query: `"${person}" controversy criticism opposition`, perspective: "critical" });
-    }
-  }
-  if (profile.regulatory_bodies?.length) {
-    for (const body of profile.regulatory_bodies.slice(0, 3)) {
-      searches.push({ category: "regulatory", query: `${body} ruling update latest` });
-    }
-  }
-  if (profile.custom_topics?.length) {
-    for (const topic of profile.custom_topics.slice(0, 3)) {
-      searches.push({ category: "custom", query: `${topic} latest news` });
-      // Counter-narrative
-      searches.push({ category: "custom_counter", query: `${topic} opposing view criticism debate`, perspective: "counter" });
+      // Economic impact layer
+      searches.push({ category: "economic_impact", query: `${market} stock market impact currency oil price` });
+      searches.push({ category: "supply_chain", query: `${market} supply chain disruption trade route sanctions` });
     }
   }
 
-  // Cross-validation: search for fact-check and independent analysis
-  if (profile.company_name) {
-    searches.push({ category: "fact_check", query: `${profile.company_name} fact check analysis independent review`, perspective: "validation" });
+  // ── PEOPLE: Tracked Individuals ────────────────────────────────────────
+  if (profile.tracked_people?.length) {
+    for (const person of profile.tracked_people.slice(0, 5)) {
+      searches.push({ category: "person", query: `"${person}" latest news statement` });
+      searches.push({ category: "person_critical", query: `"${person}" controversy criticism opposition`, perspective: "critical" });
+    }
   }
-  if (profile.industry) {
-    searches.push({ category: "fact_check", query: `${profile.industry} independent analysis fact check`, perspective: "validation" });
+
+  // ── REGULATORY: Legal & Compliance ─────────────────────────────────────
+  if (profile.regulatory_bodies?.length) {
+    for (const body of profile.regulatory_bodies.slice(0, 3)) {
+      searches.push({ category: "regulatory", query: `${body} ruling update latest` });
+      searches.push({ category: "legal", query: `${body} legal action investigation sanctions enforcement` });
+    }
+  }
+
+  // ── CUSTOM TOPICS: Full Intelligence Stack ─────────────────────────────
+  if (profile.custom_topics?.length) {
+    for (const topic of profile.custom_topics.slice(0, 4)) {
+      // Core coverage
+      searches.push({ category: "custom", query: `${topic} latest news` });
+      searches.push({ category: "custom_counter", query: `${topic} opposing view criticism debate`, perspective: "counter" });
+      // Historical context
+      searches.push({ category: "historical", query: `${topic} history background timeline origins` });
+      searches.push({ category: "historical", query: `${topic} previous incidents pattern escalation` });
+      // Predictions & scenarios
+      searches.push({ category: "prediction", query: `${topic} prediction forecast what happens next analysis` });
+      searches.push({ category: "prediction", query: `${topic} scenario modeling risk assessment probability` });
+      // Economic & financial impact
+      searches.push({ category: "economic_impact", query: `${topic} economic impact stock market oil currency` });
+      searches.push({ category: "economic_impact", query: `${topic} sanctions trade disruption financial` });
+      // Expert & think tank analysis
+      searches.push({ category: "expert", query: `${topic} expert analysis think tank RAND CSIS assessment` });
+      searches.push({ category: "expert", query: `${topic} intelligence analyst military assessment` });
+      // Humanitarian & casualty data
+      searches.push({ category: "humanitarian", query: `${topic} casualties humanitarian crisis refugees displacement` });
+      searches.push({ category: "humanitarian", query: `${topic} Red Cross UN humanitarian aid civilian` });
+      // Legal & war crimes (conflict topics)
+      searches.push({ category: "legal", query: `${topic} international law violation ICC legal analysis` });
+      // Diplomatic efforts
+      searches.push({ category: "diplomatic", query: `${topic} diplomacy negotiations ceasefire mediation talks` });
+      searches.push({ category: "diplomatic", query: `${topic} diplomatic efforts UN Security Council resolution` });
+      // Regional impact
+      searches.push({ category: "regional", query: `${topic} regional impact neighboring countries spillover` });
+      // Cyber & information warfare
+      searches.push({ category: "cyber", query: `${topic} cyber attack information warfare propaganda bot` });
+      // Weapons & military systems
+      searches.push({ category: "weapons", query: `${topic} weapons used military equipment systems identified` });
+      // Public sentiment
+      searches.push({ category: "sentiment", query: `${topic} public opinion poll protest approval rating sentiment` });
+      // Misinformation tracking
+      searches.push({ category: "misinfo", query: `${topic} misinformation false claim debunked fact check viral`, perspective: "validation" });
+      // Social media OSINT
+      searches.push({ category: "social_osint", query: `${topic} eyewitness report ground truth local sources` });
+    }
+  }
+
+  // ── INVESTMENT INTERESTS ───────────────────────────────────────────────
+  if (profile.investment_interests?.length) {
+    for (const interest of profile.investment_interests.slice(0, 3)) {
+      searches.push({ category: "investment", query: `${interest} investment news funding` });
+      searches.push({ category: "investment_risk", query: `${interest} investment risk warning bubble`, perspective: "bearish" });
+    }
+  }
+
+  // ── TECHNOLOGY STACK ───────────────────────────────────────────────────
+  if (profile.technology_stack?.length) {
+    for (const tech of profile.technology_stack.slice(0, 3)) {
+      searches.push({ category: "tech", query: `${tech} vulnerability security update news` });
+    }
   }
 
   return searches;
