@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from "react";
-import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff } from "lucide-react";
+import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, BarChart3, ImageIcon, Code, Lock, X, WifiOff, Paperclip, Mic, MicOff, ClipboardPaste, FileUp } from "lucide-react";
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 import VoiceRecordingOrb from "./VoiceRecordingOrb";
 import type { FileAttachment } from "./types";
+
+const LONG_PASTE_THRESHOLD = 500; // chars
 
 const BORDER_COLOR_THEMES: Record<string, { main: string; shimmer: string; glow: string }> = {
   default: {
@@ -155,6 +157,7 @@ const quickActions: Record<InputIntent, { id: string; icon: React.ElementType; l
 const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProps>(({ onSendMessage, onStop, onQuickAction, isStreaming, disabled, conversationId }, ref) => {
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [longPasteText, setLongPasteText] = useState<string | null>(null);
   const onAttachmentsChange = setAttachments;
   const onChange = setValue;
 
@@ -265,6 +268,14 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     const items = e.clipboardData?.items;
     if (!items) return;
 
+    // Check for long text paste first
+    const textData = e.clipboardData.getData("text/plain");
+    if (textData && textData.length > LONG_PASTE_THRESHOLD) {
+      e.preventDefault();
+      setLongPasteText(textData);
+      return;
+    }
+
     const imageItems: DataTransferItem[] = [];
     for (const item of Array.from(items)) {
       if (item.type.startsWith("image/")) imageItems.push(item);
@@ -297,6 +308,29 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
       }
     });
   }, [attachments, onAttachmentsChange]);
+
+  const handleLongPasteInline = () => {
+    if (longPasteText) {
+      onChange(value + longPasteText);
+      setLongPasteText(null);
+    }
+  };
+
+  const handleLongPasteAsFile = () => {
+    if (longPasteText && onAttachmentsChange) {
+      const blob = new Blob([longPasteText], { type: "text/plain" });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const commaIdx = result.indexOf(",");
+        const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
+        const name = `pasted-text-${Date.now()}.txt`;
+        onAttachmentsChange([...attachments, { name, type: "text/plain", size: blob.size, base64 }]);
+        setLongPasteText(null);
+      };
+      reader.readAsDataURL(blob);
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Tab" || (e.key === "ArrowRight" && textareaRef.current && textareaRef.current.selectionStart === value.length)) {
@@ -574,6 +608,47 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
           </p>
         </div>
       </div>
+
+      {/* Long paste modal */}
+      {longPasteText && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-[420px] rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/20">
+              <ClipboardPaste className="h-4 w-4 text-accent" />
+              <span className="text-sm font-light text-foreground">Large Clipboard Content</span>
+              <button onClick={() => setLongPasteText(null)} className="ml-auto p-1 rounded text-muted-foreground/50 hover:text-foreground transition-colors">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-[11px] text-muted-foreground/60 mb-2">
+                {longPasteText.length.toLocaleString()} characters detected. How would you like to handle this?
+              </p>
+              <div className="rounded-lg border border-border/20 bg-background/30 p-2 max-h-[120px] overflow-y-auto">
+                <p className="text-[10px] text-muted-foreground/40 font-mono whitespace-pre-wrap break-all line-clamp-6">
+                  {longPasteText.slice(0, 600)}{longPasteText.length > 600 ? "…" : ""}
+                </p>
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t border-border/20 flex items-center gap-2">
+              <button
+                onClick={handleLongPasteAsFile}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-light bg-accent/15 text-accent hover:bg-accent/25 transition-colors border border-accent/20"
+              >
+                <FileUp className="h-3.5 w-3.5" />
+                Attach as file
+              </button>
+              <button
+                onClick={handleLongPasteInline}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-light bg-foreground/5 text-foreground/70 hover:bg-foreground/10 transition-colors border border-border/20"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5" />
+                Paste inline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
