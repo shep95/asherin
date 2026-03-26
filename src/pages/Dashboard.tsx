@@ -151,6 +151,7 @@ const Dashboard = () => {
   const [focusMode, setFocusMode] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
+  const activeConvIdRef = useRef<string | null>(null);
   const attachmentMapRef = useRef<Map<string, FileAttachment[]>>(new Map());
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
