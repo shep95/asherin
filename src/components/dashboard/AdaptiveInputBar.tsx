@@ -157,6 +157,7 @@ const quickActions: Record<InputIntent, { id: string; icon: React.ElementType; l
 const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProps>(({ onSendMessage, onStop, onQuickAction, isStreaming, disabled, conversationId }, ref) => {
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [longPasteText, setLongPasteText] = useState<string | null>(null);
   const onAttachmentsChange = setAttachments;
   const onChange = setValue;
 
