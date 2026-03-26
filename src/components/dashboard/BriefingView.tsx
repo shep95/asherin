@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Newspaper, Send, RefreshCw, Loader2, AlertTriangle, Eye, Trash2, Settings2, Clock, Download, FileText, Bell } from "lucide-react";
+import { Newspaper, Send, RefreshCw, Loader2, AlertTriangle, Eye, Trash2, Settings2, Clock, Download, FileText, Bell, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
+import BriefingProfileEditor from "./briefing/BriefingProfileEditor";
 
 interface BriefingReport {
   id: string;
@@ -41,16 +42,36 @@ const HOURS = Array.from({ length: 24 }, (_, i) => {
   return { value: `${h}:00`, label };
 });
 
+// Section extraction for tabbed view
+function extractSection(content: string, heading: string): string {
+  const regex = new RegExp(`## ${heading}[\\s\\S]*?(?=\\n## |\\n---|\$)`, "i");
+  const match = content.match(regex);
+  if (!match) return "";
+  return match[0].replace(new RegExp(`^## ${heading}\\s*`, "i"), "").trim();
+}
+
+type ReportTab = "full" | "verified" | "contested" | "perspectives" | "gaps";
+
+const REPORT_TABS: { id: ReportTab; label: string }[] = [
+  { id: "full", label: "Full Report" },
+  { id: "verified", label: "Verified Facts" },
+  { id: "contested", label: "Contested" },
+  { id: "perspectives", label: "Perspectives" },
+  { id: "gaps", label: "Intel Gaps" },
+];
+
 const BriefingView = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [reports, setReports] = useState<BriefingReport[]>([]);
   const [activeReport, setActiveReport] = useState<BriefingReport | null>(null);
+  const [reportTab, setReportTab] = useState<ReportTab>("full");
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
   const [deliveryTime, setDeliveryTime] = useState("08:00");
   const [timezone, setTimezone] = useState("local");
+  const [showEditor, setShowEditor] = useState(false);
 
   // Chat onboarding state
   const [showSetup, setShowSetup] = useState(false);
@@ -60,10 +81,7 @@ const BriefingView = () => {
   const [profileSaved, setProfileSaved] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  const scrollToBottom = () => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); };
   useEffect(() => { scrollToBottom(); }, [chatMessages]);
 
   const loadData = useCallback(async () => {
@@ -79,24 +97,18 @@ const BriefingView = () => {
     } else {
       setShowSetup(true);
     }
-    if (reportsRes.data) {
-      setReports(reportsRes.data as BriefingReport[]);
-    }
+    if (reportsRes.data) setReports(reportsRes.data as BriefingReport[]);
     setLoading(false);
   }, [user]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Start the onboarding conversation
   const startOnboarding = useCallback(async () => {
     if (chatMessages.length > 0) return;
     setChatLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("briefing-onboard", {
-        body: {
-          messages: [{ role: "user", content: "Hi, I'd like to set up my intelligence briefing profile." }],
-          current_profile: { delivery_time: deliveryTime },
-        },
+        body: { messages: [{ role: "user", content: "Hi, I'd like to set up my intelligence briefing profile." }], current_profile: { delivery_time: deliveryTime } },
       });
       if (error) throw error;
       setChatMessages([
@@ -104,17 +116,13 @@ const BriefingView = () => {
         { role: "assistant", content: data.reply },
       ]);
     } catch {
-      setChatMessages([
-        { role: "assistant", content: "Welcome to AUREON Intelligence Briefings. I'll help you set up your personalized daily briefing. Let's start — what's your company name and what industry are you in?" },
-      ]);
+      setChatMessages([{ role: "assistant", content: "Welcome to AUREON Intelligence Briefings. I'll help you set up your personalized daily briefing. Let's start — what's your company name and what industry are you in?" }]);
     }
     setChatLoading(false);
   }, [chatMessages.length, deliveryTime]);
 
   useEffect(() => {
-    if (showSetup && chatMessages.length === 0) {
-      startOnboarding();
-    }
+    if (showSetup && chatMessages.length === 0) startOnboarding();
   }, [showSetup, startOnboarding]);
 
   const sendChatMessage = async () => {
@@ -124,13 +132,9 @@ const BriefingView = () => {
     const newMessages = [...chatMessages, { role: "user" as const, content: userMsg }];
     setChatMessages(newMessages);
     setChatLoading(true);
-
     try {
       const { data, error } = await supabase.functions.invoke("briefing-onboard", {
-        body: {
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-          current_profile: { delivery_time: deliveryTime },
-        },
+        body: { messages: newMessages.map(m => ({ role: m.role, content: m.content })), current_profile: { delivery_time: deliveryTime } },
       });
       if (error) throw error;
       setChatMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
@@ -139,7 +143,7 @@ const BriefingView = () => {
         setHasProfile(true);
         toast({ title: "Profile saved", description: "Your intelligence briefing profile is ready." });
       }
-    } catch (e: any) {
+    } catch {
       setChatMessages(prev => [...prev, { role: "assistant", content: "Sorry, I had trouble processing that. Could you try again?" }]);
     }
     setChatLoading(false);
@@ -148,9 +152,7 @@ const BriefingView = () => {
   const saveDeliveryTime = async () => {
     if (!user) return;
     const timeValue = timezone === "local" ? deliveryTime : `${deliveryTime} ${timezone}`;
-    if (hasProfile) {
-      await supabase.from("briefing_profiles").update({ delivery_time: timeValue }).eq("user_id", user.id);
-    }
+    if (hasProfile) await supabase.from("briefing_profiles").update({ delivery_time: timeValue }).eq("user_id", user.id);
     toast({ title: "Delivery time updated" });
   };
 
@@ -161,16 +163,13 @@ const BriefingView = () => {
       const { data, error } = await supabase.functions.invoke("generate-briefing");
       if (error) throw error;
       if (data?.briefing) {
-        toast({ title: "Briefing generated", description: `${data.sources_checked} sources analyzed.` });
+        toast({ title: "Briefing generated", description: `${data.sources_checked} sources analyzed with cross-validation.` });
         await loadData();
         if (data.report_id) {
-          const newReport = {
-            id: data.report_id,
-            title: `Morning Brief — ${new Date().toLocaleDateString()}`,
-            content: data.briefing,
-            sources_checked: data.sources_checked,
-            critical_items: 0, significant_items: 0, monitoring_items: 0,
-            created_at: new Date().toISOString(),
+          const newReport: BriefingReport = {
+            id: data.report_id, title: `Intelligence Brief — ${new Date().toLocaleDateString()}`,
+            content: data.briefing, sources_checked: data.sources_checked,
+            critical_items: 0, significant_items: 0, monitoring_items: 0, created_at: new Date().toISOString(),
           };
           setActiveReport(newReport);
         }
@@ -195,14 +194,6 @@ const BriefingView = () => {
     loadData();
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
-      </div>
-    );
-  }
-
   const downloadBriefing = (report: BriefingReport) => {
     const blob = new Blob([report.content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
@@ -213,21 +204,53 @@ const BriefingView = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Active report view
+  if (loading) {
+    return <div className="flex flex-1 items-center justify-center"><Loader2 className="h-6 w-6 text-muted-foreground animate-spin" /></div>;
+  }
+
+  // Profile editor view
+  if (showEditor) {
+    return <BriefingProfileEditor onClose={() => setShowEditor(false)} onSaved={() => { setShowEditor(false); loadData(); }} />;
+  }
+
+  // Active report view with tabs
   if (activeReport) {
+    const getTabContent = (): string => {
+      switch (reportTab) {
+        case "verified": return extractSection(activeReport.content, "VERIFIED FACTS") || "No verified facts section found in this report.";
+        case "contested": return extractSection(activeReport.content, "CONTESTED CLAIMS") || "No contested claims found — all claims were cross-validated.";
+        case "perspectives": {
+          const perspectives = extractSection(activeReport.content, "PERSPECTIVE ANALYSIS");
+          const mainstream = extractSection(activeReport.content, "Mainstream Narrative");
+          const counter = extractSection(activeReport.content, "Counter-Narrative");
+          const independent = extractSection(activeReport.content, "Independent Assessment");
+          if (perspectives) return `## Perspective Analysis\n\n${perspectives}`;
+          if (mainstream || counter || independent) {
+            return [
+              mainstream ? `### Mainstream Narrative\n${mainstream}` : "",
+              counter ? `### Counter-Narrative\n${counter}` : "",
+              independent ? `### Independent Assessment\n${independent}` : "",
+            ].filter(Boolean).join("\n\n");
+          }
+          return "No multi-perspective analysis found in this report.";
+        }
+        case "gaps": return extractSection(activeReport.content, "INTELLIGENCE GAPS") || "No intelligence gaps identified.";
+        default: return activeReport.content;
+      }
+    };
+
     return (
       <div className="flex flex-1 flex-col h-full">
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-border/20">
-          <button onClick={() => setActiveReport(null)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => { setActiveReport(null); setReportTab("full"); }} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
             ← Back to Briefings
           </button>
           <div className="flex items-center gap-3">
-            <button onClick={() => downloadBriefing(activeReport)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors" title="Download briefing">
+            <button onClick={() => downloadBriefing(activeReport)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors" title="Download">
               <Download className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={async () => {
-                // Create notebook from briefing
                 try {
                   const { data: nb } = await (supabase.from as any)("notebooks").insert({
                     title: activeReport.title || "Briefing Analysis",
@@ -256,10 +279,30 @@ const BriefingView = () => {
             </div>
           </div>
         </div>
+
+        {/* Report tabs */}
+        <div className="flex-shrink-0 border-b border-border/10 px-4">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {REPORT_TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setReportTab(tab.id)}
+                className={`px-3 py-2.5 text-[10px] font-light tracking-wide transition-colors border-b-2 whitespace-nowrap ${
+                  reportTab === tab.id
+                    ? "border-accent text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground/70"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <ScrollArea className="flex-1">
           <div className="max-w-3xl mx-auto p-6">
-            <div className="prose prose-invert prose-sm max-w-none [&_h1]:text-lg [&_h1]:font-extralight [&_h1]:tracking-wide [&_h2]:text-sm [&_h2]:font-light [&_h2]:mt-6 [&_h2]:mb-3 [&_p]:text-xs [&_p]:font-extralight [&_p]:leading-relaxed [&_p]:text-foreground/80 [&_li]:text-xs [&_li]:font-extralight [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline [&_hr]:border-border/20">
-              <ReactMarkdown>{activeReport.content}</ReactMarkdown>
+            <div className="prose prose-invert prose-sm max-w-none [&_h1]:text-lg [&_h1]:font-extralight [&_h1]:tracking-wide [&_h2]:text-sm [&_h2]:font-light [&_h2]:mt-6 [&_h2]:mb-3 [&_h3]:text-xs [&_h3]:font-light [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:text-xs [&_p]:font-extralight [&_p]:leading-relaxed [&_p]:text-foreground/80 [&_li]:text-xs [&_li]:font-extralight [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline [&_hr]:border-border/20 [&_strong]:text-foreground [&_strong]:font-light">
+              <ReactMarkdown>{getTabContent()}</ReactMarkdown>
             </div>
           </div>
         </ScrollArea>
@@ -281,7 +324,6 @@ const BriefingView = () => {
           )}
         </div>
 
-        {/* Chat messages */}
         <ScrollArea className="flex-1">
           <div className="max-w-2xl mx-auto p-6 space-y-4">
             {chatMessages.map((msg, i) => (
@@ -302,38 +344,24 @@ const BriefingView = () => {
                 </div>
               </div>
             )}
-
-            {/* Profile saved — show time picker and finish */}
             {profileSaved && (
               <div className="rounded-xl border border-accent/20 bg-accent/5 p-5 space-y-4 mt-4">
                 <p className="text-xs font-light text-foreground">Your profile is ready. Set your preferred briefing delivery time:</p>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-accent" />
-                    <select
-                      value={deliveryTime}
-                      onChange={(e) => setDeliveryTime(e.target.value)}
-                      className="rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer"
-                    >
-                      {HOURS.map(h => (
-                        <option key={h.value} value={h.value}>{h.label}</option>
-                      ))}
+                    <select value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)}
+                      className="rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer">
+                      {HOURS.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
                     </select>
                   </div>
-                  <select
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer"
-                  >
-                    {TIMEZONES.map(tz => (
-                      <option key={tz.value} value={tz.value}>{tz.label}</option>
-                    ))}
+                  <select value={timezone} onChange={(e) => setTimezone(e.target.value)}
+                    className="rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer">
+                    {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
                   </select>
                 </div>
-                <button
-                  onClick={finishSetup}
-                  className="w-full rounded-xl bg-accent text-accent-foreground py-3 text-xs font-light tracking-wide hover:bg-accent/90 transition-all flex items-center justify-center gap-2"
-                >
+                <button onClick={finishSetup}
+                  className="w-full rounded-xl bg-accent text-accent-foreground py-3 text-xs font-light tracking-wide hover:bg-accent/90 transition-all flex items-center justify-center gap-2">
                   Activate Briefings
                 </button>
               </div>
@@ -342,23 +370,16 @@ const BriefingView = () => {
           </div>
         </ScrollArea>
 
-        {/* Chat input */}
         {!profileSaved && (
           <div className="flex-shrink-0 border-t border-border/20 p-4">
             <div className="max-w-2xl mx-auto flex items-center gap-3">
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
+              <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }}
                 placeholder="Tell Aureon about your business..."
                 className="flex-1 rounded-xl border border-border/20 bg-card/20 px-4 py-3 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/30"
-                disabled={chatLoading}
-              />
-              <button
-                onClick={sendChatMessage}
-                disabled={chatLoading || !chatInput.trim()}
-                className="rounded-xl bg-accent text-accent-foreground p-3 hover:bg-accent/90 transition-all disabled:opacity-50"
-              >
+                disabled={chatLoading} />
+              <button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}
+                className="rounded-xl bg-accent text-accent-foreground p-3 hover:bg-accent/90 transition-all disabled:opacity-50">
                 <Send className="h-4 w-4" />
               </button>
             </div>
@@ -377,13 +398,16 @@ const BriefingView = () => {
           <h2 className="text-sm font-light tracking-wide text-foreground">Intelligence Briefings</h2>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setShowSetup(true); setChatMessages([]); }} className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Edit profile">
+          <button onClick={() => setShowEditor(true)} className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Edit profile">
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button onClick={() => { setShowSetup(true); setChatMessages([]); }} className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Reconfigure via chat">
             <Settings2 className="h-4 w-4" />
           </button>
           <button onClick={generateBriefing} disabled={generating}
             className="flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-4 py-2 text-xs font-light hover:bg-accent/90 transition-all disabled:opacity-50">
             {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            {generating ? "Generating…" : "Generate Now"}
+            {generating ? "Analyzing…" : "Generate Now"}
           </button>
         </div>
       </div>
@@ -396,27 +420,18 @@ const BriefingView = () => {
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
                 <span>Daily at</span>
-                <select
-                  value={deliveryTime}
-                  onChange={(e) => { setDeliveryTime(e.target.value); }}
-                  onBlur={saveDeliveryTime}
-                  className="rounded-lg border border-border/20 bg-card/30 px-2 py-1 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer"
-                >
-                  {HOURS.map(h => (
-                    <option key={h.value} value={h.value}>{h.label}</option>
-                  ))}
+                <select value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} onBlur={saveDeliveryTime}
+                  className="rounded-lg border border-border/20 bg-card/30 px-2 py-1 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer">
+                  {HOURS.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
                 </select>
-                <select
-                  value={timezone}
-                  onChange={(e) => { setTimezone(e.target.value); }}
-                  onBlur={saveDeliveryTime}
-                  className="rounded-lg border border-border/20 bg-card/30 px-2 py-1 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer"
-                >
-                  {TIMEZONES.map(tz => (
-                    <option key={tz.value} value={tz.value}>{tz.label}</option>
-                  ))}
+                <select value={timezone} onChange={(e) => setTimezone(e.target.value)} onBlur={saveDeliveryTime}
+                  className="rounded-lg border border-border/20 bg-card/30 px-2 py-1 text-xs text-foreground outline-none focus:border-accent/30 appearance-none cursor-pointer">
+                  {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
                 </select>
               </div>
+              <button onClick={() => setShowEditor(true)} className="text-[10px] text-accent hover:text-accent/80 transition-colors flex items-center gap-1">
+                <Pencil className="h-3 w-3" /> Edit Topics
+              </button>
             </div>
           </div>
 
@@ -425,27 +440,25 @@ const BriefingView = () => {
             <div className="text-center py-12 space-y-3">
               <Newspaper className="h-10 w-10 text-muted-foreground/30 mx-auto" />
               <p className="text-sm font-extralight text-muted-foreground">No briefings generated yet.</p>
-              <p className="text-xs font-extralight text-muted-foreground/60">Click "Generate Now" to create your first intelligence briefing.</p>
+              <p className="text-xs font-extralight text-muted-foreground/60">Click "Generate Now" to create your first multi-source intelligence briefing.</p>
             </div>
           ) : (
             <div className="space-y-2">
               {reports.map((report) => (
                 <div key={report.id}
                   className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 hover:bg-foreground/5 transition-colors cursor-pointer group"
-                  onClick={() => setActiveReport(report)}
-                >
+                  onClick={() => setActiveReport(report)}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-light text-foreground">{report.title}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        {report.sources_checked} sources • {new Date(report.created_at).toLocaleString()}
+                        {report.sources_checked} sources • Cross-validated • {new Date(report.created_at).toLocaleString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {report.critical_items > 0 && (
                         <span className="flex items-center gap-1 text-[10px] text-destructive">
-                          <AlertTriangle className="h-3 w-3" />
-                          {report.critical_items}
+                          <AlertTriangle className="h-3 w-3" /> {report.critical_items}
                         </span>
                       )}
                       <button onClick={(e) => { e.stopPropagation(); downloadBriefing(report); }}

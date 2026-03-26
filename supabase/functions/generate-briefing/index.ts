@@ -8,15 +8,12 @@ const corsHeaders = {
 
 const log = (step: string, details?: unknown) => console.log(`[BRIEFING] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 
-// ── Multi-Source Intelligence (from NOMAD) ──────────────────────────────────
+// ── Multi-Source Search ─────────────────────────────────────────────────────
 
 async function searchDDGHtml(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
   try {
     const resp = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "text/html",
-      },
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept": "text/html" },
     });
     if (!resp.ok) return [];
     const html = await resp.text();
@@ -29,10 +26,7 @@ async function searchDDGHtml(query: string): Promise<{ title: string; url: strin
       const title = titleMatch ? titleMatch[1].replace(/<[^>]*>/g, "").trim() : "";
       const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, "").trim() : "";
       let url = urlMatch ? urlMatch[1].trim() : "";
-      if (url.includes("duckduckgo.com/l/")) {
-        const uddg = url.match(/uddg=([^&]*)/);
-        if (uddg) url = decodeURIComponent(uddg[1]);
-      }
+      if (url.includes("duckduckgo.com/l/")) { const uddg = url.match(/uddg=([^&]*)/); if (uddg) url = decodeURIComponent(uddg[1]); }
       if (title) results.push({ title, url, snippet });
     }
     return results;
@@ -43,11 +37,7 @@ async function searchDDGLite(query: string): Promise<{ title: string; url: strin
   try {
     const resp = await fetch(`https://lite.duckduckgo.com/lite/`, {
       method: "POST",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "text/html",
-      },
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Content-Type": "application/x-www-form-urlencoded", "Accept": "text/html" },
       body: `q=${encodeURIComponent(query)}`,
     });
     if (!resp.ok) return [];
@@ -60,16 +50,11 @@ async function searchDDGLite(query: string): Promise<{ title: string; url: strin
     while ((m = linkRegex.exec(html)) !== null) {
       let url = m[1].trim();
       const title = m[2].replace(/<[^>]*>/g, "").trim();
-      if (url.includes("duckduckgo.com/l/")) {
-        const uddg = url.match(/uddg=([^&]*)/);
-        if (uddg) url = decodeURIComponent(uddg[1]);
-      }
+      if (url.includes("duckduckgo.com/l/")) { const uddg = url.match(/uddg=([^&]*)/); if (uddg) url = decodeURIComponent(uddg[1]); }
       if (title && url) links.push({ url, title });
     }
     const snippets: string[] = [];
-    while ((m = snippetRegex.exec(html)) !== null) {
-      snippets.push(m[1].replace(/<[^>]*>/g, "").trim());
-    }
+    while ((m = snippetRegex.exec(html)) !== null) { snippets.push(m[1].replace(/<[^>]*>/g, "").trim()); }
     for (let i = 0; i < Math.min(links.length, 5); i++) {
       results.push({ title: links[i].title, url: links[i].url, snippet: snippets[i] || "" });
     }
@@ -84,20 +69,76 @@ async function queryDDGInstant(query: string): Promise<string> {
     const data = await resp.json();
     if (data.AbstractText) return `${data.AbstractText} (Source: ${data.AbstractSource})`;
     if (data.Answer) return data.Answer;
-    if (data.RelatedTopics?.length) {
-      return data.RelatedTopics.slice(0, 3).map((t: any) => t.Text || "").filter(Boolean).join("\n");
-    }
+    if (data.RelatedTopics?.length) return data.RelatedTopics.slice(0, 3).map((t: any) => t.Text || "").filter(Boolean).join("\n");
     return "";
   } catch { return ""; }
 }
 
-// Robust search: tries HTML endpoint first, falls back to Lite, then Instant
 async function robustSearch(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
   let results = await searchDDGHtml(query);
-  if (results.length === 0) {
-    results = await searchDDGLite(query);
-  }
+  if (results.length === 0) results = await searchDDGLite(query);
   return results;
+}
+
+// ── Identify Parties & Perspectives ─────────────────────────────────────────
+
+function buildMultiPerspectiveSearches(profile: any): { category: string; query: string; perspective?: string }[] {
+  const searches: { category: string; query: string; perspective?: string }[] = [];
+
+  // Standard profile-based searches
+  if (profile.company_name) {
+    searches.push({ category: "company_mentions", query: `"${profile.company_name}" news` });
+    searches.push({ category: "company_mentions", query: `${profile.company_name} latest updates` });
+  }
+  if (profile.competitors?.length) {
+    for (const comp of profile.competitors.slice(0, 6)) {
+      searches.push({ category: "competitor", query: `${comp} news latest announcement` });
+    }
+  }
+  if (profile.industry) {
+    searches.push({ category: "industry", query: `${profile.industry} industry news latest` });
+    searches.push({ category: "industry", query: `${profile.industry} trends developments` });
+    searches.push({ category: "regulation", query: `${profile.industry} regulation policy government` });
+    // Multi-perspective: search for critical views
+    searches.push({ category: "industry_critical", query: `${profile.industry} criticism concerns risks`, perspective: "critical" });
+    searches.push({ category: "industry_bullish", query: `${profile.industry} growth opportunity bullish`, perspective: "optimistic" });
+  }
+  if (profile.key_markets?.length) {
+    for (const market of profile.key_markets.slice(0, 3)) {
+      searches.push({ category: "market", query: `${market} market trends economic news` });
+      // Multi-perspective: opposing views
+      searches.push({ category: "market_risk", query: `${market} market risk downturn concerns`, perspective: "bearish" });
+    }
+  }
+  if (profile.tracked_people?.length) {
+    for (const person of profile.tracked_people.slice(0, 5)) {
+      searches.push({ category: "person", query: `"${person}" latest news statement` });
+      // Criticism/opposition perspective
+      searches.push({ category: "person_critical", query: `"${person}" controversy criticism opposition`, perspective: "critical" });
+    }
+  }
+  if (profile.regulatory_bodies?.length) {
+    for (const body of profile.regulatory_bodies.slice(0, 3)) {
+      searches.push({ category: "regulatory", query: `${body} ruling update latest` });
+    }
+  }
+  if (profile.custom_topics?.length) {
+    for (const topic of profile.custom_topics.slice(0, 3)) {
+      searches.push({ category: "custom", query: `${topic} latest news` });
+      // Counter-narrative
+      searches.push({ category: "custom_counter", query: `${topic} opposing view criticism debate`, perspective: "counter" });
+    }
+  }
+
+  // Cross-validation: search for fact-check and independent analysis
+  if (profile.company_name) {
+    searches.push({ category: "fact_check", query: `${profile.company_name} fact check analysis independent review`, perspective: "validation" });
+  }
+  if (profile.industry) {
+    searches.push({ category: "fact_check", query: `${profile.industry} independent analysis fact check`, perspective: "validation" });
+  }
+
+  return searches;
 }
 
 // ── Main Handler ────────────────────────────────────────────────────────────
@@ -112,7 +153,6 @@ serve(async (req) => {
   );
 
   try {
-    // Support both direct auth and cron-triggered (userId in body)
     let userId: string;
     let bodyData: any = {};
     try { bodyData = await req.clone().json(); } catch {}
@@ -121,7 +161,6 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     
     if (bodyData?.userId && authHeader?.includes(serviceKey)) {
-      // Cron job calling with service role key and userId in body
       userId = bodyData.userId;
       log("Cron-triggered generation", { userId });
     } else if (authHeader) {
@@ -134,58 +173,15 @@ serve(async (req) => {
       throw new Error("No auth header");
     }
 
-    // Fetch profile
-    const { data: profile } = await supabaseClient
-      .from("briefing_profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
+    const { data: profile } = await supabaseClient.from("briefing_profiles").select("*").eq("user_id", userId).single();
     if (!profile) throw new Error("No briefing profile configured. Set up your Intelligence Briefing first.");
 
     log("Profile loaded", { industry: profile.industry, competitors: profile.competitors?.length });
 
-    // Build search queries from profile — multi-vector approach
-    const searches: { category: string; query: string }[] = [];
+    // ── Multi-Perspective Collection ──────────────────────────────────────
+    const searches = buildMultiPerspectiveSearches(profile);
+    log("Running multi-perspective searches", { count: searches.length });
 
-    if (profile.company_name) {
-      searches.push({ category: "company_mentions", query: `"${profile.company_name}" news` });
-      searches.push({ category: "company_mentions", query: `${profile.company_name} latest updates` });
-    }
-    if (profile.competitors?.length) {
-      for (const comp of profile.competitors.slice(0, 6)) {
-        searches.push({ category: "competitor", query: `${comp} news latest announcement` });
-      }
-    }
-    if (profile.industry) {
-      searches.push({ category: "industry", query: `${profile.industry} industry news latest` });
-      searches.push({ category: "industry", query: `${profile.industry} trends developments` });
-      searches.push({ category: "regulation", query: `${profile.industry} regulation policy government` });
-    }
-    if (profile.key_markets?.length) {
-      for (const market of profile.key_markets.slice(0, 3)) {
-        searches.push({ category: "market", query: `${market} market trends economic news` });
-      }
-    }
-    if (profile.tracked_people?.length) {
-      for (const person of profile.tracked_people.slice(0, 5)) {
-        searches.push({ category: "person", query: `"${person}" latest news statement` });
-      }
-    }
-    if (profile.regulatory_bodies?.length) {
-      for (const body of profile.regulatory_bodies.slice(0, 3)) {
-        searches.push({ category: "regulatory", query: `${body} ruling update latest` });
-      }
-    }
-    if (profile.custom_topics?.length) {
-      for (const topic of profile.custom_topics.slice(0, 3)) {
-        searches.push({ category: "custom", query: `${topic} latest news` });
-      }
-    }
-
-    log("Running searches", { count: searches.length });
-
-    // Run all searches in parallel using robust multi-endpoint approach
     const searchResults = await Promise.all(
       searches.map(async (s) => {
         const results = await robustSearch(s.query);
@@ -193,41 +189,69 @@ serve(async (req) => {
       })
     );
 
-    // Also get instant answers for key topics
+    // Instant answers for key topics
     const instantAnswers: string[] = [];
     const instantQueries = [
       profile.industry ? `${profile.industry} industry` : "",
       ...(profile.competitors?.slice(0, 3) || []),
     ].filter(Boolean);
-
-    const instantResults = await Promise.all(
-      instantQueries.map(q => queryDDGInstant(q))
-    );
+    const instantResults = await Promise.all(instantQueries.map(q => queryDDGInstant(q)));
     instantResults.forEach(r => { if (r) instantAnswers.push(r); });
 
     const totalSources = searchResults.reduce((acc, s) => acc + s.results.length, 0) + instantAnswers.length;
-    log("Searches complete", { totalSources, searchSources: searchResults.reduce((acc, s) => acc + s.results.length, 0), instantAnswers: instantAnswers.length });
+    log("Searches complete", { totalSources });
 
-    // Build intelligence context with token truncation
-    const MAX_CONTEXT_CHARS = 40000; // ~10k tokens safe limit
+    // ── Build Context Blocks with Perspective Tags ────────────────────────
+    const MAX_CONTEXT_CHARS = 45000;
     let contextCharsUsed = 0;
     const contextBlocks: string[] = [];
 
-    for (const s of searchResults.filter(s => s.results.length > 0)) {
-      const resultText = s.results.map((r) => `- ${r.title}: ${r.snippet} [${r.url}]`).join("\n");
-      const block = `[${s.category.toUpperCase()}] Query: "${s.query}"\n${resultText}`;
+    // Separate primary vs counter/critical sources
+    const primarySources = searchResults.filter(s => !s.perspective);
+    const criticalSources = searchResults.filter(s => s.perspective === "critical" || s.perspective === "counter" || s.perspective === "bearish");
+    const validationSources = searchResults.filter(s => s.perspective === "validation");
+    const optimisticSources = searchResults.filter(s => s.perspective === "optimistic");
+
+    // Primary intelligence
+    for (const s of primarySources.filter(s => s.results.length > 0)) {
+      const resultText = s.results.map(r => `- ${r.title}: ${r.snippet} [${r.url}]`).join("\n");
+      const block = `[PRIMARY/${s.category.toUpperCase()}] Query: "${s.query}"\n${resultText}`;
+      if (contextCharsUsed + block.length > MAX_CONTEXT_CHARS) break;
+      contextBlocks.push(block);
+      contextCharsUsed += block.length;
+    }
+
+    // Counter-narratives / critical views
+    for (const s of criticalSources.filter(s => s.results.length > 0)) {
+      const resultText = s.results.map(r => `- ${r.title}: ${r.snippet} [${r.url}]`).join("\n");
+      const block = `[COUNTER-NARRATIVE/${s.category.toUpperCase()}] Perspective: ${s.perspective}\n${resultText}`;
+      if (contextCharsUsed + block.length > MAX_CONTEXT_CHARS) break;
+      contextBlocks.push(block);
+      contextCharsUsed += block.length;
+    }
+
+    // Optimistic views
+    for (const s of optimisticSources.filter(s => s.results.length > 0)) {
+      const resultText = s.results.map(r => `- ${r.title}: ${r.snippet} [${r.url}]`).join("\n");
+      const block = `[BULLISH/${s.category.toUpperCase()}] Perspective: ${s.perspective}\n${resultText}`;
+      if (contextCharsUsed + block.length > MAX_CONTEXT_CHARS) break;
+      contextBlocks.push(block);
+      contextCharsUsed += block.length;
+    }
+
+    // Validation / fact-check sources
+    for (const s of validationSources.filter(s => s.results.length > 0)) {
+      const resultText = s.results.map(r => `- ${r.title}: ${r.snippet} [${r.url}]`).join("\n");
+      const block = `[VALIDATION/${s.category.toUpperCase()}] Cross-reference check:\n${resultText}`;
       if (contextCharsUsed + block.length > MAX_CONTEXT_CHARS) break;
       contextBlocks.push(block);
       contextCharsUsed += block.length;
     }
 
     const contextBlocksJoined = contextBlocks.join("\n\n");
+    const instantBlock = instantAnswers.length ? `\n\n[INSTANT INTELLIGENCE]\n${instantAnswers.join("\n")}` : "";
 
-    const instantBlock = instantAnswers.length
-      ? `\n\n[INSTANT INTELLIGENCE]\n${instantAnswers.join("\n")}`
-      : "";
-
-    // Generate briefing with Gemini
+    // ── Gemini Synthesis with Multi-Perspective Analysis ──────────────────
     const geminiKey = Deno.env.get("GEMINI_API_KEY_APP");
     if (!geminiKey) throw new Error("GEMINI_API_KEY_APP not set");
 
@@ -235,7 +259,7 @@ serve(async (req) => {
     const today = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     const yesterday = new Date(now.getTime() - 86400000).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-    const prompt = `You are AUREON Intelligence, powered by the NOMAD intelligence engine. You are generating a personalized daily intelligence briefing from real gathered data.
+    const prompt = `You are AUREON Intelligence, a multi-source intelligence analysis engine. You are generating a forensic-grade intelligence briefing using cross-validated, multi-perspective data.
 
 USER PROFILE:
 - Company: ${profile.company_name || "Not specified"}
@@ -248,43 +272,84 @@ USER PROFILE:
 - Regulatory Bodies: ${profile.regulatory_bodies?.join(", ") || "None listed"}
 - Custom Topics: ${profile.custom_topics?.join(", ") || "None listed"}
 
-RAW INTELLIGENCE DATA (gathered by NOMAD from ${totalSources} sources):
+RAW INTELLIGENCE DATA (gathered from ${totalSources} sources with multi-perspective collection):
 ${contextBlocksJoined}${instantBlock}
 
-${totalSources === 0 ? "NOTE: No search results were returned. Generate the briefing based on your training knowledge of recent events related to the user's profile. Clearly mark items as 'Based on available intelligence' rather than citing specific sources." : ""}
+${totalSources === 0 ? "NOTE: No search results were returned. Generate the briefing based on your training knowledge. Clearly mark items as 'Based on available intelligence'." : ""}
 
-Generate a structured intelligence briefing covering the last 24-48 hours (${yesterday} through ${today}). 
+ANALYSIS PROTOCOL:
 
-IMPORTANT: Start your response with a single-line TITLE on its own, formatted as:
-TITLE: [A short, unique, specific headline summarizing the most important development today, e.g. "EU AI Act Enforcement Begins as Tech Giants Scramble" or "OpenAI Launches Enterprise Tier — Market Shakes Up"]
+1. CROSS-VALIDATION: For every major claim, check if PRIMARY sources and COUNTER-NARRATIVE sources agree or disagree. If they agree, it's likely true. If only one side reports it, flag uncertainty.
 
-Then format the rest in markdown exactly like this:
+2. TRUTH EXTRACTION LOGIC:
+   - Claims made by MULTIPLE independent sources = HIGH confidence (85-100%)
+   - Claims confirmed by VALIDATION/fact-check sources = HIGH confidence
+   - Claims from PRIMARY only, no counter-narrative = MEDIUM confidence (50-84%)
+   - Claims contradicted by COUNTER-NARRATIVE sources = FLAG as contested
+   - Claims from single government/corporate source only = LOW confidence (below 50%)
 
-# AUREON MORNING BRIEF — ${today}
+3. NARRATIVE DETECTION: Identify when sources are pushing a narrative vs reporting facts:
+   - Promotional language about own products/company = likely marketing, not intelligence
+   - Criticism exclusively from competitors = potential competitive narrative
+   - Unanimous reporting across independent outlets = likely factual
 
-## 🔴 CRITICAL (requires attention today)
-List items that need immediate action or awareness. Include source links when available. If nothing critical, say "No critical items identified — all monitored vectors are stable."
+Generate a structured intelligence briefing covering ${yesterday} through ${today}.
 
-## 🟡 SIGNIFICANT (worth knowing)
-Important developments that don't need immediate action. Include analysis and source links. Cover competitor moves, industry shifts, and tracked people activities.
+IMPORTANT: Start with a single-line TITLE:
+TITLE: [Specific headline about the most important verified development]
 
-## 🔵 MONITORING (background awareness)  
-Broader trends and developments in their space. Include regulatory and market context.
+Then output the briefing in this EXACT structure with these EXACT section headers:
 
-## 📊 MARKET SIGNALS
-Any relevant market, funding, or investment data. Include competitor funding rounds, IPO activity, and industry ETF movements if relevant.
+# AUREON INTELLIGENCE BRIEF — ${today}
+
+## EXECUTIVE SUMMARY
+3-4 sentences. Overall intelligence picture. State the number of sources analyzed and cross-validation confidence level.
+
+## VERIFIED FACTS (Cross-Validated)
+Items confirmed by multiple independent sources. Each item format:
+- **[Fact]** — Truth Score: [X]% | Sources: [count] | [Brief analysis]
+
+## CONTESTED CLAIMS
+Items where sources disagree. Each item format:
+- **[Claim]** — Claimed by: [who] | Disputed by: [who] | Likely truth: [assessment]
+
+## PERSPECTIVE ANALYSIS
+
+### Mainstream Narrative
+What the dominant media/industry narrative is saying.
+
+### Counter-Narrative
+What critical/opposition sources are saying. Where do they diverge?
+
+### Independent Assessment
+AUREON's cross-validated conclusion — what's actually happening vs what's being reported.
+
+## CRITICAL (Requires Attention Today)
+Action items. Include truth scores.
+
+## SIGNIFICANT (Worth Knowing)
+Important but not urgent. Include source diversity score.
+
+## MONITORING (Background)
+Broader trends. Note narrative direction (bullish/bearish/neutral).
+
+## MARKET & COMPETITIVE SIGNALS
+Funding, M&A, market movements. Flag if single-source.
+
+## INTELLIGENCE GAPS
+What we COULDN'T verify. What topics had insufficient cross-validation. Recommended follow-up queries.
 
 ---
-*Generated by NOMAD Intelligence Engine from ${totalSources} sources checked.*
+*Generated by AUREON Multi-Source Intelligence Engine | ${totalSources} sources | Cross-validated with counter-narrative analysis*
 
 RULES:
-- Be specific and actionable. Executives read this at 6 AM — make every line count.
-- If you have real source data, cite it with [links].
-- If sources are limited, use your training knowledge of recent events but mark it clearly.
-- NEVER say "No items found" for every section — always provide useful intelligence context.
-- Include competitor analysis even from general knowledge if specific sources are thin.
-- Keep each item concise (2-3 lines max) but actionable.
-- End significant items with "[Implication for ${profile.company_name || "your business"}]" analysis.`;
+- Be specific and actionable.
+- Every claim MUST have a truth/confidence indicator.
+- Flag single-source claims explicitly.
+- When sources contradict, present BOTH sides and your assessed truth.
+- Include "[Implication for ${profile.company_name || "your business"}]" after significant items.
+- NEVER present marketing copy as intelligence.
+- The PERSPECTIVE ANALYSIS section is mandatory — show the user HOW different sources frame the same events.`;
 
     const geminiResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -293,7 +358,7 @@ RULES:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 6000 },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 10000 },
         }),
       }
     );
@@ -306,8 +371,8 @@ RULES:
     const geminiData = await geminiResp.json();
     const rawContent = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Failed to generate briefing.";
 
-    // Extract dynamic title from AI response
-    let briefingTitle = `Morning Brief — ${today}`;
+    // Extract title
+    let briefingTitle = `Intelligence Brief — ${today}`;
     let briefingContent = rawContent;
     const titleMatch = rawContent.match(/^TITLE:\s*(.+)/m);
     if (titleMatch) {
@@ -315,10 +380,20 @@ RULES:
       briefingContent = rawContent.replace(/^TITLE:\s*.+\n*/m, "").trim();
     }
 
-    // Count items by severity
-    const criticalCount = (briefingContent.match(/^[-→•]/gm) || []).length;
+    // Count severity items
+    const criticalCount = (briefingContent.match(/## CRITICAL/gi) || []).length > 0
+      ? (briefingContent.split(/## CRITICAL/i)[1]?.split(/## /)[0]?.match(/^[-→•*]/gm) || []).length
+      : 0;
 
-    // Save report to DB
+    // Count perspectives collected
+    const perspectiveCounts = {
+      primary: primarySources.filter(s => s.results.length > 0).length,
+      critical: criticalSources.filter(s => s.results.length > 0).length,
+      validation: validationSources.filter(s => s.results.length > 0).length,
+      optimistic: optimisticSources.filter(s => s.results.length > 0).length,
+    };
+
+    // Save report
     const { data: report, error: insertError } = await supabaseClient
       .from("briefing_reports")
       .insert({
@@ -327,17 +402,21 @@ RULES:
         content: briefingContent,
         sources_checked: totalSources,
         critical_items: criticalCount,
-        significant_items: 0,
-        monitoring_items: 0,
+        significant_items: perspectiveCounts.critical,
+        monitoring_items: perspectiveCounts.validation,
       })
       .select()
       .single();
 
     if (insertError) log("Insert error", insertError);
+    log("Briefing generated", { reportId: report?.id, sources: totalSources, perspectives: perspectiveCounts });
 
-    log("Briefing generated", { reportId: report?.id, sources: totalSources });
-
-    return new Response(JSON.stringify({ briefing: briefingContent, sources_checked: totalSources, report_id: report?.id }), {
+    return new Response(JSON.stringify({
+      briefing: briefingContent,
+      sources_checked: totalSources,
+      report_id: report?.id,
+      perspectives: perspectiveCounts,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
