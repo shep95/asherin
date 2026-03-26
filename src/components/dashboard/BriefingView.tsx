@@ -50,14 +50,17 @@ function extractSection(content: string, heading: string): string {
   return match[0].replace(new RegExp(`^## ${heading}\\s*`, "i"), "").trim();
 }
 
-type ReportTab = "full" | "verified" | "contested" | "perspectives" | "gaps";
+type ReportTab = "full" | "verified" | "contested" | "perspectives" | "predictions" | "economic" | "humanitarian" | "gaps";
 
 const REPORT_TABS: { id: ReportTab; label: string }[] = [
   { id: "full", label: "Full Report" },
-  { id: "verified", label: "Verified Facts" },
+  { id: "verified", label: "Verified" },
   { id: "contested", label: "Contested" },
   { id: "perspectives", label: "Perspectives" },
-  { id: "gaps", label: "Intel Gaps" },
+  { id: "predictions", label: "Predictions" },
+  { id: "economic", label: "Economic" },
+  { id: "humanitarian", label: "Impact" },
+  { id: "gaps", label: "Gaps" },
 ];
 
 const BriefingView = () => {
