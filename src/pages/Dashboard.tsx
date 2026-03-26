@@ -1018,7 +1018,8 @@ const Dashboard = () => {
 
   // Public sendMessage — adds to queue and kicks off processing
   const sendMessage = async (content: string, attachments?: FileAttachment[]) => {
-    if (!user || !activeConvId) return;
+    const convId = activeConvIdRef.current;
+    if (!user || !convId) return;
     // Store attachments for the first message in a ref-based map
     if (attachments?.length) {
       attachmentMapRef.current.set(content, attachments);
@@ -1027,15 +1028,15 @@ const Dashboard = () => {
     if (isStreamingRef.current) {
       const tempId = crypto.randomUUID();
       const userMsg: Message = { id: tempId, role: "user", content, timestamp: new Date(), attachments };
-      setConversations((prev) => prev.map((c) => c.id === activeConvId ? { ...c, messages: [...c.messages, userMsg] } : c));
+      setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, messages: [...c.messages, userMsg] } : c));
       setMessageStatuses(prev => ({ ...prev, [tempId]: "queued" }));
-      const queueEntry = `${activeConvId}||${content}`;
+      const queueEntry = `${convId}||${content}`;
       pendingQueue.current.push(queueEntry);
       setQueueItems(prev => [...prev, { id: tempId, content }]);
       toast({ title: "Message queued", description: "Will send after current response completes." });
       return;
     }
-    pendingQueue.current.push(`${activeConvId}||${content}`);
+    pendingQueue.current.push(`${convId}||${content}`);
     processQueue();
   };
 
