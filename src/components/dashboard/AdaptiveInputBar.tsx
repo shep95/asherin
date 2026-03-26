@@ -268,6 +268,14 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
     const items = e.clipboardData?.items;
     if (!items) return;
 
+    // Check for long text paste first
+    const textData = e.clipboardData.getData("text/plain");
+    if (textData && textData.length > LONG_PASTE_THRESHOLD) {
+      e.preventDefault();
+      setLongPasteText(textData);
+      return;
+    }
+
     const imageItems: DataTransferItem[] = [];
     for (const item of Array.from(items)) {
       if (item.type.startsWith("image/")) imageItems.push(item);
@@ -300,6 +308,29 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
       }
     });
   }, [attachments, onAttachmentsChange]);
+
+  const handleLongPasteInline = () => {
+    if (longPasteText) {
+      onChange(value + longPasteText);
+      setLongPasteText(null);
+    }
+  };
+
+  const handleLongPasteAsFile = () => {
+    if (longPasteText && onAttachmentsChange) {
+      const blob = new Blob([longPasteText], { type: "text/plain" });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const commaIdx = result.indexOf(",");
+        const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
+        const name = `pasted-text-${Date.now()}.txt`;
+        onAttachmentsChange([...attachments, { name, type: "text/plain", size: blob.size, base64 }]);
+        setLongPasteText(null);
+      };
+      reader.readAsDataURL(blob);
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Tab" || (e.key === "ArrowRight" && textareaRef.current && textareaRef.current.selectionStart === value.length)) {
