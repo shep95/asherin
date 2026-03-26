@@ -184,9 +184,27 @@ const BriefingView = () => {
   };
 
   const deleteReport = async (id: string) => {
-    await supabase.from("briefing_reports").delete().eq("id", id);
+    const { error } = await supabase.from("briefing_reports").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
     setReports(prev => prev.filter(r => r.id !== id));
     if (activeReport?.id === id) setActiveReport(null);
+    toast({ title: "Report deleted" });
+  };
+
+  const deleteProfile = async () => {
+    if (!user) return;
+    const { error } = await supabase.from("briefing_profiles").delete().eq("user_id", user.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setHasProfile(false);
+    setShowSetup(true);
+    setChatMessages([]);
+    toast({ title: "Profile deleted", description: "You can set up a new briefing profile." });
   };
 
   const finishSetup = () => {
