@@ -50,14 +50,17 @@ function extractSection(content: string, heading: string): string {
   return match[0].replace(new RegExp(`^## ${heading}\\s*`, "i"), "").trim();
 }
 
-type ReportTab = "full" | "verified" | "contested" | "perspectives" | "gaps";
+type ReportTab = "full" | "verified" | "contested" | "perspectives" | "predictions" | "economic" | "humanitarian" | "gaps";
 
 const REPORT_TABS: { id: ReportTab; label: string }[] = [
   { id: "full", label: "Full Report" },
-  { id: "verified", label: "Verified Facts" },
+  { id: "verified", label: "Verified" },
   { id: "contested", label: "Contested" },
   { id: "perspectives", label: "Perspectives" },
-  { id: "gaps", label: "Intel Gaps" },
+  { id: "predictions", label: "Predictions" },
+  { id: "economic", label: "Economic" },
+  { id: "humanitarian", label: "Impact" },
+  { id: "gaps", label: "Gaps" },
 ];
 
 const BriefingView = () => {
@@ -233,6 +236,53 @@ const BriefingView = () => {
             ].filter(Boolean).join("\n\n");
           }
           return "No multi-perspective analysis found in this report.";
+        }
+        case "predictions": {
+          const hist = extractSection(activeReport.content, "HISTORICAL CONTEXT") || "";
+          const pred = extractSection(activeReport.content, "PREDICTION ENGINE") || "";
+          const scenarios = extractSection(activeReport.content, "ALTERNATIVE SCENARIOS") || "";
+          const combined = [
+            hist ? `## Historical Context\n\n${hist}` : "",
+            pred ? `## Prediction Engine\n\n${pred}` : "",
+            scenarios ? `## Alternative Scenarios\n\n${scenarios}` : "",
+          ].filter(Boolean).join("\n\n");
+          return combined || "No predictive intelligence available for this report.";
+        }
+        case "economic": {
+          const econ = extractSection(activeReport.content, "ECONOMIC IMPACT") || "";
+          const supply = extractSection(activeReport.content, "SUPPLY CHAIN") || "";
+          const market = extractSection(activeReport.content, "MARKET & COMPETITIVE") || "";
+          const combined = [
+            econ ? `## Economic Impact\n\n${econ}` : "",
+            supply ? `## Supply Chain\n\n${supply}` : "",
+            market ? `## Market & Competitive Signals\n\n${market}` : "",
+          ].filter(Boolean).join("\n\n");
+          return combined || "No economic intelligence available for this report.";
+        }
+        case "humanitarian": {
+          const humanitarian = extractSection(activeReport.content, "HUMANITARIAN") || "";
+          const legal = extractSection(activeReport.content, "LEGAL") || "";
+          const diplomatic = extractSection(activeReport.content, "DIPLOMATIC") || "";
+          const regional = extractSection(activeReport.content, "REGIONAL IMPACT") || "";
+          const sentiment = extractSection(activeReport.content, "PUBLIC SENTIMENT") || "";
+          const cyber = extractSection(activeReport.content, "CYBER") || "";
+          const misinfo = extractSection(activeReport.content, "MISINFORMATION") || "";
+          const weapons = extractSection(activeReport.content, "WEAPONS") || "";
+          const source = extractSection(activeReport.content, "SOURCE CREDIBILITY") || "";
+          const confidence = extractSection(activeReport.content, "AI CONFIDENCE") || "";
+          const combined = [
+            humanitarian ? `## Humanitarian Status\n\n${humanitarian}` : "",
+            legal ? `## Legal & Compliance\n\n${legal}` : "",
+            diplomatic ? `## Diplomatic Efforts\n\n${diplomatic}` : "",
+            regional ? `## Regional Impact\n\n${regional}` : "",
+            sentiment ? `## Public Sentiment\n\n${sentiment}` : "",
+            cyber ? `## Cyber & Information Warfare\n\n${cyber}` : "",
+            misinfo ? `## Misinformation Tracker\n\n${misinfo}` : "",
+            weapons ? `## Weapons & Systems\n\n${weapons}` : "",
+            source ? `## Source Credibility\n\n${source}` : "",
+            confidence ? `## AI Confidence\n\n${confidence}` : "",
+          ].filter(Boolean).join("\n\n");
+          return combined || "No impact intelligence available for this report.";
         }
         case "gaps": return extractSection(activeReport.content, "INTELLIGENCE GAPS") || "No intelligence gaps identified.";
         default: return activeReport.content;
