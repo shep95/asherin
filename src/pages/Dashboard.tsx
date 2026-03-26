@@ -588,28 +588,38 @@ const Dashboard = () => {
 
         // If we were NOT streaming when we came back, re-fetch messages for the active conversation
         // from DB to catch any saves that completed while backgrounded
-        if (!isStreamingRef.current && user && activeConvId) {
+        const currentConvId = activeConvIdRef.current;
+        if (!isStreamingRef.current && user && currentConvId) {
+          // Small delay to let any in-flight DB writes complete
+          await new Promise(r => setTimeout(r, 500));
+          // Re-check streaming state after delay (user might have sent a message)
+          if (isStreamingRef.current) return;
           try {
             const { data: freshMsgs } = await supabase
               .from("messages")
               .select("*")
-              .eq("conversation_id", activeConvId)
+              .eq("conversation_id", currentConvId)
               .order("created_at", { ascending: true })
               .limit(500);
             if (freshMsgs && freshMsgs.length > 0) {
-              const decrypted = await Promise.all(
-                freshMsgs.map(async (m) => ({
-                  id: m.id,
-                  role: m.role as "user" | "assistant",
-                  content: await decryptText(m.content, user.id),
-                  timestamp: new Date(m.created_at),
-                  truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-                  sources: (m.sources as { title: string; url: string }[]) ?? [],
-                }))
-              );
-              setConversations(prev => prev.map(c =>
-                c.id === activeConvId ? { ...c, messages: decrypted } : c
-              ));
+              // Only update if we have MORE messages from DB than local (don't lose unsaved messages)
+              const localConv = conversationsRef.current.find(c => c.id === currentConvId);
+              const localCount = localConv?.messages.length ?? 0;
+              if (freshMsgs.length >= localCount) {
+                const decrypted = await Promise.all(
+                  freshMsgs.map(async (m) => ({
+                    id: m.id,
+                    role: m.role as "user" | "assistant",
+                    content: await decryptText(m.content, user.id),
+                    timestamp: new Date(m.created_at),
+                    truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+                    sources: (m.sources as { title: string; url: string }[]) ?? [],
+                  }))
+                );
+                setConversations(prev => prev.map(c =>
+                  c.id === currentConvId ? { ...c, messages: decrypted } : c
+                ));
+              }
             }
           } catch {
             // Non-critical — local state is still valid
@@ -619,7 +629,7 @@ const Dashboard = () => {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [user, activeConvId]);
+  }, [user]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId) ?? conversations[0];
 
