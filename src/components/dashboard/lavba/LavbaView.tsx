@@ -548,14 +548,12 @@ const LavbaView = () => {
     for (const tf of selectedTimeframes) {
       try {
         setProgress(`Pulling ${sym} ${tf} from live market data…`);
+        const headers = await getAuthHeaders();
         const resp = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lavba-fetch-data`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
+            headers,
             body: JSON.stringify({ symbol: sym, interval: tf }),
           }
         );
