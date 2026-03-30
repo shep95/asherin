@@ -718,7 +718,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             )}
             <SmartSelectionMenu containerRef={messagesRef} onAction={handleSelectionAction} />
-            {conversation.messages.map((msg, idx) => (
+            {branchMessages.map((msg, idx) => (
               <div
                 key={msg.id}
                 ref={(el) => { messageRefs.current[msg.id] = el; }}
