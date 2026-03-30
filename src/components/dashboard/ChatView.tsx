@@ -463,7 +463,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       {!focusMode && (
         <div className="flex items-center px-2 sm:px-4 pt-2 sm:pt-4 pb-2 gap-1.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
           <ModeSelector active={mode} onChange={onModeChange} />
-
+          <ConversationBranches conversationId={conversation.id} activeBranch={activeBranch} onBranchChange={setActiveBranch} />
           {/* Primary icons — always visible */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {hasPro ? (
