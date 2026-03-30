@@ -435,7 +435,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     onSendMessage(prompts[action] ?? `${action}: "${text}"`);
   }, [onSendMessage]);
 
-  const lastMsg = conversation.messages[conversation.messages.length - 1];
+  const lastMsg = branchMessages[branchMessages.length - 1];
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
     return (
