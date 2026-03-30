@@ -42,6 +42,7 @@ interface LiveSignal {
   confidence: number;
   invalidation: string;
   basedOnPatterns: string[];
+  predictedCandles?: { open: number; high: number; low: number; close: number }[];
 }
 
 const TIMEFRAMES = [
