@@ -706,9 +706,9 @@ Deno.serve(async (req) => {
     const builtQuery = buildSearchQuery(trimmed, mode, semanticIntent, filters, operatorOverrides);
     const instantAnswerType = detectInstantAnswerType(trimmed);
 
-    // Run search + instant answer in parallel
+    // Run multi-engine search + instant answer in parallel
     const [searchResults, instantAnswer] = await Promise.all([
-      searchDDG(builtQuery, page, filters?.dateRange),
+      multiEngineSearch(builtQuery, page, filters?.dateRange),
       fetchInstantAnswer(trimmed),
     ]);
 
