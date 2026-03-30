@@ -1144,6 +1144,15 @@ Return ONLY valid JSON object:
           </div>
         )}
 
+        {/* Backtester */}
+        {activeData.length > 0 && (
+          <LavbaBacktest
+            data={activeData}
+            symbol={activeSymbol}
+            patterns={patterns}
+          />
+        )}
+
         {/* Empty State */}
         {Object.keys(bars).length === 0 && !loading && (
           <div className="text-center py-20 space-y-5">
