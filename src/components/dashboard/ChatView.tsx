@@ -897,7 +897,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                           {/* Trading Proof — show annotated chart with visual reasoning */}
                           <TradingProofButton
                             message={msg}
-                            allMessages={conversation.messages}
+                            allMessages={branchMessages}
                           />
                           {/* Answer Controls */}
                           <AnswerControls
