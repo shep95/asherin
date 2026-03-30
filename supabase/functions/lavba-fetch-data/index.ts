@@ -14,10 +14,28 @@ interface OHLCVBar {
   volume: number;
 }
 
-// Yahoo Finance interval mapping
+// Common crypto tickers that need -USD suffix
+const CRYPTO_TICKERS = new Set([
+  "BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "DOT", "MATIC", "AVAX", "LINK",
+  "UNI", "ATOM", "LTC", "BCH", "NEAR", "APT", "ARB", "OP", "FIL", "AAVE",
+  "MKR", "SNX", "CRV", "COMP", "SUSHI", "YFI", "BNB", "TRX", "SHIB", "PEPE",
+  "WIF", "BONK", "JUP", "RENDER", "FET", "RNDR", "INJ", "SUI", "SEI", "TIA",
+  "MANA", "SAND", "AXS", "ICP", "FTM", "ALGO", "XLM", "VET", "EOS", "HBAR",
+]);
+
+function resolveSymbol(input: string): string {
+  const upper = input.toUpperCase().trim();
+  // Already has suffix like BTC-USD, ETH-USD etc
+  if (upper.includes("-") || upper.includes("=") || upper.includes(".")) return upper;
+  // Known crypto → append -USD
+  if (CRYPTO_TICKERS.has(upper)) return `${upper}-USD`;
+  // Otherwise treat as stock ticker
+  return upper;
+}
+
 const INTERVAL_MAP: Record<string, string> = {
   "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-  "1h": "60m", "4h": "60m", // 4h derived from 1h
+  "1h": "60m", "4h": "60m",
   "1d": "1d", "1w": "1wk", "1mo": "1mo",
 };
 
@@ -28,10 +46,11 @@ const RANGE_MAP: Record<string, string> = {
 };
 
 async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLCVBar[]> {
+  const resolved = resolveSymbol(symbol);
   const yahooInterval = INTERVAL_MAP[interval] || "1d";
   const range = RANGE_MAP[interval] || "5y";
 
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${yahooInterval}&range=${range}&includePrePost=false`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(resolved)}?interval=${yahooInterval}&range=${range}&includePrePost=false`;
 
   const resp = await fetch(url, {
     headers: {
@@ -40,12 +59,12 @@ async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLC
   });
 
   if (!resp.ok) {
-    throw new Error(`Yahoo Finance returned ${resp.status}`);
+    throw new Error(`Yahoo Finance returned ${resp.status} for ${resolved}`);
   }
 
   const data = await resp.json();
   const result = data?.chart?.result?.[0];
-  if (!result) throw new Error("No data returned for symbol");
+  if (!result) throw new Error(`No data returned for ${resolved}`);
 
   const timestamps = result.timestamp || [];
   const quote = result.indicators?.quote?.[0] || {};
@@ -54,6 +73,11 @@ async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLC
   const lows = quote.low || [];
   const closes = quote.close || [];
   const volumes = quote.volume || [];
+
+  // Get currency from meta
+  const currency = result.meta?.currency || "USD";
+  const regularMarketPrice = result.meta?.regularMarketPrice;
+  const previousClose = result.meta?.previousClose || result.meta?.chartPreviousClose;
 
   const bars: OHLCVBar[] = [];
   for (let i = 0; i < timestamps.length; i++) {
@@ -69,7 +93,7 @@ async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLC
     });
   }
 
-  // For 4h, aggregate 1h bars into 4h
+  // For 4h, aggregate 1h bars
   if (interval === "4h") {
     const aggregated: OHLCVBar[] = [];
     for (let i = 0; i < bars.length; i += 4) {
@@ -104,10 +128,11 @@ serve(async (req) => {
     }
 
     const tf = interval || "1d";
-    const bars = await fetchYahooFinance(symbol.toUpperCase(), tf);
+    const resolved = resolveSymbol(symbol);
+    const bars = await fetchYahooFinance(symbol, tf);
 
     return new Response(JSON.stringify({
-      symbol: symbol.toUpperCase(),
+      symbol: resolved,
       interval: tf,
       bars,
       count: bars.length,
