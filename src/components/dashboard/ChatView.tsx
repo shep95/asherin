@@ -500,7 +500,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <StickyNote className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
             <ChatSearchBar
-              messages={conversation.messages}
+              messages={branchMessages}
               onHighlightMessage={setHighlightedMsgId}
               onSearchActive={setSearchActive}
             />
