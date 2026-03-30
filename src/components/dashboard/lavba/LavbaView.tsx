@@ -612,23 +612,34 @@ const LavbaView = () => {
 
 SYMBOL: ${activeSymbol}
 TIMEFRAMES: ${Object.keys(bars).join(", ")}
+CURRENT PRICE: ${lastBarAll ? `$${lastBarAll.close}` : "unknown"}
 
 HISTORICAL OHLCV DATA:
 ${barSummaries}
 
-MISSION: Find 2-4 REPEATING fractal patterns. NOT standard textbook patterns. Find UNIQUE structures from market microstructure, liquidity dynamics, behavioral psychology.
+MISSION: 
+1. Find 2-4 REPEATING fractal patterns. NOT standard textbook patterns. Find UNIQUE structures from market microstructure, liquidity dynamics, behavioral psychology.
+2. Based on patterns found AND current price action, generate a LIVE TRADE SIGNAL.
 
 For each pattern provide:
-1. Original name
-2. Detailed description (market mechanics)
-3. Occurrence count from data
-4. Win rate and avg return %
-5. Entry/exit rules
-6. Bar index ranges where pattern appeared
-7. Confidence 0-1
+- Original name, detailed description (market mechanics)
+- Occurrence count, win rate, avg return %, risk:reward ratio
+- Entry/exit rules
+- Bar index ranges where pattern appeared
+- Confidence 0-1
 
-Return ONLY valid JSON array:
-[{"name":"Pattern Name","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}]`;
+For the LIVE SIGNAL provide:
+- direction: "LONG" or "SHORT" or "NEUTRAL"
+- entry: exact price level
+- stopLoss: exact price level
+- takeProfit1, takeProfit2, takeProfit3: exact price levels
+- reasoning: 2-3 sentences explaining WHY based on the discovered patterns
+- confidence: 0-1
+- invalidation: what price level or condition invalidates this signal
+- basedOnPatterns: array of pattern names this signal is derived from
+
+Return ONLY valid JSON object:
+{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"]}}`;
 
     try {
       setProgress("Running Aureon fractal analysis…");
@@ -638,14 +649,29 @@ Return ONLY valid JSON array:
         onDelta: (chunk) => { result += chunk; },
         onDone: () => {
           try {
-            const jsonMatch = result.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]) as DiscoveredPattern[];
-              setPatterns(parsed.map((p, i) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+            // Try to parse as object with patterns + signal
+            const objMatch = result.match(/\{[\s\S]*\}/);
+            if (objMatch) {
+              const parsed = JSON.parse(objMatch[0]);
+              if (parsed.patterns && Array.isArray(parsed.patterns)) {
+                setPatterns(parsed.patterns.map((p: DiscoveredPattern, i: number) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+              }
+              if (parsed.signal) {
+                setSignal(parsed.signal as LiveSignal);
+              }
             }
           } catch {
-            setPatterns([]);
-            setError("Failed to parse Aureon analysis results.");
+            // Fallback: try array-only format
+            try {
+              const arrMatch = result.match(/\[[\s\S]*\]/);
+              if (arrMatch) {
+                const parsed = JSON.parse(arrMatch[0]) as DiscoveredPattern[];
+                setPatterns(parsed.map((p, i) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+              }
+            } catch {
+              setPatterns([]);
+              setError("Failed to parse Aureon analysis results.");
+            }
           }
           setAnalyzing(false);
           setProgress("");
