@@ -641,9 +641,10 @@ For the LIVE SIGNAL provide:
 - confidence: 0-1
 - invalidation: what price level or condition invalidates this signal
 - basedOnPatterns: array of pattern names this signal is derived from
+- predictedCandles: array of 5-8 predicted next candles as {"open":number,"high":number,"low":number,"close":number} showing your forecast of future price movement
 
 Return ONLY valid JSON object:
-{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"]}}`;
+{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}]}}`;
 
     try {
       setProgress("Running Aureon fractal analysis…");
