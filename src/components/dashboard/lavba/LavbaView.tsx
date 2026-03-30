@@ -873,7 +873,7 @@ Return ONLY valid JSON object:
 
             {/* Canvas Chart */}
             <div className="px-2 py-2">
-              <CandleChart data={activeData} chartType={chartType} patternZones={activePatternZones} />
+              <CandleChart data={activeData} chartType={chartType} patternZones={activePatternZones} signal={signal} predictedBars={signal?.predictedCandles} />
             </div>
           </div>
         )}
