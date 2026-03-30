@@ -391,8 +391,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   // handleSend is now inside AdaptiveInputBar
 
   const downloadConversation = () => {
-    if (!conversation.messages.length) return;
-    const lines = conversation.messages.map(m =>
+    if (!branchMessages.length) return;
+    const lines = branchMessages.map(m =>
       `**${m.role === "user" ? "You" : "Aureon"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
     );
     const md = `# ${conversation.title}\n\n${lines.join("\n\n---\n\n")}`;
