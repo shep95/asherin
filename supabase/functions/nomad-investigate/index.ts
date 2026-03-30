@@ -416,7 +416,79 @@ async function ingestDDGInstant(query: string): Promise<IntelNode> {
   } catch { return emptyNode('DDG Instant', 4); }
 }
 
-async function ingestEdgar(query: string): Promise<IntelNode> {
+// ── SearXNG Meta-Search (aggregates Google, Bing, Brave, DDG) ──────────────
+const SEARXNG_INSTANCES = [
+  'https://search.bus-hit.me',
+  'https://searx.tiekoetter.com',
+  'https://search.ononoki.org',
+  'https://searx.be',
+  'https://search.sapti.me',
+];
+
+async function ingestSearXNG(query: string): Promise<IntelNode> {
+  for (const instance of SEARXNG_INSTANCES) {
+    try {
+      const resp = await fetch(`${instance}/search?q=${encodeURIComponent(query)}&format=json&engines=google,bing,brave,duckduckgo&categories=general`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      if (!json.results?.length) continue;
+      const results = json.results.slice(0, 12).map((r: any) => `- ${r.title}: ${r.content || ''} (${r.url})`);
+      const data = `SearXNG Multi-Engine Results:\n${results.join('\n')}`;
+      return { source: 'SearXNG Meta-Search (Google+Bing+Brave)', tier: 3, data, provenanceHash: await computeProvenanceHash('searxng', data), timestamp: new Date().toISOString(), confidence: 0.7, entities: extractEntitiesFromText(data, 'SearXNG') };
+    } catch { continue; }
+  }
+  return emptyNode('SearXNG', 3);
+}
+
+async function ingestMojeek(query: string): Promise<IntelNode> {
+  try {
+    const resp = await fetch(`https://www.mojeek.com/search?q=${encodeURIComponent(query)}&fmt=json&t=12`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return emptyNode('Mojeek', 4);
+    const json = await resp.json();
+    const results = (json.response?.results || []).slice(0, 10).map((r: any) => `- ${r.title}: ${r.desc || ''} (${r.url})`);
+    if (!results.length) return emptyNode('Mojeek', 4);
+    const data = `Mojeek Independent Index:\n${results.join('\n')}`;
+    return { source: 'Mojeek (Independent Crawler)', tier: 4, data, provenanceHash: await computeProvenanceHash('mojeek', data), timestamp: new Date().toISOString(), confidence: 0.55, entities: extractEntitiesFromText(data, 'Mojeek') };
+  } catch { return emptyNode('Mojeek', 4); }
+}
+
+async function ingestMetaGer(query: string): Promise<IntelNode> {
+  try {
+    const resp = await fetch(`https://metager.org/meta/meta.ger3?eingabe=${encodeURIComponent(query)}&focus=web&out=json`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return emptyNode('MetaGer', 4);
+    const json = await resp.json();
+    const results = (json.results || []).slice(0, 10).map((r: any) => `- ${r.title}: ${r.description || ''} (${r.link || r.url})`);
+    if (!results.length) return emptyNode('MetaGer', 4);
+    const data = `MetaGer Meta-Search:\n${results.join('\n')}`;
+    return { source: 'MetaGer (Privacy Meta-Search)', tier: 4, data, provenanceHash: await computeProvenanceHash('metager', data), timestamp: new Date().toISOString(), confidence: 0.55, entities: extractEntitiesFromText(data, 'MetaGer') };
+  } catch { return emptyNode('MetaGer', 4); }
+}
+
+async function ingestGigablast(query: string): Promise<IntelNode> {
+  try {
+    const resp = await fetch(`https://www.gigablast.com/search?q=${encodeURIComponent(query)}&format=json&n=12`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return emptyNode('Gigablast', 4);
+    const json = await resp.json();
+    const results = (json.results || []).slice(0, 10).map((r: any) => `- ${r.title}: ${r.sum || ''} (${r.url})`);
+    if (!results.length) return emptyNode('Gigablast', 4);
+    const data = `Gigablast Independent Index:\n${results.join('\n')}`;
+    return { source: 'Gigablast (Independent Crawler)', tier: 4, data, provenanceHash: await computeProvenanceHash('gigablast', data), timestamp: new Date().toISOString(), confidence: 0.5, entities: extractEntitiesFromText(data, 'Gigablast') };
+  } catch { return emptyNode('Gigablast', 4); }
+}
+
+
   try {
     const cleaned = query.replace(/investigate|company|research|find|look up|search/gi, '').trim();
     const resp = await fetch(`https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(cleaned)}&CIK=&type=&dateb=&owner=include&count=10&search_text=&action=getcompany&output=atom`, {
