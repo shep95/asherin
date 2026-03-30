@@ -952,7 +952,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   {msg.role === "assistant" && neuralId === msg.id && (
                     <NeuralThinkingModal
                       open={true}
-                      query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content || ""}
+                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content || ""}
                       response={msg.content}
                       onClose={() => setNeuralId(null)}
                     />
