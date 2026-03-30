@@ -256,14 +256,14 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
       if (ze < 0 || zs >= visible.length) continue;
       const x1 = barX(Math.max(0, zs)) - barW / 2;
       const x2 = barX(Math.min(visible.length - 1, ze)) + barW / 2;
-      ctx.fillStyle = zone.type === "bullish" ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)";
+      ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.06)" : "rgba(180,180,200,0.06)";
       ctx.fillRect(x1, 20, x2 - x1, priceH - 40);
-      ctx.strokeStyle = zone.type === "bullish" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)";
+      ctx.strokeStyle = zone.type === "bullish" ? "rgba(212,168,67,0.2)" : "rgba(180,180,200,0.2)";
       ctx.lineWidth = 1; ctx.setLineDash([4, 2]);
       ctx.strokeRect(x1, 20, x2 - x1, priceH - 40);
       ctx.setLineDash([]);
       ctx.font = "9px sans-serif";
-      ctx.fillStyle = zone.type === "bullish" ? "rgba(34,197,94,0.5)" : "rgba(239,68,68,0.5)";
+      ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.5)" : "rgba(180,180,200,0.5)";
       ctx.fillText(zone.name, x1 + 4, 32);
     }
 
@@ -285,7 +285,7 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
       ctx.beginPath();
       for (let i = 0; i < visible.length; i++) { const x = barX(i), y = priceY(visible[i].close); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
       ctx.lineTo(lastX, priceH); ctx.lineTo(barX(0), priceH); ctx.closePath();
-      ctx.fillStyle = "rgba(34,197,94,0.04)"; ctx.fill();
+      ctx.fillStyle = "rgba(212,168,67,0.04)"; ctx.fill();
     } else {
       for (let i = 0; i < visible.length; i++) {
         const b = visible[i], x = barX(i), bullish = b.close >= b.open, color = bullish ? bullColor : bearColor;
@@ -334,7 +334,7 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
     for (let i = 0; i < visible.length; i++) {
       const b = visible[i], x = barX(i), bullish = b.close >= b.open;
       const vTop2 = volY(b.volume), vBot = volTop + volH;
-      ctx.fillStyle = bullish ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.15)";
+      ctx.fillStyle = bullish ? "rgba(212,168,67,0.2)" : "rgba(180,180,200,0.15)";
       ctx.fillRect(x - candleW / 2, vTop2, candleW, vBot - vTop2);
     }
 
@@ -344,10 +344,10 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
       const cpY = priceY(currentPrice);
       const cpBull = visible[visible.length - 1].close >= visible[visible.length - 1].open;
       ctx.save();
-      ctx.strokeStyle = cpBull ? "rgba(34,197,94,0.45)" : "rgba(239,68,68,0.45)";
+      ctx.strokeStyle = cpBull ? "rgba(212,168,67,0.45)" : "rgba(180,180,200,0.45)";
       ctx.lineWidth = 1; ctx.setLineDash([6, 3]);
       ctx.beginPath(); ctx.moveTo(padL, cpY); ctx.lineTo(w - padR, cpY); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = cpBull ? "rgba(34,197,94,0.85)" : "rgba(239,68,68,0.85)";
+      ctx.fillStyle = cpBull ? "rgba(212,168,67,0.85)" : "rgba(180,180,200,0.85)";
       ctx.beginPath(); ctx.roundRect(w - padR + 2, cpY - 9, padR - 6, 18, 4); ctx.fill();
       ctx.fillStyle = "#fff"; ctx.font = "bold 9px sans-serif"; ctx.textAlign = "left";
       ctx.fillText(`$${fmt(currentPrice)}`, w - padR + 6, cpY + 3);
@@ -365,10 +365,10 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
         ctx.fillText(`${label} $${fmt(p)}`, padL + 4, ly - 4); ctx.restore();
       };
       drawLevel(signal.entry, "ENTRY", "rgba(255,255,255,0.5)", [4, 3]);
-      drawLevel(signal.stopLoss, "SL", "rgba(239,68,68,0.6)", [3, 3]);
-      drawLevel(signal.takeProfit1, "TP1", "rgba(34,197,94,0.5)", [4, 3]);
-      drawLevel(signal.takeProfit2, "TP2", "rgba(34,197,94,0.4)", [4, 3]);
-      drawLevel(signal.takeProfit3, "TP3", "rgba(34,197,94,0.3)", [4, 3]);
+      drawLevel(signal.stopLoss, "SL", "rgba(180,180,200,0.6)", [3, 3]);
+      drawLevel(signal.takeProfit1, "TP1", "rgba(212,168,67,0.5)", [4, 3]);
+      drawLevel(signal.takeProfit2, "TP2", "rgba(212,168,67,0.4)", [4, 3]);
+      drawLevel(signal.takeProfit3, "TP3", "rgba(212,168,67,0.3)", [4, 3]);
     }
 
     // Y-axis labels
