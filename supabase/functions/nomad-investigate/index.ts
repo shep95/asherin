@@ -2733,23 +2733,37 @@ Cluster by domain. Label BRIDGE and SINGLE SOURCE nodes.
 CRITICAL: Always wrap mermaid code in triple backtick mermaid fences.
 
 ### PART 2: INTELLIGENCE DOSSIER
-Structure the dossier with clear markdown headers for each section:
-- ## CLASSIFICATION & SUMMARY (2 sentences max)
-- ## VERIFIED INTELLIGENCE (T1-T2 sources only)
-- ## CORROBORATED INTELLIGENCE (2+ sources agree)
-- ## UNVERIFIED CLAIMS (single source, flagged)
-- ## DATA GAPS & MISSING ARTIFACTS
-- ## COMMUNICATION ASSESSMENT & LINGUISTIC FINGERPRINT
-- ## SOCIAL PRESENCE PROFILE
-- ## RELATIONSHIP VELOCITY MAP
-- ## NARRATIVE INTEGRITY AUDIT (Stated Self vs Evidenced Self)
-- ## IDENTITY CONTINUITY
-- ## GEOSPATIAL INTELLIGENCE
-- ## NETWORK CENTRALITY SCORECARD
-- ## BAYESIAN CONFIDENCE CHAIN (top 10 claims with prior/posterior)
-- ## DEAD ENDS & INTELLIGENCE GAPS
-- ## CROSS-INVESTIGATION LINKS (if applicable)
-- ## ADVERSARIAL REVIEW
+
+CRITICAL FORMATTING RULES — READ CAREFULLY:
+- Do NOT use markdown headers (# or ## or ###). Instead, use **BOLD UPPERCASE** labels followed by a line break for section titles.
+- Write in clean, flowing prose paragraphs — NOT bullet-point soup.
+- Use bullet points ONLY for lists of entities, sources, or specific data items.
+- Each section should feel like a professional intelligence brief, not a wiki article.
+- Keep it conversational but authoritative — like a senior analyst briefing a decision-maker.
+
+Structure the dossier with these sections (use **BOLD UPPERCASE** for labels, not # headers):
+
+**CLASSIFICATION & SUMMARY** — 2-3 sentences. What is this? What did we find?
+
+**VERIFIED INTELLIGENCE** — T1-T2 source findings. Write as connected prose, not isolated bullets.
+
+**CORROBORATED INTELLIGENCE** — Findings confirmed by 2+ independent sources.
+
+**UNVERIFIED CLAIMS** — Single-source findings. Mark with ⚠️.
+
+**DATA GAPS** — What SHOULD exist but doesn't? Why is that significant?
+
+**BEHAVIORAL PROFILE** — Communication patterns, linguistic fingerprint, personality signals.
+
+**NETWORK MAP** — Key relationships, affiliations, organizational connections.
+
+**STATED vs EVIDENCED** — The delta between what the subject claims and what evidence shows.
+
+**CONFIDENCE CHAIN** — Top claims ranked by confidence percentage with source tiers.
+
+**DEAD ENDS** — What we searched and found nothing. Intelligence gaps.
+
+Only include sections that have actual findings. Skip empty sections entirely.
 
 RULES:
 - NEVER fabricate data — every claim traces to provided intelligence
@@ -2761,7 +2775,8 @@ RULES:
 - Be direct, factual, intelligence-grade — no filler text
 - Include Bradley-Terry confidence and provenance data inline
 - The DELTA between Stated Self and Evidenced Self is the most critical output
-- Include all analysis pass results when provided`;
+- Include all analysis pass results when provided
+- Write like a human intelligence analyst, not a template engine`;
 
 // ── Multi-Stage AI Helper (Gap 1) ───────────────────────────────────────────
 

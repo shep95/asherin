@@ -11,9 +11,9 @@ import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiag
 const capabilities = [
   {
     icon: Globe,
-    title: "21 OSINT Search Engines",
+    title: "25+ Multi-Engine OSINT Search",
     description:
-      "Google, Bing, Shodan, Censys, SecurityTrails, VirusTotal, GreyNoise, BinaryEdge, FOFA, urlscan.io, crt.sh, GitHub, ThreatFox, Yandex, social platforms (LinkedIn/Facebook/Instagram/X/TikTok), Wayback Machine, public records, court portals, OpenCorporates, and mapping tools — all in parallel.",
+      "Google, Bing, DuckDuckGo, Startpage, SearXNG (meta-search aggregator), Mojeek (independent crawler), MetaGer (privacy meta-search), Gigablast (independent index), Shodan, Censys, SecurityTrails, VirusTotal, GreyNoise, BinaryEdge, FOFA, urlscan.io, crt.sh, GitHub, ThreatFox, Yandex, social platforms (LinkedIn/Facebook/Instagram/X/TikTok), Wayback Machine, public records, court portals, OpenCorporates, and mapping tools — all in parallel with cross-engine corroboration.",
   },
   {
     icon: Shield,
@@ -157,7 +157,7 @@ const FeatureNomad = () => {
             ],
           },
         ]}
-        features={["21 OSINT engines", "Google + Bing", "Shodan + Censys", "VirusTotal + GreyNoise", "SecurityTrails DNS", "crt.sh + urlscan.io", "GitHub secret hunting", "threat intel feeds", "social platforms", "Yandex reverse image", "Wayback Machine", "public records", "court portals", "OpenCorporates", "Google Maps/Places", "confidence scoring", "entity resolution", "risk matrices", "exportable dossiers"]}
+        features={["25+ OSINT engines", "Google + Bing + DDG", "SearXNG meta-search", "Mojeek independent crawler", "MetaGer privacy search", "Gigablast independent index", "Shodan + Censys", "VirusTotal + GreyNoise", "SecurityTrails DNS", "crt.sh + urlscan.io", "GitHub secret hunting", "threat intel feeds", "social platforms", "Yandex reverse image", "Wayback Machine", "public records", "court portals", "OpenCorporates", "Google Maps/Places", "cross-engine corroboration", "confidence scoring", "entity resolution", "risk matrices", "exportable dossiers"]}
       />
 
       {/* Investigation Types */}
