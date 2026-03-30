@@ -231,8 +231,8 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
 
     ctx.clearRect(0, 0, w, h);
 
-    const bullColor = "#22c55e";
-    const bearColor = "#ef4444";
+    const bullColor = "#d4a843";
+    const bearColor = "rgba(200,200,220,0.7)";
     const gridColor = "rgba(128,128,128,0.08)";
     const textColor = "rgba(128,128,128,0.4)";
     const crosshairColor = "rgba(128,128,128,0.15)";
