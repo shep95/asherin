@@ -773,6 +773,7 @@ const Dashboard = () => {
     isStreamingRef.current = true;
     let assistantContent = "";
     const assistantId = crypto.randomUUID();
+    tagMessageBranch(assistantId, currentBranch);
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -784,7 +785,8 @@ const Dashboard = () => {
       )
     );
 
-    const history = [...(conv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content, attachments: m.attachments }));
+    // Only send branch-scoped history to AI (no memory leaking between branches)
+    const history = [...branchMsgs, userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content, attachments: m.attachments }));
 
     const activePersona = customPersonas.find((p) => p.id === personaId) 
       || builtInPersonas.find((p) => p.id === personaId);
