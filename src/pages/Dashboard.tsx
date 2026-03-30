@@ -721,7 +721,10 @@ const Dashboard = () => {
     const tempMsgId = crypto.randomUUID();
     const conv = conversationsRef.current.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date(), attachments };
-    const isFirst = conv?.messages.length === 0;
+    const currentBranch = getActiveBranch(convId);
+    tagMessageBranch(tempMsgId, currentBranch);
+    const branchMsgs = conv?.messages.filter(m => getMessageBranch(m.id) === currentBranch) ?? [];
+    const isFirst = branchMsgs.length === 0 && (conv?.messages.length === 0);
     if (isFirst) {
       const newTitle = content.slice(0, 50);
       setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, title: newTitle, messages: [...c.messages, userMsg] } : c));
