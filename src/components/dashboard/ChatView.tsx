@@ -710,7 +710,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 error={chatError}
                 onRetry={() => {
                   setChatError(null);
-                  const lastUserMsg = [...conversation.messages].reverse().find(m => m.role === "user");
+                  const lastUserMsg = [...branchMessages].reverse().find(m => m.role === "user");
                   if (lastUserMsg) onSendMessage(lastUserMsg.content);
                 }}
                 onFallback={() => setChatError(null)}
