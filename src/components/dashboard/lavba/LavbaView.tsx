@@ -43,7 +43,19 @@ const TIMEFRAMES = [
 
 type ChartType = "candle" | "line" | "ohlc";
 
-/* ── Live price ticker ── */
+/* ── Get auth token helper ── */
+const getAuthHeaders = async () => {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` };
+    }
+  } catch { /* fallback */ }
+  return { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` };
+};
+
+/* ── Live price ticker (visibility-aware) ── */
 const useLivePrice = (symbol: string, enabled: boolean) => {
   const [price, setPrice] = useState<number | null>(null);
   const [change, setChange] = useState<number>(0);
@@ -52,20 +64,22 @@ const useLivePrice = (symbol: string, enabled: boolean) => {
 
   useEffect(() => {
     if (!enabled || !symbol) return;
+    let cancelled = false;
+
     const fetchLive = async () => {
+      // Don't poll when tab is hidden
+      if (document.hidden) return;
       try {
+        const headers = await getAuthHeaders();
         const resp = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lavba-fetch-data`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
+            headers,
             body: JSON.stringify({ symbol, interval: "5m" }),
           }
         );
-        if (!resp.ok) return;
+        if (!resp.ok || cancelled) return;
         const data = await resp.json();
         const bars = data.bars || [];
         if (bars.length >= 2) {
@@ -81,7 +95,7 @@ const useLivePrice = (symbol: string, enabled: boolean) => {
     };
     fetchLive();
     intervalRef.current = setInterval(fetchLive, 30000);
-    return () => clearInterval(intervalRef.current);
+    return () => { cancelled = true; clearInterval(intervalRef.current); };
   }, [symbol, enabled]);
 
   return { price, change, changePct };
