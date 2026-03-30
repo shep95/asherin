@@ -31,6 +31,19 @@ interface DiscoveredPattern {
   confidence: number;
 }
 
+interface LiveSignal {
+  direction: "LONG" | "SHORT" | "NEUTRAL";
+  entry: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
+  takeProfit3: string;
+  reasoning: string;
+  confidence: number;
+  invalidation: string;
+  basedOnPatterns: string[];
+}
+
 const TIMEFRAMES = [
   { value: "5m", label: "5m" },
   { value: "15m", label: "15m" },
@@ -522,6 +535,7 @@ const LavbaView = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState("");
   const [patterns, setPatterns] = useState<DiscoveredPattern[]>([]);
+  const [signal, setSignal] = useState<LiveSignal | null>(null);
   const [activeChart, setActiveChart] = useState<string>("1d");
   const [chartType, setChartType] = useState<ChartType>("candle");
   const [error, setError] = useState("");
@@ -581,7 +595,12 @@ const LavbaView = () => {
     const allBars = Object.entries(bars);
     if (allBars.length === 0) return;
 
+    // Get latest bar across all timeframes for current price
+    const allBarArrays = Object.values(bars).filter(b => b.length > 0);
+    const lastBarAll = allBarArrays.length > 0 ? allBarArrays[0][allBarArrays[0].length - 1] : null;
+
     setAnalyzing(true);
+    setSignal(null);
     setProgress("Aureon is scanning historical data for repeating fractal patterns…");
     let result = "";
 
@@ -598,23 +617,34 @@ const LavbaView = () => {
 
 SYMBOL: ${activeSymbol}
 TIMEFRAMES: ${Object.keys(bars).join(", ")}
+CURRENT PRICE: ${lastBarAll ? `$${lastBarAll.close}` : "unknown"}
 
 HISTORICAL OHLCV DATA:
 ${barSummaries}
 
-MISSION: Find 2-4 REPEATING fractal patterns. NOT standard textbook patterns. Find UNIQUE structures from market microstructure, liquidity dynamics, behavioral psychology.
+MISSION: 
+1. Find 2-4 REPEATING fractal patterns. NOT standard textbook patterns. Find UNIQUE structures from market microstructure, liquidity dynamics, behavioral psychology.
+2. Based on patterns found AND current price action, generate a LIVE TRADE SIGNAL.
 
 For each pattern provide:
-1. Original name
-2. Detailed description (market mechanics)
-3. Occurrence count from data
-4. Win rate and avg return %
-5. Entry/exit rules
-6. Bar index ranges where pattern appeared
-7. Confidence 0-1
+- Original name, detailed description (market mechanics)
+- Occurrence count, win rate, avg return %, risk:reward ratio
+- Entry/exit rules
+- Bar index ranges where pattern appeared
+- Confidence 0-1
 
-Return ONLY valid JSON array:
-[{"name":"Pattern Name","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}]`;
+For the LIVE SIGNAL provide:
+- direction: "LONG" or "SHORT" or "NEUTRAL"
+- entry: exact price level
+- stopLoss: exact price level
+- takeProfit1, takeProfit2, takeProfit3: exact price levels
+- reasoning: 2-3 sentences explaining WHY based on the discovered patterns
+- confidence: 0-1
+- invalidation: what price level or condition invalidates this signal
+- basedOnPatterns: array of pattern names this signal is derived from
+
+Return ONLY valid JSON object:
+{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"]}}`;
 
     try {
       setProgress("Running Aureon fractal analysis…");
@@ -624,14 +654,29 @@ Return ONLY valid JSON array:
         onDelta: (chunk) => { result += chunk; },
         onDone: () => {
           try {
-            const jsonMatch = result.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              const parsed = JSON.parse(jsonMatch[0]) as DiscoveredPattern[];
-              setPatterns(parsed.map((p, i) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+            // Try to parse as object with patterns + signal
+            const objMatch = result.match(/\{[\s\S]*\}/);
+            if (objMatch) {
+              const parsed = JSON.parse(objMatch[0]);
+              if (parsed.patterns && Array.isArray(parsed.patterns)) {
+                setPatterns(parsed.patterns.map((p: DiscoveredPattern, i: number) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+              }
+              if (parsed.signal) {
+                setSignal(parsed.signal as LiveSignal);
+              }
             }
           } catch {
-            setPatterns([]);
-            setError("Failed to parse Aureon analysis results.");
+            // Fallback: try array-only format
+            try {
+              const arrMatch = result.match(/\[[\s\S]*\]/);
+              if (arrMatch) {
+                const parsed = JSON.parse(arrMatch[0]) as DiscoveredPattern[];
+                setPatterns(parsed.map((p, i) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+              }
+            } catch {
+              setPatterns([]);
+              setError("Failed to parse Aureon analysis results.");
+            }
           }
           setAnalyzing(false);
           setProgress("");
@@ -829,6 +874,68 @@ Return ONLY valid JSON array:
             {/* Canvas Chart */}
             <div className="px-2 py-2">
               <CandleChart data={activeData} chartType={chartType} patternZones={activePatternZones} />
+            </div>
+          </div>
+        )}
+
+        {/* LIVE SIGNAL CARD */}
+        {signal && (
+          <div className={`rounded-2xl border backdrop-blur-xl p-4 sm:p-5 ${
+            signal.direction === "LONG" ? "border-accent/25 bg-accent/[0.04]" :
+            signal.direction === "SHORT" ? "border-destructive/25 bg-destructive/[0.04]" :
+            "border-border/15 bg-card/10"
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium ${
+                  signal.direction === "LONG" ? "bg-accent/15 text-accent" :
+                  signal.direction === "SHORT" ? "bg-destructive/15 text-destructive" :
+                  "bg-muted/15 text-muted-foreground"
+                }`}>
+                  {signal.direction === "LONG" ? "▲" : signal.direction === "SHORT" ? "▼" : "◆"} {signal.direction}
+                </div>
+                <span className="text-xs font-light text-foreground tracking-wider">{activeSymbol}</span>
+                <span className="text-[9px] text-muted-foreground/40">Live Signal</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/15 px-2.5 py-1">
+                <Target className="h-3 w-3 text-accent" />
+                <span className="text-[10px] text-accent font-medium">{Math.round((signal.confidence || 0) * 100)}%</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+              {[
+                { label: "Entry", value: `$${signal.entry}`, color: "text-foreground" },
+                { label: "Stop Loss", value: `$${signal.stopLoss}`, color: "text-destructive" },
+                { label: "TP1", value: `$${signal.takeProfit1}`, color: "text-accent" },
+                { label: "TP2", value: `$${signal.takeProfit2}`, color: "text-accent" },
+                { label: "TP3", value: `$${signal.takeProfit3}`, color: "text-accent" },
+              ].map((s, i) => (
+                <div key={i} className="rounded-xl bg-background/20 border border-border/10 p-2.5 text-center">
+                  <p className="text-[8px] text-muted-foreground/40 uppercase tracking-[0.1em]">{s.label}</p>
+                  <p className={`text-sm font-light mt-0.5 ${s.color}`}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl bg-background/10 border border-border/10 p-3 mb-3">
+              <p className="text-[9px] font-light tracking-[0.1em] text-muted-foreground/50 uppercase mb-1.5">Reasoning</p>
+              <p className="text-[11px] font-extralight text-muted-foreground/70 leading-relaxed">{signal.reasoning}</p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-3 w-3 text-destructive/50" />
+                <span className="text-[10px] font-extralight text-destructive/50">Invalidation: {signal.invalidation}</span>
+              </div>
+              {signal.basedOnPatterns?.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-muted-foreground/30">Based on:</span>
+                  {signal.basedOnPatterns.map((p, i) => (
+                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-accent/8 border border-accent/10 text-accent/60">{p}</span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
