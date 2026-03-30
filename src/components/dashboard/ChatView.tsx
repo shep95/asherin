@@ -1047,7 +1047,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Share with Redaction modal */}
       <ShareWithRedaction
-        messages={conversation.messages}
+        messages={branchMessages}
         open={shareOpen}
         onClose={() => setShareOpen(false)}
       />
