@@ -535,6 +535,7 @@ const LavbaView = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState("");
   const [patterns, setPatterns] = useState<DiscoveredPattern[]>([]);
+  const [signal, setSignal] = useState<LiveSignal | null>(null);
   const [activeChart, setActiveChart] = useState<string>("1d");
   const [chartType, setChartType] = useState<ChartType>("candle");
   const [error, setError] = useState("");
