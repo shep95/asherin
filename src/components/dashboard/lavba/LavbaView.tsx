@@ -523,6 +523,81 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
   );
 };
 
+/* ──────────── PATTERN MINI CHART ──────────── */
+interface PatternMiniChartProps {
+  data: ChartBar[];
+  startIdx: number;
+  endIdx: number;
+  type: "bullish" | "bearish";
+}
+
+const PatternMiniChart = ({ data, startIdx, endIdx, type }: PatternMiniChartProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pad = 8;
+  const from = Math.max(0, startIdx - pad);
+  const to = Math.min(data.length - 1, endIdx + pad);
+  const slice = data.slice(from, to + 1);
+  const zoneStart = startIdx - from;
+  const zoneEnd = endIdx - from;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || slice.length === 0) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = 200, h = 80;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    ctx.scale(dpr, dpr);
+
+    let minP = Infinity, maxP = -Infinity;
+    for (const b of slice) { if (b.low < minP) minP = b.low; if (b.high > maxP) maxP = b.high; }
+    const range = maxP - minP || 1;
+    minP -= range * 0.05; maxP += range * 0.05;
+    const totalR = maxP - minP;
+
+    const py = (p: number) => 6 + (1 - (p - minP) / totalR) * (h - 12);
+    const barW = (w - 4) / slice.length;
+    const candleW = Math.max(1, barW * 0.6);
+    const bx = (i: number) => 2 + i * barW + barW / 2;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Zone highlight
+    const zx1 = bx(zoneStart) - barW / 2;
+    const zx2 = bx(Math.min(zoneEnd, slice.length - 1)) + barW / 2;
+    ctx.fillStyle = type === "bullish" ? "rgba(212,168,67,0.1)" : "rgba(180,180,200,0.1)";
+    ctx.fillRect(zx1, 0, zx2 - zx1, h);
+    ctx.strokeStyle = type === "bullish" ? "rgba(212,168,67,0.35)" : "rgba(180,180,200,0.35)";
+    ctx.lineWidth = 1; ctx.setLineDash([3, 2]);
+    ctx.strokeRect(zx1, 0, zx2 - zx1, h);
+    ctx.setLineDash([]);
+
+    // Candles
+    for (let i = 0; i < slice.length; i++) {
+      const b = slice[i], x = bx(i), bull = b.close >= b.open;
+      const inZone = i >= zoneStart && i <= zoneEnd;
+      const color = bull ? (inZone ? "#d4a843" : "rgba(212,168,67,0.35)") : (inZone ? "rgba(200,200,220,0.8)" : "rgba(200,200,220,0.3)");
+      ctx.strokeStyle = color; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, py(b.high)); ctx.lineTo(x, py(b.low)); ctx.stroke();
+      const bT = py(Math.max(b.open, b.close)), bB = py(Math.min(b.open, b.close)), bH = Math.max(1, bB - bT);
+      ctx.fillStyle = color; ctx.fillRect(x - candleW / 2, bT, candleW, bH);
+    }
+  }, [slice, zoneStart, zoneEnd, type]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="rounded-lg border border-border/10 bg-background/20"
+      style={{ width: 200, height: 80 }}
+    />
+  );
+};
+
 /* ──────────── MAIN LAVBA VIEW ──────────── */
 const LavbaView = () => {
   const { user } = useAuth();
