@@ -42,6 +42,7 @@ interface LiveSignal {
   confidence: number;
   invalidation: string;
   basedOnPatterns: string[];
+  predictedCandles?: { open: number; high: number; low: number; close: number }[];
 }
 
 const TIMEFRAMES = [
@@ -127,9 +128,11 @@ interface CandleChartProps {
   data: ChartBar[];
   chartType: ChartType;
   patternZones: { startIdx: number; endIdx: number; type: "bullish" | "bearish"; name: string }[];
+  signal?: LiveSignal | null;
+  predictedBars?: { open: number; high: number; low: number; close: number }[];
 }
 
-const CandleChart = ({ data, chartType, patternZones }: CandleChartProps) => {
+const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: CandleChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewStart, setViewStart] = useState(0);
@@ -181,18 +184,37 @@ const CandleChart = ({ data, chartType, patternZones }: CandleChartProps) => {
     const padL = 10;
     const chartW = w - padL - padR;
 
-    // Get visible slice
+    const pBars = predictedBars || [];
+    const predCount = pBars.length;
+
     const end = Math.min(viewStart + visibleCount, data.length);
     const start = Math.max(0, end - visibleCount);
     const visible = data.slice(start, end);
     if (visible.length === 0) return;
 
-    // Price range
+    const isAtEnd = end >= data.length;
+    const showPredicted = isAtEnd && predCount > 0;
+    const totalSlots = visible.length + (showPredicted ? predCount : 0);
+
     let minP = Infinity, maxP = -Infinity, maxV = 0;
     for (const b of visible) {
       if (b.low < minP) minP = b.low;
       if (b.high > maxP) maxP = b.high;
       if (b.volume > maxV) maxV = b.volume;
+    }
+    if (showPredicted) {
+      for (const pb of pBars) {
+        if (pb.low < minP) minP = pb.low;
+        if (pb.high > maxP) maxP = pb.high;
+      }
+    }
+    if (signal && isAtEnd) {
+      const sLevels = [signal.entry, signal.stopLoss, signal.takeProfit1, signal.takeProfit2, signal.takeProfit3]
+        .map(s => parseFloat(s)).filter(n => !isNaN(n));
+      for (const lv of sLevels) {
+        if (lv < minP) minP = lv;
+        if (lv > maxP) maxP = lv;
+      }
     }
     const pRange = maxP - minP || 1;
     const pPad = pRange * 0.05;
@@ -203,34 +225,31 @@ const CandleChart = ({ data, chartType, patternZones }: CandleChartProps) => {
     const priceY = (p: number) => 20 + (1 - (p - minP) / totalPRange) * (priceH - 40);
     const volY = (v: number) => volTop + volH - (v / (maxV || 1)) * (volH - 5);
 
-    const barW = chartW / visible.length;
+    const barW = chartW / totalSlots;
     const candleW = Math.max(1, barW * 0.65);
     const barX = (i: number) => padL + i * barW + barW / 2;
 
-    // Clear
     ctx.clearRect(0, 0, w, h);
 
-    // CSS variable colors
-    const style = getComputedStyle(document.documentElement);
-    const bullColor = "#22c55e"; // green
-    const bearColor = "#ef4444"; // red
+    const bullColor = "#22c55e";
+    const bearColor = "#ef4444";
     const gridColor = "rgba(128,128,128,0.08)";
     const textColor = "rgba(128,128,128,0.4)";
     const crosshairColor = "rgba(128,128,128,0.15)";
+    const predBullColor = "rgba(220,220,230,0.55)";
+    const predBearColor = "rgba(160,160,175,0.45)";
+    const predWickColor = "rgba(180,180,195,0.35)";
 
-    // Grid lines
+    // Grid
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 0.5;
     const gridCount = 6;
     for (let i = 0; i <= gridCount; i++) {
       const y = 20 + (i / gridCount) * (priceH - 40);
-      ctx.beginPath();
-      ctx.moveTo(padL, y);
-      ctx.lineTo(w - padR, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
     }
 
-    // Pattern zone overlays
+    // Pattern zones
     for (const zone of patternZones) {
       const zs = zone.startIdx - start;
       const ze = zone.endIdx - start;
@@ -240,193 +259,173 @@ const CandleChart = ({ data, chartType, patternZones }: CandleChartProps) => {
       ctx.fillStyle = zone.type === "bullish" ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)";
       ctx.fillRect(x1, 20, x2 - x1, priceH - 40);
       ctx.strokeStyle = zone.type === "bullish" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 2]);
+      ctx.lineWidth = 1; ctx.setLineDash([4, 2]);
       ctx.strokeRect(x1, 20, x2 - x1, priceH - 40);
       ctx.setLineDash([]);
-      // Label
       ctx.font = "9px sans-serif";
       ctx.fillStyle = zone.type === "bullish" ? "rgba(34,197,94,0.5)" : "rgba(239,68,68,0.5)";
       ctx.fillText(zone.name, x1 + 4, 32);
     }
 
-    // Draw candles/line
+    // ── DRAW REAL BARS ──
     if (chartType === "line") {
-      ctx.beginPath();
-      ctx.strokeStyle = bullColor;
-      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.strokeStyle = bullColor; ctx.lineWidth = 1.5;
       for (let i = 0; i < visible.length; i++) {
-        const x = barX(i);
-        const y = priceY(visible[i].close);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        const x = barX(i), y = priceY(visible[i].close);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.stroke();
-      // Area fill
+      if (showPredicted) {
+        ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = "rgba(200,200,215,0.5)"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(barX(visible.length - 1), priceY(visible[visible.length - 1].close));
+        for (let i = 0; i < pBars.length; i++) ctx.lineTo(barX(visible.length + i), priceY(pBars[i].close));
+        ctx.stroke(); ctx.restore();
+      }
       const lastX = barX(visible.length - 1);
-      ctx.lineTo(lastX, priceH);
-      ctx.lineTo(barX(0), priceH);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(34,197,94,0.04)";
-      ctx.fill();
+      ctx.beginPath();
+      for (let i = 0; i < visible.length; i++) { const x = barX(i), y = priceY(visible[i].close); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.lineTo(lastX, priceH); ctx.lineTo(barX(0), priceH); ctx.closePath();
+      ctx.fillStyle = "rgba(34,197,94,0.04)"; ctx.fill();
     } else {
-      // Candlestick or OHLC
       for (let i = 0; i < visible.length; i++) {
-        const b = visible[i];
-        const x = barX(i);
-        const bullish = b.close >= b.open;
-        const color = bullish ? bullColor : bearColor;
-
+        const b = visible[i], x = barX(i), bullish = b.close >= b.open, color = bullish ? bullColor : bearColor;
         if (chartType === "candle") {
-          // Wick
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(x, priceY(b.high));
-          ctx.lineTo(x, priceY(b.low));
-          ctx.stroke();
-
-          // Body
-          const bodyTop = priceY(Math.max(b.open, b.close));
-          const bodyBot = priceY(Math.min(b.open, b.close));
-          const bodyH = Math.max(1, bodyBot - bodyTop);
-
-          if (bullish) {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x - candleW / 2, bodyTop, candleW, bodyH);
-            // Hollow body for bullish (or fill — using fill for clarity)
-            ctx.fillStyle = color;
-            ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
-          } else {
-            ctx.fillStyle = color;
-            ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
-          }
+          ctx.strokeStyle = color; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(x, priceY(b.high)); ctx.lineTo(x, priceY(b.low)); ctx.stroke();
+          const bT = priceY(Math.max(b.open, b.close)), bB = priceY(Math.min(b.open, b.close)), bH = Math.max(1, bB - bT);
+          ctx.fillStyle = color; ctx.fillRect(x - candleW / 2, bT, candleW, bH);
         } else {
-          // OHLC bars
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
-          // Vertical line (high-low)
-          ctx.beginPath();
-          ctx.moveTo(x, priceY(b.high));
-          ctx.lineTo(x, priceY(b.low));
-          ctx.stroke();
-          // Open tick (left)
-          ctx.beginPath();
-          ctx.moveTo(x - candleW / 2, priceY(b.open));
-          ctx.lineTo(x, priceY(b.open));
-          ctx.stroke();
-          // Close tick (right)
-          ctx.beginPath();
-          ctx.moveTo(x, priceY(b.close));
-          ctx.lineTo(x + candleW / 2, priceY(b.close));
-          ctx.stroke();
+          ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(x, priceY(b.high)); ctx.lineTo(x, priceY(b.low)); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x - candleW / 2, priceY(b.open)); ctx.lineTo(x, priceY(b.open)); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x, priceY(b.close)); ctx.lineTo(x + candleW / 2, priceY(b.close)); ctx.stroke();
+        }
+      }
+
+      // ── PREDICTED CANDLES (grey/white glass) ──
+      if (showPredicted) {
+        const sepX = barX(visible.length) - barW / 2;
+        ctx.strokeStyle = "rgba(200,200,215,0.12)"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(sepX, 20); ctx.lineTo(sepX, priceH); ctx.stroke(); ctx.setLineDash([]);
+        ctx.font = "bold 8px sans-serif"; ctx.fillStyle = "rgba(200,200,215,0.2)"; ctx.textAlign = "center";
+        ctx.fillText("AUREON FORECAST", sepX + (pBars.length * barW) / 2, 16);
+
+        for (let i = 0; i < pBars.length; i++) {
+          const pb = pBars[i], x = barX(visible.length + i), bullish = pb.close >= pb.open;
+          if (chartType === "candle") {
+            ctx.strokeStyle = predWickColor; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x, priceY(pb.high)); ctx.lineTo(x, priceY(pb.low)); ctx.stroke();
+            const bT = priceY(Math.max(pb.open, pb.close)), bB = priceY(Math.min(pb.open, pb.close)), bH = Math.max(1, bB - bT);
+            ctx.fillStyle = bullish ? predBullColor : predBearColor;
+            ctx.fillRect(x - candleW / 2, bT, candleW, bH);
+            ctx.strokeStyle = bullish ? "rgba(220,220,230,0.25)" : "rgba(160,160,175,0.25)";
+            ctx.lineWidth = 0.5; ctx.strokeRect(x - candleW / 2, bT, candleW, bH);
+          } else {
+            ctx.strokeStyle = bullish ? predBullColor : predBearColor; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(x, priceY(pb.high)); ctx.lineTo(x, priceY(pb.low)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x - candleW / 2, priceY(pb.open)); ctx.lineTo(x, priceY(pb.open)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, priceY(pb.close)); ctx.lineTo(x + candleW / 2, priceY(pb.close)); ctx.stroke();
+          }
         }
       }
     }
 
     // Volume bars
     for (let i = 0; i < visible.length; i++) {
-      const b = visible[i];
-      const x = barX(i);
-      const bullish = b.close >= b.open;
-      const vTop = volY(b.volume);
-      const vBot = volTop + volH;
+      const b = visible[i], x = barX(i), bullish = b.close >= b.open;
+      const vTop2 = volY(b.volume), vBot = volTop + volH;
       ctx.fillStyle = bullish ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.15)";
-      ctx.fillRect(x - candleW / 2, vTop, candleW, vBot - vTop);
+      ctx.fillRect(x - candleW / 2, vTop2, candleW, vBot - vTop2);
     }
 
-    // Y-axis labels (price)
-    ctx.font = "10px sans-serif";
-    ctx.fillStyle = textColor;
-    ctx.textAlign = "left";
+    // ── CURRENT PRICE LINE ──
+    const currentPrice = visible[visible.length - 1]?.close;
+    if (currentPrice) {
+      const cpY = priceY(currentPrice);
+      const cpBull = visible[visible.length - 1].close >= visible[visible.length - 1].open;
+      ctx.save();
+      ctx.strokeStyle = cpBull ? "rgba(34,197,94,0.45)" : "rgba(239,68,68,0.45)";
+      ctx.lineWidth = 1; ctx.setLineDash([6, 3]);
+      ctx.beginPath(); ctx.moveTo(padL, cpY); ctx.lineTo(w - padR, cpY); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = cpBull ? "rgba(34,197,94,0.85)" : "rgba(239,68,68,0.85)";
+      ctx.beginPath(); ctx.roundRect(w - padR + 2, cpY - 9, padR - 6, 18, 4); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.font = "bold 9px sans-serif"; ctx.textAlign = "left";
+      ctx.fillText(`$${fmt(currentPrice)}`, w - padR + 6, cpY + 3);
+      ctx.restore();
+    }
+
+    // ── SIGNAL LEVELS ──
+    if (signal && isAtEnd) {
+      const drawLevel = (priceStr: string, label: string, color: string, dash: number[]) => {
+        const p = parseFloat(priceStr); if (isNaN(p)) return;
+        const ly = priceY(p); if (ly < 10 || ly > priceH + 10) return;
+        ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 0.8; ctx.setLineDash(dash);
+        ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(w - padR, ly); ctx.stroke(); ctx.setLineDash([]);
+        ctx.font = "bold 8px sans-serif"; ctx.fillStyle = color; ctx.textAlign = "left";
+        ctx.fillText(`${label} $${fmt(p)}`, padL + 4, ly - 4); ctx.restore();
+      };
+      drawLevel(signal.entry, "ENTRY", "rgba(255,255,255,0.5)", [4, 3]);
+      drawLevel(signal.stopLoss, "SL", "rgba(239,68,68,0.6)", [3, 3]);
+      drawLevel(signal.takeProfit1, "TP1", "rgba(34,197,94,0.5)", [4, 3]);
+      drawLevel(signal.takeProfit2, "TP2", "rgba(34,197,94,0.4)", [4, 3]);
+      drawLevel(signal.takeProfit3, "TP3", "rgba(34,197,94,0.3)", [4, 3]);
+    }
+
+    // Y-axis labels
+    ctx.font = "10px sans-serif"; ctx.fillStyle = textColor; ctx.textAlign = "left";
     for (let i = 0; i <= gridCount; i++) {
       const p = maxP - (i / gridCount) * totalPRange;
       const y = 20 + (i / gridCount) * (priceH - 40);
       ctx.fillText(`$${fmt(p)}`, w - padR + 8, y + 3);
     }
 
-    // X-axis labels (date)
+    // X-axis labels
     ctx.textAlign = "center";
     const labelStep = Math.max(1, Math.floor(visible.length / 8));
     for (let i = 0; i < visible.length; i += labelStep) {
       const d = visible[i].date;
-      const label = d.length > 10 ? d.slice(5, 10) : d.slice(0, 10);
-      ctx.fillText(label, barX(i), priceH + 2);
+      ctx.fillText(d.length > 10 ? d.slice(5, 10) : d.slice(0, 10), barX(i), priceH + 2);
     }
 
-    // Volume label
-    ctx.font = "9px sans-serif";
-    ctx.fillStyle = "rgba(128,128,128,0.2)";
-    ctx.textAlign = "left";
+    ctx.font = "9px sans-serif"; ctx.fillStyle = "rgba(128,128,128,0.2)"; ctx.textAlign = "left";
     ctx.fillText("Vol", padL, volTop - 2);
 
-    // Crosshair on hover
+    // Crosshair
     if (hoveredIdx !== null) {
       const hi = hoveredIdx - start;
       if (hi >= 0 && hi < visible.length) {
-        const hb = visible[hi];
-        const hx = barX(hi);
-        const hy = priceY(hb.close);
+        const hb = visible[hi], hx = barX(hi), hy = priceY(hb.close);
+        ctx.strokeStyle = crosshairColor; ctx.lineWidth = 0.5; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(hx, 0); ctx.lineTo(hx, h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(padL, hy); ctx.lineTo(w - padR, hy); ctx.stroke(); ctx.setLineDash([]);
 
-        ctx.strokeStyle = crosshairColor;
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(hx, 0);
-        ctx.lineTo(hx, h);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(padL, hy);
-        ctx.lineTo(w - padR, hy);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Price label on axis
         ctx.fillStyle = hb.close >= hb.open ? bullColor : bearColor;
         ctx.fillRect(w - padR + 2, hy - 9, padR - 4, 18);
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 10px sans-serif";
-        ctx.textAlign = "left";
+        ctx.fillStyle = "#fff"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "left";
         ctx.fillText(`$${fmt(hb.close)}`, w - padR + 6, hy + 4);
 
-        // OHLCV tooltip
         const bullish = hb.close >= hb.open;
-        const tooltipW = 160;
-        const tooltipH = 82;
-        let tx = hx + 15;
-        if (tx + tooltipW > w - padR) tx = hx - tooltipW - 15;
+        const tooltipW = 160, tooltipH = 82;
+        let tx = hx + 15; if (tx + tooltipW > w - padR) tx = hx - tooltipW - 15;
         const ty = 30;
-
         ctx.fillStyle = "rgba(15,15,20,0.92)";
-        ctx.beginPath();
-        ctx.roundRect(tx, ty, tooltipW, tooltipH, 8);
-        ctx.fill();
-        ctx.strokeStyle = "rgba(128,128,128,0.15)";
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-
-        ctx.font = "9px sans-serif";
-        ctx.textAlign = "left";
-        const dateLabel = hb.date.slice(0, 16).replace("T", " ");
+        ctx.beginPath(); ctx.roundRect(tx, ty, tooltipW, tooltipH, 8); ctx.fill();
+        ctx.strokeStyle = "rgba(128,128,128,0.15)"; ctx.lineWidth = 0.5; ctx.stroke();
+        ctx.font = "9px sans-serif"; ctx.textAlign = "left";
         ctx.fillStyle = "rgba(200,200,200,0.4)";
-        ctx.fillText(dateLabel, tx + 8, ty + 14);
-
+        ctx.fillText(hb.date.slice(0, 16).replace("T", " "), tx + 8, ty + 14);
         const labels = ["O", "H", "L", "C", "V"];
         const vals = [hb.open, hb.high, hb.low, hb.close, hb.volume];
         labels.forEach((l, i) => {
           const ly = ty + 28 + i * 11;
-          ctx.fillStyle = "rgba(200,200,200,0.35)";
-          ctx.fillText(l, tx + 8, ly);
+          ctx.fillStyle = "rgba(200,200,200,0.35)"; ctx.fillText(l, tx + 8, ly);
           ctx.fillStyle = i === 3 ? (bullish ? bullColor : bearColor) : "rgba(230,230,230,0.7)";
           const vStr = i === 4 ? `${(vals[i] / 1e6).toFixed(1)}M` : `$${fmt(vals[i])}`;
-          ctx.textAlign = "right";
-          ctx.fillText(vStr, tx + tooltipW - 8, ly);
-          ctx.textAlign = "left";
+          ctx.textAlign = "right"; ctx.fillText(vStr, tx + tooltipW - 8, ly); ctx.textAlign = "left";
         });
       }
     }
-  }, [data, viewStart, visibleCount, hoveredIdx, chartType, containerSize, patternZones]);
+  }, [data, viewStart, visibleCount, hoveredIdx, chartType, containerSize, patternZones, signal, predictedBars]);
 
   // Mouse handlers for drag + hover
   const getBarIndex = (clientX: number) => {
@@ -642,9 +641,10 @@ For the LIVE SIGNAL provide:
 - confidence: 0-1
 - invalidation: what price level or condition invalidates this signal
 - basedOnPatterns: array of pattern names this signal is derived from
+- predictedCandles: array of 5-8 predicted next candles as {"open":number,"high":number,"low":number,"close":number} showing your forecast of future price movement
 
 Return ONLY valid JSON object:
-{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"]}}`;
+{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}]}}`;
 
     try {
       setProgress("Running Aureon fractal analysis…");
@@ -873,7 +873,7 @@ Return ONLY valid JSON object:
 
             {/* Canvas Chart */}
             <div className="px-2 py-2">
-              <CandleChart data={activeData} chartType={chartType} patternZones={activePatternZones} />
+              <CandleChart data={activeData} chartType={chartType} patternZones={activePatternZones} signal={signal} predictedBars={signal?.predictedCandles} />
             </div>
           </div>
         )}
