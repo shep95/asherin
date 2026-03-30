@@ -1061,7 +1061,55 @@ Return ONLY valid JSON object:
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Pattern Occurrence Mini Charts */}
+                {pattern.patternZones?.length > 0 && activeData.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Eye className="h-3 w-3 text-accent/50" />
+                      <p className="text-[9px] font-light tracking-[0.1em] text-muted-foreground/50 uppercase">
+                        Where This Pattern Repeats ({pattern.patternZones.length} occurrences)
+                      </p>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                      {pattern.patternZones.map((zone, zi) => (
+                        <div key={zi} className="flex-shrink-0 rounded-xl border border-border/10 bg-background/10 p-2">
+                          <div className="flex items-center justify-between mb-1.5 px-1">
+                            <span className="text-[8px] font-medium text-muted-foreground/50 uppercase tracking-wider">
+                              #{zi + 1} — {zone.type === "bullish" ? "▲ Bull" : "▼ Bear"}
+                            </span>
+                            <span className="text-[8px] text-muted-foreground/30">
+                              Bars {zone.startIdx}–{zone.endIdx}
+                            </span>
+                          </div>
+                          <PatternMiniChart
+                            data={activeData}
+                            startIdx={zone.startIdx}
+                            endIdx={zone.endIdx}
+                            type={zone.type}
+                          />
+                          {activeData[zone.startIdx] && activeData[Math.min(zone.endIdx, activeData.length - 1)] && (
+                            <div className="flex items-center justify-between mt-1.5 px-1">
+                              <span className="text-[7px] text-muted-foreground/30">
+                                {activeData[zone.startIdx].date.slice(0, 10)}
+                              </span>
+                              <span className={`text-[8px] font-medium ${zone.type === "bullish" ? "text-accent/60" : "text-muted-foreground/50"}`}>
+                                {(() => {
+                                  const s = activeData[zone.startIdx];
+                                  const e = activeData[Math.min(zone.endIdx, activeData.length - 1)];
+                                  const pctChange = ((e.close - s.open) / s.open * 100);
+                                  return `${pctChange >= 0 ? "+" : ""}${pctChange.toFixed(1)}%`;
+                                })()}
+                              </span>
+                              <span className="text-[7px] text-muted-foreground/30">
+                                {activeData[Math.min(zone.endIdx, activeData.length - 1)].date.slice(0, 10)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                   {pattern.entryRules?.length > 0 && (
                     <div className="rounded-xl bg-accent/[0.03] border border-accent/10 p-3">
                       <p className="text-[9px] font-light tracking-[0.1em] text-accent/60 uppercase mb-2">Entry Rules</p>
