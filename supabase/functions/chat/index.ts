@@ -1274,6 +1274,7 @@ ${truncatedDoctrine}
       AUREON_VEDIC_INTELLIGENCE,
       vedicBrainContent,
       warStrategyBrainContent,
+      strategicDoctrineBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
