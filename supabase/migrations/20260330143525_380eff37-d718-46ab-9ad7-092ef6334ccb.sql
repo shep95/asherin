@@ -1,0 +1,1 @@
+UPDATE public.granted_subscriptions SET active = false WHERE email = 'justin04rodriguez04@gmail.com';
