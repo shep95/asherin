@@ -938,7 +938,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     <ChainOfThoughtPanel
                       open={true}
                       content={msg.content}
-                      query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content}
+                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content}
                     />
                   )}
                   {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
