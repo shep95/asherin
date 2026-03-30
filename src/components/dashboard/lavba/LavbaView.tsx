@@ -31,6 +31,19 @@ interface DiscoveredPattern {
   confidence: number;
 }
 
+interface LiveSignal {
+  direction: "LONG" | "SHORT" | "NEUTRAL";
+  entry: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
+  takeProfit3: string;
+  reasoning: string;
+  confidence: number;
+  invalidation: string;
+  basedOnPatterns: string[];
+}
+
 const TIMEFRAMES = [
   { value: "5m", label: "5m" },
   { value: "15m", label: "15m" },
