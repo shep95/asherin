@@ -74,10 +74,63 @@ async function queryDDGInstant(query: string): Promise<string> {
   } catch { return ""; }
 }
 
+// ── SearXNG Meta-Search for Briefing ────────────────────────────────────────
+const SEARXNG_INSTANCES = [
+  'https://search.bus-hit.me',
+  'https://searx.tiekoetter.com',
+  'https://search.ononoki.org',
+  'https://searx.be',
+];
+
+async function searchSearXNG(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
+  for (const instance of SEARXNG_INSTANCES) {
+    try {
+      const resp = await fetch(`${instance}/search?q=${encodeURIComponent(query)}&format=json&engines=google,bing,brave&categories=general`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      if (!json.results?.length) continue;
+      return json.results.slice(0, 8).map((r: any) => ({ title: r.title || '', url: r.url || '', snippet: r.content || '' }));
+    } catch { continue; }
+  }
+  return [];
+}
+
+async function searchMojeek(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
+  try {
+    const resp = await fetch(`https://www.mojeek.com/search?q=${encodeURIComponent(query)}&fmt=json&t=8`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    return (json.response?.results || []).slice(0, 6).map((r: any) => ({ title: r.title || '', url: r.url || '', snippet: r.desc || '' }));
+  } catch { return []; }
+}
+
 async function robustSearch(query: string): Promise<{ title: string; url: string; snippet: string }[]> {
-  let results = await searchDDGHtml(query);
-  if (results.length === 0) results = await searchDDGLite(query);
-  return results;
+  // Multi-engine: DDG primary, SearXNG and Mojeek as supplements
+  const [ddgHtml, searx, mojeek] = await Promise.allSettled([
+    searchDDGHtml(query),
+    searchSearXNG(query),
+    searchMojeek(query),
+  ]);
+  
+  const seen = new Set<string>();
+  const all: { title: string; url: string; snippet: string }[] = [];
+  for (const settled of [ddgHtml, searx, mojeek]) {
+    if (settled.status !== 'fulfilled') continue;
+    for (const r of settled.value) {
+      const norm = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+      if (!seen.has(norm)) { seen.add(norm); all.push(r); }
+    }
+  }
+  
+  // Fallback to DDG Lite if nothing found
+  if (all.length === 0) return searchDDGLite(query);
+  return all;
 }
 
 // ── Identify Parties & Build Comprehensive Intelligence Queries ──────────────

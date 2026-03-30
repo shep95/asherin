@@ -65,6 +65,18 @@ function cleanHtml(html: string): string {
     .trim();
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// MULTI-ENGINE SEARCH — DDG + SearXNG + Mojeek + Gigablast + MetaGer
+// ══════════════════════════════════════════════════════════════════════════════
+
+const SEARXNG_INSTANCES = [
+  'https://search.bus-hit.me',
+  'https://searx.tiekoetter.com',
+  'https://search.ononoki.org',
+  'https://searx.be',
+  'https://search.sapti.me',
+];
+
 // ── DuckDuckGo Search with retry ─────────────────────────────────────────────
 async function searchDDG(query: string, retries = 3): Promise<{ url: string; title: string }[]> {
   for (let attempt = 0; attempt < retries; attempt++) {
@@ -97,6 +109,83 @@ async function searchDDG(query: string, retries = 3): Promise<{ url: string; tit
     }
   }
   return [];
+}
+
+// ── SearXNG Meta-Search ──────────────────────────────────────────────────────
+async function searchSearXNG(query: string): Promise<{ url: string; title: string }[]> {
+  for (const instance of SEARXNG_INSTANCES) {
+    try {
+      const resp = await fetch(`${instance}/search?q=${encodeURIComponent(query)}&format=json&engines=google,bing,brave,duckduckgo&categories=general`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      if (!json.results?.length) continue;
+      return json.results.slice(0, 10).filter((r: any) => r.url?.startsWith('http')).map((r: any) => ({ url: r.url, title: r.title || '' }));
+    } catch { continue; }
+  }
+  return [];
+}
+
+// ── Mojeek Search ────────────────────────────────────────────────────────────
+async function searchMojeek(query: string): Promise<{ url: string; title: string }[]> {
+  try {
+    const resp = await fetch(`https://www.mojeek.com/search?q=${encodeURIComponent(query)}&fmt=json&t=10`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    return (json.response?.results || []).slice(0, 8).filter((r: any) => r.url?.startsWith('http')).map((r: any) => ({ url: r.url, title: r.title || '' }));
+  } catch { return []; }
+}
+
+// ── MetaGer Search ───────────────────────────────────────────────────────────
+async function searchMetaGer(query: string): Promise<{ url: string; title: string }[]> {
+  try {
+    const resp = await fetch(`https://metager.org/meta/meta.ger3?eingabe=${encodeURIComponent(query)}&focus=web&out=json`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    return (json.results || []).slice(0, 8).filter((r: any) => (r.link || r.url)?.startsWith('http')).map((r: any) => ({ url: r.link || r.url, title: r.title || '' }));
+  } catch { return []; }
+}
+
+// ── Gigablast Search ─────────────────────────────────────────────────────────
+async function searchGigablast(query: string): Promise<{ url: string; title: string }[]> {
+  try {
+    const resp = await fetch(`https://www.gigablast.com/search?q=${encodeURIComponent(query)}&format=json&n=10`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    return (json.results || []).slice(0, 8).filter((r: any) => r.url?.startsWith('http')).map((r: any) => ({ url: r.url, title: r.title || '' }));
+  } catch { return []; }
+}
+
+// ── Multi-Engine Search (aggregated + deduplicated) ─────────────────────────
+async function multiEngineSearch(query: string): Promise<{ url: string; title: string }[]> {
+  const [ddg, searx, mojeek, metager, gigablast] = await Promise.allSettled([
+    searchDDG(query),
+    searchSearXNG(query),
+    searchMojeek(query),
+    searchMetaGer(query),
+    searchGigablast(query),
+  ]);
+  const seen = new Set<string>();
+  const all: { url: string; title: string }[] = [];
+  for (const settled of [ddg, searx, mojeek, metager, gigablast]) {
+    if (settled.status !== 'fulfilled') continue;
+    for (const r of settled.value) {
+      const norm = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+      if (!seen.has(norm)) { seen.add(norm); all.push(r); }
+    }
+  }
+  return all;
 }
 
 // ── Page Scraper with integrity check ────────────────────────────────────────
@@ -540,9 +629,9 @@ Deno.serve(async (req) => {
       })());
     }
 
-    // Run all OSINT + DuckDuckGo searches in parallel
+    // Run all multi-engine searches + OSINT in parallel
     const [allSearchResults] = await Promise.all([
-      Promise.all(searchVariants.map(q => searchDDG(q))),
+      Promise.all(searchVariants.map(q => multiEngineSearch(q))),
       Promise.allSettled(osintTasks),
     ]);
     
@@ -551,8 +640,9 @@ Deno.serve(async (req) => {
     const uniqueResults: { url: string; title: string }[] = [];
     for (const batch of allSearchResults) {
       for (const r of batch) {
-        if (!seen.has(r.url)) {
-          seen.add(r.url);
+        const norm = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+        if (!seen.has(norm)) {
+          seen.add(norm);
           uniqueResults.push(r);
         }
       }
