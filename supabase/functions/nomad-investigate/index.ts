@@ -488,7 +488,7 @@ async function ingestGigablast(query: string): Promise<IntelNode> {
   } catch { return emptyNode('Gigablast', 4); }
 }
 
-
+async function ingestEdgar(query: string): Promise<IntelNode> {
   try {
     const cleaned = query.replace(/investigate|company|research|find|look up|search/gi, '').trim();
     const resp = await fetch(`https://www.sec.gov/cgi-bin/browse-edgar?company=${encodeURIComponent(cleaned)}&CIK=&type=&dateb=&owner=include&count=10&search_text=&action=getcompany&output=atom`, {
