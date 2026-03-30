@@ -131,3 +131,9 @@ verify_jwt = false
 
 [functions.agent-scheduler]
 verify_jwt = false
+
+[functions.lavba-fetch-data]
+verify_jwt = false
+
+[functions.chart-annotate]
+verify_jwt = false

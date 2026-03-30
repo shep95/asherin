@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface OHLCVBar {
@@ -25,11 +25,8 @@ const CRYPTO_TICKERS = new Set([
 
 function resolveSymbol(input: string): string {
   const upper = input.toUpperCase().trim();
-  // Already has suffix like BTC-USD, ETH-USD etc
   if (upper.includes("-") || upper.includes("=") || upper.includes(".")) return upper;
-  // Known crypto → append -USD
   if (CRYPTO_TICKERS.has(upper)) return `${upper}-USD`;
-  // Otherwise treat as stock ticker
   return upper;
 }
 
@@ -45,6 +42,33 @@ const RANGE_MAP: Record<string, string> = {
   "1d": "10y", "1w": "10y", "1mo": "max",
 };
 
+// Validate symbol: alphanumeric with allowed special chars, max 20 chars
+function isValidSymbol(s: string): boolean {
+  return /^[A-Za-z0-9.\-=^]{1,20}$/.test(s);
+}
+
+const VALID_INTERVALS = new Set(Object.keys(INTERVAL_MAP));
+
+async function fetchWithRetry(url: string, headers: Record<string, string>, retries = 2): Promise<Response> {
+  let lastError: Error | null = null;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const resp = await fetch(url, { headers });
+      if (resp.ok || resp.status === 404) return resp;
+      if (resp.status === 429 && i < retries) {
+        // Rate limited — backoff
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        continue;
+      }
+      return resp; // Return non-ok for caller to handle
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error(String(e));
+      if (i < retries) await new Promise(r => setTimeout(r, 800 * (i + 1)));
+    }
+  }
+  throw lastError || new Error("Fetch failed after retries");
+}
+
 async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLCVBar[]> {
   const resolved = resolveSymbol(symbol);
   const yahooInterval = INTERVAL_MAP[interval] || "1d";
@@ -52,10 +76,8 @@ async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLC
 
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(resolved)}?interval=${yahooInterval}&range=${range}&includePrePost=false`;
 
-  const resp = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    },
+  const resp = await fetchWithRetry(url, {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
   });
 
   if (!resp.ok) {
@@ -73,11 +95,6 @@ async function fetchYahooFinance(symbol: string, interval: string): Promise<OHLC
   const lows = quote.low || [];
   const closes = quote.close || [];
   const volumes = quote.volume || [];
-
-  // Get currency from meta
-  const currency = result.meta?.currency || "USD";
-  const regularMarketPrice = result.meta?.regularMarketPrice;
-  const previousClose = result.meta?.previousClose || result.meta?.chartPreviousClose;
 
   const bars: OHLCVBar[] = [];
   for (let i = 0; i < timestamps.length; i++) {
@@ -120,14 +137,23 @@ serve(async (req) => {
   }
 
   try {
-    const { symbol, interval } = await req.json();
+    const body = await req.json();
+    const { symbol, interval } = body;
+
+    // Input validation
     if (!symbol || typeof symbol !== "string") {
       return new Response(JSON.stringify({ error: "Symbol is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const tf = interval || "1d";
+    if (!isValidSymbol(symbol)) {
+      return new Response(JSON.stringify({ error: "Invalid symbol format" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const tf = (typeof interval === "string" && VALID_INTERVALS.has(interval)) ? interval : "1d";
     const resolved = resolveSymbol(symbol);
     const bars = await fetchYahooFinance(symbol, tf);
 
@@ -141,7 +167,7 @@ serve(async (req) => {
     });
   } catch (err) {
     console.error("lavba-fetch-data error:", err);
-    return new Response(JSON.stringify({ error: err.message || "Failed to fetch data" }), {
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Failed to fetch data" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
