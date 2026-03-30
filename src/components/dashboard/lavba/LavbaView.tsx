@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
   Loader2, Search, Sparkles, TrendingUp, Clock, BarChart3, Target,
   AlertTriangle, ArrowRight, Zap, Activity, DollarSign, Volume2, RefreshCw,
-  CandlestickChart, LineChart, Minus, Plus, ChevronLeft, ChevronRight,
+  CandlestickChart, LineChart, Minus, Plus, ChevronLeft, ChevronRight, Eye,
 } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { useAuth } from "@/contexts/AuthContext";
