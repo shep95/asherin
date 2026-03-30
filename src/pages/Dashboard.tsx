@@ -1193,6 +1193,7 @@ const Dashboard = () => {
       case "tracker": return gatedView("tracker", TrackerView, "Location Tracker", "Real-time geolocation tracking with reverse geocoding and interactive maps. Available on Pro and Advisor plans.");
       case "google": return gatedView("google", GoogleIntelligenceView, "Google Intelligence", "Unified intelligence hub — full-spectrum Google account analysis. Available on Pro and Advisor plans.");
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Asha + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
+      case "lavba": return gatedView("lavba", LavbaView, "Lavba Strategy Discovery", "Autonomous strategy discovery engine — Aureon scans historical chart data for repeating fractal patterns. Available on Pro plans.");
       case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro and Advisor plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
