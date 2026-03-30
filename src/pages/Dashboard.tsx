@@ -89,6 +89,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
 import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
+import { getActiveBranch, getMessageBranch, tagMessageBranch } from "@/components/dashboard/ConversationBranches";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
@@ -720,7 +721,10 @@ const Dashboard = () => {
     const tempMsgId = crypto.randomUUID();
     const conv = conversationsRef.current.find(c => c.id === convId);
     const userMsg: Message = { id: tempMsgId, role: "user", content, timestamp: new Date(), attachments };
-    const isFirst = conv?.messages.length === 0;
+    const currentBranch = getActiveBranch(convId);
+    tagMessageBranch(tempMsgId, currentBranch);
+    const branchMsgs = conv?.messages.filter(m => getMessageBranch(m.id) === currentBranch) ?? [];
+    const isFirst = branchMsgs.length === 0 && (conv?.messages.length === 0);
     if (isFirst) {
       const newTitle = content.slice(0, 50);
       setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, title: newTitle, messages: [...c.messages, userMsg] } : c));
@@ -748,6 +752,7 @@ const Dashboard = () => {
         .single();
 
       if (userMsgRow) {
+        tagMessageBranch(userMsgRow.id, currentBranch);
         setConversations((prev) => prev.map((c) => c.id === convId
           ? { ...c, messages: c.messages.map(m => m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m) }
           : c
@@ -768,6 +773,7 @@ const Dashboard = () => {
     isStreamingRef.current = true;
     let assistantContent = "";
     const assistantId = crypto.randomUUID();
+    tagMessageBranch(assistantId, currentBranch);
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -779,7 +785,8 @@ const Dashboard = () => {
       )
     );
 
-    const history = [...(conv?.messages ?? []), userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content, attachments: m.attachments }));
+    // Only send branch-scoped history to AI (no memory leaking between branches)
+    const history = [...branchMsgs, userMsg].map((m) => ({ role: m.role as "user" | "assistant", content: m.content, attachments: m.attachments }));
 
     const activePersona = customPersonas.find((p) => p.id === personaId) 
       || builtInPersonas.find((p) => p.id === personaId);

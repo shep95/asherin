@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal, X, ZoomIn } from "lucide-react";
+import ConversationBranches, { getActiveBranch, getMessageBranch, tagMessageBranch } from "./ConversationBranches";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
@@ -327,10 +328,38 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [qosMode, setQosMode] = useState<QoSMode>("fast");
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [activeBranch, setActiveBranch] = useState<string>(() => getActiveBranch(conversation.id));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Reset branch when conversation changes
+  useEffect(() => {
+    setActiveBranch(getActiveBranch(conversation.id));
+  }, [conversation.id]);
+
+  // Filter messages by active branch
+  const branchMessages = useMemo(() => {
+    if (activeBranch === "main") {
+      // Main branch: show messages that are either untagged or tagged as "main"
+      return conversation.messages.filter(m => {
+        const mb = getMessageBranch(m.id);
+        return mb === "main";
+      });
+    }
+    return conversation.messages.filter(m => getMessageBranch(m.id) === activeBranch);
+  }, [conversation.messages, activeBranch]);
+
+  // Tag new messages with the active branch
+  useEffect(() => {
+    conversation.messages.forEach(m => {
+      const existing = getMessageBranch(m.id);
+      if (existing === "main" && activeBranch !== "main") {
+        // Don't re-tag existing main messages
+      }
+    });
+  }, [conversation.messages, activeBranch]);
 
   // Auto-scroll to bottom when conversation changes (opening a conversation)
   useEffect(() => {
@@ -362,8 +391,8 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   // handleSend is now inside AdaptiveInputBar
 
   const downloadConversation = () => {
-    if (!conversation.messages.length) return;
-    const lines = conversation.messages.map(m =>
+    if (!branchMessages.length) return;
+    const lines = branchMessages.map(m =>
       `**${m.role === "user" ? "You" : "Aureon"}** (${m.timestamp ? new Date(m.timestamp).toLocaleString() : ""}):\n${m.content}`
     );
     const md = `# ${conversation.title}\n\n${lines.join("\n\n---\n\n")}`;
@@ -406,7 +435,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     onSendMessage(prompts[action] ?? `${action}: "${text}"`);
   }, [onSendMessage]);
 
-  const lastMsg = conversation.messages[conversation.messages.length - 1];
+  const lastMsg = branchMessages[branchMessages.length - 1];
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
     return (
@@ -434,7 +463,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
       {!focusMode && (
         <div className="flex items-center px-2 sm:px-4 pt-2 sm:pt-4 pb-2 gap-1.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
           <ModeSelector active={mode} onChange={onModeChange} />
-
+          <ConversationBranches conversationId={conversation.id} activeBranch={activeBranch} onBranchChange={setActiveBranch} />
           {/* Primary icons — always visible */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {hasPro ? (
@@ -458,7 +487,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             )}
-            {conversation.messages.length > 0 && (
+            {branchMessages.length > 0 && (
               <button onClick={downloadConversation} className="shrink-0 p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
@@ -471,7 +500,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               <StickyNote className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
             <ChatSearchBar
-              messages={conversation.messages}
+              messages={branchMessages}
               onHighlightMessage={setHighlightedMsgId}
               onSearchActive={setSearchActive}
             />
@@ -479,7 +508,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
           {/* Advanced controls — hidden on mobile, visible on sm+ */}
           <div className="hidden sm:flex items-center gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 py-1">
-            <ContextHealthIndicator messageCount={conversation.messages.length} />
+            <ContextHealthIndicator messageCount={branchMessages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
             <DeterminismSlider value={determinism} onChange={setDeterminism} />
@@ -577,7 +606,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
                 {/* Context Health */}
                 <div className="px-2 py-1.5 flex items-center">
-                  <ContextHealthIndicator messageCount={conversation.messages.length} />
+                  <ContextHealthIndicator messageCount={branchMessages.length} />
                 </div>
 
                 {/* Toggleable items */}
@@ -658,7 +687,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 pb-4 relative min-h-0">
-        {conversation.messages.length === 0 ? (
+        {branchMessages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center max-w-md animate-fade-in">
                <h1 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-3">
@@ -681,7 +710,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 error={chatError}
                 onRetry={() => {
                   setChatError(null);
-                  const lastUserMsg = [...conversation.messages].reverse().find(m => m.role === "user");
+                  const lastUserMsg = [...branchMessages].reverse().find(m => m.role === "user");
                   if (lastUserMsg) onSendMessage(lastUserMsg.content);
                 }}
                 onFallback={() => setChatError(null)}
@@ -689,7 +718,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
               />
             )}
             <SmartSelectionMenu containerRef={messagesRef} onAction={handleSelectionAction} />
-            {conversation.messages.map((msg, idx) => (
+            {branchMessages.map((msg, idx) => (
               <div
                 key={msg.id}
                 ref={(el) => { messageRefs.current[msg.id] = el; }}
@@ -819,7 +848,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             onClick={() => {
                               setPreviousResponses(prev => ({ ...prev, [msg.id]: msg.content }));
                               // Find the user message before this one to regenerate
-                              const userMsg = conversation.messages.slice(0, conversation.messages.indexOf(msg)).reverse().find(m => m.role === "user");
+                              const userMsg = branchMessages.slice(0, branchMessages.indexOf(msg)).reverse().find(m => m.role === "user");
                               if (userMsg) onSendMessage(userMsg.content);
                             }}
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
@@ -868,7 +897,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                           {/* Trading Proof — show annotated chart with visual reasoning */}
                           <TradingProofButton
                             message={msg}
-                            allMessages={conversation.messages}
+                            allMessages={branchMessages}
                           />
                           {/* Answer Controls */}
                           <AnswerControls
@@ -909,7 +938,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     <ChainOfThoughtPanel
                       open={true}
                       content={msg.content}
-                      query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content}
+                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content}
                     />
                   )}
                   {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
@@ -923,7 +952,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                   {msg.role === "assistant" && neuralId === msg.id && (
                     <NeuralThinkingModal
                       open={true}
-                      query={conversation.messages.find((m, i) => i < conversation.messages.indexOf(msg) && m.role === "user")?.content || ""}
+                      query={branchMessages.find((m, i) => i < branchMessages.indexOf(msg) && m.role === "user")?.content || ""}
                       response={msg.content}
                       onClose={() => setNeuralId(null)}
                     />
@@ -1018,7 +1047,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
       {/* Share with Redaction modal */}
       <ShareWithRedaction
-        messages={conversation.messages}
+        messages={branchMessages}
         open={shareOpen}
         onClose={() => setShareOpen(false)}
       />
