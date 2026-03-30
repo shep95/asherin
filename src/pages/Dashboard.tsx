@@ -752,6 +752,7 @@ const Dashboard = () => {
         .single();
 
       if (userMsgRow) {
+        tagMessageBranch(userMsgRow.id, currentBranch);
         setConversations((prev) => prev.map((c) => c.id === convId
           ? { ...c, messages: c.messages.map(m => m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m) }
           : c
