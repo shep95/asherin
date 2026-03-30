@@ -11,9 +11,9 @@ import AgentArchitectureDiagram from "@/components/landing/AgentArchitectureDiag
 const capabilities = [
   {
     icon: Globe,
-    title: "21 OSINT Search Engines",
+    title: "25+ Multi-Engine OSINT Search",
     description:
-      "Google, Bing, Shodan, Censys, SecurityTrails, VirusTotal, GreyNoise, BinaryEdge, FOFA, urlscan.io, crt.sh, GitHub, ThreatFox, Yandex, social platforms (LinkedIn/Facebook/Instagram/X/TikTok), Wayback Machine, public records, court portals, OpenCorporates, and mapping tools — all in parallel.",
+      "Google, Bing, DuckDuckGo, Startpage, SearXNG (meta-search aggregator), Mojeek (independent crawler), MetaGer (privacy meta-search), Gigablast (independent index), Shodan, Censys, SecurityTrails, VirusTotal, GreyNoise, BinaryEdge, FOFA, urlscan.io, crt.sh, GitHub, ThreatFox, Yandex, social platforms (LinkedIn/Facebook/Instagram/X/TikTok), Wayback Machine, public records, court portals, OpenCorporates, and mapping tools — all in parallel with cross-engine corroboration.",
   },
   {
     icon: Shield,
