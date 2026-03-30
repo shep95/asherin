@@ -661,6 +661,7 @@ Return ONLY valid JSON object:
               const parsed = JSON.parse(objMatch[0]);
               if (parsed.patterns && Array.isArray(parsed.patterns)) {
                 setPatterns(parsed.patterns.map((p: DiscoveredPattern, i: number) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+                setTimeout(() => strategiesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
               }
               if (parsed.signal) {
                 setSignal(parsed.signal as LiveSignal);
