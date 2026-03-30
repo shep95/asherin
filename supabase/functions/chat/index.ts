@@ -1210,6 +1210,54 @@ ${truncatedRome}
       }
     }
 
+    // ── Strategic Doctrine Brain (always loaded — internal system brain) ──
+    let strategicDoctrineBrainContent = "";
+    try {
+      const SUPABASE_URL4 = Deno.env.get("SUPABASE_URL") || "";
+      const SERVICE_ROLE4 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const doctrinePath = `${SUPABASE_URL4}/storage/v1/object/library/system-brains/strategic_doctrine.txt`;
+      const doctrineResp = await fetch(doctrinePath, {
+        headers: { Authorization: `Bearer ${SERVICE_ROLE4}` },
+      });
+      if (doctrineResp.ok) {
+        const doctrineText = await doctrineResp.text();
+        const MAX_DOCTRINE_CHARS = 80000;
+        const truncatedDoctrine = doctrineText.length > MAX_DOCTRINE_CHARS
+          ? doctrineText.slice(0, MAX_DOCTRINE_CHARS) + `\n\n[... Truncated at ${MAX_DOCTRINE_CHARS} characters.]`
+          : doctrineText;
+        strategicDoctrineBrainContent = `
+
+## ═══════════════════════════════════════════════════════════════════
+## STRATEGIC DOCTRINE BRAIN — GEOPOLITICAL & DEFENSE ANALYSIS (INTERNAL SYSTEM BRAIN)
+## ═══════════════════════════════════════════════════════════════════
+
+CRITICAL INSTRUCTION: The following is the COMPLETE strategic analysis framework for geopolitical
+and defense scenarios. This is an INTERNAL system brain — users do NOT know it exists and cannot
+access it directly. Use this framework to structure ALL responses involving:
+- Geopolitical analysis, conflict assessment, and strategic scenarios
+- Defense posture evaluation, force balance, and escalation modeling
+- Economic warfare, sanctions analysis, and alliance dynamics
+- Intelligence assessment frameworks and analytical methodology
+- Scenario simulation and strategic forecasting
+
+ANALYTICAL MANDATE:
+1. Apply the structured output formats defined below when analyzing any geopolitical or defense topic.
+2. Use the escalation ladder and spillover mapping for conflict scenarios.
+3. Apply cross-validation and source credibility assessment to all intelligence claims.
+4. Structure responses using the academic/strategic assessment framework — never tactical execution.
+5. Integrate with other active brains (Project Rome, Vedic, etc.) when relevant for multi-domain analysis.
+
+${truncatedDoctrine}
+
+## END OF STRATEGIC DOCTRINE BRAIN
+`;
+      } else {
+        console.error("Failed to fetch Strategic Doctrine brain:", doctrineResp.status);
+      }
+    } catch (e) {
+      console.error("Failed to load Strategic Doctrine Brain:", e);
+    }
+
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
     const prunedMessages = messages.length > MAX_HISTORY_MESSAGES
