@@ -606,7 +606,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
                 {/* Context Health */}
                 <div className="px-2 py-1.5 flex items-center">
-                  <ContextHealthIndicator messageCount={conversation.messages.length} />
+                  <ContextHealthIndicator messageCount={branchMessages.length} />
                 </div>
 
                 {/* Toggleable items */}
