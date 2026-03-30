@@ -487,7 +487,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                 <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
             )}
-            {conversation.messages.length > 0 && (
+            {branchMessages.length > 0 && (
               <button onClick={downloadConversation} className="shrink-0 p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
                 <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </button>
