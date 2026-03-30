@@ -362,6 +362,18 @@ function categorizeResult(result: { url: string; tier: SourceTier; snippet: stri
   return 'general';
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// MULTI-ENGINE SEARCH — DDG + SearXNG + Mojeek + Gigablast + MetaGer
+// ══════════════════════════════════════════════════════════════════════════════
+
+const SEARXNG_INSTANCES = [
+  'https://search.bus-hit.me',
+  'https://searx.tiekoetter.com',
+  'https://search.ononoki.org',
+  'https://searx.be',
+  'https://search.sapti.me',
+];
+
 // ── DuckDuckGo Search ────────────────────────────────────────────────────────
 async function searchDDG(query: string, page: number, dateFilter?: string): Promise<SearchResult[]> {
   const startParam = (page - 1) * 10;
@@ -381,6 +393,10 @@ async function searchDDG(query: string, page: number, dateFilter?: string): Prom
 
   if (!response.ok) return [];
   const html = await response.text();
+  return parseDDGResults(html);
+}
+
+function parseDDGResults(html: string): SearchResult[] {
   const results: SearchResult[] = [];
   const resultBlocks = html.split(/class="result\s/);
 
@@ -410,7 +426,6 @@ async function searchDDG(query: string, page: number, dateFilter?: string): Prom
     const provenanceScore = calculateProvenance(domain, tier, rawSnippet);
     const freshnessScore = calculateFreshness(publishDate);
 
-    // Composite veracity score: provenance (40%) + freshness (25%) + tier (35%)
     const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.75 : tier === 3 ? 0.55 : 0.3;
     const veracity = Math.round(
       (provenanceScore * 0.4 + freshnessScore * 0.25 + tierScore * 0.35) * 100
@@ -422,7 +437,7 @@ async function searchDDG(query: string, page: number, dateFilter?: string): Prom
       provenanceScore,
       freshnessScore,
       hostileFlag: hostile,
-      consensusWeight: 0, // filled after consensus analysis
+      consensusWeight: 0,
     };
 
     const result: SearchResult = {
@@ -437,6 +452,180 @@ async function searchDDG(query: string, page: number, dateFilter?: string): Prom
   }
 
   return results;
+}
+
+function buildSearchResult(title: string, url: string, snippet: string): SearchResult | null {
+  if (!title || !url || !url.startsWith('http')) return null;
+  const domain = extractDomain(url);
+  const tier = getSourceTier(domain);
+  const hostile = isHostile(domain);
+  const provenanceScore = calculateProvenance(domain, tier, snippet);
+  const freshnessScore = calculateFreshness(undefined);
+  const tierScore = tier === 1 ? 1.0 : tier === 2 ? 0.75 : tier === 3 ? 0.55 : 0.3;
+  const veracity = Math.round(
+    (provenanceScore * 0.4 + freshnessScore * 0.25 + tierScore * 0.35) * 100
+  );
+  const truthGraph: TruthGraphNode = {
+    tier, tierLabel: getTierLabel(tier), provenanceScore, freshnessScore,
+    hostileFlag: hostile, consensusWeight: 0,
+  };
+  const result: SearchResult = {
+    title, url, snippet, source: domain,
+    tier, tierLabel: getTierLabel(tier),
+    category: 'general', truthGraph, veracity,
+  };
+  result.category = categorizeResult(result);
+  return result;
+}
+
+// ── SearXNG Search (meta-search aggregator — queries Google, Bing, Brave, etc.) ──
+async function searchSearXNG(query: string): Promise<SearchResult[]> {
+  for (const instance of SEARXNG_INSTANCES) {
+    try {
+      const resp = await fetch(`${instance}/search?q=${encodeURIComponent(query)}&format=json&engines=google,bing,brave,duckduckgo&categories=general`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (!data.results?.length) continue;
+      const results: SearchResult[] = [];
+      for (const r of data.results.slice(0, 15)) {
+        const built = buildSearchResult(r.title || '', r.url || '', r.content || '');
+        if (built) results.push(built);
+      }
+      if (results.length > 0) return results;
+    } catch { continue; }
+  }
+  return [];
+}
+
+// ── Mojeek Search (independent web crawler — no reliance on Google/Bing index) ──
+async function searchMojeek(query: string): Promise<SearchResult[]> {
+  try {
+    const resp = await fetch(`https://www.mojeek.com/search?q=${encodeURIComponent(query)}&fmt=json&t=20`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) {
+      // Fallback: parse HTML
+      const htmlResp = await fetch(`https://www.mojeek.com/search?q=${encodeURIComponent(query)}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/html' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!htmlResp.ok) return [];
+      const html = await htmlResp.text();
+      const results: SearchResult[] = [];
+      const linkRegex = /<a[^>]*class="ob"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+      const descRegex = /<p[^>]*class="s"[^>]*>([\s\S]*?)<\/p>/gi;
+      const links: { url: string; title: string }[] = [];
+      const descs: string[] = [];
+      let m;
+      while ((m = linkRegex.exec(html)) !== null) links.push({ url: m[1], title: m[2].replace(/<[^>]*>/g, '').trim() });
+      while ((m = descRegex.exec(html)) !== null) descs.push(m[1].replace(/<[^>]*>/g, '').trim());
+      for (let i = 0; i < Math.min(links.length, 10); i++) {
+        const built = buildSearchResult(links[i].title, links[i].url, descs[i] || '');
+        if (built) results.push(built);
+      }
+      return results;
+    }
+    const data = await resp.json();
+    const results: SearchResult[] = [];
+    for (const r of (data.response?.results || []).slice(0, 15)) {
+      const built = buildSearchResult(r.title || '', r.url || '', r.desc || '');
+      if (built) results.push(built);
+    }
+    return results;
+  } catch { return []; }
+}
+
+// ── MetaGer Search (German privacy meta-search engine) ──
+async function searchMetaGer(query: string): Promise<SearchResult[]> {
+  try {
+    const resp = await fetch(`https://metager.org/meta/meta.ger3?eingabe=${encodeURIComponent(query)}&focus=web&out=json`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const results: SearchResult[] = [];
+    for (const r of (data.results || []).slice(0, 12)) {
+      const built = buildSearchResult(r.title || '', r.link || r.url || '', r.description || r.snippet || '');
+      if (built) results.push(built);
+    }
+    return results;
+  } catch { return []; }
+}
+
+// ── Gigablast Search (independent crawler) ──
+async function searchGigablast(query: string): Promise<SearchResult[]> {
+  try {
+    const resp = await fetch(`https://www.gigablast.com/search?q=${encodeURIComponent(query)}&format=json&n=15`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const results: SearchResult[] = [];
+    for (const r of (data.results || []).slice(0, 12)) {
+      const built = buildSearchResult(r.title || '', r.url || '', r.sum || r.snippet || '');
+      if (built) results.push(built);
+    }
+    return results;
+  } catch { return []; }
+}
+
+// ── Multi-Engine Aggregated Search ──────────────────────────────────────────
+async function multiEngineSearch(query: string, page: number, dateFilter?: string): Promise<SearchResult[]> {
+  // Run all engines in parallel — DDG is primary, others supplement
+  const [ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults] = await Promise.allSettled([
+    searchDDG(query, page, dateFilter),
+    searchSearXNG(query),
+    searchMojeek(query),
+    searchMetaGer(query),
+    searchGigablast(query),
+  ]);
+
+  const all: SearchResult[] = [];
+  const seenUrls = new Set<string>();
+
+  const addResults = (settled: PromiseSettledResult<SearchResult[]>, engineWeight: number) => {
+    if (settled.status !== 'fulfilled') return;
+    for (const r of settled.value) {
+      const normalUrl = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+      if (seenUrls.has(normalUrl)) {
+        // Boost veracity for cross-engine corroboration
+        const existing = all.find(e => e.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://') === normalUrl);
+        if (existing) {
+          existing.veracity = Math.min(100, existing.veracity + 5);
+          existing.truthGraph.consensusWeight = Math.min(1, existing.truthGraph.consensusWeight + 0.15);
+        }
+        continue;
+      }
+      seenUrls.add(normalUrl);
+      all.push(r);
+    }
+  };
+
+  addResults(ddgResults, 1.0);
+  addResults(searxResults, 0.9);
+  addResults(mojeekResults, 0.8);
+  addResults(metagerResults, 0.7);
+  addResults(gigablastResults, 0.7);
+
+  return all;
 }
 
 // ── Instant Answer from DDG API ──────────────────────────────────────────────
