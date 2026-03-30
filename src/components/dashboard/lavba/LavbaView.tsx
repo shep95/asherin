@@ -128,9 +128,11 @@ interface CandleChartProps {
   data: ChartBar[];
   chartType: ChartType;
   patternZones: { startIdx: number; endIdx: number; type: "bullish" | "bearish"; name: string }[];
+  signal?: LiveSignal | null;
+  predictedBars?: { open: number; high: number; low: number; close: number }[];
 }
 
-const CandleChart = ({ data, chartType, patternZones }: CandleChartProps) => {
+const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: CandleChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewStart, setViewStart] = useState(0);
