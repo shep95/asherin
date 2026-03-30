@@ -508,7 +508,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
           {/* Advanced controls — hidden on mobile, visible on sm+ */}
           <div className="hidden sm:flex items-center gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 py-1">
-            <ContextHealthIndicator messageCount={conversation.messages.length} />
+            <ContextHealthIndicator messageCount={branchMessages.length} />
             <ReasoningToggle mode={reasoningMode} onChange={setReasoningMode} />
             <DepthSelector active={depth} onChange={onDepthChange} />
             <DeterminismSlider value={determinism} onChange={setDeterminism} />
