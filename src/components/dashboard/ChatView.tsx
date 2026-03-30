@@ -328,10 +328,38 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const [qosMode, setQosMode] = useState<QoSMode>("fast");
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [activeBranch, setActiveBranch] = useState<string>(() => getActiveBranch(conversation.id));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Reset branch when conversation changes
+  useEffect(() => {
+    setActiveBranch(getActiveBranch(conversation.id));
+  }, [conversation.id]);
+
+  // Filter messages by active branch
+  const branchMessages = useMemo(() => {
+    if (activeBranch === "main") {
+      // Main branch: show messages that are either untagged or tagged as "main"
+      return conversation.messages.filter(m => {
+        const mb = getMessageBranch(m.id);
+        return mb === "main";
+      });
+    }
+    return conversation.messages.filter(m => getMessageBranch(m.id) === activeBranch);
+  }, [conversation.messages, activeBranch]);
+
+  // Tag new messages with the active branch
+  useEffect(() => {
+    conversation.messages.forEach(m => {
+      const existing = getMessageBranch(m.id);
+      if (existing === "main" && activeBranch !== "main") {
+        // Don't re-tag existing main messages
+      }
+    });
+  }, [conversation.messages, activeBranch]);
 
   // Auto-scroll to bottom when conversation changes (opening a conversation)
   useEffect(() => {
