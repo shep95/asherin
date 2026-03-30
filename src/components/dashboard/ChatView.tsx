@@ -848,7 +848,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                             onClick={() => {
                               setPreviousResponses(prev => ({ ...prev, [msg.id]: msg.content }));
                               // Find the user message before this one to regenerate
-                              const userMsg = conversation.messages.slice(0, conversation.messages.indexOf(msg)).reverse().find(m => m.role === "user");
+                              const userMsg = branchMessages.slice(0, branchMessages.indexOf(msg)).reverse().find(m => m.role === "user");
                               if (userMsg) onSendMessage(userMsg.content);
                             }}
                             className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
