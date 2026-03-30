@@ -80,6 +80,7 @@ const AgentsView = React.lazy(() => import("@/components/dashboard/agents/Agents
 const BugReportsView = React.lazy(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = React.lazy(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 const ReverseEngineerView = React.lazy(() => import("@/components/dashboard/ReverseEngineerView"));
+const LavbaView = React.lazy(() => import("@/components/dashboard/lavba/LavbaView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
