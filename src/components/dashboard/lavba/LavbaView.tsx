@@ -1110,6 +1110,7 @@ Return ONLY valid JSON object:
                     </div>
                   </div>
                 )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {pattern.entryRules?.length > 0 && (
                     <div className="rounded-xl bg-accent/[0.03] border border-accent/10 p-3">
                       <p className="text-[9px] font-light tracking-[0.1em] text-accent/60 uppercase mb-2">Entry Rules</p>
