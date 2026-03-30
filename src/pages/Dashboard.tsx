@@ -89,6 +89,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
 import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
+import { getActiveBranch, getMessageBranch, tagMessageBranch } from "@/components/dashboard/ConversationBranches";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
