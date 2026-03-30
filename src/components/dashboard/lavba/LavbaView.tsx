@@ -878,6 +878,68 @@ Return ONLY valid JSON object:
           </div>
         )}
 
+        {/* LIVE SIGNAL CARD */}
+        {signal && (
+          <div className={`rounded-2xl border backdrop-blur-xl p-4 sm:p-5 ${
+            signal.direction === "LONG" ? "border-accent/25 bg-accent/[0.04]" :
+            signal.direction === "SHORT" ? "border-destructive/25 bg-destructive/[0.04]" :
+            "border-border/15 bg-card/10"
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium ${
+                  signal.direction === "LONG" ? "bg-accent/15 text-accent" :
+                  signal.direction === "SHORT" ? "bg-destructive/15 text-destructive" :
+                  "bg-muted/15 text-muted-foreground"
+                }`}>
+                  {signal.direction === "LONG" ? "▲" : signal.direction === "SHORT" ? "▼" : "◆"} {signal.direction}
+                </div>
+                <span className="text-xs font-light text-foreground tracking-wider">{activeSymbol}</span>
+                <span className="text-[9px] text-muted-foreground/40">Live Signal</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/15 px-2.5 py-1">
+                <Target className="h-3 w-3 text-accent" />
+                <span className="text-[10px] text-accent font-medium">{Math.round((signal.confidence || 0) * 100)}%</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+              {[
+                { label: "Entry", value: `$${signal.entry}`, color: "text-foreground" },
+                { label: "Stop Loss", value: `$${signal.stopLoss}`, color: "text-destructive" },
+                { label: "TP1", value: `$${signal.takeProfit1}`, color: "text-accent" },
+                { label: "TP2", value: `$${signal.takeProfit2}`, color: "text-accent" },
+                { label: "TP3", value: `$${signal.takeProfit3}`, color: "text-accent" },
+              ].map((s, i) => (
+                <div key={i} className="rounded-xl bg-background/20 border border-border/10 p-2.5 text-center">
+                  <p className="text-[8px] text-muted-foreground/40 uppercase tracking-[0.1em]">{s.label}</p>
+                  <p className={`text-sm font-light mt-0.5 ${s.color}`}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl bg-background/10 border border-border/10 p-3 mb-3">
+              <p className="text-[9px] font-light tracking-[0.1em] text-muted-foreground/50 uppercase mb-1.5">Reasoning</p>
+              <p className="text-[11px] font-extralight text-muted-foreground/70 leading-relaxed">{signal.reasoning}</p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-3 w-3 text-destructive/50" />
+                <span className="text-[10px] font-extralight text-destructive/50">Invalidation: {signal.invalidation}</span>
+              </div>
+              {signal.basedOnPatterns?.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-muted-foreground/30">Based on:</span>
+                  {signal.basedOnPatterns.map((p, i) => (
+                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-accent/8 border border-accent/10 text-accent/60">{p}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Discovered Strategies */}
         {patterns.length > 0 && (
           <div className="space-y-3">
