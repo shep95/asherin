@@ -538,6 +538,7 @@ const LavbaView = () => {
   const [activeChart, setActiveChart] = useState<string>("1d");
   const [chartType, setChartType] = useState<ChartType>("candle");
   const [error, setError] = useState("");
+  const strategiesRef = useRef<HTMLDivElement>(null);
 
   const { price, change, changePct } = useLivePrice(activeSymbol, !!activeSymbol);
 
