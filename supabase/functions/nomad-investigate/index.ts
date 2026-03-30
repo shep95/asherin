@@ -2313,12 +2313,16 @@ async function ingestIntelligence(query: string): Promise<{
   const q = query.toLowerCase();
   const tasks: Promise<IntelNode>[] = [];
 
-  // ── ALWAYS: Core web search (Google + Bing + DDG + Startpage) ──
+  // ── ALWAYS: Core web search (Google + Bing + DDG + Startpage + SearXNG + Mojeek + MetaGer + Gigablast) ──
   tasks.push(ingestDDG(query));
   tasks.push(ingestDDGInstant(query));
   tasks.push(ingestGoogleCSE(query));
   tasks.push(ingestBing(query));
   tasks.push(ingestStartpage(query));
+  tasks.push(ingestSearXNG(query));
+  tasks.push(ingestMojeek(query));
+  tasks.push(ingestMetaGer(query));
+  tasks.push(ingestGigablast(query));
 
   // ── OSINT: IP Address detected ──
   const ipMatch = query.match(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/);
