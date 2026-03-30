@@ -944,7 +944,7 @@ Return ONLY valid JSON object:
 
         {/* Discovered Strategies */}
         {patterns.length > 0 && (
-          <div className="space-y-3">
+          <div ref={strategiesRef} className="space-y-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-accent/60" />
               <p className="text-[10px] font-light tracking-[0.15em] text-muted-foreground/50 uppercase">
