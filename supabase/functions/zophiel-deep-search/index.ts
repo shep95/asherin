@@ -629,9 +629,9 @@ Deno.serve(async (req) => {
       })());
     }
 
-    // Run all OSINT + DuckDuckGo searches in parallel
+    // Run all multi-engine searches + OSINT in parallel
     const [allSearchResults] = await Promise.all([
-      Promise.all(searchVariants.map(q => searchDDG(q))),
+      Promise.all(searchVariants.map(q => multiEngineSearch(q))),
       Promise.allSettled(osintTasks),
     ]);
     
@@ -640,8 +640,9 @@ Deno.serve(async (req) => {
     const uniqueResults: { url: string; title: string }[] = [];
     for (const batch of allSearchResults) {
       for (const r of batch) {
-        if (!seen.has(r.url)) {
-          seen.add(r.url);
+        const norm = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
+        if (!seen.has(norm)) {
+          seen.add(norm);
           uniqueResults.push(r);
         }
       }
