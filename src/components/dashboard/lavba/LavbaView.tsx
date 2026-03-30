@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { useAuth } from "@/contexts/AuthContext";
+import LavbaBacktest from "./LavbaBacktest";
 
 interface ChartBar {
   date: string;
@@ -1141,6 +1142,15 @@ Return ONLY valid JSON object:
               </div>
             ))}
           </div>
+        )}
+
+        {/* Backtester */}
+        {activeData.length > 0 && (
+          <LavbaBacktest
+            data={activeData}
+            symbol={activeSymbol}
+            patterns={patterns}
+          />
         )}
 
         {/* Empty State */}
