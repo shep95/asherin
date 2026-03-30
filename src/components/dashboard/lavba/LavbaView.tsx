@@ -595,7 +595,12 @@ const LavbaView = () => {
     const allBars = Object.entries(bars);
     if (allBars.length === 0) return;
 
+    // Get latest bar across all timeframes for current price
+    const allBarArrays = Object.values(bars).filter(b => b.length > 0);
+    const lastBarAll = allBarArrays.length > 0 ? allBarArrays[0][allBarArrays[0].length - 1] : null;
+
     setAnalyzing(true);
+    setSignal(null);
     setProgress("Aureon is scanning historical data for repeating fractal patterns…");
     let result = "";
 
