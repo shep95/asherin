@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { useAuth } from "@/contexts/AuthContext";
+import LavbaBacktest from "./LavbaBacktest";
 
 interface ChartBar {
   date: string;
