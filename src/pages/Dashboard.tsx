@@ -977,8 +977,8 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encryptedPartial,
-              branch_id: currentBranch } as any,
-            });
+              branch_id: currentBranch,
+            } as any);
           } catch { /* best-effort save */ }
         }
         toast({ title: "Stopped", description: "Generation stopped. Partial response saved." });
