@@ -932,6 +932,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encryptedAssistant,
+              branch_id: currentBranch,
             });
           } catch (saveErr) {
             console.error("Failed to save assistant message, retrying:", saveErr);
