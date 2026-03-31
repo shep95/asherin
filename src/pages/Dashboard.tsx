@@ -993,8 +993,8 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encPartial,
-              branch_id: currentBranch } as any,
-            });
+              branch_id: currentBranch,
+            } as any);
           } catch { /* best-effort save */ }
         }
         toast({ title: "AI Error", description: e.message, variant: "destructive" });
