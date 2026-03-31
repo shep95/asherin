@@ -753,7 +753,8 @@ const Dashboard = () => {
         .single();
 
       if (userMsgRow) {
-        tagMessageBranch(userMsgRow.id, currentBranch);
+        retargetMessageBranch(tempMsgId, userMsgRow.id);
+        tagMessageBranch(userMsgRow.id, currentBranch); // ensure tag exists even if retarget missed
         setConversations((prev) => prev.map((c) => c.id === convId
           ? { ...c, messages: c.messages.map(m => m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m) }
           : c
