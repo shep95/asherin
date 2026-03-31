@@ -759,7 +759,7 @@ const Dashboard = () => {
       const encryptedContent = await encryptText(content, user.id);
       const { data: userMsgRow } = await supabase
         .from("messages")
-        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent, branch_id: currentBranch } as any)
+        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent, )
         .select()
         .single();
 
