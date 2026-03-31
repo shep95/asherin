@@ -552,6 +552,11 @@ const Dashboard = () => {
           projectId: c.project_id ?? undefined,
         }));
 
+        // Restore branches from DB for each conversation
+        convRows.forEach((c) => {
+          restoreBranchesFromDB(c.id, (c as any).branches);
+        });
+
         setConversations(convs);
         // Restore last active conversation if it still exists, otherwise fall back to most recent
         const savedConvId = localStorage.getItem("aureon_active_conv_id");
