@@ -944,8 +944,8 @@ const Dashboard = () => {
                 user_id: user.id,
                 role: "assistant",
                 content: enc2,
-                branch_id: currentBranch } as any,
-              });
+                branch_id: currentBranch,
+              } as any);
             } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
               // Message remains in local state even if DB save fails
