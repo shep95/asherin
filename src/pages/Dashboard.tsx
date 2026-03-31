@@ -977,6 +977,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encryptedPartial,
+              branch_id: currentBranch,
             });
           } catch { /* best-effort save */ }
         }
