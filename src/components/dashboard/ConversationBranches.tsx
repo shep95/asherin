@@ -12,7 +12,6 @@ const ACTIVE_BRANCH_KEY = "aureon_active_branch";
 const MSG_BRANCH_KEY = "aureon_msg_branch_map";
 
 // ── In-memory cache for branch-message map ──────────────────────────
-// Primary source of truth during a session; persisted to localStorage as backup.
 let branchMapCache: Record<string, string> | null = null;
 
 function loadBranchMap(): Record<string, string> {
@@ -28,21 +27,14 @@ function loadBranchMap(): Record<string, string> {
 function persistBranchMap() {
   if (!branchMapCache) return;
   try {
+    const keys = Object.keys(branchMapCache);
+    // Prune to last 5000 entries to prevent overflow
+    if (keys.length > 5000) {
+      const toRemove = keys.slice(0, keys.length - 5000);
+      toRemove.forEach(k => delete branchMapCache![k]);
+    }
     localStorage.setItem(MSG_BRANCH_KEY, JSON.stringify(branchMapCache));
-  } catch {
-    // localStorage full — cache still valid in memory for this session
-  }
-}
-
-// Prune old entries to prevent localStorage overflow (keep last 5000)
-function pruneBranchMap() {
-  if (!branchMapCache) return;
-  const keys = Object.keys(branchMapCache);
-  if (keys.length > 5000) {
-    const toRemove = keys.slice(0, keys.length - 5000);
-    toRemove.forEach(k => delete branchMapCache![k]);
-    persistBranchMap();
-  }
+  } catch { /* localStorage full — cache still valid in memory */ }
 }
 
 // ── Public API ──────────────────────────────────────────────────────
@@ -56,12 +48,46 @@ export function getBranches(convId: string): Branch[] {
   }
 }
 
-function saveBranches(convId: string, branches: Branch[]) {
+export function saveBranchesLocal(convId: string, branches: Branch[]) {
   try {
     const all = JSON.parse(localStorage.getItem(BRANCHES_KEY) || "{}");
     all[convId] = branches;
     localStorage.setItem(BRANCHES_KEY, JSON.stringify(all));
   } catch { /* ignore */ }
+}
+
+/** Save branches to DB (fire-and-forget) */
+export async function saveBranchesToDB(convId: string, branches: Branch[]) {
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await supabase.from("conversations").update({ branches: JSON.stringify(branches) }).eq("id", convId);
+  } catch { /* non-critical */ }
+}
+
+/** Restore branches from DB into localStorage (call on conversation load) */
+export function restoreBranchesFromDB(convId: string, dbBranches: any) {
+  if (!dbBranches) return;
+  try {
+    let branches: Branch[];
+    if (typeof dbBranches === "string") {
+      branches = JSON.parse(dbBranches);
+    } else if (Array.isArray(dbBranches)) {
+      branches = dbBranches;
+    } else {
+      return;
+    }
+    if (branches.length > 0) {
+      // Merge: DB is source of truth if localStorage is empty/default
+      const local = getBranches(convId);
+      const hasOnlyMain = local.length === 1 && local[0].id === "main";
+      if (hasOnlyMain && branches.length > 1) {
+        saveBranchesLocal(convId, branches);
+      } else if (local.length < branches.length) {
+        // DB has more branches — use DB
+        saveBranchesLocal(convId, branches);
+      }
+    }
+  } catch { /* ignore parse errors */ }
 }
 
 export function getActiveBranch(convId: string): string {
@@ -90,17 +116,9 @@ export function tagMessageBranch(msgId: string, branchId: string) {
   const map = loadBranchMap();
   map[msgId] = branchId;
   persistBranchMap();
-  pruneBranchMap();
 }
 
-/** Bulk-tag messages (e.g. after re-fetch from DB) without overwriting existing tags */
-export function ensureMessageBranchTags(msgIds: string[]) {
-  const map = loadBranchMap();
-  // Messages without explicit tags stay "main" by default — no action needed.
-  // This function exists as a hook for future persistence.
-}
-
-/** Re-tag a message when its ID changes (e.g. temp → DB ID) */
+/** Re-tag a message when its ID changes (temp → DB ID) */
 export function retargetMessageBranch(oldId: string, newId: string) {
   const map = loadBranchMap();
   const branch = map[oldId];
@@ -109,6 +127,19 @@ export function retargetMessageBranch(oldId: string, newId: string) {
     delete map[oldId];
     persistBranchMap();
   }
+}
+
+/** Hydrate the in-memory cache from DB branch_id values (call after loading messages from DB) */
+export function hydrateMessageBranches(messages: { id: string; branch_id?: string | null }[]) {
+  const map = loadBranchMap();
+  let changed = false;
+  for (const m of messages) {
+    if (m.branch_id && m.branch_id !== "main" && !map[m.id]) {
+      map[m.id] = m.branch_id;
+      changed = true;
+    }
+  }
+  if (changed) persistBranchMap();
 }
 
 // ── Component ───────────────────────────────────────────────────────
@@ -129,27 +160,32 @@ const ConversationBranches = ({ conversationId, activeBranch, onBranchChange }: 
     setBranches(getBranches(conversationId));
   }, [conversationId]);
 
+  const persistBranches = useCallback((convId: string, updated: Branch[]) => {
+    saveBranchesLocal(convId, updated);
+    saveBranchesToDB(convId, updated); // fire-and-forget to DB
+  }, []);
+
   const createBranch = useCallback(() => {
     const id = crypto.randomUUID?.() || Math.random().toString(36).slice(2, 10);
     const num = branches.length;
     const newBranch: Branch = { id, name: `Branch ${num}`, createdAt: Date.now() };
     const updated = [...branches, newBranch];
     setBranches(updated);
-    saveBranches(conversationId, updated);
+    persistBranches(conversationId, updated);
     setActiveBranchStorage(conversationId, id);
     onBranchChange(id);
-  }, [branches, conversationId, onBranchChange]);
+  }, [branches, conversationId, onBranchChange, persistBranches]);
 
   const deleteBranch = useCallback((branchId: string) => {
     if (branchId === "main") return;
     const updated = branches.filter(b => b.id !== branchId);
     setBranches(updated);
-    saveBranches(conversationId, updated);
+    persistBranches(conversationId, updated);
     if (activeBranch === branchId) {
       setActiveBranchStorage(conversationId, "main");
       onBranchChange("main");
     }
-  }, [branches, conversationId, activeBranch, onBranchChange]);
+  }, [branches, conversationId, activeBranch, onBranchChange, persistBranches]);
 
   const switchBranch = useCallback((branchId: string) => {
     setActiveBranchStorage(conversationId, branchId);
@@ -166,7 +202,7 @@ const ConversationBranches = ({ conversationId, activeBranch, onBranchChange }: 
     if (!renaming || !renameValue.trim()) { setRenaming(null); return; }
     const updated = branches.map(b => b.id === renaming ? { ...b, name: renameValue.trim() } : b);
     setBranches(updated);
-    saveBranches(conversationId, updated);
+    persistBranches(conversationId, updated);
     setRenaming(null);
   };
 
