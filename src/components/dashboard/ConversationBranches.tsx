@@ -60,7 +60,7 @@ export function saveBranchesLocal(convId: string, branches: Branch[]) {
 export async function saveBranchesToDB(convId: string, branches: Branch[]) {
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    await supabase.from("conversations").update({ branches: JSON.stringify(branches) }).eq("id", convId);
+    await (supabase.from("conversations").update({ branches: branches as any } as any).eq("id", convId));
   } catch { /* non-critical */ }
 }
 
