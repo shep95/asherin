@@ -932,7 +932,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encryptedAssistant,
-              branch_id: currentBranch } as any as any,
+              branch_id: currentBranch } as any,
             });
           } catch (saveErr) {
             console.error("Failed to save assistant message, retrying:", saveErr);
@@ -944,7 +944,7 @@ const Dashboard = () => {
                 user_id: user.id,
                 role: "assistant",
                 content: enc2,
-                branch_id: currentBranch } as any as any,
+                branch_id: currentBranch } as any,
               });
             } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
@@ -977,7 +977,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encryptedPartial,
-              branch_id: currentBranch } as any as any,
+              branch_id: currentBranch } as any,
             });
           } catch { /* best-effort save */ }
         }
@@ -993,7 +993,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encPartial,
-              branch_id: currentBranch } as any as any,
+              branch_id: currentBranch } as any,
             });
           } catch { /* best-effort save */ }
         }
