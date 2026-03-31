@@ -341,23 +341,13 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
 
   // Filter messages by active branch
   const branchMessages = useMemo(() => {
-    if (activeBranch === "main") {
-      // Main branch: show messages that are either untagged or tagged as "main"
-      return conversation.messages.filter(m => {
-        const mb = getMessageBranch(m.id);
+    return conversation.messages.filter(m => {
+      const mb = getMessageBranch(m.id);
+      if (activeBranch === "main") {
+        // Main branch: show messages that are untagged (default "main") or explicitly tagged "main"
         return mb === "main";
-      });
-    }
-    return conversation.messages.filter(m => getMessageBranch(m.id) === activeBranch);
-  }, [conversation.messages, activeBranch]);
-
-  // Tag new messages with the active branch
-  useEffect(() => {
-    conversation.messages.forEach(m => {
-      const existing = getMessageBranch(m.id);
-      if (existing === "main" && activeBranch !== "main") {
-        // Don't re-tag existing main messages
       }
+      return mb === activeBranch;
     });
   }, [conversation.messages, activeBranch]);
 
