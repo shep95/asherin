@@ -520,6 +520,9 @@ const Dashboard = () => {
         );
         const msgRows = msgRowsBatches.flat();
 
+        // Hydrate branch map from DB branch_id column
+        hydrateMessageBranches(msgRows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
+
         const msgMap = new Map<string, Message[]>();
         const decryptPromises = (msgRows ?? []).map(async (m) => {
           const decryptedContent = await decryptText(m.content, user.id);
