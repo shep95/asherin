@@ -944,6 +944,7 @@ const Dashboard = () => {
                 user_id: user.id,
                 role: "assistant",
                 content: enc2,
+                branch_id: currentBranch,
               });
             } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
