@@ -592,6 +592,9 @@ const Dashboard = () => {
         // from DB to catch any saves that completed while backgrounded
         const currentConvId = activeConvIdRef.current;
         if (!isStreamingRef.current && user && currentConvId) {
+          // Skip re-sync if user is on a non-main branch to prevent branch messages from disappearing
+          const currentBranch = getActiveBranch(currentConvId);
+          if (currentBranch !== "main") return;
           // Small delay to let any in-flight DB writes complete
           await new Promise(r => setTimeout(r, 500));
           // Re-check streaming state after delay (user might have sent a message)
