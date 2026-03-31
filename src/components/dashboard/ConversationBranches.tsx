@@ -11,6 +11,42 @@ const BRANCHES_KEY = "aureon_conv_branches";
 const ACTIVE_BRANCH_KEY = "aureon_active_branch";
 const MSG_BRANCH_KEY = "aureon_msg_branch_map";
 
+// ── In-memory cache for branch-message map ──────────────────────────
+// Primary source of truth during a session; persisted to localStorage as backup.
+let branchMapCache: Record<string, string> | null = null;
+
+function loadBranchMap(): Record<string, string> {
+  if (branchMapCache) return branchMapCache;
+  try {
+    branchMapCache = JSON.parse(localStorage.getItem(MSG_BRANCH_KEY) || "{}");
+  } catch {
+    branchMapCache = {};
+  }
+  return branchMapCache!;
+}
+
+function persistBranchMap() {
+  if (!branchMapCache) return;
+  try {
+    localStorage.setItem(MSG_BRANCH_KEY, JSON.stringify(branchMapCache));
+  } catch {
+    // localStorage full — cache still valid in memory for this session
+  }
+}
+
+// Prune old entries to prevent localStorage overflow (keep last 5000)
+function pruneBranchMap() {
+  if (!branchMapCache) return;
+  const keys = Object.keys(branchMapCache);
+  if (keys.length > 5000) {
+    const toRemove = keys.slice(0, keys.length - 5000);
+    toRemove.forEach(k => delete branchMapCache![k]);
+    persistBranchMap();
+  }
+}
+
+// ── Public API ──────────────────────────────────────────────────────
+
 export function getBranches(convId: string): Branch[] {
   try {
     const all = JSON.parse(localStorage.getItem(BRANCHES_KEY) || "{}");
@@ -46,21 +82,36 @@ export function setActiveBranchStorage(convId: string, branchId: string) {
 }
 
 export function getMessageBranch(msgId: string): string {
-  try {
-    const map = JSON.parse(localStorage.getItem(MSG_BRANCH_KEY) || "{}");
-    return map[msgId] || "main";
-  } catch {
-    return "main";
-  }
+  const map = loadBranchMap();
+  return map[msgId] || "main";
 }
 
 export function tagMessageBranch(msgId: string, branchId: string) {
-  try {
-    const map = JSON.parse(localStorage.getItem(MSG_BRANCH_KEY) || "{}");
-    map[msgId] = branchId;
-    localStorage.setItem(MSG_BRANCH_KEY, JSON.stringify(map));
-  } catch { /* ignore */ }
+  const map = loadBranchMap();
+  map[msgId] = branchId;
+  persistBranchMap();
+  pruneBranchMap();
 }
+
+/** Bulk-tag messages (e.g. after re-fetch from DB) without overwriting existing tags */
+export function ensureMessageBranchTags(msgIds: string[]) {
+  const map = loadBranchMap();
+  // Messages without explicit tags stay "main" by default — no action needed.
+  // This function exists as a hook for future persistence.
+}
+
+/** Re-tag a message when its ID changes (e.g. temp → DB ID) */
+export function retargetMessageBranch(oldId: string, newId: string) {
+  const map = loadBranchMap();
+  const branch = map[oldId];
+  if (branch) {
+    map[newId] = branch;
+    delete map[oldId];
+    persistBranchMap();
+  }
+}
+
+// ── Component ───────────────────────────────────────────────────────
 
 interface Props {
   conversationId: string;

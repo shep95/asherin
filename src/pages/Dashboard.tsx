@@ -90,7 +90,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
 import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
-import { getActiveBranch, getMessageBranch, tagMessageBranch } from "@/components/dashboard/ConversationBranches";
+import { getActiveBranch, getMessageBranch, tagMessageBranch, retargetMessageBranch } from "@/components/dashboard/ConversationBranches";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
@@ -592,6 +592,9 @@ const Dashboard = () => {
         // from DB to catch any saves that completed while backgrounded
         const currentConvId = activeConvIdRef.current;
         if (!isStreamingRef.current && user && currentConvId) {
+          // Skip re-sync if user is on a non-main branch to prevent branch messages from disappearing
+          const currentBranch = getActiveBranch(currentConvId);
+          if (currentBranch !== "main") return;
           // Small delay to let any in-flight DB writes complete
           await new Promise(r => setTimeout(r, 500));
           // Re-check streaming state after delay (user might have sent a message)
@@ -753,7 +756,8 @@ const Dashboard = () => {
         .single();
 
       if (userMsgRow) {
-        tagMessageBranch(userMsgRow.id, currentBranch);
+        retargetMessageBranch(tempMsgId, userMsgRow.id);
+        tagMessageBranch(userMsgRow.id, currentBranch); // ensure tag exists even if retarget missed
         setConversations((prev) => prev.map((c) => c.id === convId
           ? { ...c, messages: c.messages.map(m => m.id === tempMsgId ? { ...m, id: userMsgRow.id } : m) }
           : c
