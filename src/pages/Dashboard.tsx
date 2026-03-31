@@ -933,7 +933,7 @@ const Dashboard = () => {
               role: "assistant",
               content: encryptedAssistant,
               branch_id: currentBranch,
-            } as any);
+            });
           } catch (saveErr) {
             console.error("Failed to save assistant message, retrying:", saveErr);
             try {
@@ -945,7 +945,7 @@ const Dashboard = () => {
                 role: "assistant",
                 content: enc2,
                 branch_id: currentBranch,
-              } as any);
+              });
             } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
               // Message remains in local state even if DB save fails
@@ -978,7 +978,7 @@ const Dashboard = () => {
               role: "assistant",
               content: encryptedPartial,
               branch_id: currentBranch,
-            } as any);
+            });
           } catch { /* best-effort save */ }
         }
         toast({ title: "Stopped", description: "Generation stopped. Partial response saved." });
@@ -994,7 +994,7 @@ const Dashboard = () => {
               role: "assistant",
               content: encPartial,
               branch_id: currentBranch,
-            } as any);
+            });
           } catch { /* best-effort save */ }
         }
         toast({ title: "AI Error", description: e.message, variant: "destructive" });
