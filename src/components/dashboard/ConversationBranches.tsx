@@ -40,11 +40,13 @@ function persistBranchMap() {
 // ── Public API ──────────────────────────────────────────────────────
 
 export function getBranches(convId: string): Branch[] {
+  const fallback = [{ id: "main", name: "Main", createdAt: 0 }];
   try {
     const all = JSON.parse(localStorage.getItem(BRANCHES_KEY) || "{}");
-    return all[convId] || [{ id: "main", name: "Main", createdAt: 0 }];
+    const branches = Array.isArray(all[convId]) ? all[convId] : fallback;
+    return branches.length > 0 ? branches : fallback;
   } catch {
-    return [{ id: "main", name: "Main", createdAt: 0 }];
+    return fallback;
   }
 }
 

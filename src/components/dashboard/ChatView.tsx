@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal, X, ZoomIn } from "lucide-react";
-import ConversationBranches, { getActiveBranch, getMessageBranch, tagMessageBranch } from "./ConversationBranches";
+import ConversationBranches, { getActiveBranch, getBranches, getMessageBranch, setActiveBranchStorage, tagMessageBranch } from "./ConversationBranches";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
