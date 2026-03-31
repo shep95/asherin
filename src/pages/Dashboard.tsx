@@ -552,9 +552,15 @@ const Dashboard = () => {
           projectId: c.project_id ?? undefined,
         }));
 
-        // Restore branches from DB for each conversation
+        // Restore branches from DB for each conversation and heal missing default branch persistence
         convRows.forEach((c) => {
           restoreBranchesFromDB(c.id, (c as any).branches);
+          const restored = localStorage.getItem("aureon_conv_branches");
+          const parsed = restored ? JSON.parse(restored) : {};
+          const current = parsed[c.id];
+          if (!Array.isArray((c as any).branches) || (c as any).branches.length === 0 || !current?.some((branch: any) => branch.id === "main")) {
+            void saveBranchesToDB(c.id, current && current.length > 0 ? current : [{ id: "main", name: "Main", createdAt: 0 }]);
+          }
         });
 
         setConversations(convs);
