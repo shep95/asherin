@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo, forwardRef } from "react";
 import { Eye, Lock, Copy, Check, ArrowRight, Download, Brain, FileText, GitBranch, ExternalLink, Phone, Zap, Layers, StickyNote, Package, RefreshCw, PanelRight, Blocks, ClipboardList, Share2, Target, AlertTriangle, Gavel, Shield, Palette, Gauge, MoreHorizontal, X, ZoomIn } from "lucide-react";
-import ConversationBranches, { getActiveBranch, getMessageBranch, tagMessageBranch } from "./ConversationBranches";
+import ConversationBranches, { getActiveBranch, getBranches, getMessageBranch, setActiveBranchStorage, tagMessageBranch } from "./ConversationBranches";
 import OutputFormatMenu from "./OutputFormatMenu";
 import DiffView from "./DiffView";
 import CitationFootnote from "./CitationFootnote";
@@ -334,9 +334,18 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
   const messagesRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Reset branch when conversation changes
+  // Reset branch when conversation changes and recover from invalid/deleted branch ids
   useEffect(() => {
-    setActiveBranch(getActiveBranch(conversation.id));
+    const availableBranches = getBranches(conversation.id);
+    const storedBranch = getActiveBranch(conversation.id);
+    const branchExists = availableBranches.some((branch) => branch.id === storedBranch);
+    const nextBranch = branchExists ? storedBranch : "main";
+
+    if (!branchExists) {
+      setActiveBranchStorage(conversation.id, nextBranch);
+    }
+
+    setActiveBranch(nextBranch);
   }, [conversation.id]);
 
   // Filter messages by active branch
@@ -344,7 +353,6 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
     return conversation.messages.filter(m => {
       const mb = getMessageBranch(m.id);
       if (activeBranch === "main") {
-        // Main branch: show messages that are untagged (default "main") or explicitly tagged "main"
         return mb === "main";
       }
       return mb === activeBranch;

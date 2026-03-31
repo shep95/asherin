@@ -40,11 +40,13 @@ function persistBranchMap() {
 // ── Public API ──────────────────────────────────────────────────────
 
 export function getBranches(convId: string): Branch[] {
+  const fallback = [{ id: "main", name: "Main", createdAt: 0 }];
   try {
     const all = JSON.parse(localStorage.getItem(BRANCHES_KEY) || "{}");
-    return all[convId] || [{ id: "main", name: "Main", createdAt: 0 }];
+    const branches = Array.isArray(all[convId]) ? all[convId] : fallback;
+    return branches.length > 0 ? branches : fallback;
   } catch {
-    return [{ id: "main", name: "Main", createdAt: 0 }];
+    return fallback;
   }
 }
 
@@ -66,28 +68,25 @@ export async function saveBranchesToDB(convId: string, branches: Branch[]) {
 
 /** Restore branches from DB into localStorage (call on conversation load) */
 export function restoreBranchesFromDB(convId: string, dbBranches: any) {
-  if (!dbBranches) return;
   try {
-    let branches: Branch[];
+    const fallback: Branch[] = [{ id: "main", name: "Main", createdAt: 0 }];
+    let branches: Branch[] = fallback;
+
     if (typeof dbBranches === "string") {
-      branches = JSON.parse(dbBranches);
+      branches = JSON.parse(dbBranches || "[]");
     } else if (Array.isArray(dbBranches)) {
       branches = dbBranches;
-    } else {
-      return;
     }
-    if (branches.length > 0) {
-      // Merge: DB is source of truth if localStorage is empty/default
-      const local = getBranches(convId);
-      const hasOnlyMain = local.length === 1 && local[0].id === "main";
-      if (hasOnlyMain && branches.length > 1) {
-        saveBranchesLocal(convId, branches);
-      } else if (local.length < branches.length) {
-        // DB has more branches — use DB
-        saveBranchesLocal(convId, branches);
-      }
-    }
-  } catch { /* ignore parse errors */ }
+
+    const normalized = Array.isArray(branches) && branches.length > 0 ? branches : fallback;
+    const withMain = normalized.some((branch) => branch.id === "main")
+      ? normalized
+      : [fallback[0], ...normalized];
+
+    saveBranchesLocal(convId, withMain);
+  } catch {
+    saveBranchesLocal(convId, [{ id: "main", name: "Main", createdAt: 0 }]);
+  }
 }
 
 export function getActiveBranch(convId: string): string {
