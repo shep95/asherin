@@ -1292,6 +1292,7 @@ export type Database = {
       conversations: {
         Row: {
           archived: boolean
+          branches: Json | null
           created_at: string
           id: string
           mode: string
@@ -1304,6 +1305,7 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
+          branches?: Json | null
           created_at?: string
           id?: string
           mode?: string
@@ -1316,6 +1318,7 @@ export type Database = {
         }
         Update: {
           archived?: boolean
+          branches?: Json | null
           created_at?: string
           id?: string
           mode?: string
@@ -1938,6 +1941,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          branch_id: string | null
           content: string
           conversation_id: string
           created_at: string
@@ -1948,6 +1952,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          branch_id?: string | null
           content?: string
           conversation_id: string
           created_at?: string
@@ -1958,6 +1963,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          branch_id?: string | null
           content?: string
           conversation_id?: string
           created_at?: string

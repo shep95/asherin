@@ -90,7 +90,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { streamChat, fetchSuggestions, fetchConsensus } from "@/lib/ai";
 import type { SelectedModel } from "@/components/dashboard/MultiModelSelector";
 import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
-import { getActiveBranch, getMessageBranch, tagMessageBranch, retargetMessageBranch } from "@/components/dashboard/ConversationBranches";
+import { getActiveBranch, getMessageBranch, tagMessageBranch, retargetMessageBranch, hydrateMessageBranches, restoreBranchesFromDB } from "@/components/dashboard/ConversationBranches";
 import { useToast } from "@/hooks/use-toast";
 import { encryptText, decryptText } from "@/lib/encryption";
 import { ToastAction } from "@/components/ui/toast";
@@ -520,6 +520,9 @@ const Dashboard = () => {
         );
         const msgRows = msgRowsBatches.flat();
 
+        // Hydrate branch map from DB branch_id column
+        hydrateMessageBranches(msgRows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
+
         const msgMap = new Map<string, Message[]>();
         const decryptPromises = (msgRows ?? []).map(async (m) => {
           const decryptedContent = await decryptText(m.content, user.id);
@@ -548,6 +551,11 @@ const Dashboard = () => {
           mode: c.mode as ChatMode,
           projectId: c.project_id ?? undefined,
         }));
+
+        // Restore branches from DB for each conversation
+        convRows.forEach((c) => {
+          restoreBranchesFromDB(c.id, (c as any).branches);
+        });
 
         setConversations(convs);
         // Restore last active conversation if it still exists, otherwise fall back to most recent
@@ -751,7 +759,7 @@ const Dashboard = () => {
       const encryptedContent = await encryptText(content, user.id);
       const { data: userMsgRow } = await supabase
         .from("messages")
-        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent })
+        .insert({ conversation_id: convId, user_id: user.id, role: "user", content: encryptedContent, branch_id: currentBranch })
         .select()
         .single();
 
@@ -924,6 +932,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encryptedAssistant,
+              branch_id: currentBranch,
             });
           } catch (saveErr) {
             console.error("Failed to save assistant message, retrying:", saveErr);
@@ -935,6 +944,7 @@ const Dashboard = () => {
                 user_id: user.id,
                 role: "assistant",
                 content: enc2,
+                branch_id: currentBranch,
               });
             } catch (retryErr) {
               console.error("Retry save also failed:", retryErr);
@@ -967,6 +977,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encryptedPartial,
+              branch_id: currentBranch,
             });
           } catch { /* best-effort save */ }
         }
@@ -982,6 +993,7 @@ const Dashboard = () => {
               user_id: user.id,
               role: "assistant",
               content: encPartial,
+              branch_id: currentBranch,
             });
           } catch { /* best-effort save */ }
         }
