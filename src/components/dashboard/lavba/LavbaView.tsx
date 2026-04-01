@@ -1382,7 +1382,7 @@ Return ONLY valid JSON:
                   {tradeStatus.type === "error" && <AlertTriangle className="h-3 w-3 text-destructive" />}
                   <span className={`text-[11px] font-extralight ${
                     tradeStatus.type === "executing" ? "text-accent" :
-                    tradeStatus.type === "success" ? "text-green-400" : "text-destructive"
+                    tradeStatus.type === "success" ? "text-accent" : "text-destructive"
                   }`}>{tradeStatus.message}</span>
                 </div>
               </div>
