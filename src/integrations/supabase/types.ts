@@ -1885,6 +1885,183 @@ export type Database = {
           },
         ]
       }
+      lavba_bot_state: {
+        Row: {
+          available_capital: number | null
+          created_at: string | null
+          current_coin: string | null
+          daily_trade_count: number | null
+          emergency_reason: string | null
+          emergency_stopped: boolean | null
+          enabled: boolean | null
+          id: string
+          last_trade_date: string | null
+          total_capital: number | null
+          total_fees_paid: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          available_capital?: number | null
+          created_at?: string | null
+          current_coin?: string | null
+          daily_trade_count?: number | null
+          emergency_reason?: string | null
+          emergency_stopped?: boolean | null
+          enabled?: boolean | null
+          id?: string
+          last_trade_date?: string | null
+          total_capital?: number | null
+          total_fees_paid?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          available_capital?: number | null
+          created_at?: string | null
+          current_coin?: string | null
+          daily_trade_count?: number | null
+          emergency_reason?: string | null
+          emergency_stopped?: boolean | null
+          enabled?: boolean | null
+          id?: string
+          last_trade_date?: string | null
+          total_capital?: number | null
+          total_fees_paid?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lavba_pnl_snapshots: {
+        Row: {
+          best_trade_pnl: number | null
+          created_at: string | null
+          ending_balance: number | null
+          fees_paid: number | null
+          id: string
+          loss_count: number | null
+          period_date: string
+          period_type: string
+          realized_pnl: number | null
+          starting_balance: number | null
+          trade_count: number | null
+          user_id: string
+          win_count: number | null
+          worst_trade_pnl: number | null
+        }
+        Insert: {
+          best_trade_pnl?: number | null
+          created_at?: string | null
+          ending_balance?: number | null
+          fees_paid?: number | null
+          id?: string
+          loss_count?: number | null
+          period_date: string
+          period_type: string
+          realized_pnl?: number | null
+          starting_balance?: number | null
+          trade_count?: number | null
+          user_id: string
+          win_count?: number | null
+          worst_trade_pnl?: number | null
+        }
+        Update: {
+          best_trade_pnl?: number | null
+          created_at?: string | null
+          ending_balance?: number | null
+          fees_paid?: number | null
+          id?: string
+          loss_count?: number | null
+          period_date?: string
+          period_type?: string
+          realized_pnl?: number | null
+          starting_balance?: number | null
+          trade_count?: number | null
+          user_id?: string
+          win_count?: number | null
+          worst_trade_pnl?: number | null
+        }
+        Relationships: []
+      }
+      lavba_trades: {
+        Row: {
+          based_on_patterns: string[] | null
+          chart_review: string | null
+          closed_at: string | null
+          created_at: string | null
+          direction: string
+          entry_price: number
+          exit_price: number | null
+          fees: number | null
+          id: string
+          leverage: number
+          opened_at: string | null
+          position_size: number
+          realized_pnl: number | null
+          signal_confidence: number | null
+          signal_reasoning: string | null
+          size_usd: number
+          status: string
+          stop_loss: number | null
+          symbol: string
+          take_profit1: number | null
+          take_profit2: number | null
+          take_profit3: number | null
+          user_id: string
+        }
+        Insert: {
+          based_on_patterns?: string[] | null
+          chart_review?: string | null
+          closed_at?: string | null
+          created_at?: string | null
+          direction: string
+          entry_price: number
+          exit_price?: number | null
+          fees?: number | null
+          id?: string
+          leverage?: number
+          opened_at?: string | null
+          position_size: number
+          realized_pnl?: number | null
+          signal_confidence?: number | null
+          signal_reasoning?: string | null
+          size_usd: number
+          status?: string
+          stop_loss?: number | null
+          symbol: string
+          take_profit1?: number | null
+          take_profit2?: number | null
+          take_profit3?: number | null
+          user_id: string
+        }
+        Update: {
+          based_on_patterns?: string[] | null
+          chart_review?: string | null
+          closed_at?: string | null
+          created_at?: string | null
+          direction?: string
+          entry_price?: number
+          exit_price?: number | null
+          fees?: number | null
+          id?: string
+          leverage?: number
+          opened_at?: string | null
+          position_size?: number
+          realized_pnl?: number | null
+          signal_confidence?: number | null
+          signal_reasoning?: string | null
+          size_usd?: number
+          status?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit1?: number | null
+          take_profit2?: number | null
+          take_profit3?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       library_files: {
         Row: {
           created_at: string

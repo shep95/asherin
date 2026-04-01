@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import {
   Loader2, Search, Sparkles, TrendingUp, Clock, BarChart3, Target,
   AlertTriangle, ArrowRight, Zap, Activity, DollarSign, Volume2, RefreshCw,
@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { useAuth } from "@/contexts/AuthContext";
-
+const LavbaAutoTradeComponent = lazy(() => import("./LavbaAutoTrade"));
 
 interface ChartBar {
   date: string;
@@ -821,6 +821,7 @@ const LavbaView = () => {
   const [tradeStatus, setTradeStatus] = useState<{ type: "idle" | "executing" | "success" | "error"; message?: string }>({ type: "idle" });
   const [hlBalance, setHlBalance] = useState<any>(null);
   const [showTradeSettings, setShowTradeSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chart" | "autotrade">("chart");
 
   // Persist settings
   useEffect(() => {
@@ -1121,6 +1122,37 @@ Return ONLY valid JSON:
         </div>
       </div>
 
+      {/* Tab bar (admin only sees both) */}
+      {isAdmin && (
+        <div className="flex-shrink-0 border-b border-border/10 px-4 sm:px-6 bg-card/5">
+          <div className="flex gap-4">
+            {[
+              { key: "chart", label: "Strategy Engine" },
+              { key: "autotrade", label: "Auto-Trading" },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as "chart" | "autotrade")}
+                className={`py-2 text-[10px] font-light tracking-[0.1em] uppercase border-b-2 transition-all ${
+                  activeTab === tab.key
+                    ? "border-accent text-accent"
+                    : "border-transparent text-muted-foreground/30 hover:text-muted-foreground/50"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "autotrade" && isAdmin ? (
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+          <Suspense fallback={<div className="flex items-center justify-center h-32"><Loader2 className="h-4 w-4 text-accent animate-spin" /></div>}>
+            <LavbaAutoTradeComponent />
+          </Suspense>
+        </div>
+      ) : (
       <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4">
         {/* Ticker Input */}
         <div className="rounded-2xl border border-border/15 bg-card/10 backdrop-blur-xl p-4 sm:p-5">
@@ -1569,6 +1601,7 @@ Return ONLY valid JSON:
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
