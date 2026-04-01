@@ -837,7 +837,7 @@ const LavbaView = () => {
 
 SYMBOL: ${activeSymbol}
 TIMEFRAMES: ${Object.keys(bars).join(", ")}
-CURRENT PRICE: ${lastBarAll ? \`$\${lastBarAll.close}\` : "unknown"}
+CURRENT PRICE: ${lastBarAll ? `$${lastBarAll.close}` : "unknown"}
 TOTAL BARS: ${allBarArrays.length > 0 ? allBarArrays[0].length : 0}
 
 HISTORICAL OHLCV DATA:
