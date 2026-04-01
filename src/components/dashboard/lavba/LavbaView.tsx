@@ -739,9 +739,56 @@ const PatternMiniChart = ({ data, startIdx, endIdx, type }: PatternMiniChartProp
   );
 };
 
+/* ──────────── AUTO-TRADE LOGIC (Admin only) ──────────── */
+const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+
+const executeAutoTrade = async (sig: LiveSignal, sym: string, leverage: number, sizeUsd: number) => {
+  try {
+    const headers = await getAuthHeaders();
+    const resp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyperliquid-trade`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          action: "place_trade",
+          symbol: sym,
+          direction: sig.direction,
+          entry: sig.entry,
+          stopLoss: sig.stopLoss,
+          takeProfit1: sig.takeProfit1,
+          takeProfit2: sig.takeProfit2,
+          takeProfit3: sig.takeProfit3,
+          leverage,
+          sizeUsd,
+        }),
+      }
+    );
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Trade failed");
+    return { success: true, data };
+  } catch (e: any) {
+    console.error("Auto-trade error:", e);
+    return { success: false, error: e.message };
+  }
+};
+
+const fetchHLBalance = async () => {
+  try {
+    const headers = await getAuthHeaders();
+    const resp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hyperliquid-trade`,
+      { method: "POST", headers, body: JSON.stringify({ action: "get_balance" }) }
+    );
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch { return null; }
+};
+
 /* ──────────── MAIN LAVBA VIEW ──────────── */
 const LavbaView = () => {
   const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
   const [symbol, setSymbol] = useState("");
   const [activeSymbol, setActiveSymbol] = useState("");
   const [selectedTimeframes, setSelectedTimeframes] = useState<string[]>(["1d"]);
@@ -757,6 +804,35 @@ const LavbaView = () => {
   const [chartType, setChartType] = useState<ChartType>("candle");
   const [error, setError] = useState("");
   const strategiesRef = useRef<HTMLDivElement>(null);
+
+  // Auto-trade state (admin only)
+  const [autoTradeEnabled, setAutoTradeEnabled] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("lavba_auto_trade") === "true";
+    return false;
+  });
+  const [leverage, setLeverage] = useState(() => {
+    if (typeof window !== "undefined") return parseInt(localStorage.getItem("lavba_leverage") || "10", 10);
+    return 10;
+  });
+  const [positionSizeUsd, setPositionSizeUsd] = useState(() => {
+    if (typeof window !== "undefined") return parseInt(localStorage.getItem("lavba_size_usd") || "100", 10);
+    return 100;
+  });
+  const [tradeStatus, setTradeStatus] = useState<{ type: "idle" | "executing" | "success" | "error"; message?: string }>({ type: "idle" });
+  const [hlBalance, setHlBalance] = useState<any>(null);
+  const [showTradeSettings, setShowTradeSettings] = useState(false);
+
+  // Persist settings
+  useEffect(() => {
+    localStorage.setItem("lavba_auto_trade", String(autoTradeEnabled));
+    localStorage.setItem("lavba_leverage", String(leverage));
+    localStorage.setItem("lavba_size_usd", String(positionSizeUsd));
+  }, [autoTradeEnabled, leverage, positionSizeUsd]);
+
+  // Fetch balance on mount for admin
+  useEffect(() => {
+    if (isAdmin) fetchHLBalance().then(b => b && setHlBalance(b));
+  }, [isAdmin]);
 
   const { price, change, changePct } = useLivePrice(activeSymbol, !!activeSymbol);
 
