@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
         size: posSize,
         leverage: LEVERAGE,
         slPrice: signal.stopLoss,
-        tpPrices: [signal.takeProfit1, signal.takeProfit2, signal.takeProfit3].filter(Boolean),
+        tpPrices: [signal.takeProfit1].filter(Boolean),
       });
 
       // Record trade in database
