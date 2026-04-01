@@ -934,10 +934,18 @@ Return ONLY valid JSON:
 
             if (parsed?.patterns && Array.isArray(parsed.patterns)) {
               setPatterns(parsed.patterns.map((p: DiscoveredPattern, i: number) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+              // Collect all annotations from patterns
+              const allAnns: PatternAnnotation[] = parsed.patterns.flatMap((p: any) => p.annotations || []);
+              setChartAnnotations(allAnns);
               setTimeout(() => strategiesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
             }
             if (parsed?.signal) {
               setSignal(parsed.signal as LiveSignal);
+              setReviewingChart(false);
+              if (parsed.signal.chartReview) {
+                setProgress(`Chart Review: ${parsed.signal.chartReview}`);
+                setTimeout(() => setProgress(""), 5000);
+              }
             }
             if (!parsed) {
               console.error("Lavba raw AI result:", result.slice(0, 500));
