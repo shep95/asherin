@@ -39,6 +39,9 @@ interface LiveSignal {
   takeProfit1: string;
   takeProfit2: string;
   takeProfit3: string;
+  etaTP1?: string;
+  etaTP2?: string;
+  etaTP3?: string;
   reasoning: string;
   confidence: number;
   invalidation: string;
