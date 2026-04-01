@@ -267,22 +267,145 @@ const CandleChart = ({ data, chartType, patternZones, annotations, signal, predi
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
     }
 
-    // Pattern zones
+    // Pattern zones (yellow boxes like TradingView)
     for (const zone of patternZones) {
       const zs = zone.startIdx - start;
       const ze = zone.endIdx - start;
       if (ze < 0 || zs >= visible.length) continue;
       const x1 = barX(Math.max(0, zs)) - barW / 2;
       const x2 = barX(Math.min(visible.length - 1, ze)) + barW / 2;
+
+      // Find price range within zone for tighter boxes
+      let zMinP = Infinity, zMaxP = -Infinity;
+      for (let i = Math.max(0, zone.startIdx); i <= Math.min(zone.endIdx, data.length - 1); i++) {
+        const vi = i - start;
+        if (vi >= 0 && vi < visible.length) {
+          if (visible[vi].low < zMinP) zMinP = visible[vi].low;
+          if (visible[vi].high > zMaxP) zMaxP = visible[vi].high;
+        }
+      }
+      const y1 = zMaxP > -Infinity ? priceY(zMaxP) - 4 : 20;
+      const y2 = zMinP < Infinity ? priceY(zMinP) + 4 : priceH - 20;
+
+      // Filled box
       ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.06)" : "rgba(180,180,200,0.06)";
-      ctx.fillRect(x1, 20, x2 - x1, priceH - 40);
-      ctx.strokeStyle = zone.type === "bullish" ? "rgba(212,168,67,0.2)" : "rgba(180,180,200,0.2)";
-      ctx.lineWidth = 1; ctx.setLineDash([4, 2]);
-      ctx.strokeRect(x1, 20, x2 - x1, priceH - 40);
-      ctx.setLineDash([]);
-      ctx.font = "9px sans-serif";
-      ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.5)" : "rgba(180,180,200,0.5)";
-      ctx.fillText(zone.name, x1 + 4, 32);
+      ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+      // Solid yellow/white border (like TradingView yellow boxes)
+      ctx.strokeStyle = zone.type === "bullish" ? "rgba(212,168,67,0.45)" : "rgba(200,200,220,0.4)";
+      ctx.lineWidth = 1.5; ctx.setLineDash([]);
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      // Label above box
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.8)" : "rgba(200,200,220,0.7)";
+      ctx.textAlign = "center";
+      ctx.fillText(zone.name, (x1 + x2) / 2, y1 - 6);
+      ctx.textAlign = "left";
+
+      // Duration label below box
+      const zoneStartBar = data[zone.startIdx];
+      const zoneEndBar = data[Math.min(zone.endIdx, data.length - 1)];
+      if (zoneStartBar && zoneEndBar) {
+        const daysSpan = Math.round((new Date(zoneEndBar.date).getTime() - new Date(zoneStartBar.date).getTime()) / 86400000);
+        const durLabel = daysSpan > 30 ? `${Math.round(daysSpan / 30)}mo` : `${daysSpan}d`;
+        ctx.font = "8px sans-serif";
+        ctx.fillStyle = "rgba(200,200,220,0.35)";
+        ctx.textAlign = "center";
+        ctx.fillText(`${zone.endIdx - zone.startIdx} bars · ${durLabel}`, (x1 + x2) / 2, y2 + 12);
+        ctx.textAlign = "left";
+      }
+    }
+
+    // ── PATTERN ANNOTATIONS (wave counts, trendlines, labels) ──
+    for (const ann of annotations) {
+      const as = ann.startIdx - start;
+      const ae = ann.endIdx - start;
+      if (ae < 0 || as >= visible.length) continue;
+
+      const annColor = ann.color || "rgba(100,180,255,0.7)";
+
+      if (ann.type === "wave_count" && ann.wavePoints) {
+        // Draw wave count numbers at swing points
+        for (const wp of ann.wavePoints) {
+          const wi = wp.idx - start;
+          if (wi < 0 || wi >= visible.length) continue;
+          const wx = barX(wi);
+          const wy = priceY(wp.price);
+          // Draw the wave label
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillStyle = annColor;
+          ctx.textAlign = "center";
+          const isHigh = wp.price >= visible[wi].close;
+          ctx.fillText(`(${wp.label})`, wx, isHigh ? wy - 8 : wy + 14);
+          // Small dot at the point
+          ctx.beginPath();
+          ctx.arc(wx, wy, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = annColor;
+          ctx.fill();
+          ctx.textAlign = "left";
+        }
+      }
+
+      if (ann.type === "trendline") {
+        const x1 = barX(Math.max(0, as));
+        const x2 = barX(Math.min(visible.length - 1, ae));
+        const y1t = ann.priceStart ? priceY(ann.priceStart) : priceY(visible[Math.max(0, as)]?.high ?? 0);
+        const y2t = ann.priceEnd ? priceY(ann.priceEnd) : priceY(visible[Math.min(visible.length - 1, ae)]?.low ?? 0);
+        ctx.save();
+        ctx.strokeStyle = annColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1t);
+        ctx.lineTo(x2, y2t);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Label
+        if (ann.label) {
+          ctx.font = "bold 9px sans-serif";
+          ctx.fillStyle = annColor;
+          ctx.textAlign = "center";
+          ctx.fillText(ann.label, (x1 + x2) / 2, Math.min(y1t, y2t) - 6);
+          ctx.textAlign = "left";
+        }
+        ctx.restore();
+      }
+
+      if (ann.type === "duration") {
+        const x1 = barX(Math.max(0, as));
+        const x2 = barX(Math.min(visible.length - 1, ae));
+        const dy = priceH - 8;
+        ctx.save();
+        ctx.strokeStyle = "rgba(212,168,67,0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x1, dy - 6); ctx.lineTo(x1, dy + 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x2, dy - 6); ctx.lineTo(x2, dy + 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, dy); ctx.lineTo(x2, dy); ctx.stroke();
+        ctx.font = "bold 8px sans-serif";
+        ctx.fillStyle = "rgba(212,168,67,0.6)";
+        ctx.textAlign = "center";
+        ctx.fillText(ann.durationText || ann.label, (x1 + x2) / 2, dy - 8);
+        ctx.textAlign = "left";
+        ctx.restore();
+      }
+
+      if (ann.type === "box") {
+        const x1 = barX(Math.max(0, as)) - barW / 2;
+        const x2 = barX(Math.min(visible.length - 1, ae)) + barW / 2;
+        const py1 = ann.priceStart ? priceY(ann.priceStart) : 20;
+        const py2 = ann.priceEnd ? priceY(ann.priceEnd) : priceH - 20;
+        ctx.save();
+        ctx.strokeStyle = annColor;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x1, Math.min(py1, py2), x2 - x1, Math.abs(py2 - py1));
+        if (ann.label) {
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillStyle = annColor;
+          ctx.textAlign = "center";
+          ctx.fillText(ann.label, (x1 + x2) / 2, Math.min(py1, py2) - 6);
+          ctx.textAlign = "left";
+        }
+        ctx.restore();
+      }
     }
 
     // ── DRAW REAL BARS ──
