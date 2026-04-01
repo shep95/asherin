@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import {
   Loader2, Search, Sparkles, TrendingUp, Clock, BarChart3, Target,
   AlertTriangle, ArrowRight, Zap, Activity, DollarSign, Volume2, RefreshCw,
