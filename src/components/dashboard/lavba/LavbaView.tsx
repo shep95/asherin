@@ -1600,6 +1600,7 @@ Return ONLY valid JSON:
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
