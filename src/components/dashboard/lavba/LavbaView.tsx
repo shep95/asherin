@@ -821,6 +821,7 @@ const LavbaView = () => {
   const [tradeStatus, setTradeStatus] = useState<{ type: "idle" | "executing" | "success" | "error"; message?: string }>({ type: "idle" });
   const [hlBalance, setHlBalance] = useState<any>(null);
   const [showTradeSettings, setShowTradeSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chart" | "autotrade">("chart");
 
   // Persist settings
   useEffect(() => {
