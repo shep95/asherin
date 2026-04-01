@@ -150,7 +150,7 @@ interface CandleChartProps {
   predictedBars?: { open: number; high: number; low: number; close: number }[];
 }
 
-const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: CandleChartProps) => {
+const CandleChart = ({ data, chartType, patternZones, annotations, signal, predictedBars }: CandleChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewStart, setViewStart] = useState(0);
