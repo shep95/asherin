@@ -954,6 +954,12 @@ Return ONLY valid JSON object:
       name: p.name,
     })) || []), [patterns]);
 
+  // Merge all annotations from patterns
+  const activeAnnotations = useMemo(() => [
+    ...chartAnnotations,
+    ...patterns.flatMap(p => p.annotations || []),
+  ], [patterns, chartAnnotations]);
+
   const lastBar = activeData[activeData.length - 1];
   const firstBar = activeData[0];
   const totalChange = lastBar && firstBar ? ((lastBar.close - firstBar.close) / firstBar.close * 100) : 0;
