@@ -145,6 +145,7 @@ interface CandleChartProps {
   data: ChartBar[];
   chartType: ChartType;
   patternZones: { startIdx: number; endIdx: number; type: "bullish" | "bearish"; name: string }[];
+  annotations: PatternAnnotation[];
   signal?: LiveSignal | null;
   predictedBars?: { open: number; high: number; low: number; close: number }[];
 }
