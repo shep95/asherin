@@ -1086,7 +1086,12 @@ Return ONLY valid JSON:
             <div>
               <span className="text-xs font-light text-accent">{progress}</span>
               {analyzing && (
-                <p className="text-[10px] text-accent/50 mt-0.5">Analyzing {activeData.length} candles across {Object.keys(bars).length} timeframe(s)</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-[10px] text-accent/50">
+                    {reviewingChart ? "Phase 1: Reviewing chart structure & drawing annotations…" : "Phase 3: Generating signal…"}
+                  </p>
+                  <span className="text-[9px] text-accent/30">{activeData.length} candles · {Object.keys(bars).length} TF</span>
+                </div>
               )}
             </div>
           </div>
