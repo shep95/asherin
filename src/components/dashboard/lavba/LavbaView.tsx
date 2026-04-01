@@ -1378,7 +1378,7 @@ Return ONLY valid JSON:
               }`}>
                 <div className="flex items-center gap-2">
                   {tradeStatus.type === "executing" && <Loader2 className="h-3 w-3 text-accent animate-spin" />}
-                  {tradeStatus.type === "success" && <Target className="h-3 w-3 text-green-400" />}
+                  {tradeStatus.type === "success" && <Target className="h-3 w-3 text-accent" />}
                   {tradeStatus.type === "error" && <AlertTriangle className="h-3 w-3 text-destructive" />}
                   <span className={`text-[11px] font-extralight ${
                     tradeStatus.type === "executing" ? "text-accent" :
