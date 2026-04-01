@@ -958,11 +958,13 @@ Return ONLY valid JSON:
             setError("Failed to parse Aureon analysis results.");
           }
           setAnalyzing(false);
+          setReviewingChart(false);
           setProgress("");
         },
       });
     } catch {
       setAnalyzing(false);
+      setReviewingChart(false);
       setProgress("");
     }
   }, [bars, activeSymbol]);
