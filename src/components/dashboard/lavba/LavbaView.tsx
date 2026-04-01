@@ -1025,13 +1025,16 @@ Return ONLY valid JSON object:
               {[
                 { label: "Entry", value: `$${signal.entry}`, color: "text-foreground" },
                 { label: "Stop Loss", value: `$${signal.stopLoss}`, color: "text-destructive" },
-                { label: "TP1", value: `$${signal.takeProfit1}`, color: "text-accent" },
-                { label: "TP2", value: `$${signal.takeProfit2}`, color: "text-accent" },
-                { label: "TP3", value: `$${signal.takeProfit3}`, color: "text-accent" },
+                { label: "TP1", value: `$${signal.takeProfit1}`, color: "text-accent", eta: signal.etaTP1 },
+                { label: "TP2", value: `$${signal.takeProfit2}`, color: "text-accent", eta: signal.etaTP2 },
+                { label: "TP3", value: `$${signal.takeProfit3}`, color: "text-accent", eta: signal.etaTP3 },
               ].map((s, i) => (
                 <div key={i} className="rounded-xl bg-background/20 border border-border/10 p-2.5 text-center">
                   <p className="text-[8px] text-muted-foreground/40 uppercase tracking-[0.1em]">{s.label}</p>
                   <p className={`text-sm font-light mt-0.5 ${s.color}`}>{s.value}</p>
+                  {(s as any).eta && (
+                    <p className="text-[8px] font-extralight text-muted-foreground/50 mt-0.5">≈ {(s as any).eta}</p>
+                  )}
                 </div>
               ))}
             </div>
