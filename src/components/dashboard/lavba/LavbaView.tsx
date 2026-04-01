@@ -819,7 +819,9 @@ const LavbaView = () => {
 
     setAnalyzing(true);
     setSignal(null);
-    setProgress("Aureon is scanning historical data for repeating fractal patterns…");
+    setChartAnnotations([]);
+    setReviewingChart(true);
+    setProgress("Aureon is reviewing the chart structure before generating signals…");
     let result = "";
 
     const barSummaries = allBars.map(([tf, data]) => {
@@ -831,41 +833,53 @@ const LavbaView = () => {
       ).join("\n")}`;
     }).join("\n\n");
 
-    const prompt = `You are Aureon — an elite quantitative pattern recognition engine.
+    const prompt = `You are Aureon — an elite quantitative pattern recognition engine. You must VISUALLY ANNOTATE the chart like a professional technical analyst before issuing any signal.
 
 SYMBOL: ${activeSymbol}
 TIMEFRAMES: ${Object.keys(bars).join(", ")}
-CURRENT PRICE: ${lastBarAll ? `$${lastBarAll.close}` : "unknown"}
+CURRENT PRICE: ${lastBarAll ? \`$\${lastBarAll.close}\` : "unknown"}
+TOTAL BARS: ${allBarArrays.length > 0 ? allBarArrays[0].length : 0}
 
 HISTORICAL OHLCV DATA:
 ${barSummaries}
 
-MISSION: 
-1. Find 2-4 REPEATING fractal patterns. NOT standard textbook patterns. Find UNIQUE structures from market microstructure, liquidity dynamics, behavioral psychology.
-2. Based on patterns found AND current price action, generate a LIVE TRADE SIGNAL.
+MISSION (3 PHASES):
 
-For each pattern provide:
+PHASE 1 — CHART REVIEW (Draw annotations before signaling)
+Study the ENTIRE price history. Identify:
+- Repeating structural patterns (descending wedges, distribution zones, liquidity sweeps)
+- Measure the GEOMETRY: how many bars each pattern lasted, what % move it produced
+- Find where the SAME pattern structure repeated at different price levels
+- Count wave swings inside each pattern (like Elliott counts: 1, 2, 3, 4, 5)
+- Draw trendlines connecting major highs/lows
+
+PHASE 2 — PATTERN DISCOVERY
+Find 2-4 REPEATING fractal patterns with:
 - Original name, detailed description (market mechanics)
 - Occurrence count, win rate, avg return %, risk:reward ratio
 - Entry/exit rules
 - Bar index ranges where pattern appeared
 - Confidence 0-1
+- ANNOTATIONS: For each pattern, provide chart annotations:
+  - "box" type: yellow rectangle around the pattern zone with priceStart/priceEnd (high/low of zone)
+  - "wave_count" type: numbered swing points inside each zone with idx, label ("1","2","3","4","5"), and price
+  - "trendline" type: connecting major highs or lows across the pattern with priceStart/priceEnd
+  - "duration" type: showing how long the pattern lasted (e.g. "45 bars · 23d")
 
-For the LIVE SIGNAL provide:
+PHASE 3 — SIGNAL (Only AFTER reviewing the chart)
+Based on patterns found AND current price action, generate a LIVE TRADE SIGNAL:
 - direction: "LONG" or "SHORT" or "NEUTRAL"
-- entry: exact price level
-- stopLoss: exact price level
-- takeProfit1, takeProfit2, takeProfit3: exact price levels
-- etaTP1, etaTP2, etaTP3: estimated time to reach each take profit from signal entry (e.g. "2-4 hours", "1-2 days", "3-5 days"). Base this on historical pattern velocity and average price movement speed for this asset on the given timeframe.
-- reasoning: 2-3 sentences explaining WHY based on the discovered patterns
+- entry, stopLoss, takeProfit1, takeProfit2, takeProfit3: exact price levels
+- etaTP1, etaTP2, etaTP3: estimated time to reach each TP (e.g. "4-8 hours", "1-2 days")
+- reasoning: 2-3 sentences explaining WHY
 - confidence: 0-1
-- invalidation: what price level or condition invalidates this signal
-- basedOnPatterns: array of pattern names this signal is derived from
-- predictedCandles: array of 5-8 predicted next candles as {"open":number,"high":number,"low":number,"close":number} showing your forecast of future price movement
+- invalidation: price/condition that invalidates
+- basedOnPatterns: pattern names
+- predictedCandles: 5-8 predicted candles as {open,high,low,close}
+- chartReview: 2-3 sentence summary of what you found reviewing the full chart BEFORE signaling
 
-Return ONLY valid JSON object:
-{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","etaTP1":"4-8 hours","etaTP2":"1-2 days","etaTP3":"3-5 days","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}]}}`;
-
+Return ONLY valid JSON:
+{"patterns":[{"name":"...","description":"...","occurrences":2,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"annotations":[{"type":"box","startIdx":50,"endIdx":65,"label":"Pattern One","color":"rgba(212,168,67,0.7)","priceStart":95000,"priceEnd":85000},{"type":"wave_count","startIdx":50,"endIdx":65,"label":"Wave Count","color":"rgba(100,180,255,0.8)","wavePoints":[{"idx":52,"label":"1","price":88000},{"idx":55,"label":"2","price":86000},{"idx":58,"label":"3","price":91000},{"idx":61,"label":"4","price":87500},{"idx":64,"label":"5","price":93000}]},{"type":"trendline","startIdx":50,"endIdx":65,"label":"Descending Resistance","color":"rgba(255,100,100,0.6)","priceStart":95000,"priceEnd":90000},{"type":"duration","startIdx":50,"endIdx":65,"label":"Pattern Duration","durationText":"15 bars · 15d"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","etaTP1":"4-8 hours","etaTP2":"1-2 days","etaTP3":"3-5 days","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}],"chartReview":"Full chart review summary here"}}`;
     try {
       setProgress("Running Aureon fractal analysis…");
       await streamChat({
