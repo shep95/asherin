@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { useAuth } from "@/contexts/AuthContext";
-
+const LavbaAutoTradeComponent = lazy(() => import("./LavbaAutoTrade"));
 
 interface ChartBar {
   date: string;
