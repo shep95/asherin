@@ -1016,11 +1016,25 @@ Return ONLY valid JSON:
               setTimeout(() => strategiesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
             }
             if (parsed?.signal) {
-              setSignal(parsed.signal as LiveSignal);
+              const sig = parsed.signal as LiveSignal;
+              setSignal(sig);
               setReviewingChart(false);
               if (parsed.signal.chartReview) {
                 setProgress(`Chart Review: ${parsed.signal.chartReview}`);
                 setTimeout(() => setProgress(""), 5000);
+              }
+              // AUTO-TRADE: Execute if enabled and direction is actionable
+              if (isAdmin && autoTradeEnabled && sig.direction !== "NEUTRAL" && activeSymbol) {
+                setTradeStatus({ type: "executing", message: `Placing ${sig.direction} on Hyperliquid…` });
+                executeAutoTrade(sig, activeSymbol, leverage, positionSizeUsd).then(res => {
+                  if (res.success) {
+                    setTradeStatus({ type: "success", message: `${sig.direction} executed @ $${sig.entry} · ${leverage}x · $${positionSizeUsd}` });
+                    fetchHLBalance().then(b => b && setHlBalance(b));
+                  } else {
+                    setTradeStatus({ type: "error", message: res.error || "Trade failed" });
+                  }
+                  setTimeout(() => setTradeStatus({ type: "idle" }), 8000);
+                });
               }
             }
             if (!parsed) {
