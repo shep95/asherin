@@ -7,13 +7,16 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const HL_API = "https://api.hyperliquid.xyz";
 const LEVERAGE = 10;
-const CAPITAL_PERCENT = 0.90; // 90% of available capital
+const CAPITAL_PERCENT = 0.90;
 const COINS = ["BTC", "ETH"];
 const ASSET_MAP: Record<string, number> = { BTC: 0, ETH: 1 };
 
-// Fee structure: Hyperliquid charges ~0.01% maker, ~0.035% taker
+// Hyperliquid precision rules per asset
+const SZ_DECIMALS: Record<string, number> = { BTC: 5, ETH: 4 };
+const PRICE_DECIMALS: Record<string, number> = { BTC: 1, ETH: 2 }; // MAX_DECIMALS(6) - szDecimals
+
+// Fee structure
 const TAKER_FEE_RATE = 0.00035;
-const MAKER_FEE_RATE = 0.0001;
 
 function getSupabase(authHeader: string) {
   return createClient(
@@ -37,7 +40,8 @@ async function verifyAdmin(authHeader: string) {
   return user;
 }
 
-// Get wallet balance from Hyperliquid
+// ── HYPERLIQUID API HELPERS ──
+
 async function getHLState(walletAddress: string) {
   const resp = await fetch(`${HL_API}/info`, {
     method: "POST",
@@ -47,7 +51,6 @@ async function getHLState(walletAddress: string) {
   return await resp.json();
 }
 
-// Get open positions
 async function getOpenPositions(walletAddress: string) {
   const state = await getHLState(walletAddress);
   return (state.assetPositions || []).filter((p: any) =>
@@ -55,7 +58,44 @@ async function getOpenPositions(walletAddress: string) {
   );
 }
 
-// Place order via SDK
+// Get current mid price for an asset
+async function getMidPrice(coin: string): Promise<number> {
+  const resp = await fetch(`${HL_API}/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "allMids" }),
+  });
+  const mids = await resp.json();
+  const price = parseFloat(mids[coin] || "0");
+  if (price <= 0) throw new Error(`Could not fetch mid price for ${coin}`);
+  return price;
+}
+
+// Get recent fills for PNL calculation
+async function getUserFills(walletAddress: string): Promise<any[]> {
+  const resp = await fetch(`${HL_API}/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "userFills", user: walletAddress }),
+  });
+  return await resp.json();
+}
+
+// Round size to correct decimals for the asset
+function roundSize(size: number, coin: string): string {
+  const decimals = SZ_DECIMALS[coin] ?? 4;
+  const factor = Math.pow(10, decimals);
+  return (Math.floor(size * factor) / factor).toFixed(decimals);
+}
+
+// Round price to correct significant figures / decimals
+function roundPrice(price: number, coin: string): string {
+  const maxDecimals = PRICE_DECIMALS[coin] ?? 2;
+  return price.toFixed(maxDecimals);
+}
+
+// ── ORDER EXECUTION ──
+
 async function placeOrder(params: {
   privateKey: string;
   asset: number;
@@ -65,6 +105,7 @@ async function placeOrder(params: {
   leverage: number;
   slPrice?: string;
   tpPrices?: string[];
+  isMarketClose?: boolean;
 }) {
   const { privateKeyToAccount } = await import("npm:viem@2.21.0/accounts");
   const { HttpTransport, ExchangeClient } = await import("npm:@nktkas/hyperliquid@5");
@@ -74,49 +115,79 @@ async function placeOrder(params: {
   const transport = new HttpTransport();
   const exchange = new ExchangeClient({ wallet: account, transport });
 
-  // Set leverage
-  try {
-    await exchange.updateLeverage({ asset: params.asset, isCross: true, leverage: params.leverage });
-  } catch (e) { console.warn("Leverage update:", e); }
+  // Set leverage (skip for market close orders)
+  if (!params.isMarketClose) {
+    try {
+      await exchange.updateLeverage({ asset: params.asset, isCross: true, leverage: params.leverage });
+    } catch (e) { console.warn("Leverage update:", e); }
+  }
 
-  // Entry order
+  // Entry/close order
   const result = await exchange.order({
-    orders: [{ a: params.asset, b: params.isBuy, p: params.price, s: params.size, r: false, t: { limit: { tif: "Gtc" } } }],
+    orders: [{
+      a: params.asset,
+      b: params.isBuy,
+      p: params.price,
+      s: params.size,
+      r: params.isMarketClose ? true : false,
+      t: { limit: { tif: params.isMarketClose ? "Ioc" : "Gtc" } },
+    }],
     grouping: "na",
   });
+
+  // Check if order filled (for non-close orders)
+  if (!params.isMarketClose && result?.response?.data?.statuses) {
+    const statuses = result.response.data.statuses;
+    const firstStatus = statuses[0];
+    if (firstStatus?.error) {
+      throw new Error(`Order rejected: ${firstStatus.error}`);
+    }
+  }
 
   // Stop loss
   if (params.slPrice) {
     try {
       await exchange.order({
-        orders: [{ a: params.asset, b: !params.isBuy, p: params.slPrice, s: params.size, r: true, t: { trigger: { triggerPx: params.slPrice, isMarket: true, tpsl: "sl" } } }],
+        orders: [{
+          a: params.asset,
+          b: !params.isBuy,
+          p: params.slPrice,
+          s: params.size,
+          r: true,
+          t: { trigger: { triggerPx: params.slPrice, isMarket: true, tpsl: "sl" } },
+        }],
         grouping: "na",
       });
-    } catch (e) { console.warn("SL:", e); }
+    } catch (e) { console.warn("SL order error:", e); }
   }
 
-  // Take profits (split evenly)
+  // Take profit (single TP1 only)
   if (params.tpPrices?.length) {
-    const tpSize = (parseFloat(params.size) / params.tpPrices.length).toFixed(6);
     for (const tp of params.tpPrices) {
       try {
         await exchange.order({
-          orders: [{ a: params.asset, b: !params.isBuy, p: tp, s: tpSize, r: true, t: { trigger: { triggerPx: tp, isMarket: true, tpsl: "tp" } } }],
+          orders: [{
+            a: params.asset,
+            b: !params.isBuy,
+            p: tp,
+            s: params.size,
+            r: true,
+            t: { trigger: { triggerPx: tp, isMarket: true, tpsl: "tp" } },
+          }],
           grouping: "na",
         });
-      } catch (e) { console.warn(`TP ${tp}:`, e); }
+      } catch (e) { console.warn(`TP ${tp} error:`, e); }
     }
   }
 
   return result;
 }
 
-// Calculate estimated fees for a trade
-function estimateFees(sizeUsd: number, leverage: number): number {
-  const notional = sizeUsd;
-  // Entry + exit taker fees
-  return notional * TAKER_FEE_RATE * 2;
+function estimateFees(sizeUsd: number): number {
+  return sizeUsd * TAKER_FEE_RATE * 2;
 }
+
+// ── MAIN HANDLER ──
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -190,7 +261,6 @@ Deno.serve(async (req) => {
         emergency_reason: null,
       }).eq("user_id", user.id).select().single();
 
-      // Sync capital from Hyperliquid
       if (enabled) {
         const hlState = await getHLState(walletAddress);
         const capital = parseFloat(hlState.marginSummary?.accountValue || "0");
@@ -205,7 +275,7 @@ Deno.serve(async (req) => {
 
     // ── EMERGENCY STOP ──
     if (action === "emergency_stop") {
-      const { mode, reason } = body; // mode: "hold" | "close_all" | "cancel_pending"
+      const { mode, reason } = body;
 
       await serviceDb.from("lavba_bot_state").update({
         enabled: false,
@@ -214,26 +284,33 @@ Deno.serve(async (req) => {
       }).eq("user_id", user.id);
 
       if (mode === "close_all") {
-        // Close all positions via market orders
         const positions = await getOpenPositions(walletAddress);
         for (const pos of positions) {
           const size = Math.abs(parseFloat(pos.position?.szi || "0"));
-          const isBuy = parseFloat(pos.position?.szi || "0") < 0; // opposite side to close
+          const isLong = parseFloat(pos.position?.szi || "0") > 0;
+          const coin = pos.position?.coin || "BTC";
+
           if (size > 0) {
             try {
+              // FIX #4: Use far-away slippage price instead of "0"
+              // For closing a LONG → sell at very low price (IOC will fill at market)
+              // For closing a SHORT → buy at very high price
+              const closePrice = isLong ? "1" : "999999";
+              const assetIdx = ASSET_MAP[coin] ?? 0;
+
               await placeOrder({
                 privateKey,
-                asset: pos.position.coin === "BTC" ? 0 : 1,
-                isBuy,
-                price: "0", // market order
-                size: size.toFixed(6),
+                asset: assetIdx,
+                isBuy: !isLong,
+                price: closePrice,
+                size: roundSize(size, coin),
                 leverage: LEVERAGE,
+                isMarketClose: true,
               });
             } catch (e) { console.error("Close position error:", e); }
           }
         }
 
-        // Mark all open trades as stopped
         await serviceDb.from("lavba_trades").update({
           status: "stopped",
           closed_at: new Date().toISOString(),
@@ -243,7 +320,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, mode }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── EXECUTE SIGNAL (called by Lavba after Aureon generates) ──
+    // ── EXECUTE SIGNAL ──
     if (action === "execute_signal") {
       const { signal, symbol } = body;
 
@@ -275,30 +352,73 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: "NEUTRAL signal — no trade" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
-      // Get fresh balance
-      const hlState = await getHLState(walletAddress);
-      const totalCapital = parseFloat(hlState.marginSummary?.accountValue || "0");
-      const tradeCapital = totalCapital * CAPITAL_PERCENT;
-      const entryPrice = parseFloat(signal.entry);
-      const posSize = (tradeCapital * LEVERAGE / entryPrice).toFixed(6);
-      const estFees = estimateFees(tradeCapital, LEVERAGE);
-
       const assetIdx = ASSET_MAP[cleanSymbol];
       if (assetIdx === undefined) {
         return new Response(JSON.stringify({ error: `Unsupported asset: ${cleanSymbol}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+
+      // FIX #1: Validate entry price against current market price
+      const midPrice = await getMidPrice(cleanSymbol);
+      const entryPrice = parseFloat(signal.entry);
+      const priceDrift = Math.abs(entryPrice - midPrice) / midPrice;
+
+      if (priceDrift > 0.02) {
+        // Entry price is >2% away from current market — reject stale signal
+        return new Response(JSON.stringify({
+          error: `Entry price ${entryPrice} is ${(priceDrift * 100).toFixed(1)}% away from market (${midPrice}). Signal may be stale.`,
+        }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Get fresh balance
+      const hlState = await getHLState(walletAddress);
+      const totalCapital = parseFloat(hlState.marginSummary?.accountValue || "0");
+
+      if (totalCapital <= 0) {
+        return new Response(JSON.stringify({ error: "No capital available" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const tradeCapital = totalCapital * CAPITAL_PERCENT;
+
+      // FIX #5: Use proper size rounding per asset
+      const rawSize = (tradeCapital * LEVERAGE) / entryPrice;
+      const posSize = roundSize(rawSize, cleanSymbol);
+      const estFees = estimateFees(tradeCapital);
+
+      // Round prices properly
+      const roundedEntry = roundPrice(entryPrice, cleanSymbol);
+      const roundedSL = signal.stopLoss ? roundPrice(parseFloat(signal.stopLoss), cleanSymbol) : undefined;
+      const roundedTP1 = signal.takeProfit1 ? roundPrice(parseFloat(signal.takeProfit1), cleanSymbol) : undefined;
 
       // Place the trade
       const result = await placeOrder({
         privateKey,
         asset: assetIdx,
         isBuy: signal.direction === "LONG",
-        price: signal.entry,
+        price: roundedEntry,
         size: posSize,
         leverage: LEVERAGE,
-        slPrice: signal.stopLoss,
-        tpPrices: [signal.takeProfit1].filter(Boolean),
+        slPrice: roundedSL,
+        tpPrices: roundedTP1 ? [roundedTP1] : [],
       });
+
+      // FIX #3: Check fill confirmation from order result
+      let fillStatus = "open";
+      let fillWarning: string | undefined;
+
+      if (result?.response?.data?.statuses) {
+        const statuses = result.response.data.statuses;
+        const firstStatus = statuses[0];
+        if (firstStatus?.error) {
+          return new Response(JSON.stringify({
+            error: `Order rejected by exchange: ${firstStatus.error}`,
+          }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (firstStatus?.resting) {
+          fillStatus = "pending";
+          fillWarning = "Order is resting (not yet filled). Will be tracked.";
+        }
+        // "filled" status means immediate fill
+      }
 
       // Record trade in database
       const nextCoin = cleanSymbol === "BTC" ? "ETH" : "BTC";
@@ -308,15 +428,15 @@ Deno.serve(async (req) => {
         symbol: cleanSymbol,
         direction: signal.direction,
         entry_price: entryPrice,
-        stop_loss: parseFloat(signal.stopLoss),
-        take_profit1: parseFloat(signal.takeProfit1),
-        take_profit2: signal.takeProfit2 ? parseFloat(signal.takeProfit2) : null,
-        take_profit3: signal.takeProfit3 ? parseFloat(signal.takeProfit3) : null,
+        stop_loss: signal.stopLoss ? parseFloat(signal.stopLoss) : null,
+        take_profit1: signal.takeProfit1 ? parseFloat(signal.takeProfit1) : null,
+        take_profit2: null,
+        take_profit3: null,
         position_size: parseFloat(posSize),
         size_usd: tradeCapital,
         leverage: LEVERAGE,
         fees: estFees,
-        status: "open",
+        status: fillStatus,
         signal_confidence: signal.confidence,
         signal_reasoning: signal.reasoning,
         chart_review: signal.chartReview,
@@ -338,10 +458,12 @@ Deno.serve(async (req) => {
         success: true,
         trade,
         order: result,
+        fillWarning,
         details: {
           symbol: cleanSymbol,
           direction: signal.direction,
-          entry: signal.entry,
+          entry: roundedEntry,
+          marketPrice: midPrice,
           sizeUsd: tradeCapital.toFixed(2),
           positionSize: posSize,
           leverage: LEVERAGE,
@@ -351,45 +473,80 @@ Deno.serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── SYNC TRADE STATUS (check if trades closed, update PNL) ──
+    // ── SYNC TRADE STATUS ──
     if (action === "sync_trades") {
       const positions = await getOpenPositions(walletAddress);
       const hlState = await getHLState(walletAddress);
       const currentCapital = parseFloat(hlState.marginSummary?.accountValue || "0");
 
-      // Get open trades from DB
-      const { data: openTrades } = await supabase.from("lavba_trades").select("*").eq("user_id", user.id).in("status", ["open", "partial_tp"]);
+      // FIX #2: Fetch actual fill history for accurate PNL
+      const fills = await getUserFills(walletAddress);
+
+      const { data: openTrades } = await supabase.from("lavba_trades").select("*").eq("user_id", user.id).in("status", ["open", "pending", "partial_tp"]);
 
       const results: any[] = [];
 
       for (const trade of (openTrades || [])) {
-        const positionExists = positions.some((p: any) => {
-          const coin = trade.symbol;
-          return p.position?.coin === coin && Math.abs(parseFloat(p.position?.szi || "0")) > 0;
-        });
+        const positionExists = positions.some((p: any) =>
+          p.position?.coin === trade.symbol && Math.abs(parseFloat(p.position?.szi || "0")) > 0
+        );
 
         if (!positionExists) {
-          // Position closed — calculate PNL
-          const exitPrice = trade.direction === "LONG"
-            ? Math.max(trade.take_profit1 || trade.entry_price, trade.entry_price)
-            : Math.min(trade.take_profit1 || trade.entry_price, trade.entry_price);
+          // Position closed — calculate actual PNL from fills
+          const tradeFills = fills.filter((f: any) =>
+            f.coin === trade.symbol &&
+            new Date(f.time).getTime() >= new Date(trade.opened_at).getTime()
+          );
 
-          // Use Hyperliquid's reported PNL if available
-          const pnlFromHL = positions.find((p: any) => p.position?.coin === trade.symbol);
-          const realizedPnl = pnlFromHL
-            ? parseFloat(pnlFromHL.position?.unrealizedPnl || "0")
-            : (trade.direction === "LONG"
-              ? (exitPrice - trade.entry_price) * trade.position_size
-              : (trade.entry_price - exitPrice) * trade.position_size) - (trade.fees || 0);
+          // Calculate actual average exit price from closing fills
+          let exitPrice = trade.entry_price;
+          let realizedPnl = 0;
+          let totalFees = 0;
+
+          if (tradeFills.length > 0) {
+            // Separate entry fills and exit fills
+            const isLong = trade.direction === "LONG";
+            const exitFills = tradeFills.filter((f: any) =>
+              isLong ? f.side === "A" : f.side === "B" // A = sell, B = buy
+            );
+
+            if (exitFills.length > 0) {
+              // Weighted average exit price
+              let totalExitSize = 0;
+              let weightedExitPrice = 0;
+              for (const f of exitFills) {
+                const sz = parseFloat(f.sz || "0");
+                const px = parseFloat(f.px || "0");
+                weightedExitPrice += sz * px;
+                totalExitSize += sz;
+                totalFees += parseFloat(f.fee || "0");
+              }
+              exitPrice = totalExitSize > 0 ? weightedExitPrice / totalExitSize : trade.entry_price;
+
+              // Calculate PNL from actual prices
+              realizedPnl = isLong
+                ? (exitPrice - trade.entry_price) * trade.position_size
+                : (trade.entry_price - exitPrice) * trade.position_size;
+              realizedPnl -= totalFees;
+            } else {
+              // Use closedPnl from fills if available
+              const closingFill = tradeFills.find((f: any) => f.closedPnl && parseFloat(f.closedPnl) !== 0);
+              if (closingFill) {
+                realizedPnl = parseFloat(closingFill.closedPnl);
+                exitPrice = parseFloat(closingFill.px);
+              }
+            }
+          }
 
           await serviceDb.from("lavba_trades").update({
             status: "closed",
             exit_price: exitPrice,
             realized_pnl: realizedPnl,
+            fees: totalFees > 0 ? totalFees : (trade.fees || 0),
             closed_at: new Date().toISOString(),
           }).eq("id", trade.id);
 
-          results.push({ id: trade.id, status: "closed", pnl: realizedPnl });
+          results.push({ id: trade.id, status: "closed", pnl: realizedPnl, exitPrice });
 
           // Update PNL snapshot
           const today = new Date().toISOString().split("T")[0];
@@ -400,7 +557,7 @@ Deno.serve(async (req) => {
             period_type: "day",
             period_date: today,
             realized_pnl: realizedPnl,
-            fees_paid: trade.fees || 0,
+            fees_paid: totalFees > 0 ? totalFees : (trade.fees || 0),
             trade_count: 1,
             win_count: isWin ? 1 : 0,
             loss_count: isWin ? 0 : 1,
@@ -419,6 +576,29 @@ Deno.serve(async (req) => {
               liquidationPx: livePos.position?.liquidationPx,
             });
           }
+        }
+      }
+
+      // Also check for "pending" trades that may have been filled or expired
+      const { data: pendingTrades } = await supabase.from("lavba_trades").select("*").eq("user_id", user.id).eq("status", "pending");
+      for (const trade of (pendingTrades || [])) {
+        const positionExists = positions.some((p: any) =>
+          p.position?.coin === trade.symbol && Math.abs(parseFloat(p.position?.szi || "0")) > 0
+        );
+        if (positionExists) {
+          // Pending order filled — update to open
+          await serviceDb.from("lavba_trades").update({ status: "open" }).eq("id", trade.id);
+          results.push({ id: trade.id, status: "open", note: "Pending order now filled" });
+        }
+        // If pending for >24h with no fill, mark as expired
+        const openedAt = new Date(trade.opened_at).getTime();
+        const now = Date.now();
+        if (!positionExists && (now - openedAt) > 24 * 60 * 60 * 1000) {
+          await serviceDb.from("lavba_trades").update({
+            status: "expired",
+            closed_at: new Date().toISOString(),
+          }).eq("id", trade.id);
+          results.push({ id: trade.id, status: "expired", note: "Order expired after 24h without fill" });
         }
       }
 
