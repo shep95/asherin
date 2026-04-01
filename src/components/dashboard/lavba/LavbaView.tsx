@@ -881,7 +881,7 @@ Based on patterns found AND current price action, generate a LIVE TRADE SIGNAL:
 Return ONLY valid JSON:
 {"patterns":[{"name":"...","description":"...","occurrences":2,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"annotations":[{"type":"box","startIdx":50,"endIdx":65,"label":"Pattern One","color":"rgba(212,168,67,0.7)","priceStart":95000,"priceEnd":85000},{"type":"wave_count","startIdx":50,"endIdx":65,"label":"Wave Count","color":"rgba(100,180,255,0.8)","wavePoints":[{"idx":52,"label":"1","price":88000},{"idx":55,"label":"2","price":86000},{"idx":58,"label":"3","price":91000},{"idx":61,"label":"4","price":87500},{"idx":64,"label":"5","price":93000}]},{"type":"trendline","startIdx":50,"endIdx":65,"label":"Descending Resistance","color":"rgba(255,100,100,0.6)","priceStart":95000,"priceEnd":90000},{"type":"duration","startIdx":50,"endIdx":65,"label":"Pattern Duration","durationText":"15 bars · 15d"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","etaTP1":"4-8 hours","etaTP2":"1-2 days","etaTP3":"3-5 days","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}],"chartReview":"Full chart review summary here"}}`;
     try {
-      setProgress("Running Aureon fractal analysis…");
+      setProgress("Phase 1: Aureon reviewing chart structure…");
       await streamChat({
         messages: [{ role: "user", content: prompt }],
         mode: "research",
