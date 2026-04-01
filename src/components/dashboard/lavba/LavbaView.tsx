@@ -17,6 +17,18 @@ interface ChartBar {
   volume: number;
 }
 
+interface PatternAnnotation {
+  type: "box" | "trendline" | "wave_count" | "duration";
+  startIdx: number;
+  endIdx: number;
+  label: string;
+  color?: string;
+  priceStart?: number;
+  priceEnd?: number;
+  wavePoints?: { idx: number; label: string; price: number }[];
+  durationText?: string;
+}
+
 interface DiscoveredPattern {
   id: string;
   name: string;
@@ -29,6 +41,7 @@ interface DiscoveredPattern {
   entryRules: string[];
   exitRules: string[];
   patternZones: { startIdx: number; endIdx: number; type: "bullish" | "bearish" }[];
+  annotations?: PatternAnnotation[];
   confidence: number;
 }
 
