@@ -1373,7 +1373,7 @@ Return ONLY valid JSON:
             {tradeStatus.type !== "idle" && (
               <div className={`rounded-xl border p-3 mb-3 ${
                 tradeStatus.type === "executing" ? "border-accent/20 bg-accent/[0.05]" :
-                tradeStatus.type === "success" ? "border-green-500/20 bg-green-500/[0.05]" :
+                tradeStatus.type === "success" ? "border-accent/30 bg-accent/[0.08]" :
                 "border-destructive/20 bg-destructive/[0.05]"
               }`}>
                 <div className="flex items-center gap-2">
