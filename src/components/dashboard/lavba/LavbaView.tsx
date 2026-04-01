@@ -1057,7 +1057,7 @@ Return ONLY valid JSON:
       setReviewingChart(false);
       setProgress("");
     }
-  }, [bars, activeSymbol]);
+  }, [bars, activeSymbol, isAdmin, autoTradeEnabled, leverage, positionSizeUsd]);
 
   const activeData = bars[activeChart] || [];
 
