@@ -566,7 +566,7 @@ const CandleChart = ({ data, chartType, patternZones, annotations, signal, predi
         });
       }
     }
-  }, [data, viewStart, visibleCount, hoveredIdx, chartType, containerSize, patternZones, signal, predictedBars]);
+  }, [data, viewStart, visibleCount, hoveredIdx, chartType, containerSize, patternZones, annotations, signal, predictedBars]);
 
   // Mouse handlers for drag + hover
   const getBarIndex = (clientX: number) => {
