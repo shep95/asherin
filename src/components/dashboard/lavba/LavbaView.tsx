@@ -750,7 +750,9 @@ const LavbaView = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState("");
   const [patterns, setPatterns] = useState<DiscoveredPattern[]>([]);
+  const [chartAnnotations, setChartAnnotations] = useState<PatternAnnotation[]>([]);
   const [signal, setSignal] = useState<LiveSignal | null>(null);
+  const [reviewingChart, setReviewingChart] = useState(false);
   const [activeChart, setActiveChart] = useState<string>("1d");
   const [chartType, setChartType] = useState<ChartType>("candle");
   const [error, setError] = useState("");
