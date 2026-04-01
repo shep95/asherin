@@ -1336,6 +1336,94 @@ Return ONLY valid JSON:
           </div>
         )}
 
+        {/* AUTO-TRADE PANEL (Admin Only) */}
+        {isAdmin && (
+          <div className="rounded-2xl border border-accent/20 bg-accent/[0.03] backdrop-blur-xl p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-3.5 w-3.5 text-accent" />
+                <span className="text-[10px] font-light tracking-[0.15em] text-accent uppercase">Hyperliquid Auto-Trade</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {hlBalance && (
+                  <span className="text-[10px] font-light text-muted-foreground/50">
+                    Balance: ${parseFloat(hlBalance.balance || 0).toFixed(2)}
+                  </span>
+                )}
+                <button
+                  onClick={() => setShowTradeSettings(!showTradeSettings)}
+                  className="text-[9px] px-2 py-1 rounded-lg bg-background/20 border border-border/15 text-muted-foreground/50 hover:text-foreground transition-all"
+                >
+                  ⚙ Settings
+                </button>
+                <button
+                  onClick={() => setAutoTradeEnabled(!autoTradeEnabled)}
+                  className={`relative w-10 h-5 rounded-full transition-all ${
+                    autoTradeEnabled ? "bg-accent/30 border border-accent/50" : "bg-background/30 border border-border/20"
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${
+                    autoTradeEnabled ? "left-5 bg-accent" : "left-0.5 bg-muted-foreground/30"
+                  }`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Trade Status */}
+            {tradeStatus.type !== "idle" && (
+              <div className={`rounded-xl border p-3 mb-3 ${
+                tradeStatus.type === "executing" ? "border-accent/20 bg-accent/[0.05]" :
+                tradeStatus.type === "success" ? "border-green-500/20 bg-green-500/[0.05]" :
+                "border-destructive/20 bg-destructive/[0.05]"
+              }`}>
+                <div className="flex items-center gap-2">
+                  {tradeStatus.type === "executing" && <Loader2 className="h-3 w-3 text-accent animate-spin" />}
+                  {tradeStatus.type === "success" && <Target className="h-3 w-3 text-green-400" />}
+                  {tradeStatus.type === "error" && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                  <span className={`text-[11px] font-extralight ${
+                    tradeStatus.type === "executing" ? "text-accent" :
+                    tradeStatus.type === "success" ? "text-green-400" : "text-destructive"
+                  }`}>{tradeStatus.message}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Settings Panel */}
+            {showTradeSettings && (
+              <div className="grid grid-cols-2 gap-3 mt-3 rounded-xl border border-border/10 bg-background/10 p-3">
+                <div>
+                  <label className="text-[8px] text-muted-foreground/40 uppercase tracking-[0.1em] block mb-1">Leverage</label>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setLeverage(Math.max(1, leverage - 1))} className="w-6 h-6 rounded bg-background/30 border border-border/15 text-muted-foreground/50 text-xs">−</button>
+                    <span className="text-sm font-light text-foreground w-10 text-center">{leverage}x</span>
+                    <button onClick={() => setLeverage(Math.min(50, leverage + 1))} className="w-6 h-6 rounded bg-background/30 border border-border/15 text-muted-foreground/50 text-xs">+</button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[8px] text-muted-foreground/40 uppercase tracking-[0.1em] block mb-1">Position Size (USD)</label>
+                  <input
+                    type="number"
+                    value={positionSizeUsd}
+                    onChange={e => setPositionSizeUsd(Math.max(10, parseInt(e.target.value) || 100))}
+                    className="w-full bg-background/30 border border-border/15 rounded-lg px-3 py-1.5 text-sm font-light text-foreground outline-none focus:border-accent/40"
+                  />
+                </div>
+              </div>
+            )}
+
+            {!autoTradeEnabled && (
+              <p className="text-[9px] font-extralight text-muted-foreground/30 mt-2">
+                Enable to automatically execute Aureon signals on Hyperliquid
+              </p>
+            )}
+            {autoTradeEnabled && (
+              <p className="text-[9px] font-extralight text-accent/50 mt-2">
+                ⚡ Active — Signals will auto-execute on Hyperliquid at {leverage}x leverage, ${positionSizeUsd} per trade
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Discovered Strategies */}
         {patterns.length > 0 && (
           <div ref={strategiesRef} className="space-y-3">
