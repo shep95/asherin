@@ -17,6 +17,18 @@ interface ChartBar {
   volume: number;
 }
 
+interface PatternAnnotation {
+  type: "box" | "trendline" | "wave_count" | "duration";
+  startIdx: number;
+  endIdx: number;
+  label: string;
+  color?: string;
+  priceStart?: number;
+  priceEnd?: number;
+  wavePoints?: { idx: number; label: string; price: number }[];
+  durationText?: string;
+}
+
 interface DiscoveredPattern {
   id: string;
   name: string;
@@ -29,6 +41,7 @@ interface DiscoveredPattern {
   entryRules: string[];
   exitRules: string[];
   patternZones: { startIdx: number; endIdx: number; type: "bullish" | "bearish" }[];
+  annotations?: PatternAnnotation[];
   confidence: number;
 }
 
@@ -132,11 +145,12 @@ interface CandleChartProps {
   data: ChartBar[];
   chartType: ChartType;
   patternZones: { startIdx: number; endIdx: number; type: "bullish" | "bearish"; name: string }[];
+  annotations: PatternAnnotation[];
   signal?: LiveSignal | null;
   predictedBars?: { open: number; high: number; low: number; close: number }[];
 }
 
-const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: CandleChartProps) => {
+const CandleChart = ({ data, chartType, patternZones, annotations, signal, predictedBars }: CandleChartProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewStart, setViewStart] = useState(0);
@@ -253,22 +267,145 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
     }
 
-    // Pattern zones
+    // Pattern zones (yellow boxes like TradingView)
     for (const zone of patternZones) {
       const zs = zone.startIdx - start;
       const ze = zone.endIdx - start;
       if (ze < 0 || zs >= visible.length) continue;
       const x1 = barX(Math.max(0, zs)) - barW / 2;
       const x2 = barX(Math.min(visible.length - 1, ze)) + barW / 2;
+
+      // Find price range within zone for tighter boxes
+      let zMinP = Infinity, zMaxP = -Infinity;
+      for (let i = Math.max(0, zone.startIdx); i <= Math.min(zone.endIdx, data.length - 1); i++) {
+        const vi = i - start;
+        if (vi >= 0 && vi < visible.length) {
+          if (visible[vi].low < zMinP) zMinP = visible[vi].low;
+          if (visible[vi].high > zMaxP) zMaxP = visible[vi].high;
+        }
+      }
+      const y1 = zMaxP > -Infinity ? priceY(zMaxP) - 4 : 20;
+      const y2 = zMinP < Infinity ? priceY(zMinP) + 4 : priceH - 20;
+
+      // Filled box
       ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.06)" : "rgba(180,180,200,0.06)";
-      ctx.fillRect(x1, 20, x2 - x1, priceH - 40);
-      ctx.strokeStyle = zone.type === "bullish" ? "rgba(212,168,67,0.2)" : "rgba(180,180,200,0.2)";
-      ctx.lineWidth = 1; ctx.setLineDash([4, 2]);
-      ctx.strokeRect(x1, 20, x2 - x1, priceH - 40);
-      ctx.setLineDash([]);
-      ctx.font = "9px sans-serif";
-      ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.5)" : "rgba(180,180,200,0.5)";
-      ctx.fillText(zone.name, x1 + 4, 32);
+      ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+      // Solid yellow/white border (like TradingView yellow boxes)
+      ctx.strokeStyle = zone.type === "bullish" ? "rgba(212,168,67,0.45)" : "rgba(200,200,220,0.4)";
+      ctx.lineWidth = 1.5; ctx.setLineDash([]);
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      // Label above box
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillStyle = zone.type === "bullish" ? "rgba(212,168,67,0.8)" : "rgba(200,200,220,0.7)";
+      ctx.textAlign = "center";
+      ctx.fillText(zone.name, (x1 + x2) / 2, y1 - 6);
+      ctx.textAlign = "left";
+
+      // Duration label below box
+      const zoneStartBar = data[zone.startIdx];
+      const zoneEndBar = data[Math.min(zone.endIdx, data.length - 1)];
+      if (zoneStartBar && zoneEndBar) {
+        const daysSpan = Math.round((new Date(zoneEndBar.date).getTime() - new Date(zoneStartBar.date).getTime()) / 86400000);
+        const durLabel = daysSpan > 30 ? `${Math.round(daysSpan / 30)}mo` : `${daysSpan}d`;
+        ctx.font = "8px sans-serif";
+        ctx.fillStyle = "rgba(200,200,220,0.35)";
+        ctx.textAlign = "center";
+        ctx.fillText(`${zone.endIdx - zone.startIdx} bars · ${durLabel}`, (x1 + x2) / 2, y2 + 12);
+        ctx.textAlign = "left";
+      }
+    }
+
+    // ── PATTERN ANNOTATIONS (wave counts, trendlines, labels) ──
+    for (const ann of annotations) {
+      const as = ann.startIdx - start;
+      const ae = ann.endIdx - start;
+      if (ae < 0 || as >= visible.length) continue;
+
+      const annColor = ann.color || "rgba(100,180,255,0.7)";
+
+      if (ann.type === "wave_count" && ann.wavePoints) {
+        // Draw wave count numbers at swing points
+        for (const wp of ann.wavePoints) {
+          const wi = wp.idx - start;
+          if (wi < 0 || wi >= visible.length) continue;
+          const wx = barX(wi);
+          const wy = priceY(wp.price);
+          // Draw the wave label
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillStyle = annColor;
+          ctx.textAlign = "center";
+          const isHigh = wp.price >= visible[wi].close;
+          ctx.fillText(`(${wp.label})`, wx, isHigh ? wy - 8 : wy + 14);
+          // Small dot at the point
+          ctx.beginPath();
+          ctx.arc(wx, wy, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = annColor;
+          ctx.fill();
+          ctx.textAlign = "left";
+        }
+      }
+
+      if (ann.type === "trendline") {
+        const x1 = barX(Math.max(0, as));
+        const x2 = barX(Math.min(visible.length - 1, ae));
+        const y1t = ann.priceStart ? priceY(ann.priceStart) : priceY(visible[Math.max(0, as)]?.high ?? 0);
+        const y2t = ann.priceEnd ? priceY(ann.priceEnd) : priceY(visible[Math.min(visible.length - 1, ae)]?.low ?? 0);
+        ctx.save();
+        ctx.strokeStyle = annColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 3]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1t);
+        ctx.lineTo(x2, y2t);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Label
+        if (ann.label) {
+          ctx.font = "bold 9px sans-serif";
+          ctx.fillStyle = annColor;
+          ctx.textAlign = "center";
+          ctx.fillText(ann.label, (x1 + x2) / 2, Math.min(y1t, y2t) - 6);
+          ctx.textAlign = "left";
+        }
+        ctx.restore();
+      }
+
+      if (ann.type === "duration") {
+        const x1 = barX(Math.max(0, as));
+        const x2 = barX(Math.min(visible.length - 1, ae));
+        const dy = priceH - 8;
+        ctx.save();
+        ctx.strokeStyle = "rgba(212,168,67,0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x1, dy - 6); ctx.lineTo(x1, dy + 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x2, dy - 6); ctx.lineTo(x2, dy + 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, dy); ctx.lineTo(x2, dy); ctx.stroke();
+        ctx.font = "bold 8px sans-serif";
+        ctx.fillStyle = "rgba(212,168,67,0.6)";
+        ctx.textAlign = "center";
+        ctx.fillText(ann.durationText || ann.label, (x1 + x2) / 2, dy - 8);
+        ctx.textAlign = "left";
+        ctx.restore();
+      }
+
+      if (ann.type === "box") {
+        const x1 = barX(Math.max(0, as)) - barW / 2;
+        const x2 = barX(Math.min(visible.length - 1, ae)) + barW / 2;
+        const py1 = ann.priceStart ? priceY(ann.priceStart) : 20;
+        const py2 = ann.priceEnd ? priceY(ann.priceEnd) : priceH - 20;
+        ctx.save();
+        ctx.strokeStyle = annColor;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x1, Math.min(py1, py2), x2 - x1, Math.abs(py2 - py1));
+        if (ann.label) {
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillStyle = annColor;
+          ctx.textAlign = "center";
+          ctx.fillText(ann.label, (x1 + x2) / 2, Math.min(py1, py2) - 6);
+          ctx.textAlign = "left";
+        }
+        ctx.restore();
+      }
     }
 
     // ── DRAW REAL BARS ──
@@ -429,7 +566,7 @@ const CandleChart = ({ data, chartType, patternZones, signal, predictedBars }: C
         });
       }
     }
-  }, [data, viewStart, visibleCount, hoveredIdx, chartType, containerSize, patternZones, signal, predictedBars]);
+  }, [data, viewStart, visibleCount, hoveredIdx, chartType, containerSize, patternZones, annotations, signal, predictedBars]);
 
   // Mouse handlers for drag + hover
   const getBarIndex = (clientX: number) => {
@@ -613,7 +750,9 @@ const LavbaView = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState("");
   const [patterns, setPatterns] = useState<DiscoveredPattern[]>([]);
+  const [chartAnnotations, setChartAnnotations] = useState<PatternAnnotation[]>([]);
   const [signal, setSignal] = useState<LiveSignal | null>(null);
+  const [reviewingChart, setReviewingChart] = useState(false);
   const [activeChart, setActiveChart] = useState<string>("1d");
   const [chartType, setChartType] = useState<ChartType>("candle");
   const [error, setError] = useState("");
@@ -680,7 +819,9 @@ const LavbaView = () => {
 
     setAnalyzing(true);
     setSignal(null);
-    setProgress("Aureon is scanning historical data for repeating fractal patterns…");
+    setChartAnnotations([]);
+    setReviewingChart(true);
+    setProgress("Aureon is reviewing the chart structure before generating signals…");
     let result = "";
 
     const barSummaries = allBars.map(([tf, data]) => {
@@ -692,43 +833,55 @@ const LavbaView = () => {
       ).join("\n")}`;
     }).join("\n\n");
 
-    const prompt = `You are Aureon — an elite quantitative pattern recognition engine.
+    const prompt = `You are Aureon — an elite quantitative pattern recognition engine. You must VISUALLY ANNOTATE the chart like a professional technical analyst before issuing any signal.
 
 SYMBOL: ${activeSymbol}
 TIMEFRAMES: ${Object.keys(bars).join(", ")}
 CURRENT PRICE: ${lastBarAll ? `$${lastBarAll.close}` : "unknown"}
+TOTAL BARS: ${allBarArrays.length > 0 ? allBarArrays[0].length : 0}
 
 HISTORICAL OHLCV DATA:
 ${barSummaries}
 
-MISSION: 
-1. Find 2-4 REPEATING fractal patterns. NOT standard textbook patterns. Find UNIQUE structures from market microstructure, liquidity dynamics, behavioral psychology.
-2. Based on patterns found AND current price action, generate a LIVE TRADE SIGNAL.
+MISSION (3 PHASES):
 
-For each pattern provide:
+PHASE 1 — CHART REVIEW (Draw annotations before signaling)
+Study the ENTIRE price history. Identify:
+- Repeating structural patterns (descending wedges, distribution zones, liquidity sweeps)
+- Measure the GEOMETRY: how many bars each pattern lasted, what % move it produced
+- Find where the SAME pattern structure repeated at different price levels
+- Count wave swings inside each pattern (like Elliott counts: 1, 2, 3, 4, 5)
+- Draw trendlines connecting major highs/lows
+
+PHASE 2 — PATTERN DISCOVERY
+Find 2-4 REPEATING fractal patterns with:
 - Original name, detailed description (market mechanics)
 - Occurrence count, win rate, avg return %, risk:reward ratio
 - Entry/exit rules
 - Bar index ranges where pattern appeared
 - Confidence 0-1
+- ANNOTATIONS: For each pattern, provide chart annotations:
+  - "box" type: yellow rectangle around the pattern zone with priceStart/priceEnd (high/low of zone)
+  - "wave_count" type: numbered swing points inside each zone with idx, label ("1","2","3","4","5"), and price
+  - "trendline" type: connecting major highs or lows across the pattern with priceStart/priceEnd
+  - "duration" type: showing how long the pattern lasted (e.g. "45 bars · 23d")
 
-For the LIVE SIGNAL provide:
+PHASE 3 — SIGNAL (Only AFTER reviewing the chart)
+Based on patterns found AND current price action, generate a LIVE TRADE SIGNAL:
 - direction: "LONG" or "SHORT" or "NEUTRAL"
-- entry: exact price level
-- stopLoss: exact price level
-- takeProfit1, takeProfit2, takeProfit3: exact price levels
-- etaTP1, etaTP2, etaTP3: estimated time to reach each take profit from signal entry (e.g. "2-4 hours", "1-2 days", "3-5 days"). Base this on historical pattern velocity and average price movement speed for this asset on the given timeframe.
-- reasoning: 2-3 sentences explaining WHY based on the discovered patterns
+- entry, stopLoss, takeProfit1, takeProfit2, takeProfit3: exact price levels
+- etaTP1, etaTP2, etaTP3: estimated time to reach each TP (e.g. "4-8 hours", "1-2 days")
+- reasoning: 2-3 sentences explaining WHY
 - confidence: 0-1
-- invalidation: what price level or condition invalidates this signal
-- basedOnPatterns: array of pattern names this signal is derived from
-- predictedCandles: array of 5-8 predicted next candles as {"open":number,"high":number,"low":number,"close":number} showing your forecast of future price movement
+- invalidation: price/condition that invalidates
+- basedOnPatterns: pattern names
+- predictedCandles: 5-8 predicted candles as {open,high,low,close}
+- chartReview: 2-3 sentence summary of what you found reviewing the full chart BEFORE signaling
 
-Return ONLY valid JSON object:
-{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","etaTP1":"4-8 hours","etaTP2":"1-2 days","etaTP3":"3-5 days","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}]}}`;
-
+Return ONLY valid JSON:
+{"patterns":[{"name":"...","description":"...","occurrences":2,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"annotations":[{"type":"box","startIdx":50,"endIdx":65,"label":"Pattern One","color":"rgba(212,168,67,0.7)","priceStart":95000,"priceEnd":85000},{"type":"wave_count","startIdx":50,"endIdx":65,"label":"Wave Count","color":"rgba(100,180,255,0.8)","wavePoints":[{"idx":52,"label":"1","price":88000},{"idx":55,"label":"2","price":86000},{"idx":58,"label":"3","price":91000},{"idx":61,"label":"4","price":87500},{"idx":64,"label":"5","price":93000}]},{"type":"trendline","startIdx":50,"endIdx":65,"label":"Descending Resistance","color":"rgba(255,100,100,0.6)","priceStart":95000,"priceEnd":90000},{"type":"duration","startIdx":50,"endIdx":65,"label":"Pattern Duration","durationText":"15 bars · 15d"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","etaTP1":"4-8 hours","etaTP2":"1-2 days","etaTP3":"3-5 days","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}],"chartReview":"Full chart review summary here"}}`;
     try {
-      setProgress("Running Aureon fractal analysis…");
+      setProgress("Phase 1: Aureon reviewing chart structure…");
       await streamChat({
         messages: [{ role: "user", content: prompt }],
         mode: "research",
@@ -781,10 +934,18 @@ Return ONLY valid JSON object:
 
             if (parsed?.patterns && Array.isArray(parsed.patterns)) {
               setPatterns(parsed.patterns.map((p: DiscoveredPattern, i: number) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+              // Collect all annotations from patterns
+              const allAnns: PatternAnnotation[] = parsed.patterns.flatMap((p: any) => p.annotations || []);
+              setChartAnnotations(allAnns);
               setTimeout(() => strategiesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
             }
             if (parsed?.signal) {
               setSignal(parsed.signal as LiveSignal);
+              setReviewingChart(false);
+              if (parsed.signal.chartReview) {
+                setProgress(`Chart Review: ${parsed.signal.chartReview}`);
+                setTimeout(() => setProgress(""), 5000);
+              }
             }
             if (!parsed) {
               console.error("Lavba raw AI result:", result.slice(0, 500));
@@ -797,11 +958,13 @@ Return ONLY valid JSON object:
             setError("Failed to parse Aureon analysis results.");
           }
           setAnalyzing(false);
+          setReviewingChart(false);
           setProgress("");
         },
       });
     } catch {
       setAnalyzing(false);
+      setReviewingChart(false);
       setProgress("");
     }
   }, [bars, activeSymbol]);
@@ -814,6 +977,12 @@ Return ONLY valid JSON object:
       ...z,
       name: p.name,
     })) || []), [patterns]);
+
+  // Merge all annotations from patterns
+  const activeAnnotations = useMemo(() => [
+    ...chartAnnotations,
+    ...patterns.flatMap(p => p.annotations || []),
+  ], [patterns, chartAnnotations]);
 
   const lastBar = activeData[activeData.length - 1];
   const firstBar = activeData[0];
@@ -917,7 +1086,12 @@ Return ONLY valid JSON object:
             <div>
               <span className="text-xs font-light text-accent">{progress}</span>
               {analyzing && (
-                <p className="text-[10px] text-accent/50 mt-0.5">Analyzing {activeData.length} candles across {Object.keys(bars).length} timeframe(s)</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-[10px] text-accent/50">
+                    {reviewingChart ? "Phase 1: Reviewing chart structure & drawing annotations…" : "Phase 3: Generating signal…"}
+                  </p>
+                  <span className="text-[9px] text-accent/30">{activeData.length} candles · {Object.keys(bars).length} TF</span>
+                </div>
               )}
             </div>
           </div>
@@ -991,8 +1165,19 @@ Return ONLY valid JSON object:
 
             {/* Canvas Chart */}
             <div className="px-2 py-2">
-              <CandleChart data={activeData} chartType={chartType} patternZones={activePatternZones} signal={signal} predictedBars={signal?.predictedCandles} />
+              <CandleChart data={activeData} chartType={chartType} patternZones={activePatternZones} annotations={activeAnnotations} signal={signal} predictedBars={signal?.predictedCandles} />
             </div>
+          </div>
+        )}
+
+        {/* CHART REVIEW SUMMARY */}
+        {signal && (signal as any).chartReview && (
+          <div className="rounded-2xl border border-accent/15 bg-accent/[0.03] backdrop-blur-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Eye className="h-3.5 w-3.5 text-accent/60" />
+              <span className="text-[10px] font-light tracking-[0.15em] text-accent/60 uppercase">Aureon Chart Review (Pre-Signal)</span>
+            </div>
+            <p className="text-[11px] font-extralight text-muted-foreground/70 leading-relaxed">{(signal as any).chartReview}</p>
           </div>
         )}
 
