@@ -1170,6 +1170,17 @@ Return ONLY valid JSON:
           </div>
         )}
 
+        {/* CHART REVIEW SUMMARY */}
+        {signal && (signal as any).chartReview && (
+          <div className="rounded-2xl border border-accent/15 bg-accent/[0.03] backdrop-blur-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Eye className="h-3.5 w-3.5 text-accent/60" />
+              <span className="text-[10px] font-light tracking-[0.15em] text-accent/60 uppercase">Aureon Chart Review (Pre-Signal)</span>
+            </div>
+            <p className="text-[11px] font-extralight text-muted-foreground/70 leading-relaxed">{(signal as any).chartReview}</p>
+          </div>
+        )}
+
         {/* LIVE SIGNAL CARD */}
         {signal && (
           <div className={`rounded-2xl border backdrop-blur-xl p-4 sm:p-5 ${
