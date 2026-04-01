@@ -731,30 +731,66 @@ Return ONLY valid JSON object:
         onDelta: (chunk) => { result += chunk; },
         onDone: () => {
           try {
-            // Try to parse as object with patterns + signal
-            const objMatch = result.match(/\{[\s\S]*\}/);
-            if (objMatch) {
-              const parsed = JSON.parse(objMatch[0]);
-              if (parsed.patterns && Array.isArray(parsed.patterns)) {
-                setPatterns(parsed.patterns.map((p: DiscoveredPattern, i: number) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
-                setTimeout(() => strategiesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
-              }
-              if (parsed.signal) {
-                setSignal(parsed.signal as LiveSignal);
+            // Strip markdown code blocks and clean response
+            let cleaned = result
+              .replace(/```json\s*/gi, "")
+              .replace(/```\s*/g, "")
+              .trim();
+
+            // Find the outermost JSON object
+            const jsonStart = cleaned.indexOf("{");
+            const jsonEnd = cleaned.lastIndexOf("}");
+
+            let parsed: any = null;
+
+            if (jsonStart !== -1 && jsonEnd > jsonStart) {
+              let jsonStr = cleaned.substring(jsonStart, jsonEnd + 1);
+              try {
+                parsed = JSON.parse(jsonStr);
+              } catch {
+                // Fix common LLM JSON issues
+                jsonStr = jsonStr
+                  .replace(/,\s*}/g, "}")
+                  .replace(/,\s*]/g, "]")
+                  .replace(/[\x00-\x1F\x7F]/g, " ")
+                  .replace(/\n/g, " ");
+                try {
+                  parsed = JSON.parse(jsonStr);
+                } catch { /* fall through */ }
               }
             }
-          } catch {
+
             // Fallback: try array-only format
-            try {
-              const arrMatch = result.match(/\[[\s\S]*\]/);
-              if (arrMatch) {
-                const parsed = JSON.parse(arrMatch[0]) as DiscoveredPattern[];
-                setPatterns(parsed.map((p, i) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+            if (!parsed) {
+              const arrStart = cleaned.indexOf("[");
+              const arrEnd = cleaned.lastIndexOf("]");
+              if (arrStart !== -1 && arrEnd > arrStart) {
+                let arrStr = cleaned.substring(arrStart, arrEnd + 1)
+                  .replace(/,\s*]/g, "]")
+                  .replace(/[\x00-\x1F\x7F]/g, " ");
+                try {
+                  const arr = JSON.parse(arrStr) as DiscoveredPattern[];
+                  parsed = { patterns: arr };
+                } catch { /* fall through */ }
               }
-            } catch {
+            }
+
+            if (parsed?.patterns && Array.isArray(parsed.patterns)) {
+              setPatterns(parsed.patterns.map((p: DiscoveredPattern, i: number) => ({ ...p, id: `lv-${i}-${Date.now()}` })));
+              setTimeout(() => strategiesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+            }
+            if (parsed?.signal) {
+              setSignal(parsed.signal as LiveSignal);
+            }
+            if (!parsed) {
+              console.error("Lavba raw AI result:", result.slice(0, 500));
               setPatterns([]);
               setError("Failed to parse Aureon analysis results.");
             }
+          } catch (e) {
+            console.error("Lavba parse error:", e, "Raw:", result.slice(0, 500));
+            setPatterns([]);
+            setError("Failed to parse Aureon analysis results.");
           }
           setAnalyzing(false);
           setProgress("");
