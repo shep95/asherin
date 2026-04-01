@@ -39,6 +39,9 @@ interface LiveSignal {
   takeProfit1: string;
   takeProfit2: string;
   takeProfit3: string;
+  etaTP1?: string;
+  etaTP2?: string;
+  etaTP3?: string;
   reasoning: string;
   confidence: number;
   invalidation: string;
@@ -714,6 +717,7 @@ For the LIVE SIGNAL provide:
 - entry: exact price level
 - stopLoss: exact price level
 - takeProfit1, takeProfit2, takeProfit3: exact price levels
+- etaTP1, etaTP2, etaTP3: estimated time to reach each take profit from signal entry (e.g. "2-4 hours", "1-2 days", "3-5 days"). Base this on historical pattern velocity and average price movement speed for this asset on the given timeframe.
 - reasoning: 2-3 sentences explaining WHY based on the discovered patterns
 - confidence: 0-1
 - invalidation: what price level or condition invalidates this signal
@@ -721,7 +725,7 @@ For the LIVE SIGNAL provide:
 - predictedCandles: array of 5-8 predicted next candles as {"open":number,"high":number,"low":number,"close":number} showing your forecast of future price movement
 
 Return ONLY valid JSON object:
-{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}]}}`;
+{"patterns":[{"name":"...","description":"...","occurrences":12,"winRate":0.75,"avgReturn":3.2,"riskReward":"1:2.5","timeframe":"1d","entryRules":["..."],"exitRules":["..."],"patternZones":[{"startIdx":50,"endIdx":65,"type":"bullish"}],"confidence":0.82}],"signal":{"direction":"LONG","entry":"95000","stopLoss":"93500","takeProfit1":"97000","takeProfit2":"99000","takeProfit3":"102000","etaTP1":"4-8 hours","etaTP2":"1-2 days","etaTP3":"3-5 days","reasoning":"...","confidence":0.78,"invalidation":"Break below 93000","basedOnPatterns":["Pattern Name"],"predictedCandles":[{"open":95100,"high":96200,"low":94800,"close":96000}]}}`;
 
     try {
       setProgress("Running Aureon fractal analysis…");
@@ -1021,13 +1025,16 @@ Return ONLY valid JSON object:
               {[
                 { label: "Entry", value: `$${signal.entry}`, color: "text-foreground" },
                 { label: "Stop Loss", value: `$${signal.stopLoss}`, color: "text-destructive" },
-                { label: "TP1", value: `$${signal.takeProfit1}`, color: "text-accent" },
-                { label: "TP2", value: `$${signal.takeProfit2}`, color: "text-accent" },
-                { label: "TP3", value: `$${signal.takeProfit3}`, color: "text-accent" },
+                { label: "TP1", value: `$${signal.takeProfit1}`, color: "text-accent", eta: signal.etaTP1 },
+                { label: "TP2", value: `$${signal.takeProfit2}`, color: "text-accent", eta: signal.etaTP2 },
+                { label: "TP3", value: `$${signal.takeProfit3}`, color: "text-accent", eta: signal.etaTP3 },
               ].map((s, i) => (
                 <div key={i} className="rounded-xl bg-background/20 border border-border/10 p-2.5 text-center">
                   <p className="text-[8px] text-muted-foreground/40 uppercase tracking-[0.1em]">{s.label}</p>
                   <p className={`text-sm font-light mt-0.5 ${s.color}`}>{s.value}</p>
+                  {(s as any).eta && (
+                    <p className="text-[8px] font-extralight text-muted-foreground/50 mt-0.5">≈ {(s as any).eta}</p>
+                  )}
                 </div>
               ))}
             </div>
