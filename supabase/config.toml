@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.chart-annotate]
 verify_jwt = false
+
+[functions.hyperliquid-trade]
+verify_jwt = false
