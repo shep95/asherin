@@ -541,7 +541,6 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*,.pdf,.csv,.txt,.md,.json,.xml,.doc,.docx,.xls,.xlsx"
             onChange={handleFileSelect}
             className="hidden"
           />
