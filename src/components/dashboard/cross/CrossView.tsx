@@ -362,13 +362,46 @@ const CrossView: React.FC = () => {
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                 <Monitor className="h-16 w-16 text-muted-foreground/20" />
                 <p className="text-sm text-muted-foreground/50 font-extralight">Share your screen to begin live analysis</p>
-                <Button onClick={startSharing} className="gap-2">
-                  <Play className="h-4 w-4" />
-                  Start Sharing Screen
-                </Button>
-                <p className="text-[10px] text-muted-foreground/30 max-w-sm text-center">
-                  Hybrid system: AI vision + local pattern detection for ultra-fast meme coin signals
+                <div className="flex gap-3">
+                  <Button onClick={startSharing} className="gap-2">
+                    <Play className="h-4 w-4" />
+                    Start Sharing Screen
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      fetch("/aureon-cross-extension.zip")
+                        .then(r => { if (!r.ok) throw new Error("Download failed"); return r.blob(); })
+                        .then(blob => {
+                          const a = document.createElement("a");
+                          a.href = URL.createObjectURL(blob);
+                          a.download = "aureon-cross-extension.zip";
+                          a.click();
+                          URL.revokeObjectURL(a.href);
+                        })
+                        .catch(() => toast({ title: "Download failed", variant: "destructive" }));
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                    Chrome Extension
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground/30 max-w-md text-center">
+                  <strong className="text-muted-foreground/50">Screen Share:</strong> Analyze any tab from here · <strong className="text-muted-foreground/50">Extension:</strong> Overlay alerts, chat & signals directly on your trading tab
                 </p>
+                <div className="mt-2 px-4 py-2.5 rounded-lg bg-muted/10 border border-border/20 max-w-md">
+                  <p className="text-[10px] text-muted-foreground/40 mb-1.5 flex items-center gap-1.5">
+                    <Chrome className="h-3 w-3" /> Extension Install Guide
+                  </p>
+                  <ol className="text-[10px] text-muted-foreground/30 space-y-0.5 list-decimal list-inside">
+                    <li>Download & unzip the extension</li>
+                    <li>Open <span className="text-muted-foreground/50 font-mono">chrome://extensions</span></li>
+                    <li>Enable <span className="text-muted-foreground/50">Developer mode</span> (top-right)</li>
+                    <li>Click <span className="text-muted-foreground/50">Load unpacked</span> → select folder</li>
+                    <li>Open any trading tab → press <span className="text-muted-foreground/50 font-mono">Ctrl+Shift+A</span></li>
+                  </ol>
+                </div>
               </div>
             )}
 
