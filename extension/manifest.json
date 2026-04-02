@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Aureon Cross — Live Trading Vision",
+  "version": "1.0.0",
+  "description": "Real-time AI trading overlay. Chat, alerts, and visual annotations directly on your trading tab.",
+  "permissions": ["activeTab", "storage", "tabs"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
