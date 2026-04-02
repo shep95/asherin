@@ -1,11 +1,11 @@
 // ============================================================================
 // AUREON CROSS — Content Script
-// Injects overlay UI directly into any trading tab
+// Instant pattern recognition overlay for trading tabs
 // ============================================================================
 
 (function () {
   "use strict";
-  if (document.getElementById("aureon-cross-root")) return; // Already injected
+  if (document.getElementById("aureon-cross-root")) return;
 
   // ── STATE ──
   let isActive = false;
@@ -34,7 +34,7 @@
     window.speechSynthesis.speak(u);
   }
 
-  // ── STATUS INDICATOR (bottom-left) ──
+  // ── STATUS INDICATOR ──
   const status = document.createElement("div");
   status.className = "aureon-status";
   status.innerHTML = `<span class="aureon-status-dot off"></span><span>AUREON CROSS</span>`;
@@ -69,19 +69,13 @@
   `;
   root.appendChild(chat);
 
-  // Chat toggle
   const minBtn = chat.querySelector("#aureon-min-btn");
   const closeBtn = chat.querySelector("#aureon-close-btn");
-  minBtn.onclick = () => {
-    isMinimized = !isMinimized;
-    chat.classList.toggle("minimized", isMinimized);
-  };
+  minBtn.onclick = () => { isMinimized = !isMinimized; chat.classList.toggle("minimized", isMinimized); };
   closeBtn.onclick = () => { chat.style.display = "none"; };
 
-  // Make chat draggable
   makeDraggable(chat, chat.querySelector(".aureon-chat-header"));
 
-  // Chat input
   const chatInput = chat.querySelector("#aureon-input");
   const chatSend = chat.querySelector("#aureon-send");
 
@@ -107,8 +101,6 @@
         context: JSON.stringify(currentContext),
       });
       addMsg("ai", resp.text || "...");
-
-      // If analysis came back with alerts, show them
       if (resp.analysis?.quickVerdict && resp.analysis.quickVerdict.action !== "NONE") {
         showVerdict(resp.analysis.quickVerdict);
       }
@@ -123,7 +115,6 @@
   // ── SCREEN CAPTURE ──
   function captureFrame() {
     try {
-      // Find the largest canvas on the page (likely the chart)
       const canvases = document.querySelectorAll("canvas");
       let bestCanvas = null;
       let maxArea = 0;
@@ -131,15 +122,9 @@
         const a = c.width * c.height;
         if (a > maxArea) { maxArea = a; bestCanvas = c; }
       });
-
       if (bestCanvas && maxArea > 10000) {
-        // Capture just the chart canvas
         return bestCanvas.toDataURL("image/jpeg", 0.5);
       }
-
-      // Fallback: capture visible viewport via html2canvas-like approach
-      // We'll use a simple method — capture the body as a screenshot isn't possible from content script
-      // Instead, we take the chart canvas data
       return null;
     } catch (e) {
       return null;
@@ -151,7 +136,7 @@
     if (!frame) return;
 
     frameCount++;
-    updateStatus("", `ANALYZING · F${frameCount}`);
+    updateStatus("", `SCANNING · F${frameCount}`);
 
     try {
       const resp = await chrome.runtime.sendMessage({
@@ -170,19 +155,18 @@
       const analysis = resp.analysis;
       if (!analysis) return;
 
-      // Update context
       if (analysis.context) currentContext = analysis.context;
 
-      // Quick verdict overlay
+      // Show instant verdict
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
         showVerdict(analysis.quickVerdict);
       }
 
-      // Alerts
+      // Show alerts
       if (analysis.alerts?.length) {
         analysis.alerts.forEach((a) => {
           if ((a.confidence || 0) >= 65) {
-            showAlert(a);
+            showInstantAlert(a);
             previousAlerts.push({ type: a.type, title: a.title });
           }
         });
@@ -195,9 +179,8 @@
     }
   }
 
-  // ── VERDICT BANNER ──
+  // ── INSTANT VERDICT BANNER ──
   function showVerdict(v) {
-    // Remove old verdict
     const old = root.querySelector(".aureon-verdict");
     if (old) old.remove();
 
@@ -211,37 +194,41 @@
 
     const info = actionMap[v.action] || actionMap.HOLD;
 
+    // Parse the structured message for entry/SL/TP
+    const msg = v.message || "";
     const el = document.createElement("div");
     el.className = `aureon-verdict ${info.cls}`;
+
     el.innerHTML = `
-      <span class="aureon-verdict-emoji">${info.emoji}</span>
-      <div>
-        <div class="aureon-verdict-action">${info.label}</div>
-        <div class="aureon-verdict-msg">${escapeHtml(v.message || "")}</div>
+      <div class="aureon-verdict-top">
+        <span class="aureon-verdict-emoji">${info.emoji}</span>
+        <span class="aureon-verdict-action">${info.label}</span>
+        <span class="aureon-verdict-conf">${v.confidence || 0}%</span>
+        <button class="aureon-verdict-close" title="Dismiss">×</button>
       </div>
-      <span class="aureon-verdict-conf">${v.confidence || 0}%</span>
+      <div class="aureon-verdict-msg">${escapeHtml(msg)}</div>
     `;
-    el.onclick = () => el.remove();
+
+    el.querySelector(".aureon-verdict-close").onclick = () => el.remove();
     root.appendChild(el);
 
-    // Voice
+    // Voice for actionable signals
     if (["BUY_NOW", "SELL_NOW", "EXIT_NOW"].includes(v.action)) {
-      speak(`${info.label}. ${v.message || ""}. ${v.confidence}% confidence.`, true);
+      speak(`${info.label}. ${v.confidence}% confidence.`, true);
     }
 
-    // Auto-dismiss
-    const timeout = v.urgency === "immediate" ? 20000 : 10000;
+    const timeout = v.urgency === "immediate" ? 25000 : 12000;
     setTimeout(() => { if (el.parentElement) el.remove(); }, timeout);
   }
 
-  // ── ALERT POPUP ──
-  function showAlert(alert) {
+  // ── INSTANT ALERT (new format with entry/SL/TP) ──
+  function showInstantAlert(alert) {
     const typeMap = {
-      BUY: { cls: "aureon-alert-buy", emoji: "🟢 BUY SIGNAL" },
-      SELL: { cls: "aureon-alert-sell", emoji: "🔴 SELL SIGNAL" },
-      WARNING: { cls: "aureon-alert-warn", emoji: "⚠️ WARNING" },
-      MONITOR: { cls: "aureon-alert-warn", emoji: "👀 MONITOR" },
-      INFO: { cls: "aureon-alert-warn", emoji: "ℹ️ INFO" },
+      BUY: { cls: "aureon-alert-buy", label: "🟢 BUY" },
+      SELL: { cls: "aureon-alert-sell", label: "🔴 SELL" },
+      WARNING: { cls: "aureon-alert-warn", label: "⚠️ WARNING" },
+      MONITOR: { cls: "aureon-alert-monitor", label: "👀 WATCH" },
+      INFO: { cls: "aureon-alert-monitor", label: "ℹ️ INFO" },
     };
 
     const info = typeMap[alert.type] || typeMap.INFO;
@@ -249,50 +236,45 @@
     const el = document.createElement("div");
     el.className = `aureon-alert ${info.cls}`;
 
+    // Build levels row
     let levelsHtml = "";
     if (alert.entry || alert.stopLoss || alert.takeProfit) {
       levelsHtml = `<div class="aureon-alert-levels">
-        ${alert.entry ? `<div class="aureon-alert-level"><strong>Entry</strong><br>${alert.entry}</div>` : ""}
-        ${alert.stopLoss ? `<div class="aureon-alert-level"><strong>Stop</strong><br>${alert.stopLoss}</div>` : ""}
-        ${alert.takeProfit ? `<div class="aureon-alert-level"><strong>Target</strong><br>${alert.takeProfit}</div>` : ""}
+        ${alert.entry ? `<div class="aureon-alert-level entry"><span>ENTRY</span><span>${escapeHtml(alert.entry)}</span></div>` : ""}
+        ${alert.stopLoss ? `<div class="aureon-alert-level stop"><span>STOP</span><span>${escapeHtml(alert.stopLoss)}</span></div>` : ""}
+        ${alert.takeProfit ? `<div class="aureon-alert-level target"><span>TARGET</span><span>${escapeHtml(alert.takeProfit)}</span></div>` : ""}
       </div>`;
-    }
-
-    let reasoningHtml = "";
-    if (alert.reasoning?.length) {
-      reasoningHtml = alert.reasoning.map((r) => `• ${escapeHtml(r)}`).join("<br>");
     }
 
     el.innerHTML = `
       <div class="aureon-alert-header">
-        <span class="aureon-alert-title">${info.emoji}</span>
+        <span class="aureon-alert-label">${info.label}</span>
+        <span class="aureon-alert-conf">${alert.confidence || 0}%</span>
         <button class="aureon-alert-close">×</button>
       </div>
-      <div class="aureon-alert-body">
-        <strong>${escapeHtml(alert.title || "Signal")}</strong>
-        ${reasoningHtml ? `<div style="margin-top:6px;opacity:0.85">${reasoningHtml}</div>` : ""}
-        ${alert.confidence ? `<div style="margin-top:6px;font-size:11px">Confidence: <strong>${alert.confidence}%</strong>${alert.validFor ? ` · Valid: ${alert.validFor}` : ""}</div>` : ""}
-      </div>
+      <div class="aureon-alert-title">${escapeHtml(alert.title || "Signal")}</div>
+      ${alert.reasoning?.length ? `<div class="aureon-alert-reason">${alert.reasoning.map(r => escapeHtml(r)).join(" · ")}</div>` : ""}
       ${levelsHtml}
+      ${alert.validFor ? `<div class="aureon-alert-valid">Valid: ${escapeHtml(alert.validFor)}</div>` : ""}
     `;
 
     el.querySelector(".aureon-alert-close").onclick = () => el.remove();
     root.appendChild(el);
 
-    // Stack alerts (offset downward if multiple)
+    // Stack multiple alerts
     const existing = root.querySelectorAll(".aureon-alert");
-    existing.forEach((a, i) => { a.style.top = `${16 + i * 10}px`; });
+    let offset = 16;
+    existing.forEach((a) => { a.style.top = offset + "px"; offset += a.offsetHeight + 8; });
 
-    // Auto-dismiss
     setTimeout(() => {
       if (el.parentElement) {
         el.style.animation = "aureon-slideIn 0.3s ease reverse";
         setTimeout(() => el.remove(), 300);
       }
-    }, 12000);
+    }, 15000);
   }
 
-  // ── TOGGLE ACTIVE ──
+  // ── TOGGLE ──
   function toggleActive() {
     isActive = !isActive;
 
@@ -300,10 +282,10 @@
       chat.style.display = "flex";
       chat.classList.remove("minimized");
       isMinimized = false;
-      updateStatus("", "WATCHING · F0");
+      updateStatus("", "SCANNING · F0");
 
       captureInterval = setInterval(analyzeFrame, settings.frameRate * 1000);
-      addMsg("ai", "Aureon Cross active. I'm watching your screen for trading signals. Ask me anything.");
+      addMsg("ai", "Cross active. Pattern recognition engine online. Watching for signals.");
     } else {
       if (captureInterval) clearInterval(captureInterval);
       captureInterval = null;
@@ -347,7 +329,6 @@
 
   // ── KEYBOARD SHORTCUT ──
   document.addEventListener("keydown", (e) => {
-    // Ctrl+Shift+A to toggle Aureon
     if (e.ctrlKey && e.shiftKey && e.key === "A") {
       e.preventDefault();
       toggleActive();
