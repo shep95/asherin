@@ -328,6 +328,9 @@ const CrossView: React.FC = () => {
               </span>
             </div>
           )}
+          <Button variant="ghost" size="icon" onClick={() => setShowAutonomous(a => !a)} className={`h-8 w-8 ${showAutonomous ? "text-accent" : ""}`} title="Autonomous Trading">
+            <Bot className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setShowChat(c => !c)} className="h-8 w-8">
             <MessageSquare className="h-4 w-4" />
           </Button>
