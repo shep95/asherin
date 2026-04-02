@@ -1302,8 +1302,6 @@ ${zophielCodingBrainContent}
 
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
-    // ── Context window pruning — sliding window to prevent token overflow ──
-    const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
     const prunedMessages = messages.length > MAX_HISTORY_MESSAGES
       ? messages.slice(-MAX_HISTORY_MESSAGES)
       : messages;
