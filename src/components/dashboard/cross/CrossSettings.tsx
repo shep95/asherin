@@ -148,6 +148,11 @@ const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing,
         <p className="text-xs text-foreground mt-1">Session: ${estimatedCost.toFixed(2)}</p>
       )}
     </div>
+
+    {/* Autonomous Trading */}
+    <div className="pt-3 border-t border-border/20">
+      <CrossAutonomousSettings />
+    </div>
   </div>
 );
 
