@@ -10,7 +10,7 @@ import CrossSettingsPanel from "./CrossSettings";
 import CrossAlertFeed from "./CrossAlertFeed";
 import CrossLocalSignals from "./CrossLocalSignals";
 import CrossPriceTracker from "./CrossPriceTracker";
-import CrossAutonomousSettings from "./CrossAutonomousSettings";
+
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
   CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
