@@ -58,7 +58,7 @@
         <span class="aureon-chat-header-status">Cross Vision</span>
       </div>
       <div class="aureon-chat-btns">
-        <button id="aureon-auto-btn" title="Toggle Autonomous" class="aureon-auto-off">🤖</button>
+        
         <button id="aureon-min-btn" title="Minimize">_</button>
         <button id="aureon-close-btn" title="Close">×</button>
       </div>
