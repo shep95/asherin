@@ -70,11 +70,27 @@ RESPONSE FORMAT (strict JSON):
     "price": "current price if readable",
     "exchange": "exchange name if detectable"
   },
+  "quickVerdict": {
+    "action": "BUY_NOW|SELL_NOW|HOLD|EXIT_NOW|WAIT|NONE",
+    "urgency": "immediate|soon|watch",
+    "message": "One-line reason e.g. 'RSI oversold at 28 + volume spike 340% — reversal imminent'",
+    "confidence": 85
+  },
+  "overlays": [
+    {
+      "type": "zone|line|label|arrow|price_level",
+      "position": "top|center|bottom|top-left|top-right|bottom-left|bottom-right",
+      "color": "green|red|yellow|blue|white",
+      "text": "text to display",
+      "subtext": "optional smaller text below",
+      "size": "small|medium|large"
+    }
+  ],
   "alerts": [
     {
       "type": "BUY|SELL|WARNING|MONITOR|INFO",
       "severity": "critical|high|medium|low",
-      "confidence": 0-100,
+      "confidence": 75,
       "title": "Short alert title",
       "reasoning": ["bullet point 1", "bullet point 2"],
       "action": "Specific recommended action",
@@ -89,13 +105,23 @@ RESPONSE FORMAT (strict JSON):
   "changes": ["what changed since last frame if context provided"]
 }
 
+OVERLAY RULES:
+- Use overlays to visually annotate the screen with what you see
+- For trading: mark support/resistance zones, trend direction arrows, price levels
+- "quickVerdict" is the MOST IMPORTANT field — it tells the user what to do RIGHT NOW
+- quickVerdict.action should be "BUY_NOW" or "SELL_NOW" ONLY when you have high confidence (>75%)
+- Use "HOLD" when position is open and should stay, "WAIT" when no position and no signal, "NONE" when nothing notable
+- Be AGGRESSIVE with calls — the user wants fast, decisive trading intelligence
+- For meme coins: if you see a pump starting (volume spike + green candles stacking), call BUY_NOW immediately
+- If you see dump signals (large red candle, volume spike down), call EXIT_NOW or SELL_NOW immediately
+- Include price levels you can read (entry, SL, TP) whenever possible
+
 IMPORTANT:
-- Be concise but precise
-- Only generate alerts when you see actual signals
-- If screen is blurry or unreadable, say so
-- If you detect passwords, bank info, or sensitive data, set privacyWarning
-- Always include confidence level
-- For meme coins: watch for rug pull indicators (low liquidity, unverified contract, dev wallet dumps)`;
+- Be concise but precise — the user is actively trading and needs INSTANT decisions
+- quickVerdict is shown as a large overlay on screen — make the message punchy and clear
+- Only set quickVerdict.action to BUY_NOW/SELL_NOW/EXIT_NOW when you genuinely see the signal
+- For meme coins: watch for rug pull indicators (low liquidity, unverified contract, dev wallet dumps)
+    - If screen is blurry or unreadable, say so in observations`;
     } else if (analysisMode === "coding") {
       systemPrompt = `You are AUREON CROSS — a real-time screen analysis engine for coding.
 You are analyzing a live screenshot of the user's coding environment.
@@ -109,7 +135,9 @@ YOUR TASK:
 RESPONSE FORMAT (strict JSON):
 {
   "context": { "app": "IDE name", "language": "detected language", "file": "filename if visible" },
-  "alerts": [{ "type": "WARNING|INFO", "severity": "high|medium|low", "confidence": 0-100, "title": "issue title", "reasoning": ["details"], "action": "suggested fix" }],
+  "quickVerdict": { "action": "NONE", "urgency": "watch", "message": "", "confidence": 0 },
+  "overlays": [],
+  "alerts": [{ "type": "WARNING|INFO", "severity": "high|medium|low", "confidence": 0 to 100, "title": "issue title", "reasoning": ["details"], "action": "suggested fix" }],
   "observations": ["observation"],
   "privacyWarning": null,
   "changes": []
@@ -122,7 +150,9 @@ Detect the application context and provide relevant insights.
 RESPONSE FORMAT (strict JSON):
 {
   "context": { "app": "detected app" },
-  "alerts": [{ "type": "INFO|WARNING", "severity": "medium|low", "confidence": 0-100, "title": "title", "reasoning": ["details"], "action": "suggestion" }],
+  "quickVerdict": { "action": "NONE", "urgency": "watch", "message": "", "confidence": 0 },
+  "overlays": [],
+  "alerts": [{ "type": "INFO|WARNING", "severity": "medium|low", "confidence": 50, "title": "title", "reasoning": ["details"], "action": "suggestion" }],
   "observations": ["observation"],
   "privacyWarning": null,
   "changes": []

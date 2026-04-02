@@ -10,6 +10,24 @@ const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 type AlertType = "BUY" | "SELL" | "WARNING" | "MONITOR" | "INFO";
 type AnalysisMode = "trading" | "coding" | "design" | "general";
 type Sensitivity = "low" | "medium" | "high";
+type VerdictAction = "BUY_NOW" | "SELL_NOW" | "HOLD" | "EXIT_NOW" | "WAIT" | "NONE";
+
+interface QuickVerdict {
+  action: VerdictAction;
+  urgency: "immediate" | "soon" | "watch";
+  message: string;
+  confidence: number;
+  timestamp: Date;
+}
+
+interface ScreenOverlay {
+  type: "zone" | "line" | "label" | "arrow" | "price_level";
+  position: string;
+  color: string;
+  text: string;
+  subtext?: string;
+  size: "small" | "medium" | "large";
+}
 
 interface CrossAlert {
   id: string;
@@ -39,7 +57,7 @@ interface CrossContext {
 interface CrossSettings {
   mode: AnalysisMode;
   sensitivity: Sensitivity;
-  frameRate: number; // seconds between frames
+  frameRate: number;
   quality: "low" | "medium" | "high";
   minConfidence: number;
   soundEnabled: boolean;
@@ -66,6 +84,33 @@ const ALERT_COLORS: Record<AlertType, { bg: string; border: string; icon: React.
   INFO: { bg: "bg-muted/30", border: "border-border", icon: <Zap className="h-4 w-4 text-muted-foreground" /> },
 };
 
+const VERDICT_STYLES: Record<VerdictAction, { bg: string; text: string; glow: string; emoji: string }> = {
+  BUY_NOW: { bg: "from-emerald-600/90 to-emerald-800/90", text: "text-emerald-50", glow: "shadow-emerald-500/40", emoji: "🟢" },
+  SELL_NOW: { bg: "from-red-600/90 to-red-800/90", text: "text-red-50", glow: "shadow-red-500/40", emoji: "🔴" },
+  EXIT_NOW: { bg: "from-red-700/90 to-red-900/90", text: "text-red-50", glow: "shadow-red-600/50", emoji: "🚨" },
+  HOLD: { bg: "from-blue-600/80 to-blue-800/80", text: "text-blue-50", glow: "shadow-blue-500/30", emoji: "🔵" },
+  WAIT: { bg: "from-amber-600/70 to-amber-800/70", text: "text-amber-50", glow: "shadow-amber-500/20", emoji: "⏳" },
+  NONE: { bg: "from-muted/50 to-muted/30", text: "text-muted-foreground", glow: "", emoji: "" },
+};
+
+const OVERLAY_COLORS: Record<string, string> = {
+  green: "text-emerald-400 border-emerald-400/40 bg-emerald-500/10",
+  red: "text-red-400 border-red-400/40 bg-red-500/10",
+  yellow: "text-amber-400 border-amber-400/40 bg-amber-500/10",
+  blue: "text-blue-400 border-blue-400/40 bg-blue-500/10",
+  white: "text-foreground border-foreground/30 bg-background/50",
+};
+
+const OVERLAY_POSITIONS: Record<string, string> = {
+  "top": "top-12 left-1/2 -translate-x-1/2",
+  "center": "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+  "bottom": "bottom-12 left-1/2 -translate-x-1/2",
+  "top-left": "top-12 left-3",
+  "top-right": "top-12 right-14",
+  "bottom-left": "bottom-12 left-3",
+  "bottom-right": "bottom-12 right-3",
+};
+
 const CrossView: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -87,6 +132,9 @@ const CrossView: React.FC = () => {
   const [privacyWarning, setPrivacyWarning] = useState<string | null>(null);
   const [estimatedCost, setEstimatedCost] = useState(0);
   const [sessionStart, setSessionStart] = useState<Date | null>(null);
+  const [quickVerdict, setQuickVerdict] = useState<QuickVerdict | null>(null);
+  const [overlays, setOverlays] = useState<ScreenOverlay[]>([]);
+  const [verdictVisible, setVerdictVisible] = useState(true);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -163,6 +211,41 @@ const CrossView: React.FC = () => {
       // Update context
       if (analysis.context) setContext(analysis.context);
 
+      // Quick Verdict — the big overlay
+      if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
+        const v: QuickVerdict = {
+          action: analysis.quickVerdict.action as VerdictAction,
+          urgency: analysis.quickVerdict.urgency || "watch",
+          message: analysis.quickVerdict.message || "",
+          confidence: analysis.quickVerdict.confidence || 50,
+          timestamp: new Date(),
+        };
+        setQuickVerdict(v);
+        setVerdictVisible(true);
+
+        // Auto-hide verdict after 15s unless it's immediate urgency
+        if (v.urgency !== "immediate") {
+          setTimeout(() => setVerdictVisible(false), 15000);
+        }
+
+        // Sound for BUY/SELL/EXIT verdicts
+        if (settings.soundEnabled && ["BUY_NOW", "SELL_NOW", "EXIT_NOW"].includes(v.action)) {
+          try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
+        }
+      } else if (analysis.quickVerdict?.action === "NONE") {
+        // Clear verdict if nothing notable
+        if (quickVerdict && (Date.now() - quickVerdict.timestamp.getTime()) > 30000) {
+          setVerdictVisible(false);
+        }
+      }
+
+      // Screen overlays
+      if (analysis.overlays?.length) {
+        setOverlays(analysis.overlays);
+      } else {
+        setOverlays([]);
+      }
+
       // Privacy warning
       if (analysis.privacyWarning) {
         setPrivacyWarning(analysis.privacyWarning);
@@ -195,7 +278,6 @@ const CrossView: React.FC = () => {
           setAlerts(prev => [...newAlerts, ...prev].slice(0, 50));
           previousAlertsRef.current = [...newAlerts, ...previousAlertsRef.current].slice(0, 10);
 
-          // Sound for critical alerts
           if (settings.soundEnabled && newAlerts.some(a => a.severity === "critical" || a.type === "BUY" || a.type === "SELL" || a.type === "WARNING")) {
             try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
           }
@@ -207,7 +289,7 @@ const CrossView: React.FC = () => {
         setObservations(analysis.observations);
       }
 
-      // Update cost estimate (~$0.02 per frame)
+      // Update cost estimate
       setEstimatedCost(prev => prev + 0.02);
     } catch (e) {
       console.error("Cross frame analysis failed:", e);
@@ -387,8 +469,63 @@ const CrossView: React.FC = () => {
               </div>
             )}
 
+            {/* ── QUICK VERDICT BANNER ── */}
+            {isSharing && quickVerdict && verdictVisible && quickVerdict.action !== "NONE" && (
+              <div className="absolute top-0 left-0 right-0 z-20">
+                <div
+                  className={`mx-auto max-w-md mt-3 px-4 py-3 rounded-xl bg-gradient-to-r ${VERDICT_STYLES[quickVerdict.action].bg} backdrop-blur-md shadow-lg ${VERDICT_STYLES[quickVerdict.action].glow} border border-white/10 cursor-pointer transition-all hover:scale-[1.02]`}
+                  onClick={() => setVerdictVisible(false)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{VERDICT_STYLES[quickVerdict.action].emoji}</span>
+                      <div>
+                        <div className={`text-lg font-bold tracking-wide ${VERDICT_STYLES[quickVerdict.action].text}`}>
+                          {quickVerdict.action.replace("_", " ")}
+                        </div>
+                        <div className={`text-xs font-extralight ${VERDICT_STYLES[quickVerdict.action].text} opacity-80`}>
+                          {quickVerdict.message}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${VERDICT_STYLES[quickVerdict.action].text}`}>
+                        {quickVerdict.confidence}%
+                      </div>
+                      <div className={`text-[9px] uppercase tracking-wider ${VERDICT_STYLES[quickVerdict.action].text} opacity-50`}>
+                        {quickVerdict.urgency}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── SCREEN OVERLAYS ── */}
+            {isSharing && overlays.length > 0 && overlays.map((overlay, i) => {
+              const posClass = OVERLAY_POSITIONS[overlay.position] || OVERLAY_POSITIONS["bottom-left"];
+              const colorClass = OVERLAY_COLORS[overlay.color] || OVERLAY_COLORS["white"];
+              const sizeClass = overlay.size === "large" ? "text-sm px-3 py-2" : overlay.size === "small" ? "text-[9px] px-1.5 py-0.5" : "text-xs px-2 py-1";
+
+              return (
+                <div key={i} className={`absolute z-10 ${posClass} pointer-events-none`}>
+                  <div className={`rounded-md border backdrop-blur-sm ${colorClass} ${sizeClass} font-medium shadow-md`}>
+                    {overlay.type === "arrow" && (
+                      <span className="mr-1">{overlay.color === "green" ? "↑" : overlay.color === "red" ? "↓" : "→"}</span>
+                    )}
+                    {overlay.type === "price_level" && <span className="mr-1 font-mono">$</span>}
+                    {overlay.text}
+                    {overlay.subtext && (
+                      <div className="text-[8px] opacity-60 font-extralight mt-0.5">{overlay.subtext}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Controls */}
             {isSharing && (
-              <div className="absolute top-3 right-3 flex gap-1.5">
+              <div className="absolute top-3 right-3 flex gap-1.5 z-30">
                 <Button size="sm" variant="ghost" className="h-7 text-xs backdrop-blur-sm bg-background/50" onClick={togglePause}>
                   {isPaused ? <Play className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                   {isPaused ? "Resume" : "Pause"}
@@ -401,7 +538,7 @@ const CrossView: React.FC = () => {
             )}
 
             {isAnalyzing && (
-              <div className="absolute bottom-3 left-3">
+              <div className="absolute bottom-3 left-3 z-30">
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-background/70 backdrop-blur-sm">
                   <Loader2 className="h-3 w-3 animate-spin text-accent" />
                   <span className="text-[10px] text-muted-foreground">Analyzing...</span>
@@ -409,6 +546,23 @@ const CrossView: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* ── MINI VERDICT BAR (when banner dismissed) ── */}
+          {isSharing && quickVerdict && !verdictVisible && quickVerdict.action !== "NONE" && (
+            <button
+              onClick={() => setVerdictVisible(true)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r ${VERDICT_STYLES[quickVerdict.action].bg} border border-white/10 transition hover:opacity-90`}
+            >
+              <span>{VERDICT_STYLES[quickVerdict.action].emoji}</span>
+              <span className={`text-xs font-medium ${VERDICT_STYLES[quickVerdict.action].text}`}>
+                {quickVerdict.action.replace("_", " ")} — {quickVerdict.confidence}%
+              </span>
+              <span className={`text-[10px] ${VERDICT_STYLES[quickVerdict.action].text} opacity-60`}>
+                {quickVerdict.message.slice(0, 60)}{quickVerdict.message.length > 60 ? "..." : ""}
+              </span>
+              <ChevronUp className="h-3 w-3 ml-auto opacity-50" />
+            </button>
+          )}
 
           {/* Context Bar */}
           {context && isSharing && (
