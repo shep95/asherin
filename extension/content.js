@@ -178,7 +178,7 @@
         previousAlerts = previousAlerts.slice(-10);
       }
 
-      updateStatus("", `WATCHING · F${frameCount}${typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled() ? " · 🤖 AUTO" : ""}`);
+      updateStatus("", `WATCHING · F${frameCount}`);
     } catch (e) {
       console.error("Aureon analysis error:", e);
     }
