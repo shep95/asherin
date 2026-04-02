@@ -469,8 +469,63 @@ const CrossView: React.FC = () => {
               </div>
             )}
 
+            {/* ── QUICK VERDICT BANNER ── */}
+            {isSharing && quickVerdict && verdictVisible && quickVerdict.action !== "NONE" && (
+              <div className="absolute top-0 left-0 right-0 z-20">
+                <div
+                  className={`mx-auto max-w-md mt-3 px-4 py-3 rounded-xl bg-gradient-to-r ${VERDICT_STYLES[quickVerdict.action].bg} backdrop-blur-md shadow-lg ${VERDICT_STYLES[quickVerdict.action].glow} border border-white/10 cursor-pointer transition-all hover:scale-[1.02]`}
+                  onClick={() => setVerdictVisible(false)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{VERDICT_STYLES[quickVerdict.action].emoji}</span>
+                      <div>
+                        <div className={`text-lg font-bold tracking-wide ${VERDICT_STYLES[quickVerdict.action].text}`}>
+                          {quickVerdict.action.replace("_", " ")}
+                        </div>
+                        <div className={`text-xs font-extralight ${VERDICT_STYLES[quickVerdict.action].text} opacity-80`}>
+                          {quickVerdict.message}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${VERDICT_STYLES[quickVerdict.action].text}`}>
+                        {quickVerdict.confidence}%
+                      </div>
+                      <div className={`text-[9px] uppercase tracking-wider ${VERDICT_STYLES[quickVerdict.action].text} opacity-50`}>
+                        {quickVerdict.urgency}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── SCREEN OVERLAYS ── */}
+            {isSharing && overlays.length > 0 && overlays.map((overlay, i) => {
+              const posClass = OVERLAY_POSITIONS[overlay.position] || OVERLAY_POSITIONS["bottom-left"];
+              const colorClass = OVERLAY_COLORS[overlay.color] || OVERLAY_COLORS["white"];
+              const sizeClass = overlay.size === "large" ? "text-sm px-3 py-2" : overlay.size === "small" ? "text-[9px] px-1.5 py-0.5" : "text-xs px-2 py-1";
+
+              return (
+                <div key={i} className={`absolute z-10 ${posClass} pointer-events-none`}>
+                  <div className={`rounded-md border backdrop-blur-sm ${colorClass} ${sizeClass} font-medium shadow-md`}>
+                    {overlay.type === "arrow" && (
+                      <span className="mr-1">{overlay.color === "green" ? "↑" : overlay.color === "red" ? "↓" : "→"}</span>
+                    )}
+                    {overlay.type === "price_level" && <span className="mr-1 font-mono">$</span>}
+                    {overlay.text}
+                    {overlay.subtext && (
+                      <div className="text-[8px] opacity-60 font-extralight mt-0.5">{overlay.subtext}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Controls */}
             {isSharing && (
-              <div className="absolute top-3 right-3 flex gap-1.5">
+              <div className="absolute top-3 right-3 flex gap-1.5 z-30">
                 <Button size="sm" variant="ghost" className="h-7 text-xs backdrop-blur-sm bg-background/50" onClick={togglePause}>
                   {isPaused ? <Play className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                   {isPaused ? "Resume" : "Pause"}
@@ -483,7 +538,7 @@ const CrossView: React.FC = () => {
             )}
 
             {isAnalyzing && (
-              <div className="absolute bottom-3 left-3">
+              <div className="absolute bottom-3 left-3 z-30">
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-background/70 backdrop-blur-sm">
                   <Loader2 className="h-3 w-3 animate-spin text-accent" />
                   <span className="text-[10px] text-muted-foreground">Analyzing...</span>
@@ -491,6 +546,23 @@ const CrossView: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* ── MINI VERDICT BAR (when banner dismissed) ── */}
+          {isSharing && quickVerdict && !verdictVisible && quickVerdict.action !== "NONE" && (
+            <button
+              onClick={() => setVerdictVisible(true)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r ${VERDICT_STYLES[quickVerdict.action].bg} border border-white/10 transition hover:opacity-90`}
+            >
+              <span>{VERDICT_STYLES[quickVerdict.action].emoji}</span>
+              <span className={`text-xs font-medium ${VERDICT_STYLES[quickVerdict.action].text}`}>
+                {quickVerdict.action.replace("_", " ")} — {quickVerdict.confidence}%
+              </span>
+              <span className={`text-[10px] ${VERDICT_STYLES[quickVerdict.action].text} opacity-60`}>
+                {quickVerdict.message.slice(0, 60)}{quickVerdict.message.length > 60 ? "..." : ""}
+              </span>
+              <ChevronUp className="h-3 w-3 ml-auto opacity-50" />
+            </button>
+          )}
 
           {/* Context Bar */}
           {context && isSharing && (
