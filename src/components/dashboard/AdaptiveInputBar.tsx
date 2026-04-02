@@ -360,8 +360,11 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
 
     const maxSize = 20 * 1024 * 1024; // 20MB
     const newAttachments: FileAttachment[] = [];
-    const maxSlots = Math.max(0, 3 - attachments.length);
+    const maxSlots = Math.max(0, 10 - attachments.length);
 
+    const filesToProcess: File[] = [];
+
+    // Check for ZIP files and extract them
     for (const file of Array.from(files).slice(0, maxSlots)) {
       if (file.size > maxSize) {
         console.warn(`File "${file.name}" skipped: exceeds 20MB limit`);
@@ -371,6 +374,33 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
         console.warn(`File "${file.name}" skipped: empty file`);
         continue;
       }
+
+      const ext = file.name.toLowerCase().split(".").pop();
+      if (ext === "zip") {
+        // Auto-extract ZIP files
+        try {
+          const JSZip = (await import("jszip")).default;
+          const zip = await JSZip.loadAsync(file);
+          const entries = Object.entries(zip.files);
+          for (const [path, entry] of entries) {
+            if (entry.dir || path.startsWith("__MACOSX") || path.startsWith(".")) continue;
+            const blob = await entry.async("blob");
+            if (blob.size === 0 || blob.size > maxSize) continue;
+            const fileName = path.split("/").pop() || path;
+            const extracted = new File([blob], fileName, { type: blob.type || "application/octet-stream" });
+            filesToProcess.push(extracted);
+          }
+        } catch (err) {
+          console.error(`Failed to extract ZIP "${file.name}":`, err);
+          // Fall back to attaching the ZIP itself
+          filesToProcess.push(file);
+        }
+      } else {
+        filesToProcess.push(file);
+      }
+    }
+
+    for (const file of filesToProcess.slice(0, Math.max(0, 10 - attachments.length))) {
       try {
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
