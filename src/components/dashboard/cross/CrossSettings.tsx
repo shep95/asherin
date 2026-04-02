@@ -1,6 +1,7 @@
 import React from "react";
 import { Volume2, VolumeX, Mic, MicOff, X } from "lucide-react";
 import { CrossSettings as SettingsType, AnalysisMode, Sensitivity } from "./types";
+import CrossAutonomousSettings from "./CrossAutonomousSettings";
 
 interface Props {
   settings: SettingsType;
@@ -146,6 +147,11 @@ const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing,
       {isSharing && (
         <p className="text-xs text-foreground mt-1">Session: ${estimatedCost.toFixed(2)}</p>
       )}
+    </div>
+
+    {/* Autonomous Trading */}
+    <div className="pt-3 border-t border-border/20">
+      <CrossAutonomousSettings />
     </div>
   </div>
 );
