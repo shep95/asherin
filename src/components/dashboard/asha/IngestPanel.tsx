@@ -86,11 +86,39 @@ const IngestPanel = () => {
     const validated: File[] = [];
 
     for (const file of arr) {
-      const result = await validateFile(file);
-      if (!result.valid) {
-        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: ${result.error}`, variant: "destructive" });
+      // Basic size check only — accept any file type
+      if (file.size > MAX_FILE_SIZE) {
+        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: exceeds ${MAX_FILE_SIZE_DISPLAY}`, variant: "destructive" });
         continue;
       }
+      if (file.size === 0) {
+        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: empty file`, variant: "destructive" });
+        continue;
+      }
+
+      // Auto-extract ZIP files
+      const ext = file.name.toLowerCase().split(".").pop();
+      if (ext === "zip") {
+        try {
+          const JSZip = (await import("jszip")).default;
+          const zip = await JSZip.loadAsync(file);
+          const entries = Object.entries(zip.files);
+          for (const [path, entry] of entries) {
+            if (entry.dir || path.startsWith("__MACOSX") || path.startsWith(".")) continue;
+            const blob = await entry.async("blob");
+            if (blob.size === 0) continue;
+            const fileName = path.split("/").pop() || path;
+            const extracted = new File([blob], fileName, { type: blob.type || "application/octet-stream" });
+            validated.push(extracted);
+          }
+          toast({ title: "ZIP extracted", description: `${entries.filter(([p, e]) => !e.dir).length} files extracted from ${sanitizeDisplayName(file.name)}` });
+        } catch {
+          toast({ title: "ZIP extraction failed", description: `Could not extract ${sanitizeDisplayName(file.name)}, uploading as-is`, variant: "destructive" });
+          validated.push(file);
+        }
+        continue;
+      }
+
       // Duplicate detection
       const { data: existing } = await supabase
         .from("asha_datasets")
