@@ -30,6 +30,7 @@ const features = [
   { name: "ZALI Design Lab", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Video Intelligence", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Intelligence Notebooks", chat: false, aureon: false, pro: true, lifetime: true },
+  { name: "Cross Live Vision", chat: false, aureon: false, pro: true, lifetime: true },
 ];
 
 const PricingComparisonTable = () => {
