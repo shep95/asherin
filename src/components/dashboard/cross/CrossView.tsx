@@ -1,128 +1,37 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Monitor, Play, Square, Settings, MessageSquare, AlertTriangle, TrendingUp, TrendingDown, Eye, EyeOff, Volume2, VolumeX, ChevronDown, ChevronUp, Loader2, Shield, Zap, X } from "lucide-react";
+import { Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { LocalIntelligenceEngine } from "./localIntelligence";
+import { VoiceAlertEngine } from "./voiceEngine";
+import CrossSettingsPanel from "./CrossSettings";
+import CrossAlertFeed from "./CrossAlertFeed";
+import CrossLocalSignals from "./CrossLocalSignals";
+import CrossPriceTracker from "./CrossPriceTracker";
+import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
+import {
+  CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
+  VerdictAction, DEFAULT_SETTINGS,
+} from "./types";
 
-const ADMIN_EMAIL = "ashernewtonx@gmail.com";
-
-type AlertType = "BUY" | "SELL" | "WARNING" | "MONITOR" | "INFO";
-type AnalysisMode = "trading" | "coding" | "design" | "general";
-type Sensitivity = "low" | "medium" | "high";
-type VerdictAction = "BUY_NOW" | "SELL_NOW" | "HOLD" | "EXIT_NOW" | "WAIT" | "NONE";
-
-interface QuickVerdict {
-  action: VerdictAction;
-  urgency: "immediate" | "soon" | "watch";
-  message: string;
-  confidence: number;
-  timestamp: Date;
-}
-
-interface ScreenOverlay {
-  type: "zone" | "line" | "label" | "arrow" | "price_level";
-  position: string;
-  color: string;
-  text: string;
-  subtext?: string;
-  size: "small" | "medium" | "large";
-}
-
-interface CrossAlert {
-  id: string;
-  type: AlertType;
-  severity: string;
-  confidence: number;
-  title: string;
-  reasoning: string[];
-  action?: string;
-  entry?: string;
-  stopLoss?: string;
-  takeProfit?: string;
-  validFor?: string;
-  timestamp: Date;
-}
-
-interface CrossContext {
-  app?: string;
-  pair?: string;
-  timeframe?: string;
-  price?: string;
-  exchange?: string;
-  language?: string;
-  file?: string;
-}
-
-interface CrossSettings {
-  mode: AnalysisMode;
-  sensitivity: Sensitivity;
-  frameRate: number;
-  quality: "low" | "medium" | "high";
-  minConfidence: number;
-  soundEnabled: boolean;
-  budgetLimit: number;
-  pauseOnNoChange: boolean;
-}
-
-const DEFAULT_SETTINGS: CrossSettings = {
-  mode: "trading",
-  sensitivity: "medium",
-  frameRate: 2,
-  quality: "medium",
-  minConfidence: 70,
-  soundEnabled: true,
-  budgetLimit: 20,
-  pauseOnNoChange: true,
-};
-
-const ALERT_COLORS: Record<AlertType, { bg: string; border: string; icon: React.ReactNode }> = {
-  BUY: { bg: "bg-emerald-500/10", border: "border-emerald-500/30", icon: <TrendingUp className="h-4 w-4 text-emerald-400" /> },
-  SELL: { bg: "bg-red-500/10", border: "border-red-500/30", icon: <TrendingDown className="h-4 w-4 text-red-400" /> },
-  WARNING: { bg: "bg-amber-500/10", border: "border-amber-500/30", icon: <AlertTriangle className="h-4 w-4 text-amber-400" /> },
-  MONITOR: { bg: "bg-blue-500/10", border: "border-blue-500/30", icon: <Eye className="h-4 w-4 text-blue-400" /> },
-  INFO: { bg: "bg-muted/30", border: "border-border", icon: <Zap className="h-4 w-4 text-muted-foreground" /> },
-};
-
-const VERDICT_STYLES: Record<VerdictAction, { bg: string; text: string; glow: string; emoji: string }> = {
-  BUY_NOW: { bg: "from-emerald-600/90 to-emerald-800/90", text: "text-emerald-50", glow: "shadow-emerald-500/40", emoji: "🟢" },
-  SELL_NOW: { bg: "from-red-600/90 to-red-800/90", text: "text-red-50", glow: "shadow-red-500/40", emoji: "🔴" },
-  EXIT_NOW: { bg: "from-red-700/90 to-red-900/90", text: "text-red-50", glow: "shadow-red-600/50", emoji: "🚨" },
-  HOLD: { bg: "from-blue-600/80 to-blue-800/80", text: "text-blue-50", glow: "shadow-blue-500/30", emoji: "🔵" },
-  WAIT: { bg: "from-amber-600/70 to-amber-800/70", text: "text-amber-50", glow: "shadow-amber-500/20", emoji: "⏳" },
-  NONE: { bg: "from-muted/50 to-muted/30", text: "text-muted-foreground", glow: "", emoji: "" },
-};
-
-const OVERLAY_COLORS: Record<string, string> = {
-  green: "text-emerald-400 border-emerald-400/40 bg-emerald-500/10",
-  red: "text-red-400 border-red-400/40 bg-red-500/10",
-  yellow: "text-amber-400 border-amber-400/40 bg-amber-500/10",
-  blue: "text-blue-400 border-blue-400/40 bg-blue-500/10",
-  white: "text-foreground border-foreground/30 bg-background/50",
-};
-
-const OVERLAY_POSITIONS: Record<string, string> = {
-  "top": "top-12 left-1/2 -translate-x-1/2",
-  "center": "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-  "bottom": "bottom-12 left-1/2 -translate-x-1/2",
-  "top-left": "top-12 left-3",
-  "top-right": "top-12 right-14",
-  "bottom-left": "bottom-12 left-3",
-  "bottom-right": "bottom-12 right-3",
-};
+// Singletons
+const localEngine = new LocalIntelligenceEngine();
+const voiceEngine = new VoiceAlertEngine();
 
 const CrossView: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  // State
   const [isSharing, setIsSharing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [alerts, setAlerts] = useState<CrossAlert[]>([]);
   const [context, setContext] = useState<CrossContext | null>(null);
   const [observations, setObservations] = useState<string[]>([]);
   const [frameCount, setFrameCount] = useState(0);
+  const [skippedFrames, setSkippedFrames] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -135,20 +44,19 @@ const CrossView: React.FC = () => {
   const [quickVerdict, setQuickVerdict] = useState<QuickVerdict | null>(null);
   const [overlays, setOverlays] = useState<ScreenOverlay[]>([]);
   const [verdictVisible, setVerdictVisible] = useState(true);
+  const [localSignals, setLocalSignals] = useState<LocalSignal[]>([]);
+  const [priceStats, setPriceStats] = useState<ReturnType<LocalIntelligenceEngine["getStats"]>>(null);
 
-  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousAlertsRef = useRef<CrossAlert[]>([]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopSharing();
-    };
-  }, []);
+  // Sync voice engine state
+  useEffect(() => { voiceEngine.setEnabled(settings.voiceEnabled); }, [settings.voiceEnabled]);
+
+  useEffect(() => () => { stopSharing(); }, []);
 
   const getAuthHeaders = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -181,6 +89,24 @@ const CrossView: React.FC = () => {
     const frame = captureFrame();
     if (!frame) return;
 
+    // --- LOCAL CHANGE DETECTION ---
+    if (settings.pauseOnNoChange && !localEngine.hasFrameChanged(frame)) {
+      setSkippedFrames(prev => prev + 1);
+
+      // Still run local pattern detection on existing data
+      if (context) {
+        const signals = localEngine.detectLocalPatterns(context);
+        setLocalSignals(signals);
+
+        // Voice alert for urgent local signals
+        const urgent = signals.find(s => s.urgency === "immediate" && s.confidence >= 75);
+        if (urgent && settings.voiceEnabled) {
+          voiceEngine.speakLocalSignal(urgent);
+        }
+      }
+      return;
+    }
+
     setIsAnalyzing(true);
     setFrameCount(prev => prev + 1);
 
@@ -201,17 +127,31 @@ const CrossView: React.FC = () => {
       );
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: "Unknown" }));
-        console.error("Cross analyze error:", err);
+        console.error("Cross analyze error:", await resp.text());
         return;
       }
 
       const analysis = await resp.json();
 
-      // Update context
-      if (analysis.context) setContext(analysis.context);
+      // Update context + record price locally
+      if (analysis.context) {
+        setContext(analysis.context);
+        localEngine.recordPrice(analysis.context);
+        setPriceStats(localEngine.getStats());
+      }
 
-      // Quick Verdict — the big overlay
+      // --- LOCAL PATTERN DETECTION (instant, no API) ---
+      if (analysis.context) {
+        const signals = localEngine.detectLocalPatterns(analysis.context);
+        setLocalSignals(signals);
+
+        const urgent = signals.find(s => s.urgency === "immediate" && s.confidence >= 75);
+        if (urgent && settings.voiceEnabled) {
+          voiceEngine.speakLocalSignal(urgent);
+        }
+      }
+
+      // Quick Verdict
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
         const v: QuickVerdict = {
           action: analysis.quickVerdict.action as VerdictAction,
@@ -223,30 +163,27 @@ const CrossView: React.FC = () => {
         setQuickVerdict(v);
         setVerdictVisible(true);
 
-        // Auto-hide verdict after 15s unless it's immediate urgency
         if (v.urgency !== "immediate") {
           setTimeout(() => setVerdictVisible(false), 15000);
         }
 
-        // Sound for BUY/SELL/EXIT verdicts
-        if (settings.soundEnabled && ["BUY_NOW", "SELL_NOW", "EXIT_NOW"].includes(v.action)) {
-          try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
+        // Sound + Voice for verdicts
+        if (["BUY_NOW", "SELL_NOW", "EXIT_NOW"].includes(v.action)) {
+          if (settings.soundEnabled) {
+            try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
+          }
+          if (settings.voiceEnabled) {
+            voiceEngine.speakVerdict(v.action, v.message, v.confidence);
+          }
         }
-      } else if (analysis.quickVerdict?.action === "NONE") {
-        // Clear verdict if nothing notable
-        if (quickVerdict && (Date.now() - quickVerdict.timestamp.getTime()) > 30000) {
-          setVerdictVisible(false);
-        }
+      } else if (analysis.quickVerdict?.action === "NONE" && quickVerdict && (Date.now() - quickVerdict.timestamp.getTime()) > 30000) {
+        setVerdictVisible(false);
       }
 
-      // Screen overlays
-      if (analysis.overlays?.length) {
-        setOverlays(analysis.overlays);
-      } else {
-        setOverlays([]);
-      }
+      // Overlays
+      setOverlays(analysis.overlays?.length ? analysis.overlays : []);
 
-      // Privacy warning
+      // Privacy
       if (analysis.privacyWarning) {
         setPrivacyWarning(analysis.privacyWarning);
         setIsPaused(true);
@@ -255,13 +192,13 @@ const CrossView: React.FC = () => {
         }
       }
 
-      // Process alerts
+      // Alerts
       if (analysis.alerts?.length) {
         const newAlerts: CrossAlert[] = analysis.alerts
           .filter((a: any) => a.confidence >= settings.minConfidence)
           .map((a: any) => ({
             id: crypto.randomUUID(),
-            type: a.type as AlertType,
+            type: a.type,
             severity: a.severity || "medium",
             confidence: a.confidence || 50,
             title: a.title || "Signal detected",
@@ -284,51 +221,37 @@ const CrossView: React.FC = () => {
         }
       }
 
-      // Observations
-      if (analysis.observations?.length) {
-        setObservations(analysis.observations);
-      }
-
-      // Update cost estimate
+      if (analysis.observations?.length) setObservations(analysis.observations);
       setEstimatedCost(prev => prev + 0.02);
     } catch (e) {
       console.error("Cross frame analysis failed:", e);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [isAnalyzing, isPaused, captureFrame, getAuthHeaders, context, settings]);
+  }, [isAnalyzing, isPaused, captureFrame, getAuthHeaders, context, settings, quickVerdict]);
 
   const startSharing = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: 5 },
-        audio: false,
-      });
-
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5 }, audio: false });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-
-      // Listen for user stopping via browser UI
-      stream.getVideoTracks()[0].onended = () => {
-        stopSharing();
-      };
+      stream.getVideoTracks()[0].onended = () => stopSharing();
 
       setIsSharing(true);
       setSessionStart(new Date());
       setEstimatedCost(0);
       setFrameCount(0);
+      setSkippedFrames(0);
       setAlerts([]);
       setContext(null);
+      setLocalSignals([]);
+      localEngine.reset();
 
-      // Start analysis loop
-      intervalRef.current = setInterval(() => {
-        analyzeFrame();
-      }, settings.frameRate * 1000);
-
-      toast({ title: "Screen sharing started", description: "Aureon is now watching your screen" });
+      intervalRef.current = setInterval(() => analyzeFrame(), settings.frameRate * 1000);
+      toast({ title: "Screen sharing started", description: "Aureon Cross is watching with local intelligence active" });
     } catch (e: any) {
       if (e.name !== "NotAllowedError") {
         toast({ title: "Failed to start screen sharing", description: e.message, variant: "destructive" });
@@ -337,23 +260,14 @@ const CrossView: React.FC = () => {
   }, [settings.frameRate, analyzeFrame, toast]);
 
   const stopSharing = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    if (videoRef.current) { videoRef.current.srcObject = null; }
     setIsSharing(false);
     setIsPaused(false);
     setSessionStart(null);
   }, []);
 
-  // Update interval when frameRate changes
   useEffect(() => {
     if (isSharing && !isPaused && intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -368,24 +282,15 @@ const CrossView: React.FC = () => {
       intervalRef.current = setInterval(() => analyzeFrame(), settings.frameRate * 1000);
     } else {
       setIsPaused(true);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     }
   }, [isPaused, analyzeFrame, settings.frameRate]);
-
-  const dismissAlert = useCallback((id: string) => {
-    setAlerts(prev => prev.filter(a => a.id !== id));
-  }, []);
 
   const sessionDuration = useMemo(() => {
     if (!sessionStart) return "00:00";
     const diff = Math.floor((Date.now() - sessionStart.getTime()) / 1000);
-    const mins = Math.floor(diff / 60);
-    const secs = diff % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  }, [sessionStart, frameCount]); // frameCount forces re-render
+    return `${String(Math.floor(diff / 60)).padStart(2, "0")}:${String(diff % 60).padStart(2, "0")}`;
+  }, [sessionStart, frameCount]);
 
   if (!isAdmin) {
     return (
@@ -405,7 +310,7 @@ const CrossView: React.FC = () => {
           <div>
             <h1 className="text-lg font-extralight tracking-wide text-foreground">Cross</h1>
             <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/50 uppercase">
-              Live Screen Intelligence
+              Live Screen Intelligence + Local Pattern Engine
             </p>
           </div>
         </div>
@@ -417,7 +322,7 @@ const CrossView: React.FC = () => {
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${isPaused ? "bg-amber-400" : "bg-emerald-400"}`} />
               </span>
               <span className="text-xs font-extralight text-muted-foreground">
-                {isPaused ? "PAUSED" : "WATCHING"} · {sessionDuration} · F{frameCount} · ~${estimatedCost.toFixed(2)}
+                {isPaused ? "PAUSED" : "WATCHING"} · {sessionDuration} · F{frameCount} · Skip:{skippedFrames} · ~${estimatedCost.toFixed(2)}
               </span>
             </div>
           )}
@@ -430,7 +335,7 @@ const CrossView: React.FC = () => {
         </div>
       </div>
 
-      {/* Privacy Warning Overlay */}
+      {/* Privacy Warning */}
       {privacyWarning && (
         <div className="mx-4 mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
           <div className="flex items-center gap-2">
@@ -439,20 +344,15 @@ const CrossView: React.FC = () => {
           </div>
           <p className="text-xs text-red-200/70 mt-1">{privacyWarning}</p>
           <div className="flex gap-2 mt-2">
-            <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => { setPrivacyWarning(null); setIsPaused(false); }}>
-              Dismiss & Resume
-            </Button>
-            <Button size="sm" variant="ghost" className="text-xs h-7 text-red-400" onClick={stopSharing}>
-              Stop Sharing
-            </Button>
+            <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => { setPrivacyWarning(null); setIsPaused(false); }}>Dismiss & Resume</Button>
+            <Button size="sm" variant="ghost" className="text-xs h-7 text-red-400" onClick={stopSharing}>Stop Sharing</Button>
           </div>
         </div>
       )}
 
       {/* Main Content */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* Left: Screen + Alerts */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 gap-4">
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-4 gap-3">
           {/* Screen Preview */}
           <div className="relative rounded-lg border border-border/30 bg-muted/10 overflow-hidden" style={{ minHeight: "280px" }}>
             <video ref={videoRef} className="w-full h-full object-contain" muted playsInline style={{ display: isSharing ? "block" : "none", maxHeight: "400px" }} />
@@ -466,14 +366,17 @@ const CrossView: React.FC = () => {
                   <Play className="h-4 w-4" />
                   Start Sharing Screen
                 </Button>
+                <p className="text-[10px] text-muted-foreground/30 max-w-sm text-center">
+                  Hybrid system: AI vision + local pattern detection for ultra-fast meme coin signals
+                </p>
               </div>
             )}
 
-            {/* ── QUICK VERDICT BANNER ── */}
+            {/* QUICK VERDICT BANNER */}
             {isSharing && quickVerdict && verdictVisible && quickVerdict.action !== "NONE" && (
               <div className="absolute top-0 left-0 right-0 z-20">
                 <div
-                  className={`mx-auto max-w-md mt-3 px-4 py-3 rounded-xl bg-gradient-to-r ${VERDICT_STYLES[quickVerdict.action].bg} backdrop-blur-md shadow-lg ${VERDICT_STYLES[quickVerdict.action].glow} border border-white/10 cursor-pointer transition-all hover:scale-[1.02]`}
+                  className={`mx-auto max-w-md mt-3 px-4 py-3 rounded-xl bg-gradient-to-r ${VERDICT_STYLES[quickVerdict.action].bg} backdrop-blur-md shadow-lg ${VERDICT_STYLES[quickVerdict.action].glow} border border-white/10 cursor-pointer transition-all hover:scale-[1.02] ${quickVerdict.urgency === "immediate" ? "animate-pulse" : ""}`}
                   onClick={() => setVerdictVisible(false)}
                 >
                   <div className="flex items-center justify-between">
@@ -489,35 +392,26 @@ const CrossView: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-lg font-bold ${VERDICT_STYLES[quickVerdict.action].text}`}>
-                        {quickVerdict.confidence}%
-                      </div>
-                      <div className={`text-[9px] uppercase tracking-wider ${VERDICT_STYLES[quickVerdict.action].text} opacity-50`}>
-                        {quickVerdict.urgency}
-                      </div>
+                      <div className={`text-lg font-bold ${VERDICT_STYLES[quickVerdict.action].text}`}>{quickVerdict.confidence}%</div>
+                      <div className={`text-[9px] uppercase tracking-wider ${VERDICT_STYLES[quickVerdict.action].text} opacity-50`}>{quickVerdict.urgency}</div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ── SCREEN OVERLAYS ── */}
+            {/* SCREEN OVERLAYS */}
             {isSharing && overlays.length > 0 && overlays.map((overlay, i) => {
               const posClass = OVERLAY_POSITIONS[overlay.position] || OVERLAY_POSITIONS["bottom-left"];
               const colorClass = OVERLAY_COLORS[overlay.color] || OVERLAY_COLORS["white"];
               const sizeClass = overlay.size === "large" ? "text-sm px-3 py-2" : overlay.size === "small" ? "text-[9px] px-1.5 py-0.5" : "text-xs px-2 py-1";
-
               return (
                 <div key={i} className={`absolute z-10 ${posClass} pointer-events-none`}>
                   <div className={`rounded-md border backdrop-blur-sm ${colorClass} ${sizeClass} font-medium shadow-md`}>
-                    {overlay.type === "arrow" && (
-                      <span className="mr-1">{overlay.color === "green" ? "↑" : overlay.color === "red" ? "↓" : "→"}</span>
-                    )}
+                    {overlay.type === "arrow" && <span className="mr-1">{overlay.color === "green" ? "↑" : overlay.color === "red" ? "↓" : "→"}</span>}
                     {overlay.type === "price_level" && <span className="mr-1 font-mono">$</span>}
                     {overlay.text}
-                    {overlay.subtext && (
-                      <div className="text-[8px] opacity-60 font-extralight mt-0.5">{overlay.subtext}</div>
-                    )}
+                    {overlay.subtext && <div className="text-[8px] opacity-60 font-extralight mt-0.5">{overlay.subtext}</div>}
                   </div>
                 </div>
               );
@@ -531,8 +425,7 @@ const CrossView: React.FC = () => {
                   {isPaused ? "Resume" : "Pause"}
                 </Button>
                 <Button size="sm" variant="ghost" className="h-7 text-xs backdrop-blur-sm bg-background/50 text-red-400 hover:text-red-300" onClick={stopSharing}>
-                  <Square className="h-3 w-3 mr-1" />
-                  Stop
+                  <Square className="h-3 w-3 mr-1" /> Stop
                 </Button>
               </div>
             )}
@@ -547,22 +440,21 @@ const CrossView: React.FC = () => {
             )}
           </div>
 
-          {/* ── MINI VERDICT BAR (when banner dismissed) ── */}
+          {/* Mini verdict bar */}
           {isSharing && quickVerdict && !verdictVisible && quickVerdict.action !== "NONE" && (
             <button
               onClick={() => setVerdictVisible(true)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r ${VERDICT_STYLES[quickVerdict.action].bg} border border-white/10 transition hover:opacity-90`}
             >
               <span>{VERDICT_STYLES[quickVerdict.action].emoji}</span>
-              <span className={`text-xs font-medium ${VERDICT_STYLES[quickVerdict.action].text}`}>
-                {quickVerdict.action.replace("_", " ")} — {quickVerdict.confidence}%
-              </span>
-              <span className={`text-[10px] ${VERDICT_STYLES[quickVerdict.action].text} opacity-60`}>
-                {quickVerdict.message.slice(0, 60)}{quickVerdict.message.length > 60 ? "..." : ""}
-              </span>
+              <span className={`text-xs font-medium ${VERDICT_STYLES[quickVerdict.action].text}`}>{quickVerdict.action.replace("_", " ")} — {quickVerdict.confidence}%</span>
+              <span className={`text-[10px] ${VERDICT_STYLES[quickVerdict.action].text} opacity-60`}>{quickVerdict.message.slice(0, 60)}</span>
               <ChevronUp className="h-3 w-3 ml-auto opacity-50" />
             </button>
           )}
+
+          {/* Price Tracker (local) */}
+          {isSharing && <CrossPriceTracker stats={priceStats} pair={context?.pair} />}
 
           {/* Context Bar */}
           {context && isSharing && (
@@ -576,198 +468,33 @@ const CrossView: React.FC = () => {
             </div>
           )}
 
+          {/* Local Intelligence Signals (instant, no API) */}
+          {isSharing && <CrossLocalSignals signals={localSignals} />}
+
           {/* Observations */}
           {observations.length > 0 && isSharing && (
             <div className="px-3 py-2 rounded-lg bg-muted/5 border border-border/10">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Observations</p>
-              {observations.map((o, i) => (
-                <p key={i} className="text-xs text-muted-foreground font-extralight">{o}</p>
-              ))}
+              {observations.map((o, i) => <p key={i} className="text-xs text-muted-foreground font-extralight">{o}</p>)}
             </div>
           )}
 
-          {/* Alerts Feed */}
-          <div className="space-y-2">
-            {alerts.length === 0 && isSharing && (
-              <p className="text-xs text-muted-foreground/40 font-extralight text-center py-4">
-                No alerts yet — Aureon is monitoring your screen...
-              </p>
-            )}
-            {alerts.map(alert => {
-              const style = ALERT_COLORS[alert.type] || ALERT_COLORS.INFO;
-              return (
-                <div key={alert.id} className={`rounded-lg border ${style.border} ${style.bg} p-3`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      {style.icon}
-                      <span className="text-sm font-medium text-foreground">{alert.type} — {alert.title}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-background/30 text-muted-foreground">
-                        {alert.confidence}%
-                      </span>
-                    </div>
-                    <button onClick={() => dismissAlert(alert.id)} className="text-muted-foreground/40 hover:text-muted-foreground">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-
-                  {alert.reasoning.length > 0 && (
-                    <ul className="mt-2 space-y-0.5">
-                      {alert.reasoning.map((r, i) => (
-                        <li key={i} className="text-xs text-muted-foreground font-extralight flex items-start gap-1.5">
-                          <span className="text-muted-foreground/30 mt-0.5">•</span>
-                          {r}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {(alert.entry || alert.stopLoss || alert.takeProfit) && (
-                    <div className="mt-2 flex gap-3 text-[10px] font-mono text-muted-foreground">
-                      {alert.entry && <span>Entry: <span className="text-foreground">{alert.entry}</span></span>}
-                      {alert.stopLoss && <span>SL: <span className="text-red-400">{alert.stopLoss}</span></span>}
-                      {alert.takeProfit && <span>TP: <span className="text-emerald-400">{alert.takeProfit}</span></span>}
-                    </div>
-                  )}
-
-                  {alert.action && (
-                    <p className="mt-1.5 text-xs text-accent font-extralight">{alert.action}</p>
-                  )}
-
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-[9px] text-muted-foreground/30">
-                      {alert.timestamp.toLocaleTimeString()}
-                    </span>
-                    {alert.validFor && (
-                      <span className="text-[9px] text-muted-foreground/30">Valid for: {alert.validFor}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* AI Alerts Feed */}
+          <CrossAlertFeed alerts={alerts} onDismiss={(id) => setAlerts(prev => prev.filter(a => a.id !== id))} isSharing={isSharing} />
         </div>
 
-        {/* Right: Settings Panel */}
+        {/* Settings Panel */}
         {showSettings && (
-          <div className="w-72 border-l border-border/30 overflow-y-auto p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-foreground">Settings</h3>
-              <button onClick={() => setShowSettings(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
-            </div>
-
-            {/* Analysis Mode */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1.5 block">Analysis Mode</label>
-              <div className="grid grid-cols-2 gap-1">
-                {(["trading", "coding", "design", "general"] as AnalysisMode[]).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setSettings(s => ({ ...s, mode: m }))}
-                    className={`text-xs px-2 py-1.5 rounded border transition ${
-                      settings.mode === m ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground hover:border-border"
-                    }`}
-                  >
-                    {m.charAt(0).toUpperCase() + m.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Sensitivity */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1.5 block">Alert Sensitivity</label>
-              <div className="grid grid-cols-3 gap-1">
-                {(["low", "medium", "high"] as Sensitivity[]).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setSettings(prev => ({ ...prev, sensitivity: s }))}
-                    className={`text-xs px-2 py-1.5 rounded border transition ${
-                      settings.sensitivity === s ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground hover:border-border"
-                    }`}
-                  >
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Frame Rate */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1.5 block">
-                Frame Rate: 1 frame every {settings.frameRate}s
-              </label>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={settings.frameRate}
-                onChange={e => setSettings(s => ({ ...s, frameRate: Number(e.target.value) }))}
-                className="w-full accent-accent"
-              />
-              <div className="flex justify-between text-[9px] text-muted-foreground/40">
-                <span>Fast (1s)</span>
-                <span>Slow (10s)</span>
-              </div>
-            </div>
-
-            {/* Quality */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1.5 block">Capture Quality</label>
-              <div className="grid grid-cols-3 gap-1">
-                {(["low", "medium", "high"] as const).map(q => (
-                  <button
-                    key={q}
-                    onClick={() => setSettings(s => ({ ...s, quality: q }))}
-                    className={`text-xs px-2 py-1.5 rounded border transition ${
-                      settings.quality === q ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground hover:border-border"
-                    }`}
-                  >
-                    {q.charAt(0).toUpperCase() + q.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Min Confidence */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1.5 block">
-                Min Confidence: {settings.minConfidence}%
-              </label>
-              <input
-                type="range"
-                min={30}
-                max={95}
-                step={5}
-                value={settings.minConfidence}
-                onChange={e => setSettings(s => ({ ...s, minConfidence: Number(e.target.value) }))}
-                className="w-full accent-accent"
-              />
-            </div>
-
-            {/* Sound */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Sound Alerts</span>
-              <button onClick={() => setSettings(s => ({ ...s, soundEnabled: !s.soundEnabled }))}>
-                {settings.soundEnabled
-                  ? <Volume2 className="h-4 w-4 text-accent" />
-                  : <VolumeX className="h-4 w-4 text-muted-foreground/40" />}
-              </button>
-            </div>
-
-            {/* Cost */}
-            <div className="pt-2 border-t border-border/20">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Cost Estimate</p>
-              <p className="text-xs text-muted-foreground">
-                ~${((3600 / settings.frameRate) * 0.02).toFixed(0)}/hour at current settings
-              </p>
-              {isSharing && (
-                <p className="text-xs text-foreground mt-1">Session: ${estimatedCost.toFixed(2)}</p>
-              )}
-            </div>
-          </div>
+          <CrossSettingsPanel
+            settings={settings}
+            setSettings={setSettings}
+            isSharing={isSharing}
+            estimatedCost={estimatedCost}
+            onClose={() => setShowSettings(false)}
+          />
         )}
 
-        {/* Right: Chat Panel */}
+        {/* Chat Panel */}
         {showChat && (
           <div className="w-80 border-l border-border/30 flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
@@ -800,9 +527,8 @@ const CrossView: React.FC = () => {
                       const msg = chatInput.trim();
                       setChatInput("");
                       setChatMessages(prev => [...prev, { role: "user", content: msg }]);
-                      // Quick contextual response
                       const contextStr = context ? `Context: ${JSON.stringify(context)}. Recent alerts: ${alerts.slice(0, 3).map(a => a.title).join(", ")}` : "No screen shared yet.";
-                      setChatMessages(prev => [...prev, { role: "assistant", content: `Based on what I see: ${contextStr}\n\nRegarding your question: "${msg}" — I'll analyze the next frame with this in mind.` }]);
+                      setChatMessages(prev => [...prev, { role: "assistant", content: `Based on what I see: ${contextStr}\n\nRegarding "${msg}" — I'll analyze the next frame with this in mind.` }]);
                     }
                   }}
                   placeholder="Ask about what's on screen..."
