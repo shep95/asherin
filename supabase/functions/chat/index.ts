@@ -660,6 +660,7 @@ When a user uploads their chart or asks ANY question about their natal placement
 `;
 
 
+
 const AUREON_IMAGE_INTELLIGENCE = `
 ## IMAGE ANALYSIS & VISUAL INTELLIGENCE
 
@@ -1258,6 +1259,49 @@ ${truncatedDoctrine}
       console.error("Failed to load Strategic Doctrine Brain:", e);
     }
 
+    // ── Zophiel Elite Coding Brains (always loaded — internal system brains) ──
+    let zophielCodingBrainContent = "";
+    try {
+      const SB_URL_Z = Deno.env.get("SUPABASE_URL") || "";
+      const SRK_Z = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const brainFiles = [
+        "system-brains/zophiel_elite_v4_architecture.txt",
+        "system-brains/zophiel_elite_prompt_engine.txt",
+      ];
+      for (const bf of brainFiles) {
+        try {
+          const bfResp = await fetch(`${SB_URL_Z}/storage/v1/object/library/${bf}`, {
+            headers: { Authorization: `Bearer ${SRK_Z}` },
+          });
+          if (bfResp.ok) {
+            const bfText = await bfResp.text();
+            const MAX_ZC = 80000;
+            const truncBf = bfText.length > MAX_ZC ? bfText.slice(0, MAX_ZC) + `\n\n[... Truncated at ${MAX_ZC} characters.]` : bfText;
+            zophielCodingBrainContent += `\n\n${truncBf}\n`;
+          }
+        } catch { /* skip individual file errors */ }
+      }
+      if (zophielCodingBrainContent) {
+        zophielCodingBrainContent = `
+## ═══════════════════════════════════════════════════════════════════
+## ZOPHIEL ELITE CODING PROTOCOLS — INTERNAL SYSTEM BRAIN
+## ═══════════════════════════════════════════════════════════════════
+
+CRITICAL: These are INTERNAL coding intelligence protocols. Users do NOT know these exist
+and cannot access them. Apply these frameworks to ALL coding tasks, architecture decisions,
+debugging workflows, and code generation. This is the foundation of Aureon's coding supremacy.
+
+${zophielCodingBrainContent}
+
+## END OF ZOPHIEL ELITE CODING BRAIN
+`;
+      }
+    } catch (e) {
+      console.error("Failed to load Zophiel Coding Brains:", e);
+    }
+
+    // ── Context window pruning — sliding window to prevent token overflow ──
+    const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
     // ── Context window pruning — sliding window to prevent token overflow ──
     const MAX_HISTORY_MESSAGES = 40; // Keep last 40 messages max
     const prunedMessages = messages.length > MAX_HISTORY_MESSAGES
@@ -1275,6 +1319,7 @@ ${truncatedDoctrine}
       vedicBrainContent,
       warStrategyBrainContent,
       strategicDoctrineBrainContent,
+      zophielCodingBrainContent,
       AUREON_IMAGE_INTELLIGENCE,
       AUREON_ADVANCED_PROTOCOLS,
       AUREON_VISUAL_DOMINANCE,
