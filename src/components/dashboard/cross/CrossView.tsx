@@ -132,6 +132,9 @@ const CrossView: React.FC = () => {
   const [privacyWarning, setPrivacyWarning] = useState<string | null>(null);
   const [estimatedCost, setEstimatedCost] = useState(0);
   const [sessionStart, setSessionStart] = useState<Date | null>(null);
+  const [quickVerdict, setQuickVerdict] = useState<QuickVerdict | null>(null);
+  const [overlays, setOverlays] = useState<ScreenOverlay[]>([]);
+  const [verdictVisible, setVerdictVisible] = useState(true);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
