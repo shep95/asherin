@@ -73,20 +73,9 @@
 
   const minBtn = chat.querySelector("#aureon-min-btn");
   const closeBtn = chat.querySelector("#aureon-close-btn");
-  const autoBtn = chat.querySelector("#aureon-auto-btn");
-  const autoPanel = chat.querySelector("#aureon-auto-panel");
-  const autoToggle = chat.querySelector("#aureon-auto-toggle");
-  const autoStopBtn = chat.querySelector("#aureon-auto-stop");
-  const autoApproval = chat.querySelector("#aureon-auto-approval");
-  const autoApproveBtn = chat.querySelector("#aureon-auto-approve");
-  const autoRejectBtn = chat.querySelector("#aureon-auto-reject");
 
   minBtn.onclick = () => { isMinimized = !isMinimized; chat.classList.toggle("minimized", isMinimized); };
   closeBtn.onclick = () => { chat.style.display = "none"; };
-  autoBtn.onclick = () => {
-    const panel = autoPanel;
-    panel.style.display = panel.style.display === "none" ? "block" : "none";
-  };
 
   // Autonomous controls
   autoToggle.onclick = () => {
