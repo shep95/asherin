@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      min-height: 400px;
+      background: #0a0a0f;
+      color: #c8ffd4;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+    }
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(0,255,128,0.12);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header img { width: 32px; height: 32px; border-radius: 8px; }
+    .header h1 { font-size: 14px; color: #00ff80; letter-spacing: 1px; }
+    .header p { font-size: 9px; color: rgba(0,255,128,0.4); margin-top: 2px; }
+    .section {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(0,255,128,0.08);
+    }
+    .section-title {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: rgba(0,255,128,0.4);
+      margin-bottom: 10px;
+    }
+    label { display: block; margin-bottom: 8px; font-size: 11px; color: #8a9a8e; }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(0,255,128,0.15);
+      color: #e0ffe8;
+      padding: 8px 10px;
+      border-radius: 6px;
+      outline: none;
+      font-family: inherit;
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+    input:focus { border-color: rgba(0,255,128,0.4); }
+    select {
+      width: 100%;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(0,255,128,0.15);
+      color: #e0ffe8;
+      padding: 8px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: rgba(0,255,128,0.2);
+      color: #00ff80;
+      border: 1px solid rgba(0,255,128,0.3);
+    }
+    .btn-primary:hover { background: rgba(0,255,128,0.3); }
+    .btn-danger {
+      background: rgba(255,60,60,0.15);
+      color: #ff6060;
+      border: 1px solid rgba(255,60,60,0.2);
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: rgba(0,255,128,0.04);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #666;
+    }
+    .status-dot.active { background: #00ff80; animation: pulse 2s infinite; }
+    .status-text { font-size: 11px; }
+    .help {
+      padding: 14px 16px;
+      font-size: 10px;
+      color: rgba(0,255,128,0.3);
+      line-height: 1.6;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .saved { color: #00ff80; font-size: 10px; margin-top: 6px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icon.png" alt="Aureon" />
+    <div>
+      <h1>AUREON CROSS</h1>
+      <p>Live Trading Vision Overlay</p>
+    </div>
+  </div>
+
+  <div class="status">
+    <span class="status-dot" id="statusDot"></span>
+    <span class="status-text" id="statusText">Inactive</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Authentication</div>
+    <label>Aureon Access Token</label>
+    <input type="password" id="tokenInput" placeholder="Paste your JWT token..." />
+    <div class="saved" id="tokenSaved">✓ Token saved</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Settings</div>
+    <label>Analysis Mode</label>
+    <select id="modeSelect">
+      <option value="trading">Trading (Meme Coins)</option>
+      <option value="coding">Coding</option>
+      <option value="design">Design</option>
+      <option value="general">General</option>
+    </select>
+
+    <label>Sensitivity</label>
+    <select id="sensitivitySelect">
+      <option value="low">Low (critical only)</option>
+      <option value="medium" selected>Medium (balanced)</option>
+      <option value="high">High (all signals)</option>
+    </select>
+
+    <label>Frame Rate</label>
+    <select id="frameRateSelect">
+      <option value="2">Fast (2s)</option>
+      <option value="3" selected>Normal (3s)</option>
+      <option value="5">Slow (5s)</option>
+      <option value="10">Very Slow (10s)</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <button class="btn btn-primary" id="saveBtn">Save & Activate</button>
+    <div style="height:8px"></div>
+    <button class="btn btn-danger" id="deactivateBtn">Deactivate</button>
+  </div>
+
+  <div class="help">
+    <strong>How to use:</strong><br>
+    1. Paste your Aureon JWT token above<br>
+    2. Click Save & Activate<br>
+    3. Open your trading tab<br>
+    4. Click the green dot (bottom-left) or press <strong>Ctrl+Shift+A</strong><br>
+    5. Aureon will analyze your screen and overlay signals<br><br>
+    <strong>Get your token:</strong> Go to Aureon Dashboard → Settings → Copy Access Token
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
