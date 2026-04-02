@@ -15,7 +15,7 @@
   let previousAlerts = [];
   let currentContext = {};
   let settings = { mode: "trading", sensitivity: "medium", frameRate: 3, quality: "medium" };
-  let autonomousMode = false;
+  
 
   // ── ROOT CONTAINER ──
   const root = document.createElement("div");
@@ -58,31 +58,9 @@
         <span class="aureon-chat-header-status">Cross Vision</span>
       </div>
       <div class="aureon-chat-btns">
-        <button id="aureon-auto-btn" title="Toggle Autonomous" class="aureon-auto-off">🤖</button>
+        
         <button id="aureon-min-btn" title="Minimize">_</button>
         <button id="aureon-close-btn" title="Close">×</button>
-      </div>
-    </div>
-    <div id="aureon-auto-panel" class="aureon-auto-panel" style="display:none;">
-      <div class="aureon-auto-header">
-        <span>🤖 AUTONOMOUS MODE</span>
-        <span id="aureon-auto-status" class="aureon-auto-status-badge">OFF</span>
-      </div>
-      <div class="aureon-auto-stats">
-        <div><span>Trades today</span><span id="aureon-auto-trades">0/20</span></div>
-        <div><span>Daily P&L</span><span id="aureon-auto-pnl">$0.00</span></div>
-        <div><span>Status</span><span id="aureon-auto-state">Idle</span></div>
-      </div>
-      <div class="aureon-auto-controls">
-        <button id="aureon-auto-toggle" class="aureon-auto-enable">ENABLE</button>
-        <button id="aureon-auto-stop" class="aureon-auto-emergency">🚨 EMERGENCY STOP</button>
-      </div>
-      <div id="aureon-auto-approval" class="aureon-auto-approval" style="display:none;">
-        <p id="aureon-auto-approval-text">Awaiting approval...</p>
-        <div class="aureon-auto-approval-btns">
-          <button id="aureon-auto-approve">✅ APPROVE</button>
-          <button id="aureon-auto-reject">❌ REJECT</button>
-        </div>
       </div>
     </div>
     <div class="aureon-chat-messages" id="aureon-msgs"></div>
@@ -95,93 +73,9 @@
 
   const minBtn = chat.querySelector("#aureon-min-btn");
   const closeBtn = chat.querySelector("#aureon-close-btn");
-  const autoBtn = chat.querySelector("#aureon-auto-btn");
-  const autoPanel = chat.querySelector("#aureon-auto-panel");
-  const autoToggle = chat.querySelector("#aureon-auto-toggle");
-  const autoStopBtn = chat.querySelector("#aureon-auto-stop");
-  const autoApproval = chat.querySelector("#aureon-auto-approval");
-  const autoApproveBtn = chat.querySelector("#aureon-auto-approve");
-  const autoRejectBtn = chat.querySelector("#aureon-auto-reject");
 
   minBtn.onclick = () => { isMinimized = !isMinimized; chat.classList.toggle("minimized", isMinimized); };
   closeBtn.onclick = () => { chat.style.display = "none"; };
-  autoBtn.onclick = () => {
-    const panel = autoPanel;
-    panel.style.display = panel.style.display === "none" ? "block" : "none";
-  };
-
-  // Autonomous controls
-  autoToggle.onclick = () => {
-    if (typeof AureonAutonomous !== "undefined") {
-      if (AureonAutonomous.isEnabled()) {
-        AureonAutonomous.disable();
-        autoToggle.textContent = "ENABLE";
-        autoToggle.className = "aureon-auto-enable";
-        autoBtn.className = "aureon-auto-off";
-        chat.querySelector("#aureon-auto-status").textContent = "OFF";
-        addMsg("ai", "🤖 Autonomous mode DISABLED. Manual trading only.");
-      } else {
-        AureonAutonomous.enable();
-        autoToggle.textContent = "DISABLE";
-        autoToggle.className = "aureon-auto-disable";
-        autoBtn.className = "aureon-auto-on";
-        chat.querySelector("#aureon-auto-status").textContent = "ACTIVE";
-        addMsg("ai", "🤖 Autonomous mode ENABLED. AI will execute trades automatically.");
-      }
-    }
-  };
-
-  autoStopBtn.onclick = () => {
-    if (typeof AureonAutonomous !== "undefined") {
-      AureonAutonomous.emergencyStop("Manual emergency stop");
-      autoToggle.textContent = "ENABLE";
-      autoToggle.className = "aureon-auto-enable";
-      autoBtn.className = "aureon-auto-off";
-      chat.querySelector("#aureon-auto-status").textContent = "🚨 STOPPED";
-      chat.querySelector("#aureon-auto-status").style.color = "#ff4040";
-      addMsg("ai", "🚨 EMERGENCY STOP activated. All autonomous trading halted.");
-    }
-  };
-
-  autoApproveBtn.onclick = () => {
-    if (typeof AureonAutonomous !== "undefined") {
-      AureonAutonomous.approvePending();
-      autoApproval.style.display = "none";
-    }
-  };
-
-  autoRejectBtn.onclick = () => {
-    if (typeof AureonAutonomous !== "undefined") {
-      AureonAutonomous.rejectPending();
-      autoApproval.style.display = "none";
-      addMsg("ai", "Trade rejected.");
-    }
-  };
-
-  // Hook autonomous status/notify callbacks
-  if (typeof AureonAutonomous !== "undefined") {
-    AureonAutonomous.onStatus((s, text) => {
-      chat.querySelector("#aureon-auto-state").textContent = text;
-      if (s === "approval") {
-        autoApproval.style.display = "block";
-        chat.querySelector("#aureon-auto-approval-text").textContent = text;
-      }
-    });
-    AureonAutonomous.onNotify((msg) => {
-      addMsg("ai", msg);
-    });
-  }
-
-  // Periodic stats update
-  setInterval(() => {
-    if (typeof AureonAutonomous !== "undefined") {
-      const st = AureonAutonomous.getState();
-      const tradesEl = chat.querySelector("#aureon-auto-trades");
-      const pnlEl = chat.querySelector("#aureon-auto-pnl");
-      if (tradesEl) tradesEl.textContent = `${st.tradesExecutedToday}/${st.config.maxTradesPerDay}`;
-      if (pnlEl) pnlEl.textContent = `$${st.dailyPnL.toFixed(2)}`;
-    }
-  }, 2000);
 
   makeDraggable(chat, chat.querySelector(".aureon-chat-header"));
 
@@ -270,10 +164,6 @@
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
         showVerdict(analysis.quickVerdict);
 
-        // Feed to autonomous engine
-        if (typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled()) {
-          AureonAutonomous.processSignal(analysis.quickVerdict);
-        }
       }
 
       // Show alerts
@@ -283,16 +173,12 @@
             showInstantAlert(a);
             previousAlerts.push({ type: a.type, title: a.title });
 
-            // Feed high-confidence alerts to autonomous engine
-            if (typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled() && (a.confidence || 0) >= 80) {
-              AureonAutonomous.processSignal(a);
-            }
           }
         });
         previousAlerts = previousAlerts.slice(-10);
       }
 
-      updateStatus("", `WATCHING · F${frameCount}${typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled() ? " · 🤖 AUTO" : ""}`);
+      updateStatus("", `WATCHING · F${frameCount}`);
     } catch (e) {
       console.error("Aureon analysis error:", e);
     }
