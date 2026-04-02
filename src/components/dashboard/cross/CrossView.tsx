@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X, Download, Chrome } from "lucide-react";
+import { Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X, Download, Chrome, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { LocalIntelligenceEngine } from "./localIntelligence";
@@ -10,6 +10,7 @@ import CrossSettingsPanel from "./CrossSettings";
 import CrossAlertFeed from "./CrossAlertFeed";
 import CrossLocalSignals from "./CrossLocalSignals";
 import CrossPriceTracker from "./CrossPriceTracker";
+import CrossAutonomousSettings from "./CrossAutonomousSettings";
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
   CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
@@ -35,6 +36,7 @@ const CrossView: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showAutonomous, setShowAutonomous] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [settings, setSettings] = useState<CrossSettings>(DEFAULT_SETTINGS);
@@ -326,6 +328,9 @@ const CrossView: React.FC = () => {
               </span>
             </div>
           )}
+          <Button variant="ghost" size="icon" onClick={() => setShowAutonomous(a => !a)} className={`h-8 w-8 ${showAutonomous ? "text-accent" : ""}`} title="Autonomous Trading">
+            <Bot className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setShowChat(c => !c)} className="h-8 w-8">
             <MessageSquare className="h-4 w-4" />
           </Button>
@@ -515,6 +520,19 @@ const CrossView: React.FC = () => {
           {/* AI Alerts Feed */}
           <CrossAlertFeed alerts={alerts} onDismiss={(id) => setAlerts(prev => prev.filter(a => a.id !== id))} isSharing={isSharing} />
         </div>
+
+        {/* Autonomous Trading Panel */}
+        {showAutonomous && (
+          <div className="w-80 border-l border-border/30 overflow-y-auto p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Bot className="h-4 w-4 text-accent" /> Autonomous Trading
+              </h3>
+              <button onClick={() => setShowAutonomous(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
+            </div>
+            <CrossAutonomousSettings />
+          </div>
+        )}
 
         {/* Settings Panel */}
         {showSettings && (
