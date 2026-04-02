@@ -9,7 +9,7 @@ const PRO_VIEWS: DashboardView[] = [
   "zali", "community", "asha", "elion", "nomad", "briefing",
   "teams", "notebooks", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "imagine-to-code", "tracker",
-  "google", "pattern-analysis", "video-intelligence", "lavba",
+  "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
 ];
 
 // Views that require any paid plan (search-tier)
