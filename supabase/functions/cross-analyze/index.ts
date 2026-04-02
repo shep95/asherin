@@ -74,7 +74,7 @@ RESPONSE FORMAT (strict JSON):
     "action": "BUY_NOW|SELL_NOW|HOLD|EXIT_NOW|WAIT|NONE",
     "urgency": "immediate|soon|watch",
     "message": "One-line reason e.g. 'RSI oversold at 28 + volume spike 340% — reversal imminent'",
-    "confidence": 0-100
+    "confidence": 85
   },
   "overlays": [
     {
