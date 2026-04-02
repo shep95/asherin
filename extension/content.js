@@ -173,10 +173,6 @@
             showInstantAlert(a);
             previousAlerts.push({ type: a.type, title: a.title });
 
-            // Feed high-confidence alerts to autonomous engine
-            if (typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled() && (a.confidence || 0) >= 80) {
-              AureonAutonomous.processSignal(a);
-            }
           }
         });
         previousAlerts = previousAlerts.slice(-10);
