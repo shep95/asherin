@@ -521,6 +521,19 @@ const CrossView: React.FC = () => {
           <CrossAlertFeed alerts={alerts} onDismiss={(id) => setAlerts(prev => prev.filter(a => a.id !== id))} isSharing={isSharing} />
         </div>
 
+        {/* Autonomous Trading Panel */}
+        {showAutonomous && (
+          <div className="w-80 border-l border-border/30 overflow-y-auto p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Bot className="h-4 w-4 text-accent" /> Autonomous Trading
+              </h3>
+              <button onClick={() => setShowAutonomous(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
+            </div>
+            <CrossAutonomousSettings />
+          </div>
+        )}
+
         {/* Settings Panel */}
         {showSettings && (
           <CrossSettingsPanel
