@@ -81,6 +81,7 @@ const BugReportsView = React.lazy(() => import("@/components/dashboard/BugReport
 const EBookGeneratorView = React.lazy(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 const ReverseEngineerView = React.lazy(() => import("@/components/dashboard/ReverseEngineerView"));
 const LavbaView = React.lazy(() => import("@/components/dashboard/lavba/LavbaView"));
+const CrossView = React.lazy(() => import("@/components/dashboard/cross/CrossView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -1212,6 +1213,7 @@ const Dashboard = () => {
       case "google": return gatedView("google", GoogleIntelligenceView, "Google Intelligence", "Unified intelligence hub — full-spectrum Google account analysis. Available on Pro and Advisor plans.");
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Asha + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "lavba": return gatedView("lavba", LavbaView, "Lavba Strategy Discovery", "Autonomous strategy discovery engine — Aureon scans historical chart data for repeating fractal patterns. Available on Pro plans.");
+      case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
       case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro and Advisor plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");

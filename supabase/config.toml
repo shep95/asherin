@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.hyperliquid-trade]
 verify_jwt = false
+
+[functions.cross-analyze]
+verify_jwt = false
