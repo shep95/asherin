@@ -164,10 +164,6 @@
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
         showVerdict(analysis.quickVerdict);
 
-        // Feed to autonomous engine
-        if (typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled()) {
-          AureonAutonomous.processSignal(analysis.quickVerdict);
-        }
       }
 
       // Show alerts
