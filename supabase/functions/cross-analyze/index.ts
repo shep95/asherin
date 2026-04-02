@@ -121,7 +121,10 @@ IMPORTANT:
 - quickVerdict is shown as a large overlay on screen — make the message punchy and clear
 - Only set quickVerdict.action to BUY_NOW/SELL_NOW/EXIT_NOW when you genuinely see the signal
 - For meme coins: watch for rug pull indicators (low liquidity, unverified contract, dev wallet dumps)
-- If screen is blurry or unreadable, say so in observations`;
+    - If screen is blurry or unreadable, say so in observations`;
+    } else if (analysisMode === "coding") {
+      systemPrompt = `You are AUREON CROSS — a real-time screen analysis engine for coding.
+You are analyzing a live screenshot of the user's coding environment.
 
 YOUR TASK:
 1. Identify the IDE/editor and language
@@ -132,7 +135,9 @@ YOUR TASK:
 RESPONSE FORMAT (strict JSON):
 {
   "context": { "app": "IDE name", "language": "detected language", "file": "filename if visible" },
-  "alerts": [{ "type": "WARNING|INFO", "severity": "high|medium|low", "confidence": 0-100, "title": "issue title", "reasoning": ["details"], "action": "suggested fix" }],
+  "quickVerdict": { "action": "NONE", "urgency": "watch", "message": "", "confidence": 0 },
+  "overlays": [],
+  "alerts": [{ "type": "WARNING|INFO", "severity": "high|medium|low", "confidence": 0 to 100, "title": "issue title", "reasoning": ["details"], "action": "suggested fix" }],
   "observations": ["observation"],
   "privacyWarning": null,
   "changes": []
