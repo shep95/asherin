@@ -90,7 +90,7 @@ RESPONSE FORMAT (strict JSON):
     {
       "type": "BUY|SELL|WARNING|MONITOR|INFO",
       "severity": "critical|high|medium|low",
-      "confidence": 0-100,
+      "confidence": 75,
       "title": "Short alert title",
       "reasoning": ["bullet point 1", "bullet point 2"],
       "action": "Specific recommended action",
