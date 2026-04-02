@@ -36,7 +36,7 @@ const CrossView: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [showAutonomous, setShowAutonomous] = useState(false);
+  
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [settings, setSettings] = useState<CrossSettings>(DEFAULT_SETTINGS);
