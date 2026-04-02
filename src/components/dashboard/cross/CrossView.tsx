@@ -211,6 +211,41 @@ const CrossView: React.FC = () => {
       // Update context
       if (analysis.context) setContext(analysis.context);
 
+      // Quick Verdict — the big overlay
+      if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
+        const v: QuickVerdict = {
+          action: analysis.quickVerdict.action as VerdictAction,
+          urgency: analysis.quickVerdict.urgency || "watch",
+          message: analysis.quickVerdict.message || "",
+          confidence: analysis.quickVerdict.confidence || 50,
+          timestamp: new Date(),
+        };
+        setQuickVerdict(v);
+        setVerdictVisible(true);
+
+        // Auto-hide verdict after 15s unless it's immediate urgency
+        if (v.urgency !== "immediate") {
+          setTimeout(() => setVerdictVisible(false), 15000);
+        }
+
+        // Sound for BUY/SELL/EXIT verdicts
+        if (settings.soundEnabled && ["BUY_NOW", "SELL_NOW", "EXIT_NOW"].includes(v.action)) {
+          try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
+        }
+      } else if (analysis.quickVerdict?.action === "NONE") {
+        // Clear verdict if nothing notable
+        if (quickVerdict && (Date.now() - quickVerdict.timestamp.getTime()) > 30000) {
+          setVerdictVisible(false);
+        }
+      }
+
+      // Screen overlays
+      if (analysis.overlays?.length) {
+        setOverlays(analysis.overlays);
+      } else {
+        setOverlays([]);
+      }
+
       // Privacy warning
       if (analysis.privacyWarning) {
         setPrivacyWarning(analysis.privacyWarning);
@@ -243,7 +278,6 @@ const CrossView: React.FC = () => {
           setAlerts(prev => [...newAlerts, ...prev].slice(0, 50));
           previousAlertsRef.current = [...newAlerts, ...previousAlertsRef.current].slice(0, 10);
 
-          // Sound for critical alerts
           if (settings.soundEnabled && newAlerts.some(a => a.severity === "critical" || a.type === "BUY" || a.type === "SELL" || a.type === "WARNING")) {
             try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
           }
@@ -255,7 +289,7 @@ const CrossView: React.FC = () => {
         setObservations(analysis.observations);
       }
 
-      // Update cost estimate (~$0.02 per frame)
+      // Update cost estimate
       setEstimatedCost(prev => prev + 0.02);
     } catch (e) {
       console.error("Cross frame analysis failed:", e);
