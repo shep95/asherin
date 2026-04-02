@@ -1,7 +1,6 @@
 import React from "react";
 import { Volume2, VolumeX, Mic, MicOff, X } from "lucide-react";
 import { CrossSettings as SettingsType, AnalysisMode, Sensitivity } from "./types";
-import CrossAutonomousSettings from "./CrossAutonomousSettings";
 
 interface Props {
   settings: SettingsType;
