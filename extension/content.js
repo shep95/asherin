@@ -15,7 +15,7 @@
   let previousAlerts = [];
   let currentContext = {};
   let settings = { mode: "trading", sensitivity: "medium", frameRate: 3, quality: "medium" };
-  let autonomousMode = false;
+  
 
   // ── ROOT CONTAINER ──
   const root = document.createElement("div");
