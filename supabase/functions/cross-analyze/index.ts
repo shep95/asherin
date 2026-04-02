@@ -150,7 +150,9 @@ Detect the application context and provide relevant insights.
 RESPONSE FORMAT (strict JSON):
 {
   "context": { "app": "detected app" },
-  "alerts": [{ "type": "INFO|WARNING", "severity": "medium|low", "confidence": 0-100, "title": "title", "reasoning": ["details"], "action": "suggestion" }],
+  "quickVerdict": { "action": "NONE", "urgency": "watch", "message": "", "confidence": 0 },
+  "overlays": [],
+  "alerts": [{ "type": "INFO|WARNING", "severity": "medium|low", "confidence": 50, "title": "title", "reasoning": ["details"], "action": "suggestion" }],
   "observations": ["observation"],
   "privacyWarning": null,
   "changes": []
