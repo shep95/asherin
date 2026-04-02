@@ -269,6 +269,11 @@
       // Show instant verdict
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
         showVerdict(analysis.quickVerdict);
+
+        // Feed to autonomous engine
+        if (typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled()) {
+          AureonAutonomous.processSignal(analysis.quickVerdict);
+        }
       }
 
       // Show alerts
@@ -277,12 +282,17 @@
           if ((a.confidence || 0) >= 65) {
             showInstantAlert(a);
             previousAlerts.push({ type: a.type, title: a.title });
+
+            // Feed high-confidence alerts to autonomous engine
+            if (typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled() && (a.confidence || 0) >= 80) {
+              AureonAutonomous.processSignal(a);
+            }
           }
         });
         previousAlerts = previousAlerts.slice(-10);
       }
 
-      updateStatus("", `WATCHING · F${frameCount}`);
+      updateStatus("", `WATCHING · F${frameCount}${typeof AureonAutonomous !== "undefined" && AureonAutonomous.isEnabled() ? " · 🤖 AUTO" : ""}`);
     } catch (e) {
       console.error("Aureon analysis error:", e);
     }
