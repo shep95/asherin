@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, FileText, Image, FileCode, AlertTriangle, Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
 import IngestStatusBadge from "./IngestStatusBadge";
-import { validateFile, sanitizeDisplayName, MAX_FILE_SIZE_DISPLAY } from "@/lib/file-security";
+import { sanitizeDisplayName, MAX_FILE_SIZE, MAX_FILE_SIZE_DISPLAY } from "@/lib/file-security";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,11 +86,39 @@ const IngestPanel = () => {
     const validated: File[] = [];
 
     for (const file of arr) {
-      const result = await validateFile(file);
-      if (!result.valid) {
-        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: ${result.error}`, variant: "destructive" });
+      // Basic size check only — accept any file type
+      if (file.size > MAX_FILE_SIZE) {
+        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: exceeds ${MAX_FILE_SIZE_DISPLAY}`, variant: "destructive" });
         continue;
       }
+      if (file.size === 0) {
+        toast({ title: "File rejected", description: `${sanitizeDisplayName(file.name)}: empty file`, variant: "destructive" });
+        continue;
+      }
+
+      // Auto-extract ZIP files
+      const ext = file.name.toLowerCase().split(".").pop();
+      if (ext === "zip") {
+        try {
+          const JSZip = (await import("jszip")).default;
+          const zip = await JSZip.loadAsync(file);
+          const entries = Object.entries(zip.files);
+          for (const [path, entry] of entries) {
+            if (entry.dir || path.startsWith("__MACOSX") || path.startsWith(".")) continue;
+            const blob = await entry.async("blob");
+            if (blob.size === 0) continue;
+            const fileName = path.split("/").pop() || path;
+            const extracted = new File([blob], fileName, { type: blob.type || "application/octet-stream" });
+            validated.push(extracted);
+          }
+          toast({ title: "ZIP extracted", description: `${entries.filter(([p, e]) => !e.dir).length} files extracted from ${sanitizeDisplayName(file.name)}` });
+        } catch {
+          toast({ title: "ZIP extraction failed", description: `Could not extract ${sanitizeDisplayName(file.name)}, uploading as-is`, variant: "destructive" });
+          validated.push(file);
+        }
+        continue;
+      }
+
       // Duplicate detection
       const { data: existing } = await supabase
         .from("asha_datasets")
@@ -243,12 +271,12 @@ const IngestPanel = () => {
         <Upload className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
         <p className="text-sm font-light text-foreground">Drop files here or click to browse</p>
         <p className="text-[10px] text-muted-foreground/50 mt-2">
-          CSV, JSON, XLSX, XML, PDF, SQL — up to {MAX_FILE_SIZE_DISPLAY} per file
+          Any file type — up to {MAX_FILE_SIZE_DISPLAY} per file
         </p>
         <p className="text-[10px] text-muted-foreground/30 mt-1">
-          Files are validated, uploaded, and analyzed by Asha AI
+          ZIP files are auto-extracted. Files uploaded and analyzed by Asha AI
         </p>
-        <input ref={inputRef} type="file" multiple className="hidden" accept=".csv,.json,.jsonl,.xlsx,.xls,.xml,.pdf,.sql,.parquet,.geojson,.txt,.log,.yaml,.yml,.toml,.md,.markdown" onChange={(e) => { if (e.target.files) ingestFiles(e.target.files); e.target.value = ""; }} />
+        <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) ingestFiles(e.target.files); e.target.value = ""; }} />
       </div>
 
       {/* File cards */}
