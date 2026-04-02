@@ -1267,6 +1267,7 @@ ${truncatedDoctrine}
       const brainFiles = [
         "system-brains/zophiel_elite_v4_architecture.txt",
         "system-brains/zophiel_elite_prompt_engine.txt",
+        "system-brains/anti_spiral_protocol.md",
       ];
       for (const bf of brainFiles) {
         try {
