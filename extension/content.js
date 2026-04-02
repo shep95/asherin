@@ -95,8 +95,93 @@
 
   const minBtn = chat.querySelector("#aureon-min-btn");
   const closeBtn = chat.querySelector("#aureon-close-btn");
+  const autoBtn = chat.querySelector("#aureon-auto-btn");
+  const autoPanel = chat.querySelector("#aureon-auto-panel");
+  const autoToggle = chat.querySelector("#aureon-auto-toggle");
+  const autoStopBtn = chat.querySelector("#aureon-auto-stop");
+  const autoApproval = chat.querySelector("#aureon-auto-approval");
+  const autoApproveBtn = chat.querySelector("#aureon-auto-approve");
+  const autoRejectBtn = chat.querySelector("#aureon-auto-reject");
+
   minBtn.onclick = () => { isMinimized = !isMinimized; chat.classList.toggle("minimized", isMinimized); };
   closeBtn.onclick = () => { chat.style.display = "none"; };
+  autoBtn.onclick = () => {
+    const panel = autoPanel;
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+  };
+
+  // Autonomous controls
+  autoToggle.onclick = () => {
+    if (typeof AureonAutonomous !== "undefined") {
+      if (AureonAutonomous.isEnabled()) {
+        AureonAutonomous.disable();
+        autoToggle.textContent = "ENABLE";
+        autoToggle.className = "aureon-auto-enable";
+        autoBtn.className = "aureon-auto-off";
+        chat.querySelector("#aureon-auto-status").textContent = "OFF";
+        addMsg("ai", "🤖 Autonomous mode DISABLED. Manual trading only.");
+      } else {
+        AureonAutonomous.enable();
+        autoToggle.textContent = "DISABLE";
+        autoToggle.className = "aureon-auto-disable";
+        autoBtn.className = "aureon-auto-on";
+        chat.querySelector("#aureon-auto-status").textContent = "ACTIVE";
+        addMsg("ai", "🤖 Autonomous mode ENABLED. AI will execute trades automatically.");
+      }
+    }
+  };
+
+  autoStopBtn.onclick = () => {
+    if (typeof AureonAutonomous !== "undefined") {
+      AureonAutonomous.emergencyStop("Manual emergency stop");
+      autoToggle.textContent = "ENABLE";
+      autoToggle.className = "aureon-auto-enable";
+      autoBtn.className = "aureon-auto-off";
+      chat.querySelector("#aureon-auto-status").textContent = "🚨 STOPPED";
+      chat.querySelector("#aureon-auto-status").style.color = "#ff4040";
+      addMsg("ai", "🚨 EMERGENCY STOP activated. All autonomous trading halted.");
+    }
+  };
+
+  autoApproveBtn.onclick = () => {
+    if (typeof AureonAutonomous !== "undefined") {
+      AureonAutonomous.approvePending();
+      autoApproval.style.display = "none";
+    }
+  };
+
+  autoRejectBtn.onclick = () => {
+    if (typeof AureonAutonomous !== "undefined") {
+      AureonAutonomous.rejectPending();
+      autoApproval.style.display = "none";
+      addMsg("ai", "Trade rejected.");
+    }
+  };
+
+  // Hook autonomous status/notify callbacks
+  if (typeof AureonAutonomous !== "undefined") {
+    AureonAutonomous.onStatus((s, text) => {
+      chat.querySelector("#aureon-auto-state").textContent = text;
+      if (s === "approval") {
+        autoApproval.style.display = "block";
+        chat.querySelector("#aureon-auto-approval-text").textContent = text;
+      }
+    });
+    AureonAutonomous.onNotify((msg) => {
+      addMsg("ai", msg);
+    });
+  }
+
+  // Periodic stats update
+  setInterval(() => {
+    if (typeof AureonAutonomous !== "undefined") {
+      const st = AureonAutonomous.getState();
+      const tradesEl = chat.querySelector("#aureon-auto-trades");
+      const pnlEl = chat.querySelector("#aureon-auto-pnl");
+      if (tradesEl) tradesEl.textContent = `${st.tradesExecutedToday}/${st.config.maxTradesPerDay}`;
+      if (pnlEl) pnlEl.textContent = `$${st.dailyPnL.toFixed(2)}`;
+    }
+  }, 2000);
 
   makeDraggable(chat, chat.querySelector(".aureon-chat-header"));
 
