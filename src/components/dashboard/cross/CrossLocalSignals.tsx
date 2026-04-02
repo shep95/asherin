@@ -34,7 +34,7 @@ const CrossLocalSignals: React.FC<Props> = ({ signals }) => {
     <div className="space-y-1.5">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 flex items-center gap-1">
         <Zap className="h-3 w-3" />
-        Local Intelligence (Instant)
+        Nestal Fractal Intelligence (Instant)
       </p>
       {signals.map((sig, i) => {
         const colorClass = ACTION_COLORS[sig.action] || ACTION_COLORS.MONITOR;
