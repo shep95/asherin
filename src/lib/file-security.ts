@@ -20,6 +20,8 @@ const ALLOWED_EXTENSIONS: Record<string, string[]> = {
   ".txt": ["text/plain"],
   ".log": ["text/plain", "application/octet-stream"],
   ".sql": ["application/sql", "text/plain", "application/x-sql"],
+  // Archives
+  ".zip": ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
   // Data formats
   ".parquet": ["application/octet-stream", "application/vnd.apache.parquet"],
   ".geojson": ["application/geo+json", "application/json"],
