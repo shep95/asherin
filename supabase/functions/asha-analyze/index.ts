@@ -365,7 +365,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // === GENERATE INSIGHTS using Lovable AI ===
+    // === GENERATE INSIGHTS using direct Gemini / BYOK ===
     if (rowCount > 0 && schema.length > 1) {
       try {
         const schemaDesc = schema.map((c: any) => `${c.name} (${c.type}, ${c.role})`).join(", ");
