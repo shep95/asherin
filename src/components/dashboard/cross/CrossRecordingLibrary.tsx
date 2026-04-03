@@ -55,13 +55,57 @@ interface CrossRecordingLibraryProps {
 }
 
 const CrossRecordingLibrary: React.FC<CrossRecordingLibraryProps> = ({ onClose }) => {
-  const [recordings] = useState<SavedRecording[]>(DEMO_RECORDINGS);
+  const { user } = useAuth();
+  const [recordings, setRecordings] = useState<SavedRecording[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecording, setSelectedRecording] = useState<SavedRecording | null>(null);
   const [activePanel, setActivePanel] = useState<"details" | "share" | "export" | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  const loadRecordings = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("cross_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) { console.error("Failed to load recordings:", error); return; }
+      const mapped: SavedRecording[] = (data || []).map((s: any) => ({
+        id: s.id,
+        title: s.title || "Untitled Session",
+        date: new Date(s.created_at),
+        duration: s.duration || 0,
+        fileSize: (s.duration || 0) * 500000, // estimate ~500KB/s
+        creditsUsed: Number(s.credits_used) || 0,
+        mode: s.mode || "general",
+        starred: false,
+        tags: s.tags || [],
+        hasTranscript: !!s.transcript,
+        aiSummary: s.ai_summary,
+        storage: s.recording_url ? "cloud" : "local",
+        shared: false,
+        overlayLayers: ["chat", "annotations"],
+      }));
+      setRecordings(mapped);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => { loadRecordings(); }, [loadRecordings]);
+
+  const deleteRecording = async (id: string) => {
+    await supabase.from("cross_sessions").delete().eq("id", id);
+    setRecordings(prev => prev.filter(r => r.id !== id));
+    if (selectedRecording?.id === id) { setSelectedRecording(null); setActivePanel(null); }
+  };
 
   const [shareSettings] = useState<ShareSettings>({
     emails: [], linkEnabled: true, link: "https://cross.aureon.ai/r/abc123xyz",
