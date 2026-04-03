@@ -765,7 +765,129 @@ const CrossView: React.FC = () => {
             </div>
           )}
 
-          {showAnalytics && isSharing && (
+          {/* Psychological Profile */}
+          {isSharing && psychProfile?.humansDetected && psychProfile.subjects?.length > 0 && (
+            <div className="rounded-xl bg-purple-500/5 border border-purple-500/15 overflow-hidden">
+              <div className="px-3 py-2 border-b border-purple-500/10 flex items-center gap-2">
+                <span className="text-sm">🧠</span>
+                <span className="text-[10px] uppercase tracking-wider text-purple-300/70 font-medium">Psychological Profile — {psychProfile.subjects.length} Subject{psychProfile.subjects.length > 1 ? "s" : ""}</span>
+              </div>
+              <div className="divide-y divide-purple-500/10">
+                {psychProfile.subjects.map((subject: any, idx: number) => (
+                  <div key={idx} className="p-3 space-y-2.5">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-medium text-foreground">{subject.label || `Subject ${idx + 1}`}</span>
+                        <span className="text-[10px] text-muted-foreground/40 ml-2">{subject.estimatedAge} · {subject.gender}</span>
+                      </div>
+                      <span className="text-[10px] text-purple-300/50">{subject.communicationStyle}</span>
+                    </div>
+                    {subject.appearance && <p className="text-[10px] text-muted-foreground/50 font-extralight">{subject.appearance}</p>}
+
+                    {/* Big Five */}
+                    {subject.bigFive && (
+                      <div>
+                        <p className="text-[9px] uppercase tracking-wider text-purple-400/40 mb-1">Big Five Personality</p>
+                        <div className="grid grid-cols-5 gap-1">
+                          {[
+                            { key: "openness", label: "O", color: "bg-blue-400" },
+                            { key: "conscientiousness", label: "C", color: "bg-emerald-400" },
+                            { key: "extraversion", label: "E", color: "bg-amber-400" },
+                            { key: "agreeableness", label: "A", color: "bg-pink-400" },
+                            { key: "neuroticism", label: "N", color: "bg-red-400" },
+                          ].map(trait => (
+                            <div key={trait.key} className="text-center">
+                              <div className="h-10 w-full bg-muted/10 rounded relative overflow-hidden">
+                                <div className={`absolute bottom-0 w-full ${trait.color}/30 rounded transition-all`} style={{ height: `${subject.bigFive[trait.key] || 0}%` }} />
+                                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/70">{subject.bigFive[trait.key]}</span>
+                              </div>
+                              <span className="text-[8px] text-muted-foreground/30 mt-0.5 block">{trait.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Emotional State */}
+                    {subject.emotionalState && (
+                      <div className="flex items-center gap-3 text-[10px]">
+                        <span className="text-muted-foreground/40">Emotion:</span>
+                        <span className="text-foreground/80 capitalize">{subject.emotionalState.primary}</span>
+                        {subject.emotionalState.secondary && <span className="text-muted-foreground/50">+ {String(subject.emotionalState.secondary).replace("_", " ")}</span>}
+                        <span className="ml-auto text-muted-foreground/30">V:{subject.emotionalState.valence} A:{subject.emotionalState.arousal} D:{subject.emotionalState.dominance}</span>
+                      </div>
+                    )}
+
+                    {/* Micro-Expressions */}
+                    {subject.microExpressions?.length > 0 && (
+                      <div>
+                        <p className="text-[9px] uppercase tracking-wider text-purple-400/40 mb-1">Micro-Expressions</p>
+                        <div className="space-y-0.5">
+                          {subject.microExpressions.map((me: string, i: number) => (
+                            <p key={i} className="text-[10px] text-muted-foreground/60 font-extralight pl-2 border-l border-purple-400/20">⚡ {me}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Body Language */}
+                    {subject.bodyLanguage && (
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                        {subject.bodyLanguage.posture && (
+                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Posture:</span> <span className="text-foreground/70">{subject.bodyLanguage.posture}</span></div>
+                        )}
+                        {subject.bodyLanguage.orientationSignal && (
+                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Orientation:</span> <span className="text-foreground/70">{subject.bodyLanguage.orientationSignal}</span></div>
+                        )}
+                        {subject.bodyLanguage.selfTouchingBehaviors?.length > 0 && (
+                          <div className="px-2 py-1 rounded bg-muted/10 col-span-2">
+                            <span className="text-muted-foreground/40">Self-touch:</span>{" "}
+                            <span className="text-foreground/70">{subject.bodyLanguage.selfTouchingBehaviors.join(", ")}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Scores Row */}
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { label: "Stress", val: subject.stressLevel, color: subject.stressLevel > 60 ? "text-red-400" : "text-emerald-400" },
+                        { label: "Engage", val: subject.engagementLevel, color: "text-blue-400" },
+                        { label: "Confidence", val: subject.confidenceLevel, color: "text-amber-400" },
+                        { label: "Dominance", val: subject.dominanceLevel, color: "text-purple-400" },
+                        { label: "Deception", val: subject.deceptionLikelihood, color: subject.deceptionLikelihood > 40 ? "text-red-400" : "text-emerald-400" },
+                      ].filter(s => s.val != null).map(s => (
+                        <div key={s.label} className="px-1.5 py-0.5 rounded bg-muted/10 text-[9px]">
+                          <span className="text-muted-foreground/40">{s.label}: </span>
+                          <span className={`font-medium ${s.color}`}>{s.val}%</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Dark Triad */}
+                    {subject.darkTriadIndicators && (
+                      <div className="px-2 py-1.5 rounded bg-red-500/5 border border-red-500/10">
+                        <p className="text-[9px] uppercase tracking-wider text-red-400/50 mb-1">Dark Triad Assessment</p>
+                        <div className="flex gap-3 text-[10px]">
+                          <span>N: <span className={subject.darkTriadIndicators.narcissism > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.narcissism}</span></span>
+                          <span>M: <span className={subject.darkTriadIndicators.machiavellianism > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.machiavellianism}</span></span>
+                          <span>P: <span className={subject.darkTriadIndicators.psychopathy > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.psychopathy}</span></span>
+                        </div>
+                        {subject.darkTriadIndicators.assessment && <p className="text-[10px] text-muted-foreground/50 mt-0.5 font-extralight">{subject.darkTriadIndicators.assessment}</p>}
+                      </div>
+                    )}
+
+                    {/* Summary */}
+                    {subject.summary && (
+                      <p className="text-[11px] text-foreground/70 font-extralight italic border-l-2 border-purple-400/30 pl-2">{subject.summary}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
             <CrossAnalyticsSummary analytics={sessionAnalytics} sessionDuration={sessionDuration} />
           )}
 
