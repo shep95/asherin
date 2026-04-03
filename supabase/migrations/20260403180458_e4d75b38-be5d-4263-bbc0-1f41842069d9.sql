@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_sessions_token_hash ON public.user_sessions (session_token_hash);
