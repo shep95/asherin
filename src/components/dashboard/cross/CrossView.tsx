@@ -96,6 +96,7 @@ const CrossView: React.FC = () => {
   const [emotions, setEmotions] = useState<EmotionState | undefined>();
   const [engagement, setEngagement] = useState<EngagementMetrics | undefined>();
   const [speakers, setSpeakers] = useState<SpeakerInfo[] | undefined>();
+  const [psychProfile, setPsychProfile] = useState<any>(null);
 
   // ── Notifications ──
   const [notifications, setNotifications] = useState<CrossNotification[]>([]);
