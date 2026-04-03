@@ -6,6 +6,7 @@ import type { ChatMode } from "../types";
 import ReactMarkdown from "react-markdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAccess } from "@/hooks/useAccess";
 import ModeSelector from "../ModeSelector";
 import DepthSelector from "../DepthSelector";
 import ContextHealthIndicator from "../ContextHealthIndicator";
