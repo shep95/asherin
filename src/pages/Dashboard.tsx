@@ -83,6 +83,7 @@ const EBookGeneratorView = React.lazy(() => import("@/components/dashboard/ebook
 const ReverseEngineerView = React.lazy(() => import("@/components/dashboard/ReverseEngineerView"));
 const LavbaView = React.lazy(() => import("@/components/dashboard/lavba/LavbaView"));
 const CrossView = React.lazy(() => import("@/components/dashboard/cross/CrossView"));
+const GuardianVaultView = React.lazy(() => import("@/components/dashboard/GuardianVaultView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
