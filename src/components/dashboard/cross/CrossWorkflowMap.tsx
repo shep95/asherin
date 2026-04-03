@@ -6,8 +6,10 @@ import {
   ArrowRight, Diamond, Database, Layers, Activity, AlertTriangle,
   CheckCircle, XCircle, Pause, Play, ChevronRight, ChevronDown,
   Lightbulb, Zap, BarChart3, RefreshCw, Download, Eye,
-  Monitor as MonitorIcon, FileText, Link2, Timer
+  Monitor as MonitorIcon, FileText, Link2, Timer, GitCompare
 } from "lucide-react";
+import CrossWorkflowComparison from "./CrossWorkflowComparison";
+import CrossWorkflowExport from "./CrossWorkflowExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -59,6 +61,8 @@ const CrossWorkflowMap: React.FC<Props> = ({ onClose, isSharing, currentSessionI
   const [filterType, setFilterType] = useState<WorkflowNodeType | "all">("all");
   const [showInsights, setShowInsights] = useState(false);
   const [showOptimizations, setShowOptimizations] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set());
   const [workflows, setWorkflows] = useState<WorkflowGraph[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -314,9 +318,19 @@ const CrossWorkflowMap: React.FC<Props> = ({ onClose, isSharing, currentSessionI
           <h3 className="text-sm font-medium text-foreground">Workflow Intelligence</h3>
         </div>
         <div className="flex items-center gap-1">
+          {workflows.length >= 2 && (
+            <Button size="sm" variant="ghost" className={`h-7 text-[10px] gap-1 ${showComparison ? "text-accent" : ""}`} onClick={() => { setShowComparison(v => !v); setShowExport(false); }}>
+              <GitCompare className="h-3 w-3" /> Compare
+            </Button>
+          )}
+          {workflow && (
+            <Button size="sm" variant="ghost" className={`h-7 text-[10px] gap-1 ${showExport ? "text-accent" : ""}`} onClick={() => { setShowExport(v => !v); setShowComparison(false); }}>
+              <Download className="h-3 w-3" /> Export
+            </Button>
+          )}
           {isSharing && (
             <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={buildWorkflowFromSession}>
-              <RefreshCw className="h-3 w-3" /> Build from Session
+              <RefreshCw className="h-3 w-3" /> Build
             </Button>
           )}
           <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
@@ -592,6 +606,22 @@ const CrossWorkflowMap: React.FC<Props> = ({ onClose, isSharing, currentSessionI
               ))}
             </div>
           </div>
+        )}
+
+        {/* Comparison Panel */}
+        {showComparison && workflows.length >= 2 && (
+          <CrossWorkflowComparison
+            workflows={workflows}
+            onClose={() => setShowComparison(false)}
+          />
+        )}
+
+        {/* Export Panel */}
+        {showExport && workflow && (
+          <CrossWorkflowExport
+            workflow={workflow}
+            onClose={() => setShowExport(false)}
+          />
         )}
       </div>
     </div>
