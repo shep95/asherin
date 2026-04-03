@@ -106,6 +106,7 @@ const GuardianVaultView = () => {
   const [totpSecret, setTotpSecret] = useState<string | null>(null);
   const [totpVerifyCode, setTotpVerifyCode] = useState("");
   const [enrollingTotp, setEnrollingTotp] = useState(false);
+  const [enrolledFactorId, setEnrolledFactorId] = useState<string | null>(null);
   const [copiedSecret, setCopiedSecret] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -242,6 +243,7 @@ const GuardianVaultView = () => {
       if (data) {
         setTotpUri(data.totp?.uri || null);
         setTotpSecret(data.totp?.secret || null);
+        setEnrolledFactorId(data.id);
         setEnrollingTotp(true);
       }
     } catch (e: any) {
@@ -257,14 +259,24 @@ const GuardianVaultView = () => {
     }
     setMfaLoading(true);
     try {
-      const factors = await supabase.auth.mfa.listFactors();
-      const unverified = (factors.data?.totp || []).find((f: any) => f.status === "unverified");
-      if (!unverified) throw new Error("No pending factor found");
-      const { error } = await supabase.auth.mfa.challengeAndVerify({
-        factorId: unverified.id,
-        code: totpVerifyCode,
-      });
-      if (error) throw error;
+      const factorId = enrolledFactorId;
+      if (!factorId) {
+        // Fallback: try to find unverified factor from list
+        const factors = await supabase.auth.mfa.listFactors();
+        const unverified = (factors.data?.totp || []).find((f: any) => f.status === "unverified");
+        if (!unverified) throw new Error("No pending factor found. Please start MFA setup again.");
+        const { error } = await supabase.auth.mfa.challengeAndVerify({
+          factorId: unverified.id,
+          code: totpVerifyCode,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.mfa.challengeAndVerify({
+          factorId,
+          code: totpVerifyCode,
+        });
+        if (error) throw error;
+      }
       await supabase.from("account_activity_log").insert({
         user_id: user!.id,
         event_type: "mfa_setup",
@@ -275,6 +287,7 @@ const GuardianVaultView = () => {
       setTotpUri(null);
       setTotpSecret(null);
       setTotpVerifyCode("");
+      setEnrolledFactorId(null);
       toast({ title: "TOTP MFA enabled" });
       loadData();
     } catch (e: any) {
