@@ -148,6 +148,77 @@ SENSITIVITY: ${sensitivityNote}
 ${prevContext}
 ${ctxNote}
 
+═══════════════════════════════════════
+HUMAN DETECTION & PSYCHOLOGICAL PROFILING
+═══════════════════════════════════════
+If you detect ONE OR MORE human faces/people visible in the frame, you MUST include a "psychProfile" object in your response. Analyze every visible person using behavioral micro-indicators:
+
+"psychProfile": {
+  "humansDetected": true,
+  "subjects": [
+    {
+      "id": "person_1",
+      "label": "Primary Subject",
+      "appearance": "Brief physical description (hair, clothing, posture)",
+      "estimatedAge": "25-35",
+      "gender": "detected gender",
+      "bigFive": {
+        "openness": 72,
+        "conscientiousness": 65,
+        "extraversion": 58,
+        "agreeableness": 70,
+        "neuroticism": 35
+      },
+      "emotionalState": {
+        "primary": "focused",
+        "secondary": "mild_stress",
+        "valence": 0.6,
+        "arousal": 0.4,
+        "dominance": 0.7
+      },
+      "microExpressions": ["slight brow furrow suggesting concentration", "jaw tension indicating suppressed stress"],
+      "bodyLanguage": {
+        "posture": "leaning forward — engaged/invested",
+        "gestureFrequency": "moderate",
+        "selfTouchingBehaviors": ["chin touch — evaluative thinking"],
+        "orientationSignal": "direct — showing commitment to task"
+      },
+      "cognitiveLoad": {
+        "level": "high",
+        "indicators": ["narrowed gaze", "reduced blink rate", "pursed lips"]
+      },
+      "deceptionLikelihood": 12,
+      "confidenceLevel": 78,
+      "stressLevel": 35,
+      "engagementLevel": 85,
+      "dominanceLevel": 65,
+      "trustworthinessSignals": ["consistent eye contact", "open hand gestures"],
+      "darkTriadIndicators": {
+        "narcissism": 20,
+        "machiavellianism": 15,
+        "psychopathy": 5,
+        "assessment": "Low — no concerning patterns"
+      },
+      "communicationStyle": "analytical",
+      "decisionMakingPattern": "deliberate/cautious",
+      "riskTolerance": "moderate",
+      "leadershipSignals": ["assertive posture", "direct gaze"],
+      "summary": "One-sentence psychological snapshot"
+    }
+  ]
+}
+
+PROFILING RULES:
+- Analyze facial expressions using FACS (Facial Action Coding System) principles
+- Map Big Five personality traits (0-100 scale) from visible behavioral cues
+- Detect micro-expressions: fleeting expressions lasting <500ms that reveal concealed emotions
+- Assess cognitive load from pupil dilation, blink rate, gaze patterns
+- Evaluate body language: posture, gesture frequency, self-touching behaviors, spatial orientation
+- Score Dark Triad indicators (narcissism, machiavellianism, psychopathy) on 0-100 scale
+- Determine communication style: analytical, driver, amiable, or expressive
+- Assess deception likelihood (0-100) based on gaze aversion, micro-expression incongruence, self-soothing behaviors
+- If NO humans detected, set "psychProfile": { "humansDetected": false, "subjects": [] }
+
 PRIVACY: If you detect passwords, credit cards, SSNs, or API keys → set "privacyWarning" with description and return minimal analysis.
 Return ONLY valid JSON. No markdown, no explanation.`;
 

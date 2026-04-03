@@ -240,6 +240,8 @@ const CrossView: React.FC = () => {
       if (analysis.emotions) setEmotions(analysis.emotions);
       if (analysis.engagement) setEngagement(analysis.engagement);
       if (analysis.speakers) setSpeakers(analysis.speakers);
+      if (analysis.psychProfile?.humansDetected) setPsychProfile(analysis.psychProfile);
+      else if (analysis.psychProfile?.humansDetected === false) setPsychProfile(null);
 
       if (analysis.context && settings.mode === "trading") {
         const signals = localEngine.detectLocalPatterns(analysis.context);
