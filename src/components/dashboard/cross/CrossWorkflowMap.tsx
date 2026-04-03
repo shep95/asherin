@@ -6,8 +6,10 @@ import {
   ArrowRight, Diamond, Database, Layers, Activity, AlertTriangle,
   CheckCircle, XCircle, Pause, Play, ChevronRight, ChevronDown,
   Lightbulb, Zap, BarChart3, RefreshCw, Download, Eye,
-  Monitor as MonitorIcon, FileText, Link2, Timer
+  Monitor as MonitorIcon, FileText, Link2, Timer, GitCompare
 } from "lucide-react";
+import CrossWorkflowComparison from "./CrossWorkflowComparison";
+import CrossWorkflowExport from "./CrossWorkflowExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
