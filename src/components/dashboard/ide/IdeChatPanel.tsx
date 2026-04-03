@@ -105,6 +105,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { subscribed, loading } = useSubscription();
+  const { isAdmin } = useAccess();
 
   // Custom brain state
   const [customBrains, setCustomBrains] = useState<CustomBrain[]>(loadBrains);
