@@ -545,7 +545,7 @@ const CrossView: React.FC = () => {
       if (!resp.ok) throw new Error("Analysis unavailable");
 
       const data = await resp.json();
-      const reply = data.observations?.join("\n\n") || data.quickVerdict?.message || "I'm analyzing your screen. Nothing notable right now.";
+      const reply = data.observations?.map((o: any) => typeof o === "string" ? o : o?.description || o?.title || safeStr(o)).join("\n\n") || data.quickVerdict?.message || "I'm analyzing your screen. Nothing notable right now.";
 
       // Determine message type from content
       let msgType: ChatMessage["type"] = "text";
