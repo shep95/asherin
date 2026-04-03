@@ -1,6 +1,6 @@
 import React from "react";
 import { Volume2, VolumeX, Mic, MicOff, X } from "lucide-react";
-import { CrossSettings as SettingsType, AnalysisMode, Sensitivity } from "./types";
+import { CrossSettings as SettingsType, AnalysisMode, Sensitivity, MODE_CONFIG } from "./types";
 
 interface Props {
   settings: SettingsType;
@@ -9,6 +9,8 @@ interface Props {
   estimatedCost: number;
   onClose: () => void;
 }
+
+const ALL_MODES = Object.keys(MODE_CONFIG) as AnalysisMode[];
 
 const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing, estimatedCost, onClose }) => (
   <div className="w-72 border-l border-border/30 overflow-y-auto p-4 space-y-4">
@@ -20,18 +22,23 @@ const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing,
     {/* Analysis Mode */}
     <div>
       <label className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1.5 block">Analysis Mode</label>
-      <div className="grid grid-cols-2 gap-1">
-        {(["trading", "coding", "design", "general"] as AnalysisMode[]).map(m => (
-          <button
-            key={m}
-            onClick={() => setSettings(s => ({ ...s, mode: m }))}
-            className={`text-xs px-2 py-1.5 rounded border transition ${
-              settings.mode === m ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground hover:border-border"
-            }`}
-          >
-            {m.charAt(0).toUpperCase() + m.slice(1)}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-1 max-h-[200px] overflow-y-auto">
+        {ALL_MODES.map(m => {
+          const cfg = MODE_CONFIG[m];
+          return (
+            <button
+              key={m}
+              onClick={() => setSettings(s => ({ ...s, mode: m }))}
+              className={`text-xs px-2 py-1.5 rounded-lg border transition text-left ${
+                settings.mode === m
+                  ? `border-accent bg-accent/10 ${cfg.color}`
+                  : "border-border/30 text-muted-foreground hover:border-border"
+              }`}
+            >
+              {cfg.label}
+            </button>
+          );
+        })}
       </div>
     </div>
 
@@ -43,7 +50,7 @@ const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing,
           <button
             key={s}
             onClick={() => setSettings(prev => ({ ...prev, sensitivity: s }))}
-            className={`text-xs px-2 py-1.5 rounded border transition ${
+            className={`text-xs px-2 py-1.5 rounded-lg border transition ${
               settings.sensitivity === s ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground hover:border-border"
             }`}
           >
@@ -80,7 +87,7 @@ const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing,
           <button
             key={q}
             onClick={() => setSettings(s => ({ ...s, quality: q }))}
-            className={`text-xs px-2 py-1.5 rounded border transition ${
+            className={`text-xs px-2 py-1.5 rounded-lg border transition ${
               settings.quality === q ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground hover:border-border"
             }`}
           >
@@ -131,7 +138,7 @@ const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing,
       <span className="text-xs text-muted-foreground">Skip unchanged frames</span>
       <button
         onClick={() => setSettings(s => ({ ...s, pauseOnNoChange: !s.pauseOnNoChange }))}
-        className={`text-xs px-2 py-1 rounded border ${settings.pauseOnNoChange ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground"}`}
+        className={`text-xs px-2 py-1 rounded-lg border ${settings.pauseOnNoChange ? "border-accent bg-accent/10 text-accent" : "border-border/30 text-muted-foreground"}`}
       >
         {settings.pauseOnNoChange ? "ON" : "OFF"}
       </button>
