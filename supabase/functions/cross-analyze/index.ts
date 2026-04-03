@@ -534,7 +534,7 @@ CRITICAL RULES:
 Analyze the screen frame now. Return ONLY valid JSON.`;
 }
 
-async function handleChat(message: string, context: string, previousAlerts: any[], mode: string, corsHeaders: Record<string, string>) {
+async function handleChat(message: string, context: string, previousAlerts: any[], mode: string, corsHeaders: Record<string, string>, brainContext: string = "") {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     return new Response(JSON.stringify({ observations: ["AI unavailable"], quickVerdict: { action: "NONE", urgency: "watch", message: "", confidence: 0 } }), {
