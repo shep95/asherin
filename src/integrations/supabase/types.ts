@@ -1331,6 +1331,69 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_sessions: {
+        Row: {
+          ai_summary: string | null
+          alerts_fired: number
+          created_at: string
+          credits_used: number
+          duration: number
+          frames_analyzed: number
+          frames_skipped: number
+          id: string
+          mode: string
+          psych_profiles: Json | null
+          recording_url: string | null
+          settings: Json | null
+          status: string
+          tags: string[] | null
+          title: string
+          transcript: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          alerts_fired?: number
+          created_at?: string
+          credits_used?: number
+          duration?: number
+          frames_analyzed?: number
+          frames_skipped?: number
+          id?: string
+          mode?: string
+          psych_profiles?: Json | null
+          recording_url?: string | null
+          settings?: Json | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          alerts_fired?: number
+          created_at?: string
+          credits_used?: number
+          duration?: number
+          frames_analyzed?: number
+          frames_skipped?: number
+          id?: string
+          mode?: string
+          psych_profiles?: Json | null
+          recording_url?: string | null
+          settings?: Json | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       data_permissions: {
         Row: {
           created_at: string
