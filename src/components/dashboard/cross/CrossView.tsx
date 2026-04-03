@@ -1062,6 +1062,14 @@ const CrossView: React.FC = () => {
         {showHistory && (
           <CrossSessionHistory onClose={() => setShowHistory(false)} />
         )}
+
+        {showWorkflow && (
+          <CrossWorkflowMap
+            onClose={() => setShowWorkflow(false)}
+            isSharing={isSharing}
+            currentSessionId={activeSessionId}
+          />
+        )}
       </div>
 
       {/* Status Bar — Bottom Strip */}
