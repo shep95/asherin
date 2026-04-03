@@ -24,6 +24,7 @@ import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "
 import {
   CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
   VerdictAction, DEFAULT_SETTINGS, AnalysisMode, ActivityEntry, SessionAnalytics, MODE_CONFIG,
+  SalesIntelligence, EmotionState, EngagementMetrics, SpeakerInfo,
 } from "./types";
 
 const localEngine = new LocalIntelligenceEngine();
