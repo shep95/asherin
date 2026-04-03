@@ -60,24 +60,23 @@ serve(async (req) => {
       `[${r.type.toUpperCase()}] (${r.severity}) "${r.title}": ${r.description} — Status: ${r.status} — ${new Date(r.created_at).toLocaleDateString()}`
     ).join("\n");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are Aureon's internal QA analyst. Summarize bug reports and feature requests into actionable developer prompts. Group by priority, categorize by type (bug vs feature), and provide clear reproduction steps for bugs and implementation guidance for features. Be detailed, structured, and direct. Use markdown formatting.`
-          },
+        systemInstruction: {
+          parts: [{ text: `You are Aureon's internal QA analyst. Summarize bug reports and feature requests into actionable developer prompts. Group by priority, categorize by type (bug vs feature), and provide clear reproduction steps for bugs and implementation guidance for features. Be detailed, structured, and direct. Use markdown formatting.` }],
+        },
+        contents: [
           {
             role: "user",
-            content: `Summarize these ${newReports.length} new reports (${bugs.length} bugs, ${features.length} features) into a developer-ready action plan:\n\n${reportText}`
+            parts: [{ text: `Summarize these ${newReports.length} new reports (${bugs.length} bugs, ${features.length} features) into a developer-ready action plan:\n\n${reportText}` }],
           }
         ],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
       }),
     });
 
@@ -88,7 +87,7 @@ serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const summary = aiData.choices?.[0]?.message?.content || "Summary generation failed.";
+    const summary = aiData.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("").trim() || "Summary generation failed.";
     const reportIds = newReports.map((r: any) => r.id);
 
     // Save summary session
