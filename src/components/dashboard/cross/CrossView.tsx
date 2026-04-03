@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X,
-  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon
+  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon, FolderOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ import CrossStatusBar from "./CrossStatusBar";
 import CrossChatPanel, { ChatMessage } from "./CrossChatPanel";
 import CrossToastSystem, { CrossToast } from "./CrossToastSystem";
 import CrossRecordingControls from "./CrossRecordingControls";
+import CrossRecordingLibrary from "./CrossRecordingLibrary";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
@@ -64,6 +65,7 @@ const CrossView: React.FC = () => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRecordingPanel, setShowRecordingPanel] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // ── Chat state ──
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -536,11 +538,12 @@ const CrossView: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Close other panels when opening one
-  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics") => {
+  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics" | "library") => {
     setShowChat(panel === "chat" ? c => !c : false);
     setShowSettings(panel === "settings" ? s => !s : false);
     setShowNotifications(panel === "notifications" ? n => !n : false);
     setShowRecordingPanel(panel === "recording" ? r => !r : false);
+    setShowLibrary(panel === "library" ? l => !l : false);
     if (panel !== "analytics") setShowAnalytics(false);
     else setShowAnalytics(a => !a);
   }, []);
@@ -603,6 +606,9 @@ const CrossView: React.FC = () => {
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => openPanel("library")} className="h-8 w-8" title="Recording Library">
+            <FolderOpen className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => openPanel("analytics")} className="h-8 w-8">
             <BarChart3 className="h-4 w-4" />
@@ -875,6 +881,12 @@ const CrossView: React.FC = () => {
             onSend={sendChatMessage}
             onClose={() => setShowChat(false)}
           />
+        )}
+
+        {showLibrary && (
+          <div className="w-96 border-l border-border/20 flex flex-col bg-background">
+            <CrossRecordingLibrary onClose={() => setShowLibrary(false)} />
+          </div>
         )}
       </div>
 
