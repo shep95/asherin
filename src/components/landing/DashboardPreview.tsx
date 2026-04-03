@@ -176,8 +176,8 @@ function ZophielMock() {
   );
 }
 
-function AshaMock() {
-  const ashaTabs = [
+function AzplenMock() {
+  const azplenTabs = [
     { icon: Upload, label: "Ingest" }, { icon: FileText, label: "Doc Intel" },
     { icon: BookOpen, label: "Catalog" }, { icon: Table2, label: "Table" },
     { icon: Share2, label: "Graph" }, { icon: Fingerprint, label: "Entities" },
@@ -200,7 +200,7 @@ function AshaMock() {
       </div>
       {/* Tab ribbon */}
       <div className="flex flex-wrap gap-0.5 py-2 border-b border-border/10">
-        {ashaTabs.map((t, i) => (
+        {azplenTabs.map((t, i) => (
           <button key={t.label} className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[8px] ${i === 0 ? "bg-foreground/10 text-foreground" : "text-muted-foreground/40"}`}>
             <t.icon className="h-2.5 w-2.5" />{t.label}
           </button>
@@ -598,7 +598,7 @@ function StatsMock() {
 const VIEW_MAP: Record<string, React.FC> = {
   chat: ChatMock,
   zophiel: ZophielMock,
-  asha: AshaMock,
+  azplen: AzplenMock,
   nomad: NomadMock,
   briefing: BriefingMock,
   security: SecurityMock,
