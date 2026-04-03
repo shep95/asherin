@@ -663,7 +663,6 @@ const CrossView: React.FC = () => {
           <Button variant="ghost" size="icon" onClick={() => openPanel("socialIntel")} className={`h-8 w-8 ${showSocialIntel ? "text-amber-400" : ""}`} title="Social Intel Profiler">
             <Fingerprint className="h-4 w-4" />
           </Button>
-          </Button>
           <Button variant="ghost" size="icon" onClick={() => openPanel("analytics")} className="h-8 w-8">
             <BarChart3 className="h-4 w-4" />
           </Button>
