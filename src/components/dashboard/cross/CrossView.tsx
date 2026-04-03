@@ -819,138 +819,258 @@ const CrossView: React.FC = () => {
           )}
 
           {/* Frame Explanations */}
+          {/* ── What Cross Sees — Human-Readable ── */}
           {isSharing && frameExplanations.length > 0 && (
             <div className="px-3 py-2.5 rounded-xl bg-accent/5 border border-accent/10">
               <p className="text-[10px] uppercase tracking-wider text-accent/60 mb-1.5 flex items-center gap-1.5">
-                <Activity className="h-3 w-3" /> What Cross Sees Right Now
+                <Activity className="h-3 w-3" /> Live Scene Understanding
               </p>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {frameExplanations.map((exp, i) => (
-                  <p key={i} className="text-xs text-foreground/80 font-extralight leading-relaxed">{exp}</p>
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="text-xs mt-0.5">{i === 0 ? "👁️" : i === 1 ? "📍" : "💡"}</span>
+                    <p className="text-xs text-foreground/80 font-extralight leading-relaxed">{exp}</p>
+                  </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Psychological Profile */}
+          {/* ── Psychological Profile — Human-Readable ── */}
           {isSharing && psychProfile?.humansDetected && Array.isArray(psychProfile.subjects) && psychProfile.subjects.length > 0 && (
             <div className="rounded-xl bg-purple-500/5 border border-purple-500/15 overflow-hidden">
               <div className="px-3 py-2 border-b border-purple-500/10 flex items-center gap-2">
                 <span className="text-sm">🧠</span>
-                <span className="text-[10px] uppercase tracking-wider text-purple-300/70 font-medium">Psychological Profile — {psychProfile.subjects.length} Subject{psychProfile.subjects.length > 1 ? "s" : ""}</span>
+                <span className="text-[10px] uppercase tracking-wider text-purple-300/70 font-medium">
+                  People Detected — {psychProfile.subjects.length} {psychProfile.subjects.length === 1 ? "Person" : "People"}
+                </span>
               </div>
               <div className="divide-y divide-purple-500/10">
-                {psychProfile.subjects.map((subject: any, idx: number) => (
-                  <div key={idx} className="p-3 space-y-2.5">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-xs font-medium text-foreground">{safeStr(subject.label) || `Subject ${idx + 1}`}</span>
-                        <span className="text-[10px] text-muted-foreground/40 ml-2">{safeStr(subject.estimatedAge)} · {safeStr(subject.gender)}</span>
-                      </div>
-                      <span className="text-[10px] text-purple-300/50">{safeStr(subject.communicationStyle)}</span>
-                    </div>
-                    {subject.appearance && <p className="text-[10px] text-muted-foreground/50 font-extralight">{safeStr(subject.appearance)}</p>}
+                {psychProfile.subjects.map((subject: any, idx: number) => {
+                  // Human-readable Big Five interpretation
+                  const getBigFiveLabel = (key: string, val: number) => {
+                    const labels: Record<string, [string, string]> = {
+                      openness: ["Conventional", "Creative & Curious"],
+                      conscientiousness: ["Laid-back", "Organized & Disciplined"],
+                      extraversion: ["Introverted", "Outgoing & Social"],
+                      agreeableness: ["Competitive", "Warm & Cooperative"],
+                      neuroticism: ["Emotionally Stable", "Emotionally Reactive"],
+                    };
+                    const [low, high] = labels[key] || ["Low", "High"];
+                    return val >= 70 ? high : val <= 30 ? low : `Moderate`;
+                  };
 
-                    {/* Big Five */}
-                    {subject.bigFive && (
-                      <div>
-                        <p className="text-[9px] uppercase tracking-wider text-purple-400/40 mb-1">Big Five Personality</p>
-                        <div className="grid grid-cols-5 gap-1">
-                          {[
-                            { key: "openness", label: "O", color: "bg-blue-400" },
-                            { key: "conscientiousness", label: "C", color: "bg-emerald-400" },
-                            { key: "extraversion", label: "E", color: "bg-amber-400" },
-                            { key: "agreeableness", label: "A", color: "bg-pink-400" },
-                            { key: "neuroticism", label: "N", color: "bg-red-400" },
-                          ].map(trait => (
-                            <div key={trait.key} className="text-center">
-                              <div className="h-10 w-full bg-muted/10 rounded relative overflow-hidden">
-                                <div className={`absolute bottom-0 w-full ${trait.color}/30 rounded transition-all`} style={{ height: `${subject.bigFive[trait.key] || 0}%` }} />
-                                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/70">{subject.bigFive[trait.key]}</span>
-                              </div>
-                              <span className="text-[8px] text-muted-foreground/30 mt-0.5 block">{trait.label}</span>
+                  // Human-readable emotion
+                  const getEmotionEmoji = (emotion: string) => {
+                    const map: Record<string, string> = {
+                      happy: "😊", joy: "😊", calm: "😌", neutral: "😐", sad: "😔",
+                      angry: "😠", fear: "😰", surprise: "😲", disgust: "🤢", contempt: "😏",
+                      anxious: "😟", stressed: "😓", focused: "🎯", confused: "😕", bored: "😒",
+                      excited: "🤩", confident: "😎", nervous: "😬",
+                    };
+                    return map[emotion?.toLowerCase()] || "😐";
+                  };
+
+                  // Mood bar color
+                  const getMoodColor = (valence: number) => {
+                    if (valence >= 0.7) return "bg-emerald-400";
+                    if (valence >= 0.4) return "bg-blue-400";
+                    if (valence >= 0.2) return "bg-amber-400";
+                    return "bg-red-400";
+                  };
+
+                  // Deception interpretation
+                  const getDeceptionLabel = (val: number) => {
+                    if (val <= 15) return { label: "Very Honest", color: "text-emerald-400", icon: "✅" };
+                    if (val <= 35) return { label: "Mostly Honest", color: "text-emerald-300", icon: "👍" };
+                    if (val <= 55) return { label: "Some Inconsistencies", color: "text-amber-400", icon: "⚠️" };
+                    if (val <= 75) return { label: "Likely Withholding", color: "text-orange-400", icon: "🚩" };
+                    return { label: "High Deception Risk", color: "text-red-400", icon: "🚨" };
+                  };
+
+                  const stressLabel = (val: number) => {
+                    if (val <= 20) return "Relaxed";
+                    if (val <= 40) return "At Ease";
+                    if (val <= 60) return "Moderate Stress";
+                    if (val <= 80) return "Elevated Stress";
+                    return "Highly Stressed";
+                  };
+
+                  return (
+                    <div key={idx} className="p-3 space-y-3">
+                      {/* Person Header */}
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-purple-500/20 flex items-center justify-center text-sm">
+                          {subject.gender === "female" ? "👩" : subject.gender === "male" ? "👨" : "🧑"}
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-foreground block">{safeStr(subject.label) || `Person ${idx + 1}`}</span>
+                          <span className="text-[10px] text-muted-foreground/50">
+                            {subject.estimatedAge && `Age ~${safeStr(subject.estimatedAge)}`}
+                            {subject.appearance && ` · ${safeStr(subject.appearance).slice(0, 80)}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Emotional State — Plain Language */}
+                      {subject.emotionalState && (
+                        <div className="rounded-lg bg-muted/10 px-3 py-2 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{getEmotionEmoji(safeStr(subject.emotionalState.primary))}</span>
+                            <div>
+                              <p className="text-xs text-foreground/90 font-medium capitalize">
+                                Feeling {safeStr(subject.emotionalState.primary)}
+                                {subject.emotionalState.secondary && ` with hints of ${safeStr(subject.emotionalState.secondary).replace("_", " ")}`}
+                              </p>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Emotional State */}
-                    {subject.emotionalState && (
-                      <div className="flex items-center gap-3 text-[10px]">
-                        <span className="text-muted-foreground/40">Emotion:</span>
-                        <span className="text-foreground/80 capitalize">{safeStr(subject.emotionalState.primary)}</span>
-                        {subject.emotionalState.secondary && <span className="text-muted-foreground/50">+ {safeStr(subject.emotionalState.secondary).replace("_", " ")}</span>}
-                        <span className="ml-auto text-muted-foreground/30">V:{safeStr(subject.emotionalState.valence)} A:{safeStr(subject.emotionalState.arousal)} D:{safeStr(subject.emotionalState.dominance)}</span>
-                      </div>
-                    )}
-
-                    {/* Micro-Expressions */}
-                    {subject.microExpressions?.length > 0 && (
-                      <div>
-                        <p className="text-[9px] uppercase tracking-wider text-purple-400/40 mb-1">Micro-Expressions</p>
-                        <div className="space-y-0.5">
-                          {subject.microExpressions.map((me: any, i: number) => (
-                            <p key={i} className="text-[10px] text-muted-foreground/60 font-extralight pl-2 border-l border-purple-400/20">⚡ {safeStr(me)}</p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Body Language */}
-                    {subject.bodyLanguage && (
-                      <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                        {subject.bodyLanguage.posture && (
-                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Posture:</span> <span className="text-foreground/70">{safeStr(subject.bodyLanguage.posture)}</span></div>
-                        )}
-                        {subject.bodyLanguage.orientationSignal && (
-                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Orientation:</span> <span className="text-foreground/70">{safeStr(subject.bodyLanguage.orientationSignal)}</span></div>
-                        )}
-                        {subject.bodyLanguage.selfTouchingBehaviors?.length > 0 && (
-                          <div className="px-2 py-1 rounded bg-muted/10 col-span-2">
-                            <span className="text-muted-foreground/40">Self-touch:</span>{" "}
-                            <span className="text-foreground/70">{(Array.isArray(subject.bodyLanguage.selfTouchingBehaviors) ? subject.bodyLanguage.selfTouchingBehaviors : []).map(safeStr).join(", ")}</span>
                           </div>
+                          {/* Mood bar instead of raw V/A/D numbers */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-muted-foreground/40 w-10">Mood</span>
+                            <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${getMoodColor(subject.emotionalState.valence ?? 0.5)} transition-all`} style={{ width: `${(subject.emotionalState.valence ?? 0.5) * 100}%` }} />
+                            </div>
+                            <span className="text-[9px] text-muted-foreground/40 w-10">Energy</span>
+                            <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${(subject.emotionalState.arousal ?? 0.5) * 100}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Personality — Human Readable */}
+                      {subject.bigFive && (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-purple-400/40 mb-1.5">Personality Snapshot</p>
+                          <div className="space-y-1">
+                            {[
+                              { key: "openness", label: "Openness", color: "bg-blue-400" },
+                              { key: "conscientiousness", label: "Discipline", color: "bg-emerald-400" },
+                              { key: "extraversion", label: "Social Energy", color: "bg-amber-400" },
+                              { key: "agreeableness", label: "Warmth", color: "bg-pink-400" },
+                              { key: "neuroticism", label: "Sensitivity", color: "bg-red-400" },
+                            ].map(trait => {
+                              const val = subject.bigFive[trait.key] ?? 50;
+                              return (
+                                <div key={trait.key} className="flex items-center gap-2">
+                                  <span className="text-[10px] text-muted-foreground/50 w-20 shrink-0">{trait.label}</span>
+                                  <div className="flex-1 h-1.5 bg-muted/15 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${trait.color}/40 transition-all`} style={{ width: `${val}%` }} />
+                                  </div>
+                                  <span className="text-[9px] text-muted-foreground/40 w-28 text-right shrink-0">{getBigFiveLabel(trait.key, val)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Micro-Expressions — Readable */}
+                      {subject.microExpressions?.length > 0 && (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-purple-400/40 mb-1">Facial Cues Detected</p>
+                          <div className="flex flex-wrap gap-1">
+                            {subject.microExpressions.map((me: any, i: number) => (
+                              <span key={i} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-200/70">
+                                ⚡ {safeStr(me)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Body Language — Readable */}
+                      {subject.bodyLanguage && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {subject.bodyLanguage.posture && (
+                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-muted/10 text-foreground/70">
+                              🧍 {safeStr(subject.bodyLanguage.posture)}
+                            </span>
+                          )}
+                          {subject.bodyLanguage.orientationSignal && (
+                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-muted/10 text-foreground/70">
+                              🧭 {safeStr(subject.bodyLanguage.orientationSignal)}
+                            </span>
+                          )}
+                          {Array.isArray(subject.bodyLanguage.selfTouchingBehaviors) && subject.bodyLanguage.selfTouchingBehaviors.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300/70">
+                              🤚 {subject.bodyLanguage.selfTouchingBehaviors.map(safeStr).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Key Indicators — Human Language */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {subject.stressLevel != null && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full ${subject.stressLevel > 60 ? "bg-red-500/10 text-red-300" : "bg-emerald-500/10 text-emerald-300"}`}>
+                            {subject.stressLevel > 60 ? "😓" : "😌"} {stressLabel(subject.stressLevel)}
+                          </span>
                         )}
+                        {subject.engagementLevel != null && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300">
+                            {subject.engagementLevel >= 70 ? "🎯 Highly Engaged" : subject.engagementLevel >= 40 ? "👀 Paying Attention" : "💤 Disengaged"}
+                          </span>
+                        )}
+                        {subject.confidenceLevel != null && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300">
+                            {subject.confidenceLevel >= 70 ? "💪 Very Confident" : subject.confidenceLevel >= 40 ? "🤔 Somewhat Confident" : "😶 Uncertain"}
+                          </span>
+                        )}
+                        {subject.deceptionLikelihood != null && (() => {
+                          const d = getDeceptionLabel(subject.deceptionLikelihood);
+                          return (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${subject.deceptionLikelihood > 40 ? "bg-red-500/10" : "bg-emerald-500/10"} ${d.color}`}>
+                              {d.icon} {d.label}
+                            </span>
+                          );
+                        })()}
                       </div>
-                    )}
 
-                    {/* Scores Row */}
-                    <div className="flex gap-2 flex-wrap">
-                      {[
-                        { label: "Stress", val: subject.stressLevel, color: subject.stressLevel > 60 ? "text-red-400" : "text-emerald-400" },
-                        { label: "Engage", val: subject.engagementLevel, color: "text-blue-400" },
-                        { label: "Confidence", val: subject.confidenceLevel, color: "text-amber-400" },
-                        { label: "Dominance", val: subject.dominanceLevel, color: "text-purple-400" },
-                        { label: "Deception", val: subject.deceptionLikelihood, color: subject.deceptionLikelihood > 40 ? "text-red-400" : "text-emerald-400" },
-                      ].filter(s => s.val != null).map(s => (
-                        <div key={s.label} className="px-1.5 py-0.5 rounded bg-muted/10 text-[9px]">
-                          <span className="text-muted-foreground/40">{s.label}: </span>
-                          <span className={`font-medium ${s.color}`}>{s.val}%</span>
+                      {/* Dark Triad — Clear Warning Style */}
+                      {subject.darkTriadIndicators && (
+                        <div className="px-2.5 py-2 rounded-lg bg-red-500/5 border border-red-500/10">
+                          <p className="text-[9px] uppercase tracking-wider text-red-400/50 mb-1.5">⚠️ Personality Red Flags</p>
+                          <div className="space-y-1">
+                            {[
+                              { key: "narcissism", label: "Self-Centered Traits", emoji: "🪞" },
+                              { key: "machiavellianism", label: "Manipulative Traits", emoji: "🎭" },
+                              { key: "psychopathy", label: "Callous Traits", emoji: "🧊" },
+                            ].filter(t => subject.darkTriadIndicators[t.key] != null).map(t => {
+                              const val = subject.darkTriadIndicators[t.key];
+                              return (
+                                <div key={t.key} className="flex items-center gap-2">
+                                  <span className="text-[10px]">{t.emoji}</span>
+                                  <span className="text-[10px] text-muted-foreground/50 w-28 shrink-0">{t.label}</span>
+                                  <div className="flex-1 h-1.5 bg-muted/15 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${val > 50 ? "bg-red-400" : "bg-emerald-400"}/40 transition-all`} style={{ width: `${val}%` }} />
+                                  </div>
+                                  <span className={`text-[9px] ${val > 50 ? "text-red-400" : "text-muted-foreground/40"}`}>{val > 70 ? "Elevated" : val > 50 ? "Notable" : "Low"}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {subject.darkTriadIndicators.assessment && <p className="text-[10px] text-muted-foreground/50 mt-1.5 font-extralight italic">{safeStr(subject.darkTriadIndicators.assessment)}</p>}
                         </div>
-                      ))}
+                      )}
+
+                      {/* Cognitive Load */}
+                      {subject.cognitiveLoad && (
+                        <div className="flex items-center gap-2 text-[10px]">
+                          <span>{subject.cognitiveLoad.level === "high" ? "🧠💥" : subject.cognitiveLoad.level === "medium" ? "🧠" : "🧠✨"}</span>
+                          <span className="text-muted-foreground/60">
+                            Mental Load: {subject.cognitiveLoad.level === "high" ? "Thinking Hard" : subject.cognitiveLoad.level === "medium" ? "Moderate Focus" : "Relaxed & Clear"}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Summary */}
+                      {subject.summary && (
+                        <p className="text-[11px] text-foreground/70 font-extralight italic border-l-2 border-purple-400/30 pl-2">{safeStr(subject.summary)}</p>
+                      )}
                     </div>
-
-                    {/* Dark Triad */}
-                    {subject.darkTriadIndicators && (
-                      <div className="px-2 py-1.5 rounded bg-red-500/5 border border-red-500/10">
-                        <p className="text-[9px] uppercase tracking-wider text-red-400/50 mb-1">Dark Triad Assessment</p>
-                        <div className="flex gap-3 text-[10px]">
-                          <span>N: <span className={subject.darkTriadIndicators.narcissism > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.narcissism}</span></span>
-                          <span>M: <span className={subject.darkTriadIndicators.machiavellianism > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.machiavellianism}</span></span>
-                          <span>P: <span className={subject.darkTriadIndicators.psychopathy > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.psychopathy}</span></span>
-                        </div>
-                        {subject.darkTriadIndicators.assessment && <p className="text-[10px] text-muted-foreground/50 mt-0.5 font-extralight">{safeStr(subject.darkTriadIndicators.assessment)}</p>}
-                      </div>
-                    )}
-
-                    {/* Summary */}
-                    {subject.summary && (
-                      <p className="text-[11px] text-foreground/70 font-extralight italic border-l-2 border-purple-400/30 pl-2">{safeStr(subject.summary)}</p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
