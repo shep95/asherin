@@ -277,6 +277,56 @@ const createMarkdownComponents = (navigate: ReturnType<typeof useNavigate>) => (
   a({ href, children }: any) {
     return <MarkdownLink href={href} navigate={navigate}>{children}</MarkdownLink>;
   },
+  table({ children, ...props }: any) {
+    return (
+      <div className="my-3 overflow-x-auto rounded-lg border border-border/20">
+        <table className="w-full text-[12px] sm:text-[13px]" {...props}>{children}</table>
+      </div>
+    );
+  },
+  thead({ children, ...props }: any) {
+    return <thead className="bg-foreground/5 border-b border-border/20" {...props}>{children}</thead>;
+  },
+  th({ children, ...props }: any) {
+    return <th className="px-3 py-2 text-left font-medium text-foreground/80 text-[11px] uppercase tracking-wider" {...props}>{children}</th>;
+  },
+  td({ children, ...props }: any) {
+    return <td className="px-3 py-2 border-t border-border/10 text-muted-foreground" {...props}>{children}</td>;
+  },
+  tr({ children, ...props }: any) {
+    return <tr className="hover:bg-foreground/[0.02] transition-colors" {...props}>{children}</tr>;
+  },
+  h1({ children, ...props }: any) {
+    return <h1 className="text-lg font-semibold text-foreground mt-4 mb-2 pb-1 border-b border-border/20" {...props}>{children}</h1>;
+  },
+  h2({ children, ...props }: any) {
+    return <h2 className="text-base font-semibold text-foreground mt-3 mb-1.5" {...props}>{children}</h2>;
+  },
+  h3({ children, ...props }: any) {
+    return <h3 className="text-sm font-medium text-foreground/90 mt-2 mb-1" {...props}>{children}</h3>;
+  },
+  h4({ children, ...props }: any) {
+    return <h4 className="text-[13px] font-medium text-foreground/80 mt-2 mb-1" {...props}>{children}</h4>;
+  },
+  ul({ children, ...props }: any) {
+    return <ul className="list-disc list-inside space-y-0.5 text-muted-foreground" {...props}>{children}</ul>;
+  },
+  ol({ children, ...props }: any) {
+    return <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground" {...props}>{children}</ol>;
+  },
+  li({ children, ...props }: any) {
+    return <li className="text-[13px] leading-relaxed" {...props}>{children}</li>;
+  },
+  blockquote({ children, ...props }: any) {
+    return (
+      <blockquote className="border-l-2 border-accent/40 pl-3 py-1 my-2 text-muted-foreground/80 italic text-[13px]" {...props}>
+        {children}
+      </blockquote>
+    );
+  },
+  hr({ ...props }: any) {
+    return <hr className="my-3 border-border/20" {...props} />;
+  },
   img({ src, alt, ...props }: any) {
     return (
       <span className="relative inline-block group cursor-pointer" onClick={() => (window as any).__aureonLightbox?.(src)}>
