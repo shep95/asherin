@@ -48,7 +48,7 @@ const StatsView = React.lazy(() => import("@/components/dashboard/StatsView"));
 const SettingsView = React.lazy(() => import("@/components/dashboard/SettingsView"));
 const SubscriptionView = React.lazy(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = React.lazy(() => import("@/components/dashboard/ZophielEngineView"));
-const AzplenView = React.lazy(() => import("@/components/dashboard/asha/AzplenView"));
+const AzplenView = React.lazy(() => import("@/components/dashboard/azplen/AzplenView"));
 const ZaliView = React.lazy(() => import("@/components/dashboard/zali/ZaliView"));
 const CommunityView = React.lazy(() => import("@/components/dashboard/zali/CommunityView"));
 const NomadView = React.lazy(() => import("@/components/dashboard/NomadView"));
