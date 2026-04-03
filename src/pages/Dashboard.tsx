@@ -1220,23 +1220,23 @@ const Dashboard = () => {
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
       case "vibe-video": return gatedView("vibe-video", VibeVideoView, "Vibe Video", "Conversational AI video editing — upload, describe edits, and Aureon analyzes your footage. Available on Pro and Advisor plans.");
       case "agents": return gatedView("agents", AgentsView, "Automated Agents", "AI-powered automation — create agents that run tasks on autopilot forever. Available as an add-on subscription.");
-      case "bug-reports": return <Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense>;
+      case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "reverse-engineer": return gatedView("reverse-engineer", ReverseEngineerView, "Reverse Engineering Intelligence", "Upload screenshots of any software or hardware system — Aureon deconstructs the entire architecture. Available on Aureon and Pro plans.");
       // Always-accessible views
-      case "library": return <Suspense fallback={<LazyFallback />}><LibraryView /></Suspense>;
-      case "snippets": return <Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense>;
-      case "projects": return <Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense>;
-      case "memory": return <Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense>;
-      case "stats": return <Suspense fallback={<LazyFallback />}><StatsView /></Suspense>;
-      case "settings": return <Suspense fallback={<LazyFallback />}><SettingsView /></Suspense>;
-      case "subscription": return <Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense>;
-      case "persona-store": return <Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense>;
-      case "ide": return <Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense>;
-      case "pdf-generator": return <Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense>;
-      case "ebook": return <Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense>;
-      case "slideshow": return <Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense>;
+      case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
+      case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
+      case "projects": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense></ErrorBoundary>;
+      case "memory": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense></ErrorBoundary>;
+      case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
+      case "settings": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SettingsView /></Suspense></ErrorBoundary>;
+      case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
+      case "persona-store": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense></ErrorBoundary>;
+      case "ide": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><AureonIdeView /></Suspense></ErrorBoundary>;
+      case "pdf-generator": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PdfGeneratorView /></Suspense></ErrorBoundary>;
+      case "ebook": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><EBookGeneratorView /></Suspense></ErrorBoundary>;
+      case "slideshow": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SlideshowGeneratorView /></Suspense></ErrorBoundary>;
       
-      case "self-access": return <Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense>;
+      case "self-access": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SelfAccessLearningView /></Suspense></ErrorBoundary>;
       default: return activeConv ? (
         <ChatView
           conversation={activeConv}
