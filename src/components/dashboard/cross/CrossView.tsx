@@ -25,6 +25,7 @@ import CrossToastSystem, { CrossToast } from "./CrossToastSystem";
 import CrossRecordingControls from "./CrossRecordingControls";
 import CrossRecordingLibrary from "./CrossRecordingLibrary";
 import CrossSessionHistory from "./CrossSessionHistory";
+import CrossWorkflowMap from "./CrossWorkflowMap";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
