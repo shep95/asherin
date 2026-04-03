@@ -577,13 +577,14 @@ const CrossView: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Close other panels when opening one
-  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics" | "library" | "history") => {
+  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics" | "library" | "history" | "workflow") => {
     setShowChat(panel === "chat" ? c => !c : false);
     setShowSettings(panel === "settings" ? s => !s : false);
     setShowNotifications(panel === "notifications" ? n => !n : false);
     setShowRecordingPanel(panel === "recording" ? r => !r : false);
     setShowLibrary(panel === "library" ? l => !l : false);
     setShowHistory(panel === "history" ? h => !h : false);
+    setShowWorkflow(panel === "workflow" ? w => !w : false);
     if (panel !== "analytics") setShowAnalytics(false);
     else setShowAnalytics(a => !a);
   }, []);
