@@ -369,6 +369,19 @@ const CrossView: React.FC = () => {
       setLiveToasts([]);
       localEngine.reset();
 
+      // Create session in database
+      if (user) {
+        const modeLabel = MODE_CONFIG[settings.mode]?.label || settings.mode;
+        const { data: sessionData } = await supabase.from("cross_sessions").insert({
+          user_id: user.id,
+          title: `${modeLabel} Session — ${new Date().toLocaleString()}`,
+          mode: settings.mode,
+          status: "active",
+          settings: settings as any,
+        }).select("id").single();
+        if (sessionData) setActiveSessionId(sessionData.id);
+      }
+
       intervalRef.current = setInterval(() => {
         analyzeFrameRef.current?.();
       }, settings.frameRate * 1000);
@@ -381,7 +394,7 @@ const CrossView: React.FC = () => {
         toast({ title: "Failed to start screen sharing", description: e.message, variant: "destructive" });
       }
     }
-  }, [settings.frameRate, settings.mode, settings.audioEnabled, toast, pushNotification]);
+  }, [settings.frameRate, settings.mode, settings.audioEnabled, toast, pushNotification, user]);
 
   const stopSharing = useCallback(() => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
