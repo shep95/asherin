@@ -275,8 +275,17 @@ const CrossView: React.FC = () => {
       }
 
       if (analysis.observations?.length) {
-        setObservations(analysis.observations);
-        setFrameExplanations(analysis.observations);
+        // Normalize observations: AI may return strings OR {type, title, description} objects
+        const normalizedObs = analysis.observations.map((obs: any) => {
+          if (typeof obs === "string") return obs;
+          if (obs && typeof obs === "object") {
+            const parts = [obs.title, obs.description].filter(Boolean).map(safeStr);
+            return parts.join(" — ") || safeStr(obs);
+          }
+          return safeStr(obs);
+        });
+        setObservations(normalizedObs);
+        setFrameExplanations(normalizedObs);
       }
 
       // Quick Verdict
@@ -536,7 +545,7 @@ const CrossView: React.FC = () => {
       if (!resp.ok) throw new Error("Analysis unavailable");
 
       const data = await resp.json();
-      const reply = data.observations?.join("\n\n") || data.quickVerdict?.message || "I'm analyzing your screen. Nothing notable right now.";
+      const reply = data.observations?.map((o: any) => typeof o === "string" ? o : o?.description || o?.title || safeStr(o)).join("\n\n") || data.quickVerdict?.message || "I'm analyzing your screen. Nothing notable right now.";
 
       // Determine message type from content
       let msgType: ChatMessage["type"] = "text";
@@ -829,7 +838,7 @@ const CrossView: React.FC = () => {
                 {frameExplanations.map((exp, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <span className="text-xs mt-0.5">{i === 0 ? "👁️" : i === 1 ? "📍" : "💡"}</span>
-                    <p className="text-xs text-foreground/80 font-extralight leading-relaxed">{exp}</p>
+                    <p className="text-xs text-foreground/80 font-extralight leading-relaxed">{safeStr(exp)}</p>
                   </div>
                 ))}
               </div>
