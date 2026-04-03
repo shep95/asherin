@@ -6,6 +6,7 @@ import type { ChatMode } from "../types";
 import ReactMarkdown from "react-markdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAccess } from "@/hooks/useAccess";
 import ModeSelector from "../ModeSelector";
 import DepthSelector from "../DepthSelector";
 import ContextHealthIndicator from "../ContextHealthIndicator";
@@ -153,6 +154,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { subscribed, loading: subLoading } = useSubscription();
+  const { isAdmin } = useAccess();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -317,7 +319,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
       {/* Input — subscription gated */}
       {subLoading ? (
         <div className="flex-shrink-0 p-3 border-t border-border/20" />
-      ) : !subscribed ? (
+      ) : !subscribed && !isAdmin ? (
         <div className="flex-shrink-0 border-t border-border/20 bg-card/30 backdrop-blur-md px-3 py-3">
           <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-2.5">
             <div className="flex items-center gap-2">

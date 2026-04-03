@@ -120,10 +120,11 @@ const SubscriptionGatedInput = forwardRef<AdaptiveInputBarHandle, {
   conversationId?: string;
 }>((props, ref) => {
   const { subscribed, loading } = useSubscription();
+  const { isAdmin } = useAccess();
   if (loading) {
     return <AdaptiveInputBar ref={ref} {...props} disabled />;
   }
-  if (!subscribed) {
+  if (!subscribed && !isAdmin) {
     return (
       <div className="border-t border-border/20 bg-card/30 backdrop-blur-md px-2 sm:px-4 py-3 sm:py-4">
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 rounded-xl border border-accent/20 bg-accent/5 px-4 sm:px-5 py-3 sm:py-3.5">

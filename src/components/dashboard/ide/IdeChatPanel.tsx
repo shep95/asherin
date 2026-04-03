@@ -4,6 +4,7 @@ import IdeModelSelector from "./IdeModelSelector";
 import MessageQueuePanel, { type QueueItem } from "../MessageQueuePanel";
 import ReactMarkdown from "react-markdown";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAccess } from "@/hooks/useAccess";
 import TypingIndicator from "../TypingIndicator";
 import TruthScore from "../TruthScore";
 import CalibrationFeedback from "../CalibrationFeedback";
@@ -104,6 +105,7 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { subscribed, loading } = useSubscription();
+  const { isAdmin } = useAccess();
 
   // Custom brain state
   const [customBrains, setCustomBrains] = useState<CustomBrain[]>(loadBrains);
@@ -210,7 +212,8 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
 
   if (loading) return <div className="flex-1" />;
 
-  if (!subscribed) {
+
+  if (!subscribed && !isAdmin) {
     return (
       <div className="flex flex-col h-full items-center justify-center p-4">
         <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 w-full">
