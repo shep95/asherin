@@ -243,6 +243,7 @@ const GuardianVaultView = () => {
       if (data) {
         setTotpUri(data.totp?.uri || null);
         setTotpSecret(data.totp?.secret || null);
+        setEnrolledFactorId(data.id);
         setEnrollingTotp(true);
       }
     } catch (e: any) {
