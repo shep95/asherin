@@ -61,6 +61,10 @@ const CrossView: React.FC = () => {
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
   const [alertsAccepted, setAlertsAccepted] = useState(0);
   const [alertsDismissed, setAlertsDismissed] = useState(0);
+  const [salesIntel, setSalesIntel] = useState<SalesIntelligence | undefined>();
+  const [emotions, setEmotions] = useState<EmotionState | undefined>();
+  const [engagement, setEngagement] = useState<EngagementMetrics | undefined>();
+  const [speakers, setSpeakers] = useState<SpeakerInfo[] | undefined>();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
