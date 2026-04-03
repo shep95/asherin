@@ -1,5 +1,5 @@
 import React from "react";
-import { Zap, TrendingUp, TrendingDown, AlertTriangle, Activity } from "lucide-react";
+import { Zap, TrendingUp, TrendingDown, AlertTriangle, Activity, Waves } from "lucide-react";
 import { LocalSignal } from "./types";
 
 interface Props {
@@ -7,15 +7,15 @@ interface Props {
 }
 
 const SIGNAL_ICONS: Record<string, React.ReactNode> = {
-  PUMP_DETECTED: <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />,
-  DUMP_DETECTED: <TrendingDown className="h-3.5 w-3.5 text-red-400" />,
-  PRICE_ACCELERATION: <Zap className="h-3.5 w-3.5 text-emerald-300" />,
-  SUPPORT_BOUNCE: <Activity className="h-3.5 w-3.5 text-emerald-400" />,
-  RESISTANCE_HIT: <Activity className="h-3.5 w-3.5 text-amber-400" />,
-  MOMENTUM_SHIFT: <AlertTriangle className="h-3.5 w-3.5 text-red-400" />,
-  RUG_WARNING: <AlertTriangle className="h-3.5 w-3.5 text-red-500" />,
-  BREAKOUT: <TrendingUp className="h-3.5 w-3.5 text-blue-400" />,
-  VOLUME_SPIKE: <Zap className="h-3.5 w-3.5 text-amber-400" />,
+  WAVE_IMPULSE: <Waves className="h-3.5 w-3.5 text-emerald-400" />,
+  WAVE_EXHAUSTION: <TrendingDown className="h-3.5 w-3.5 text-amber-400" />,
+  FRACTAL_CORRECTION: <Activity className="h-3.5 w-3.5 text-amber-300" />,
+  STRUCTURE_BREAK: <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />,
+  STRUCTURE_SHIFT: <AlertTriangle className="h-3.5 w-3.5 text-red-400" />,
+  LIQUIDITY_SWEEP: <Zap className="h-3.5 w-3.5 text-emerald-300" />,
+  LIQUIDITY_VOID: <AlertTriangle className="h-3.5 w-3.5 text-red-500" />,
+  FVG_RETEST: <Activity className="h-3.5 w-3.5 text-blue-400" />,
+  FRACTAL_PATTERN: <Waves className="h-3.5 w-3.5 text-purple-400" />,
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -33,7 +33,7 @@ const CrossLocalSignals: React.FC<Props> = ({ signals }) => {
   return (
     <div className="space-y-1.5">
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 flex items-center gap-1">
-        <Zap className="h-3 w-3" />
+        <Waves className="h-3 w-3" />
         Nestal Fractal Intelligence (Instant)
       </p>
       {signals.map((sig, i) => {
@@ -41,7 +41,7 @@ const CrossLocalSignals: React.FC<Props> = ({ signals }) => {
         return (
           <div key={i} className={`rounded-lg border ${colorClass} p-2.5`}>
             <div className="flex items-center gap-2">
-              {SIGNAL_ICONS[sig.type] || <Zap className="h-3.5 w-3.5" />}
+              {SIGNAL_ICONS[sig.type] || <Waves className="h-3.5 w-3.5" />}
               <span className="text-xs font-bold">{sig.action.replace("_", " ")}</span>
               <span className="text-[10px] opacity-60">{sig.confidence}%</span>
               {sig.urgency === "immediate" && (

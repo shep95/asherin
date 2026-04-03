@@ -75,8 +75,18 @@ export interface PricePoint {
   pair: string;
 }
 
+/** Nestal Fractal signal types — NO generic TA */
 export interface LocalSignal {
-  type: "PUMP_DETECTED" | "DUMP_DETECTED" | "VOLUME_SPIKE" | "SUPPORT_BOUNCE" | "RESISTANCE_HIT" | "BREAKOUT" | "RUG_WARNING" | "PRICE_ACCELERATION" | "MOMENTUM_SHIFT";
+  type:
+    | "WAVE_IMPULSE"       // Wave 3 entry (strongest move)
+    | "WAVE_EXHAUSTION"    // Wave 5 completion (exit)
+    | "FRACTAL_CORRECTION" // Wave 4 pullback (wait)
+    | "STRUCTURE_BREAK"    // BOS — Break of Structure (continuation)
+    | "STRUCTURE_SHIFT"    // CHOCH — Change of Character (reversal)
+    | "LIQUIDITY_SWEEP"    // Stop hunt + displacement (institutional entry)
+    | "LIQUIDITY_VOID"     // Catastrophic displacement candle (exit)
+    | "FVG_RETEST"         // Fair Value Gap retest (entry zone)
+    | "FRACTAL_PATTERN";   // Multi-scale fractal repetition (monitor)
   action: "BUY_NOW" | "SELL_NOW" | "EXIT_NOW" | "HOLD" | "WAIT" | "MONITOR";
   reason: string;
   confidence: number;
