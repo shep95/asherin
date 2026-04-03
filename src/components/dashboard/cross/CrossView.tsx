@@ -16,6 +16,9 @@ import CrossPriceTracker from "./CrossPriceTracker";
 import CrossModeSelector from "./CrossModeSelector";
 import CrossActivityFeed from "./CrossActivityFeed";
 import CrossAnalyticsSummary from "./CrossAnalyticsSummary";
+import CrossSalesIntelligence from "./CrossSalesIntelligence";
+import CrossAudioVisualPanel from "./CrossAudioVisualPanel";
+import CrossConsentBanner from "./CrossConsentBanner";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
