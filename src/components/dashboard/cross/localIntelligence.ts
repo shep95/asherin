@@ -3,8 +3,11 @@ import { PricePoint, LocalSignal, CrossContext } from "./types";
 /**
  * NESTAL FRACTAL LOCAL INTELLIGENCE ENGINE
  * Runs entirely in the browser — no API calls.
- * Pure Nestal Fractal strategy: Wave Structure, Liquidity, FVGs, BOS/CHOCH, Fractal Geometry.
- * NO generic TA (no RSI, no MACD, no "support bounce", no "breakout" retail patterns).
+ * Pure Nestal Fractal strategy:
+ *   - 3 engine patterns: Sweep→Reclaim, Break→Retest→Continuation, Range Fade
+ *   - 2 confirmations required: Structure + Execution
+ *   - Two Strikes rule, Distance/Time filters, Risk rules
+ *   - Fractal geometry layer: waves, liquidity, FVGs, BOS/CHOCH
  */
 
 interface SwingPoint {
@@ -12,13 +15,6 @@ interface SwingPoint {
   timestamp: number;
   type: "high" | "low";
   index: number;
-}
-
-interface WaveState {
-  currentWave: number; // 1-5 impulse, or -1/-2/-3 for A-B-C correction
-  direction: "bullish" | "bearish";
-  waveStart: number;
-  confidence: number;
 }
 
 interface FairValueGap {
@@ -33,6 +29,10 @@ export class LocalIntelligenceEngine {
   private maxHistory = 500;
   private lastFrameData: string | null = null;
   private changeThreshold = 0.02;
+  // Track pattern strikes per session
+  private patternStrikes: Record<string, number> = {};
+  private sessionTradeCount = 0;
+  private sessionLossCount = 0;
 
   recordPrice(context: CrossContext) {
     if (!context.price || !context.pair) return;
@@ -51,7 +51,7 @@ export class LocalIntelligenceEngine {
     return this.priceHistory.filter(p => p.pair === pair);
   }
 
-  /** NESTAL FRACTAL pattern detection — pure fractal logic, <50ms */
+  /** NESTAL FRACTAL pattern detection — 3 engine patterns only, <50ms */
   detectLocalPatterns(currentContext: CrossContext): LocalSignal[] {
     const signals: LocalSignal[] = [];
     if (!currentContext.pair || !currentContext.price) return signals;
@@ -62,12 +62,35 @@ export class LocalIntelligenceEngine {
     const history = this.getHistory(currentContext.pair);
     if (history.length < 10) return signals;
 
+    // Session limits: max 3 trades, max 2 losses
+    if (this.sessionTradeCount >= 3) {
+      signals.push({
+        type: "FRACTAL_PATTERN",
+        action: "WAIT",
+        reason: "SESSION LIMIT — Max 3 trades reached. Stop trading this session.",
+        confidence: 99,
+        urgency: "watch",
+        price: currentPrice,
+      });
+      return signals;
+    }
+    if (this.sessionLossCount >= 2) {
+      signals.push({
+        type: "FRACTAL_PATTERN",
+        action: "WAIT",
+        reason: "SESSION LIMIT — 2 losses hit. Stop trading this session.",
+        confidence: 99,
+        urgency: "watch",
+        price: currentPrice,
+      });
+      return signals;
+    }
+
     const now = Date.now();
     const last5m = history.filter(p => now - p.timestamp < 300_000);
     const last30m = history.filter(p => now - p.timestamp < 1_800_000);
 
-    // ── CATASTROPHIC EXIT — Displacement candle (rug/dump) ──
-    // Not a "pattern" — this is a liquidity void event
+    // ── DISPLACEMENT EVENT (Liquidity void — exit immediately) ──
     if (last5m.length >= 3) {
       const oldest = last5m[0].price;
       const pctDrop = ((currentPrice - oldest) / oldest) * 100;
@@ -75,7 +98,7 @@ export class LocalIntelligenceEngine {
         signals.push({
           type: "LIQUIDITY_VOID",
           action: "EXIT_NOW",
-          reason: `LIQUIDITY VOID — ${pctDrop.toFixed(0)}% displacement candle in <5 min. Institutional exit. No bid-side liquidity. EXIT.`,
+          reason: `LIQUIDITY VOID — ${pctDrop.toFixed(0)}% displacement in <5 min. No bid-side liquidity. EXIT EVERYTHING.`,
           confidence: 96,
           urgency: "immediate",
           price: currentPrice,
@@ -86,7 +109,7 @@ export class LocalIntelligenceEngine {
         signals.push({
           type: "LIQUIDITY_VOID",
           action: "EXIT_NOW",
-          reason: `DISPLACEMENT — ${pctDrop.toFixed(0)}% drop. Sell-side aggression, no fractal support below. Exit now.`,
+          reason: `DISPLACEMENT — ${pctDrop.toFixed(0)}% drop. Sell-side aggression. Exit now.`,
           confidence: 90,
           urgency: "immediate",
           price: currentPrice,
@@ -95,101 +118,63 @@ export class LocalIntelligenceEngine {
       }
     }
 
-    // Find swing points for fractal analysis
     const swings = this.findSwingPoints(last30m);
-    const waveState = this.detectWaveStructure(swings, currentPrice);
-    const fvgs = this.detectFairValueGaps(last30m);
-    const structureShift = this.detectMarketStructure(swings, currentPrice);
     const fractalRepetitions = this.countFractalRepetitions(last30m);
-    const liquiditySweep = this.detectLiquiditySweep(swings, last5m, currentPrice);
 
-    // ── WAVE 5 EXHAUSTION — Prepare to exit ──
-    if (waveState && waveState.currentWave === 5 && waveState.direction === "bullish") {
-      signals.push({
-        type: "WAVE_EXHAUSTION",
-        action: "SELL_NOW",
-        reason: `WAVE 5 EXHAUSTION — Impulse wave completing. Fractal geometry signals reversal imminent. Take profits.`,
-        confidence: 82,
-        urgency: "immediate",
-        price: currentPrice,
-      });
+    // ── ENGINE PATTERN A: SWEEP → RECLAIM (Liquidity Grab) ──
+    const sweepSignal = this.detectSweepReclaim(swings, last5m, currentPrice, fractalRepetitions);
+    if (sweepSignal) signals.push(sweepSignal);
+
+    // ── ENGINE PATTERN B: BREAKOUT → RETEST → CONTINUATION ──
+    const retestSignal = this.detectBreakRetest(swings, last5m, last30m, currentPrice, fractalRepetitions);
+    if (retestSignal) signals.push(retestSignal);
+
+    // ── ENGINE PATTERN C: RANGE FADE (Mean Reversion) ──
+    const rangeSignal = this.detectRangeFade(last30m, currentPrice, fractalRepetitions);
+    if (rangeSignal) signals.push(rangeSignal);
+
+    // ── FRACTAL GEOMETRY OVERLAY ──
+    // Wave structure context
+    const waveState = this.detectWaveStructure(swings, currentPrice);
+    if (waveState) {
+      if (waveState.wave === 5 && waveState.direction === "bullish" && signals.length === 0) {
+        signals.push({
+          type: "WAVE_EXHAUSTION",
+          action: "SELL_NOW",
+          reason: `WAVE 5 EXHAUSTION — Impulse completing. Fractal geometry signals reversal. Take profits.`,
+          confidence: 80,
+          urgency: "immediate",
+          price: currentPrice,
+        });
+      }
+      if (waveState.wave === 3 && waveState.direction === "bullish") {
+        // Boost any existing buy signals
+        for (const sig of signals) {
+          if (sig.action === "BUY_NOW") {
+            sig.confidence = Math.min(97, sig.confidence + 10);
+            sig.reason += " | Wave 3 impulse confirmation.";
+          }
+        }
+      }
     }
 
-    if (waveState && waveState.currentWave === 5 && waveState.direction === "bearish") {
-      signals.push({
-        type: "WAVE_EXHAUSTION",
-        action: "BUY_NOW",
-        reason: `BEARISH WAVE 5 COMPLETE — Selling exhaustion. Fractal bottom forming. Prepare for corrective bounce or trend reversal.`,
-        confidence: 78,
-        urgency: "soon",
-        price: currentPrice,
-        entry: currentPrice,
-        stopLoss: currentPrice * 0.92,
-        takeProfit: currentPrice * 1.25,
-      });
-    }
-
-    // ── WAVE 3 ENTRY — The strongest move ──
-    if (waveState && waveState.currentWave === 3 && waveState.direction === "bullish") {
-      const conf = 85 + (fractalRepetitions >= 3 ? 10 : fractalRepetitions >= 2 ? 5 : 0);
-      signals.push({
-        type: "WAVE_IMPULSE",
-        action: "BUY_NOW",
-        reason: `WAVE 3 IMPULSE — Strongest wave in fractal structure. ${fractalRepetitions > 0 ? `${fractalRepetitions}x fractal repetition confirmed.` : "Momentum building."} Ride it.`,
-        confidence: Math.min(conf, 97),
-        urgency: "immediate",
-        price: currentPrice,
-        entry: currentPrice,
-        stopLoss: currentPrice * 0.92,
-        takeProfit: currentPrice * 1.4,
-      });
-    }
-
-    // ── WAVE 4 CORRECTION — Prepare for Wave 5 entry ──
-    if (waveState && waveState.currentWave === 4 && waveState.direction === "bullish") {
-      signals.push({
-        type: "FRACTAL_CORRECTION",
-        action: "WAIT",
-        reason: `WAVE 4 CORRECTION — Fractal pullback in progress. Wait for completion, then enter Wave 5.`,
-        confidence: 72,
-        urgency: "soon",
-        price: currentPrice,
-      });
-    }
-
-    // ── BOS (Break of Structure) — Trend continuation ──
-    if (structureShift === "BOS_BULLISH") {
-      const conf = 80 + (fractalRepetitions >= 3 ? 10 : 0);
-      signals.push({
-        type: "STRUCTURE_BREAK",
-        action: "BUY_NOW",
-        reason: `BULLISH BOS — Higher high confirmed. Market structure intact. Fractal trend continuation.`,
-        confidence: Math.min(conf, 95),
-        urgency: "immediate",
-        price: currentPrice,
-        entry: currentPrice,
-        stopLoss: currentPrice * 0.94,
-        takeProfit: currentPrice * 1.3,
-      });
-    }
-
-    // ── CHOCH (Change of Character) — Reversal warning ──
-    if (structureShift === "CHOCH_BEARISH") {
+    // Market structure context (BOS/CHOCH)
+    const structure = this.detectMarketStructure(swings, currentPrice);
+    if (structure === "CHOCH_BEARISH" && signals.length === 0) {
       signals.push({
         type: "STRUCTURE_SHIFT",
         action: "SELL_NOW",
-        reason: `BEARISH CHOCH — First lower low after uptrend. Character changed. Fractal structure broken. Exit longs.`,
+        reason: `BEARISH CHOCH — Character changed. First lower low after uptrend. Exit longs.`,
         confidence: 83,
         urgency: "immediate",
         price: currentPrice,
       });
     }
-
-    if (structureShift === "CHOCH_BULLISH") {
+    if (structure === "CHOCH_BULLISH" && signals.length === 0) {
       signals.push({
         type: "STRUCTURE_SHIFT",
         action: "BUY_NOW",
-        reason: `BULLISH CHOCH — First higher high after downtrend. Reversal confirmed. Enter with tight stop.`,
+        reason: `BULLISH CHOCH — First higher high after downtrend. Reversal confirmed.`,
         confidence: 80,
         urgency: "immediate",
         price: currentPrice,
@@ -199,61 +184,31 @@ export class LocalIntelligenceEngine {
       });
     }
 
-    // ── LIQUIDITY SWEEP + DISPLACEMENT — Institutional entry ──
-    if (liquiditySweep === "bullish") {
-      const conf = 88 + (fractalRepetitions >= 3 ? 7 : 0);
-      signals.push({
-        type: "LIQUIDITY_SWEEP",
-        action: "BUY_NOW",
-        reason: `LIQUIDITY SWEEP — Stop hunt below lows followed by displacement candle. Institutional entry zone. High probability long.`,
-        confidence: Math.min(conf, 97),
-        urgency: "immediate",
-        price: currentPrice,
-        entry: currentPrice,
-        stopLoss: currentPrice * 0.93,
-        takeProfit: currentPrice * 1.35,
-      });
-    }
-
-    if (liquiditySweep === "bearish") {
-      signals.push({
-        type: "LIQUIDITY_SWEEP",
-        action: "SELL_NOW",
-        reason: `BEARISH LIQUIDITY GRAB — Sweep above highs then rejection. Smart money distribution. Exit longs.`,
-        confidence: 85,
-        urgency: "immediate",
-        price: currentPrice,
-      });
-    }
-
-    // ── FVG (Fair Value Gap) — Price magnet ──
+    // FVG context
+    const fvgs = this.detectFairValueGaps(last30m);
     const activeFVGs = fvgs.filter(g => !g.filled);
-    for (const gap of activeFVGs.slice(-2)) {
+    for (const gap of activeFVGs.slice(-1)) {
       const gapMid = (gap.high + gap.low) / 2;
       const distToGap = Math.abs(currentPrice - gapMid) / currentPrice;
-
-      if (distToGap < 0.02) {
+      if (distToGap < 0.02 && signals.length === 0) {
         const isBelowPrice = gapMid < currentPrice;
         signals.push({
           type: "FVG_RETEST",
-          action: isBelowPrice ? "BUY_NOW" : "WAIT",
-          reason: `FVG RETEST — Price at Fair Value Gap ($${gap.low.toFixed(8)} - $${gap.high.toFixed(8)}). ${isBelowPrice ? "Bullish FVG fill = entry zone." : "Bearish FVG above = resistance."}`,
-          confidence: 76,
-          urgency: isBelowPrice ? "immediate" : "soon",
+          action: isBelowPrice ? "MONITOR" : "WAIT",
+          reason: `FVG zone ($${gap.low.toFixed(8)} - $${gap.high.toFixed(8)}). ${isBelowPrice ? "Potential support — wait for engine pattern trigger." : "Resistance overhead."}`,
+          confidence: 68,
+          urgency: "soon",
           price: currentPrice,
-          entry: isBelowPrice ? currentPrice : undefined,
-          stopLoss: isBelowPrice ? gap.low * 0.97 : undefined,
-          takeProfit: isBelowPrice ? currentPrice * 1.25 : undefined,
         });
       }
     }
 
-    // ── FRACTAL REPETITION — Self-similar patterns across scales ──
+    // Fractal repetition context (no pattern yet)
     if (fractalRepetitions >= 3 && signals.length === 0) {
       signals.push({
         type: "FRACTAL_PATTERN",
         action: "MONITOR",
-        reason: `FRACTAL REPETITION — ${fractalRepetitions}x self-similar pattern detected across scales. High confidence setup forming. Wait for trigger.`,
+        reason: `${fractalRepetitions}x self-similar fractal detected. High-confidence setup forming. Wait for engine pattern trigger.`,
         confidence: 74,
         urgency: "soon",
         price: currentPrice,
@@ -263,7 +218,187 @@ export class LocalIntelligenceEngine {
     return signals;
   }
 
-  /** Find swing highs and lows in price data */
+  /** ENGINE PATTERN A: Sweep → Reclaim */
+  private detectSweepReclaim(swings: SwingPoint[], recentData: PricePoint[], currentPrice: number, fractalReps: number): LocalSignal | null {
+    const lows = swings.filter(s => s.type === "low").slice(-3);
+    const highs = swings.filter(s => s.type === "high").slice(-3);
+
+    // Bullish sweep-reclaim: equal lows swept then reclaimed
+    if (lows.length >= 2) {
+      const equalLows = Math.abs(lows[lows.length - 1].price - lows[lows.length - 2].price) / lows[lows.length - 2].price < 0.015;
+      const sweptBelow = recentData.some(p => p.price < lows[lows.length - 1].price * 0.99);
+      const reclaimedAbove = currentPrice > lows[lows.length - 1].price * 1.005;
+
+      if (equalLows && sweptBelow && reclaimedAbove) {
+        const sweepExtreme = Math.min(...recentData.map(p => p.price));
+        const stopLoss = sweepExtreme * 0.995;
+        const target = currentPrice + (currentPrice - stopLoss) * 2;
+        const rr = (target - currentPrice) / (currentPrice - stopLoss);
+
+        if (rr < 1.5) return null; // R:R too low
+
+        const strikes = this.patternStrikes["sweep_reclaim"] || 0;
+        if (strikes >= 2) {
+          return {
+            type: "FRACTAL_PATTERN",
+            action: "WAIT",
+            reason: `SWEEP-RECLAIM invalidated — Failed ${strikes}x this session. Done.`,
+            confidence: 90,
+            urgency: "watch",
+            price: currentPrice,
+          };
+        }
+
+        const conf = 85 + (fractalReps >= 3 ? 10 : fractalReps >= 2 ? 5 : 0);
+        return {
+          type: "LIQUIDITY_SWEEP",
+          action: "BUY_NOW",
+          reason: `SWEEP → RECLAIM — Liquidity grabbed below equal lows, price reclaimed. Stop hunt complete. R:R ${rr.toFixed(1)}R.${strikes === 1 ? " ⚠️ 2nd attempt — be cautious on 3rd." : ""}`,
+          confidence: Math.min(conf, 97),
+          urgency: "immediate",
+          price: currentPrice,
+          entry: currentPrice,
+          stopLoss,
+          takeProfit: target,
+        };
+      }
+    }
+
+    // Bearish sweep-reclaim: equal highs swept then rejected
+    if (highs.length >= 2) {
+      const equalHighs = Math.abs(highs[highs.length - 1].price - highs[highs.length - 2].price) / highs[highs.length - 2].price < 0.015;
+      const sweptAbove = recentData.some(p => p.price > highs[highs.length - 1].price * 1.01);
+      const rejectedBelow = currentPrice < highs[highs.length - 1].price * 0.995;
+
+      if (equalHighs && sweptAbove && rejectedBelow) {
+        return {
+          type: "LIQUIDITY_SWEEP",
+          action: "SELL_NOW",
+          reason: `BEARISH SWEEP → RECLAIM — Liquidity grabbed above equal highs, rejected. Smart money distribution.`,
+          confidence: 84,
+          urgency: "immediate",
+          price: currentPrice,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /** ENGINE PATTERN B: Breakout → Retest → Continuation */
+  private detectBreakRetest(swings: SwingPoint[], recentData: PricePoint[], allData: PricePoint[], currentPrice: number, fractalReps: number): LocalSignal | null {
+    if (swings.length < 6 || allData.length < 15) return null;
+
+    const highs = swings.filter(s => s.type === "high").slice(-4);
+    const lows = swings.filter(s => s.type === "low").slice(-4);
+
+    // Bullish break-retest: broke above resistance, now retesting it as support
+    if (highs.length >= 3) {
+      const resistanceLevel = highs[highs.length - 2].price;
+      const brokeAbove = highs[highs.length - 1].price > resistanceLevel * 1.01;
+      const retesting = Math.abs(currentPrice - resistanceLevel) / resistanceLevel < 0.015;
+      const holdingAbove = currentPrice > resistanceLevel * 0.995;
+
+      // Execution confirmation: check for rejection wick or hold
+      const recentAboveLevel = recentData.filter(p => p.price >= resistanceLevel * 0.99).length;
+      const hasHold = recentAboveLevel >= Math.floor(recentData.length * 0.6);
+
+      if (brokeAbove && retesting && holdingAbove && hasHold) {
+        const stopLoss = resistanceLevel * 0.985;
+        const target = currentPrice + (currentPrice - stopLoss) * 2;
+        const rr = (target - currentPrice) / (currentPrice - stopLoss);
+
+        if (rr < 1.5) return null;
+
+        const strikes = this.patternStrikes["break_retest"] || 0;
+        if (strikes >= 2) {
+          return {
+            type: "FRACTAL_PATTERN",
+            action: "WAIT",
+            reason: `BREAK-RETEST invalidated — Failed ${strikes}x this session.`,
+            confidence: 90,
+            urgency: "watch",
+            price: currentPrice,
+          };
+        }
+
+        const conf = 82 + (fractalReps >= 3 ? 10 : 0);
+        return {
+          type: "STRUCTURE_BREAK",
+          action: "BUY_NOW",
+          reason: `BREAK → RETEST → CONTINUATION — Broke $${resistanceLevel.toFixed(8)}, retesting as support, holding. R:R ${rr.toFixed(1)}R.`,
+          confidence: Math.min(conf, 95),
+          urgency: "immediate",
+          price: currentPrice,
+          entry: currentPrice,
+          stopLoss,
+          takeProfit: target,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /** ENGINE PATTERN C: Range Fade (Mean Reversion) */
+  private detectRangeFade(data: PricePoint[], currentPrice: number, fractalReps: number): LocalSignal | null {
+    if (data.length < 20) return null;
+
+    const prices = data.map(p => p.price);
+    const high = Math.max(...prices);
+    const low = Math.min(...prices);
+    const range = (high - low) / low;
+
+    // Only valid if range is < 15% (actual range, not trending)
+    if (range > 0.15 || range < 0.02) return null;
+
+    const mid = (high + low) / 2;
+    const distFromHigh = (high - currentPrice) / (high - low);
+    const distFromLow = (currentPrice - low) / (high - low);
+
+    // At upper boundary — fade short
+    if (distFromHigh < 0.1) {
+      const stopLoss = high * 1.005;
+      const target = mid;
+      const rr = (currentPrice - target) / (stopLoss - currentPrice);
+
+      if (rr < 1.5) return null;
+
+      return {
+        type: "FRACTAL_PATTERN",
+        action: "SELL_NOW",
+        reason: `RANGE FADE — At upper boundary ($${high.toFixed(8)}). Mean reversion to $${mid.toFixed(8)}. R:R ${rr.toFixed(1)}R.`,
+        confidence: 74 + (fractalReps >= 3 ? 8 : 0),
+        urgency: "immediate",
+        price: currentPrice,
+      };
+    }
+
+    // At lower boundary — fade long
+    if (distFromLow < 0.1) {
+      const stopLoss = low * 0.995;
+      const target = mid;
+      const rr = (target - currentPrice) / (currentPrice - stopLoss);
+
+      if (rr < 1.5) return null;
+
+      return {
+        type: "FRACTAL_PATTERN",
+        action: "BUY_NOW",
+        reason: `RANGE FADE — At lower boundary ($${low.toFixed(8)}). Mean reversion to $${mid.toFixed(8)}. R:R ${rr.toFixed(1)}R.`,
+        confidence: 74 + (fractalReps >= 3 ? 8 : 0),
+        urgency: "immediate",
+        price: currentPrice,
+        entry: currentPrice,
+        stopLoss,
+        takeProfit: target,
+      };
+    }
+
+    return null;
+  }
+
+  /** Find swing highs and lows */
   private findSwingPoints(data: PricePoint[]): SwingPoint[] {
     const swings: SwingPoint[] = [];
     if (data.length < 5) return swings;
@@ -280,28 +415,25 @@ export class LocalIntelligenceEngine {
     return swings;
   }
 
-  /** Detect wave structure (1-2-3-4-5 impulse or A-B-C correction) */
-  private detectWaveStructure(swings: SwingPoint[], currentPrice: number): WaveState | null {
+  /** Detect wave structure (1-5 impulse) */
+  private detectWaveStructure(swings: SwingPoint[], currentPrice: number): { wave: number; direction: "bullish" | "bearish" } | null {
     if (swings.length < 5) return null;
 
     const recent = swings.slice(-6);
     const highs = recent.filter(s => s.type === "high");
     const lows = recent.filter(s => s.type === "low");
-
     if (highs.length < 2 || lows.length < 2) return null;
 
-    // Check for bullish impulse: higher highs + higher lows
     const lastHighs = highs.slice(-3);
     const lastLows = lows.slice(-3);
     const hhCount = lastHighs.filter((h, i) => i === 0 || h.price > lastHighs[i - 1].price).length;
     const hlCount = lastLows.filter((l, i) => i === 0 || l.price > lastLows[i - 1].price).length;
 
     if (hhCount >= 2 && hlCount >= 2) {
-      // Bullish impulse — estimate wave number
       const totalSwings = recent.length;
       const waveNum = Math.min(5, Math.ceil(totalSwings / 2));
 
-      // Check for Wave 5 divergence (price higher but momentum weaker)
+      // Wave 5 divergence check
       if (waveNum >= 4) {
         const recentMoves = [];
         for (let i = 1; i < recent.length; i++) {
@@ -311,126 +443,69 @@ export class LocalIntelligenceEngine {
         const secondHalf = recentMoves.slice(Math.floor(recentMoves.length / 2));
         const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
         const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-
         if (secondAvg < firstAvg * 0.6) {
-          return { currentWave: 5, direction: "bullish", waveStart: recent[0].price, confidence: 78 };
+          return { wave: 5, direction: "bullish" };
         }
       }
 
-      // Is current price pulling back? → Wave 4 correction
-      const lastHigh = highs[highs.length - 1];
-      if (currentPrice < lastHigh.price * 0.97) {
-        return { currentWave: 4, direction: "bullish", waveStart: recent[0].price, confidence: 72 };
+      if (currentPrice < highs[highs.length - 1].price * 0.97) {
+        return { wave: 4, direction: "bullish" };
       }
 
-      return { currentWave: waveNum <= 3 ? 3 : waveNum, direction: "bullish", waveStart: recent[0].price, confidence: 80 };
-    }
-
-    // Check for bearish impulse
-    const lhCount = lastHighs.filter((h, i) => i === 0 || h.price < lastHighs[i - 1].price).length;
-    const llCount = lastLows.filter((l, i) => i === 0 || l.price < lastLows[i - 1].price).length;
-
-    if (lhCount >= 2 && llCount >= 2) {
-      const totalSwings = recent.length;
-      const waveNum = Math.min(5, Math.ceil(totalSwings / 2));
-      return { currentWave: waveNum, direction: "bearish", waveStart: recent[0].price, confidence: 75 };
+      return { wave: waveNum <= 3 ? 3 : waveNum, direction: "bullish" };
     }
 
     return null;
   }
 
-  /** Detect Fair Value Gaps (imbalanced candle bodies with no overlap) */
+  /** Detect BOS/CHOCH */
+  private detectMarketStructure(swings: SwingPoint[], currentPrice: number): string | null {
+    if (swings.length < 6) return null;
+
+    const highs = swings.filter(s => s.type === "high").slice(-4);
+    const lows = swings.filter(s => s.type === "low").slice(-4);
+    if (highs.length < 3 || lows.length < 3) return null;
+
+    const wasUptrend = highs[highs.length - 2].price > highs[highs.length - 3].price &&
+                       lows[lows.length - 2].price > lows[lows.length - 3].price;
+    const wasDowntrend = highs[highs.length - 2].price < highs[highs.length - 3].price &&
+                         lows[lows.length - 2].price < lows[lows.length - 3].price;
+
+    const prevHigh = highs[highs.length - 2].price;
+    const prevLow = lows[lows.length - 2].price;
+
+    if (wasUptrend && currentPrice < prevLow) return "CHOCH_BEARISH";
+    if (wasDowntrend && currentPrice > prevHigh) return "CHOCH_BULLISH";
+    if (wasUptrend && currentPrice > prevHigh) return "BOS_BULLISH";
+
+    return null;
+  }
+
+  /** Detect Fair Value Gaps */
   private detectFairValueGaps(data: PricePoint[]): FairValueGap[] {
     const gaps: FairValueGap[] = [];
     if (data.length < 4) return gaps;
 
-    // Simulate candles from tick data (group by ~30s intervals)
     const candles = this.groupToCandles(data, 30_000);
     if (candles.length < 3) return gaps;
 
     for (let i = 2; i < candles.length; i++) {
       const prev = candles[i - 2];
       const curr = candles[i];
-
-      // Bullish FVG: candle[i] low > candle[i-2] high
       if (curr.low > prev.high) {
         gaps.push({ high: curr.low, low: prev.high, timestamp: candles[i - 1].timestamp, filled: false });
       }
-      // Bearish FVG: candle[i] high < candle[i-2] low
       if (curr.high < prev.low) {
         gaps.push({ high: prev.low, low: curr.high, timestamp: candles[i - 1].timestamp, filled: false });
       }
     }
-
     return gaps;
   }
 
-  /** Detect BOS (Break of Structure) and CHOCH (Change of Character) */
-  private detectMarketStructure(swings: SwingPoint[], currentPrice: number): string | null {
-    if (swings.length < 6) return null;
-
-    const highs = swings.filter(s => s.type === "high").slice(-4);
-    const lows = swings.filter(s => s.type === "low").slice(-4);
-
-    if (highs.length < 3 || lows.length < 3) return null;
-
-    // Was in uptrend (HH + HL)?
-    const wasUptrend = highs[highs.length - 2].price > highs[highs.length - 3].price &&
-                       lows[lows.length - 2].price > lows[lows.length - 3].price;
-
-    // Was in downtrend (LH + LL)?
-    const wasDowntrend = highs[highs.length - 2].price < highs[highs.length - 3].price &&
-                         lows[lows.length - 2].price < lows[lows.length - 3].price;
-
-    const latestHigh = highs[highs.length - 1].price;
-    const prevHigh = highs[highs.length - 2].price;
-    const latestLow = lows[lows.length - 1].price;
-    const prevLow = lows[lows.length - 2].price;
-
-    // BOS: trend continues
-    if (wasUptrend && currentPrice > prevHigh) return "BOS_BULLISH";
-    if (wasDowntrend && currentPrice < prevLow) return "BOS_BEARISH";
-
-    // CHOCH: trend breaks
-    if (wasUptrend && currentPrice < prevLow) return "CHOCH_BEARISH";
-    if (wasDowntrend && currentPrice > prevHigh) return "CHOCH_BULLISH";
-
-    return null;
-  }
-
-  /** Detect liquidity sweeps (stop hunts followed by reversal) */
-  private detectLiquiditySweep(swings: SwingPoint[], recentData: PricePoint[], currentPrice: number): string | null {
-    if (swings.length < 4 || recentData.length < 5) return null;
-
-    const lows = swings.filter(s => s.type === "low").slice(-3);
-    const highs = swings.filter(s => s.type === "high").slice(-3);
-
-    // Bullish sweep: price went below recent equal lows then reversed sharply
-    if (lows.length >= 2) {
-      const equalLows = Math.abs(lows[lows.length - 1].price - lows[lows.length - 2].price) / lows[lows.length - 2].price < 0.015;
-      const sweptBelow = recentData.some(p => p.price < lows[lows.length - 1].price * 0.99);
-      const reversedUp = currentPrice > lows[lows.length - 1].price * 1.01;
-
-      if (equalLows && sweptBelow && reversedUp) return "bullish";
-    }
-
-    // Bearish sweep: price went above equal highs then reversed
-    if (highs.length >= 2) {
-      const equalHighs = Math.abs(highs[highs.length - 1].price - highs[highs.length - 2].price) / highs[highs.length - 2].price < 0.015;
-      const sweptAbove = recentData.some(p => p.price > highs[highs.length - 1].price * 1.01);
-      const reversedDown = currentPrice < highs[highs.length - 1].price * 0.99;
-
-      if (equalHighs && sweptAbove && reversedDown) return "bearish";
-    }
-
-    return null;
-  }
-
-  /** Count fractal repetitions — self-similar patterns at different scales */
+  /** Count fractal repetitions across scales */
   private countFractalRepetitions(data: PricePoint[]): number {
     if (data.length < 20) return 0;
 
-    // Compare move ratios at different scales (mini-fractals)
     const scales = [
       data.slice(-10),
       data.slice(-20, -10),
@@ -451,13 +526,11 @@ export class LocalIntelligenceEngine {
     const baseRatio = getRatio(scales[0]);
     for (let i = 1; i < scales.length; i++) {
       const ratio = getRatio(scales[i]);
-      // Similar range ratio AND same direction = fractal repetition
       if (ratio.direction === baseRatio.direction &&
           Math.abs(ratio.range - baseRatio.range) < baseRatio.range * 0.4) {
         matches++;
       }
     }
-
     return matches;
   }
 
@@ -485,7 +558,6 @@ export class LocalIntelligenceEngine {
         bucketStart = data[i].timestamp;
       }
     }
-    // Last bucket
     if (bucket.length > 0) {
       const prices = bucket.map(b => b.price);
       candles.push({
@@ -496,7 +568,6 @@ export class LocalIntelligenceEngine {
         timestamp: bucketStart,
       });
     }
-
     return candles;
   }
 
@@ -524,5 +595,19 @@ export class LocalIntelligenceEngine {
   reset() {
     this.priceHistory = [];
     this.lastFrameData = null;
+    this.patternStrikes = {};
+    this.sessionTradeCount = 0;
+    this.sessionLossCount = 0;
+  }
+
+  /** Call when a trade completes to track session limits */
+  recordTradeResult(won: boolean) {
+    this.sessionTradeCount++;
+    if (!won) this.sessionLossCount++;
+  }
+
+  /** Call when a pattern fails to track strikes */
+  recordPatternFailure(pattern: "sweep_reclaim" | "break_retest" | "range_fade") {
+    this.patternStrikes[pattern] = (this.patternStrikes[pattern] || 0) + 1;
   }
 }
