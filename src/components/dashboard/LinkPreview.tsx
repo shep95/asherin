@@ -95,9 +95,16 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
         },
       });
 
-      if (error) throw new Error(error.message || "Extraction failed");
+      if (error) {
+        console.error("Elion invoke error:", error);
+        throw new Error(typeof error === "object" && error.message ? error.message : String(error));
+      }
+
+      if (!data) throw new Error("No response from intelligence engine");
+      if (data.error) throw new Error(data.error);
       
-      const result = typeof data === "string" ? data : data?.result || data?.output || JSON.stringify(data, null, 2);
+      const result = typeof data === "string" ? data : data?.output || data?.result || JSON.stringify(data, null, 2);
+      if (!result || result === "No output generated.") throw new Error("Intelligence engine returned empty analysis");
       setExtracted(result);
     } catch (err: any) {
       console.error("Elion extraction error:", err);
