@@ -154,6 +154,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { subscribed, loading: subLoading } = useSubscription();
+  const { isAdmin } = useAccess();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
