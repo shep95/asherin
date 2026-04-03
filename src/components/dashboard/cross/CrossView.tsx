@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X,
-  Circle, BarChart3, Activity, Bell, Send, Download, Trash2
+  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,10 @@ import CrossAnalyticsSummary from "./CrossAnalyticsSummary";
 import CrossSalesIntelligence from "./CrossSalesIntelligence";
 import CrossAudioVisualPanel from "./CrossAudioVisualPanel";
 import CrossConsentBanner from "./CrossConsentBanner";
+import CrossStatusBar from "./CrossStatusBar";
+import CrossChatPanel, { ChatMessage } from "./CrossChatPanel";
+import CrossToastSystem, { CrossToast } from "./CrossToastSystem";
+import CrossRecordingControls from "./CrossRecordingControls";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
@@ -59,9 +63,10 @@ const CrossView: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showRecordingPanel, setShowRecordingPanel] = useState(false);
 
   // ── Chat state ──
-  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
 
@@ -93,6 +98,9 @@ const CrossView: React.FC = () => {
   // ── Notifications ──
   const [notifications, setNotifications] = useState<CrossNotification[]>([]);
 
+  // ── Toast system ──
+  const [liveToasts, setLiveToasts] = useState<CrossToast[]>([]);
+
   // ── Recording state ──
   const [isRecording, setIsRecording] = useState(false);
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
@@ -106,18 +114,32 @@ const CrossView: React.FC = () => {
   const previousAlertsRef = useRef<CrossAlert[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const analyzeFrameRef = useRef<() => Promise<void>>();
 
   useEffect(() => { voiceEngine.setEnabled(settings.voiceEnabled); }, [settings.voiceEnabled]);
   useEffect(() => () => { stopSharing(); }, []);
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
 
   // ── Helpers ──
+  const pushToast = useCallback((type: CrossToast["type"], title: string, body: string, actions?: CrossToast["actions"]) => {
+    setLiveToasts(prev => [{
+      id: crypto.randomUUID(), type, title, body, timestamp: new Date(), actions,
+    }, ...prev].slice(0, 20));
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setLiveToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
   const pushNotification = useCallback((type: CrossNotification["type"], title: string, body: string, severity?: CrossNotification["severity"]) => {
     setNotifications(prev => [{
       id: crypto.randomUUID(), type, title, body, timestamp: new Date(), read: false, severity,
     }, ...prev].slice(0, 100));
+
+    // Also push to toast system for live display
+    const toastType = severity === "critical" ? "critical" as const : severity === "high" ? "warning" as const : type === "verdict" ? "success" as const : "info" as const;
+    setLiveToasts(prev => [{
+      id: crypto.randomUUID(), type: toastType, title, body, timestamp: new Date(),
+    }, ...prev].slice(0, 20));
   }, []);
 
   const addActivity = useCallback((action: string, detail: string, confidence?: number) => {
@@ -159,7 +181,7 @@ const CrossView: React.FC = () => {
     return canvas.toDataURL("image/jpeg", quality);
   }, [settings.quality]);
 
-  // ── Frame Analysis (using ref to avoid stale closures in setInterval) ──
+  // ── Frame Analysis ──
   const analyzeFrame = useCallback(async () => {
     if (isAnalyzing || isPaused) return;
     const frame = captureFrame();
@@ -199,14 +221,10 @@ const CrossView: React.FC = () => {
         }
       );
 
-      if (!resp.ok) {
-        console.error("Cross analyze error:", await resp.text());
-        return;
-      }
+      if (!resp.ok) { console.error("Cross analyze error:", await resp.text()); return; }
 
       const analysis = await resp.json();
 
-      // Context
       if (analysis.context) {
         setContext({ ...analysis.context, mode: settings.mode });
         if (settings.mode === "trading") {
@@ -215,13 +233,11 @@ const CrossView: React.FC = () => {
         }
       }
 
-      // Audio-visual intelligence
       if (analysis.salesIntel) setSalesIntel(analysis.salesIntel);
       if (analysis.emotions) setEmotions(analysis.emotions);
       if (analysis.engagement) setEngagement(analysis.engagement);
       if (analysis.speakers) setSpeakers(analysis.speakers);
 
-      // Local pattern detection (trading only)
       if (analysis.context && settings.mode === "trading") {
         const signals = localEngine.detectLocalPatterns(analysis.context);
         setLocalSignals(signals);
@@ -229,7 +245,6 @@ const CrossView: React.FC = () => {
         if (urgent && settings.voiceEnabled) voiceEngine.speakLocalSignal(urgent);
       }
 
-      // Frame explanations — what AI sees in this frame
       if (analysis.observations?.length) {
         setObservations(analysis.observations);
         setFrameExplanations(analysis.observations);
@@ -269,7 +284,6 @@ const CrossView: React.FC = () => {
         pushNotification("system", "Privacy Warning", analysis.privacyWarning, "critical");
       }
 
-      // Alerts
       if (analysis.alerts?.length) {
         const newAlerts: CrossAlert[] = analysis.alerts
           .filter((a: any) => a.confidence >= settings.minConfidence)
@@ -313,7 +327,6 @@ const CrossView: React.FC = () => {
     }
   }, [isAnalyzing, isPaused, captureFrame, getAuthHeaders, context, settings, quickVerdict, addActivity, pushNotification]);
 
-  // Keep ref in sync so setInterval always calls latest version
   useEffect(() => { analyzeFrameRef.current = analyzeFrame; }, [analyzeFrame]);
 
   // ── Screen Sharing ──
@@ -345,9 +358,9 @@ const CrossView: React.FC = () => {
       setRecordingDuration(0);
       setFrameExplanations([]);
       setNotifications([]);
+      setLiveToasts([]);
       localEngine.reset();
 
-      // Use ref-based interval to avoid stale closure
       intervalRef.current = setInterval(() => {
         analyzeFrameRef.current?.();
       }, settings.frameRate * 1000);
@@ -372,7 +385,6 @@ const CrossView: React.FC = () => {
     setSessionStart(null);
   }, []);
 
-  // Update interval when frameRate changes
   useEffect(() => {
     if (isSharing && !isPaused) {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -398,24 +410,18 @@ const CrossView: React.FC = () => {
     try {
       const recorder = new MediaRecorder(streamRef.current, { mimeType: "video/webm;codecs=vp9" });
       const chunks: Blob[] = [];
-
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => { setRecordedChunks(chunks); };
-
-      recorder.start(1000); // capture in 1s chunks
+      recorder.start(1000);
       mediaRecorderRef.current = recorder;
       setIsRecording(true);
       setRecordingDuration(0);
-
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-
-      pushNotification("system", "Recording Started", "Screen recording is now active");
+      recordingTimerRef.current = setInterval(() => { setRecordingDuration(prev => prev + 1); }, 1000);
+      pushToast("info", "Recording Started", "Screen recording is now active");
     } catch (e: any) {
       toast({ title: "Recording failed", description: e.message, variant: "destructive" });
     }
-  }, [toast, pushNotification]);
+  }, [toast, pushToast]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -438,14 +444,12 @@ const CrossView: React.FC = () => {
     toast({ title: "Recording downloaded" });
   }, [recordedChunks, toast]);
 
-  const formatRecordingTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
-  // ── Real Chat via Edge Function ──
+  // ── Chat ──
   const sendChatMessage = useCallback(async () => {
     const msg = chatInput.trim();
     if (!msg || isChatLoading) return;
     setChatInput("");
-    setChatMessages(prev => [...prev, { role: "user", content: msg }]);
+    setChatMessages(prev => [...prev, { role: "user", content: msg, timestamp: new Date() }]);
     setIsChatLoading(true);
 
     try {
@@ -473,7 +477,21 @@ const CrossView: React.FC = () => {
 
       const data = await resp.json();
       const reply = data.observations?.join("\n\n") || data.quickVerdict?.message || "I'm analyzing your screen. Nothing notable right now.";
-      setChatMessages(prev => [...prev, { role: "assistant", content: reply }]);
+
+      // Determine message type from content
+      let msgType: ChatMessage["type"] = "text";
+      if (reply.includes("⚠️") || reply.includes("WARNING")) msgType = "warning";
+      else if (reply.includes("📊") || reply.includes("ANALYSIS")) msgType = "analysis";
+      else if (reply.includes("💡") || reply.includes("SUGGEST")) msgType = "suggestion";
+      else if (reply.includes("🎯") || reply.includes("OPPORTUNITY")) msgType = "insight";
+
+      setChatMessages(prev => [...prev, {
+        role: "assistant",
+        content: reply,
+        timestamp: new Date(),
+        type: msgType,
+        confidence: data.quickVerdict?.confidence,
+      }]);
 
       if (data.quickVerdict && data.quickVerdict.action !== "NONE") {
         const v: QuickVerdict = {
@@ -487,13 +505,12 @@ const CrossView: React.FC = () => {
         setVerdictVisible(true);
       }
     } catch {
-      setChatMessages(prev => [...prev, { role: "assistant", content: "Connection error — please try again." }]);
+      setChatMessages(prev => [...prev, { role: "assistant", content: "Connection error — please try again.", timestamp: new Date(), type: "warning" }]);
     } finally {
       setIsChatLoading(false);
     }
   }, [chatInput, isChatLoading, getAuthHeaders, captureFrame, context, settings]);
 
-  // ── Dismiss alert ──
   const handleDismissAlert = useCallback((id: string) => {
     setAlerts(prev => prev.filter(a => a.id !== id));
     setAlertsDismissed(prev => prev + 1);
@@ -518,6 +535,16 @@ const CrossView: React.FC = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Close other panels when opening one
+  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics") => {
+    setShowChat(panel === "chat" ? c => !c : false);
+    setShowSettings(panel === "settings" ? s => !s : false);
+    setShowNotifications(panel === "notifications" ? n => !n : false);
+    setShowRecordingPanel(panel === "recording" ? r => !r : false);
+    if (panel !== "analytics") setShowAnalytics(false);
+    else setShowAnalytics(a => !a);
+  }, []);
+
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
@@ -528,7 +555,10 @@ const CrossView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background relative">
+      {/* Toast Notification System — floating on top */}
+      <CrossToastSystem toasts={liveToasts} onDismiss={dismissToast} maxVisible={3} />
+
       {/* Header */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/30">
         <div className="flex items-center gap-3">
@@ -540,7 +570,7 @@ const CrossView: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {isSharing && (
             <div className="flex items-center gap-2 mr-2">
               <span className="relative flex h-2 w-2">
@@ -548,34 +578,25 @@ const CrossView: React.FC = () => {
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${isPaused ? "bg-amber-400" : "bg-emerald-400"}`} />
               </span>
               <span className="text-xs font-extralight text-muted-foreground">
-                {isPaused ? "PAUSED" : "WATCHING"} · {sessionDuration} · F{frameCount} · ~${estimatedCost.toFixed(2)}
+                {isPaused ? "PAUSED" : "WATCHING"} · {sessionDuration}
               </span>
             </div>
           )}
 
-          {/* Recording controls */}
-          {isSharing && !isRecording && (
-            <Button variant="ghost" size="icon" onClick={startRecording} className="h-8 w-8" title="Start recording">
-              <Circle className="h-4 w-4 text-red-400" />
-            </Button>
-          )}
-          {isRecording && (
-            <Button variant="ghost" size="sm" onClick={stopRecording} className="h-8 gap-1.5 text-red-400 hover:text-red-300" title="Stop recording">
-              <span className="relative flex h-2 w-2">
+          {/* Recording button */}
+          <Button variant="ghost" size="icon" onClick={() => openPanel("recording")} className={`h-8 w-8 ${isRecording ? "text-red-400" : ""}`} title="Recording">
+            {isRecording ? (
+              <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-400" />
               </span>
-              <span className="text-xs font-mono">{formatRecordingTime(recordingDuration)}</span>
-            </Button>
-          )}
-          {recordedChunks.length > 0 && !isRecording && (
-            <Button variant="ghost" size="icon" onClick={downloadRecording} className="h-8 w-8" title="Download recording">
-              <Download className="h-4 w-4 text-accent" />
-            </Button>
-          )}
+            ) : (
+              <VideoIcon className="h-4 w-4" />
+            )}
+          </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" onClick={() => setShowNotifications(n => !n)} className="h-8 w-8 relative">
+          <Button variant="ghost" size="icon" onClick={() => openPanel("notifications")} className="h-8 w-8 relative">
             <Bell className="h-4 w-4" />
             {unreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-500 text-[9px] text-white flex items-center justify-center font-bold">
@@ -583,19 +604,19 @@ const CrossView: React.FC = () => {
               </span>
             )}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setShowAnalytics(a => !a)} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={() => openPanel("analytics")} className="h-8 w-8">
             <BarChart3 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setShowChat(c => !c)} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={() => openPanel("chat")} className="h-8 w-8">
             <MessageSquare className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setShowSettings(s => !s)} className="h-8 w-8">
+          <Button variant="ghost" size="icon" onClick={() => openPanel("settings")} className="h-8 w-8">
             <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Mode Selector — always visible */}
+      {/* Mode Selector */}
       <div className="px-4 sm:px-6 py-2 border-b border-border/10 overflow-x-auto">
         <CrossModeSelector currentMode={settings.mode} onModeChange={handleModeChange} compact />
       </div>
@@ -721,7 +742,7 @@ const CrossView: React.FC = () => {
             </button>
           )}
 
-          {/* Frame Explanations — what AI sees */}
+          {/* Frame Explanations */}
           {isSharing && frameExplanations.length > 0 && (
             <div className="px-3 py-2.5 rounded-xl bg-accent/5 border border-accent/10">
               <p className="text-[10px] uppercase tracking-wider text-accent/60 mb-1.5 flex items-center gap-1.5">
@@ -735,15 +756,12 @@ const CrossView: React.FC = () => {
             </div>
           )}
 
-          {/* Analytics Summary (togglable) */}
           {showAnalytics && isSharing && (
             <CrossAnalyticsSummary analytics={sessionAnalytics} sessionDuration={sessionDuration} />
           )}
 
-          {/* Price Tracker (trading mode only) */}
           {isSharing && settings.mode === "trading" && <CrossPriceTracker stats={priceStats} pair={context?.pair} />}
 
-          {/* Context Bar */}
           {context && isSharing && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/10 border border-border/20 text-xs font-extralight text-muted-foreground flex-wrap">
               <span className="text-accent">Context:</span>
@@ -760,29 +778,19 @@ const CrossView: React.FC = () => {
             </div>
           )}
 
-          {/* Local Intelligence Signals (trading mode only) */}
           {isSharing && settings.mode === "trading" && <CrossLocalSignals signals={localSignals} />}
-
-          {/* Sales Intelligence (sales/negotiation modes) */}
           {isSharing && <CrossSalesIntelligence intel={salesIntel} isActive={["sales", "negotiation"].includes(settings.mode)} />}
-
-          {/* Audio-Visual Panel (people-facing modes) */}
           {isSharing && <CrossAudioVisualPanel settings={settings} emotions={emotions} engagement={engagement} speakers={speakers} isActive={["sales", "hr", "legal", "support", "negotiation", "healthcare", "education"].includes(settings.mode)} />}
 
-          {/* Consent Banner */}
           <CrossConsentBanner
             settings={settings}
             onConsentGranted={() => setSettings(s => ({ ...s, consentCollected: true }))}
             onConsentDeclined={() => setSettings(s => ({ ...s, audioEnabled: false, facialAnalysisEnabled: false }))}
           />
 
-          {/* AI Alerts Feed */}
           <CrossAlertFeed alerts={alerts} onDismiss={handleDismissAlert} isSharing={isSharing} />
-
-          {/* Activity Feed */}
           {activities.length > 0 && <CrossActivityFeed activities={activities} />}
 
-          {/* Mode selector (expanded) when not sharing */}
           {!isSharing && (
             <div className="mt-2">
               <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/40 mb-2">Select Analysis Mode</p>
@@ -791,7 +799,7 @@ const CrossView: React.FC = () => {
           )}
         </div>
 
-        {/* Notifications Panel */}
+        {/* Side Panels */}
         {showNotifications && (
           <div className="w-80 border-l border-border/30 flex flex-col bg-background">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
@@ -835,7 +843,6 @@ const CrossView: React.FC = () => {
           </div>
         )}
 
-        {/* Settings Panel */}
         {showSettings && (
           <CrossSettingsPanel
             settings={settings}
@@ -846,54 +853,45 @@ const CrossView: React.FC = () => {
           />
         )}
 
-        {/* Chat Panel */}
+        {showRecordingPanel && (
+          <CrossRecordingControls
+            isRecording={isRecording}
+            isSharing={isSharing}
+            recordingDuration={recordingDuration}
+            hasRecording={recordedChunks.length > 0}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onDownloadRecording={downloadRecording}
+            onClose={() => setShowRecordingPanel(false)}
+          />
+        )}
+
         {showChat && (
-          <div className="w-80 border-l border-border/30 flex flex-col bg-background">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
-              <h3 className="text-sm font-medium text-foreground">Chat with Aureon</h3>
-              <button onClick={() => setShowChat(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {chatMessages.length === 0 && (
-                <p className="text-xs text-muted-foreground/40 text-center py-8 font-extralight">
-                  Ask Aureon about what it sees on your screen
-                </p>
-              )}
-              {chatMessages.map((m, i) => (
-                <div key={i} className={`text-xs ${m.role === "user" ? "text-right" : ""}`}>
-                  <div className={`inline-block px-3 py-2 rounded-xl max-w-[90%] ${
-                    m.role === "user" ? "bg-accent/10 text-foreground" : "bg-muted/20 text-muted-foreground"
-                  }`}>
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              {isChatLoading && (
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <Loader2 className="h-3 w-3 animate-spin text-accent" />
-                  <span className="text-[10px] text-muted-foreground/50">Analyzing...</span>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-            <div className="p-3 border-t border-border/20">
-              <div className="flex gap-2">
-                <input
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") sendChatMessage(); }}
-                  placeholder="Ask about what's on screen..."
-                  className="flex-1 bg-muted/10 border border-border/30 rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/50"
-                  disabled={isChatLoading}
-                />
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={sendChatMessage} disabled={isChatLoading || !chatInput.trim()}>
-                  <Send className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <CrossChatPanel
+            messages={chatMessages}
+            input={chatInput}
+            isLoading={isChatLoading}
+            onInputChange={setChatInput}
+            onSend={sendChatMessage}
+            onClose={() => setShowChat(false)}
+          />
         )}
       </div>
+
+      {/* Status Bar — Bottom Strip */}
+      <CrossStatusBar
+        isRecording={isRecording}
+        recordingDuration={recordingDuration}
+        isAnalyzing={isAnalyzing}
+        isPaused={isPaused}
+        isSharing={isSharing}
+        mode={settings.mode}
+        frameCount={frameCount}
+        estimatedCost={estimatedCost}
+        sessionDuration={sessionDuration}
+        audioEnabled={settings.audioEnabled}
+        onToggleSettings={() => openPanel("settings")}
+      />
     </div>
   );
 };
