@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FileText, Download, Clock, Play, Plus, Trash2, BarChart3, Shield, GitCompare, Sparkles, Loader2, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import ReactMarkdown from "react-markdown";
 
 type ReportType = "executive" | "audit" | "analysis" | "comparison";
@@ -30,7 +30,7 @@ const ReportsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [viewingReport, setViewingReport] = useState<string | null>(null);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   useEffect(() => {
     if (!user || !activeSession) return;

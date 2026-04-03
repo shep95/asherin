@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Globe, Search, Loader2, Plus, Building2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Send, Database, MessageSquare, FileText, Users, Lightbulb, Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import ReactMarkdown from "react-markdown";
 import { saveWebIntelSession, getWebIntelSessions } from "@/lib/messageQueue";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ interface WebSession {
   response?: string;
   answers: Record<string, string>;
   chat: ChatMessage[];
-  savedToAsha?: boolean;
+  savedToAzplen?: boolean;
 }
 
 const INTAKE_QUESTIONS = [
@@ -91,7 +91,7 @@ const WebIntelligencePanel = () => {
   const [collectProgress, setCollectProgress] = useState({ docs: 0, entities: 0, insights: 0, phase: "" });
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { user } = useAuth();
-  const { activeSession: ashaSession } = useAshaSession();
+  const { activeSession: ashaSession } = useAzplenSession();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Load persisted sessions from IndexedDB on mount
@@ -233,7 +233,7 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
       if (!res.ok) throw new Error("Analysis failed");
       const result = await res.json();
 
-      const updatedSession = { ...newSession, status: "ready" as const, response: result.response, savedToAsha: false };
+      const updatedSession = { ...newSession, status: "ready" as const, response: result.response, savedToAzplen: false };
       setSessions(prev => {
         const next = prev.map(s => s.id === sessionId ? updatedSession : s);
         persistSessions(next);
@@ -241,7 +241,7 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
       });
       setActiveSession(updatedSession);
 
-      // Auto-save report as data file for Files tab and other Asha tabs
+      // Auto-save report as data file for Files tab and other Azplen tabs
       if (ashaSession && result.response) {
         try {
           const content = result.response;
@@ -285,7 +285,7 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
               col_count: 1,
             });
 
-            const savedSession = { ...updatedSession, savedToAsha: true };
+            const savedSession = { ...updatedSession, savedToAzplen: true };
             setSessions(prev => {
               const next = prev.map(s => s.id === sessionId ? savedSession : s);
               persistSessions(next);
@@ -413,9 +413,9 @@ CONFIDENCE LEVEL: Rate each section HIGH/MEDIUM/LOW based on source quality.`;
       const { data: authSession } = await supabase.auth.getSession();
 
       // Build conversation history for context
-      const history = updatedChat.map(m => `${m.role === "user" ? "USER" : "ASHA"}: ${m.content}`).join("\n\n");
+      const history = updatedChat.map(m => `${m.role === "user" ? "USER" : "AZPLEN"}: ${m.content}`).join("\n\n");
 
-      const followUpPrompt = `You are Asha, continuing a deep intelligence investigation on ${activeSession.companyName}.
+      const followUpPrompt = `You are Azplen, continuing a deep intelligence investigation on ${activeSession.companyName}.
 
 ORIGINAL INTELLIGENCE REPORT:
 ${activeSession.response?.slice(0, 15000) || ""}
@@ -474,7 +474,7 @@ INSTRUCTIONS:
     }
   };
 
-  const saveToAsha = async () => {
+  const saveToAzplen = async () => {
     if (!activeSession || !user || !ashaSession || saving) return;
     setSaving(true);
 
@@ -545,11 +545,11 @@ INSTRUCTIONS:
       if (dsErr) throw dsErr;
 
       // Mark saved
-      const savedSession = { ...activeSession, savedToAsha: true };
+      const savedSession = { ...activeSession, savedToAzplen: true };
       setActiveSession(savedSession);
       setSessions(prev => prev.map(s => s.id === activeSession.id ? savedSession : s));
     } catch (err) {
-      console.error("Failed to save to Asha:", err);
+      console.error("Failed to save to Azplen:", err);
     } finally {
       setSaving(false);
     }
@@ -676,16 +676,16 @@ INSTRUCTIONS:
               )}
               {activeSession.status === "ready" && ashaSession && (
                     <button
-                      onClick={saveToAsha}
-                      disabled={saving || activeSession.savedToAsha}
+                      onClick={saveToAzplen}
+                      disabled={saving || activeSession.savedToAzplen}
                       className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-light transition-colors ${
-                        activeSession.savedToAsha
+                        activeSession.savedToAzplen
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                           : "bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20"
                       } disabled:opacity-50`}
                     >
                       {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
-                      {activeSession.savedToAsha ? "Saved to Asha" : "Save to Asha"}
+                      {activeSession.savedToAzplen ? "Saved to Azplen" : "Save to Azplen"}
                     </button>
                   )}
                 </div>
@@ -715,7 +715,7 @@ INSTRUCTIONS:
                       }`}>
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">
-                            {msg.role === "user" ? "You" : "Asha"}
+                            {msg.role === "user" ? "You" : "Azplen"}
                           </span>
                           <span className="text-[9px] text-muted-foreground/30">
                             {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -736,7 +736,7 @@ INSTRUCTIONS:
                 {chatLoading && (
                   <div className="flex items-center gap-2 px-4 py-3">
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
-                    <span className="text-xs text-muted-foreground">Asha is analyzing…</span>
+                    <span className="text-xs text-muted-foreground">Azplen is analyzing…</span>
                   </div>
                 )}
 

@@ -35,7 +35,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Data & Analysis",
     items: [
-      { id: "asha", icon: Database, label: "Asha Intelligence", pro: true },
+      { id: "azplen", icon: Database, label: "Azplen Intelligence", pro: true },
       { id: "pattern", icon: Activity, label: "Pattern Engine", pro: true },
       { id: "timeseries", icon: Activity, label: "Time-Series", pro: true },
       { id: "geo", icon: Globe, label: "Geospatial", pro: true },
@@ -187,7 +187,7 @@ function AshaMock() {
     { icon: Lightbulb, label: "Insights" }, { icon: Activity, label: "Monitoring" },
     { icon: FileOutput, label: "Reports" }, { icon: Globe, label: "Web Intel" },
     { icon: FolderOpen, label: "Files" }, { icon: Brain, label: "Predictions" },
-    { icon: MessageSquare, label: "Ask Asha" },
+    { icon: MessageSquare, label: "Ask Azplen" },
   ];
   return (
     <div className="flex flex-col h-full">

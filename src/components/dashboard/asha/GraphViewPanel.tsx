@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { X, Loader2, FileText, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 
 /* ─── Types ─── */
 interface GraphNode {
@@ -157,7 +157,7 @@ const GraphViewPanel = () => {
   const [filter, setFilter] = useState<"all" | "docs" | "people" | "orgs" | "other">("all");
   const [dimensions, setDimensions] = useState({ width: 760, height: 440 });
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   // Resize observer
   useEffect(() => {

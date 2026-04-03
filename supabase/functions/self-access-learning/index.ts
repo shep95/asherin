@@ -37,7 +37,7 @@ const CODEBASE_FILES = [
   { path: "src/pages/Features.tsx", domain: "Frontend", desc: "Feature showcase page" },
   { path: "src/pages/Founder.tsx", domain: "Frontend", desc: "Founder profile page" },
   { path: "src/pages/Benchmarks.tsx", domain: "Frontend", desc: "Performance benchmarks" },
-  { path: "src/pages/FeatureAsha.tsx", domain: "Frontend", desc: "Asha marketing page" },
+  { path: "src/pages/FeatureAzplen.tsx", domain: "Frontend", desc: "Azplen marketing page" },
   { path: "src/pages/FeatureElion.tsx", domain: "Frontend", desc: "Elion marketing page" },
   { path: "src/pages/FeatureIde.tsx", domain: "Frontend", desc: "IDE marketing page" },
   { path: "src/pages/FeatureNomad.tsx", domain: "Frontend", desc: "Nomad marketing page" },
@@ -95,10 +95,10 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/TimeSeriesView.tsx", domain: "Data", desc: "Time series analysis" },
   { path: "src/components/dashboard/TrackerView.tsx", domain: "Frontend", desc: "Smart tracker" },
   { path: "src/components/dashboard/ZophielEngineView.tsx", domain: "Intelligence", desc: "Zophiel deep search engine" },
-  // ── Asha Data Intelligence ──
-  { path: "src/components/dashboard/asha/AshaView.tsx", domain: "Data", desc: "Asha data intelligence hub" },
-  { path: "src/components/dashboard/asha/AshaSessionContext.tsx", domain: "Data", desc: "Asha session state management" },
-  { path: "src/components/dashboard/asha/QueryBar.tsx", domain: "Data", desc: "Asha query bar with AI chat" },
+  // ── Azplen Data Intelligence ──
+  { path: "src/components/dashboard/asha/AzplenView.tsx", domain: "Data", desc: "Azplen data intelligence hub" },
+  { path: "src/components/dashboard/asha/AzplenSessionContext.tsx", domain: "Data", desc: "Azplen session state management" },
+  { path: "src/components/dashboard/asha/QueryBar.tsx", domain: "Data", desc: "Azplen query bar with AI chat" },
   { path: "src/components/dashboard/asha/IngestPanel.tsx", domain: "Data", desc: "Data ingestion pipeline" },
   { path: "src/components/dashboard/asha/FilesPanel.tsx", domain: "Data", desc: "Hierarchical file management" },
   { path: "src/components/dashboard/asha/DataTablePanel.tsx", domain: "Data", desc: "Data table visualization" },
@@ -109,7 +109,7 @@ const CODEBASE_FILES = [
   { path: "src/components/dashboard/asha/ReportsPanel.tsx", domain: "Data", desc: "Report generation" },
   { path: "src/components/dashboard/asha/WorkflowPanel.tsx", domain: "Data", desc: "Workflow automation" },
   { path: "src/components/dashboard/asha/MonitoringPanel.tsx", domain: "Data", desc: "Data health monitoring" },
-  { path: "src/components/dashboard/asha/PredictionsPanel.tsx", domain: "Data", desc: "Asha predictions" },
+  { path: "src/components/dashboard/asha/PredictionsPanel.tsx", domain: "Data", desc: "Azplen predictions" },
   { path: "src/components/dashboard/asha/ScenarioSimulatorPanel.tsx", domain: "Data", desc: "Scenario simulation" },
   { path: "src/components/dashboard/asha/ThreatModelingPanel.tsx", domain: "Data", desc: "Threat modeling engine" },
   { path: "src/components/dashboard/asha/WebIntelligencePanel.tsx", domain: "Data", desc: "Web intelligence scraping" },
@@ -178,13 +178,13 @@ const CODEBASE_FILES = [
   { path: "supabase/functions/security-gateway/index.ts", domain: "Security", desc: "WAF and security gateway" },
   { path: "supabase/functions/self-learning-loop/index.ts", domain: "AI/ML", desc: "Multi-language self-learning loop with brains" },
   { path: "supabase/functions/self-access-learning/index.ts", domain: "AI/ML", desc: "Self-access autonomous codebase analysis" },
-  { path: "supabase/functions/asha-analyze/index.ts", domain: "Data", desc: "Asha dataset analysis" },
-  { path: "supabase/functions/asha-query/index.ts", domain: "Data", desc: "Asha AI query engine" },
-  { path: "supabase/functions/asha-report/index.ts", domain: "Data", desc: "Asha report generation" },
-  { path: "supabase/functions/asha-doc-intel/index.ts", domain: "Data", desc: "Asha document intelligence" },
-  { path: "supabase/functions/asha-extract/index.ts", domain: "Data", desc: "Asha entity extraction" },
-  { path: "supabase/functions/asha-scrape/index.ts", domain: "Data", desc: "Asha web scraping" },
-  { path: "supabase/functions/asha-monitor/index.ts", domain: "Data", desc: "Asha health monitoring" },
+  { path: "supabase/functions/asha-analyze/index.ts", domain: "Data", desc: "Azplen dataset analysis" },
+  { path: "supabase/functions/asha-query/index.ts", domain: "Data", desc: "Azplen AI query engine" },
+  { path: "supabase/functions/asha-report/index.ts", domain: "Data", desc: "Azplen report generation" },
+  { path: "supabase/functions/asha-doc-intel/index.ts", domain: "Data", desc: "Azplen document intelligence" },
+  { path: "supabase/functions/asha-extract/index.ts", domain: "Data", desc: "Azplen entity extraction" },
+  { path: "supabase/functions/asha-scrape/index.ts", domain: "Data", desc: "Azplen web scraping" },
+  { path: "supabase/functions/asha-monitor/index.ts", domain: "Data", desc: "Azplen health monitoring" },
   { path: "supabase/functions/zali-analyze/index.ts", domain: "Design", desc: "ZALI engineering analysis" },
   { path: "supabase/functions/zali-chat/index.ts", domain: "Design", desc: "ZALI AI chat engine" },
   { path: "supabase/functions/nomad-investigate/index.ts", domain: "Intelligence", desc: "NOMAD investigation engine" },
@@ -229,7 +229,7 @@ const ANALYSIS_AGENTS = [
   { name: "Logic Flaw Agent", focus: "Hunt for logical flaws at every scale: incorrect conditional branches, off-by-one errors, inverted boolean checks, impossible states, default-case omissions, stale closures, filter/map chains that silently drop data, fallthrough switches, enum/union exhaustiveness gaps, comparison operators that should be strict, timezone/locale-naive date logic, edge cases where arrays are empty or objects are missing keys, memoization dependencies that are wrong or incomplete, and any scenario where the code 'works' in the happy path but breaks under real-world variance. Trace every if/else, ternary, and optional chain to verify it handles null, undefined, empty string, 0, NaN, and negative values correctly." },
   { name: "Workflow Flaw Agent", focus: "Analyze end-to-end user workflows and multi-step feature flows for breakdowns: onboarding sequences that skip steps, form submissions that lose data on error, navigation flows that leave orphaned state, undo/redo paths that corrupt data, multi-panel dashboards where one panel's action doesn't update another, subscription upgrades/downgrades that leave stale UI, file upload pipelines that don't handle partial failures, search-then-act flows where context is lost between steps, session/auth expiration mid-workflow that causes silent data loss, real-time sync conflicts, import/export round-trip data corruption, and any cross-feature interaction where Feature A's state change should propagate to Feature B but doesn't. Check that loading→success→error→retry state machines are complete and that every user-facing action has proper feedback (toast, spinner, disabled state)." },
   { name: "UI Logic Flaw Agent", focus: "Hunt for UI-layer logic flaws where the visual state diverges from the data state: components that render stale props after a parent re-fetch, conditional renders that flash wrong content before settling, disabled buttons that can still be triggered via keyboard/enter, modals that don't trap focus or allow background scroll, dropdowns/popovers that stay open after navigation, lists that don't handle empty/loading/error states causing blank screens, pagination that resets filters on page change, tabs that lose unsaved form data on switch, search inputs that fire requests on every keystroke without debounce, infinite scroll that duplicates items or skips pages, drag-and-drop that leaves ghost elements, toggle switches whose visual state doesn't match the persisted value after optimistic update failure, responsive breakpoints where elements overlap or disappear, z-index wars where tooltips render behind modals, scroll position that jumps after dynamic content loads, clipboard copy buttons that silently fail without feedback, file inputs that accept wrong MIME types, date pickers that allow impossible ranges, number inputs that accept NaN/Infinity, select components that show stale options after data refresh, and any scenario where what the user SEES doesn't match what the database STORES." },
-  { name: "Cross-Module Recommendation Agent", focus: "Identify features, patterns, and capabilities in one module that would significantly benefit another module if integrated or shared. Examples: Aureon Chat's Chain-of-Thought transparency could enhance ZALI's engineering analysis output; ASHA's entity extraction pipeline could power Aureon Chat's automatic knowledge graph; the IDE's code editor could embed ZALI's material specs viewer; NOMAD's OSINT investigation results could feed into Predictive Intelligence as signal sources; ASHA's data lineage tracking could give the IDE's git panel deeper context; Zophiel's deep search could be embedded in ASHA's query bar; the Security Dashboard's threat intel could auto-generate briefings; the IDE's terminal output could feed the Self-Learning Loop as training data; Google Intelligence's life predictions could integrate with the Tracker for personal KPI monitoring; ZALI's simulation engine could use ASHA's datasets as input parameters. For each recommendation, specify the SOURCE module (where the capability exists), the TARGET module (where it should be applied), the specific feature/pattern to transfer, the integration approach, and the expected user impact. Think about data flow, shared components, unified APIs, and cross-module state management. Return findings with finding_type 'recommendation'." },
+  { name: "Cross-Module Recommendation Agent", focus: "Identify features, patterns, and capabilities in one module that would significantly benefit another module if integrated or shared. Examples: Aureon Chat's Chain-of-Thought transparency could enhance ZALI's engineering analysis output; AZPLEN's entity extraction pipeline could power Aureon Chat's automatic knowledge graph; the IDE's code editor could embed ZALI's material specs viewer; NOMAD's OSINT investigation results could feed into Predictive Intelligence as signal sources; AZPLEN's data lineage tracking could give the IDE's git panel deeper context; Zophiel's deep search could be embedded in AZPLEN's query bar; the Security Dashboard's threat intel could auto-generate briefings; the IDE's terminal output could feed the Self-Learning Loop as training data; Google Intelligence's life predictions could integrate with the Tracker for personal KPI monitoring; ZALI's simulation engine could use AZPLEN's datasets as input parameters. For each recommendation, specify the SOURCE module (where the capability exists), the TARGET module (where it should be applied), the specific feature/pattern to transfer, the integration approach, and the expected user impact. Think about data flow, shared components, unified APIs, and cross-module state management. Return findings with finding_type 'recommendation'." },
 ];
 
 // Maximum findings cap per analysis run
@@ -379,7 +379,7 @@ Each finding must be:
 
 ${fileBlocks}
 
-Context: This is a production AI platform with chat, data intelligence (ASHA), engineering design (ZALI), OSINT (NOMAD), predictive intel, IDE, security command center, and self-learning capabilities. It uses React 18, Supabase edge functions, Tailwind CSS, and the Lovable AI gateway.
+Context: This is a production AI platform with chat, data intelligence (AZPLEN), engineering design (ZALI), OSINT (NOMAD), predictive intel, IDE, security command center, and self-learning capabilities. It uses React 18, Supabase edge functions, Tailwind CSS, and the Lovable AI gateway.
 
 ${hasLiveCode ? "You have the REAL source code above. Reference specific line numbers, variable names, and actual logic paths in your findings." : "Focus on REAL issues you'd find in a codebase of this complexity."}`;
 

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import ReactMarkdown from "react-markdown";
 
 type ThreatType = "competitive" | "churn" | "fraud" | "market" | "legal" | "operational";
@@ -48,7 +48,7 @@ const ThreatModelingPanel = () => {
   const [selectedAnalysis, setSelectedAnalysis] = useState<ThreatAnalysis | null>(null);
   const [view, setView] = useState<"dashboard" | "analyze">("dashboard");
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   // Compute threat stats
   const threatStats = {

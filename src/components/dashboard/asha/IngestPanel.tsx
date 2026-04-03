@@ -5,9 +5,9 @@ import { sanitizeDisplayName, MAX_FILE_SIZE, MAX_FILE_SIZE_DISPLAY } from "@/lib
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 
-interface AshaDataset {
+interface AzplenDataset {
   id: string;
   file_name: string;
   file_type: string;
@@ -35,14 +35,14 @@ const formatSize = (bytes: number) => {
 };
 
 const IngestPanel = () => {
-  const [datasets, setDatasets] = useState<AshaDataset[]>([]);
+  const [datasets, setDatasets] = useState<AzplenDataset[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   // Load existing datasets scoped to session
   const loadDatasets = async () => {
@@ -274,7 +274,7 @@ const IngestPanel = () => {
           Any file type — up to {MAX_FILE_SIZE_DISPLAY} per file
         </p>
         <p className="text-[10px] text-muted-foreground/30 mt-1">
-          ZIP files are auto-extracted. Files uploaded and analyzed by Asha AI
+          ZIP files are auto-extracted. Files uploaded and analyzed by Azplen AI
         </p>
         <input ref={inputRef} type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) ingestFiles(e.target.files); e.target.value = ""; }} />
       </div>

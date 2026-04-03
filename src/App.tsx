@@ -21,7 +21,7 @@ const NDA = lazy(() => import("./pages/NDA"));
 const EquityOwnership = lazy(() => import("./pages/EquityOwnership"));
 const FeatureZophiel = lazy(() => import("./pages/FeatureZophiel"));
 const FeatureNomad = lazy(() => import("./pages/FeatureNomad"));
-const FeatureAsha = lazy(() => import("./pages/FeatureAsha"));
+const FeatureAzplen = lazy(() => import("./pages/FeatureAzplen"));
 const FeatureBriefings = lazy(() => import("./pages/FeatureBriefings"));
 const FeaturePersonas = lazy(() => import("./pages/FeaturePersonas"));
 const FeatureZali = lazy(() => import("./pages/FeatureZali"));
@@ -76,7 +76,7 @@ const App = () => (
             <Route path="/equity" element={<EquityOwnership />} />
             <Route path="/feature/zophiel" element={<FeatureZophiel />} />
             <Route path="/feature/nomad" element={<FeatureNomad />} />
-            <Route path="/feature/asha" element={<FeatureAsha />} />
+            <Route path="/feature/asha" element={<FeatureAzplen />} />
             <Route path="/feature/briefings" element={<FeatureBriefings />} />
             <Route path="/feature/personas" element={<FeaturePersonas />} />
             <Route path="/feature/zali" element={<FeatureZali />} />

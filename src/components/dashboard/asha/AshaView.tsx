@@ -6,7 +6,7 @@ import {
   Plus, Building2, ChevronDown, Trash2, FileText, FolderOpen, Pencil, Check, X,
   Brain, AlertTriangle, Keyboard, Network, Search, Sparkles, Hammer, Rocket, Zap as ZapIcon, Bot,
 } from "lucide-react";
-import type { AshaTab } from "./types";
+import type { AzplenTab } from "./types";
 import IngestPanel from "./IngestPanel";
 import DataTablePanel from "./DataTablePanel";
 import GraphViewPanel from "./GraphViewPanel";
@@ -36,15 +36,15 @@ import AIPBootcampsPanel from "./AIPBootcampsPanel";
 import ActionEnginePanel from "./ActionEnginePanel";
 import EncryptionBadge from "../EncryptionBadge";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { AshaSessionProvider, useAshaSession } from "./AshaSessionContext";
+import { AzplenSessionProvider, useAzplenSession } from "./AzplenSessionContext";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Context for navigating between tabs from child panels
-const AshaNavContext = createContext<{ navigateToTab: (tab: AshaTab, datasetId?: string) => void }>({ navigateToTab: () => {} });
-export const useAshaNav = () => useContext(AshaNavContext);
+const AzplenNavContext = createContext<{ navigateToTab: (tab: AzplenTab, datasetId?: string) => void }>({ navigateToTab: () => {} });
+export const useAzplenNav = () => useContext(AzplenNavContext);
 
-const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
+const tabs: { id: AzplenTab; icon: React.ElementType; label: string }[] = [
   { id: "ingest", icon: Upload, label: "Ingest" },
   { id: "docintel", icon: FileText, label: "Doc Intel" },
   { id: "catalog", icon: BookOpen, label: "Catalog" },
@@ -70,11 +70,11 @@ const tabs: { id: AshaTab; icon: React.ElementType; label: string }[] = [
   { id: "aip-logic", icon: Shield, label: "AIP Logic" },
   { id: "aip-bootcamps", icon: Rocket, label: "Bootcamps" },
   { id: "action-engine", icon: ZapIcon, label: "Action Engine" },
-  { id: "query", icon: MessageSquare, label: "Ask Asha" },
+  { id: "query", icon: MessageSquare, label: "Ask Azplen" },
 ];
 
 const SessionSelector = () => {
-  const { sessions, activeSession, setActiveSession, createSession, renameSession, deleteSession } = useAshaSession();
+  const { sessions, activeSession, setActiveSession, createSession, renameSession, deleteSession } = useAzplenSession();
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
@@ -213,11 +213,11 @@ const SessionSelector = () => {
 // ErrorBoundary is now imported from @/components/ErrorBoundary
 
 
-const AshaInner = () => {
-  const [activeTab, setActiveTab] = useState<AshaTab>("ingest");
+const AzplenInner = () => {
+  const [activeTab, setActiveTab] = useState<AzplenTab>("ingest");
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const { activeSession, loading } = useAshaSession();
+  const { activeSession, loading } = useAzplenSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keyboard shortcuts
@@ -234,7 +234,7 @@ const AshaInner = () => {
   ];
   useKeyboardShortcuts(shortcuts);
 
-  const navigateToTab = (tab: AshaTab, datasetId?: string) => {
+  const navigateToTab = (tab: AzplenTab, datasetId?: string) => {
     setActiveTab(tab);
     if (datasetId) setSelectedDatasetId(datasetId);
   };
@@ -288,7 +288,7 @@ const AshaInner = () => {
 
   return (
     <TooltipProvider>
-      <AshaNavContext.Provider value={{ navigateToTab }}>
+      <AzplenNavContext.Provider value={{ navigateToTab }}>
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex-shrink-0 border-b border-border/20 bg-card/20 backdrop-blur-sm px-3 sm:px-6 py-3 sm:py-4">
@@ -296,7 +296,7 @@ const AshaInner = () => {
               <div className="flex items-center gap-3">
                 <Database className="h-5 w-5 text-accent" />
                 <div>
-                  <h1 className="text-lg font-extralight tracking-wide text-foreground">ASHA</h1>
+                  <h1 className="text-lg font-extralight tracking-wide text-foreground">AZPLEN</h1>
                   <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">Data Intelligence Platform</p>
                 </div>
               </div>
@@ -376,15 +376,15 @@ const AshaInner = () => {
             </div>
           )}
         </div>
-      </AshaNavContext.Provider>
+      </AzplenNavContext.Provider>
     </TooltipProvider>
   );
 };
 
-const AshaView = () => (
-  <AshaSessionProvider>
-    <AshaInner />
-  </AshaSessionProvider>
+const AzplenView = () => (
+  <AzplenSessionProvider>
+    <AzplenInner />
+  </AzplenSessionProvider>
 );
 
-export default AshaView;
+export default AzplenView;

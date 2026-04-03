@@ -6,7 +6,7 @@ import {
   Database, Settings2, Download, RefreshCw, Eye, Gauge
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
 import {
@@ -101,7 +101,7 @@ const PredictionsPanel = () => {
   const [scenarioDesc, setScenarioDesc] = useState("");
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   useEffect(() => {
     if (!user || !activeSession) return;
@@ -147,8 +147,8 @@ const PredictionsPanel = () => {
       const columns = schema.map((c: any) => c.name).join(", ");
 
       const prompt = selectedType === "scenario"
-        ? `[ASHA PREDICTIVE ENGINE — SCENARIO FORECASTING] Dataset: "${selectedDataset.file_name}" (${selectedDataset.row_count} rows, columns: ${columns}). Scenario: "${scenarioDesc}". Run scenario analysis. Return comprehensive results with multiple scenarios (base, optimistic, pessimistic), probability-weighted outcomes, sensitivity analysis, and actionable recommendations. Format with clear headers, confidence scores, and tables.`
-        : `[ASHA PREDICTIVE ENGINE — ${typeInfo.label.toUpperCase()}] Dataset: "${selectedDataset.file_name}" (${selectedDataset.row_count} rows, columns: ${columns}). Target: "${targetColumn}". Prediction type: ${selectedType}. Perform complete predictive analysis:
+        ? `[AZPLEN PREDICTIVE ENGINE — SCENARIO FORECASTING] Dataset: "${selectedDataset.file_name}" (${selectedDataset.row_count} rows, columns: ${columns}). Scenario: "${scenarioDesc}". Run scenario analysis. Return comprehensive results with multiple scenarios (base, optimistic, pessimistic), probability-weighted outcomes, sensitivity analysis, and actionable recommendations. Format with clear headers, confidence scores, and tables.`
+        : `[AZPLEN PREDICTIVE ENGINE — ${typeInfo.label.toUpperCase()}] Dataset: "${selectedDataset.file_name}" (${selectedDataset.row_count} rows, columns: ${columns}). Target: "${targetColumn}". Prediction type: ${selectedType}. Perform complete predictive analysis:
 1. DATA QUALITY: Validate data, report quality score, missing values, outliers, sufficient data check.
 2. FEATURE ENGINEERING: Auto-select predictive features, rank by importance.
 3. MODEL TRAINING: Train multiple models (at least 5), compare accuracy. Show which is best.
@@ -390,7 +390,7 @@ Format with clear headers, tables, and confidence scores. Be specific with numbe
             <div className="max-w-3xl mx-auto space-y-6">
               <div>
                 <h2 className="text-lg font-extralight tracking-wide text-foreground">Data Quality Check</h2>
-                <p className="text-xs text-muted-foreground mt-1">ASHA validates your data before predictions.</p>
+                <p className="text-xs text-muted-foreground mt-1">AZPLEN validates your data before predictions.</p>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-border/20 bg-card/20 p-4">
@@ -424,7 +424,7 @@ Format with clear headers, tables, and confidence scores. Be specific with numbe
               </div>
               <div className="text-center">
                 <p className="text-sm font-light text-foreground">Training Multiple Models...</p>
-                <p className="text-xs text-muted-foreground/50 mt-1">ASHA is training 5+ algorithms to find the best one</p>
+                <p className="text-xs text-muted-foreground/50 mt-1">AZPLEN is training 5+ algorithms to find the best one</p>
               </div>
               <div className="w-64 space-y-2">
                 {["Data Validation", "Feature Engineering", "Model Training", "Cross-Validation", "Generating Predictions"].map((step, i) => (
@@ -566,7 +566,7 @@ Format with clear headers, tables, and confidence scores. Be specific with numbe
       {showWizard ? renderWizard() : (
         <div className="flex-1 flex flex-col items-center justify-center">
           <Brain className="h-16 w-16 text-muted-foreground/10 mb-4" />
-          <h2 className="text-lg font-extralight text-foreground mb-2">ASHA Predictive Engine</h2>
+          <h2 className="text-lg font-extralight text-foreground mb-2">AZPLEN Predictive Engine</h2>
           <p className="text-xs text-muted-foreground/50 max-w-md text-center leading-relaxed mb-6">
             AI that continuously learns from your data, identifies what's predictable, forecasts future events with confidence scores, and explains why it believes what it believes.
           </p>

@@ -73,13 +73,13 @@ const PatternAnalysisView = () => {
   const runAnalysis = useCallback(async () => {
     if (dataSources.length === 0) return;
     setAnalyzing(true);
-    setProgress("Ingesting data sources with Asha Intelligence…");
+    setProgress("Ingesting data sources with Azplen Intelligence…");
     let result = "";
 
     const textData = dataSources.filter(d => d.type === "text").map(d => `[${d.name}]:\n${d.content.slice(0, 4000)}`).join("\n\n");
     const imageDescriptions = dataSources.filter(d => d.type === "image").map(d => `[Image: ${d.name}]`).join(", ");
 
-    const prompt = `You are Asha + Aureon Pattern Intelligence. Analyze the following data sources to find patterns, trends, and make future predictions.
+    const prompt = `You are Azplen + Aureon Pattern Intelligence. Analyze the following data sources to find patterns, trends, and make future predictions.
 
 ${analysisPrompt ? `User context: ${analysisPrompt}` : ""}
 
@@ -194,7 +194,7 @@ Return ONLY the JSON array.`;
             <TrendingUp className="h-5 w-5 text-accent" />
             <div>
               <h1 className="text-lg font-extralight tracking-wide text-foreground">Pattern Analysis</h1>
-              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">Asha + Aureon Predictive Pattern Engine</p>
+              <p className="text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">Azplen + Aureon Predictive Pattern Engine</p>
             </div>
           </div>
           <button onClick={runAnalysis} disabled={dataSources.length === 0 || analyzing}

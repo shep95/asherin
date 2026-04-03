@@ -36,7 +36,7 @@ const ChromeDataView = () => {
             Export via Google Takeout
           </a>
           <p className="text-[10px] font-extralight text-muted-foreground/40">
-            Download your Chrome data and upload it to Asha for analysis
+            Download your Chrome data and upload it to Azplen for analysis
           </p>
         </div>
       </div>

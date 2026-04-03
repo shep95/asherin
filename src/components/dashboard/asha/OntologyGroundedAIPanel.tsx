@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Brain, MessageSquare, Loader2, Database, Shield, CheckCircle, AlertTriangle, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -18,7 +18,7 @@ interface GroundedMessage {
 
 const OntologyGroundedAIPanel = () => {
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const { toast } = useToast();
   const [messages, setMessages] = useState<GroundedMessage[]>([]);
   const [input, setInput] = useState("");

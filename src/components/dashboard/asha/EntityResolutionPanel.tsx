@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Fingerprint, Link2, CheckCircle2, X, Search, Users, Building2, CreditCard, FileText, Loader2, Merge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 
 interface EntityMatch {
   id: string;
@@ -26,7 +26,7 @@ const EntityResolutionPanel = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   useEffect(() => {
     if (!user || !activeSession) return;
@@ -104,7 +104,7 @@ const EntityResolutionPanel = () => {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2"><Fingerprint className="h-5 w-5 text-accent" /><h2 className="text-lg font-extralight tracking-wide text-foreground">Entity Resolution</h2></div>
-          <p className="text-xs font-extralight text-muted-foreground mt-1">ASHA scans your datasets and finds matching entities using AI.</p>
+          <p className="text-xs font-extralight text-muted-foreground mt-1">AZPLEN scans your datasets and finds matching entities using AI.</p>
         </div>
         <button onClick={runScan} disabled={isScanning} className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-xs font-light text-accent hover:bg-accent/20 transition-colors disabled:opacity-50">
           {isScanning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}

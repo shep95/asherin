@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { useToast } from "@/hooks/use-toast";
 
 interface FileEntry {
@@ -53,7 +53,7 @@ const FilesPanel = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const { toast } = useToast();
 
   const loadFiles = async () => {
@@ -191,7 +191,7 @@ const FilesPanel = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${activeSession?.name || "asha"}_files.zip`;
+      a.download = `${activeSession?.name || "azplen"}_files.zip`;
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: "Download complete", description: `${files.length} files packaged` });

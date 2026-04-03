@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { Shield, Plus, Play, CheckCircle, XCircle, Clock, Loader2, AlertTriangle, ChevronDown, Zap, User, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -83,7 +83,7 @@ const TEMPLATE_WORKFLOWS: Omit<AIPWorkflow, "id" | "createdAt">[] = [
 
 const AIPLogicPanel = () => {
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const { toast } = useToast();
   const [workflows, setWorkflows] = useState<AIPWorkflow[]>([]);
   const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);

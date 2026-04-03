@@ -25,7 +25,7 @@ export type FeatureId =
   | "briefings"
   | "nomad"
   | "tracker"
-  | "asha"
+  | "azplen"
   | "pattern_analysis"
   | "timeseries"
   | "geospatial"
@@ -84,7 +84,7 @@ const AUREON_FEATURES: FeatureId[] = [
 const PRO_FEATURES: FeatureId[] = [
   ...AUREON_FEATURES,
   "google_intel", "elion", "predictive", "briefings", "nomad", "tracker",
-  "asha", "pattern_analysis", "timeseries", "geospatial", "notebooks",
+  "azplen", "pattern_analysis", "timeseries", "geospatial", "notebooks",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
   "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
   "vibe_video", "agents",
@@ -211,7 +211,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     tagline: "Full Dashboard Access",
     price: "$740",
     period: "/ month",
-    description: "Complete access to every tool — IDE, Google Intelligence, Asha, NOMAD, Predictive Intelligence, and more.",
+    description: "Complete access to every tool — IDE, Google Intelligence, Azplen, NOMAD, Predictive Intelligence, and more.",
     cta: "Get Pro Access",
     highlight: false,
     publicVisible: true,
@@ -228,7 +228,7 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
       "Imagine To Code — pixel art & SVG editor with AUREON AI",
       "ZALI Design Intelligence Lab",
       "ZALI Community — questions, requests & feature votes",
-      "Asha Data Intelligence Platform",
+      "Azplen Data Intelligence Platform",
       "NOMAD Public Intelligence Agent",
       "Daily Intelligence Briefings",
       "Intelligence Notebooks with versioning",
@@ -323,7 +323,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   nomad: "nomad",
   tracker: "tracker",
   "imagine-intelligence": "imagine_intelligence",
-  asha: "asha",
+  asha: "azplen",
   "pattern-analysis": "pattern_analysis",
   timeseries: "timeseries",
   geospatial: "geospatial",
@@ -362,7 +362,7 @@ export const TIER_FEATURE_CARDS: TierFeatureCard[] = [
   { label: "Predictive Intelligence", desc: "AI-powered event forecasting with signal detection and confidence scoring.", tier: "Pro & Advisor" },
   { label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask AUREON to design directly on the canvas.", tier: "Pro & Advisor" },
   { label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro & Advisor" },
-  { label: "Asha Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro & Advisor" },
+  { label: "Azplen Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro & Advisor" },
   { label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro & Advisor" },
   { label: "Elion / Zohar Toolkit", desc: "Domain forensics, security scoring, subdomain recon, and full attack surface mapping.", tier: "Pro & Advisor" },
   { label: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", tier: "Pro & Advisor" },

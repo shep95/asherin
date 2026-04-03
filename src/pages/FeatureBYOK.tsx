@@ -19,7 +19,7 @@ const providers = [
 const capabilities = [
   { icon: Key, title: "Secure Key Storage", description: "API keys are stored encrypted in your account. Never shared, never logged, never used for anything except your requests." },
   { icon: Brain, title: "Model Selection", description: "Choose exactly which model to use per-provider. Switch between GPT-4o and Claude Sonnet 4 in seconds from Settings." },
-  { icon: Zap, title: "Platform-Wide Integration", description: "Your chosen model powers everything — Chat, IDE, Zophiel Search, NOMAD, Asha, Briefings, and all other Aureon tools." },
+  { icon: Zap, title: "Platform-Wide Integration", description: "Your chosen model powers everything — Chat, IDE, Zophiel Search, NOMAD, Azplen, Briefings, and all other Aureon tools." },
   { icon: RefreshCw, title: "Automatic Fallback", description: "If your API key hits rate limits or errors, Aureon's built-in engine takes over seamlessly — zero downtime." },
   { icon: Settings, title: "One-Click Switching", description: "Switch between Aureon Default and any of your connected providers instantly. No restart, no reconfiguration." },
   { icon: Shield, title: "Zero Lock-In", description: "Use Aureon's built-in engine anytime. Your keys are optional — they extend capability, they don't replace it." },

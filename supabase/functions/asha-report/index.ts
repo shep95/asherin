@@ -77,7 +77,7 @@ serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `You are Asha, a data intelligence AI. ${typePrompts[report.type] || typePrompts.executive}
+        contents: [{ parts: [{ text: `You are Azplen, a data intelligence AI. ${typePrompts[report.type] || typePrompts.executive}
 
 Report Title: "${report.name}"
 

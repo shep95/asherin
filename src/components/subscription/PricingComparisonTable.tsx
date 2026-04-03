@@ -23,7 +23,7 @@ const features = [
   { name: "Multi-persona system", chat: false, aureon: true, pro: true, lifetime: true },
   { name: "Google Intelligence Suite", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "NOMAD Public Intelligence", chat: false, aureon: false, pro: true, lifetime: true },
-  { name: "Asha Data Intelligence", chat: false, aureon: false, pro: true, lifetime: true },
+  { name: "Azplen Data Intelligence", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Predictive Intelligence", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Daily Intelligence Briefings", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Security Dashboard", chat: false, aureon: false, pro: true, lifetime: true },

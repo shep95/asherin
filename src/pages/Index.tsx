@@ -498,7 +498,7 @@ const Index = () => {
                   The Intelligence Interface — Chat, Search, IDE, OSINT, Analytics
                 </p>
                 <div className="grid grid-cols-3 gap-2 mt-4">
-                  {["Chat AI", "Zophiel Search", "Code Engine", "NOMAD OSINT", "Asha Data", "Predictive Intel"].map(label => (
+                  {["Chat AI", "Zophiel Search", "Code Engine", "NOMAD OSINT", "Azplen Data", "Predictive Intel"].map(label => (
                     <div key={label} className="rounded-xl border border-border/20 bg-card/20 px-2 py-1.5 text-center">
                       <span className="text-[9px] font-extralight text-muted-foreground">{label}</span>
                     </div>
@@ -688,7 +688,7 @@ const Index = () => {
                   { feature: "Zophiel Search", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Code Snippets Vault", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Google Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "Asha Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
+                  { feature: "Azplen Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "NOMAD OSINT", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Elion / Zohar Toolkit", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "ZALI Design Lab", lifetime: false, chat: false, aureon: false, pro: true },
@@ -940,7 +940,7 @@ const Index = () => {
                   <Link to="/feature/google-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Google Intelligence</Link>
                   <Link to="/feature/zophiel" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Zophiel Search</Link>
                   <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD OSINT</Link>
-                  <Link to="/feature/asha" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Asha Intelligence</Link>
+                  <Link to="/feature/asha" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Azplen Intelligence</Link>
                   <Link to="/feature/predictive" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Predictive Intelligence</Link>
                   <Link to="/feature/imagine-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine Intelligence</Link>
                   <Link to="/feature/oracle-locus" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Oracle Locus</Link>

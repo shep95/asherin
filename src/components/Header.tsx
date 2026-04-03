@@ -56,7 +56,7 @@ const Header = () => {
                 <Link to="/feature/nomad" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">NOMAD OSINT</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Asha Intelligence</Link>
+                <Link to="/feature/asha" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Azplen Intelligence</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/feature/predictive" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Predictive Intelligence</Link>
@@ -177,7 +177,7 @@ const Header = () => {
                 <Link to="/feature/google-intelligence" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Google Intelligence</Link>
                 <Link to="/feature/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Zophiel Search</Link>
                 <Link to="/feature/nomad" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">NOMAD OSINT</Link>
-                <Link to="/feature/asha" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Asha Intelligence</Link>
+                <Link to="/feature/asha" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Azplen Intelligence</Link>
                 <Link to="/feature/oracle-locus" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Oracle Locus</Link>
                 <Link to="/feature/predictive" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Predictive Intelligence</Link>
                 <Link to="/feature/security" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Security Dashboard</Link>

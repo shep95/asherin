@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Network, Search, Plus, Link2, Eye, Loader2, Layers, Box, Truck, FileText, User, Building2, DollarSign, MapPin, Cpu, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OntologyEntity {
@@ -34,7 +34,7 @@ const ENTITY_TYPES: { type: OntologyEntity["type"]; icon: React.ElementType; lab
 
 const OntologyEnginePanel = () => {
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const [entities, setEntities] = useState<OntologyEntity[]>([]);
   const [relations, setRelations] = useState<OntologyRelation[]>([]);
   const [search, setSearch] = useState("");
@@ -48,7 +48,7 @@ const OntologyEnginePanel = () => {
   const [loading, setLoading] = useState(true);
   const [autoImporting, setAutoImporting] = useState(false);
 
-  // Auto-import entities from ASHA datasets
+  // Auto-import entities from AZPLEN datasets
   useEffect(() => {
     if (!user || !activeSession) { setLoading(false); return; }
     const load = async () => {

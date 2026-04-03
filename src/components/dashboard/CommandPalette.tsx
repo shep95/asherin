@@ -64,7 +64,7 @@ const CommandPalette = ({ open, onClose, onNewConversation, onViewChange, onMode
     { id: "truth-mode", label: "Switch to Truth Mode", category: "Modes", icon: Shield, action: wrap("truth-mode", () => onModeChange("truth")), shortcut: "Ctrl+4" },
     // Navigation
     { id: "search", label: "Zophiel Engine", category: "Navigation", icon: Search, action: wrap("search", () => onViewChange("search")), keywords: ["zophiel", "search", "intelligence"] },
-    { id: "asha", label: "Asha Intelligence", category: "Navigation", icon: Database, action: wrap("asha", () => onViewChange("asha")), keywords: ["data", "analysis", "dataset"] },
+    { id: "azplen", label: "Azplen Intelligence", category: "Navigation", icon: Database, action: wrap("azplen", () => onViewChange("azplen")), keywords: ["data", "analysis", "dataset"] },
     { id: "nomad", label: "NOMAD Agent", category: "Navigation", icon: Crosshair, action: wrap("nomad", () => onViewChange("nomad")), keywords: ["osint", "investigate"] },
     { id: "briefing", label: "Intel Briefings", category: "Navigation", icon: Newspaper, action: wrap("briefing", () => onViewChange("briefing")), keywords: ["news", "morning"] },
     { id: "notebooks", label: "Notebooks", category: "Navigation", icon: FileText, action: wrap("notebooks", () => onViewChange("notebooks")), keywords: ["notebook", "note"] },

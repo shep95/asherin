@@ -165,7 +165,7 @@ const PluginRunner = ({ plugin, onClose }: { plugin: Plugin; onClose: () => void
             <div className="space-y-2">
               <label className="text-[10px] tracking-[0.1em] text-muted-foreground uppercase">Select Dataset</label>
               {datasets.length === 0 ? (
-                <p className="text-xs text-muted-foreground/50">No datasets available. Upload data through Asha first.</p>
+                <p className="text-xs text-muted-foreground/50">No datasets available. Upload data through Azplen first.</p>
               ) : (
                 <select
                   value={selectedDataset ?? ""}
