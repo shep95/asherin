@@ -25,10 +25,70 @@ serve(async (req) => {
       });
     }
 
-    const { frame, context, previousAlerts, settings, chatMessage } = await req.json();
+    const { frame, context, previousAlerts, settings, chatMessage, activeBrainId } = await req.json();
+
+    // ── Load user's active brains (system prompts + file contents) ──
+    let brainContext = "";
+    try {
+      // Load all user brains
+      const { data: brains } = await sb.from("brains").select("*").eq("user_id", user.id);
+      if (brains && brains.length > 0) {
+        // If a specific brain is active, prioritize it; otherwise load all
+        const activeBrains = activeBrainId
+          ? brains.filter((b: any) => b.id === activeBrainId)
+          : brains;
+
+        const brainParts: string[] = [];
+        for (const brain of activeBrains) {
+          if (brain.system_prompt) {
+            brainParts.push(`[BRAIN: ${brain.name}]\n${brain.system_prompt}`);
+          }
+          // Load associated files
+          if (brain.file_ids?.length) {
+            const { data: files } = await sb.from("library_files").select("file_name, storage_path").in("id", brain.file_ids);
+            if (files) {
+              for (const file of files) {
+                try {
+                  const { data: fileData } = await sb.storage.from("library").download(file.storage_path);
+                  if (fileData) {
+                    const text = await fileData.text();
+                    brainParts.push(`[BRAIN FILE: ${file.file_name}]\n${text.slice(0, 40000)}`);
+                  }
+                } catch { /* skip unreadable files */ }
+              }
+            }
+          }
+        }
+        if (brainParts.length > 0) {
+          brainContext = `\n\n═══════════════════════════════════════\nAUREON BRAIN INTELLIGENCE LAYERS\n═══════════════════════════════════════\nThe following are your core intelligence protocols, personality directives, and strategic knowledge. Apply these ALWAYS across all analysis:\n\n${brainParts.join("\n\n")}`;
+        }
+      }
+
+      // Also load system brains (invisible to users)
+      const systemBrainPaths = [
+        "system-brains/zophiel_elite_v4_architecture.txt",
+        "system-brains/zophiel_elite_prompt_engine.txt",
+        "system-brains/strategic_doctrine.txt",
+      ];
+      const systemParts: string[] = [];
+      for (const path of systemBrainPaths) {
+        try {
+          const { data: sysFile } = await sb.storage.from("library").download(path);
+          if (sysFile) {
+            const text = await sysFile.text();
+            systemParts.push(text.slice(0, 40000));
+          }
+        } catch { /* system brain not found, skip */ }
+      }
+      if (systemParts.length > 0) {
+        brainContext += `\n\n═══════════════════════════════════════\nCORE SYSTEM INTELLIGENCE PROTOCOLS\n═══════════════════════════════════════\n${systemParts.join("\n\n")}`;
+      }
+    } catch (e) {
+      console.warn("Brain loading warning:", e);
+    }
 
     if (chatMessage && !frame) {
-      return await handleChat(chatMessage, context, previousAlerts, settings?.mode || "general", corsHeaders);
+      return await handleChat(chatMessage, context, previousAlerts, settings?.mode || "general", corsHeaders, brainContext);
     }
 
     if (!frame) {
@@ -39,7 +99,7 @@ serve(async (req) => {
 
     const analysisMode = settings?.mode || "trading";
     const sensitivity = settings?.sensitivity || "medium";
-    const systemPrompt = buildPrompt(analysisMode, sensitivity, previousAlerts, context);
+    const systemPrompt = buildPrompt(analysisMode, sensitivity, previousAlerts, context) + brainContext;
 
     let apiKey = "";
     try {
@@ -474,7 +534,7 @@ CRITICAL RULES:
 Analyze the screen frame now. Return ONLY valid JSON.`;
 }
 
-async function handleChat(message: string, context: string, previousAlerts: any[], mode: string, corsHeaders: Record<string, string>) {
+async function handleChat(message: string, context: string, previousAlerts: any[], mode: string, corsHeaders: Record<string, string>, brainContext: string = "") {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     return new Response(JSON.stringify({ observations: ["AI unavailable"], quickVerdict: { action: "NONE", urgency: "watch", message: "", confidence: 0 } }), {
@@ -505,7 +565,7 @@ async function handleChat(message: string, context: string, previousAlerts: any[
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: `You are Aureon Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}` },
+        { role: "system", content: `You are Aureon Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}${brainContext}` },
         { role: "user", content: message },
       ],
     }),

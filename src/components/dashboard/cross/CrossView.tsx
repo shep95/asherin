@@ -132,6 +132,13 @@ const CrossView: React.FC = () => {
 
     try {
       const headers = await getAuthHeaders();
+
+      // Get active brain ID from localStorage (shared with main Aureon chat)
+      let activeBrainId: string | null = null;
+      try {
+        activeBrainId = localStorage.getItem("aureon_active_brain_id");
+      } catch { /* ignore */ }
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cross-analyze`,
         {
@@ -142,6 +149,7 @@ const CrossView: React.FC = () => {
             context: context ? JSON.stringify(context) : undefined,
             previousAlerts: previousAlertsRef.current.slice(-3).map(a => ({ type: a.type, title: a.title })),
             settings: { mode: settings.mode, sensitivity: settings.sensitivity },
+            activeBrainId,
           }),
         }
       );
