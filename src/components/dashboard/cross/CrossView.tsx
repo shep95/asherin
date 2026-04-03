@@ -888,6 +888,7 @@ const CrossView: React.FC = () => {
             </div>
           )}
 
+          {showAnalytics && isSharing && (
             <CrossAnalyticsSummary analytics={sessionAnalytics} sessionDuration={sessionDuration} />
           )}
 
