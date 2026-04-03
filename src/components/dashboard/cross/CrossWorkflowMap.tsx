@@ -607,6 +607,22 @@ const CrossWorkflowMap: React.FC<Props> = ({ onClose, isSharing, currentSessionI
             </div>
           </div>
         )}
+
+        {/* Comparison Panel */}
+        {showComparison && workflows.length >= 2 && (
+          <CrossWorkflowComparison
+            workflows={workflows}
+            onClose={() => setShowComparison(false)}
+          />
+        )}
+
+        {/* Export Panel */}
+        {showExport && workflow && (
+          <CrossWorkflowExport
+            workflow={workflow}
+            onClose={() => setShowExport(false)}
+          />
+        )}
       </div>
     </div>
   );
