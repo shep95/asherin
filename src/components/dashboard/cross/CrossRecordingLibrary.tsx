@@ -28,6 +28,28 @@ export interface SavedRecording {
   overlayLayers: string[];
 }
 
+interface ShareSettings {
+  emails: string[];
+  linkEnabled: boolean;
+  link: string;
+  permissions: { view: boolean; download: boolean; edit: boolean };
+  passwordProtected: boolean;
+  password: string;
+  expiresIn: number;
+  privacyFilters: { removeSensitive: boolean; blurFaces: boolean; muteAudio: boolean };
+  includeTranscript: boolean;
+  includeAiSummary: boolean;
+  includeReport: boolean;
+}
+
+interface ExportSettings {
+  format: "mp4-h264" | "mp4-h265" | "webm" | "mov" | "cross";
+  quality: "original" | "high" | "medium" | "low";
+  overlays: "all" | "none" | "custom";
+  extras: { transcript: boolean; report: boolean; audioOnly: boolean; overlayData: boolean; chapters: boolean };
+  optimizeFor: "general" | "youtube" | "instagram" | "tiktok" | "linkedin";
+}
+
 const FILTER_CATEGORIES = ["All", "Sales Calls", "Meetings", "Trading", "Coding", "Starred"];
 const FORMAT_OPTIONS = [
   { value: "mp4-h264" as const, label: "MP4 (H.264)", desc: "Universal compatibility" },
