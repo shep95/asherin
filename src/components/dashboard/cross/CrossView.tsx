@@ -35,8 +35,16 @@ import {
   SalesIntelligence, EmotionState, EngagementMetrics, SpeakerInfo,
 } from "./types";
 
-const localEngine = new LocalIntelligenceEngine();
-const voiceEngine = new VoiceAlertEngine();
+let localEngine: LocalIntelligenceEngine;
+let voiceEngine: VoiceAlertEngine;
+try {
+  localEngine = new LocalIntelligenceEngine();
+  voiceEngine = new VoiceAlertEngine();
+} catch (e) {
+  console.error("Failed to initialize Cross engines:", e);
+  localEngine = new LocalIntelligenceEngine();
+  voiceEngine = new VoiceAlertEngine();
+}
 
 // ── Notification type ──
 interface CrossNotification {
@@ -816,7 +824,7 @@ const CrossView: React.FC = () => {
           )}
 
           {/* Psychological Profile */}
-          {isSharing && psychProfile?.humansDetected && psychProfile.subjects?.length > 0 && (
+          {isSharing && psychProfile?.humansDetected && Array.isArray(psychProfile.subjects) && psychProfile.subjects.length > 0 && (
             <div className="rounded-xl bg-purple-500/5 border border-purple-500/15 overflow-hidden">
               <div className="px-3 py-2 border-b border-purple-500/10 flex items-center gap-2">
                 <span className="text-sm">🧠</span>
