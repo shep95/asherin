@@ -35,8 +35,16 @@ import {
   SalesIntelligence, EmotionState, EngagementMetrics, SpeakerInfo,
 } from "./types";
 
-const localEngine = new LocalIntelligenceEngine();
-const voiceEngine = new VoiceAlertEngine();
+let localEngine: LocalIntelligenceEngine;
+let voiceEngine: VoiceAlertEngine;
+try {
+  localEngine = new LocalIntelligenceEngine();
+  voiceEngine = new VoiceAlertEngine();
+} catch (e) {
+  console.error("Failed to initialize Cross engines:", e);
+  localEngine = new LocalIntelligenceEngine();
+  voiceEngine = new VoiceAlertEngine();
+}
 
 // ── Notification type ──
 interface CrossNotification {
