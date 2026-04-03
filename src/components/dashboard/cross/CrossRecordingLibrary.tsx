@@ -13,8 +13,8 @@ export interface SavedRecording {
   id: string;
   title: string;
   date: Date;
-  duration: number; // seconds
-  fileSize: number; // bytes
+  duration: number;
+  fileSize: number;
   creditsUsed: number;
   mode: string;
   starred: boolean;
@@ -27,71 +27,6 @@ export interface SavedRecording {
   participants?: string[];
   overlayLayers: string[];
 }
-
-interface ShareSettings {
-  emails: string[];
-  linkEnabled: boolean;
-  link: string;
-  permissions: { view: boolean; download: boolean; edit: boolean };
-  passwordProtected: boolean;
-  password: string;
-  expiresIn: number; // days
-  privacyFilters: {
-    removeSensitive: boolean;
-    blurFaces: boolean;
-    muteAudio: boolean;
-  };
-  includeTranscript: boolean;
-  includeAiSummary: boolean;
-  includeReport: boolean;
-}
-
-interface ExportSettings {
-  format: "mp4-h264" | "mp4-h265" | "webm" | "mov" | "cross";
-  quality: "original" | "high" | "medium" | "low";
-  overlays: "all" | "none" | "custom";
-  extras: {
-    transcript: boolean;
-    report: boolean;
-    audioOnly: boolean;
-    overlayData: boolean;
-    chapters: boolean;
-  };
-  optimizeFor: "general" | "youtube" | "instagram" | "tiktok" | "linkedin";
-}
-
-// ── Demo data ──
-const DEMO_RECORDINGS: SavedRecording[] = [
-  {
-    id: "1", title: "Q2 Planning Meeting", date: new Date(2026, 2, 21, 14, 30),
-    duration: 2538, fileSize: 4.2e9, creditsUsed: 387, mode: "sales",
-    starred: true, tags: ["Planning", "Q2", "Strategy"], hasTranscript: true,
-    aiSummary: "Strategic planning meeting covering Q2 objectives. Key decisions: Budget approved at $450K.",
-    storage: "both", shared: false, participants: ["John Smith", "Sarah Johnson", "Mike Thompson"],
-    overlayLayers: ["chat", "annotations", "notifications"],
-  },
-  {
-    id: "2", title: "Sales Call — Acme Corp", date: new Date(2026, 2, 20, 10, 15),
-    duration: 1725, fileSize: 2.1e9, creditsUsed: 240, mode: "sales",
-    starred: false, tags: ["Sales", "Acme", "Enterprise"], hasTranscript: true,
-    aiSummary: "Buying signals detected at 12:45. Prospect asked about pricing implementation.",
-    storage: "cloud", shared: true, participants: ["John Smith", "Lisa Chen"],
-    overlayLayers: ["chat", "annotations"],
-  },
-  {
-    id: "3", title: "Trading Session — BTC Analysis", date: new Date(2026, 2, 19, 8, 0),
-    duration: 932, fileSize: 1.2e9, creditsUsed: 156, mode: "trading",
-    starred: false, tags: ["Trading", "BTC", "Nestal"], hasTranscript: false,
-    storage: "local", shared: false, overlayLayers: ["annotations", "notifications"],
-  },
-  {
-    id: "4", title: "Code Review — Auth Module", date: new Date(2026, 2, 18, 16, 0),
-    duration: 1845, fileSize: 1.8e9, creditsUsed: 210, mode: "coding",
-    starred: true, tags: ["Code Review", "Security"], hasTranscript: true,
-    aiSummary: "3 security issues identified and resolved. Auth flow refactored.",
-    storage: "cloud", shared: false, overlayLayers: ["chat", "annotations"],
-  },
-];
 
 const FILTER_CATEGORIES = ["All", "Sales Calls", "Meetings", "Trading", "Coding", "Starred"];
 const FORMAT_OPTIONS = [
