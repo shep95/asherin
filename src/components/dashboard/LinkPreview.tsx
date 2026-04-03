@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
-import { ExternalLink, Globe } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { ExternalLink, Globe, Crosshair, Loader2, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
 
 interface LinkPreviewProps {
   url: string;
@@ -19,13 +21,19 @@ function extractDomain(url: string): string {
   try { return new URL(url).hostname.replace("www.", ""); } catch { return url; }
 }
 
-// Cache previews in memory
 const previewCache = new Map<string, PreviewData | null>();
 
 const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
   const [preview, setPreview] = useState<PreviewData | null>(previewCache.get(url) ?? null);
   const [loading, setLoading] = useState(!previewCache.has(url));
   const [faviconError, setFaviconError] = useState(false);
+
+  // Elion extraction state
+  const [extracting, setExtracting] = useState(false);
+  const [extracted, setExtracted] = useState<string | null>(null);
+  const [extractExpanded, setExtractExpanded] = useState(true);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (previewCache.has(url)) {
@@ -34,7 +42,6 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
       return;
     }
 
-    // Simple metadata extraction using favicon and domain
     const domain = extractDomain(url);
     const data: PreviewData = {
       title: domain,
@@ -43,7 +50,6 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
       favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
     };
 
-    // YouTube special handling
     const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
       data.title = "YouTube Video";
@@ -51,13 +57,11 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
       data.description = "Watch on YouTube";
     }
 
-    // Twitter/X special handling
     if (domain.includes("twitter.com") || domain.includes("x.com")) {
       data.title = "Post on X";
       data.description = "View the post on X (formerly Twitter)";
     }
 
-    // GitHub special handling
     if (domain.includes("github.com")) {
       const parts = url.split("github.com/")[1]?.split("/");
       if (parts && parts.length >= 2) {
@@ -71,6 +75,47 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
     setLoading(false);
   }, [url]);
 
+  const handleExtract = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (extracting || extracted) return;
+
+    setExtracting(true);
+    setExtractError(null);
+
+    try {
+      // Use Elion's deepdive web recon module for URL intelligence
+      const { data, error } = await supabase.functions.invoke("elion-execute", {
+        body: {
+          moduleId: "deepdive-8",
+          moduleName: "Blueprint Extract",
+          category: "deepdive",
+          query: url,
+          ghostMode: false,
+        },
+      });
+
+      if (error) throw new Error(error.message || "Extraction failed");
+      
+      const result = typeof data === "string" ? data : data?.result || data?.output || JSON.stringify(data, null, 2);
+      setExtracted(result);
+    } catch (err: any) {
+      console.error("Elion extraction error:", err);
+      setExtractError(err.message || "Failed to extract intelligence from this URL");
+    } finally {
+      setExtracting(false);
+    }
+  }, [url, extracting, extracted]);
+
+  const handleCopy = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!extracted) return;
+    navigator.clipboard.writeText(extracted);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [extracted]);
+
   if (loading) {
     return (
       <div className="mt-2 rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-3 animate-pulse">
@@ -82,34 +127,107 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
   if (!preview) return null;
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-2 flex gap-3 rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm p-3 hover:bg-card/50 transition-all group overflow-hidden"
-    >
-      {preview.image && (
-        <img src={preview.image} alt="" className="w-20 h-14 rounded-lg object-cover shrink-0" />
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          {preview.favicon && !faviconError ? (
-            <img
-              src={preview.favicon}
-              alt=""
-              className="w-4 h-4 rounded-sm"
-              onError={() => setFaviconError(true)}
-            />
-          ) : (
-            <Globe className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-          )}
-          <span className="text-[10px] text-muted-foreground/60">{preview.domain}</span>
+    <div className="mt-2 rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm overflow-hidden">
+      {/* Link preview row */}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex gap-3 p-3 hover:bg-card/50 transition-all group"
+      >
+        {preview.image && (
+          <img src={preview.image} alt="" className="w-20 h-14 rounded-lg object-cover shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            {preview.favicon && !faviconError ? (
+              <img
+                src={preview.favicon}
+                alt=""
+                className="w-4 h-4 rounded-sm"
+                onError={() => setFaviconError(true)}
+              />
+            ) : (
+              <Globe className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+            )}
+            <span className="text-[10px] text-muted-foreground/60">{preview.domain}</span>
+          </div>
+          <p className="text-xs font-light text-foreground truncate">{preview.title}</p>
+          <p className="text-[10px] text-muted-foreground/50 truncate">{preview.description}</p>
         </div>
-        <p className="text-xs font-light text-foreground truncate">{preview.title}</p>
-        <p className="text-[10px] text-muted-foreground/50 truncate">{preview.description}</p>
+        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-foreground/50 transition-colors shrink-0 mt-1" />
+      </a>
+
+      {/* Extract Intel button */}
+      <div className="border-t border-border/10 px-3 py-1.5 flex items-center gap-2">
+        <button
+          onClick={handleExtract}
+          disabled={extracting || !!extracted}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium tracking-wide transition-all ${
+            extracted
+              ? "bg-accent/10 text-accent/70 cursor-default"
+              : extracting
+              ? "bg-foreground/5 text-muted-foreground/50 cursor-wait"
+              : "bg-foreground/5 hover:bg-accent/15 text-muted-foreground hover:text-accent cursor-pointer"
+          }`}
+        >
+          {extracting ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>EXTRACTING...</span>
+            </>
+          ) : extracted ? (
+            <>
+              <Crosshair className="h-3 w-3" />
+              <span>INTEL EXTRACTED</span>
+            </>
+          ) : (
+            <>
+              <Crosshair className="h-3 w-3" />
+              <span>EXTRACT INTEL</span>
+            </>
+          )}
+        </button>
+
+        {extracted && (
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              onClick={handleCopy}
+              className="p-1 rounded hover:bg-foreground/5 transition text-muted-foreground/40 hover:text-foreground/60"
+              title="Copy report"
+            >
+              {copied ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
+            </button>
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExtractExpanded(p => !p); }}
+              className="p-1 rounded hover:bg-foreground/5 transition text-muted-foreground/40 hover:text-foreground/60"
+            >
+              {extractExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          </div>
+        )}
       </div>
-      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-foreground/50 transition-colors shrink-0 mt-1" />
-    </a>
+
+      {/* Extract error */}
+      {extractError && (
+        <div className="px-3 pb-2 text-[10px] text-red-400/80">
+          {extractError}
+        </div>
+      )}
+
+      {/* Extracted intel panel */}
+      {extracted && extractExpanded && (
+        <div className="border-t border-border/10 px-3 py-2 max-h-[400px] overflow-y-auto">
+          <div className="text-[10px] font-semibold tracking-widest text-accent/60 uppercase mb-1.5 flex items-center gap-1.5">
+            <Crosshair className="h-3 w-3" />
+            ELION INTELLIGENCE REPORT
+          </div>
+          <div className="prose prose-sm prose-invert max-w-none text-[11px] leading-relaxed [&_p]:mb-1.5 [&_p]:last:mb-0 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[10px] [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:p-2 [&_pre]:text-[10px] [&_ul]:space-y-0.5 [&_li]:text-[11px] [&_h1]:text-xs [&_h2]:text-[11px] [&_h3]:text-[11px] [&_table]:text-[10px] [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_table]:border-border/20 [&_th]:border-border/20 [&_td]:border-border/20 [&_hr]:border-border/20">
+            <ReactMarkdown>{extracted}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -117,7 +235,6 @@ const LinkPreviewCard = ({ url }: LinkPreviewProps) => {
 export function renderLinkPreviews(text: string) {
   const urls = text.match(URL_REGEX);
   if (!urls || urls.length === 0) return null;
-  // Dedupe
   const unique = [...new Set(urls)].slice(0, 3);
   return (
     <div className="space-y-1.5">
