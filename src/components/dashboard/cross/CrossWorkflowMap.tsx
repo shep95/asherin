@@ -111,7 +111,7 @@ const CrossWorkflowMap: React.FC<Props> = ({ onClose, isSharing, currentSessionI
   const buildWorkflowFromSession = useCallback(async () => {
     if (!user || !currentSessionId) return;
     try {
-      const { data: session } = await supabase
+      const { data: session } = await (supabase as any)
         .from("cross_sessions")
         .select("*")
         .eq("id", currentSessionId)
