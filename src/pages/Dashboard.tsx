@@ -1189,7 +1189,7 @@ const Dashboard = () => {
   const renderView = () => {
     // Gate map: view -> { component, title, description }
     const gatedView = (view: DashboardView, Component: React.ComponentType, title: string, description: string) => {
-      if (canAccess(view)) return <Suspense fallback={<LazyFallback />}><Component /></Suspense>;
+      if (canAccess(view)) return <ErrorBoundary><Suspense fallback={<LazyFallback />}><Component /></Suspense></ErrorBoundary>;
       return <FeatureGate title={title} description={description} onUpgrade={() => setActiveView("subscription")} />;
     };
 
