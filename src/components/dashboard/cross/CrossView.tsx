@@ -169,6 +169,12 @@ const CrossView: React.FC = () => {
         }
       }
 
+      // Sales intelligence extraction
+      if (analysis.salesIntel) setSalesIntel(analysis.salesIntel);
+      if (analysis.emotions) setEmotions(analysis.emotions);
+      if (analysis.engagement) setEngagement(analysis.engagement);
+      if (analysis.speakers) setSpeakers(analysis.speakers);
+
       // Local pattern detection (trading only)
       if (analysis.context && settings.mode === "trading") {
         const signals = localEngine.detectLocalPatterns(analysis.context);
