@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X,
-  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon, FolderOpen, History, GitBranch
+  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon, FolderOpen, History, GitBranch, Fingerprint
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ import CrossRecordingControls from "./CrossRecordingControls";
 import CrossRecordingLibrary from "./CrossRecordingLibrary";
 import CrossSessionHistory from "./CrossSessionHistory";
 import CrossWorkflowMap from "./CrossWorkflowMap";
+import CrossSocialIntelProfiler from "./CrossSocialIntelProfiler";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
@@ -70,6 +71,7 @@ const CrossView: React.FC = () => {
   const [showLibrary, setShowLibrary] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showWorkflow, setShowWorkflow] = useState(false);
+  const [showSocialIntel, setShowSocialIntel] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // ── Chat state ──
@@ -577,7 +579,7 @@ const CrossView: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Close other panels when opening one
-  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics" | "library" | "history" | "workflow") => {
+  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics" | "library" | "history" | "workflow" | "socialIntel") => {
     setShowChat(panel === "chat" ? c => !c : false);
     setShowSettings(panel === "settings" ? s => !s : false);
     setShowNotifications(panel === "notifications" ? n => !n : false);
@@ -585,6 +587,7 @@ const CrossView: React.FC = () => {
     setShowLibrary(panel === "library" ? l => !l : false);
     setShowHistory(panel === "history" ? h => !h : false);
     setShowWorkflow(panel === "workflow" ? w => !w : false);
+    setShowSocialIntel(panel === "socialIntel" ? s => !s : false);
     if (panel !== "analytics") setShowAnalytics(false);
     else setShowAnalytics(a => !a);
   }, []);
@@ -656,6 +659,9 @@ const CrossView: React.FC = () => {
           </Button>
           <Button variant="ghost" size="icon" onClick={() => openPanel("workflow")} className={`h-8 w-8 ${showWorkflow ? "text-accent" : ""}`} title="Workflow Intelligence">
             <GitBranch className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => openPanel("socialIntel")} className={`h-8 w-8 ${showSocialIntel ? "text-amber-400" : ""}`} title="Social Intel Profiler">
+            <Fingerprint className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => openPanel("analytics")} className="h-8 w-8">
             <BarChart3 className="h-4 w-4" />
@@ -1068,6 +1074,15 @@ const CrossView: React.FC = () => {
             onClose={() => setShowWorkflow(false)}
             isSharing={isSharing}
             currentSessionId={activeSessionId}
+          />
+        )}
+
+        {showSocialIntel && (
+          <CrossSocialIntelProfiler
+            onClose={() => setShowSocialIntel(false)}
+            isSharing={isSharing}
+            currentObservations={observations}
+            currentContext={context}
           />
         )}
       </div>
