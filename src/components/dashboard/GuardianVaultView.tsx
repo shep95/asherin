@@ -114,7 +114,7 @@ const GuardianVaultView = () => {
     setLoading(true);
     try {
       const [sessRes, actRes, prefRes] = await Promise.all([
-        supabase.from("user_sessions").select("*").eq("user_id", user.id).order("last_active_at", { ascending: false }),
+        supabase.from("user_sessions").select("*").eq("user_id", user.id).is("revoked_at", null).order("last_active_at", { ascending: false }),
         supabase.from("account_activity_log").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(100),
         supabase.from("security_notification_prefs").select("*").eq("user_id", user.id).maybeSingle(),
       ]);
