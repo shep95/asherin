@@ -155,6 +155,50 @@ function buildModulePrompt(moduleId: string, moduleName: string, query: string, 
 
     "deepdive-6": `Execute Phase 6 Admin Panel Fuzzing analysis for: "${query}"\n\nEnumerate:\n- Common admin panel paths (/admin, /wp-admin, /administrator, /cpanel, /phpmyadmin, /dashboard, /manage, /console, /backend, /panel, /cms)\n- Login endpoint discovery methodology\n- Management interface signatures\n- Framework-specific admin patterns (Django, Laravel, Rails, Express)\n- CMS detection (WordPress, Drupal, Joomla)\n\nProvide a structured list of discovered/predicted admin surfaces with HTTP status prediction and exploitation notes.${ghost}`,
 
+    "deepdive-8": `Execute Phase 8 — BLUEPRINT EXTRACT: Full URL Infrastructure Intelligence Mapping for: "${query}"
+
+You must treat this URL as a target and map its ENTIRE digital infrastructure. This is not a summary — this is a full forensic blueprint extraction.
+
+## REQUIRED ANALYSIS SECTIONS:
+
+### 1. DOMAIN & DNS INTELLIGENCE
+- Root domain, subdomain structure, registrar, WHOIS data (creation date, expiry, registrant org)
+- DNS records: A, AAAA, MX, TXT, CNAME, NS, SOA
+- SPF, DKIM, DMARC policies, DNSSEC status, nameserver provider
+
+### 2. HOSTING & INFRASTRUCTURE
+- IP address(es) and ASN, hosting/cloud provider (AWS, GCP, Azure, Cloudflare)
+- CDN detection, load balancer signatures, geographic server location(s), data center ID
+
+### 3. TECHNOLOGY STACK FINGERPRINT
+- Web server (Nginx, Apache, IIS), backend framework (Node.js, Django, Rails, Laravel, Spring)
+- Frontend framework (React, Vue, Angular, Next.js), CMS detection
+- JavaScript libraries/versions, CSS framework, build tools/bundlers
+
+### 4. SECURITY POSTURE
+- TLS/SSL certificate details (issuer, validity, cipher suite, protocol version)
+- HTTP security headers (CSP, HSTS, X-Frame-Options, etc.)
+- Cookie security flags, CORS config, WAF detection, auth mechanism indicators
+
+### 5. THIRD-PARTY SERVICES & INTEGRATIONS
+- Analytics (extract tracking IDs), advertising pixels, payment processors
+- Chat/support widgets, email service providers, tag managers, social media integrations
+
+### 6. CONTENT & METADATA INTELLIGENCE
+- Page title, meta description, Open Graph tags, JSON-LD schemas
+- Sitemap/robots.txt analysis, RSS feeds, canonical URLs, language/locale
+
+### 7. NETWORK TOPOLOGY MAP
+- External resource domains (scripts, stylesheets, fonts, images)
+- API endpoint patterns, WebSocket connections, third-party domain dependencies
+- Full resource loading chain
+
+### 8. ORGANIZATIONAL INTELLIGENCE
+- Company/org behind the domain, contact info exposed, legal entities
+- Employee/team signals, linked social media profiles
+
+Format as a structured intelligence blueprint with tables. Rate each finding HIGH/MEDIUM/LOW confidence. This is for Aureon's intelligence archive.${ghost}`,
+
     "deepdive-7": `Execute Phase 7 Cloud Storage Enumeration for: "${query}"\n\nScan vectors:\n- S3 bucket permutations (company-name, company_assets, company-static, company-backup, company-uploads)\n- Azure Blob storage endpoints\n- GCS bucket discovery\n- Publicly accessible storage indicators\n- Misconfiguration patterns (public ACL, no auth)\n\nList likely storage endpoints with access risk assessment.${ghost}`,
 
     "deepdive-10": `Execute Phase 10 HTTP Header Hunt analysis for: "${query}"\n\nAnalyze headers:\n- Server technology disclosure (X-Powered-By, Server, X-AspNet-Version)\n- Security header presence/absence (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)\n- CORS misconfiguration indicators\n- Cache control analysis\n- Cookie security flags (Secure, HttpOnly, SameSite)\n- Custom headers leaking internal info\n\nProvide security posture rating with specific findings and remediation priorities.${ghost}`,
