@@ -42,9 +42,6 @@ serve(async (req) => {
       } catch { /* use default key */ }
     }
 
-    // Fallback to Lovable AI Gateway if no Gemini key
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
     const annotationPrompt = `You are a professional technical analyst. I have a trading chart and an analysis. 
 Edit and annotate this trading chart image with clear visual markings that PROVE the analysis:
 
@@ -118,47 +115,6 @@ Return ONLY the annotated image.`;
         } catch (e) {
           console.warn(`${model} error:`, e);
         }
-      }
-    }
-
-    // Fallback: Try Lovable AI Gateway with image editing model
-    if (LOVABLE_API_KEY) {
-      try {
-        console.log("Trying Lovable AI Gateway for chart annotation...");
-        const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3.1-flash-image-preview",
-            messages: [{
-              role: "user",
-              content: [
-                { type: "text", text: annotationPrompt },
-                { type: "image_url", image_url: { url: `data:${imageMimeType};base64,${imageBase64}` } },
-              ],
-            }],
-            modalities: ["image", "text"],
-          }),
-        });
-
-        if (resp.ok) {
-          const data = await resp.json();
-          const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (imageUrl) {
-            console.log("Chart annotation succeeded via Lovable AI Gateway");
-            return new Response(JSON.stringify({ annotatedImage: imageUrl }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-        } else {
-          const errText = await resp.text();
-          console.warn(`Lovable AI Gateway failed (${resp.status}):`, errText.slice(0, 200));
-        }
-      } catch (e) {
-        console.warn("Lovable AI Gateway error:", e);
       }
     }
 

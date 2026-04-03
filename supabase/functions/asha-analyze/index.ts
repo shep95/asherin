@@ -373,46 +373,19 @@ Deno.serve(async (req) => {
           ? text.split("\n").slice(0, 6).join("\n")
           : (() => { try { return JSON.stringify(JSON.parse(text).slice?.(0, 3) ?? text.slice(0, 500)); } catch { return text.slice(0, 500); } })();
 
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+        const { data: googleKeys } = await supabaseAdmin
+          .from("user_api_keys")
+          .select("api_key")
+          .eq("user_id", user.id)
+          .eq("provider", "google")
+          .eq("is_active", true)
+          .limit(1);
+
+        const GEMINI_API_KEY = googleKeys?.[0]?.api_key || Deno.env.get("GEMINI_API_KEY_APP");
 
         let aiText = "";
 
-        // Try Lovable AI first, fall back to Gemini
-        if (LOVABLE_API_KEY) {
-          const aiResp = await fetch("https://ai-gateway.lovable.dev/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [
-                {
-                  role: "user",
-                  content: `You are Azplen, a data intelligence AI. Analyze this dataset and return exactly 3 insights as a JSON array. Each insight object has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
-
-Dataset: ${dataset.file_name}
-Schema: ${schemaDesc}
-Rows: ${rowCount}
-Sample data:
-${sampleData}
-
-Return ONLY a valid JSON array, no markdown, no code fences.`,
-                },
-              ],
-              temperature: 0.7,
-              max_tokens: 1000,
-            }),
-          });
-
-          if (aiResp.ok) {
-            const aiData = await aiResp.json();
-            aiText = aiData.choices?.[0]?.message?.content || "";
-          }
-        } else if (GEMINI_API_KEY) {
-          // Fallback to direct Gemini
+        if (GEMINI_API_KEY) {
           const aiResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

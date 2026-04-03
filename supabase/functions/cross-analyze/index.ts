@@ -87,8 +87,22 @@ serve(async (req) => {
       console.warn("Brain loading warning:", e);
     }
 
+    let apiKey = Deno.env.get("GEMINI_API_KEY_APP") || "";
+    try {
+      const { data: keys } = await sb
+        .from("user_api_keys")
+        .select("api_key")
+        .eq("user_id", user.id)
+        .eq("provider", "google")
+        .eq("is_active", true)
+        .limit(1);
+      if (keys && keys.length > 0) apiKey = keys[0].api_key;
+    } catch {
+      /* keep configured direct Gemini key */
+    }
+
     if (chatMessage && !frame) {
-      return await handleChat(chatMessage, context, previousAlerts, settings?.mode || "general", corsHeaders, brainContext);
+      return await handleChat(chatMessage, context, previousAlerts, settings?.mode || "general", corsHeaders, brainContext, apiKey);
     }
 
     if (!frame) {
@@ -101,18 +115,7 @@ serve(async (req) => {
     const sensitivity = settings?.sensitivity || "medium";
     const systemPrompt = buildPrompt(analysisMode, sensitivity, previousAlerts, context) + brainContext;
 
-    let apiKey = "";
-    try {
-      const { data: keys } = await sb.from("user_api_keys").select("*").eq("user_id", user.id).eq("provider", "google");
-      if (keys && keys.length > 0) apiKey = keys[0].api_key;
-    } catch { /* no BYOK */ }
-
-    let analysis;
-    if (apiKey) analysis = await callGeminiDirect(apiKey, systemPrompt, frame);
-    if (!analysis) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (LOVABLE_API_KEY) analysis = await callLovableAI(LOVABLE_API_KEY, systemPrompt, frame);
-    }
+    const analysis = apiKey ? await callGeminiDirect(apiKey, systemPrompt, frame) : null;
 
     if (!analysis) {
       return new Response(JSON.stringify({ error: "AI analysis failed" }), {
@@ -792,9 +795,8 @@ CRITICAL RULES:
 Analyze the screen frame now. Return ONLY valid JSON.`;
 }
 
-async function handleChat(message: string, context: string, previousAlerts: any[], mode: string, corsHeaders: Record<string, string>, brainContext: string = "") {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
+async function handleChat(message: string, context: string, previousAlerts: any[], mode: string, corsHeaders: Record<string, string>, brainContext: string = "", apiKey: string = "") {
+  if (!apiKey) {
     return new Response(JSON.stringify({ observations: ["AI unavailable"], quickVerdict: { action: "NONE", urgency: "watch", message: "", confidence: 0 } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -822,15 +824,20 @@ async function handleChat(message: string, context: string, previousAlerts: any[
 
   const roleDesc = modeDescriptions[mode] || modeDescriptions.general;
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: `You are Aureon Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}${brainContext}` },
-        { role: "user", content: message },
+      systemInstruction: {
+        parts: [{ text: `You are Aureon Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}${brainContext}` }],
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: message }],
+        },
       ],
+      generationConfig: { temperature: 0.4, maxOutputTokens: 1000 },
     }),
   });
 
@@ -841,7 +848,7 @@ async function handleChat(message: string, context: string, previousAlerts: any[
   }
 
   const data = await resp.json();
-  const reply = data.choices?.[0]?.message?.content || "No response.";
+  const reply = data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("").trim() || "No response.";
   return new Response(JSON.stringify({ observations: [reply], quickVerdict: { action: "NONE", urgency: "watch", message: "", confidence: 0 } }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
@@ -873,40 +880,6 @@ async function callGeminiDirect(apiKey: string, prompt: string, frame: string): 
     } catch (e) {
       console.warn(`${model} failed:`, e);
     }
-  }
-  return null;
-}
-
-async function callLovableAI(apiKey: string, prompt: string, frame: string): Promise<any | null> {
-  const base64Data = frame.includes(",") ? frame.split(",")[1] : frame;
-
-  try {
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64Data}` } },
-          ],
-        }],
-        response_format: { type: "json_object" },
-      }),
-    });
-
-    if (resp.ok) {
-      const data = await resp.json();
-      const rawText = data.choices?.[0]?.message?.content || "{}";
-      return parseAnalysis(rawText);
-    } else {
-      const errText = await resp.text();
-      console.error("Lovable AI error:", resp.status, errText.slice(0, 200));
-    }
-  } catch (e) {
-    console.error("Lovable AI call failed:", e);
   }
   return null;
 }
