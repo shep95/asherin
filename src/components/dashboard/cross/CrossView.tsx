@@ -16,11 +16,15 @@ import CrossPriceTracker from "./CrossPriceTracker";
 import CrossModeSelector from "./CrossModeSelector";
 import CrossActivityFeed from "./CrossActivityFeed";
 import CrossAnalyticsSummary from "./CrossAnalyticsSummary";
+import CrossSalesIntelligence from "./CrossSalesIntelligence";
+import CrossAudioVisualPanel from "./CrossAudioVisualPanel";
+import CrossConsentBanner from "./CrossConsentBanner";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
   CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
   VerdictAction, DEFAULT_SETTINGS, AnalysisMode, ActivityEntry, SessionAnalytics, MODE_CONFIG,
+  SalesIntelligence, EmotionState, EngagementMetrics, SpeakerInfo,
 } from "./types";
 
 const localEngine = new LocalIntelligenceEngine();
@@ -57,6 +61,10 @@ const CrossView: React.FC = () => {
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
   const [alertsAccepted, setAlertsAccepted] = useState(0);
   const [alertsDismissed, setAlertsDismissed] = useState(0);
+  const [salesIntel, setSalesIntel] = useState<SalesIntelligence | undefined>();
+  const [emotions, setEmotions] = useState<EmotionState | undefined>();
+  const [engagement, setEngagement] = useState<EngagementMetrics | undefined>();
+  const [speakers, setSpeakers] = useState<SpeakerInfo[] | undefined>();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -168,6 +176,12 @@ const CrossView: React.FC = () => {
           setPriceStats(localEngine.getStats());
         }
       }
+
+      // Sales intelligence extraction
+      if (analysis.salesIntel) setSalesIntel(analysis.salesIntel);
+      if (analysis.emotions) setEmotions(analysis.emotions);
+      if (analysis.engagement) setEngagement(analysis.engagement);
+      if (analysis.speakers) setSpeakers(analysis.speakers);
 
       // Local pattern detection (trading only)
       if (analysis.context && settings.mode === "trading") {
@@ -562,6 +576,19 @@ const CrossView: React.FC = () => {
 
           {/* Local Intelligence Signals (trading mode only) */}
           {isSharing && settings.mode === "trading" && <CrossLocalSignals signals={localSignals} />}
+
+          {/* Sales Intelligence (sales/negotiation modes) */}
+          {isSharing && <CrossSalesIntelligence intel={salesIntel} isActive={["sales", "negotiation"].includes(settings.mode)} />}
+
+          {/* Audio-Visual Panel (people-facing modes) */}
+          {isSharing && <CrossAudioVisualPanel settings={settings} emotions={emotions} engagement={engagement} speakers={speakers} isActive={["sales", "hr", "legal", "support", "negotiation", "healthcare", "education"].includes(settings.mode)} />}
+
+          {/* Consent Banner */}
+          <CrossConsentBanner
+            settings={settings}
+            onConsentGranted={() => setSettings(s => ({ ...s, consentCollected: true }))}
+            onConsentDeclined={() => setSettings(s => ({ ...s, audioEnabled: false, facialAnalysisEnabled: false }))}
+          />
 
           {/* Observations */}
           {observations.length > 0 && isSharing && (
