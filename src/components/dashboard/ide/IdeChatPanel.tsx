@@ -4,6 +4,7 @@ import IdeModelSelector from "./IdeModelSelector";
 import MessageQueuePanel, { type QueueItem } from "../MessageQueuePanel";
 import ReactMarkdown from "react-markdown";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAccess } from "@/hooks/useAccess";
 import TypingIndicator from "../TypingIndicator";
 import TruthScore from "../TruthScore";
 import CalibrationFeedback from "../CalibrationFeedback";
