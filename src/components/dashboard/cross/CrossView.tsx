@@ -654,6 +654,9 @@ const CrossView: React.FC = () => {
           <Button variant="ghost" size="icon" onClick={() => openPanel("history")} className="h-8 w-8" title="Session History">
             <History className="h-4 w-4" />
           </Button>
+          <Button variant="ghost" size="icon" onClick={() => openPanel("workflow")} className={`h-8 w-8 ${showWorkflow ? "text-accent" : ""}`} title="Workflow Intelligence">
+            <GitBranch className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => openPanel("analytics")} className="h-8 w-8">
             <BarChart3 className="h-4 w-4" />
           </Button>
