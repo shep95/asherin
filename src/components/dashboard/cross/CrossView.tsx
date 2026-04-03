@@ -838,7 +838,7 @@ const CrossView: React.FC = () => {
                 {frameExplanations.map((exp, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <span className="text-xs mt-0.5">{i === 0 ? "👁️" : i === 1 ? "📍" : "💡"}</span>
-                    <p className="text-xs text-foreground/80 font-extralight leading-relaxed">{exp}</p>
+                    <p className="text-xs text-foreground/80 font-extralight leading-relaxed">{safeStr(exp)}</p>
                   </div>
                 ))}
               </div>
