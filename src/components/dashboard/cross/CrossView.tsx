@@ -1076,6 +1076,15 @@ const CrossView: React.FC = () => {
             currentSessionId={activeSessionId}
           />
         )}
+
+        {showSocialIntel && (
+          <CrossSocialIntelProfiler
+            onClose={() => setShowSocialIntel(false)}
+            isSharing={isSharing}
+            currentObservations={observations}
+            currentContext={context}
+          />
+        )}
       </div>
 
       {/* Status Bar — Bottom Strip */}
