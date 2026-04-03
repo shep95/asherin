@@ -682,6 +682,11 @@ async function handleChat(message: string, context: string, previousAlerts: any[
     gaming: "a Game Development QA Engineer",
     email: "an Email Intelligence Assistant",
     general: "a universal screen intelligence assistant",
+    sales: "an Elite Sales Intelligence Coach with real-time objection/buying signal detection",
+    hr: "an HR Interview Intelligence Assistant with bias detection",
+    legal: "a Legal Deposition Analysis Assistant with credibility scoring",
+    support: "a Customer Support QA Coach with satisfaction prediction",
+    negotiation: "a Negotiation Intelligence Analyst with power dynamics analysis",
   };
 
   const roleDesc = modeDescriptions[mode] || modeDescriptions.general;
