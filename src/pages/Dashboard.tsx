@@ -157,6 +157,7 @@ const Dashboard = () => {
   const abortRef = useRef<AbortController | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
   const activeConvIdRef = useRef<string | null>(null);
+  const bootstrapConversationRef = useRef(false);
   const attachmentMapRef = useRef<Map<string, FileAttachment[]>>(new Map());
   const [online, setOnline] = useState(navigator.onLine);
   const [messageStatuses, setMessageStatuses] = useState<Record<string, MessageStatus>>({});
@@ -470,12 +471,22 @@ const Dashboard = () => {
   // Load conversations and user profile from DB
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
+
     const load = async () => {
       const [convResult, profileResult, settingsResult] = await Promise.all([
         supabase.from("conversations").select("*").eq("user_id", user.id).eq("archived", false).order("created_at", { ascending: false }),
         supabase.from("user_intelligence_profile").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle(),
       ]);
+
+      if (cancelled) return;
+
+      if (convResult.error) {
+        console.error("Failed to load conversations:", convResult.error);
+        setLoaded(true);
+        return;
+      }
 
       if (profileResult.data) {
         setUserProfile({
@@ -496,85 +507,113 @@ const Dashboard = () => {
         localStorage.setItem("aureon_wallpaper", dbWallpaper);
       }
 
-      const convRows = convResult.data;
-      if (!convRows || convRows.length === 0) {
-        const { data: newConv } = await supabase
-          .from("conversations")
-          .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
-          .select()
-          .single();
-        if (newConv) {
-          setConversations([{ id: newConv.id, title: newConv.title, messages: [], createdAt: new Date(newConv.created_at), pinned: newConv.pinned, mode: newConv.mode as ChatMode }]);
-          setActiveConvId(newConv.id);
-        }
-      } else {
-        const convIds = convRows.map((c) => c.id);
-        // Fetch messages per-conversation to avoid Supabase 1000-row global limit
-        const msgRowsBatches = await Promise.all(
-          convIds.map(async (cid) => {
-            const { data } = await supabase
-              .from("messages")
-              .select("*")
-              .eq("conversation_id", cid)
-              .order("created_at", { ascending: true })
-              .limit(500);
-            return data ?? [];
-          })
-        );
-        const msgRows = msgRowsBatches.flat();
-
-        // Hydrate branch map from DB branch_id column
-        hydrateMessageBranches(msgRows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
-
-        const msgMap = new Map<string, Message[]>();
-        const decryptPromises = (msgRows ?? []).map(async (m) => {
-          const decryptedContent = await decryptText(m.content, user.id);
-          return { ...m, content: decryptedContent };
-        });
-        const decryptedMsgs = await Promise.all(decryptPromises);
-        decryptedMsgs.forEach((m) => {
-          const list = msgMap.get(m.conversation_id) ?? [];
-          list.push({
-            id: m.id,
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            timestamp: new Date(m.created_at),
-            truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
-            sources: (m.sources as { title: string; url: string }[]) ?? [],
-          });
-          msgMap.set(m.conversation_id, list);
-        });
-
-        const convs: Conversation[] = convRows.map((c) => ({
-          id: c.id,
-          title: c.title,
-          messages: msgMap.get(c.id) ?? [],
-          createdAt: new Date(c.created_at),
-          pinned: c.pinned,
-          mode: c.mode as ChatMode,
-          projectId: c.project_id ?? undefined,
-        }));
-
-        // Restore branches from DB for each conversation and heal missing default branch persistence
-        convRows.forEach((c) => {
-          restoreBranchesFromDB(c.id, (c as any).branches);
-          const restored = localStorage.getItem("aureon_conv_branches");
-          const parsed = restored ? JSON.parse(restored) : {};
-          const current = parsed[c.id];
-          if (!Array.isArray((c as any).branches) || (c as any).branches.length === 0 || !current?.some((branch: any) => branch.id === "main")) {
-            void saveBranchesToDB(c.id, current && current.length > 0 ? current : [{ id: "main", name: "Main", createdAt: 0 }]);
-          }
-        });
-
-        setConversations(convs);
-        // Restore last active conversation if it still exists, otherwise fall back to most recent
+      const convRows = convResult.data ?? [];
+      if (convRows.length === 0) {
         const savedConvId = localStorage.getItem("aureon_active_conv_id");
-        const restoredConv = savedConvId ? convs.find(c => c.id === savedConvId) : null;
-        setActiveConvId(restoredConv ? restoredConv.id : (convs[0]?.id ?? null));
+        const canBootstrapConversation =
+          !bootstrapConversationRef.current &&
+          conversationsRef.current.length === 0 &&
+          !savedConvId;
+
+        if (canBootstrapConversation) {
+          bootstrapConversationRef.current = true;
+          const { data: newConv, error: newConvError } = await supabase
+            .from("conversations")
+            .insert({ user_id: user.id, title: "New conversation", mode: "chat" })
+            .select()
+            .single();
+
+          if (cancelled) return;
+
+          if (newConvError) {
+            console.error("Failed to create bootstrap conversation:", newConvError);
+            bootstrapConversationRef.current = false;
+            setLoaded(true);
+            return;
+          }
+
+          if (newConv) {
+            setConversations([{ id: newConv.id, title: newConv.title, messages: [], createdAt: new Date(newConv.created_at), pinned: newConv.pinned, mode: newConv.mode as ChatMode }]);
+            setActiveConvId(newConv.id);
+          }
+        }
+
+        setLoaded(true);
+        return;
       }
+
+      bootstrapConversationRef.current = true;
+
+      const convIds = convRows.map((c) => c.id);
+      // Fetch messages per-conversation to avoid Supabase 1000-row global limit
+      const msgRowsBatches = await Promise.all(
+        convIds.map(async (cid) => {
+          const { data } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("conversation_id", cid)
+            .order("created_at", { ascending: true })
+            .limit(500);
+          return data ?? [];
+        })
+      );
+      const msgRows = msgRowsBatches.flat();
+
+      // Hydrate branch map from DB branch_id column
+      hydrateMessageBranches(msgRows.map(m => ({ id: m.id, branch_id: (m as any).branch_id })));
+
+      const msgMap = new Map<string, Message[]>();
+      const decryptPromises = (msgRows ?? []).map(async (m) => {
+        const decryptedContent = await decryptText(m.content, user.id);
+        return { ...m, content: decryptedContent };
+      });
+      const decryptedMsgs = await Promise.all(decryptPromises);
+      decryptedMsgs.forEach((m) => {
+        const list = msgMap.get(m.conversation_id) ?? [];
+        list.push({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          timestamp: new Date(m.created_at),
+          truthScore: m.truth_score as "high" | "medium" | "low" | undefined,
+          sources: (m.sources as { title: string; url: string }[]) ?? [],
+        });
+        msgMap.set(m.conversation_id, list);
+      });
+
+      const convs: Conversation[] = convRows.map((c) => ({
+        id: c.id,
+        title: c.title,
+        messages: msgMap.get(c.id) ?? [],
+        createdAt: new Date(c.created_at),
+        pinned: c.pinned,
+        mode: c.mode as ChatMode,
+        projectId: c.project_id ?? undefined,
+      }));
+
+      // Restore branches from DB for each conversation and heal missing default branch persistence
+      convRows.forEach((c) => {
+        restoreBranchesFromDB(c.id, (c as any).branches);
+        const restored = localStorage.getItem("aureon_conv_branches");
+        const parsed = restored ? JSON.parse(restored) : {};
+        const current = parsed[c.id];
+        if (!Array.isArray((c as any).branches) || (c as any).branches.length === 0 || !current?.some((branch: any) => branch.id === "main")) {
+          void saveBranchesToDB(c.id, current && current.length > 0 ? current : [{ id: "main", name: "Main", createdAt: 0 }]);
+        }
+      });
+
+      setConversations(convs);
+      // Restore the current conversation if it still exists, otherwise fall back to the newest real one
+      const preferredConvId = activeConvIdRef.current ?? localStorage.getItem("aureon_active_conv_id");
+      const restoredConv = preferredConvId ? convs.find(c => c.id === preferredConvId) : null;
+      setActiveConvId(restoredConv ? restoredConv.id : (convs[0]?.id ?? null));
       setLoaded(true);
     };
+
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   // Persist active conversation id so tab-switching remembers it
@@ -593,6 +632,13 @@ const Dashboard = () => {
       localStorage.removeItem("aureon_active_brain_id");
     }
   }, [activeBrainId]);
+
+  useEffect(() => {
+    if (!loaded || conversations.length === 0) return;
+    if (!activeConvId || !conversations.some((conversation) => conversation.id === activeConvId)) {
+      setActiveConvId(conversations[0].id);
+    }
+  }, [loaded, conversations, activeConvId]);
 
   // Keep ref in sync so sendMessageCore always reads latest conversations
   useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
@@ -653,7 +699,9 @@ const Dashboard = () => {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [user]);
 
-  const activeConv = conversations.find((c) => c.id === activeConvId) ?? conversations[0];
+  const activeConv = activeConvId
+    ? conversations.find((c) => c.id === activeConvId) ?? null
+    : conversations[0] ?? null;
 
   const handleDepthChange = useCallback((newDepth: ResponseDepth) => {
     setDepth(newDepth);
