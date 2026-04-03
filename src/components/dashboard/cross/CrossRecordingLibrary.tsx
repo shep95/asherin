@@ -1,18 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Video, Star, Search, Grid3X3, List, Clock, HardDrive, Download, Share2,
   Trash2, Play, Edit, MoreHorizontal, Filter, Calendar, Tag, X, Eye,
   Lock, Link2, Copy, Check, FileText, Music, Image as ImageIcon, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ── Types ──
 export interface SavedRecording {
   id: string;
   title: string;
   date: Date;
-  duration: number; // seconds
-  fileSize: number; // bytes
+  duration: number;
+  fileSize: number;
   creditsUsed: number;
   mode: string;
   starred: boolean;
@@ -33,12 +35,8 @@ interface ShareSettings {
   permissions: { view: boolean; download: boolean; edit: boolean };
   passwordProtected: boolean;
   password: string;
-  expiresIn: number; // days
-  privacyFilters: {
-    removeSensitive: boolean;
-    blurFaces: boolean;
-    muteAudio: boolean;
-  };
+  expiresIn: number;
+  privacyFilters: { removeSensitive: boolean; blurFaces: boolean; muteAudio: boolean };
   includeTranscript: boolean;
   includeAiSummary: boolean;
   includeReport: boolean;
@@ -48,48 +46,9 @@ interface ExportSettings {
   format: "mp4-h264" | "mp4-h265" | "webm" | "mov" | "cross";
   quality: "original" | "high" | "medium" | "low";
   overlays: "all" | "none" | "custom";
-  extras: {
-    transcript: boolean;
-    report: boolean;
-    audioOnly: boolean;
-    overlayData: boolean;
-    chapters: boolean;
-  };
+  extras: { transcript: boolean; report: boolean; audioOnly: boolean; overlayData: boolean; chapters: boolean };
   optimizeFor: "general" | "youtube" | "instagram" | "tiktok" | "linkedin";
 }
-
-// ── Demo data ──
-const DEMO_RECORDINGS: SavedRecording[] = [
-  {
-    id: "1", title: "Q2 Planning Meeting", date: new Date(2026, 2, 21, 14, 30),
-    duration: 2538, fileSize: 4.2e9, creditsUsed: 387, mode: "sales",
-    starred: true, tags: ["Planning", "Q2", "Strategy"], hasTranscript: true,
-    aiSummary: "Strategic planning meeting covering Q2 objectives. Key decisions: Budget approved at $450K.",
-    storage: "both", shared: false, participants: ["John Smith", "Sarah Johnson", "Mike Thompson"],
-    overlayLayers: ["chat", "annotations", "notifications"],
-  },
-  {
-    id: "2", title: "Sales Call — Acme Corp", date: new Date(2026, 2, 20, 10, 15),
-    duration: 1725, fileSize: 2.1e9, creditsUsed: 240, mode: "sales",
-    starred: false, tags: ["Sales", "Acme", "Enterprise"], hasTranscript: true,
-    aiSummary: "Buying signals detected at 12:45. Prospect asked about pricing implementation.",
-    storage: "cloud", shared: true, participants: ["John Smith", "Lisa Chen"],
-    overlayLayers: ["chat", "annotations"],
-  },
-  {
-    id: "3", title: "Trading Session — BTC Analysis", date: new Date(2026, 2, 19, 8, 0),
-    duration: 932, fileSize: 1.2e9, creditsUsed: 156, mode: "trading",
-    starred: false, tags: ["Trading", "BTC", "Nestal"], hasTranscript: false,
-    storage: "local", shared: false, overlayLayers: ["annotations", "notifications"],
-  },
-  {
-    id: "4", title: "Code Review — Auth Module", date: new Date(2026, 2, 18, 16, 0),
-    duration: 1845, fileSize: 1.8e9, creditsUsed: 210, mode: "coding",
-    starred: true, tags: ["Code Review", "Security"], hasTranscript: true,
-    aiSummary: "3 security issues identified and resolved. Auth flow refactored.",
-    storage: "cloud", shared: false, overlayLayers: ["chat", "annotations"],
-  },
-];
 
 const FILTER_CATEGORIES = ["All", "Sales Calls", "Meetings", "Trading", "Coding", "Starred"];
 const FORMAT_OPTIONS = [
@@ -118,13 +77,57 @@ interface CrossRecordingLibraryProps {
 }
 
 const CrossRecordingLibrary: React.FC<CrossRecordingLibraryProps> = ({ onClose }) => {
-  const [recordings] = useState<SavedRecording[]>(DEMO_RECORDINGS);
+  const { user } = useAuth();
+  const [recordings, setRecordings] = useState<SavedRecording[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeFilter, setActiveFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecording, setSelectedRecording] = useState<SavedRecording | null>(null);
   const [activePanel, setActivePanel] = useState<"details" | "share" | "export" | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  const loadRecordings = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("cross_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) { console.error("Failed to load recordings:", error); return; }
+      const mapped: SavedRecording[] = (data || []).map((s: any) => ({
+        id: s.id,
+        title: s.title || "Untitled Session",
+        date: new Date(s.created_at),
+        duration: s.duration || 0,
+        fileSize: (s.duration || 0) * 500000, // estimate ~500KB/s
+        creditsUsed: Number(s.credits_used) || 0,
+        mode: s.mode || "general",
+        starred: false,
+        tags: s.tags || [],
+        hasTranscript: !!s.transcript,
+        aiSummary: s.ai_summary,
+        storage: s.recording_url ? "cloud" : "local",
+        shared: false,
+        overlayLayers: ["chat", "annotations"],
+      }));
+      setRecordings(mapped);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => { loadRecordings(); }, [loadRecordings]);
+
+  const deleteRecording = async (id: string) => {
+    await supabase.from("cross_sessions").delete().eq("id", id);
+    setRecordings(prev => prev.filter(r => r.id !== id));
+    if (selectedRecording?.id === id) { setSelectedRecording(null); setActivePanel(null); }
+  };
 
   const [shareSettings] = useState<ShareSettings>({
     emails: [], linkEnabled: true, link: "https://cross.aureon.ai/r/abc123xyz",
