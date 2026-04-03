@@ -882,6 +882,12 @@ const CrossView: React.FC = () => {
             onClose={() => setShowChat(false)}
           />
         )}
+
+        {showLibrary && (
+          <div className="w-96 border-l border-border/20 flex flex-col bg-background">
+            <CrossRecordingLibrary onClose={() => setShowLibrary(false)} />
+          </div>
+        )}
       </div>
 
       {/* Status Bar — Bottom Strip */}
