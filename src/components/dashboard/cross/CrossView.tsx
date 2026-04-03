@@ -396,15 +396,33 @@ const CrossView: React.FC = () => {
     }
   }, [settings.frameRate, settings.mode, settings.audioEnabled, toast, pushNotification, user]);
 
-  const stopSharing = useCallback(() => {
+  const stopSharing = useCallback(async () => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     if (videoRef.current) { videoRef.current.srcObject = null; }
     stopRecording();
+
+    // Save session to database
+    if (activeSessionId && user) {
+      const duration = sessionStart ? Math.floor((Date.now() - sessionStart.getTime()) / 1000) : 0;
+      const summary = observations.length > 0 ? observations.slice(0, 3).join(" · ") : null;
+      await supabase.from("cross_sessions").update({
+        status: "completed",
+        duration,
+        frames_analyzed: frameCount,
+        frames_skipped: skippedFrames,
+        alerts_fired: alerts.length,
+        credits_used: estimatedCost,
+        ai_summary: summary,
+        tags: [settings.mode, ...(context?.pair ? [context.pair] : []), ...(context?.app ? [context.app] : [])],
+      }).eq("id", activeSessionId);
+      setActiveSessionId(null);
+    }
+
     setIsSharing(false);
     setIsPaused(false);
     setSessionStart(null);
-  }, []);
+  }, [activeSessionId, user, sessionStart, frameCount, skippedFrames, alerts.length, estimatedCost, observations, settings.mode, context]);
 
   useEffect(() => {
     if (isSharing && !isPaused) {
