@@ -238,6 +238,15 @@ const GuardianVaultView = () => {
   const startTotpEnroll = async () => {
     setMfaLoading(true);
     try {
+      // Check for existing unverified factors first
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const existingUnverified = (factorsData?.totp || []).find((f: any) => f.status === "unverified");
+
+      if (existingUnverified) {
+        // Unenroll the stale unverified factor, then enroll fresh
+        await supabase.auth.mfa.unenroll({ factorId: existingUnverified.id });
+      }
+
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
       if (error) throw error;
       if (data) {
