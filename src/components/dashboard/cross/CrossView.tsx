@@ -1052,6 +1052,10 @@ const CrossView: React.FC = () => {
             <CrossRecordingLibrary onClose={() => setShowLibrary(false)} />
           </div>
         )}
+
+        {showHistory && (
+          <CrossSessionHistory onClose={() => setShowHistory(false)} />
+        )}
       </div>
 
       {/* Status Bar — Bottom Strip */}
