@@ -5,7 +5,7 @@ import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin, Sparkles,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin, Sparkles, Lock as LockIcon,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -115,6 +115,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "agents" as DashboardView, icon: Zap, label: "Agents", access: "pro" },
       { id: "security", icon: ShieldCheck, label: "Security Center", access: "pro" },
+      { id: "guardian-vault" as DashboardView, icon: LockIcon, label: "Guardian Vault" },
       { id: "plugins", icon: Puzzle, label: "Plugins", access: "pro" },
       { id: "audit", icon: ClipboardList, label: "Audit Trail", access: "pro" },
       
