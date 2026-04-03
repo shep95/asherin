@@ -86,7 +86,7 @@ const PRO_FEATURE_GROUPS = [
   {
     category: "Data Intelligence",
     features: [
-      { name: "Asha Intelligence Platform", desc: "Full data intelligence — ingest, analyze, branch, and visualize.", link: "/feature/asha" },
+      { name: "Azplen Intelligence Platform", desc: "Full data intelligence — ingest, analyze, branch, and visualize.", link: "/feature/azplen" },
       { name: "Intelligence Notebooks", desc: "Collaborative notebooks with versioning and AI-powered cells.", link: "/feature/notebooks" },
       { name: "Time-Series Intelligence", desc: "Temporal analysis and forecasting across any dataset.", link: null },
       { name: "Geospatial Analysis", desc: "Location intelligence and geographic data mapping.", link: null },

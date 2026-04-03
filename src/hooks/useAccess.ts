@@ -6,7 +6,7 @@ const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 
 // Views that require Pro access
 const PRO_VIEWS: DashboardView[] = [
-  "zali", "community", "asha", "elion", "nomad", "briefing",
+  "zali", "community", "azplen", "elion", "nomad", "briefing",
   "teams", "notebooks", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "imagine-to-code", "tracker",
   "google", "pattern-analysis", "video-intelligence", "lavba", "cross",

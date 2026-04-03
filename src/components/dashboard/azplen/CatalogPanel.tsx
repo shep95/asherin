@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Search, Tag, Clock, Table2, Eye, ExternalLink, Loader2, FileText, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
-import { useAshaNav } from "./AshaView";
+import { useAzplenSession } from "./AzplenSessionContext";
+import { useAzplenNav } from "./AzplenView";
 
 interface CatalogEntry {
   id: string;
@@ -36,8 +36,8 @@ const CatalogPanel = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
-  const { navigateToTab } = useAshaNav();
+  const { activeSession } = useAzplenSession();
+  const { navigateToTab } = useAzplenNav();
 
   useEffect(() => {
     if (!user || !activeSession) return;

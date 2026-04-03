@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Zap, CheckCircle, XCircle, Clock, Loader2, AlertTriangle, Shield, Send, ChevronDown, Bot, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -32,7 +32,7 @@ interface Scenario {
 
 const ActionEnginePanel = () => {
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const { toast } = useToast();
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);

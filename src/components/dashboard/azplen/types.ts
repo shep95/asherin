@@ -1,4 +1,4 @@
-export type AshaTab =
+export type AzplenTab =
   | "ingest" | "table" | "graph" | "pipelines" | "workflows"
   | "dashboards" | "insights" | "query" | "catalog" | "reports"
   | "webintel" | "entities" | "scenarios" | "lineage" | "threats" | "monitoring"
@@ -6,7 +6,7 @@ export type AshaTab =
   | "pipeline-builder" | "ontology" | "workshop" | "quiver"
   | "aip-logic" | "aip-bootcamps" | "action-engine";
 
-export interface AshaFile {
+export interface AzplenFile {
   id: string;
   name: string;
   size: number;
@@ -15,7 +15,7 @@ export interface AshaFile {
   rowCount?: number;
   colCount?: number;
   qualityScore?: number;
-  schema?: AshaColumn[];
+  schema?: AzplenColumn[];
   dateRange?: string;
   issues?: DataIssue[];
   storagePath?: string;
@@ -23,7 +23,7 @@ export interface AshaFile {
   projectId?: string;
 }
 
-export interface AshaColumn {
+export interface AzplenColumn {
   name: string;
   type: ColumnType;
   role: ColumnRole;

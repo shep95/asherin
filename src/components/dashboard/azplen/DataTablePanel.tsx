@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, ArrowUpDown, Flag, Loader2, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -22,7 +22,7 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
   const [page, setPage] = useState(0);
   const [totalRows, setTotalRows] = useState(0);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const { toast } = useToast();
 
   const exportToCSV = () => {

@@ -73,7 +73,7 @@ async function processDocument(supabase: any, userId: string, documentId: string
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `You are Asha Document Intelligence, a forensic-grade document analysis engine. Analyze this document and extract ALL structured intelligence.
+        contents: [{ parts: [{ text: `You are Azplen Document Intelligence, a forensic-grade document analysis engine. Analyze this document and extract ALL structured intelligence.
 
 Return a JSON object with these fields:
 {
@@ -241,7 +241,7 @@ async function searchDocuments(supabase: any, userId: string, query: string) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: `You are Asha, a cross-document intelligence search engine. Search across the user's document corpus to answer their query.
+        contents: [{ parts: [{ text: `You are Azplen, a cross-document intelligence search engine. Search across the user's document corpus to answer their query.
 
 DOCUMENT INDEX:
 ${JSON.stringify(docIndex, null, 1)}

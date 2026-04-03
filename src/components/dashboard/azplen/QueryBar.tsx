@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Send, Sparkles, Loader2, Package, WifiOff, Clock, AlertTriangle, Check, Copy, Brain, Eye, Download, Upload, FileText, Image, Shield, Database, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import ReactMarkdown from "react-markdown";
 import MessageQueuePanel from "../MessageQueuePanel";
 import CalibrationFeedback from "../CalibrationFeedback";
@@ -72,7 +72,7 @@ const QueryBar = () => {
   const [decodeId, setDecodeId] = useState<string | null>(null);
   const [groundedMode, setGroundedMode] = useState(false);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   // Online/offline tracking
   useEffect(() => {
@@ -255,7 +255,7 @@ const QueryBar = () => {
           <div className="text-center py-12 space-y-6">
             <div>
               <Sparkles className="h-8 w-8 text-accent/40 mx-auto mb-3" />
-              <h2 className="text-lg font-extralight tracking-wide text-foreground">Ask Asha Anything</h2>
+              <h2 className="text-lg font-extralight tracking-wide text-foreground">Ask Azplen Anything</h2>
               <p className="text-xs font-extralight text-muted-foreground mt-2">Query your data in plain English. No SQL required.</p>
             </div>
             <div className="grid grid-cols-2 gap-2 max-w-lg mx-auto">
@@ -290,7 +290,7 @@ const QueryBar = () => {
               <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-3.5 w-3.5 text-accent" />
-                  <span className="text-[10px] text-accent font-light">Asha</span>
+                  <span className="text-[10px] text-accent font-light">Azplen</span>
                 </div>
                 <div className="text-xs font-light text-foreground leading-relaxed prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0.5 [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3">
                   <ReactMarkdown>{item.response}</ReactMarkdown>
@@ -322,7 +322,7 @@ const QueryBar = () => {
         {loading && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
-            Asha is analyzing your data…
+            Azplen is analyzing your data…
           </div>
         )}
       </div>

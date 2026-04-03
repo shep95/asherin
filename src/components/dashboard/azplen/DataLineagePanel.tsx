@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { GitBranch, Eye, Database, Filter, Calculator, FileOutput, Clock, ChevronRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 
 interface LineageNode { id: string; type: "source" | "transform" | "aggregate" | "filter" | "output"; label: string; description: string; timestamp?: string; valuesAfter?: string; }
 interface LineageChain { id: string; metricName: string; currentValue: string; chain: LineageNode[]; }
@@ -16,7 +16,7 @@ const DataLineagePanel = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   useEffect(() => {
     if (!user || !activeSession) return;

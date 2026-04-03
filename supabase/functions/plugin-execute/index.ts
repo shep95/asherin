@@ -199,7 +199,7 @@ async function executeConnector(plugin: any, config: Record<string, string>, sup
         const data = await res.json();
         const count = data.data?.length || 0;
         connectionStatus = "CONNECTED ✅";
-        details = `Retrieved ${count} recent charges.\nTotal available: ${data.has_more ? "100+" : count}\n\nLive data is flowing. Use ASHA to query your Stripe data.`;
+        details = `Retrieved ${count} recent charges.\nTotal available: ${data.has_more ? "100+" : count}\n\nLive data is flowing. Use AZPLEN to query your Stripe data.`;
       } else {
         const errBody = await res.text();
         connectionStatus = "AUTH FAILED ❌";
@@ -469,7 +469,7 @@ async function executeExport(plugin: any, datasetId: string | null, config: Reco
         return `Slack Notifications — Configuration Required\n\nProvide your Slack Webhook URL in the "API Key / Token" field.\n\nGet one at: https://api.slack.com/messaging/webhooks\n\nOnce configured, this plugin will send dataset summaries and alerts to your Slack channel.`;
       }
 
-      const summary = `📊 *ASHA Dataset Export*\n*File:* ${dataset.file_name}\n*Rows:* ${dataset.row_count || "N/A"}\n*Columns:* ${dataset.col_count || "N/A"}\n*Type:* ${dataset.file_type}\n_Exported at ${new Date().toISOString()}_`;
+      const summary = `📊 *AZPLEN Dataset Export*\n*File:* ${dataset.file_name}\n*Rows:* ${dataset.row_count || "N/A"}\n*Columns:* ${dataset.col_count || "N/A"}\n*Type:* ${dataset.file_type}\n_Exported at ${new Date().toISOString()}_`;
 
       const sent = await sendSlackNotification(webhookUrl, summary);
       return sent
@@ -481,7 +481,7 @@ async function executeExport(plugin: any, datasetId: string | null, config: Reco
       const apiKey = config["API Key / Token"] || "";
       const baseUrl = config["Instance URL"] || "";
       if (!apiKey || !baseUrl) {
-        return `Airtable Sync — Configuration Required\n\n1. API Key: Your Airtable personal access token\n2. Instance URL: https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE\n\nOnce configured, records will be synced from your ASHA dataset to Airtable.`;
+        return `Airtable Sync — Configuration Required\n\n1. API Key: Your Airtable personal access token\n2. Instance URL: https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE\n\nOnce configured, records will be synced from your AZPLEN dataset to Airtable.`;
       }
       const schemaStr = dataset.schema ? JSON.stringify(dataset.schema).slice(0, 800) : "{}";
       const mapping = await callGemini(`Map this dataset schema to Airtable field types. Dataset schema: ${schemaStr}. For each field, suggest the Airtable field type (Single line text, Number, Date, etc.) and any validation rules.`);
@@ -543,7 +543,7 @@ async function executeAutomation(plugin: any, config: Record<string, string>, su
 
       const ds = datasets?.[0];
       if (!ds) {
-        return `Data Quality Monitor — Dataset "${target}" not found.\n\nAvailable datasets can be viewed in ASHA. Enter the exact dataset name.`;
+        return `Data Quality Monitor — Dataset "${target}" not found.\n\nAvailable datasets can be viewed in AZPLEN. Enter the exact dataset name.`;
       }
 
       const schemaStr = ds.schema ? JSON.stringify(ds.schema).slice(0, 1000) : "{}";

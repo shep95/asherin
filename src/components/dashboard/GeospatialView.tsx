@@ -148,7 +148,7 @@ const GeospatialView = () => {
                 <div className="flex flex-col items-center justify-center py-20">
                   <Upload className="h-12 w-12 text-muted-foreground/20 mb-4" />
                   <p className="text-sm font-extralight text-muted-foreground">No datasets available</p>
-                  <p className="text-xs text-muted-foreground/50 mt-1">Upload location data via Asha to activate geospatial analysis</p>
+                  <p className="text-xs text-muted-foreground/50 mt-1">Upload location data via Azplen to activate geospatial analysis</p>
                 </div>
               )}
 

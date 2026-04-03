@@ -3,7 +3,7 @@ import { FlaskConical, Play, TrendingDown, TrendingUp, Minus, AlertTriangle, Loa
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 
 interface ScenarioOutcome { label: string; probability: number; impact: string; direction: "positive" | "negative" | "neutral"; }
 interface Scenario { id: string; name: string; variable: string; change: string; timeHorizon: string; status: "idle" | "running" | "complete"; outcomes?: ScenarioOutcome[]; sensitivity?: { factor: string; impact: "high" | "medium" | "low" }[]; netImpact?: string; }
@@ -19,7 +19,7 @@ const ScenarioSimulatorPanel = () => {
   const [newChange, setNewChange] = useState("");
   const [newHorizon, setNewHorizon] = useState("6 months");
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   const createScenario = async () => {
     if (!newName.trim() || !user) return;

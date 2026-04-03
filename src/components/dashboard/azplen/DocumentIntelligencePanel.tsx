@@ -6,7 +6,7 @@ import {
   FileBarChart, Mail, Scale, Stethoscope, GraduationCap, File,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { toast } from "sonner";
 
 const DOC_TYPE_ICONS: Record<string, React.ElementType> = {
@@ -58,7 +58,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 };
 
 const DocumentIntelligencePanel = () => {
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");

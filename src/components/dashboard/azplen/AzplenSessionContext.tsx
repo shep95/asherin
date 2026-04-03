@@ -13,7 +13,7 @@ export interface AshaSession {
   createdAt: string;
 }
 
-interface AshaSessionContextType {
+interface AzplenSessionContextType {
   sessions: AshaSession[];
   activeSession: AshaSession | null;
   setActiveSession: (session: AshaSession) => void;
@@ -23,13 +23,13 @@ interface AshaSessionContextType {
   loading: boolean;
 }
 
-const AshaSessionContext = createContext<AshaSessionContextType>({
+const AzplenSessionContext = createContext<AzplenSessionContextType>({
   sessions: [], activeSession: null, setActiveSession: () => {}, createSession: async () => null, renameSession: async () => {}, deleteSession: async () => {}, loading: true,
 });
 
-export const useAshaSession = () => useContext(AshaSessionContext);
+export const useAzplenSession = () => useContext(AzplenSessionContext);
 
-export const AshaSessionProvider = ({ children }: { children: ReactNode }) => {
+export const AzplenSessionProvider = ({ children }: { children: ReactNode }) => {
   const [sessions, setSessions] = useState<AshaSession[]>([]);
   const [activeSession, setActiveSessionState] = useState<AshaSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,7 +81,7 @@ export const AshaSessionProvider = ({ children }: { children: ReactNode }) => {
       }).select().single();
 
       if (error) {
-        console.error("ASHA session create error:", error);
+        console.error("AZPLEN session create error:", error);
         toast.error(`Failed to create session: ${error.message}`);
         return null;
       }
@@ -97,7 +97,7 @@ export const AshaSessionProvider = ({ children }: { children: ReactNode }) => {
         return session;
       }
     } catch (err) {
-      console.error("ASHA session create exception:", err);
+      console.error("AZPLEN session create exception:", err);
       toast.error("Unexpected error creating session.");
     }
     return null;
@@ -126,8 +126,8 @@ export const AshaSessionProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AshaSessionContext.Provider value={{ sessions, activeSession, setActiveSession, createSession, renameSession, deleteSession, loading }}>
+    <AzplenSessionContext.Provider value={{ sessions, activeSession, setActiveSession, createSession, renameSession, deleteSession, loading }}>
       {children}
-    </AshaSessionContext.Provider>
+    </AzplenSessionContext.Provider>
   );
 };

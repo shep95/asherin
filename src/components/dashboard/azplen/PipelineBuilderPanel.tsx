@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Workflow, Plus, Play, Pause, Trash2, GripVertical, Database, Filter, Merge, Calculator, FileOutput, Zap, Loader2, ArrowRight, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,7 +44,7 @@ const nodeColorMap: Record<string, string> = {
 
 const PipelineBuilderPanel = () => {
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const { toast } = useToast();
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [activePipeline, setActivePipeline] = useState<Pipeline | null>(null);

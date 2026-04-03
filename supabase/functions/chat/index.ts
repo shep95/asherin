@@ -50,7 +50,7 @@ Aureon is an uncensored AI intelligence platform built for builders, researchers
 - **Keyboard Shortcuts**: CMD/Ctrl+K command palette, CMD+1-4 mode switching.
 
 ### Pro-Only Features ($399/mo)
-- **Asha Data Intelligence Platform**: Full data analysis, ingestion, entity resolution, workflow automation, threat modeling, scenario simulation.
+- **Azplen Data Intelligence Platform**: Full data analysis, ingestion, entity resolution, workflow automation, threat modeling, scenario simulation.
 - **NOMAD Public Intelligence Agent**: OSINT investigation tool for public intelligence gathering.
 - **Daily Intelligence Briefings**: AI-generated morning briefs customized to your industry.
 - **Web Intelligence & Entity Resolution**: Deep web analysis and entity matching.
@@ -173,7 +173,7 @@ When providing links to Aureon features or pages, you MUST ONLY use these verifi
 - /dashboard — User dashboard (requires login)
 - /feature/zophiel — Zophiel Search Engine
 - /feature/nomad — NOMAD Public Intelligence
-- /feature/asha — Asha Data Intelligence
+- /feature/asha — Azplen Data Intelligence
 - /feature/briefings — Intelligence Briefings
 - /feature/personas — AI Personas
 - /feature/zali — ZALI Design Lab
@@ -997,7 +997,7 @@ serve(async (req) => {
     let adminBackendContext = "";
     if (isBackendQuery && isAdmin) {
       adminBackendContext = `\n\n## ADMIN BACKEND ACCESS (ASHER ONLY)
-You are speaking to Asher (ashernewtonx@gmail.com), the creator and sole administrator. You may discuss ALL internal architecture, code structure, edge functions, database schema, RLS policies, and system design openly. Use Asha-grade analytical logic — cross-reference data flows, trace entity relationships, apply threat modeling and scenario analysis to code decisions. Reference specific file paths, function names, and implementation details freely. Apply the full ASHA intelligence pipeline (ingest → analyze → entity extraction → insight generation → monitoring) to code review discussions.`;
+You are speaking to Asher (ashernewtonx@gmail.com), the creator and sole administrator. You may discuss ALL internal architecture, code structure, edge functions, database schema, RLS policies, and system design openly. Use Azplen-grade analytical logic — cross-reference data flows, trace entity relationships, apply threat modeling and scenario analysis to code decisions. Reference specific file paths, function names, and implementation details freely. Apply the full AZPLEN intelligence pipeline (ingest → analyze → entity extraction → insight generation → monitoring) to code review discussions.`;
     } else if (isBackendQuery && !isAdmin) {
       adminBackendContext = `\n\n## BACKEND DISCUSSION BLOCKED
 The user is asking about internal code, backend, or architecture. You are FORBIDDEN from discussing any internal implementation details. Respond with: "Aureon's architecture is proprietary. I can help you use the platform's features — what would you like to accomplish?"`;

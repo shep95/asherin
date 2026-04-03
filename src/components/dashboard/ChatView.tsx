@@ -200,7 +200,7 @@ function CodeBlockCopyButton({ code }: { code: string }) {
 const VALID_INTERNAL_PATHS = new Set([
   "/", "/pricing", "/features", "/founder", "/benchmarks", "/dashboard",
   "/terms", "/privacy", "/nda", "/equity", "/prompt-engineering",
-  "/feature/zophiel", "/feature/nomad", "/feature/asha", "/feature/briefings",
+  "/feature/zophiel", "/feature/nomad", "/feature/azplen", "/feature/briefings",
   "/feature/personas", "/feature/zali", "/feature/predictive", "/feature/elion",
   "/feature/tracker", "/feature/imagine-to-code", "/feature/ide",
   "/feature/imagine-intelligence", "/feature/google-intelligence",

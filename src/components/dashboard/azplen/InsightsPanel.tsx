@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { TrendingUp, AlertTriangle, Share2, BarChart3, HelpCircle, LineChart, X, Pin, Loader2, Play, ListChecks, Bell, FileOutput, ChevronRight, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { formatDistanceToNow } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -40,7 +40,7 @@ const InsightsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [expandedInsight, setExpandedInsight] = useState<string | null>(null);
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
 
   const loadInsights = async () => {
     if (!user || !activeSession) return;
@@ -149,7 +149,7 @@ const InsightsPanel = () => {
         <div>
           <h2 className="text-lg font-extralight tracking-wide text-foreground">Intelligence Briefing</h2>
           <p className="text-xs font-extralight text-muted-foreground mt-1">
-            Asha found <span className="text-foreground">{visible.length} insights</span> across your datasets.
+            Azplen found <span className="text-foreground">{visible.length} insights</span> across your datasets.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ const InsightsPanel = () => {
 
           {visible.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-xs text-muted-foreground/40 font-extralight">No active insights. Upload data for Asha to analyze.</p>
+              <p className="text-xs text-muted-foreground/40 font-extralight">No active insights. Upload data for Azplen to analyze.</p>
             </div>
           )}
         </>

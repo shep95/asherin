@@ -76,7 +76,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Data & Analysis",
     items: [
-      { id: "asha", icon: Database, label: "Asha Intelligence", access: "pro" },
+      { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
       { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
       { id: "lavba" as DashboardView, icon: Zap, label: "Lavba", access: "pro" },
       { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },

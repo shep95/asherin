@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { LayoutDashboard, Plus, GripVertical, Trash2, BarChart3, TrendingUp, MapPin, Table2, FileText, Activity, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { supabase } from "@/integrations/supabase/client";
 
 type WidgetType = "metric" | "chart" | "table" | "map" | "status" | "text";
@@ -34,7 +34,7 @@ const sizeClasses = { sm: "col-span-1", md: "col-span-1 sm:col-span-2", lg: "col
 
 const WorkshopPanel = () => {
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [active, setActive] = useState<Workshop | null>(null);
   const [showAddWidget, setShowAddWidget] = useState(false);

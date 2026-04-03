@@ -19,7 +19,7 @@ const capabilities = [
     icon: Search,
     title: "Natural Language Queries",
     description:
-      "Ask questions about your data in plain English. Asha translates your intent into precise analysis — no SQL required.",
+      "Ask questions about your data in plain English. Azplen translates your intent into precise analysis — no SQL required.",
   },
   {
     icon: GitBranch,
@@ -31,7 +31,7 @@ const capabilities = [
     icon: Brain,
     title: "AI-Powered Insights",
     description:
-      "Automated detection of trends, anomalies, correlations, and outliers. Asha surfaces what matters before you know to look for it.",
+      "Automated detection of trends, anomalies, correlations, and outliers. Azplen surfaces what matters before you know to look for it.",
   },
   {
     icon: FileText,
@@ -48,15 +48,15 @@ const capabilities = [
 ];
 
 const workflow = [
-  { step: "01", title: "Ingest", desc: "Upload your dataset. Asha profiles it automatically — schema detection, quality scoring, anomaly flagging." },
+  { step: "01", title: "Ingest", desc: "Upload your dataset. Azplen profiles it automatically — schema detection, quality scoring, anomaly flagging." },
   { step: "02", title: "Explore", desc: "Query your data with natural language. Visualize relationships, distributions, and trends interactively." },
   { step: "03", title: "Analyze", desc: "AI-powered insight generation detects what you'd miss. Entity resolution connects dots across datasets." },
   { step: "04", title: "Report", desc: "Generate structured reports. Schedule recurring analysis. Export findings for stakeholders." },
 ];
 
-const FeatureAsha = () => {
+const FeatureAzplen = () => {
   useEffect(() => {
-    document.title = "Asha Data Intelligence — Aureon";
+    document.title = "Azplen Data Intelligence — Aureon";
   }, []);
 
   return (
@@ -78,7 +78,7 @@ const FeatureAsha = () => {
         <h1 className="max-w-3xl text-4xl sm:text-5xl md:text-6xl font-extralight tracking-wide leading-tight text-foreground">
           Your Data Talks.
           <br />
-          <span className="text-muted-foreground">Asha Translates.</span>
+          <span className="text-muted-foreground">Azplen Translates.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
           A full data intelligence suite — ingest any dataset, analyze with natural language,
@@ -97,9 +97,9 @@ const FeatureAsha = () => {
       {/* Capabilities */}
       <section className="relative z-10 px-6 py-24">
         <div className="mx-auto max-w-6xl">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">What Asha Does</h2>
+          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">What Azplen Does</h2>
           <p className="text-sm font-extralight text-muted-foreground mb-12 max-w-2xl">
-            From raw data to executive intelligence — Asha handles the entire pipeline.
+            From raw data to executive intelligence — Azplen handles the entire pipeline.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {capabilities.map((cap) => (
@@ -115,7 +115,7 @@ const FeatureAsha = () => {
 
       {/* Architecture */}
       <AgentArchitectureDiagram
-        title="Asha Data Intelligence Architecture"
+        title="Azplen Data Intelligence Architecture"
         subtitle="A multi-agent data pipeline from raw ingestion to executive intelligence. Each layer is autonomous — schema profiling, entity resolution, insight generation, and reporting operate concurrently."
         layers={[
           {
@@ -156,7 +156,7 @@ const FeatureAsha = () => {
       <section className="relative z-10 px-6 py-24">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-12 text-center">
-            The Asha Workflow
+            The Azplen Workflow
           </h2>
           <div className="space-y-6">
             {workflow.map((w) => (
@@ -190,4 +190,4 @@ const FeatureAsha = () => {
   );
 };
 
-export default FeatureAsha;
+export default FeatureAzplen;

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Send, Loader2, Sparkles, Database, Copy, Check, Download, MessageSquare } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAshaSession } from "./AshaSessionContext";
+import { useAzplenSession } from "./AzplenSessionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
@@ -25,7 +25,7 @@ const EXAMPLE_QUERIES = [
 
 const QuiverPanel = () => {
   const { user } = useAuth();
-  const { activeSession } = useAshaSession();
+  const { activeSession } = useAzplenSession();
   const { toast } = useToast();
   const [messages, setMessages] = useState<QuiverMessage[]>([]);
   const [input, setInput] = useState("");

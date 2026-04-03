@@ -391,7 +391,7 @@ Deno.serve(async (req) => {
               messages: [
                 {
                   role: "user",
-                  content: `You are Asha, a data intelligence AI. Analyze this dataset and return exactly 3 insights as a JSON array. Each insight object has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
+                  content: `You are Azplen, a data intelligence AI. Analyze this dataset and return exactly 3 insights as a JSON array. Each insight object has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
 
 Dataset: ${dataset.file_name}
 Schema: ${schemaDesc}
@@ -417,7 +417,7 @@ Return ONLY a valid JSON array, no markdown, no code fences.`,
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: `You are Asha, a data intelligence AI. Analyze this dataset and return exactly 3 insights as JSON array. Each insight has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
+              contents: [{ parts: [{ text: `You are Azplen, a data intelligence AI. Analyze this dataset and return exactly 3 insights as JSON array. Each insight has: type (trend|anomaly|relationship|correlation|gap|forecast), icon (emoji), title (short), description (1-2 sentences).
 
 Dataset: ${dataset.file_name}
 Schema: ${schemaDesc}

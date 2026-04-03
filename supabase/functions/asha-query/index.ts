@@ -26,7 +26,7 @@ serve(async (req) => {
     const userEmail = claimsData.claims.email as string;
 
     // ── Server-side tier validation ──────────────────────────────────────
-    // Asha is a Pro+ feature. Verify the user's subscription before proceeding.
+    // Azplen is a Pro+ feature. Verify the user's subscription before proceeding.
     const adminEmail = "ashernewtonx@gmail.com";
     const isAdmin = userEmail === adminEmail;
 
@@ -62,13 +62,13 @@ serve(async (req) => {
             const proProductIds = ["prod_U1PuUztkmieRrE", "prod_TzZlilj5l50ena", "prod_TzZlU2MDFcXG7o"];
             const productId = activeSub?.items?.data?.[0]?.price?.product;
             if (!activeSub || !proProductIds.includes(productId as string)) {
-              return new Response(JSON.stringify({ error: "Asha requires a Pro or Advisor subscription." }), {
+              return new Response(JSON.stringify({ error: "Azplen requires a Pro or Advisor subscription." }), {
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
                 status: 403,
               });
             }
           } else {
-            return new Response(JSON.stringify({ error: "Asha requires a Pro or Advisor subscription." }), {
+            return new Response(JSON.stringify({ error: "Azplen requires a Pro or Advisor subscription." }), {
               headers: { ...corsHeaders, "Content-Type": "application/json" },
               status: 403,
             });
@@ -225,7 +225,7 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: isQuiverMode
-? `You are Quiver, an AI-assisted data query engine inside the ASHA intelligence platform. Users ask questions in plain language and you answer from their connected datasets.
+? `You are Quiver, an AI-assisted data query engine inside the AZPLEN intelligence platform. Users ask questions in plain language and you answer from their connected datasets.
 
 ${datasetContext ? `DATASET CONTEXT:\n${datasetContext}` : `User's Datasets:\n${datasetsContext}`}
 
@@ -245,7 +245,7 @@ INSTRUCTIONS:
 - If the data is insufficient, specify exactly which datasets or columns would be needed.
 - Include a confidence level for your answer.`
 
-: `You are Asha, a forensic-grade data intelligence AI. You conduct deep, exhaustive analysis — never surface-level summaries.
+: `You are Azplen, a forensic-grade data intelligence AI. You conduct deep, exhaustive analysis — never surface-level summaries.
 
 User's Datasets:
 ${datasetsContext}

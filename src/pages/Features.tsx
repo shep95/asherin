@@ -201,7 +201,7 @@ const features: Feature[] = [
   },
   {
     icon: Database,
-    title: "Asha Data Intelligence",
+    title: "Azplen Data Intelligence",
     description:
       "Full data intelligence suite — ingest any dataset (CSV, JSON, Excel), analyze with natural language, branch data for experimentation, and generate executive reports with AI-powered insights. Guided prompt-based intake ensures forensic-grade research.",
     details: [
@@ -263,7 +263,7 @@ const features: Feature[] = [
     icon: Activity,
     title: "Time-Series Intelligence",
     description:
-      "Advanced temporal analysis that auto-detects seasonality, extracts trends, forecasts future values with confidence intervals, and alerts on anomalies — all triggered automatically when ASHA detects time-series data.",
+      "Advanced temporal analysis that auto-detects seasonality, extracts trends, forecasts future values with confidence intervals, and alerts on anomalies — all triggered automatically when AZPLEN detects time-series data.",
     details: [
       "Seasonality decomposition — weekly, monthly, annual patterns",
       "Trend extraction with R² goodness of fit",
@@ -293,7 +293,7 @@ const features: Feature[] = [
     icon: Puzzle,
     title: "Plugin Marketplace",
     description:
-      "Extend ASHA with third-party and first-party plugins — data connectors (Salesforce, HubSpot, Stripe), analysis modules (churn prediction, fraud detection), visualization plugins, and export integrations.",
+      "Extend AZPLEN with third-party and first-party plugins — data connectors (Salesforce, HubSpot, Stripe), analysis modules (churn prediction, fraud detection), visualization plugins, and export integrations.",
     details: [
       "20+ plugins across 5 categories",
       "Data connectors: Salesforce, HubSpot, QuickBooks, Shopify, Stripe",
@@ -424,7 +424,7 @@ const Features = () => {
     if (meta) {
       meta.setAttribute(
         "content",
-        "Explore Aureon's full capabilities: uncensored AI, Zophiel search, NOMAD OSINT, Asha data intelligence, daily briefings, encryption, and private deployment."
+        "Explore Aureon's full capabilities: uncensored AI, Zophiel search, NOMAD OSINT, Azplen data intelligence, daily briefings, encryption, and private deployment."
       );
     }
   }, []);
