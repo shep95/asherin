@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X,
-  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon, FolderOpen, History
+  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon, FolderOpen, History, GitBranch
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
