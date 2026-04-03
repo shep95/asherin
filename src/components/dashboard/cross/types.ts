@@ -1,7 +1,22 @@
-export type AlertType = "BUY" | "SELL" | "WARNING" | "MONITOR" | "INFO";
-export type AnalysisMode = "trading" | "coding" | "design" | "general";
+export type AlertType = "BUY" | "SELL" | "WARNING" | "MONITOR" | "INFO" | "BUG" | "VULNERABILITY" | "DESIGN_ISSUE" | "OPTIMIZATION" | "COMPLIANCE" | "DEADLINE" | "SUGGESTION";
+export type AnalysisMode = "trading" | "coding" | "design" | "finance" | "writing" | "research" | "healthcare" | "education" | "music" | "gaming" | "email" | "general";
 export type Sensitivity = "low" | "medium" | "high";
-export type VerdictAction = "BUY_NOW" | "SELL_NOW" | "HOLD" | "EXIT_NOW" | "WAIT" | "NONE";
+export type VerdictAction = "BUY_NOW" | "SELL_NOW" | "HOLD" | "EXIT_NOW" | "WAIT" | "NONE" | "FIX_NOW" | "OPTIMIZE" | "REFACTOR" | "APPROVE" | "FLAG" | "IMPROVE";
+
+export const MODE_CONFIG: Record<AnalysisMode, { label: string; icon: string; description: string; color: string }> = {
+  trading:    { label: "Trading",     icon: "TrendingUp",    description: "Nestal Fractal meme coin analysis",      color: "text-emerald-400" },
+  coding:     { label: "Coding",      icon: "Code",          description: "Bug detection, code review, refactoring", color: "text-blue-400" },
+  design:     { label: "Design",      icon: "Palette",       description: "UI/UX critique, accessibility, layout",   color: "text-purple-400" },
+  finance:    { label: "Finance",     icon: "Calculator",    description: "Formula errors, anomalies, validation",   color: "text-amber-400" },
+  writing:    { label: "Writing",     icon: "PenTool",       description: "Grammar, style, tone, clarity analysis",  color: "text-cyan-400" },
+  research:   { label: "Research",    icon: "Search",        description: "Source analysis, fact checking, gaps",     color: "text-indigo-400" },
+  healthcare: { label: "Healthcare",  icon: "Heart",         description: "Clinical notes, compliance, dosage",      color: "text-red-400" },
+  education:  { label: "Education",   icon: "GraduationCap", description: "Tutoring, grading, curriculum help",      color: "text-orange-400" },
+  music:      { label: "Music",       icon: "Music",         description: "DAW analysis, mixing, arrangement",       color: "text-pink-400" },
+  gaming:     { label: "Gaming",      icon: "Gamepad2",      description: "Game dev, QA, balance analysis",          color: "text-lime-400" },
+  email:      { label: "Email",       icon: "Mail",          description: "Inbox triage, drafting, scheduling",      color: "text-sky-400" },
+  general:    { label: "General",     icon: "Monitor",       description: "Universal screen intelligence",           color: "text-muted-foreground" },
+};
 
 export interface QuickVerdict {
   action: VerdictAction;
@@ -12,7 +27,7 @@ export interface QuickVerdict {
 }
 
 export interface ScreenOverlay {
-  type: "zone" | "line" | "label" | "arrow" | "price_level";
+  type: "zone" | "line" | "label" | "arrow" | "price_level" | "highlight" | "annotation";
   position: string;
   color: string;
   text: string;
@@ -33,6 +48,7 @@ export interface CrossAlert {
   takeProfit?: string;
   validFor?: string;
   timestamp: Date;
+  domain?: AnalysisMode;
 }
 
 export interface CrossContext {
@@ -43,6 +59,11 @@ export interface CrossContext {
   exchange?: string;
   language?: string;
   file?: string;
+  tool?: string;
+  project?: string;
+  document?: string;
+  url?: string;
+  mode?: AnalysisMode;
 }
 
 export interface CrossSettings {
@@ -78,15 +99,15 @@ export interface PricePoint {
 /** Nestal Fractal signal types — NO generic TA */
 export interface LocalSignal {
   type:
-    | "WAVE_IMPULSE"       // Wave 3 entry (strongest move)
-    | "WAVE_EXHAUSTION"    // Wave 5 completion (exit)
-    | "FRACTAL_CORRECTION" // Wave 4 pullback (wait)
-    | "STRUCTURE_BREAK"    // BOS — Break of Structure (continuation)
-    | "STRUCTURE_SHIFT"    // CHOCH — Change of Character (reversal)
-    | "LIQUIDITY_SWEEP"    // Stop hunt + displacement (institutional entry)
-    | "LIQUIDITY_VOID"     // Catastrophic displacement candle (exit)
-    | "FVG_RETEST"         // Fair Value Gap retest (entry zone)
-    | "FRACTAL_PATTERN";   // Multi-scale fractal repetition (monitor)
+    | "WAVE_IMPULSE"
+    | "WAVE_EXHAUSTION"
+    | "FRACTAL_CORRECTION"
+    | "STRUCTURE_BREAK"
+    | "STRUCTURE_SHIFT"
+    | "LIQUIDITY_SWEEP"
+    | "LIQUIDITY_VOID"
+    | "FVG_RETEST"
+    | "FRACTAL_PATTERN";
   action: "BUY_NOW" | "SELL_NOW" | "EXIT_NOW" | "HOLD" | "WAIT" | "MONITOR";
   reason: string;
   confidence: number;
@@ -95,4 +116,27 @@ export interface LocalSignal {
   entry?: number;
   stopLoss?: number;
   takeProfit?: number;
+}
+
+/** Session activity log entry */
+export interface ActivityEntry {
+  id: string;
+  timestamp: Date;
+  mode: AnalysisMode;
+  action: string;
+  detail: string;
+  confidence?: number;
+  accepted?: boolean;
+}
+
+/** Session analytics */
+export interface SessionAnalytics {
+  framesAnalyzed: number;
+  framesSkipped: number;
+  alertsFired: number;
+  alertsAccepted: number;
+  alertsDismissed: number;
+  sessionDurationMs: number;
+  estimatedCost: number;
+  modeBreakdown: Partial<Record<AnalysisMode, number>>;
 }
