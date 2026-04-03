@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X,
-  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon, FolderOpen
+  Circle, BarChart3, Activity, Bell, Send, Download, Trash2, Video as VideoIcon, FolderOpen, History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,7 @@ import CrossChatPanel, { ChatMessage } from "./CrossChatPanel";
 import CrossToastSystem, { CrossToast } from "./CrossToastSystem";
 import CrossRecordingControls from "./CrossRecordingControls";
 import CrossRecordingLibrary from "./CrossRecordingLibrary";
+import CrossSessionHistory from "./CrossSessionHistory";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
 import {
@@ -66,6 +67,8 @@ const CrossView: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRecordingPanel, setShowRecordingPanel] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // ── Chat state ──
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -366,6 +369,19 @@ const CrossView: React.FC = () => {
       setLiveToasts([]);
       localEngine.reset();
 
+      // Create session in database
+      if (user) {
+        const modeLabel = MODE_CONFIG[settings.mode]?.label || settings.mode;
+        const { data: sessionData } = await supabase.from("cross_sessions").insert({
+          user_id: user.id,
+          title: `${modeLabel} Session — ${new Date().toLocaleString()}`,
+          mode: settings.mode,
+          status: "active",
+          settings: settings as any,
+        }).select("id").single();
+        if (sessionData) setActiveSessionId(sessionData.id);
+      }
+
       intervalRef.current = setInterval(() => {
         analyzeFrameRef.current?.();
       }, settings.frameRate * 1000);
@@ -378,17 +394,35 @@ const CrossView: React.FC = () => {
         toast({ title: "Failed to start screen sharing", description: e.message, variant: "destructive" });
       }
     }
-  }, [settings.frameRate, settings.mode, settings.audioEnabled, toast, pushNotification]);
+  }, [settings.frameRate, settings.mode, settings.audioEnabled, toast, pushNotification, user]);
 
-  const stopSharing = useCallback(() => {
+  const stopSharing = useCallback(async () => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     if (videoRef.current) { videoRef.current.srcObject = null; }
     stopRecording();
+
+    // Save session to database
+    if (activeSessionId && user) {
+      const duration = sessionStart ? Math.floor((Date.now() - sessionStart.getTime()) / 1000) : 0;
+      const summary = observations.length > 0 ? observations.slice(0, 3).join(" · ") : null;
+      await supabase.from("cross_sessions").update({
+        status: "completed",
+        duration,
+        frames_analyzed: frameCount,
+        frames_skipped: skippedFrames,
+        alerts_fired: alerts.length,
+        credits_used: estimatedCost,
+        ai_summary: summary,
+        tags: [settings.mode, ...(context?.pair ? [context.pair] : []), ...(context?.app ? [context.app] : [])],
+      }).eq("id", activeSessionId);
+      setActiveSessionId(null);
+    }
+
     setIsSharing(false);
     setIsPaused(false);
     setSessionStart(null);
-  }, []);
+  }, [activeSessionId, user, sessionStart, frameCount, skippedFrames, alerts.length, estimatedCost, observations, settings.mode, context]);
 
   useEffect(() => {
     if (isSharing && !isPaused) {
@@ -541,12 +575,13 @@ const CrossView: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Close other panels when opening one
-  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics" | "library") => {
+  const openPanel = useCallback((panel: "chat" | "settings" | "notifications" | "recording" | "analytics" | "library" | "history") => {
     setShowChat(panel === "chat" ? c => !c : false);
     setShowSettings(panel === "settings" ? s => !s : false);
     setShowNotifications(panel === "notifications" ? n => !n : false);
     setShowRecordingPanel(panel === "recording" ? r => !r : false);
     setShowLibrary(panel === "library" ? l => !l : false);
+    setShowHistory(panel === "history" ? h => !h : false);
     if (panel !== "analytics") setShowAnalytics(false);
     else setShowAnalytics(a => !a);
   }, []);
@@ -612,6 +647,9 @@ const CrossView: React.FC = () => {
           </Button>
           <Button variant="ghost" size="icon" onClick={() => openPanel("library")} className="h-8 w-8" title="Recording Library">
             <FolderOpen className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => openPanel("history")} className="h-8 w-8" title="Session History">
+            <History className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => openPanel("analytics")} className="h-8 w-8">
             <BarChart3 className="h-4 w-4" />
@@ -1013,6 +1051,10 @@ const CrossView: React.FC = () => {
           <div className="w-96 border-l border-border/20 flex flex-col bg-background">
             <CrossRecordingLibrary onClose={() => setShowLibrary(false)} />
           </div>
+        )}
+
+        {showHistory && (
+          <CrossSessionHistory onClose={() => setShowHistory(false)} />
         )}
       </div>
 
