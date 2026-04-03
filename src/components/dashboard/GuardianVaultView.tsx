@@ -106,6 +106,7 @@ const GuardianVaultView = () => {
   const [totpSecret, setTotpSecret] = useState<string | null>(null);
   const [totpVerifyCode, setTotpVerifyCode] = useState("");
   const [enrollingTotp, setEnrollingTotp] = useState(false);
+  const [enrolledFactorId, setEnrolledFactorId] = useState<string | null>(null);
   const [copiedSecret, setCopiedSecret] = useState(false);
 
   const loadData = useCallback(async () => {
