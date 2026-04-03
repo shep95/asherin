@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Video, Star, Search, Grid3X3, List, Clock, HardDrive, Download, Share2,
   Trash2, Play, Edit, MoreHorizontal, Filter, Calendar, Tag, X, Eye,
   Lock, Link2, Copy, Check, FileText, Music, Image as ImageIcon, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ── Types ──
 export interface SavedRecording {
