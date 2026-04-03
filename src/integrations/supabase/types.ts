@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_activity_log: {
+        Row: {
+          created_at: string | null
+          description: string
+          device_info: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          location: string | null
+          metadata: Json | null
+          outcome: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          device_info?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          metadata?: Json | null
+          outcome?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          device_info?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          metadata?: Json | null
+          outcome?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_executions: {
         Row: {
           agent_id: string
@@ -3231,6 +3270,51 @@ export type Database = {
         }
         Relationships: []
       }
+      security_notification_prefs: {
+        Row: {
+          created_at: string | null
+          failed_login_attempts: boolean | null
+          id: string
+          mfa_change: boolean | null
+          new_device_login: boolean | null
+          notify_email: boolean | null
+          notify_sms: boolean | null
+          password_change: boolean | null
+          recovery_code_usage: boolean | null
+          session_revocation: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          failed_login_attempts?: boolean | null
+          id?: string
+          mfa_change?: boolean | null
+          new_device_login?: boolean | null
+          notify_email?: boolean | null
+          notify_sms?: boolean | null
+          password_change?: boolean | null
+          recovery_code_usage?: boolean | null
+          session_revocation?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          failed_login_attempts?: boolean | null
+          id?: string
+          mfa_change?: boolean | null
+          new_device_login?: boolean | null
+          notify_email?: boolean | null
+          notify_sms?: boolean | null
+          password_change?: boolean | null
+          recovery_code_usage?: boolean | null
+          session_revocation?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       self_access_findings: {
         Row: {
           created_at: string
@@ -4026,6 +4110,57 @@ export type Database = {
           fallback_to_default?: boolean
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          is_current: boolean | null
+          last_active_at: string | null
+          os: string | null
+          region: string | null
+          revoked_at: string | null
+          session_token_hash: string
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active_at?: string | null
+          os?: string | null
+          region?: string | null
+          revoked_at?: string | null
+          session_token_hash: string
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active_at?: string | null
+          os?: string | null
+          region?: string | null
+          revoked_at?: string | null
+          session_token_hash?: string
           user_id?: string
         }
         Relationships: []
