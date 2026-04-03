@@ -212,7 +212,6 @@ const IdeChatPanel = ({ messages, isStreaming, onSend, onStop, suggestions = [],
 
   if (loading) return <div className="flex-1" />;
 
-  const { isAdmin } = useAccess();
 
   if (!subscribed && !isAdmin) {
     return (
