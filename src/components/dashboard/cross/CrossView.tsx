@@ -67,6 +67,8 @@ const CrossView: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRecordingPanel, setShowRecordingPanel] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // ── Chat state ──
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
