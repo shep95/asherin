@@ -29,6 +29,15 @@ import CrossWorkflowMap from "./CrossWorkflowMap";
 import CrossSocialIntelProfiler from "./CrossSocialIntelProfiler";
 
 import { ADMIN_EMAIL, VERDICT_STYLES, OVERLAY_COLORS, OVERLAY_POSITIONS } from "./constants";
+
+/** Safely convert any value to a renderable string — prevents "Objects are not valid as React child" */
+const safeStr = (v: unknown): string => {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  try { return JSON.stringify(v); } catch { return String(v); }
+};
+
 import {
   CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
   VerdictAction, DEFAULT_SETTINGS, AnalysisMode, ActivityEntry, SessionAnalytics, MODE_CONFIG,
@@ -836,12 +845,12 @@ const CrossView: React.FC = () => {
                     {/* Header */}
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-medium text-foreground">{subject.label || `Subject ${idx + 1}`}</span>
-                        <span className="text-[10px] text-muted-foreground/40 ml-2">{subject.estimatedAge} · {subject.gender}</span>
+                        <span className="text-xs font-medium text-foreground">{safeStr(subject.label) || `Subject ${idx + 1}`}</span>
+                        <span className="text-[10px] text-muted-foreground/40 ml-2">{safeStr(subject.estimatedAge)} · {safeStr(subject.gender)}</span>
                       </div>
-                      <span className="text-[10px] text-purple-300/50">{subject.communicationStyle}</span>
+                      <span className="text-[10px] text-purple-300/50">{safeStr(subject.communicationStyle)}</span>
                     </div>
-                    {subject.appearance && <p className="text-[10px] text-muted-foreground/50 font-extralight">{subject.appearance}</p>}
+                    {subject.appearance && <p className="text-[10px] text-muted-foreground/50 font-extralight">{safeStr(subject.appearance)}</p>}
 
                     {/* Big Five */}
                     {subject.bigFive && (
@@ -871,9 +880,9 @@ const CrossView: React.FC = () => {
                     {subject.emotionalState && (
                       <div className="flex items-center gap-3 text-[10px]">
                         <span className="text-muted-foreground/40">Emotion:</span>
-                        <span className="text-foreground/80 capitalize">{subject.emotionalState.primary}</span>
-                        {subject.emotionalState.secondary && <span className="text-muted-foreground/50">+ {String(subject.emotionalState.secondary).replace("_", " ")}</span>}
-                        <span className="ml-auto text-muted-foreground/30">V:{subject.emotionalState.valence} A:{subject.emotionalState.arousal} D:{subject.emotionalState.dominance}</span>
+                        <span className="text-foreground/80 capitalize">{safeStr(subject.emotionalState.primary)}</span>
+                        {subject.emotionalState.secondary && <span className="text-muted-foreground/50">+ {safeStr(subject.emotionalState.secondary).replace("_", " ")}</span>}
+                        <span className="ml-auto text-muted-foreground/30">V:{safeStr(subject.emotionalState.valence)} A:{safeStr(subject.emotionalState.arousal)} D:{safeStr(subject.emotionalState.dominance)}</span>
                       </div>
                     )}
 
@@ -882,8 +891,8 @@ const CrossView: React.FC = () => {
                       <div>
                         <p className="text-[9px] uppercase tracking-wider text-purple-400/40 mb-1">Micro-Expressions</p>
                         <div className="space-y-0.5">
-                          {subject.microExpressions.map((me: string, i: number) => (
-                            <p key={i} className="text-[10px] text-muted-foreground/60 font-extralight pl-2 border-l border-purple-400/20">⚡ {me}</p>
+                          {subject.microExpressions.map((me: any, i: number) => (
+                            <p key={i} className="text-[10px] text-muted-foreground/60 font-extralight pl-2 border-l border-purple-400/20">⚡ {safeStr(me)}</p>
                           ))}
                         </div>
                       </div>
@@ -893,15 +902,15 @@ const CrossView: React.FC = () => {
                     {subject.bodyLanguage && (
                       <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                         {subject.bodyLanguage.posture && (
-                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Posture:</span> <span className="text-foreground/70">{subject.bodyLanguage.posture}</span></div>
+                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Posture:</span> <span className="text-foreground/70">{safeStr(subject.bodyLanguage.posture)}</span></div>
                         )}
                         {subject.bodyLanguage.orientationSignal && (
-                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Orientation:</span> <span className="text-foreground/70">{subject.bodyLanguage.orientationSignal}</span></div>
+                          <div className="px-2 py-1 rounded bg-muted/10"><span className="text-muted-foreground/40">Orientation:</span> <span className="text-foreground/70">{safeStr(subject.bodyLanguage.orientationSignal)}</span></div>
                         )}
                         {subject.bodyLanguage.selfTouchingBehaviors?.length > 0 && (
                           <div className="px-2 py-1 rounded bg-muted/10 col-span-2">
                             <span className="text-muted-foreground/40">Self-touch:</span>{" "}
-                            <span className="text-foreground/70">{subject.bodyLanguage.selfTouchingBehaviors.join(", ")}</span>
+                            <span className="text-foreground/70">{(Array.isArray(subject.bodyLanguage.selfTouchingBehaviors) ? subject.bodyLanguage.selfTouchingBehaviors : []).map(safeStr).join(", ")}</span>
                           </div>
                         )}
                       </div>
@@ -932,13 +941,13 @@ const CrossView: React.FC = () => {
                           <span>M: <span className={subject.darkTriadIndicators.machiavellianism > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.machiavellianism}</span></span>
                           <span>P: <span className={subject.darkTriadIndicators.psychopathy > 50 ? "text-red-400" : "text-muted-foreground/60"}>{subject.darkTriadIndicators.psychopathy}</span></span>
                         </div>
-                        {subject.darkTriadIndicators.assessment && <p className="text-[10px] text-muted-foreground/50 mt-0.5 font-extralight">{subject.darkTriadIndicators.assessment}</p>}
+                        {subject.darkTriadIndicators.assessment && <p className="text-[10px] text-muted-foreground/50 mt-0.5 font-extralight">{safeStr(subject.darkTriadIndicators.assessment)}</p>}
                       </div>
                     )}
 
                     {/* Summary */}
                     {subject.summary && (
-                      <p className="text-[11px] text-foreground/70 font-extralight italic border-l-2 border-purple-400/30 pl-2">{subject.summary}</p>
+                      <p className="text-[11px] text-foreground/70 font-extralight italic border-l-2 border-purple-400/30 pl-2">{safeStr(subject.summary)}</p>
                     )}
                   </div>
                 ))}
