@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Monitor, Play, Square, Settings, MessageSquare, EyeOff, ChevronUp, Loader2, Shield, X,
-  Download, Chrome, BarChart3, Activity
+  Circle, BarChart3, Activity, Bell, Send, Download, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -30,11 +30,23 @@ import {
 const localEngine = new LocalIntelligenceEngine();
 const voiceEngine = new VoiceAlertEngine();
 
+// ── Notification type ──
+interface CrossNotification {
+  id: string;
+  type: "insight" | "alert" | "verdict" | "system";
+  title: string;
+  body: string;
+  timestamp: Date;
+  read: boolean;
+  severity?: "low" | "medium" | "high" | "critical";
+}
+
 const CrossView: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.email === ADMIN_EMAIL;
 
+  // ── Core state ──
   const [isSharing, setIsSharing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [alerts, setAlerts] = useState<CrossAlert[]>([]);
@@ -46,43 +58,71 @@ const CrossView: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
+  // ── Chat state ──
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  // ── Settings & session ──
   const [settings, setSettings] = useState<CrossSettings>(DEFAULT_SETTINGS);
   const [privacyWarning, setPrivacyWarning] = useState<string | null>(null);
   const [estimatedCost, setEstimatedCost] = useState(0);
   const [sessionStart, setSessionStart] = useState<Date | null>(null);
+
+  // ── Vision state ──
   const [quickVerdict, setQuickVerdict] = useState<QuickVerdict | null>(null);
   const [overlays, setOverlays] = useState<ScreenOverlay[]>([]);
   const [verdictVisible, setVerdictVisible] = useState(true);
   const [localSignals, setLocalSignals] = useState<LocalSignal[]>([]);
   const [priceStats, setPriceStats] = useState<ReturnType<LocalIntelligenceEngine["getStats"]>>(null);
+  const [frameExplanations, setFrameExplanations] = useState<string[]>([]);
+
+  // ── Activity & analytics ──
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
   const [alertsAccepted, setAlertsAccepted] = useState(0);
   const [alertsDismissed, setAlertsDismissed] = useState(0);
+
+  // ── Audio-visual intelligence ──
   const [salesIntel, setSalesIntel] = useState<SalesIntelligence | undefined>();
   const [emotions, setEmotions] = useState<EmotionState | undefined>();
   const [engagement, setEngagement] = useState<EngagementMetrics | undefined>();
   const [speakers, setSpeakers] = useState<SpeakerInfo[] | undefined>();
 
+  // ── Notifications ──
+  const [notifications, setNotifications] = useState<CrossNotification[]>([]);
+
+  // ── Recording state ──
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  // ── Refs ──
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousAlertsRef = useRef<CrossAlert[]>([]);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const analyzeFrameRef = useRef<() => Promise<void>>();
 
   useEffect(() => { voiceEngine.setEnabled(settings.voiceEnabled); }, [settings.voiceEnabled]);
   useEffect(() => () => { stopSharing(); }, []);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
+
+  // ── Helpers ──
+  const pushNotification = useCallback((type: CrossNotification["type"], title: string, body: string, severity?: CrossNotification["severity"]) => {
+    setNotifications(prev => [{
+      id: crypto.randomUUID(), type, title, body, timestamp: new Date(), read: false, severity,
+    }, ...prev].slice(0, 100));
+  }, []);
 
   const addActivity = useCallback((action: string, detail: string, confidence?: number) => {
     setActivities(prev => [{
-      id: crypto.randomUUID(),
-      timestamp: new Date(),
-      mode: settings.mode,
-      action,
-      detail,
-      confidence,
+      id: crypto.randomUUID(), timestamp: new Date(), mode: settings.mode, action, detail, confidence,
     }, ...prev].slice(0, 50));
   }, [settings.mode]);
 
@@ -119,6 +159,7 @@ const CrossView: React.FC = () => {
     return canvas.toDataURL("image/jpeg", quality);
   }, [settings.quality]);
 
+  // ── Frame Analysis (using ref to avoid stale closures in setInterval) ──
   const analyzeFrame = useCallback(async () => {
     if (isAnalyzing || isPaused) return;
     const frame = captureFrame();
@@ -140,12 +181,8 @@ const CrossView: React.FC = () => {
 
     try {
       const headers = await getAuthHeaders();
-
-      // Get active brain ID from localStorage (shared with main Aureon chat)
       let activeBrainId: string | null = null;
-      try {
-        activeBrainId = localStorage.getItem("aureon_active_brain_id");
-      } catch { /* ignore */ }
+      try { activeBrainId = localStorage.getItem("aureon_active_brain_id"); } catch { /* ignore */ }
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cross-analyze`,
@@ -169,6 +206,7 @@ const CrossView: React.FC = () => {
 
       const analysis = await resp.json();
 
+      // Context
       if (analysis.context) {
         setContext({ ...analysis.context, mode: settings.mode });
         if (settings.mode === "trading") {
@@ -177,7 +215,7 @@ const CrossView: React.FC = () => {
         }
       }
 
-      // Sales intelligence extraction
+      // Audio-visual intelligence
       if (analysis.salesIntel) setSalesIntel(analysis.salesIntel);
       if (analysis.emotions) setEmotions(analysis.emotions);
       if (analysis.engagement) setEngagement(analysis.engagement);
@@ -189,6 +227,12 @@ const CrossView: React.FC = () => {
         setLocalSignals(signals);
         const urgent = signals.find(s => s.urgency === "immediate" && s.confidence >= 75);
         if (urgent && settings.voiceEnabled) voiceEngine.speakLocalSignal(urgent);
+      }
+
+      // Frame explanations — what AI sees in this frame
+      if (analysis.observations?.length) {
+        setObservations(analysis.observations);
+        setFrameExplanations(analysis.observations);
       }
 
       // Quick Verdict
@@ -203,6 +247,7 @@ const CrossView: React.FC = () => {
         setQuickVerdict(v);
         setVerdictVisible(true);
         addActivity(v.action.replace("_", " "), v.message, v.confidence);
+        pushNotification("verdict", v.action.replace("_", " "), v.message, v.urgency === "immediate" ? "critical" : "high");
 
         if (v.urgency !== "immediate") setTimeout(() => setVerdictVisible(false), 15000);
 
@@ -221,8 +266,10 @@ const CrossView: React.FC = () => {
       if (analysis.privacyWarning) {
         setPrivacyWarning(analysis.privacyWarning);
         setIsPaused(true);
+        pushNotification("system", "Privacy Warning", analysis.privacyWarning, "critical");
       }
 
+      // Alerts
       if (analysis.alerts?.length) {
         const newAlerts: CrossAlert[] = analysis.alerts
           .filter((a: any) => a.confidence >= settings.minConfidence)
@@ -245,7 +292,10 @@ const CrossView: React.FC = () => {
         if (newAlerts.length > 0) {
           setAlerts(prev => [...newAlerts, ...prev].slice(0, 50));
           previousAlertsRef.current = [...newAlerts, ...previousAlertsRef.current].slice(0, 10);
-          newAlerts.forEach(a => addActivity(a.type, a.title, a.confidence));
+          newAlerts.forEach(a => {
+            addActivity(a.type, a.title, a.confidence);
+            pushNotification("alert", a.title, a.reasoning?.join(" · ") || "", a.severity === "critical" ? "critical" : "medium");
+          });
 
           if (settings.soundEnabled && newAlerts.some(a =>
             a.severity === "critical" || ["BUY", "SELL", "WARNING", "BUG", "VULNERABILITY"].includes(a.type)
@@ -255,18 +305,24 @@ const CrossView: React.FC = () => {
         }
       }
 
-      if (analysis.observations?.length) setObservations(analysis.observations);
       setEstimatedCost(prev => prev + 0.02);
     } catch (e) {
       console.error("Cross frame analysis failed:", e);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [isAnalyzing, isPaused, captureFrame, getAuthHeaders, context, settings, quickVerdict, addActivity]);
+  }, [isAnalyzing, isPaused, captureFrame, getAuthHeaders, context, settings, quickVerdict, addActivity, pushNotification]);
 
+  // Keep ref in sync so setInterval always calls latest version
+  useEffect(() => { analyzeFrameRef.current = analyzeFrame; }, [analyzeFrame]);
+
+  // ── Screen Sharing ──
   const startSharing = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5 }, audio: false });
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 5 } },
+        audio: settings.audioEnabled,
+      });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -285,45 +341,159 @@ const CrossView: React.FC = () => {
       setActivities([]);
       setAlertsAccepted(0);
       setAlertsDismissed(0);
+      setRecordedChunks([]);
+      setRecordingDuration(0);
+      setFrameExplanations([]);
+      setNotifications([]);
       localEngine.reset();
 
-      intervalRef.current = setInterval(() => analyzeFrame(), settings.frameRate * 1000);
+      // Use ref-based interval to avoid stale closure
+      intervalRef.current = setInterval(() => {
+        analyzeFrameRef.current?.();
+      }, settings.frameRate * 1000);
+
       const modeLabel = MODE_CONFIG[settings.mode]?.label || settings.mode;
+      pushNotification("system", "Session Started", `Cross is watching in ${modeLabel} mode`);
       toast({ title: "Screen sharing started", description: `Cross is watching in ${modeLabel} mode` });
     } catch (e: any) {
       if (e.name !== "NotAllowedError") {
         toast({ title: "Failed to start screen sharing", description: e.message, variant: "destructive" });
       }
     }
-  }, [settings.frameRate, settings.mode, analyzeFrame, toast]);
+  }, [settings.frameRate, settings.mode, settings.audioEnabled, toast, pushNotification]);
 
   const stopSharing = useCallback(() => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     if (videoRef.current) { videoRef.current.srcObject = null; }
+    stopRecording();
     setIsSharing(false);
     setIsPaused(false);
     setSessionStart(null);
   }, []);
 
+  // Update interval when frameRate changes
   useEffect(() => {
-    if (isSharing && !isPaused && intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(() => analyzeFrame(), settings.frameRate * 1000);
+    if (isSharing && !isPaused) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => { analyzeFrameRef.current?.(); }, settings.frameRate * 1000);
     }
-  }, [settings.frameRate, isSharing, isPaused, analyzeFrame]);
+    return () => { if (intervalRef.current && !isSharing) clearInterval(intervalRef.current); };
+  }, [settings.frameRate, isSharing, isPaused]);
 
   const togglePause = useCallback(() => {
     if (isPaused) {
       setIsPaused(false);
       setPrivacyWarning(null);
-      intervalRef.current = setInterval(() => analyzeFrame(), settings.frameRate * 1000);
+      intervalRef.current = setInterval(() => { analyzeFrameRef.current?.(); }, settings.frameRate * 1000);
     } else {
       setIsPaused(true);
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     }
-  }, [isPaused, analyzeFrame, settings.frameRate]);
+  }, [isPaused, settings.frameRate]);
 
+  // ── Screen Recording ──
+  const startRecording = useCallback(() => {
+    if (!streamRef.current) return;
+    try {
+      const recorder = new MediaRecorder(streamRef.current, { mimeType: "video/webm;codecs=vp9" });
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => { setRecordedChunks(chunks); };
+
+      recorder.start(1000); // capture in 1s chunks
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      pushNotification("system", "Recording Started", "Screen recording is now active");
+    } catch (e: any) {
+      toast({ title: "Recording failed", description: e.message, variant: "destructive" });
+    }
+  }, [toast, pushNotification]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+  }, []);
+
+  const downloadRecording = useCallback(() => {
+    if (recordedChunks.length === 0) return;
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cross-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.webm`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Recording downloaded" });
+  }, [recordedChunks, toast]);
+
+  const formatRecordingTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+  // ── Real Chat via Edge Function ──
+  const sendChatMessage = useCallback(async () => {
+    const msg = chatInput.trim();
+    if (!msg || isChatLoading) return;
+    setChatInput("");
+    setChatMessages(prev => [...prev, { role: "user", content: msg }]);
+    setIsChatLoading(true);
+
+    try {
+      const headers = await getAuthHeaders();
+      let activeBrainId: string | null = null;
+      try { activeBrainId = localStorage.getItem("aureon_active_brain_id"); } catch {}
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cross-analyze`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            frame: captureFrame(),
+            chatMessage: msg,
+            context: context ? JSON.stringify(context) : undefined,
+            previousAlerts: previousAlertsRef.current.slice(-3).map(a => ({ type: a.type, title: a.title })),
+            settings: { mode: settings.mode, sensitivity: settings.sensitivity },
+            activeBrainId,
+          }),
+        }
+      );
+
+      if (!resp.ok) throw new Error("Analysis unavailable");
+
+      const data = await resp.json();
+      const reply = data.observations?.join("\n\n") || data.quickVerdict?.message || "I'm analyzing your screen. Nothing notable right now.";
+      setChatMessages(prev => [...prev, { role: "assistant", content: reply }]);
+
+      if (data.quickVerdict && data.quickVerdict.action !== "NONE") {
+        const v: QuickVerdict = {
+          action: data.quickVerdict.action as VerdictAction,
+          urgency: data.quickVerdict.urgency || "watch",
+          message: data.quickVerdict.message || "",
+          confidence: data.quickVerdict.confidence || 50,
+          timestamp: new Date(),
+        };
+        setQuickVerdict(v);
+        setVerdictVisible(true);
+      }
+    } catch {
+      setChatMessages(prev => [...prev, { role: "assistant", content: "Connection error — please try again." }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  }, [chatInput, isChatLoading, getAuthHeaders, captureFrame, context, settings]);
+
+  // ── Dismiss alert ──
   const handleDismissAlert = useCallback((id: string) => {
     setAlerts(prev => prev.filter(a => a.id !== id));
     setAlertsDismissed(prev => prev + 1);
@@ -342,8 +512,11 @@ const CrossView: React.FC = () => {
       setAlerts([]);
       setObservations([]);
       setContext(null);
+      setFrameExplanations([]);
     }
   }, [isSharing]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (!isAdmin) {
     return (
@@ -379,6 +552,37 @@ const CrossView: React.FC = () => {
               </span>
             </div>
           )}
+
+          {/* Recording controls */}
+          {isSharing && !isRecording && (
+            <Button variant="ghost" size="icon" onClick={startRecording} className="h-8 w-8" title="Start recording">
+              <Circle className="h-4 w-4 text-red-400" />
+            </Button>
+          )}
+          {isRecording && (
+            <Button variant="ghost" size="sm" onClick={stopRecording} className="h-8 gap-1.5 text-red-400 hover:text-red-300" title="Stop recording">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400" />
+              </span>
+              <span className="text-xs font-mono">{formatRecordingTime(recordingDuration)}</span>
+            </Button>
+          )}
+          {recordedChunks.length > 0 && !isRecording && (
+            <Button variant="ghost" size="icon" onClick={downloadRecording} className="h-8 w-8" title="Download recording">
+              <Download className="h-4 w-4 text-accent" />
+            </Button>
+          )}
+
+          {/* Notifications */}
+          <Button variant="ghost" size="icon" onClick={() => setShowNotifications(n => !n)} className="h-8 w-8 relative">
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-red-500 text-[9px] text-white flex items-center justify-center font-bold">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setShowAnalytics(a => !a)} className="h-8 w-8">
             <BarChart3 className="h-4 w-4" />
           </Button>
@@ -429,42 +633,10 @@ const CrossView: React.FC = () => {
                   <p className="text-sm text-muted-foreground/60 font-extralight">Share your screen to begin <span className="text-foreground/80">{MODE_CONFIG[settings.mode]?.label}</span> analysis</p>
                   <p className="text-[10px] text-muted-foreground/30 mt-1">{MODE_CONFIG[settings.mode]?.description}</p>
                 </div>
-                <div className="flex gap-3">
-                  <Button onClick={startSharing} className="gap-2 rounded-xl">
-                    <Play className="h-4 w-4" />
-                    Start Sharing Screen
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2 rounded-xl"
-                    onClick={() => {
-                      fetch("/aureon-cross-extension.zip")
-                        .then(r => { if (!r.ok) throw new Error("Download failed"); return r.blob(); })
-                        .then(blob => {
-                          const a = document.createElement("a");
-                          a.href = URL.createObjectURL(blob);
-                          a.download = "aureon-cross-extension.zip";
-                          a.click();
-                          URL.revokeObjectURL(a.href);
-                        })
-                        .catch(() => toast({ title: "Download failed", variant: "destructive" }));
-                    }}
-                  >
-                    <Download className="h-4 w-4" />
-                    Chrome Extension
-                  </Button>
-                </div>
-                <div className="mt-2 px-4 py-2.5 rounded-xl bg-muted/10 border border-border/20 max-w-md">
-                  <p className="text-[10px] text-muted-foreground/40 mb-1.5 flex items-center gap-1.5">
-                    <Chrome className="h-3 w-3" /> Extension Install Guide
-                  </p>
-                  <ol className="text-[10px] text-muted-foreground/30 space-y-0.5 list-decimal list-inside">
-                    <li>Download & unzip the extension</li>
-                    <li>Open <span className="text-muted-foreground/50 font-mono">chrome://extensions</span></li>
-                    <li>Enable <span className="text-muted-foreground/50">Developer mode</span> (top-right)</li>
-                    <li>Click <span className="text-muted-foreground/50">Load unpacked</span> → select folder</li>
-                  </ol>
-                </div>
+                <Button onClick={startSharing} className="gap-2 rounded-xl">
+                  <Play className="h-4 w-4" />
+                  Start Sharing Screen
+                </Button>
               </div>
             )}
 
@@ -549,6 +721,20 @@ const CrossView: React.FC = () => {
             </button>
           )}
 
+          {/* Frame Explanations — what AI sees */}
+          {isSharing && frameExplanations.length > 0 && (
+            <div className="px-3 py-2.5 rounded-xl bg-accent/5 border border-accent/10">
+              <p className="text-[10px] uppercase tracking-wider text-accent/60 mb-1.5 flex items-center gap-1.5">
+                <Activity className="h-3 w-3" /> What Cross Sees Right Now
+              </p>
+              <div className="space-y-1">
+                {frameExplanations.map((exp, i) => (
+                  <p key={i} className="text-xs text-foreground/80 font-extralight leading-relaxed">{exp}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Analytics Summary (togglable) */}
           {showAnalytics && isSharing && (
             <CrossAnalyticsSummary analytics={sessionAnalytics} sessionDuration={sessionDuration} />
@@ -590,14 +776,6 @@ const CrossView: React.FC = () => {
             onConsentDeclined={() => setSettings(s => ({ ...s, audioEnabled: false, facialAnalysisEnabled: false }))}
           />
 
-          {/* Observations */}
-          {observations.length > 0 && isSharing && (
-            <div className="px-3 py-2 rounded-xl bg-muted/5 border border-border/10">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground/50 mb-1">Observations</p>
-              {observations.map((o, i) => <p key={i} className="text-xs text-muted-foreground font-extralight">{o}</p>)}
-            </div>
-          )}
-
           {/* AI Alerts Feed */}
           <CrossAlertFeed alerts={alerts} onDismiss={handleDismissAlert} isSharing={isSharing} />
 
@@ -613,6 +791,50 @@ const CrossView: React.FC = () => {
           )}
         </div>
 
+        {/* Notifications Panel */}
+        {showNotifications && (
+          <div className="w-80 border-l border-border/30 flex flex-col bg-background">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+              <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Bell className="h-4 w-4 text-accent" /> Notifications
+              </h3>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))} className="text-[10px] text-accent hover:text-accent/80 mr-2">Mark all read</button>
+                <button onClick={() => setShowNotifications(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="text-xs text-muted-foreground/40 text-center py-8 font-extralight">No notifications yet</p>
+              ) : (
+                notifications.map(n => (
+                  <div
+                    key={n.id}
+                    className={`px-4 py-3 border-b border-border/10 cursor-pointer hover:bg-muted/5 transition ${!n.read ? "bg-accent/3" : ""}`}
+                    onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className={`mt-0.5 h-2 w-2 rounded-full flex-shrink-0 ${
+                        n.severity === "critical" ? "bg-red-400" :
+                        n.severity === "high" ? "bg-amber-400" :
+                        n.type === "verdict" ? "bg-emerald-400" :
+                        "bg-muted-foreground/30"
+                      }`} />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{n.title}</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5 line-clamp-2">{n.body}</p>
+                        <p className="text-[9px] text-muted-foreground/30 mt-1">
+                          {n.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Settings Panel */}
         {showSettings && (
           <CrossSettingsPanel
@@ -626,7 +848,7 @@ const CrossView: React.FC = () => {
 
         {/* Chat Panel */}
         {showChat && (
-          <div className="w-80 border-l border-border/30 flex flex-col">
+          <div className="w-80 border-l border-border/30 flex flex-col bg-background">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
               <h3 className="text-sm font-medium text-foreground">Chat with Aureon</h3>
               <button onClick={() => setShowChat(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
@@ -646,24 +868,27 @@ const CrossView: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {isChatLoading && (
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <Loader2 className="h-3 w-3 animate-spin text-accent" />
+                  <span className="text-[10px] text-muted-foreground/50">Analyzing...</span>
+                </div>
+              )}
+              <div ref={chatEndRef} />
             </div>
             <div className="p-3 border-t border-border/20">
               <div className="flex gap-2">
                 <input
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && chatInput.trim()) {
-                      const msg = chatInput.trim();
-                      setChatInput("");
-                      setChatMessages(prev => [...prev, { role: "user", content: msg }]);
-                      const contextStr = context ? `Context: ${JSON.stringify(context)}. Recent alerts: ${alerts.slice(0, 3).map(a => a.title).join(", ")}` : "No screen shared yet.";
-                      setChatMessages(prev => [...prev, { role: "assistant", content: `Based on what I see: ${contextStr}\n\nRegarding "${msg}" — I'll analyze the next frame with this in mind.` }]);
-                    }
-                  }}
+                  onKeyDown={e => { if (e.key === "Enter") sendChatMessage(); }}
                   placeholder="Ask about what's on screen..."
                   className="flex-1 bg-muted/10 border border-border/30 rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/30 outline-none focus:border-accent/50"
+                  disabled={isChatLoading}
                 />
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={sendChatMessage} disabled={isChatLoading || !chatInput.trim()}>
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           </div>
