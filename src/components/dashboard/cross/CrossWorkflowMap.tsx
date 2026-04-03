@@ -318,9 +318,19 @@ const CrossWorkflowMap: React.FC<Props> = ({ onClose, isSharing, currentSessionI
           <h3 className="text-sm font-medium text-foreground">Workflow Intelligence</h3>
         </div>
         <div className="flex items-center gap-1">
+          {workflows.length >= 2 && (
+            <Button size="sm" variant="ghost" className={`h-7 text-[10px] gap-1 ${showComparison ? "text-accent" : ""}`} onClick={() => { setShowComparison(v => !v); setShowExport(false); }}>
+              <GitCompare className="h-3 w-3" /> Compare
+            </Button>
+          )}
+          {workflow && (
+            <Button size="sm" variant="ghost" className={`h-7 text-[10px] gap-1 ${showExport ? "text-accent" : ""}`} onClick={() => { setShowExport(v => !v); setShowComparison(false); }}>
+              <Download className="h-3 w-3" /> Export
+            </Button>
+          )}
           {isSharing && (
             <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={buildWorkflowFromSession}>
-              <RefreshCw className="h-3 w-3" /> Build from Session
+              <RefreshCw className="h-3 w-3" /> Build
             </Button>
           )}
           <button onClick={onClose}><X className="h-4 w-4 text-muted-foreground" /></button>
