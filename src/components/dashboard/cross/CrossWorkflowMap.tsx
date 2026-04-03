@@ -72,7 +72,7 @@ const CrossWorkflowMap: React.FC<Props> = ({ onClose, isSharing, currentSessionI
     if (!user) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("cross_workflows")
         .select("*")
         .eq("user_id", user.id)
