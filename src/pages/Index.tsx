@@ -940,7 +940,7 @@ const Index = () => {
                   <Link to="/feature/google-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Google Intelligence</Link>
                   <Link to="/feature/zophiel" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Zophiel Search</Link>
                   <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD OSINT</Link>
-                  <Link to="/feature/asha" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Azplen Intelligence</Link>
+                  <Link to="/feature/azplen" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Azplen Intelligence</Link>
                   <Link to="/feature/predictive" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Predictive Intelligence</Link>
                   <Link to="/feature/imagine-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine Intelligence</Link>
                   <Link to="/feature/oracle-locus" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Oracle Locus</Link>
