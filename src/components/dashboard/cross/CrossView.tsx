@@ -275,8 +275,17 @@ const CrossView: React.FC = () => {
       }
 
       if (analysis.observations?.length) {
-        setObservations(analysis.observations);
-        setFrameExplanations(analysis.observations);
+        // Normalize observations: AI may return strings OR {type, title, description} objects
+        const normalizedObs = analysis.observations.map((obs: any) => {
+          if (typeof obs === "string") return obs;
+          if (obs && typeof obs === "object") {
+            const parts = [obs.title, obs.description].filter(Boolean).map(safeStr);
+            return parts.join(" — ") || safeStr(obs);
+          }
+          return safeStr(obs);
+        });
+        setObservations(normalizedObs);
+        setFrameExplanations(normalizedObs);
       }
 
       // Quick Verdict
