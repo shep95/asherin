@@ -569,6 +569,19 @@ const CrossView: React.FC = () => {
           {/* Local Intelligence Signals (trading mode only) */}
           {isSharing && settings.mode === "trading" && <CrossLocalSignals signals={localSignals} />}
 
+          {/* Sales Intelligence (sales/negotiation modes) */}
+          {isSharing && <CrossSalesIntelligence intel={salesIntel} isActive={["sales", "negotiation"].includes(settings.mode)} />}
+
+          {/* Audio-Visual Panel (people-facing modes) */}
+          {isSharing && <CrossAudioVisualPanel settings={settings} emotions={emotions} engagement={engagement} speakers={speakers} isActive={["sales", "hr", "legal", "support", "negotiation", "healthcare", "education"].includes(settings.mode)} />}
+
+          {/* Consent Banner */}
+          <CrossConsentBanner
+            settings={settings}
+            onConsentGranted={() => setSettings(s => ({ ...s, consentCollected: true }))}
+            onConsentDeclined={() => setSettings(s => ({ ...s, audioEnabled: false, facialAnalysisEnabled: false }))}
+          />
+
           {/* Observations */}
           {observations.length > 0 && isSharing && (
             <div className="px-3 py-2 rounded-xl bg-muted/5 border border-border/10">
