@@ -565,7 +565,7 @@ async function handleChat(message: string, context: string, previousAlerts: any[
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: `You are Aureon Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}` },
+        { role: "system", content: `You are Aureon Cross — ${roleDesc} embedded in the user's browser. Be direct, surgical, no filler. Context: ${context || "none"}\nRecent alerts: ${JSON.stringify(previousAlerts?.slice(-3) || [])}${brainContext}` },
         { role: "user", content: message },
       ],
     }),
