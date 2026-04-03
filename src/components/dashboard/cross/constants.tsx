@@ -1,5 +1,5 @@
 import React from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, Eye, Zap } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Eye, Zap, Bug, Shield, Palette, Search, CheckCircle, Clock } from "lucide-react";
 import { AlertType, VerdictAction } from "./types";
 
 export const ALERT_COLORS: Record<AlertType, { bg: string; border: string; icon: React.ReactNode }> = {
@@ -8,6 +8,13 @@ export const ALERT_COLORS: Record<AlertType, { bg: string; border: string; icon:
   WARNING: { bg: "bg-amber-500/10", border: "border-amber-500/30", icon: <AlertTriangle className="h-4 w-4 text-amber-400" /> },
   MONITOR: { bg: "bg-blue-500/10", border: "border-blue-500/30", icon: <Eye className="h-4 w-4 text-blue-400" /> },
   INFO: { bg: "bg-muted/30", border: "border-border", icon: <Zap className="h-4 w-4 text-muted-foreground" /> },
+  BUG: { bg: "bg-red-500/10", border: "border-red-500/30", icon: <Bug className="h-4 w-4 text-red-400" /> },
+  VULNERABILITY: { bg: "bg-red-600/10", border: "border-red-600/30", icon: <Shield className="h-4 w-4 text-red-500" /> },
+  DESIGN_ISSUE: { bg: "bg-purple-500/10", border: "border-purple-500/30", icon: <Palette className="h-4 w-4 text-purple-400" /> },
+  OPTIMIZATION: { bg: "bg-cyan-500/10", border: "border-cyan-500/30", icon: <Zap className="h-4 w-4 text-cyan-400" /> },
+  COMPLIANCE: { bg: "bg-amber-600/10", border: "border-amber-600/30", icon: <Shield className="h-4 w-4 text-amber-500" /> },
+  DEADLINE: { bg: "bg-orange-500/10", border: "border-orange-500/30", icon: <Clock className="h-4 w-4 text-orange-400" /> },
+  SUGGESTION: { bg: "bg-indigo-500/10", border: "border-indigo-500/30", icon: <Search className="h-4 w-4 text-indigo-400" /> },
 };
 
 export const VERDICT_STYLES: Record<VerdictAction, { bg: string; text: string; glow: string; emoji: string }> = {
@@ -17,6 +24,12 @@ export const VERDICT_STYLES: Record<VerdictAction, { bg: string; text: string; g
   HOLD: { bg: "from-blue-600/80 to-blue-800/80", text: "text-blue-50", glow: "shadow-blue-500/30", emoji: "🔵" },
   WAIT: { bg: "from-amber-600/70 to-amber-800/70", text: "text-amber-50", glow: "shadow-amber-500/20", emoji: "⏳" },
   NONE: { bg: "from-muted/50 to-muted/30", text: "text-muted-foreground", glow: "", emoji: "" },
+  FIX_NOW: { bg: "from-red-600/90 to-orange-700/90", text: "text-red-50", glow: "shadow-red-500/40", emoji: "🔧" },
+  OPTIMIZE: { bg: "from-cyan-600/80 to-cyan-800/80", text: "text-cyan-50", glow: "shadow-cyan-500/30", emoji: "⚡" },
+  REFACTOR: { bg: "from-purple-600/80 to-purple-800/80", text: "text-purple-50", glow: "shadow-purple-500/30", emoji: "🔄" },
+  APPROVE: { bg: "from-emerald-600/80 to-emerald-800/80", text: "text-emerald-50", glow: "shadow-emerald-500/30", emoji: "✅" },
+  FLAG: { bg: "from-amber-600/80 to-amber-800/80", text: "text-amber-50", glow: "shadow-amber-500/30", emoji: "🚩" },
+  IMPROVE: { bg: "from-indigo-600/80 to-indigo-800/80", text: "text-indigo-50", glow: "shadow-indigo-500/30", emoji: "💡" },
 };
 
 export const OVERLAY_COLORS: Record<string, string> = {
@@ -24,6 +37,8 @@ export const OVERLAY_COLORS: Record<string, string> = {
   red: "text-red-400 border-red-400/40 bg-red-500/10",
   yellow: "text-amber-400 border-amber-400/40 bg-amber-500/10",
   blue: "text-blue-400 border-blue-400/40 bg-blue-500/10",
+  purple: "text-purple-400 border-purple-400/40 bg-purple-500/10",
+  cyan: "text-cyan-400 border-cyan-400/40 bg-cyan-500/10",
   white: "text-foreground border-foreground/30 bg-background/50",
 };
 
