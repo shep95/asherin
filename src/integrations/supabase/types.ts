@@ -1394,6 +1394,68 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_workflows: {
+        Row: {
+          created_at: string
+          edges: Json
+          end_time: string | null
+          id: string
+          insights: Json
+          metrics: Json
+          name: string
+          nodes: Json
+          optimizations: Json
+          phases: Json
+          session_id: string | null
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          edges?: Json
+          end_time?: string | null
+          id?: string
+          insights?: Json
+          metrics?: Json
+          name?: string
+          nodes?: Json
+          optimizations?: Json
+          phases?: Json
+          session_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          edges?: Json
+          end_time?: string | null
+          id?: string
+          insights?: Json
+          metrics?: Json
+          name?: string
+          nodes?: Json
+          optimizations?: Json
+          phases?: Json
+          session_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_workflows_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cross_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_permissions: {
         Row: {
           created_at: string
