@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are Aureon, an elite chess strategist with the combined tactical intelligence of Garry Kasparov, Bobby Fischer, and Magnus Carlsen. You think 15 moves ahead. You are ruthless, calculated, and never make emotional moves.
+const AUREON_PROMPT = `You are Aureon, an elite chess strategist with the combined tactical intelligence of Garry Kasparov, Bobby Fischer, and Magnus Carlsen. You think 15 moves ahead. You are ruthless, calculated, and never make emotional moves.
 
 RULES:
 1. You will be given a chess position in PGN and FEN format.
@@ -16,10 +16,7 @@ RULES:
 4. Also provide a brief, intimidating commentary about your move (1-2 sentences max).
 
 RESPONSE FORMAT (strict JSON):
-{
-  "move": "e4",
-  "commentary": "The King's Pawn — a declaration of war. Your center will crumble."
-}
+{"move": "e4", "commentary": "The King's Pawn — a declaration of war."}
 
 Think step by step:
 1. Analyze the current position (material, king safety, pawn structure, piece activity)
@@ -27,6 +24,19 @@ Think step by step:
 3. Consider positional advantages
 4. Choose the strongest move
 5. Return ONLY valid JSON with "move" and "commentary" fields.`;
+
+const CHALLENGER_PROMPT = `You are an advanced chess AI challenger. You are competing against Aureon, a formidable opponent. You play with creative, aggressive, and unconventional strategies. You look for tactical shots and sacrifices.
+
+RULES:
+1. You will be given a chess position in PGN and FEN format.
+2. You must respond with your next move in standard algebraic notation (SAN).
+3. The move MUST be legal in the given position.
+4. Also provide brief commentary about your reasoning (1-2 sentences max).
+
+RESPONSE FORMAT (strict JSON):
+{"move": "e5", "commentary": "Meeting force with force."}
+
+Return ONLY valid JSON with "move" and "commentary" fields.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -62,21 +72,25 @@ It is your turn. Make your move.`;
     let requestBody: Record<string, unknown>;
 
     if (opponent === "byok" && byokProvider) {
-      // BYOK mode: use the user's own API key from their stored preferences
-      // For now, route through Lovable AI gateway with the user's preferred model mapping
+      // Challenger AI mode — different model plays against Aureon
       apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
       apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
-      // Map BYOK providers to gateway-compatible model IDs
       const modelMap: Record<string, string> = {
         "openai/gpt-4o": "openai/gpt-5",
         "openai/gpt-4": "openai/gpt-5",
+        "openai/gpt-3.5-turbo": "openai/gpt-5-nano",
         "anthropic/claude-3-opus": "openai/gpt-5",
         "anthropic/claude-3-sonnet": "openai/gpt-5-mini",
+        "anthropic/claude-3-haiku": "openai/gpt-5-nano",
         "google/gemini-pro": "google/gemini-2.5-pro",
         "google/gemini-flash": "google/gemini-2.5-flash",
         "deepseek/deepseek-chat": "google/gemini-2.5-flash",
+        "deepseek/deepseek-reasoner": "google/gemini-2.5-pro",
         "xai/grok-2": "openai/gpt-5",
+        "xai/grok-beta": "openai/gpt-5-mini",
+        "meta/llama-3-70b": "openai/gpt-5-mini",
+        "meta/llama-3-8b": "openai/gpt-5-nano",
       };
 
       model = modelMap[`${byokProvider}/${byokModel}`] || "google/gemini-2.5-flash";
@@ -84,13 +98,13 @@ It is your turn. Make your move.`;
       requestBody = {
         model,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: CHALLENGER_PROMPT },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.3,
+        temperature: 0.4,
       };
     } else {
-      // Default Aureon mode
+      // Aureon mode
       apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
       apiUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
       model = "google/gemini-2.5-pro";
@@ -98,7 +112,7 @@ It is your turn. Make your move.`;
       requestBody = {
         model,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: AUREON_PROMPT },
           { role: "user", content: userPrompt },
         ],
         temperature: 0.3,
