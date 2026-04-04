@@ -80,6 +80,7 @@ const navGroups: NavGroup[] = [
       { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
       { id: "lavba" as DashboardView, icon: Zap, label: "Lavba", access: "pro" },
       { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
+      { id: "zaplen" as DashboardView, icon: Zap, label: "Zaplen", access: "pro" },
       { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
       { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
       { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
