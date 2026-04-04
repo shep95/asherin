@@ -84,6 +84,7 @@ const ReverseEngineerView = React.lazy(() => import("@/components/dashboard/Reve
 const LavbaView = React.lazy(() => import("@/components/dashboard/lavba/LavbaView"));
 const CrossView = React.lazy(() => import("@/components/dashboard/cross/CrossView"));
 const GuardianVaultView = React.lazy(() => import("@/components/dashboard/GuardianVaultView"));
+const ZaplenView = React.lazy(() => import("@/components/dashboard/zaplen/ZaplenView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
