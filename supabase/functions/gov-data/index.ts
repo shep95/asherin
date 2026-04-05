@@ -15,17 +15,17 @@ const SOURCES = {
   world_bank: "https://api.worldbank.org/v2",
   imf_dm: "https://www.imf.org/external/datamapper/api/v1",
   oecd: "https://stats.oecd.org/SDMX-JSON/data",
-  // UK
-  uk_ckan: "https://data.gov.uk/api/3/action",
+  // UK (requires www.)
+  uk_ckan: "https://www.data.gov.uk/api/3/action",
   // France
   fr_data: "https://www.data.gouv.fr/api/1",
   // Canada
   ca_ckan: "https://open.canada.ca/data/en/api/3/action",
-  // Germany
-  de_ckan: "https://www.govdata.de/api/3/action",
+  // Germany (requires /ckan/ path)
+  de_ckan: "https://www.govdata.de/ckan/api/3/action",
   de_destatis: "https://www-genesis.destatis.de/genesisWS/rest/2020",
-  // Australia
-  au_ckan: "https://data.gov.au/api/3/action",
+  // Australia (requires /data/ path)
+  au_ckan: "https://data.gov.au/data/api/3/action",
   // Brazil
   br_ckan: "https://dados.gov.br/api/3/action",
   br_transparency: "https://api.portaldatransparencia.gov.br/api-de-dados",
