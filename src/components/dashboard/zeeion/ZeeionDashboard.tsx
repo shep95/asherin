@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrendingUp, AlertTriangle, DollarSign, BarChart3, Zap, X, ChevronRight, Download, CheckCircle, Clock, Target, LayoutGrid, LineChart, Sparkles } from "lucide-react";
+import { TrendingUp, AlertTriangle, DollarSign, BarChart3, Zap, X, ChevronRight, Download, CheckCircle, Clock, Target, LayoutGrid, LineChart, Sparkles, Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AnalysisResult } from "./ZeeionView";
 import SankeyFlow from "./charts/SankeyFlow";
@@ -9,12 +9,14 @@ import SpendingTreemap from "./charts/SpendingTreemap";
 import CorrelationMatrix from "./charts/CorrelationMatrix";
 import AnomalyScatter from "./charts/AnomalyScatter";
 import ZeeionAureonChat from "./ZeeionAureonChat";
+import ZeeionAlerts from "./ZeeionAlerts";
+import ZeeionExport from "./ZeeionExport";
 
 interface Props {
   analysis: AnalysisResult;
 }
 
-type DashTab = "overview" | "visualizations" | "aureon";
+type DashTab = "overview" | "visualizations" | "alerts" | "export" | "aureon";
 
 const ZeeionDashboard = ({ analysis }: Props) => {
   const s = analysis.summary;
@@ -52,6 +54,8 @@ const ZeeionDashboard = ({ analysis }: Props) => {
   const tabs: { id: DashTab; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: "Overview", icon: <LayoutGrid className="h-3 w-3" /> },
     { id: "visualizations", label: "Analytics", icon: <LineChart className="h-3 w-3" /> },
+    { id: "alerts", label: "Alerts", icon: <Bell className="h-3 w-3" /> },
+    { id: "export", label: "Export", icon: <Download className="h-3 w-3" /> },
     { id: "aureon", label: "Ask Aureon", icon: <Sparkles className="h-3 w-3" /> },
   ];
 
@@ -261,6 +265,16 @@ const ZeeionDashboard = ({ analysis }: Props) => {
           {/* Correlation Matrix */}
           <CorrelationMatrix departments={analysis.departmentPerformance} />
         </div>
+      )}
+
+      {/* ═══ ALERTS TAB ═══ */}
+      {tab === "alerts" && (
+        <ZeeionAlerts analysis={analysis} />
+      )}
+
+      {/* ═══ EXPORT TAB ═══ */}
+      {tab === "export" && (
+        <ZeeionExport analysis={analysis} />
       )}
 
       {/* ═══ AUREON TAB ═══ */}
