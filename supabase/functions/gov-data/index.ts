@@ -8,6 +8,8 @@ const corsHeaders = {
 const SOURCES = {
   usa_spending: "https://api.usaspending.gov/api/v2",
   treasury: "https://api.fiscaldata.treasury.gov/services/api/fiscal_service",
+  census: "https://api.census.gov/data",
+  fred: "https://api.stlouisfed.org/fred",
   world_bank: "https://api.worldbank.org/v2",
   imf_dm: "https://www.imf.org/external/datamapper/api/v1",
   uk_ckan: "https://ckan.publishing.service.gov.uk/api/3/action",
