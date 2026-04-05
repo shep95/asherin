@@ -1,19 +1,17 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, FileText, CheckCircle, Loader2, X } from "lucide-react";
+import { Upload, FileText, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { AnalysisResult } from "./ZeeionView";
 
 interface Props {
   onAnalysisComplete: (result: AnalysisResult) => void;
-  pastAnalyses: AnalysisResult[];
-  onViewAnalysis: (a: AnalysisResult) => void;
 }
 
 const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".csv", ".pdf", ".json", ".xml"];
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Props) => {
+const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -166,7 +164,6 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
             </button>
           </div>
 
-          {/* Currency only - fiscal start auto-detected */}
           <div>
             <label className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-1 block">Currency</label>
             <select
@@ -204,33 +201,6 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
             <div className="h-full rounded-full bg-foreground/20 transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
           <p className="text-[9px] text-muted-foreground/30 text-center">AUREON is running all analytical brains on your data</p>
-        </div>
-      )}
-
-      {/* Past Analyses */}
-      {pastAnalyses.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40">Previous Analyses</h3>
-          {pastAnalyses.map(a => (
-            <button
-              key={a.id}
-              onClick={() => onViewAnalysis(a)}
-              className="w-full flex items-center justify-between p-4 rounded-2xl border border-border/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-all text-left"
-            >
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-3.5 w-3.5 text-foreground/30" />
-                <div>
-                  <p className="text-[11px] font-light text-foreground/70">{a.fileName}</p>
-                  <p className="text-[8px] text-muted-foreground/30">{a.uploadedAt.toLocaleString()}</p>
-                </div>
-              </div>
-              {a.summary && (
-                <span className="text-[10px] text-foreground/40">
-                  ${a.summary.potentialSavings.toLocaleString()} savings found
-                </span>
-              )}
-            </button>
-          ))}
         </div>
       )}
     </div>
