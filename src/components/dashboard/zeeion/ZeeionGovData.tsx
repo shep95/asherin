@@ -476,6 +476,15 @@ const ZeeionGovData = () => {
         </div>
       )}
 
+      {/* ═══ WASTE & FRAUD ═══ */}
+      {subTab === "waste_fraud" && <ZeeionWasteFraud />}
+
+      {/* ═══ JOB OPTIMIZATION ═══ */}
+      {subTab === "jobs" && <ZeeionJobOptimization />}
+
+      {/* ═══ BUDGET OPTIMIZER ═══ */}
+      {subTab === "budget_optimize" && <ZeeionBudgetOptimizer />}
+
       {/* ═══ AUREON ═══ */}
       {subTab === "aureon" && (
         <div className="flex flex-col rounded-2xl border border-border/[0.08] bg-foreground/[0.02] h-[600px] overflow-hidden">
