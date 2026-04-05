@@ -32,7 +32,7 @@ const ZeeionView = () => {
   const { toast } = useToast();
   const [sessions, setSessions] = useState<AnalysisResult[]>([]);
   const [activeSession, setActiveSession] = useState<AnalysisResult | null>(null);
-  const [view, setView] = useState<"sessions" | "upload" | "dashboard">("sessions");
+  const [view, setView] = useState<"sessions" | "upload" | "dashboard" | "gov_data">("sessions");
   const [loading, setLoading] = useState(true);
 
   const loadSessions = useCallback(async () => {
