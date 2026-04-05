@@ -171,6 +171,56 @@ function buildLiveDataContext(profile: any, countryName: string): string {
     });
   }
 
+  // Top Federal Awards (largest contracts)
+  if (profile.usaTopAwards?.length) {
+    lines.push("\n[USASpending.gov] Largest Federal Awards (Contracts):");
+    profile.usaTopAwards.slice(0, 10).forEach((a: any) => {
+      lines.push(`  ${a.awardId}: ${a.recipient} — ${fmtUsd(a.amount)} (${a.agency}, ${a.type})`);
+    });
+  }
+
+  // State-level spending
+  if (profile.usaTopStates?.length) {
+    lines.push("\n[USASpending.gov] Federal Spending by Top States:");
+    profile.usaTopStates.forEach((s: any) => {
+      lines.push(`  ${s.name} (${s.code}): Awards=${fmtUsd(s.totalPrimeAmount)}, Per Capita=${fmtUsd(s.awardPerCapita)}, Pop=${(s.population / 1e6).toFixed(1)}M`);
+    });
+  }
+
+  // Census demographics
+  if (profile.usaCensusStates?.length) {
+    lines.push("\n[US Census Bureau – ACS] State Demographics (Top 10):");
+    profile.usaCensusStates.slice(0, 10).forEach((s: any) => {
+      lines.push(`  ${s.name}: Pop=${(s.population / 1e6).toFixed(1)}M, Median Income=$${(s.medianIncome || 0).toLocaleString()}`);
+    });
+  }
+
+  // Exchange rates
+  if (profile.usaExchangeRates?.length) {
+    lines.push("\n[US Treasury] Exchange Rates (latest):");
+    profile.usaExchangeRates.slice(0, 10).forEach((r: any) => {
+      lines.push(`  ${r.currency}: ${r.rate} (${r.date})`);
+    });
+  }
+
+  // FRED economic indicators
+  const fredMap: Record<string, string> = {
+    GDP: "GDP (Billions)", GFDEBTN: "Federal Debt (Millions)", FYFR: "Federal Revenue (Millions)",
+    UNRATE: "Unemployment Rate (%)", CPIAUCSL: "CPI (Consumer Price Index)",
+  };
+  if (profile.usaFredData && Object.keys(profile.usaFredData).length) {
+    lines.push("\n[Federal Reserve – FRED] Economic Indicators:");
+    for (const [series, label] of Object.entries(fredMap)) {
+      const vals = profile.usaFredData[series];
+      if (vals?.length) {
+        lines.push(`  ${label}:`);
+        vals.slice(0, 5).forEach((v: any) => {
+          lines.push(`    ${v.date}: ${v.value !== null ? v.value.toLocaleString() : "N/A"}`);
+        });
+      }
+    }
+  }
+
   // Peer comparison
   const peers = profile.peerComparison;
   if (peers?.debt && Object.keys(peers.debt).length) {
