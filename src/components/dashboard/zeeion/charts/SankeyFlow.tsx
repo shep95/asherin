@@ -151,7 +151,7 @@ const SankeyFlow = ({ categories, totalSpending }: Props) => {
                   y={cat.y + Math.min(cat.h / 2 + 18, 30)}
                   className="text-[8px] fill-[hsl(var(--muted-foreground)/0.3)]"
                 >
-                  ${cat.amount.toLocaleString()} ({cat.pct}%)
+                  ${cat.value.toLocaleString()} ({cat.pct}%)
                 </text>
               </g>
             );
