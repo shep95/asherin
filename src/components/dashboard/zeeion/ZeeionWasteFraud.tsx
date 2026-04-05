@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X, BarChart3 } from "lucide-react";
+import { useState, useCallback, useRef } from "react";
+import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X, BarChart3, Eye, Table2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat } from "@/lib/ai";
 import ZeeionWasteTracker, { type WasteItem, type WasteStatus } from "./ZeeionWasteTracker";
