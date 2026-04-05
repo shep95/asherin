@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess } from "@/contexts/SubscriptionContext";
 import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -210,6 +210,7 @@ const DashboardSidebar = ({
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
       if (item.access === "pro") return hasProAccess(tierKey);
+      if (item.access === "enterprise") return hasEnterpriseOnlyAccess(tierKey);
       return true;
     }),
   })).filter(group => group.items.length > 0);
