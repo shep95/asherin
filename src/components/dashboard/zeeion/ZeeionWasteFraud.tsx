@@ -36,12 +36,15 @@ interface PatternDetail {
 }
 
 interface WasteResult {
-  totalWaste: number;
-  percentOfBudget: number;
+  totalWasteLow: number;
+  totalWasteHigh: number;
+  percentOfBudgetLow: number;
+  percentOfBudgetHigh: number;
   patterns: {
     type: string;
     description: string;
-    estimatedWaste: number;
+    estimatedWasteLow: number;
+    estimatedWasteHigh: number;
     severity: "high" | "medium" | "low";
     evidence: string;
     recommendation: string;
