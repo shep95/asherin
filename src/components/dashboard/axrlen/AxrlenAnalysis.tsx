@@ -33,6 +33,7 @@ const AxrlenAnalysis = ({ session }: Props) => {
   const [tab, setTab] = useState<Tab>("overview");
   const [copied, setCopied] = useState(false);
   const [expandedPred, setExpandedPred] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
