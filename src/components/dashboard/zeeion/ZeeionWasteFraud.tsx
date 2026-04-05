@@ -143,26 +143,41 @@ const ZeeionWasteFraud = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Deep-dive: generate itemized records for a specific pattern
+  // Use sessionStorage cache so data stays consistent within a session
+  const getDetailCacheKey = (patternType: string) => `aureon_detail_${country}_${patternType}`;
+
   const generatePatternDetail = async (patternIndex: number) => {
     if (!result) return;
     const pattern = result.patterns.sort((a, b) => b.estimatedWasteHigh - a.estimatedWasteHigh)[patternIndex];
     if (!pattern) return;
+
+    // Check cache first — prevents different data on re-open
+    const cacheKey = getDetailCacheKey(pattern.type);
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as PatternDetail;
+        setPatternDetails(prev => ({ ...prev, [patternIndex]: parsed }));
+        return;
+      }
+    } catch { /* cache miss */ }
+
     setLoadingDetail(patternIndex);
 
     const columnPrompts: Record<string, string> = {
-      ghost_employees: 'columns: employee_id, full_name, department, position, monthly_salary, last_attendance_date, status_flag, risk_score. Generate 15-25 fake but realistic ghost employee records.',
-      duplicate_payments: 'columns: invoice_id, vendor_name, amount, payment_date, duplicate_of_invoice, department, payment_method, days_apart. Generate 15-25 duplicate payment records.',
-      overpriced_contracts: 'columns: contract_id, vendor_name, contract_value, market_rate, overpayment_pct, department, start_date, end_date, competitive_bid. Generate 12-20 overpriced contract records.',
-      inactive_programs: 'columns: program_id, program_name, annual_budget, execution_rate_pct, last_activity_date, department, years_inactive, beneficiaries. Generate 10-18 inactive program records.',
-      shell_companies: 'columns: company_id, company_name, registration_date, total_contracts, total_value, employees_listed, physical_address_verified, linked_officials. Generate 8-15 shell company records.',
-      contract_splitting: 'columns: original_contract_id, split_contract_ids, total_value, split_count, vendor_name, department, approval_date, threshold_avoided. Generate 10-15 contract splitting records.',
-      administrative_overhead: 'columns: unit_id, unit_name, staff_count, budget, output_metric, cost_per_output, peer_benchmark, excess_cost. Generate 12-18 overhead unit records.',
-      procurement_fraud: 'columns: procurement_id, description, awarded_to, bid_count, winning_bid, second_bid, price_difference_pct, red_flags, department. Generate 10-15 procurement fraud records.',
-      embezzlement: 'columns: case_id, suspect_name, position, department, estimated_amount, method, period, evidence_strength, status. Generate 8-12 embezzlement case records.',
-      ineffective_programs: 'columns: project_id, project_name, original_budget, current_cost, overrun_pct, completion_pct, years_delayed, department, contractor. Generate 10-15 ineffective project records.',
+      ghost_employees: 'columns: employee_id, full_name, department, position, monthly_salary, last_attendance_date, status_flag, risk_score. Produce 20-30 comprehensive records covering ALL identified ghost employees.',
+      duplicate_payments: 'columns: invoice_id, vendor_name, amount, payment_date, duplicate_of_invoice, department, payment_method, days_apart. Produce 20-30 comprehensive duplicate payment records.',
+      overpriced_contracts: 'columns: contract_id, vendor_name, contract_value, market_rate, overpayment_pct, department, start_date, end_date, competitive_bid. Produce 15-25 comprehensive overpriced contract records.',
+      inactive_programs: 'columns: program_id, program_name, annual_budget, execution_rate_pct, last_activity_date, department, years_inactive, beneficiaries. Produce 15-25 comprehensive inactive program records.',
+      shell_companies: 'columns: company_id, company_name, registration_date, total_contracts, total_value, employees_listed, physical_address_verified, linked_officials. Produce 12-20 comprehensive shell company records.',
+      contract_splitting: 'columns: original_contract_id, split_contract_ids, total_value, split_count, vendor_name, department, approval_date, threshold_avoided. Produce 15-20 comprehensive contract splitting records.',
+      administrative_overhead: 'columns: unit_id, unit_name, staff_count, budget, output_metric, cost_per_output, peer_benchmark, excess_cost. Produce 15-25 comprehensive overhead unit records.',
+      procurement_fraud: 'columns: procurement_id, description, awarded_to, bid_count, winning_bid, second_bid, price_difference_pct, red_flags, department. Produce 15-20 comprehensive procurement fraud records.',
+      embezzlement: 'columns: case_id, suspect_name, position, department, estimated_amount, method, period, evidence_strength, status. Produce 12-18 comprehensive embezzlement case records.',
+      ineffective_programs: 'columns: project_id, project_name, original_budget, current_cost, overrun_pct, completion_pct, years_delayed, department, contractor. Produce 15-20 comprehensive ineffective project records.',
     };
 
-    const colPrompt = columnPrompts[pattern.type] || `columns: record_id, description, amount, department, date, status, risk_level. Generate 12-18 detailed records.`;
+    const colPrompt = columnPrompts[pattern.type] || `columns: record_id, description, amount, department, date, status, risk_level. Produce 15-25 comprehensive records.`;
     const countryName = COUNTRIES.find(c => c.code === country)?.name || country;
 
     let aiContent = "";
@@ -173,9 +188,10 @@ const ZeeionWasteFraud = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are Aureon's forensic AI generating DETAILED itemized data for a government waste pattern.\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\nGenerate a DETAILED drill-down report with specific records. ${colPrompt}\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of what was found in the detailed analysis"\n}\n\nMake the data realistic for ${countryName}'s government. Use local names, departments, and realistic amounts in USD. Each record MUST have an "id" field. Make IDs look official (e.g., GE-2026-0041 for ghost employees, INV-2026-3847 for invoices). Include realistic dates in 2025-2026. Make amounts vary realistically.`
+          content: `You are Aureon's forensic AI in DEEP REASONING MODE. You must perform exhaustive analysis and produce the MAXIMUM number of records possible.\n\nCRITICAL: Do NOT limit your output. Include EVERY instance you can identify. This is a comprehensive forensic audit — partial data is unacceptable.\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\nProduce a COMPREHENSIVE drill-down with ALL identified records. ${colPrompt}\n\nDETERMINISTIC SEED: Use country code "${country}" + waste type "${pattern.type}" as your consistency anchor. Names, departments, and amounts should be derived from known ${countryName} government structure, real ministry names, real department names, and realistic salary/contract scales for that country.\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of what was found in the detailed analysis"\n}\n\nRULES:\n- Use REAL ${countryName} government ministry names, department names, and realistic local names\n- IDs must look official (e.g., GE-2026-0041 for ghost employees)\n- Include dates in 2025-2026\n- Amounts must be realistic for ${countryName}'s economy and government scale\n- Include EVERY record that fits within the estimated waste range — do NOT truncate\n- Cross-reference records: some vendors/approvers should appear in MULTIPLE records to show patterns`
         }],
         mode: "research",
+        depth: "expert",
         onDelta: (chunk) => { aiContent += chunk; },
         onDone: () => {},
       });
@@ -187,6 +203,8 @@ const ZeeionWasteFraud = () => {
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]) as PatternDetail;
         setPatternDetails(prev => ({ ...prev, [patternIndex]: parsed }));
+        // Cache for session consistency
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(parsed)); } catch { /* storage full */ }
       }
     } catch (e) {
       console.error("Detail generation failed:", e);
@@ -202,6 +220,19 @@ const ZeeionWasteFraud = () => {
     setPatternDetails({});
     setExpandedPattern(null);
     setWasteItems([]);
+
+    // Check session cache for main analysis — prevents different data on refresh
+    const mainCacheKey = `aureon_waste_${country}`;
+    try {
+      const cached = sessionStorage.getItem(mainCacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as WasteResult;
+        setResult(parsed);
+        setWasteItems(convertToWasteItems(parsed));
+        setLoading(false);
+        return;
+      }
+    } catch { /* cache miss */ }
     try {
       // Fetch gov data
       const calls = [
@@ -293,6 +324,8 @@ const ZeeionWasteFraud = () => {
           setResult(normalized);
           const items = convertToWasteItems(normalized);
           setWasteItems(items);
+          // Cache for session consistency
+          try { sessionStorage.setItem(mainCacheKey, JSON.stringify(normalized)); } catch { /* storage full */ }
         } else if (aiContent.length > 0) {
           // AI returned text but no JSON - show as summary
         setResult({
