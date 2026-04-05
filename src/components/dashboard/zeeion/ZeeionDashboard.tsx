@@ -9,6 +9,7 @@ import SpendingTreemap from "./charts/SpendingTreemap";
 import CorrelationMatrix from "./charts/CorrelationMatrix";
 import AnomalyScatter from "./charts/AnomalyScatter";
 import ZeeionAureonChat from "./ZeeionAureonChat";
+import ZeeionDeepDive from "./ZeeionDeepDive";
 import ZeeionAlerts from "./ZeeionAlerts";
 import ZeeionExport from "./ZeeionExport";
 import ZeeionGovData from "./ZeeionGovData";
@@ -121,6 +122,12 @@ const ZeeionDashboard = ({ analysis }: Props) => {
                     </div>
                   ))}
                 </div>
+                <ZeeionDeepDive
+                  category="Spending Category Breakdown"
+                  context={"Categories: " + analysis.categoryBreakdown.map(c => c.category + ": $" + c.amount.toLocaleString() + " (" + c.percentage + "%)").join(", ") + ". Total spending: $" + s.totalSpending.toLocaleString() + "."}
+                  columnHint="columns: transaction_id, category, vendor_name, amount, date, department, payment_method, approval_status. Generate 15-20 detailed transaction records across the top spending categories showing individual line items."
+                  label="Deep Dive — Show Individual Transactions"
+                />
               </div>
             )}
 
@@ -160,17 +167,25 @@ const ZeeionDashboard = ({ analysis }: Props) => {
               <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-4">Wasteful Spending Identified</h3>
               <div className="space-y-2">
                 {analysis.wastefulItems.map((item, i) => (
-                  <button key={i} onClick={() => setSelectedWaste(i)} className="w-full flex items-start gap-3 p-3 rounded-xl bg-foreground/[0.03] border border-border/[0.05] hover:bg-foreground/[0.06] transition-all text-left group">
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${item.severity === "high" ? "bg-red-400/60" : item.severity === "medium" ? "bg-yellow-400/60" : "bg-foreground/20"}`} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] text-foreground/60 font-light">{item.description}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[9px] text-muted-foreground/40">${item.annualCost.toLocaleString()}/yr</span>
-                        <span className={`text-[8px] ${severityColor(item.severity)}`}>{severityLabel(item.severity)}</span>
+                  <div key={i}>
+                    <button onClick={() => setSelectedWaste(i)} className="w-full flex items-start gap-3 p-3 rounded-xl bg-foreground/[0.03] border border-border/[0.05] hover:bg-foreground/[0.06] transition-all text-left group">
+                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${item.severity === "high" ? "bg-red-400/60" : item.severity === "medium" ? "bg-yellow-400/60" : "bg-foreground/20"}`} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] text-foreground/60 font-light">{item.description}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[9px] text-muted-foreground/40">${item.annualCost.toLocaleString()}/yr</span>
+                          <span className={`text-[8px] ${severityColor(item.severity)}`}>{severityLabel(item.severity)}</span>
+                        </div>
                       </div>
-                    </div>
-                    <ChevronRight className="h-3 w-3 text-muted-foreground/20 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
+                      <ChevronRight className="h-3 w-3 text-muted-foreground/20 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                    <ZeeionDeepDive
+                      category={"Wasteful Spending: " + item.description.substring(0, 60)}
+                      context={"Description: " + item.description + ". Annual cost: $" + item.annualCost.toLocaleString() + ". Severity: " + item.severity + ". Recommendation: " + item.recommendation + "."}
+                      columnHint="columns: record_id, description, vendor_or_source, amount, date, department, waste_type, evidence, status. Generate 12-18 specific wasteful spending records showing individual instances of this waste pattern with real-looking IDs and amounts."
+                      label="Deep Dive — Show Waste Records"
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -219,15 +234,23 @@ const ZeeionDashboard = ({ analysis }: Props) => {
               <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-4">Anomalies Detected</h3>
               <div className="space-y-2">
                 {analysis.anomalies.map((a, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-foreground/[0.03] border border-border/[0.05]">
-                    <AlertTriangle className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${a.severity === "high" ? "text-red-400/60" : "text-yellow-400/60"}`} />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[10px] text-foreground/60 font-light">{a.description}</p>
-                        <span className={`text-[7px] px-1.5 py-0.5 rounded-full ${severityBg(a.severity)} ${severityColor(a.severity)}`}>{a.severity}</span>
+                  <div key={i}>
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-foreground/[0.03] border border-border/[0.05]">
+                      <AlertTriangle className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${a.severity === "high" ? "text-red-400/60" : "text-yellow-400/60"}`} />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] text-foreground/60 font-light">{a.description}</p>
+                          <span className={`text-[7px] px-1.5 py-0.5 rounded-full ${severityBg(a.severity)} ${severityColor(a.severity)}`}>{a.severity}</span>
+                        </div>
+                        <p className="text-[8px] text-muted-foreground/30 mt-1">{a.recommendation}</p>
                       </div>
-                      <p className="text-[8px] text-muted-foreground/30 mt-1">{a.recommendation}</p>
                     </div>
+                    <ZeeionDeepDive
+                      category={"Anomaly: " + a.type}
+                      context={"Type: " + a.type + ". Description: " + a.description + ". Severity: " + a.severity + ". Recommendation: " + a.recommendation + "."}
+                      columnHint="columns: anomaly_id, date, description, expected_value, actual_value, deviation_pct, department, flagged_by, risk_score. Generate 10-15 specific anomaly records with IDs like ANM-2026-XXXX showing individual anomalous transactions or patterns."
+                      label="Deep Dive — Show Anomaly Records"
+                    />
                   </div>
                 ))}
               </div>

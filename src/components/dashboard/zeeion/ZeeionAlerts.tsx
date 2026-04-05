@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Bell, Shield, TrendingDown, DollarSign, ChevronRight, CheckCircle } from "lucide-react";
 import type { AnalysisResult } from "./ZeeionView";
+import ZeeionDeepDive from "./ZeeionDeepDive";
 
 interface Props {
   analysis: AnalysisResult;
@@ -214,6 +215,12 @@ const ZeeionAlerts = ({ analysis }: Props) => {
                     <p className="text-[8px] text-muted-foreground/30 uppercase tracking-wider mb-1">Recommendation</p>
                     <p className="text-[9px] text-foreground/50 font-light">{alert.recommendation}</p>
                   </div>
+                  <ZeeionDeepDive
+                    category={"Alert: " + alert.title}
+                    context={"Category: " + alert.category + ". Severity: " + alert.severity + ". Description: " + alert.description + ". " + (alert.metric ? "Metric: " + alert.metric : "")}
+                    columnHint="columns: record_id, date, description, amount, department, flagged_reason, current_value, threshold, status. Generate 10-15 specific records that triggered this alert with IDs like ALT-2026-XXXX."
+                    label="Deep Dive — Show Alert Records"
+                  />
                   <div className="flex items-center gap-2 mt-2">
                     <button
                       onClick={() => dismiss(alert.id)}
