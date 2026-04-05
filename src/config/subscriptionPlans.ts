@@ -43,7 +43,8 @@ export type FeatureId =
   | "video_intelligence"
   | "vibe_imager"
   | "vibe_video"
-  | "agents";
+  | "agents"
+  | "zeeion";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
