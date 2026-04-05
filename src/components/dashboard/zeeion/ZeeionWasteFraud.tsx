@@ -88,8 +88,8 @@ const ZeeionWasteFraud = () => {
       id: `waste-${Date.now()}-${i}`,
       type: p.type,
       description: p.description,
-      amount: p.estimatedWaste,
-      annualImpact: p.estimatedWaste,
+      amount: (p.estimatedWasteLow + p.estimatedWasteHigh) / 2,
+      annualImpact: (p.estimatedWasteLow + p.estimatedWasteHigh) / 2,
       discoveredDate: new Date().toISOString().split("T")[0],
       status: "identified" as WasteStatus,
       confidence: p.severity === "high" ? 92 : p.severity === "medium" ? 78 : 60,
@@ -145,7 +145,7 @@ const ZeeionWasteFraud = () => {
   // Deep-dive: generate itemized records for a specific pattern
   const generatePatternDetail = async (patternIndex: number) => {
     if (!result) return;
-    const pattern = result.patterns.sort((a, b) => b.estimatedWaste - a.estimatedWaste)[patternIndex];
+    const pattern = result.patterns.sort((a, b) => b.estimatedWasteHigh - a.estimatedWasteHigh)[patternIndex];
     if (!pattern) return;
     setLoadingDetail(patternIndex);
 
@@ -173,7 +173,7 @@ const ZeeionWasteFraud = () => {
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are Aureon's forensic AI generating DETAILED itemized data for a government waste pattern.\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Total: ${fmtUsd(pattern.estimatedWaste)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\nGenerate a DETAILED drill-down report with specific records. ${colPrompt}\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of what was found in the detailed analysis"\n}\n\nMake the data realistic for ${countryName}'s government. Use local names, departments, and realistic amounts in USD. Each record MUST have an "id" field. Make IDs look official (e.g., GE-2026-0041 for ghost employees, INV-2026-3847 for invoices). Include realistic dates in 2025-2026. Make amounts vary realistically.`
+          content: `You are Aureon's forensic AI generating DETAILED itemized data for a government waste pattern.\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\nGenerate a DETAILED drill-down report with specific records. ${colPrompt}\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of what was found in the detailed analysis"\n}\n\nMake the data realistic for ${countryName}'s government. Use local names, departments, and realistic amounts in USD. Each record MUST have an "id" field. Make IDs look official (e.g., GE-2026-0041 for ghost employees, INV-2026-3847 for invoices). Include realistic dates in 2025-2026. Make amounts vary realistically.`
         }],
         mode: "research",
         onDelta: (chunk) => { aiContent += chunk; },
@@ -277,18 +277,30 @@ const ZeeionWasteFraud = () => {
         
         const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          setResult(parsed);
-          const items = convertToWasteItems(parsed);
+          const raw = JSON.parse(jsonMatch[0]);
+          const normalized: WasteResult = {
+            totalWasteLow: raw.totalWasteLow ?? (raw.totalWaste ? raw.totalWaste * 0.7 : 0),
+            totalWasteHigh: raw.totalWasteHigh ?? (raw.totalWaste ? raw.totalWaste * 1.3 : 0),
+            percentOfBudgetLow: raw.percentOfBudgetLow ?? (raw.percentOfBudget ? raw.percentOfBudget * 0.7 : 0),
+            percentOfBudgetHigh: raw.percentOfBudgetHigh ?? (raw.percentOfBudget ? raw.percentOfBudget * 1.3 : 0),
+            patterns: (raw.patterns || []).map((p: any) => ({
+              ...p,
+              estimatedWasteLow: p.estimatedWasteLow ?? (p.estimatedWaste ? p.estimatedWaste * 0.7 : 0),
+              estimatedWasteHigh: p.estimatedWasteHigh ?? (p.estimatedWaste ? p.estimatedWaste * 1.3 : 0),
+            })),
+            executiveSummary: raw.executiveSummary || "",
+          };
+          setResult(normalized);
+          const items = convertToWasteItems(normalized);
           setWasteItems(items);
         } else if (aiContent.length > 0) {
           // AI returned text but no JSON - show as summary
-          setResult({
-            totalWaste: 0,
-            percentOfBudget: 0,
-            patterns: [],
-            executiveSummary: aiContent,
-          });
+        setResult({
+          totalWasteLow: 0, totalWasteHigh: 0,
+          percentOfBudgetLow: 0, percentOfBudgetHigh: 0,
+          patterns: [],
+          executiveSummary: aiContent,
+        });
           setAnalysisError("AI returned analysis in text format instead of structured data. Summary shown below.");
         } else {
           setAnalysisError("No analysis data received. Please try running the scan again.");
@@ -296,12 +308,12 @@ const ZeeionWasteFraud = () => {
       } catch (parseErr) {
         console.error("JSON parse error:", parseErr, "Content:", aiContent.substring(0, 500));
         // Show raw content as executive summary
-        setResult({
-          totalWaste: 0,
-          percentOfBudget: 0,
-          patterns: [],
-          executiveSummary: aiContent,
-        });
+          setResult({
+            totalWasteLow: 0, totalWasteHigh: 0,
+            percentOfBudgetLow: 0, percentOfBudgetHigh: 0,
+            patterns: [],
+            executiveSummary: aiContent,
+          });
       }
     } catch (e: any) {
       console.error("Waste analysis error:", e);
@@ -405,11 +417,12 @@ const ZeeionWasteFraud = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-red-400/40 mb-1">Total Waste Identified</p>
-              <p className="text-xl font-light text-red-400/70">{fmtUsd(result.totalWaste)}</p>
+              <p className="text-lg font-light text-red-400/70">{fmtUsd(result.totalWasteLow)} – {fmtUsd(result.totalWasteHigh)}</p>
+              <p className="text-[7px] text-muted-foreground/30 mt-0.5">Conservative to upper bound</p>
             </div>
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">% of Budget</p>
-              <p className="text-xl font-light text-foreground/60">{result.percentOfBudget.toFixed(2)}%</p>
+              <p className="text-lg font-light text-foreground/60">{result.percentOfBudgetLow.toFixed(1)}% – {result.percentOfBudgetHigh.toFixed(1)}%</p>
             </div>
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Issues Found</p>
@@ -436,7 +449,7 @@ const ZeeionWasteFraud = () => {
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-5">
               <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-4">Waste & Fraud Patterns Detected</h3>
               <div className="space-y-2">
-                {result.patterns.sort((a, b) => b.estimatedWaste - a.estimatedWaste).map((pattern, i) => {
+                {result.patterns.sort((a, b) => b.estimatedWasteHigh - a.estimatedWasteHigh).map((pattern, i) => {
                   const cfg = severityConfig[pattern.severity];
                   const expanded = expandedPattern === i;
                   return (
@@ -449,7 +462,7 @@ const ZeeionWasteFraud = () => {
                             <span className={`text-[8px] px-1.5 py-0.5 rounded-md ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
                           </div>
                           <p className="text-[10px] text-foreground/50 mt-1 font-light">{pattern.description}</p>
-                          <p className="text-[9px] text-red-400/60 mt-1 font-medium">Estimated waste: {fmtUsd(pattern.estimatedWaste)}</p>
+                          <p className="text-[9px] text-red-400/60 mt-1 font-medium">Estimated waste: {fmtUsd(pattern.estimatedWasteLow)} – {fmtUsd(pattern.estimatedWasteHigh)}</p>
 
                           {expanded && (
                             <div className="mt-3 space-y-3 border-t border-border/[0.06] pt-3">
