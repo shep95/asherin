@@ -220,6 +220,19 @@ const ZeeionWasteFraud = () => {
     setPatternDetails({});
     setExpandedPattern(null);
     setWasteItems([]);
+
+    // Check session cache for main analysis — prevents different data on refresh
+    const mainCacheKey = `aureon_waste_${country}`;
+    try {
+      const cached = sessionStorage.getItem(mainCacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as WasteResult;
+        setResult(parsed);
+        setWasteItems(convertToWasteItems(parsed));
+        setLoading(false);
+        return;
+      }
+    } catch { /* cache miss */ }
     try {
       // Fetch gov data
       const calls = [
