@@ -498,7 +498,7 @@ const ZeeionWasteFraud = () => {
                           <p className="text-[9px] text-red-400/60 mt-1 font-medium">Estimated waste: {fmtUsd(pattern.estimatedWasteLow)} – {fmtUsd(pattern.estimatedWasteHigh)}</p>
 
                           {expanded && (
-                            <div className="mt-3 space-y-3 border-t border-border/[0.06] pt-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="mt-3 space-y-3 border-t border-border/[0.06] pt-3 select-text cursor-text" onClick={(e) => e.stopPropagation()}>
                               <div>
                                 <p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30 mb-0.5">Evidence</p>
                                 <p className="text-[9px] text-foreground/50 font-light">{pattern.evidence}</p>
