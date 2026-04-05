@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrendingUp, AlertTriangle, DollarSign, BarChart3, Zap, X, ChevronRight, Download, CheckCircle, Clock, Target, LayoutGrid, LineChart, Sparkles } from "lucide-react";
+import { TrendingUp, AlertTriangle, DollarSign, BarChart3, Zap, X, ChevronRight, Download, CheckCircle, Clock, Target, LayoutGrid, LineChart, Sparkles, Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AnalysisResult } from "./ZeeionView";
 import SankeyFlow from "./charts/SankeyFlow";
@@ -9,12 +9,14 @@ import SpendingTreemap from "./charts/SpendingTreemap";
 import CorrelationMatrix from "./charts/CorrelationMatrix";
 import AnomalyScatter from "./charts/AnomalyScatter";
 import ZeeionAureonChat from "./ZeeionAureonChat";
+import ZeeionAlerts from "./ZeeionAlerts";
+import ZeeionExport from "./ZeeionExport";
 
 interface Props {
   analysis: AnalysisResult;
 }
 
-type DashTab = "overview" | "visualizations" | "aureon";
+type DashTab = "overview" | "visualizations" | "alerts" | "export" | "aureon";
 
 const ZeeionDashboard = ({ analysis }: Props) => {
   const s = analysis.summary;
