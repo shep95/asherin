@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
-import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X } from "lucide-react";
+import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat } from "@/lib/ai";
+import ZeeionWasteTracker, { type WasteItem, type WasteStatus } from "./ZeeionWasteTracker";
+import ZeeionWasteExport from "./ZeeionWasteExport";
 import ReactMarkdown from "react-markdown";
 
 const COUNTRIES = [
