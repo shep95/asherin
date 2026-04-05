@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { Globe, Loader2, TrendingUp, TrendingDown, DollarSign, Users, Shield, GraduationCap, Heart, BarChart3, RefreshCw, ChevronRight, Sparkles, Send, X } from "lucide-react";
+import { Globe, Loader2, TrendingUp, TrendingDown, DollarSign, Users, Shield, GraduationCap, Heart, BarChart3, RefreshCw, ChevronRight, Sparkles, Send, X, Search, Bot, PieChart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import ReactMarkdown from "react-markdown";
 import { streamChat } from "@/lib/ai";
+import ZeeionWasteFraud from "./ZeeionWasteFraud";
+import ZeeionJobOptimization from "./ZeeionJobOptimization";
+import ZeeionBudgetOptimizer from "./ZeeionBudgetOptimizer";
 
 /* ── Country registry ── */
 const COUNTRIES = [
@@ -40,7 +43,7 @@ const INDICATORS = [
 
 const COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6", "#f97316", "#6366f1"];
 
-type SubTab = "overview" | "comparison" | "usa_detail" | "aureon";
+type SubTab = "overview" | "comparison" | "usa_detail" | "waste_fraud" | "jobs" | "budget_optimize" | "aureon";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
@@ -191,11 +194,14 @@ const ZeeionGovData = () => {
   };
 
   /* ── Render ── */
-  const tabs: { id: SubTab; label: string }[] = [
-    { id: "overview", label: "Country Overview" },
-    { id: "comparison", label: "Compare Countries" },
-    { id: "usa_detail", label: "USA Deep Dive" },
-    { id: "aureon", label: "Ask Aureon" },
+  const tabs: { id: SubTab; label: string; icon?: React.ReactNode }[] = [
+    { id: "overview", label: "Overview", icon: <Globe className="h-3 w-3" /> },
+    { id: "comparison", label: "Compare", icon: <BarChart3 className="h-3 w-3" /> },
+    { id: "usa_detail", label: "USA Deep Dive", icon: <DollarSign className="h-3 w-3" /> },
+    { id: "waste_fraud", label: "Waste & Fraud", icon: <Search className="h-3 w-3" /> },
+    { id: "jobs", label: "Job Optimization", icon: <Bot className="h-3 w-3" /> },
+    { id: "budget_optimize", label: "Budget Optimizer", icon: <PieChart className="h-3 w-3" /> },
+    { id: "aureon", label: "Ask Aureon", icon: <Sparkles className="h-3 w-3" /> },
   ];
 
   return (
@@ -203,7 +209,8 @@ const ZeeionGovData = () => {
       {/* Sub-tabs */}
       <div className="flex items-center gap-1.5 flex-wrap">
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setSubTab(t.id)} className={`px-3 py-1.5 rounded-xl border text-[9px] tracking-wide transition-all ${subTab === t.id ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
+          <button key={t.id} onClick={() => setSubTab(t.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[9px] tracking-wide transition-all ${subTab === t.id ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
+            {t.icon}
             {t.label}
           </button>
         ))}
@@ -468,6 +475,15 @@ const ZeeionGovData = () => {
           )}
         </div>
       )}
+
+      {/* ═══ WASTE & FRAUD ═══ */}
+      {subTab === "waste_fraud" && <ZeeionWasteFraud />}
+
+      {/* ═══ JOB OPTIMIZATION ═══ */}
+      {subTab === "jobs" && <ZeeionJobOptimization />}
+
+      {/* ═══ BUDGET OPTIMIZER ═══ */}
+      {subTab === "budget_optimize" && <ZeeionBudgetOptimizer />}
 
       {/* ═══ AUREON ═══ */}
       {subTab === "aureon" && (
