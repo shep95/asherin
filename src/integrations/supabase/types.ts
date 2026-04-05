@@ -4832,6 +4832,60 @@ export type Database = {
         }
         Relationships: []
       }
+      zeeion_sessions: {
+        Row: {
+          anomalies: Json | null
+          category_breakdown: Json | null
+          created_at: string
+          currency: string | null
+          department_performance: Json | null
+          executive_summary: string | null
+          file_name: string
+          file_type: string | null
+          id: string
+          savings_opportunities: Json | null
+          status: string | null
+          summary: Json | null
+          updated_at: string
+          user_id: string
+          wasteful_items: Json | null
+        }
+        Insert: {
+          anomalies?: Json | null
+          category_breakdown?: Json | null
+          created_at?: string
+          currency?: string | null
+          department_performance?: Json | null
+          executive_summary?: string | null
+          file_name: string
+          file_type?: string | null
+          id?: string
+          savings_opportunities?: Json | null
+          status?: string | null
+          summary?: Json | null
+          updated_at?: string
+          user_id: string
+          wasteful_items?: Json | null
+        }
+        Update: {
+          anomalies?: Json | null
+          category_breakdown?: Json | null
+          created_at?: string
+          currency?: string | null
+          department_performance?: Json | null
+          executive_summary?: string | null
+          file_name?: string
+          file_type?: string | null
+          id?: string
+          savings_opportunities?: Json | null
+          status?: string | null
+          summary?: Json | null
+          updated_at?: string
+          user_id?: string
+          wasteful_items?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
