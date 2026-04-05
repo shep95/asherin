@@ -20,7 +20,7 @@ serve(async (req) => {
     const { data: { user }, error: authErr } = await supabaseClient.auth.getUser(token);
     if (authErr || !user) throw new Error("Not authenticated");
 
-    const { fileName, fileType, fileContent, currency, fiscalStart } = await req.json();
+    const { fileName, fileType, fileContent, currency } = await req.json();
     if (!fileName || !fileContent) throw new Error("Missing file data");
 
     // Extract raw data preview for AI
@@ -28,15 +28,18 @@ serve(async (req) => {
     if (fileType === "csv" || fileType === "json" || fileType === "xml") {
       dataPreview = fileContent.substring(0, 50000);
     } else {
-      // For binary/base64 files, we describe what we received
       dataPreview = `[Binary file: ${fileName}, type: ${fileType}, size: ${fileContent.length} chars]`;
     }
 
-    // Call AI for analysis
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("AI service not configured");
+    // Use Gemini API directly (same as all other AUREON functions)
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_APP not configured");
 
-    const systemPrompt = `You are Zeeion, an elite Financial Intelligence AI. Analyze the uploaded financial data and produce a comprehensive analysis.
+    const systemPrompt = `You are Zeeion, AUREON's elite Financial Intelligence AI. You have access to all of AUREON's analytical brains — pattern recognition, anomaly detection, forensic accounting, and predictive modeling.
+
+Analyze the uploaded financial data and produce a comprehensive analysis.
+
+IMPORTANT: First, auto-detect the date range from the data. Identify the earliest and latest dates present. Use this to determine the fiscal period being analyzed.
 
 You MUST return valid JSON with exactly this structure:
 {
@@ -49,6 +52,12 @@ You MUST return valid JSON with exactly this structure:
     "wastefulSpending": <number>,
     "departmentCount": <number>
   },
+  "detectedDateRange": {
+    "startMonth": "<month name>",
+    "startYear": <year>,
+    "endMonth": "<month name>",
+    "endYear": <year>
+  },
   "executiveSummary": "<3-4 paragraph executive summary>",
   "wastefulItems": [{"description":"...","annualCost":<number>,"recommendation":"...","severity":"high|medium|low"}],
   "savingsOpportunities": [{"category":"...","description":"...","currentCost":<number>,"projectedSavings":<number>,"confidence":<0-100>}],
@@ -58,30 +67,37 @@ You MUST return valid JSON with exactly this structure:
 }
 
 If the data is insufficient, generate reasonable estimates based on what you can extract.
-Currency: ${currency}. Fiscal year starts: ${fiscalStart}.
-Be thorough, realistic, and actionable. Identify real patterns, not generic advice.`;
+Currency: ${currency}.
+Be thorough, realistic, and actionable. Identify real patterns, not generic advice. Apply forensic-level scrutiny — detect duplicates, round-number anomalies, weekend transactions, rapid sequences, and vendor consolidation opportunities.`;
 
-    const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+    const aiResponse = await fetch(geminiUrl, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Analyze this financial data from file "${fileName}":\n\n${dataPreview}` },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemPrompt}\n\nAnalyze this financial data from file "${fileName}":\n\n${dataPreview}` }],
+          },
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json",
+        },
       }),
     });
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      throw new Error(`AI analysis failed: ${errText}`);
+      console.error("Gemini API error:", errText);
+      throw new Error(`AI analysis failed: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
+    const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     // Parse JSON from response
     let analysis;
@@ -93,23 +109,14 @@ Be thorough, realistic, and actionable. Identify real patterns, not generic advi
         throw new Error("No JSON found in AI response");
       }
     } catch {
-      // Fallback with reasonable defaults
       analysis = {
         summary: {
-          totalRecords: 0,
-          totalSpending: 0,
-          potentialSavings: 0,
-          efficiencyScore: 50,
-          anomalyCount: 0,
-          wastefulSpending: 0,
-          departmentCount: 0,
+          totalRecords: 0, totalSpending: 0, potentialSavings: 0,
+          efficiencyScore: 50, anomalyCount: 0, wastefulSpending: 0, departmentCount: 0,
         },
-        executiveSummary: "Unable to fully parse the uploaded data. Please ensure the file contains structured financial records (transactions, budgets, or expense reports) in a supported format.",
-        wastefulItems: [],
-        savingsOpportunities: [],
-        departmentPerformance: [],
-        anomalies: [],
-        categoryBreakdown: [],
+        executiveSummary: "Unable to fully parse the uploaded data. Please ensure the file contains structured financial records.",
+        wastefulItems: [], savingsOpportunities: [], departmentPerformance: [],
+        anomalies: [], categoryBreakdown: [],
       };
     }
 
