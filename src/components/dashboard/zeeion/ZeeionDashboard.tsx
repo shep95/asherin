@@ -247,9 +247,9 @@ const ZeeionDashboard = ({ analysis }: Props) => {
                       </div>
                     </div>
                     <ZeeionDeepDive
-                      category={`Anomaly: ${a.type}`}
-                      context={`Type: ${a.type}. Description: ${a.description}. Severity: ${a.severity}. Recommendation: ${a.recommendation}.`}
-                      columnHint={`columns: anomaly_id, date, description, expected_value, actual_value, deviation_pct, department, flagged_by, risk_score. Generate 10-15 specific anomaly records with IDs like ANM-2026-XXXX showing individual anomalous transactions or patterns.`}
+                      category={"Anomaly: " + a.type}
+                      context={"Type: " + a.type + ". Description: " + a.description + ". Severity: " + a.severity + ". Recommendation: " + a.recommendation + "."}
+                      columnHint="columns: anomaly_id, date, description, expected_value, actual_value, deviation_pct, department, flagged_by, risk_score. Generate 10-15 specific anomaly records with IDs like ANM-2026-XXXX showing individual anomalous transactions or patterns."
                       label="Deep Dive — Show Anomaly Records"
                     />
                   </div>
