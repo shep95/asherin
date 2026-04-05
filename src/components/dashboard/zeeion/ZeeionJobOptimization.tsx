@@ -229,6 +229,12 @@ const ZeeionJobOptimization = () => {
                               </div>
                               <div><p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30">AI Solution</p><p className="text-foreground/50 font-light">{cat.solution}</p></div>
                               <div><p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30">Retraining</p><p className="text-foreground/50 font-light">{cat.retrainingOption}</p></div>
+                              <ZeeionDeepDive
+                                category={"Automatable Positions: " + cat.title}
+                                context={"Job category: " + cat.title + ". Positions: " + cat.positionCount + ". Current cost: " + fmtUsd(cat.currentCost) + ". Automation rate: " + cat.automationRate + "%. Solution: " + cat.solution}
+                                columnHint={"columns: employee_id, position_title, department, location, annual_salary, years_in_role, automation_feasibility_pct, replacement_tool, retraining_path, transition_date. Generate 15-20 specific employee records showing individual positions that can be automated with IDs like EMP-" + cat.title.substring(0, 3).toUpperCase() + "-XXXX."}
+                                label="Deep Dive — Show Individual Positions"
+                              />
                             </div>
                           )}
                         </div>
