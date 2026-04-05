@@ -195,6 +195,7 @@ const ZeeionGovData = () => {
 
   /* ── Render ── */
   const tabs: { id: SubTab; label: string; icon?: React.ReactNode }[] = [
+    { id: "landing", label: "Home", icon: <Zap className="h-3 w-3" /> },
     { id: "overview", label: "Overview", icon: <Globe className="h-3 w-3" /> },
     { id: "comparison", label: "Compare", icon: <BarChart3 className="h-3 w-3" /> },
     { id: "usa_detail", label: "USA Deep Dive", icon: <DollarSign className="h-3 w-3" /> },
