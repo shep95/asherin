@@ -445,7 +445,7 @@ const ZeeionWasteFraud = () => {
                           <p className="text-[9px] text-red-400/60 mt-1 font-medium">Estimated waste: {fmtUsd(pattern.estimatedWaste)}</p>
 
                           {expanded && (
-                            <div className="mt-3 space-y-2 border-t border-border/[0.06] pt-3">
+                            <div className="mt-3 space-y-3 border-t border-border/[0.06] pt-3">
                               <div>
                                 <p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30 mb-0.5">Evidence</p>
                                 <p className="text-[9px] text-foreground/50 font-light">{pattern.evidence}</p>
@@ -454,6 +454,59 @@ const ZeeionWasteFraud = () => {
                                 <p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30 mb-0.5">Recommendation</p>
                                 <p className="text-[9px] text-foreground/50 font-light">{pattern.recommendation}</p>
                               </div>
+
+                              {/* Deep Dive Detail Table */}
+                              {patternDetails[i] ? (
+                                <div className="mt-2">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Table2 className="h-3 w-3 text-foreground/40" />
+                                    <p className="text-[8px] uppercase tracking-[0.15em] text-foreground/50">Itemized Records ({patternDetails[i].records.length})</p>
+                                  </div>
+                                  {patternDetails[i].summary && (
+                                    <p className="text-[9px] text-foreground/40 font-light mb-2 italic">{patternDetails[i].summary}</p>
+                                  )}
+                                  <div className="overflow-x-auto rounded-lg border border-border/[0.08]">
+                                    <table className="w-full text-left">
+                                      <thead>
+                                        <tr className="border-b border-border/[0.08] bg-foreground/[0.03]">
+                                          {patternDetails[i].columns.map(col => (
+                                            <th key={col.key} className="px-2.5 py-1.5 text-[7px] uppercase tracking-[0.15em] text-muted-foreground/40 font-medium whitespace-nowrap">{col.label}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {patternDetails[i].records.map((rec, ri) => (
+                                          <tr key={rec.id || ri} className="border-b border-border/[0.04] hover:bg-foreground/[0.03] transition-colors">
+                                            {patternDetails[i].columns.map(col => {
+                                              const val = rec[col.key];
+                                              const isAmount = typeof val === "number" && val > 100;
+                                              const isRisk = typeof val === "string" && /high|critical|flagged|suspicious/i.test(val);
+                                              const isGood = typeof val === "string" && /verified|resolved|low|clean/i.test(val);
+                                              return (
+                                                <td key={col.key} className={`px-2.5 py-1.5 text-[9px] font-light whitespace-nowrap ${isRisk ? "text-red-400/70" : isGood ? "text-emerald-400/70" : "text-foreground/55"}`}>
+                                                  {isAmount ? fmtUsd(val as number) : String(val ?? "—")}
+                                                </td>
+                                              );
+                                            })}
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); generatePatternDetail(i); }}
+                                  disabled={loadingDetail === i}
+                                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-foreground/[0.05] border border-border/[0.08] text-[9px] text-foreground/50 hover:bg-foreground/[0.08] transition-all disabled:opacity-40 mt-1"
+                                >
+                                  {loadingDetail === i ? (
+                                    <><Loader2 className="h-3 w-3 animate-spin" /> Generating detailed records...</>
+                                  ) : (
+                                    <><Eye className="h-3 w-3" /> Deep Dive — Show Itemized Records</>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
