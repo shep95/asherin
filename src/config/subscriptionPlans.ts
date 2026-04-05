@@ -44,7 +44,8 @@ export type FeatureId =
   | "vibe_imager"
   | "vibe_video"
   | "agents"
-  | "zeeion";
+  | "zeeion"
+  | "axrlen";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
@@ -88,10 +89,15 @@ const PRO_FEATURES: FeatureId[] = [
   "azplen", "pattern_analysis", "timeseries", "geospatial", "notebooks",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
   "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
-  "vibe_video", "agents", "zeeion",
+  "vibe_video", "agents",
 ];
 
-const ADVISOR_FEATURES: FeatureId[] = [...PRO_FEATURES];
+const ENTERPRISE_FEATURES: FeatureId[] = [
+  ...PRO_FEATURES,
+  "zeeion", "axrlen",
+];
+
+const ADVISOR_FEATURES: FeatureId[] = [...ENTERPRISE_FEATURES];
 
 const STARTER_FEATURES: FeatureId[] = [
   "chat", "encryption",
@@ -250,6 +256,30 @@ export const SUBSCRIPTION_PLANS: PlanDefinition[] = [
     ],
   },
   {
+    id: "enterprise",
+    name: "AUREON ENTERPRISE",
+    tagline: "Government-Grade Intelligence",
+    price: "$20,000",
+    period: "/ month",
+    description: "Full platform access including exclusive AXRLEN Predictive Intelligence and ZEEION Financial Intelligence. Enterprise-grade tools for government and institutional use.",
+    cta: "Get Enterprise Access",
+    highlight: true,
+    publicVisible: true,
+    features: ENTERPRISE_FEATURES,
+    messageLimit: Infinity,
+    featureLabels: [
+      "Everything in Pro — unlimited",
+      "AXRLEN — Real-time global event prediction & policy simulation (EXCLUSIVE)",
+      "ZEEION FI — AI forensic financial intelligence platform (EXCLUSIVE)",
+      "Unlimited messages across all tools",
+      "Priority model access & dedicated pipeline",
+      "9+ live intelligence API feeds (GDELT, World Bank, IMF, USGS, NASA, Treasury)",
+      "Government & institutional grade security",
+      "Custom integrations & NDA-protected engagement",
+      "Direct analyst support",
+    ],
+  },
+  {
     id: "advisor_monthly",
     name: "AUREON ADVISOR",
     tagline: "Enterprise Intelligence",
@@ -345,6 +375,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   "vibe-video": "vibe_video",
   agents: "agents",
   zeeion: "zeeion",
+  axrlen: "axrlen",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────
