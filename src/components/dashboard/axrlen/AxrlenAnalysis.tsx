@@ -109,6 +109,10 @@ const AxrlenAnalysis = ({ session }: Props) => {
           );
         })}
         <div className="ml-auto flex items-center gap-2 py-2">
+          <button onClick={() => setChatOpen(!chatOpen)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[9px] transition-all ${chatOpen ? "border-foreground/[0.15] bg-foreground/[0.08] text-foreground/70" : "border-border/[0.1] bg-foreground/[0.03] text-foreground/50 hover:bg-foreground/[0.06]"}`}>
+            <MessageSquare className="h-3 w-3" /> Ask AUREON
+          </button>
           <button onClick={() => copyText(session.aiSummary || "")} className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition-all">
             {copied ? <Check className="h-3 w-3 text-emerald-400/60" /> : <Copy className="h-3 w-3 text-muted-foreground/30" />}
           </button>
