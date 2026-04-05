@@ -406,6 +406,22 @@ const ZeeionWasteFraud = () => {
           </div>
         </div>
       )}
+
+      {/* ═══ WASTE TRACKER VIEW ═══ */}
+      {viewMode === "tracker" && wasteItems.length > 0 && (
+        <>
+          <ZeeionWasteTracker
+            wasteItems={wasteItems}
+            onUpdateStatus={handleUpdateStatus}
+            onCreatePlan={handleCreatePlan}
+            countryName={COUNTRIES.find(c => c.code === country)?.name || country}
+          />
+          <ZeeionWasteExport
+            wasteItems={wasteItems}
+            countryName={COUNTRIES.find(c => c.code === country)?.name || country}
+          />
+        </>
+      )}
     </div>
   );
 };
