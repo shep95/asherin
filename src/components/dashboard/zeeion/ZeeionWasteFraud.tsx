@@ -486,8 +486,8 @@ const ZeeionWasteFraud = () => {
                   const cfg = severityConfig[pattern.severity];
                   const expanded = expandedPattern === i;
                   return (
-                    <button key={i} onClick={() => setExpandedPattern(expanded ? null : i)} className={`w-full text-left p-4 rounded-xl border transition-all ${expanded ? cfg.bg : "bg-foreground/[0.03] border-border/[0.05] hover:bg-foreground/[0.06]"}`}>
-                      <div className="flex items-start gap-3">
+                    <div key={i} className={`w-full text-left p-4 rounded-xl border transition-all ${expanded ? cfg.bg : "bg-foreground/[0.03] border-border/[0.05] hover:bg-foreground/[0.06]"}`}>
+                      <div className="flex items-start gap-3 cursor-pointer" onClick={() => setExpandedPattern(expanded ? null : i)}>
                         <span className={`mt-0.5 ${cfg.color}`}>{cfg.icon}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
@@ -498,7 +498,7 @@ const ZeeionWasteFraud = () => {
                           <p className="text-[9px] text-red-400/60 mt-1 font-medium">Estimated waste: {fmtUsd(pattern.estimatedWasteLow)} – {fmtUsd(pattern.estimatedWasteHigh)}</p>
 
                           {expanded && (
-                            <div className="mt-3 space-y-3 border-t border-border/[0.06] pt-3">
+                            <div className="mt-3 space-y-3 border-t border-border/[0.06] pt-3" onClick={(e) => e.stopPropagation()}>
                               <div>
                                 <p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30 mb-0.5">Evidence</p>
                                 <p className="text-[9px] text-foreground/50 font-light">{pattern.evidence}</p>
@@ -532,9 +532,9 @@ const ZeeionWasteFraud = () => {
                             </div>
                           )}
                         </div>
-                        <ChevronRight className={`h-3 w-3 text-muted-foreground/20 mt-1 transition-transform ${expanded ? "rotate-90" : ""}`} />
+                        <ChevronRight className={`h-3 w-3 text-muted-foreground/20 mt-1 transition-transform shrink-0 ${expanded ? "rotate-90" : ""}`} />
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
