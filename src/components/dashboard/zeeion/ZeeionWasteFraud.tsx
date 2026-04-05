@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X, BarChart3 } from "lucide-react";
+import { useState, useCallback, useRef } from "react";
+import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X, BarChart3, Eye, Table2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat } from "@/lib/ai";
 import ZeeionWasteTracker, { type WasteItem, type WasteStatus } from "./ZeeionWasteTracker";
@@ -22,6 +22,17 @@ const COUNTRIES = [
   { code: "ZA", name: "South Africa" },
   { code: "ID", name: "Indonesia" },
 ];
+
+interface DetailRecord {
+  id: string;
+  [key: string]: string | number | null;
+}
+
+interface PatternDetail {
+  columns: { key: string; label: string }[];
+  records: DetailRecord[];
+  summary: string;
+}
 
 interface WasteResult {
   totalWaste: number;
@@ -64,6 +75,8 @@ const ZeeionWasteFraud = () => {
   const [wasteItems, setWasteItems] = useState<WasteItem[]>([]);
   const [viewMode, setViewMode] = useState<"scan" | "tracker">("scan");
   const [generatingPlan, setGeneratingPlan] = useState<string | null>(null);
+  const [patternDetails, setPatternDetails] = useState<Record<number, PatternDetail>>({});
+  const [loadingDetail, setLoadingDetail] = useState<number | null>(null);
 
   // Convert scan results to trackable waste items
   const convertToWasteItems = (res: WasteResult): WasteItem[] => {
@@ -124,6 +137,58 @@ const ZeeionWasteFraud = () => {
   };
 
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  // Deep-dive: generate itemized records for a specific pattern
+  const generatePatternDetail = async (patternIndex: number) => {
+    if (!result) return;
+    const pattern = result.patterns.sort((a, b) => b.estimatedWaste - a.estimatedWaste)[patternIndex];
+    if (!pattern) return;
+    setLoadingDetail(patternIndex);
+
+    const columnPrompts: Record<string, string> = {
+      ghost_employees: 'columns: employee_id, full_name, department, position, monthly_salary, last_attendance_date, status_flag, risk_score. Generate 15-25 fake but realistic ghost employee records.',
+      duplicate_payments: 'columns: invoice_id, vendor_name, amount, payment_date, duplicate_of_invoice, department, payment_method, days_apart. Generate 15-25 duplicate payment records.',
+      overpriced_contracts: 'columns: contract_id, vendor_name, contract_value, market_rate, overpayment_pct, department, start_date, end_date, competitive_bid. Generate 12-20 overpriced contract records.',
+      inactive_programs: 'columns: program_id, program_name, annual_budget, execution_rate_pct, last_activity_date, department, years_inactive, beneficiaries. Generate 10-18 inactive program records.',
+      shell_companies: 'columns: company_id, company_name, registration_date, total_contracts, total_value, employees_listed, physical_address_verified, linked_officials. Generate 8-15 shell company records.',
+      contract_splitting: 'columns: original_contract_id, split_contract_ids, total_value, split_count, vendor_name, department, approval_date, threshold_avoided. Generate 10-15 contract splitting records.',
+      administrative_overhead: 'columns: unit_id, unit_name, staff_count, budget, output_metric, cost_per_output, peer_benchmark, excess_cost. Generate 12-18 overhead unit records.',
+      procurement_fraud: 'columns: procurement_id, description, awarded_to, bid_count, winning_bid, second_bid, price_difference_pct, red_flags, department. Generate 10-15 procurement fraud records.',
+      embezzlement: 'columns: case_id, suspect_name, position, department, estimated_amount, method, period, evidence_strength, status. Generate 8-12 embezzlement case records.',
+      ineffective_programs: 'columns: project_id, project_name, original_budget, current_cost, overrun_pct, completion_pct, years_delayed, department, contractor. Generate 10-15 ineffective project records.',
+    };
+
+    const colPrompt = columnPrompts[pattern.type] || `columns: record_id, description, amount, department, date, status, risk_level. Generate 12-18 detailed records.`;
+    const countryName = COUNTRIES.find(c => c.code === country)?.name || country;
+
+    let aiContent = "";
+    try {
+      const savedByok = localStorage.getItem("aureon_byok_active");
+      localStorage.removeItem("aureon_byok_active");
+
+      await streamChat({
+        messages: [{
+          role: "user",
+          content: `You are Aureon's forensic AI generating DETAILED itemized data for a government waste pattern.\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Total: ${fmtUsd(pattern.estimatedWaste)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\nGenerate a DETAILED drill-down report with specific records. ${colPrompt}\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of what was found in the detailed analysis"\n}\n\nMake the data realistic for ${countryName}'s government. Use local names, departments, and realistic amounts in USD. Each record MUST have an "id" field. Make IDs look official (e.g., GE-2026-0041 for ghost employees, INV-2026-3847 for invoices). Include realistic dates in 2025-2026. Make amounts vary realistically.`
+        }],
+        mode: "research",
+        onDelta: (chunk) => { aiContent += chunk; },
+        onDone: () => {},
+      });
+
+      if (savedByok) localStorage.setItem("aureon_byok_active", savedByok);
+
+      let cleanContent = aiContent.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as PatternDetail;
+        setPatternDetails(prev => ({ ...prev, [patternIndex]: parsed }));
+      }
+    } catch (e) {
+      console.error("Detail generation failed:", e);
+    }
+    setLoadingDetail(null);
+  };
 
   const runAnalysis = useCallback(async () => {
     setLoading(true);
@@ -380,7 +445,7 @@ const ZeeionWasteFraud = () => {
                           <p className="text-[9px] text-red-400/60 mt-1 font-medium">Estimated waste: {fmtUsd(pattern.estimatedWaste)}</p>
 
                           {expanded && (
-                            <div className="mt-3 space-y-2 border-t border-border/[0.06] pt-3">
+                            <div className="mt-3 space-y-3 border-t border-border/[0.06] pt-3">
                               <div>
                                 <p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30 mb-0.5">Evidence</p>
                                 <p className="text-[9px] text-foreground/50 font-light">{pattern.evidence}</p>
@@ -389,6 +454,59 @@ const ZeeionWasteFraud = () => {
                                 <p className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30 mb-0.5">Recommendation</p>
                                 <p className="text-[9px] text-foreground/50 font-light">{pattern.recommendation}</p>
                               </div>
+
+                              {/* Deep Dive Detail Table */}
+                              {patternDetails[i] ? (
+                                <div className="mt-2">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Table2 className="h-3 w-3 text-foreground/40" />
+                                    <p className="text-[8px] uppercase tracking-[0.15em] text-foreground/50">Itemized Records ({patternDetails[i].records.length})</p>
+                                  </div>
+                                  {patternDetails[i].summary && (
+                                    <p className="text-[9px] text-foreground/40 font-light mb-2 italic">{patternDetails[i].summary}</p>
+                                  )}
+                                  <div className="overflow-x-auto rounded-lg border border-border/[0.08]">
+                                    <table className="w-full text-left">
+                                      <thead>
+                                        <tr className="border-b border-border/[0.08] bg-foreground/[0.03]">
+                                          {patternDetails[i].columns.map(col => (
+                                            <th key={col.key} className="px-2.5 py-1.5 text-[7px] uppercase tracking-[0.15em] text-muted-foreground/40 font-medium whitespace-nowrap">{col.label}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {patternDetails[i].records.map((rec, ri) => (
+                                          <tr key={rec.id || ri} className="border-b border-border/[0.04] hover:bg-foreground/[0.03] transition-colors">
+                                            {patternDetails[i].columns.map(col => {
+                                              const val = rec[col.key];
+                                              const isAmount = typeof val === "number" && val > 100;
+                                              const isRisk = typeof val === "string" && /high|critical|flagged|suspicious/i.test(val);
+                                              const isGood = typeof val === "string" && /verified|resolved|low|clean/i.test(val);
+                                              return (
+                                                <td key={col.key} className={`px-2.5 py-1.5 text-[9px] font-light whitespace-nowrap ${isRisk ? "text-red-400/70" : isGood ? "text-emerald-400/70" : "text-foreground/55"}`}>
+                                                  {isAmount ? fmtUsd(val as number) : String(val ?? "—")}
+                                                </td>
+                                              );
+                                            })}
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); generatePatternDetail(i); }}
+                                  disabled={loadingDetail === i}
+                                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-foreground/[0.05] border border-border/[0.08] text-[9px] text-foreground/50 hover:bg-foreground/[0.08] transition-all disabled:opacity-40 mt-1"
+                                >
+                                  {loadingDetail === i ? (
+                                    <><Loader2 className="h-3 w-3 animate-spin" /> Generating detailed records...</>
+                                  ) : (
+                                    <><Eye className="h-3 w-3" /> Deep Dive — Show Itemized Records</>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
