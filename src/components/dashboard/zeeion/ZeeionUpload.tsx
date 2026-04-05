@@ -71,7 +71,11 @@ const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
         }
       });
 
-      setProgress(30);
+      setProgress(20);
+      setProgressLabel("ASHA extracting structured data...");
+
+      await new Promise(r => setTimeout(r, 400));
+      setProgress(35);
       setProgressLabel("AUREON analyzing financial patterns...");
 
       const { data, error } = await supabase.functions.invoke("zeeion-analyze", {
@@ -144,7 +148,7 @@ const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
               </span>
             ))}
           </div>
-          <p className="text-[8px] text-muted-foreground/30 mt-1">Max file size: 50MB -- AUREON auto-detects date ranges</p>
+          <p className="text-[8px] text-muted-foreground/30 mt-1">Max 50MB -- ASHA extracts structured data from any format</p>
         </div>
       </div>
 
@@ -179,7 +183,7 @@ const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
             </select>
           </div>
 
-          <p className="text-[8px] text-muted-foreground/30">AUREON will automatically detect the fiscal period from your data</p>
+          <p className="text-[8px] text-muted-foreground/30">ASHA extracts structured data from any file type, then AUREON runs full financial analysis</p>
 
           <button
             onClick={processFile}
@@ -200,7 +204,7 @@ const ZeeionUpload = ({ onAnalysisComplete }: Props) => {
           <div className="w-full h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
             <div className="h-full rounded-full bg-foreground/20 transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-[9px] text-muted-foreground/30 text-center">AUREON is running all analytical brains on your data</p>
+          <p className="text-[9px] text-muted-foreground/30 text-center">ASHA + AUREON pipeline: extract → structure → analyze → report</p>
         </div>
       )}
     </div>
