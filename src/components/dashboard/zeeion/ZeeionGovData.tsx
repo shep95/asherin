@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Globe, Loader2, TrendingUp, TrendingDown, DollarSign, Users, Shield, GraduationCap, Heart, BarChart3, RefreshCw, ChevronRight, Sparkles, Send, X, Search, Bot, PieChart } from "lucide-react";
+import { Globe, Loader2, TrendingUp, TrendingDown, DollarSign, Users, Shield, GraduationCap, Heart, BarChart3, RefreshCw, ChevronRight, Sparkles, Send, X, Search, Bot, PieChart, AlertTriangle, FileText, Download, ArrowRight, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import ReactMarkdown from "react-markdown";
@@ -43,7 +43,7 @@ const INDICATORS = [
 
 const COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6", "#f97316", "#6366f1"];
 
-type SubTab = "overview" | "comparison" | "usa_detail" | "waste_fraud" | "jobs" | "budget_optimize" | "aureon";
+type SubTab = "landing" | "overview" | "comparison" | "usa_detail" | "waste_fraud" | "jobs" | "budget_optimize" | "aureon";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
