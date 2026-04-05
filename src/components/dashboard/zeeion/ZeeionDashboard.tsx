@@ -128,7 +128,6 @@ const ZeeionDashboard = ({ analysis }: Props) => {
                   columnHint="columns: transaction_id, category, vendor_name, amount, date, department, payment_method, approval_status. Generate 15-20 detailed transaction records across the top spending categories showing individual line items."
                   label="Deep Dive — Show Individual Transactions"
                 />
-                </div>
               </div>
             )}
 
