@@ -1,8 +1,11 @@
-import { useSubscription, hasChatAccess, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasChatAccess, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import type { DashboardView } from "@/components/dashboard/types";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+
+// Views that require Enterprise access (Axrlen & Zeeion are enterprise-only)
+const ENTERPRISE_VIEWS: DashboardView[] = ["zeeion", "axrlen"];
 
 // Views that require Pro access
 const PRO_VIEWS: DashboardView[] = [
@@ -10,7 +13,7 @@ const PRO_VIEWS: DashboardView[] = [
   "teams", "notebooks", "geospatial", "plugins", "timeseries",
   "audit", "predictive", "security", "imagine-to-code", "tracker",
   "google", "pattern-analysis", "video-intelligence", "lavba", "cross",
-  "zaplen", "zeeion",
+  "zaplen",
 ];
 
 // Views that require any paid plan (search-tier)
@@ -37,6 +40,7 @@ export function useAccess() {
     // If payment failed, only allow public views (settings, subscription, etc.)
     if (isPastDue) return PUBLIC_VIEWS.includes(view);
     if (PUBLIC_VIEWS.includes(view)) return true;
+    if (ENTERPRISE_VIEWS.includes(view)) return hasEnterpriseOnlyAccess(tierKey);
     if (CHAT_VIEWS.includes(view)) return hasChatAccess(tierKey);
     if (SEARCH_VIEWS.includes(view)) return hasSearchAccess(tierKey);
     if (PRO_VIEWS.includes(view)) return hasProAccess(tierKey);
@@ -45,5 +49,5 @@ export function useAccess() {
     return true;
   };
 
-  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: hasChatAccess(tierKey), hasSearch: hasSearchAccess(tierKey), hasPro: hasProAccess(tierKey) };
+  return { canAccess, isAdmin, tierKey, isPastDue, hasChat: hasChatAccess(tierKey), hasSearch: hasSearchAccess(tierKey), hasPro: hasProAccess(tierKey), hasEnterprise: hasEnterpriseOnlyAccess(tierKey) };
 }
