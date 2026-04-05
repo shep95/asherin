@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Eye, Table2, X, ChevronRight, Shield, User, Users, Calendar, FileText, AlertTriangle, CheckCircle, Clock, Search, Download, Link2, TrendingUp, Scale, Repeat, BarChart3, Fingerprint, Network, Gavel, BookOpen, Target, Zap } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, CartesianGrid, ComposedChart, Line } from "recharts";
 
 interface DetailRecord {
   id: string;
@@ -682,7 +683,7 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
                       </div>
                     )}
 
-                    {/* Price Comparison with Breakdown */}
+                    {/* Price Comparison with Breakdown + Chart */}
                     {recordDrill.priceComparison && (
                       <div className="rounded-xl border border-border/[0.08] bg-foreground/[0.02] p-4 space-y-4">
                         <p className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground/30 flex items-center gap-1.5"><Scale className="h-3 w-3" /> Price Comparison & Market Analysis</p>
@@ -696,10 +697,58 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
                         </div>
                         <p className="text-[9px] text-red-400/60">Overcharged by {recordDrill.priceComparison.overchargePercent}%</p>
 
+                        {/* Price Comparison Bar Chart */}
+                        {(() => {
+                          const chartData = [
+                            { name: "Current", value: recordDrill.priceComparison!.currentPrice, fill: "hsl(0, 70%, 55%)" },
+                            { name: "Market Avg", value: recordDrill.priceComparison!.marketAverage, fill: "hsl(45, 70%, 55%)" },
+                            { name: "Best Price", value: recordDrill.priceComparison!.bestMarketPrice, fill: "hsl(150, 60%, 45%)" },
+                          ];
+                          if (recordDrill.priceComparison!.comparableSources?.length) {
+                            recordDrill.priceComparison!.comparableSources.slice(0, 3).forEach(s => {
+                              chartData.push({ name: s.name.length > 14 ? s.name.slice(0, 14) + "…" : s.name, value: s.price, fill: "hsl(210, 50%, 55%)" });
+                            });
+                          }
+                          if (recordDrill.priceComparison!.internationalBenchmarks?.length) {
+                            recordDrill.priceComparison!.internationalBenchmarks.forEach(b => {
+                              chartData.push({ name: b.country, value: b.price, fill: "hsl(270, 40%, 55%)" });
+                            });
+                          }
+                          return (
+                            <div className="h-48 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: 8 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,30%)" strokeOpacity={0.15} />
+                                  <XAxis dataKey="name" tick={{ fontSize: 8, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} />
+                                  <YAxis tick={{ fontSize: 8, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : `${v}`} />
+                                  <Tooltip formatter={(v: number) => fmtVal(v)} contentStyle={{ background: "hsl(0,0%,10%)", border: "1px solid hsl(0,0%,20%)", borderRadius: 8, fontSize: 10 }} labelStyle={{ fontSize: 9, color: "hsl(0,0%,60%)" }} />
+                                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                    {chartData.map((entry, idx) => <Cell key={idx} fill={entry.fill} fillOpacity={0.7} />)}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          );
+                        })()}
+
                         {/* Cost Breakdown */}
                         {recordDrill.priceComparison.breakdown && recordDrill.priceComparison.breakdown.length > 0 && (
                           <div>
                             <p className="text-[7px] uppercase text-muted-foreground/30 mb-2">Cost Breakdown by Component</p>
+                            {/* Breakdown comparison chart */}
+                            <div className="h-40 w-full mb-3">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={recordDrill.priceComparison.breakdown.map(b => ({ name: b.component.length > 16 ? b.component.slice(0, 16) + "…" : b.component, current: b.currentCost, market: b.marketCost, variance: b.variance }))} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,30%)" strokeOpacity={0.15} />
+                                  <XAxis dataKey="name" tick={{ fontSize: 7, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} />
+                                  <YAxis tick={{ fontSize: 7, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : `${v}`} />
+                                  <Tooltip formatter={(v: number) => fmtVal(v)} contentStyle={{ background: "hsl(0,0%,10%)", border: "1px solid hsl(0,0%,20%)", borderRadius: 8, fontSize: 10 }} />
+                                  <Bar dataKey="current" name="Current Cost" fill="hsl(0, 65%, 55%)" fillOpacity={0.6} radius={[3, 3, 0, 0]} />
+                                  <Bar dataKey="market" name="Market Cost" fill="hsl(150, 55%, 45%)" fillOpacity={0.6} radius={[3, 3, 0, 0]} />
+                                  <Line type="monotone" dataKey="variance" name="Variance" stroke="hsl(45, 80%, 55%)" strokeWidth={2} dot={{ r: 3 }} />
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            </div>
                             <div className="space-y-1.5">
                               {recordDrill.priceComparison.breakdown.map((b, i) => (
                                 <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-foreground/[0.02] border border-border/[0.04]">
@@ -848,19 +897,66 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
                           </div>
                         )}
 
-                        {/* Approval History */}
+                        {/* Approval History with Chart */}
                         {recordDrill.approvedBy?.approvalHistory?.length > 0 && (
                           <div className="mt-2 border-t border-border/[0.06] pt-2">
                             <p className="text-[7px] uppercase text-muted-foreground/30 mb-1">Approval History</p>
+                            {/* Approval History Bar Chart */}
+                            <div className="h-36 w-full mb-2">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={recordDrill.approvedBy.approvalHistory.map(h => ({ date: h.date?.slice(5) || "", amount: h.amount, flagged: h.flagged, name: h.item?.length > 20 ? h.item.slice(0, 20) + "…" : h.item }))} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,30%)" strokeOpacity={0.15} />
+                                  <XAxis dataKey="date" tick={{ fontSize: 7, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} />
+                                  <YAxis tick={{ fontSize: 7, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : `${v}`} />
+                                  <Tooltip formatter={(v: number) => fmtVal(v)} contentStyle={{ background: "hsl(0,0%,10%)", border: "1px solid hsl(0,0%,20%)", borderRadius: 8, fontSize: 10 }} labelStyle={{ fontSize: 9, color: "hsl(0,0%,60%)" }} />
+                                  <Bar dataKey="amount" radius={[3, 3, 0, 0]}>
+                                    {recordDrill.approvedBy.approvalHistory.map((h, idx) => (
+                                      <Cell key={idx} fill={h.flagged ? "hsl(0, 65%, 55%)" : "hsl(210, 50%, 50%)"} fillOpacity={0.65} />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="flex items-center gap-1 text-[7px] text-muted-foreground/40"><span className="w-2 h-2 rounded-sm bg-[hsl(0,65%,55%)] opacity-65" /> Flagged</span>
+                              <span className="flex items-center gap-1 text-[7px] text-muted-foreground/40"><span className="w-2 h-2 rounded-sm bg-[hsl(210,50%,50%)] opacity-65" /> Clean</span>
+                            </div>
                             <div className="max-h-32 overflow-y-auto space-y-0.5">
                               {recordDrill.approvedBy.approvalHistory.map((h, i) => (
                                 <div key={i} className="flex items-center gap-2 py-0.5 text-[8px]">
                                   <span className="text-muted-foreground/30 w-[60px] shrink-0">{h.date}</span>
                                   <span className="text-foreground/50 truncate flex-1">{h.item}</span>
                                   <span className="text-foreground/50 shrink-0">{fmtVal(h.amount)}</span>
+                                  {h.vendor && <span className="text-muted-foreground/30 text-[7px] shrink-0">{h.vendor}</span>}
                                   {h.flagged && <span className="text-red-400/60 text-[7px] shrink-0">⚠</span>}
+                                  {h.outcome && <span className="text-[7px] text-muted-foreground/30 shrink-0">→ {h.outcome}</span>}
                                 </div>
                               ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Approver Performance Donut */}
+                        {recordDrill.approvedBy && recordDrill.approvedBy.totalApprovals > 0 && (
+                          <div className="mt-2 border-t border-border/[0.06] pt-2">
+                            <p className="text-[7px] uppercase text-muted-foreground/30 mb-1">Approval Performance</p>
+                            <div className="h-32 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={[
+                                      { name: "Clean", value: recordDrill.approvedBy.totalApprovals - recordDrill.approvedBy.flaggedApprovals, fill: "hsl(210, 50%, 50%)" },
+                                      { name: "Flagged / Waste", value: recordDrill.approvedBy.flaggedApprovals, fill: "hsl(0, 65%, 55%)" },
+                                    ]}
+                                    cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={3} dataKey="value"
+                                  >
+                                    <Cell fill="hsl(210, 50%, 50%)" fillOpacity={0.6} />
+                                    <Cell fill="hsl(0, 65%, 55%)" fillOpacity={0.7} />
+                                  </Pie>
+                                  <Tooltip formatter={(v: number) => v} contentStyle={{ background: "hsl(0,0%,10%)", border: "1px solid hsl(0,0%,20%)", borderRadius: 8, fontSize: 10 }} />
+                                  <Legend wrapperStyle={{ fontSize: 8 }} />
+                                </PieChart>
+                              </ResponsiveContainer>
                             </div>
                           </div>
                         )}
@@ -885,10 +981,22 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
                       </div>
                     )}
 
-                    {/* Recurring Patterns for this record */}
+                    {/* Recurring Patterns with Chart */}
                     {recordDrill.recurringPatterns && recordDrill.recurringPatterns.length > 0 && (
                       <div className="rounded-xl border border-yellow-500/10 bg-yellow-500/[0.03] p-4">
                         <p className="text-[8px] uppercase tracking-[0.15em] text-yellow-400/50 mb-2 flex items-center gap-1.5"><Repeat className="h-3 w-3" /> Recurring Patterns</p>
+                        {/* Pattern frequency chart */}
+                        <div className="h-36 w-full mb-3">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={recordDrill.recurringPatterns.map(p => ({ name: p.involvedPerson?.length > 12 ? p.involvedPerson.slice(0, 12) + "…" : p.involvedPerson, occurrences: p.occurrences, amount: p.totalAmount }))} layout="vertical" margin={{ top: 4, right: 8, bottom: 4, left: 60 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,30%)" strokeOpacity={0.15} />
+                              <XAxis type="number" tick={{ fontSize: 7, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} />
+                              <YAxis type="category" dataKey="name" tick={{ fontSize: 8, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} width={55} />
+                              <Tooltip formatter={(v: number, name: string) => name === "amount" ? fmtVal(v) : `${v}x`} contentStyle={{ background: "hsl(0,0%,10%)", border: "1px solid hsl(0,0%,20%)", borderRadius: 8, fontSize: 10 }} />
+                              <Bar dataKey="occurrences" name="Occurrences" fill="hsl(45, 70%, 55%)" fillOpacity={0.6} radius={[0, 3, 3, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
                         {recordDrill.recurringPatterns.map((p, i) => (
                           <div key={i} className="py-1.5 border-b border-yellow-500/[0.06] last:border-0">
                             <p className="text-[9px] text-foreground/55 font-light">{p.description}</p>
