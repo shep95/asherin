@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Eye, Table2, X, ChevronRight, Shield, User, Calendar, FileText, AlertTriangle, CheckCircle, Clock, Search, Download, Link2, TrendingUp, Scale, Repeat, BarChart3, Fingerprint, Network, Gavel, BookOpen, Target, Zap } from "lucide-react";
+import { Loader2, Eye, Table2, X, ChevronRight, Shield, User, Users, Calendar, FileText, AlertTriangle, CheckCircle, Clock, Search, Download, Link2, TrendingUp, Scale, Repeat, BarChart3, Fingerprint, Network, Gavel, BookOpen, Target, Zap } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -1034,15 +1034,5 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
     </button>
   );
 };
-
-// Missing import for Users icon used in citizen impact section
-const Users = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
 
 export default ZeeionDeepDive;
