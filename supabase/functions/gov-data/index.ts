@@ -15,7 +15,6 @@ const SOURCES = {
   ca_ckan: "https://open.canada.ca/data/api/3/action",
 };
 
-// ISO3 → ISO2 mapping for IMF DataMapper (uses ISO3)
 const ISO2_TO_ISO3: Record<string, string> = {
   US: "USA", GB: "GBR", DE: "DEU", FR: "FRA", JP: "JPN",
   IN: "IND", BR: "BRA", CA: "CAN", AU: "AUS", PE: "PER",
@@ -36,6 +35,22 @@ async function fetchJson(url: string, opts?: RequestInit, timeoutMs = 15000): Pr
     return await resp.json();
   } catch { return null; }
   finally { clearTimeout(timer); }
+}
+
+// ── Treasury Fiscal Data helpers (URL-encode brackets for page[size]) ──
+function treasuryUrl(endpoint: string, params: Record<string, string> = {}): string {
+  const base = `${SOURCES.treasury}/${endpoint}?format=json`;
+  const extras = Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
+  return extras ? `${base}&${extras}` : base;
+}
+
+// ── USASpending POST helper ──
+async function usaSpendingPost(path: string, body: any): Promise<any> {
+  return fetchJson(`${SOURCES.usa_spending}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 serve(async (req) => {
@@ -68,7 +83,7 @@ serve(async (req) => {
 
       // ── Treasury Debt ──
       case "treasury_debt": {
-        const data = await fetchJson(`${SOURCES.treasury}/v2/accounting/od/debt_to_penny?sort=-record_date&page[size]=30&format=json`);
+        const data = await fetchJson(treasuryUrl("v2/accounting/od/debt_to_penny", { sort: "-record_date", "page[size]": "30" }));
         if (!data) throw new Error("Treasury API unavailable");
         result = {
           country: "USA", source: "US Treasury Fiscal Data",
@@ -81,15 +96,139 @@ serve(async (req) => {
         break;
       }
 
-      // ── Treasury Revenue ──
+      // ── Treasury Revenue (Monthly Treasury Statement Table 1) ──
       case "treasury_revenue": {
-        const data = await fetchJson(`${SOURCES.treasury}/v1/accounting/mts/mts_table_4?sort=-record_date&page[size]=50&format=json`);
+        const data = await fetchJson(treasuryUrl("v1/accounting/mts/mts_table_1", { sort: "-record_date", "page[size]": "50" }));
         if (!data) {
-          const fb = await fetchJson(`${SOURCES.treasury}/v2/accounting/od/statement_net_cost?sort=-record_date&page[size]=30&format=json`);
+          const fb = await fetchJson(treasuryUrl("v2/accounting/od/statement_net_cost", { sort: "-record_date", "page[size]": "30" }));
           result = { country: "USA", source: "US Treasury Fiscal Data", revenue: fb?.data || [] };
         } else {
           result = { country: "USA", source: "US Treasury Fiscal Data", revenue: data.data || [] };
         }
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // NEW: Treasury — Statements of Net Cost (by agency)
+      // https://fiscaldata.treasury.gov/datasets/u-s-government-financial-report/statements-of-net-cost
+      // ══════════════════════════════════════════════════════════════
+      case "treasury_net_cost": {
+        const data = await fetchJson(treasuryUrl("v2/accounting/od/statement_net_cost", {
+          sort: "-record_date", "page[size]": "200",
+        }));
+        if (!data?.data) throw new Error("Treasury Net Cost API unavailable");
+        // Group by agency and get latest fiscal year
+        const byAgency: Record<string, any> = {};
+        for (const row of data.data) {
+          const key = row.agency_nm;
+          if (!key) continue;
+          if (!byAgency[key] || row.record_date > byAgency[key].record_date) {
+            byAgency[key] = row;
+          }
+        }
+        const agencies = Object.values(byAgency)
+          .map((r: any) => ({
+            agency: r.agency_nm,
+            fiscalYear: r.stmt_fiscal_year,
+            grossCostBil: parseFloat(r.gross_cost_bil_amt || "0"),
+            earnedRevenueBil: parseFloat(r.earned_revenue_bil_amt || "0"),
+            netCostBil: parseFloat(r.net_cost_bil_amt || "0"),
+            recordDate: r.record_date,
+          }))
+          .sort((a: any, b: any) => b.netCostBil - a.netCostBil);
+        const totalNetCost = agencies.reduce((s: number, a: any) => s + a.netCostBil, 0);
+        result = {
+          country: "USA", source: "US Treasury – Statements of Net Cost (Financial Report)",
+          totalNetCostBillions: totalNetCost, agencyCount: agencies.length, agencies,
+        };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // NEW: Monthly Treasury Statement — Receipts & Outlays (Table 1)
+      // Summary-level federal receipts, outlays, and deficit/surplus
+      // ══════════════════════════════════════════════════════════════
+      case "treasury_mts_summary": {
+        // Get summary lines (line_code_nbr 100=receipts, 200=outlays, 300=deficit)
+        const data = await fetchJson(treasuryUrl("v1/accounting/mts/mts_table_1", {
+          sort: "-record_date",
+          "page[size]": "100",
+          filter: "line_code_nbr:in:(100,200,300),record_type_cd:eq:F",
+        }));
+        if (!data?.data) throw new Error("MTS Table 1 unavailable");
+        const summaries = (data.data || []).map((r: any) => ({
+          date: r.record_date,
+          description: r.classification_desc,
+          lineCode: r.line_code_nbr,
+          currentMonthReceipts: parseFloat(r.current_month_gross_rcpt_amt || "0"),
+          currentMonthOutlays: parseFloat(r.current_month_gross_outly_amt || "0"),
+          deficitSurplus: parseFloat(r.current_month_dfct_sur_amt || "0"),
+          fiscalYear: r.record_fiscal_year,
+        }));
+        result = { country: "USA", source: "Monthly Treasury Statement (MTS) – Table 1", data: summaries };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // NEW: USASpending — Spending by Budget Function
+      // Federal spending broken down by function (Defense, Medicare, etc.)
+      // ══════════════════════════════════════════════════════════════
+      case "usa_spending_by_function": {
+        const fy = params?.fiscalYear || new Date().getFullYear().toString();
+        const data = await usaSpendingPost("/spending/", {
+          type: "budget_function",
+          filters: { fy, quarter: "4" },
+        });
+        if (!data) throw new Error("USASpending budget function API unavailable");
+        result = {
+          country: "USA", source: "USASpending.gov – Budget Functions",
+          fiscalYear: fy, totalSpending: data.total,
+          functions: (data.results || []).map((r: any) => ({
+            name: r.name, code: r.code, amount: r.amount,
+            percentOfTotal: data.total > 0 ? ((r.amount / data.total) * 100).toFixed(2) : "0",
+          })),
+        };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // NEW: USASpending — Top Awarding Agencies (contract/grant recipients)
+      // ══════════════════════════════════════════════════════════════
+      case "usa_top_awarding_agencies": {
+        const year = params?.year || new Date().getFullYear();
+        const data = await usaSpendingPost("/search/spending_by_category/awarding_agency/", {
+          filters: {
+            time_period: [{ start_date: `${year}-01-01`, end_date: `${year}-12-31` }],
+          },
+          limit: 20,
+        });
+        if (!data) throw new Error("USASpending category API unavailable");
+        result = {
+          country: "USA", source: "USASpending.gov – Top Awarding Agencies",
+          year,
+          agencies: (data.results || []).map((r: any) => ({
+            name: r.name, code: r.code, amount: r.amount,
+          })),
+        };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // NEW: Treasury — Interest on Debt (critical for waste analysis)
+      // ══════════════════════════════════════════════════════════════
+      case "treasury_interest": {
+        const data = await fetchJson(treasuryUrl("v2/accounting/od/avg_interest_rates", {
+          sort: "-record_date", "page[size]": "50",
+        }));
+        if (!data?.data) throw new Error("Treasury Interest Rates API unavailable");
+        result = {
+          country: "USA", source: "US Treasury – Average Interest Rates on Debt",
+          rates: (data.data || []).slice(0, 30).map((r: any) => ({
+            date: r.record_date,
+            securityType: r.security_type_desc,
+            avgInterestRate: parseFloat(r.avg_interest_rate_amt || "0"),
+          })),
+        };
         break;
       }
 
@@ -127,19 +266,12 @@ serve(async (req) => {
         break;
       }
 
-      // ══════════════════════════════════════════════════════════
-      // NEW: IMF DataMapper — real 2023-2025 fiscal data for ALL countries
-      // ══════════════════════════════════════════════════════════
+      // ── IMF DataMapper ──
       case "imf_fiscal": {
         const cc = params?.countryCode || "US";
         const iso3 = ISO2_TO_ISO3[cc] || cc;
         const imfIndicators = [
-          "GGXWDG_NGDP",       // Gross govt debt (% GDP)
-          "GGR_G01_GDP_PT",    // Govt revenue (% GDP)
-          "GGXCNL_NGDP",       // Net lending/borrowing (fiscal balance)
-          "NGDP_RPCH",         // Real GDP growth
-          "PCPIPCH",           // Inflation
-          "LUR",               // Unemployment
+          "GGXWDG_NGDP", "GGR_G01_GDP_PT", "GGXCNL_NGDP", "NGDP_RPCH", "PCPIPCH", "LUR",
         ];
         const periods = "2020,2021,2022,2023,2024,2025";
         const imfResults: Record<string, any> = {};
@@ -154,9 +286,7 @@ serve(async (req) => {
         break;
       }
 
-      // ══════════════════════════════════════════════════════════
-      // NEW: UK Government datasets (CKAN)
-      // ══════════════════════════════════════════════════════════
+      // ── UK, France, Canada datasets ──
       case "uk_spending": {
         const data = await fetchJson(`${SOURCES.uk_ckan}/package_search?q=government+expenditure+budget+spending&rows=20`);
         if (!data?.result) throw new Error("UK CKAN unavailable");
@@ -169,9 +299,6 @@ serve(async (req) => {
         break;
       }
 
-      // ══════════════════════════════════════════════════════════
-      // NEW: France data.gouv.fr
-      // ══════════════════════════════════════════════════════════
       case "fr_spending": {
         const data = await fetchJson(`${SOURCES.fr_data}/datasets/?q=budget+etat+depenses+recettes&page_size=20`);
         if (!data) throw new Error("France data.gouv.fr unavailable");
@@ -184,9 +311,6 @@ serve(async (req) => {
         break;
       }
 
-      // ══════════════════════════════════════════════════════════
-      // NEW: Canada Open Government
-      // ══════════════════════════════════════════════════════════
       case "ca_spending": {
         const data = await fetchJson(`${SOURCES.ca_ckan}/package_search?q=government+expenditure+budget&rows=20`);
         if (!data?.result) throw new Error("Canada CKAN unavailable");
@@ -199,9 +323,9 @@ serve(async (req) => {
         break;
       }
 
-      // ══════════════════════════════════════════════════════════
-      // NEW: Comprehensive country fiscal profile (aggregates all sources)
-      // ══════════════════════════════════════════════════════════
+      // ══════════════════════════════════════════════════════════════
+      // Comprehensive country fiscal profile (aggregates ALL sources)
+      // ══════════════════════════════════════════════════════════════
       case "country_fiscal_profile": {
         const cc = params?.countryCode || "US";
         const iso3 = ISO2_TO_ISO3[cc] || cc;
@@ -241,16 +365,101 @@ serve(async (req) => {
           if (vals) imf[s.key] = vals;
         }
 
-        // Also get USA spending if US
+        // ── USA-specific: pull expanded Treasury + USASpending data ──
         let usaAgencies: any[] = [];
+        let usaNetCost: any[] = [];
+        let usaBudgetFunctions: any[] = [];
+        let usaTopAwarding: any[] = [];
+        let usaDebtTimeline: any[] = [];
+        let usaMtsSummary: any[] = [];
+        let usaInterestRates: any[] = [];
+        let usaTotalSpending = 0;
+
         if (cc === "US") {
-          const usaData = await fetchJson(`${SOURCES.usa_spending}/references/toptier_agencies/`);
-          if (usaData?.results) {
-            usaAgencies = usaData.results
+          const [agencyData, netCostData, budgetFuncData, topAwardData, debtData, mtsData, interestData] = await Promise.all([
+            fetchJson(`${SOURCES.usa_spending}/references/toptier_agencies/`),
+            fetchJson(treasuryUrl("v2/accounting/od/statement_net_cost", { sort: "-record_date", "page[size]": "200" })),
+            usaSpendingPost("/spending/", { type: "budget_function", filters: { fy: new Date().getFullYear().toString(), quarter: "4" } }),
+            usaSpendingPost("/search/spending_by_category/awarding_agency/", {
+              filters: { time_period: [{ start_date: `${new Date().getFullYear() - 1}-01-01`, end_date: `${new Date().getFullYear() - 1}-12-31` }] },
+              limit: 20,
+            }),
+            fetchJson(treasuryUrl("v2/accounting/od/debt_to_penny", { sort: "-record_date", "page[size]": "30" })),
+            fetchJson(treasuryUrl("v1/accounting/mts/mts_table_1", { sort: "-record_date", "page[size]": "50", filter: "line_code_nbr:in:(100,200,300),record_type_cd:eq:F" })),
+            fetchJson(treasuryUrl("v2/accounting/od/avg_interest_rates", { sort: "-record_date", "page[size]": "30" })),
+          ]);
+
+          // Agencies
+          if (agencyData?.results) {
+            usaAgencies = agencyData.results
               .filter((a: any) => a.budget_authority_amount > 0)
               .sort((a: any, b: any) => b.budget_authority_amount - a.budget_authority_amount)
-              .slice(0, 15)
-              .map((a: any) => ({ name: a.agency_name, abbreviation: a.abbreviation, budgetAuthority: a.budget_authority_amount }));
+              .slice(0, 20)
+              .map((a: any) => ({ name: a.agency_name, abbreviation: a.abbreviation, budgetAuthority: a.budget_authority_amount, obligated: a.obligated_amount, outlays: a.outlay_amount }));
+          }
+
+          // Statements of Net Cost (agency-level costs from Financial Report)
+          if (netCostData?.data) {
+            const byAgency: Record<string, any> = {};
+            for (const row of netCostData.data) {
+              if (!row.agency_nm) continue;
+              if (!byAgency[row.agency_nm] || row.record_date > byAgency[row.agency_nm].record_date) {
+                byAgency[row.agency_nm] = row;
+              }
+            }
+            usaNetCost = Object.values(byAgency)
+              .map((r: any) => ({
+                agency: r.agency_nm, fiscalYear: r.stmt_fiscal_year,
+                grossCostBil: parseFloat(r.gross_cost_bil_amt || "0"),
+                earnedRevenueBil: parseFloat(r.earned_revenue_bil_amt || "0"),
+                netCostBil: parseFloat(r.net_cost_bil_amt || "0"),
+              }))
+              .sort((a: any, b: any) => b.netCostBil - a.netCostBil);
+          }
+
+          // Budget functions (Defense, Medicare, Social Security, etc.)
+          if (budgetFuncData?.results) {
+            usaTotalSpending = budgetFuncData.total || 0;
+            usaBudgetFunctions = budgetFuncData.results.map((r: any) => ({
+              name: r.name, code: r.code, amount: r.amount,
+              percentOfTotal: usaTotalSpending > 0 ? ((r.amount / usaTotalSpending) * 100) : 0,
+            }));
+          }
+
+          // Top awarding agencies
+          if (topAwardData?.results) {
+            usaTopAwarding = topAwardData.results.map((r: any) => ({
+              name: r.name, code: r.code, amount: r.amount,
+            }));
+          }
+
+          // Debt timeline
+          if (debtData?.data) {
+            usaDebtTimeline = debtData.data.map((d: any) => ({
+              date: d.record_date,
+              totalDebt: parseFloat(d.tot_pub_debt_out_amt || "0"),
+              publicDebt: parseFloat(d.debt_held_public_amt || "0"),
+            }));
+          }
+
+          // MTS summary (receipts, outlays, deficit)
+          if (mtsData?.data) {
+            usaMtsSummary = mtsData.data.map((r: any) => ({
+              date: r.record_date, description: r.classification_desc,
+              lineCode: r.line_code_nbr, fiscalYear: r.record_fiscal_year,
+              receipts: parseFloat(r.current_month_gross_rcpt_amt || "0"),
+              outlays: parseFloat(r.current_month_gross_outly_amt || "0"),
+              deficitSurplus: parseFloat(r.current_month_dfct_sur_amt || "0"),
+            }));
+          }
+
+          // Interest rates on debt
+          if (interestData?.data) {
+            usaInterestRates = interestData.data.slice(0, 20).map((r: any) => ({
+              date: r.record_date,
+              securityType: r.security_type_desc,
+              avgRate: parseFloat(r.avg_interest_rate_amt || "0"),
+            }));
           }
         }
 
@@ -275,10 +484,29 @@ serve(async (req) => {
         result = {
           countryCode: cc,
           iso3,
-          sources: ["World Bank Open Data", "IMF World Economic Outlook", ...(cc === "US" ? ["USASpending.gov", "US Treasury"] : [])],
+          sources: [
+            "World Bank Open Data", "IMF World Economic Outlook",
+            ...(cc === "US" ? [
+              "USASpending.gov",
+              "US Treasury Fiscal Data – Debt to the Penny",
+              "US Treasury – Statements of Net Cost (Financial Report)",
+              "US Treasury – Monthly Treasury Statement (MTS)",
+              "US Treasury – Average Interest Rates on Debt",
+              "USASpending.gov – Budget Functions",
+              "USASpending.gov – Top Awarding Agencies",
+            ] : []),
+          ],
           worldBank: wbIndicators,
           imf,
+          // USA-specific expanded data
           usaAgencies,
+          usaNetCost,
+          usaBudgetFunctions,
+          usaTotalSpending,
+          usaTopAwarding,
+          usaDebtTimeline,
+          usaMtsSummary,
+          usaInterestRates,
           peerComparison: { debt: peerDebt, revenue: peerRev },
         };
         break;
