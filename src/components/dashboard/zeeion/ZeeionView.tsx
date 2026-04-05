@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { Database, Upload, BarChart3, Clock, Trash2, Loader2 } from "lucide-react";
+import { Database, Upload, BarChart3, Clock, Trash2, Loader2, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ZeeionUpload from "./ZeeionUpload";
 import ZeeionDashboard from "./ZeeionDashboard";
+import ZeeionGovData from "./ZeeionGovData";
 
 export interface AnalysisResult {
   id: string;
@@ -31,7 +32,7 @@ const ZeeionView = () => {
   const { toast } = useToast();
   const [sessions, setSessions] = useState<AnalysisResult[]>([]);
   const [activeSession, setActiveSession] = useState<AnalysisResult | null>(null);
-  const [view, setView] = useState<"sessions" | "upload" | "dashboard">("sessions");
+  const [view, setView] = useState<"sessions" | "upload" | "dashboard" | "gov_data">("sessions");
   const [loading, setLoading] = useState(true);
 
   const loadSessions = useCallback(async () => {
@@ -177,6 +178,17 @@ const ZeeionView = () => {
               Dashboard
             </button>
           )}
+          <button
+            onClick={() => setView("gov_data")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${
+              view === "gov_data"
+                ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70"
+                : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"
+            }`}
+          >
+            <Globe className="h-3 w-3" />
+            Gov Data
+          </button>
         </div>
       </div>
 
@@ -262,6 +274,12 @@ const ZeeionView = () => {
 
         {view === "dashboard" && activeSession && (
           <ZeeionDashboard analysis={activeSession} />
+        )}
+
+        {view === "gov_data" && (
+          <div className="p-6">
+            <ZeeionGovData />
+          </div>
         )}
       </div>
     </div>
