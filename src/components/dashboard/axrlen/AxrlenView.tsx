@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
-import { Brain, Globe, Loader2, Trash2, Clock, Zap, Plus } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Brain, Globe, Loader2, Trash2, Clock, Send, ArrowDown, Copy, Check, MessageSquare, Zap, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import AxrlenAnalysis from "./AxrlenAnalysis";
-import AxrlenNewScan from "./AxrlenNewScan";
+import ReactMarkdown from "react-markdown";
+import AxrlenDashboard from "./AxrlenDashboard";
 
 export interface AxrlenSession {
   id: string;
@@ -22,12 +22,55 @@ export interface AxrlenSession {
   createdAt: Date;
 }
 
+interface ChatMsg {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/axrlen-chat`;
+
+const REGIONS = [
+  "Global", "United States", "China", "Russia", "India", "United Kingdom",
+  "Germany", "France", "Japan", "Brazil", "South Korea", "Mexico",
+  "Nigeria", "South Africa", "Egypt", "Turkey", "Iran", "Saudi Arabia",
+  "Australia", "Indonesia", "Pakistan", "Peru", "Canada",
+];
+
 const AxrlenView = () => {
   const { toast } = useToast();
   const [sessions, setSessions] = useState<AxrlenSession[]>([]);
   const [activeSession, setActiveSession] = useState<AxrlenSession | null>(null);
-  const [view, setView] = useState<"sessions" | "new" | "analysis">("sessions");
   const [loading, setLoading] = useState(true);
+  const [showSessions, setShowSessions] = useState(false);
+
+  // Chat state
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState("");
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Dashboard panel width
+  const [dashboardWidth, setDashboardWidth] = useState(55);
+  const resizingRef = useRef(false);
+
+  useEffect(() => {
+    if (autoScroll) endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, autoScroll]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    setAutoScroll(atBottom);
+    setShowScrollBtn(!atBottom);
+  }, []);
 
   const loadSessions = useCallback(async () => {
     try {
@@ -49,7 +92,7 @@ const AxrlenView = () => {
         createdAt: new Date(s.created_at),
       })));
     } catch (err) {
-      console.error("Failed to load Axrlen sessions:", err);
+      console.error("Failed to load sessions:", err);
     } finally {
       setLoading(false);
     }
@@ -58,117 +101,461 @@ const AxrlenView = () => {
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
   const deleteSession = async (id: string) => {
+    await supabase.from("axrlen_sessions").delete().eq("id", id);
+    setSessions(prev => prev.filter(s => s.id !== id));
+    if (activeSession?.id === id) setActiveSession(null);
+    toast({ title: "Session deleted" });
+  };
+
+  const openSession = (s: AxrlenSession) => {
+    setActiveSession(s);
+    setShowSessions(false);
+    setMessages([{
+      role: "system",
+      content: `Session loaded: **${s.title}** — ${s.region || "Global"} — ${s.confidenceScore || 0}% confidence — ${Array.isArray(s.predictions) ? s.predictions.length : 0} predictions`,
+    }]);
+  };
+
+  // ── Scan trigger (from chat) ──
+  const runScan = async (region: string, scanType: string) => {
+    setIsScanning(true);
+    const steps = [
+      "Initializing AXRLEN intelligence grid...",
+      "Querying GDELT global event database...",
+      "Fetching World Bank & IMF economic indicators...",
+      "Scanning USGS seismic & NASA solar data...",
+      "Processing conflict & humanitarian feeds...",
+      "Applying occult/historical pattern analysis...",
+      "Running multi-domain prediction engine...",
+      "Generating timeline divergence analysis...",
+    ];
+
+    for (const step of steps) {
+      setScanProgress(step);
+      await new Promise(r => setTimeout(r, 900));
+    }
+
     try {
-      await supabase.from("axrlen_sessions").delete().eq("id", id);
-      setSessions(prev => prev.filter(s => s.id !== id));
-      if (activeSession?.id === id) { setActiveSession(null); setView("sessions"); }
-      toast({ title: "Session deleted" });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data: sessionData, error: sessionErr } = await supabase
+        .from("axrlen_sessions")
+        .insert({
+          user_id: user.id,
+          title: `${region === "global" ? "Global" : region} — ${scanType.charAt(0).toUpperCase() + scanType.slice(1)} Analysis`,
+          region,
+          prediction_type: scanType,
+          status: "processing",
+        })
+        .select()
+        .single();
+      if (sessionErr) throw sessionErr;
+
+      setScanProgress("Executing deep analysis via AUREON...");
+      const resp = await supabase.functions.invoke("axrlen-analyze", {
+        body: { region, predictionType: scanType, sessionId: sessionData.id },
+      });
+      if (resp.error) throw new Error(resp.error.message || "Analysis failed");
+      if (!resp.data?.success) throw new Error(resp.data?.error || "No results");
+
+      const analysis = resp.data.analysis;
+      const session: AxrlenSession = {
+        id: sessionData.id,
+        title: sessionData.title,
+        region,
+        predictionType: scanType,
+        status: "complete",
+        predictions: analysis.predictions,
+        resourceAnalysis: analysis.resourceAnalysis,
+        threatAssessment: analysis.threatAssessment,
+        policySimulations: analysis.policySimulations,
+        timelineDivergences: analysis.timelineDivergences,
+        dataSources: analysis.dataSources,
+        confidenceScore: analysis.confidenceScore,
+        aiSummary: analysis.executiveSummary,
+        createdAt: new Date(),
+      };
+
+      setSessions(prev => [session, ...prev]);
+      setActiveSession(session);
+      setMessages(prev => [...prev, {
+        role: "system",
+        content: `✅ **Scan complete** — ${session.title}\n\n**${Array.isArray(analysis.predictions) ? analysis.predictions.length : 0} predictions** generated across ${analysis.dataSources?.total || 0} data sources at **${analysis.confidenceScore}% confidence**.\n\nThe dashboard on the right is now populated. Ask me anything about the findings.`,
+      }]);
     } catch (err: any) {
-      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+      setMessages(prev => [...prev, {
+        role: "system",
+        content: `⚠️ Scan failed: ${err.message}`,
+      }]);
+    } finally {
+      setIsScanning(false);
+      setScanProgress("");
     }
   };
 
-  const handleScanComplete = (session: AxrlenSession) => {
-    setSessions(prev => [session, ...prev]);
-    setActiveSession(session);
-    setView("analysis");
-  };
+  // ── Chat with AUREON ──
+  const sendMessage = async () => {
+    const text = input.trim();
+    if (!text || isStreaming || isScanning) return;
 
-  const severityColor = (level: string) => {
-    switch (level) {
-      case "critical": return "bg-red-500/60";
-      case "elevated": return "bg-amber-500/60";
-      case "guarded": return "bg-yellow-400/60";
-      default: return "bg-emerald-400/60";
+    // Check for scan commands
+    const scanMatch = text.match(/^(?:scan|analyze|predict)\s+(.+?)(?:\s+(?:comprehensive|security|economic|political|environmental|technological))?\s*$/i);
+    if (scanMatch) {
+      const regionInput = scanMatch[1].trim();
+      const typeMatch = text.match(/(comprehensive|security|economic|political|environmental|technological)/i);
+      const scanType = typeMatch ? typeMatch[1].toLowerCase() : "comprehensive";
+      const matchedRegion = REGIONS.find(r => r.toLowerCase() === regionInput.toLowerCase()) || regionInput;
+
+      setMessages(prev => [...prev, { role: "user", content: text }]);
+      setInput("");
+      await runScan(matchedRegion, scanType);
+      return;
+    }
+
+    const userMsg: ChatMsg = { role: "user", content: text };
+    const newMessages = [...messages.filter(m => m.role !== "system"), userMsg];
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+    setIsStreaming(true);
+
+    let assistantSoFar = "";
+    const upsert = (chunk: string) => {
+      assistantSoFar += chunk;
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+        }
+        return [...prev, { role: "assistant", content: assistantSoFar }];
+      });
+    };
+
+    try {
+      const sessionContext = activeSession ? {
+        title: activeSession.title,
+        region: activeSession.region,
+        confidenceScore: activeSession.confidenceScore,
+        status: activeSession.status,
+        aiSummary: activeSession.aiSummary,
+        predictions: activeSession.predictions,
+        threatAssessment: activeSession.threatAssessment,
+        resourceAnalysis: activeSession.resourceAnalysis,
+        policySimulations: activeSession.policySimulations,
+        timelineDivergences: activeSession.timelineDivergences,
+        dataSources: activeSession.dataSources,
+      } : {};
+
+      let authToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      try {
+        const { data: { session: s } } = await supabase.auth.getSession();
+        if (s?.access_token) authToken = s.access_token;
+      } catch {}
+
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          messages: newMessages.filter(m => m.role !== "system").map(m => ({ role: m.role, content: m.content })),
+          sessionContext,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") { streamDone = true; break; }
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) upsert(content);
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) upsert(content);
+          } catch {}
+        }
+      }
+    } catch (err: any) {
+      upsert(`\n\n⚠️ Error: ${err.message}`);
+    } finally {
+      setIsStreaming(false);
     }
   };
+
+  const copyMsg = (content: string, idx: number) => {
+    navigator.clipboard.writeText(content);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  // Resize handler
+  const onMouseDown = useCallback(() => {
+    resizingRef.current = true;
+    const onMove = (e: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const pct = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+      setDashboardWidth(Math.max(25, Math.min(75, pct)));
+    };
+    const onUp = () => {
+      resizingRef.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
+
+  const suggestions = [
+    "Scan Iran comprehensive",
+    "Scan United States security",
+    "Scan China economic",
+    "Analyze the Demiurgic energy patterns in the Middle East",
+    "What historical empire collapse pattern matches the current US trajectory?",
+    "Apply the Thucydides Trap framework to US-China relations",
+  ];
 
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="shrink-0 border-b border-border/[0.06] px-6 py-4 flex items-center justify-between backdrop-blur-md bg-background/40">
+      <div className="shrink-0 border-b border-border/[0.06] px-4 py-3 flex items-center justify-between backdrop-blur-md bg-background/40">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-foreground/[0.04] backdrop-blur-sm border border-border/[0.08] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-foreground/[0.04] border border-border/[0.08] flex items-center justify-center">
             <Brain className="h-4 w-4 text-foreground/60" />
           </div>
           <div>
             <h1 className="text-sm font-light tracking-[0.12em] text-foreground/90">AXRLEN</h1>
-            <p className="text-[9px] text-muted-foreground/40 tracking-[0.2em] uppercase">Predictive Intelligence</p>
+            <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase">9-Domain Predictive Intelligence</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setView("sessions")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${view === "sessions" ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"}`}>
+          {activeSession && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03]">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60" />
+              <span className="text-[9px] text-foreground/50 max-w-[200px] truncate">{activeSession.title}</span>
+              <span className="text-[8px] text-foreground/40">{activeSession.confidenceScore}%</span>
+            </div>
+          )}
+          <button onClick={() => setShowSessions(!showSessions)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${showSessions ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"}`}>
             <Clock className="h-3 w-3" /> Sessions
           </button>
-          <button onClick={() => setView("new")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${view === "new" ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"}`}>
-            <Plus className="h-3 w-3" /> New Scan
-          </button>
-          {activeSession && (
-            <button onClick={() => setView("analysis")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${view === "analysis" ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"}`}>
-              <Zap className="h-3 w-3" /> Analysis
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto">
-        {view === "sessions" && (
-          <div className="p-6 max-w-4xl mx-auto space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40">Prediction Sessions</h2>
-              <button onClick={() => setView("new")}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-border/[0.1] bg-foreground/[0.04] text-[10px] text-foreground/60 hover:bg-foreground/[0.08] transition-all">
-                <Plus className="h-3 w-3" /> New Scan
-              </button>
-            </div>
+      {/* Sessions overlay */}
+      {showSessions && (
+        <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border/[0.06]">
+            <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">Prediction Sessions</h2>
+            <button onClick={() => setShowSessions(false)} className="p-1.5 rounded-lg hover:bg-foreground/[0.06]">
+              <X className="h-4 w-4 text-muted-foreground/40" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto p-4 space-y-2 max-w-3xl mx-auto w-full">
             {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-5 w-5 text-muted-foreground/30 animate-spin" />
-              </div>
+              <div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 text-muted-foreground/30 animate-spin" /></div>
             ) : sessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-foreground/[0.03] border border-border/[0.08] flex items-center justify-center">
-                  <Globe className="h-7 w-7 text-muted-foreground/20" />
-                </div>
-                <p className="text-sm font-light text-foreground/50">No prediction sessions yet</p>
-                <p className="text-[10px] text-muted-foreground/30">Start a new global scan to generate predictions</p>
-                <button onClick={() => setView("new")}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-foreground/[0.06] border border-border/[0.1] text-[11px] text-foreground/60 hover:bg-foreground/[0.1] transition-all">
-                  <Zap className="h-3.5 w-3.5" /> Launch Scan
+              <div className="flex flex-col items-center py-20 gap-3">
+                <Globe className="h-8 w-8 text-muted-foreground/20" />
+                <p className="text-[11px] text-foreground/40">No sessions yet — type "Scan [region]" in chat to begin</p>
+              </div>
+            ) : sessions.map(s => (
+              <div key={s.id} className="flex items-center justify-between p-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-all group">
+                <button onClick={() => openSession(s)} className="flex items-center gap-3 flex-1 text-left">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${s.status === "complete" ? "bg-emerald-400/60" : "bg-amber-400/60 animate-pulse"}`} />
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-foreground/70 truncate">{s.title}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-[8px] text-muted-foreground/30">{s.createdAt.toLocaleDateString()}</span>
+                      {s.confidenceScore != null && <span className="text-[8px] text-foreground/40">{s.confidenceScore}%</span>}
+                      {s.predictions && <span className="text-[8px] text-foreground/40">{Array.isArray(s.predictions) ? s.predictions.length : 0} predictions</span>}
+                    </div>
+                  </div>
+                </button>
+                <button onClick={() => deleteSession(s.id)}
+                  className="p-2 rounded-lg hover:bg-foreground/[0.06] opacity-0 group-hover:opacity-100 transition-all">
+                  <Trash2 className="h-3 w-3 text-muted-foreground/30 hover:text-red-400/60" />
                 </button>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {sessions.map(s => (
-                  <div key={s.id} className="flex items-center justify-between p-4 rounded-2xl border border-border/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-all group">
-                    <button onClick={() => { setActiveSession(s); setView("analysis"); }} className="flex items-center gap-3 flex-1 text-left">
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${s.status === "complete" ? severityColor(s.threatAssessment?.overallThreatLevel || "low") : s.status === "processing" ? "bg-yellow-400/60 animate-pulse" : "bg-red-400/60"}`} />
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-light text-foreground/70 truncate">{s.title}</p>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[8px] text-muted-foreground/30">{s.createdAt.toLocaleDateString()}</span>
-                          {s.region && <span className="text-[8px] text-muted-foreground/40">{s.region}</span>}
-                          {s.confidenceScore != null && <span className="text-[8px] text-foreground/40">{s.confidenceScore}% confidence</span>}
-                          {s.predictions && <span className="text-[8px] text-foreground/40">{Array.isArray(s.predictions) ? s.predictions.length : 0} predictions</span>}
-                        </div>
-                      </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main content: Chat left | Dashboard right */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* ── AUREON Chat (left) ── */}
+        <div className="flex flex-col" style={{ width: activeSession ? `${100 - dashboardWidth}%` : "100%" }}>
+          {/* Messages */}
+          <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-3 relative">
+            {messages.length === 0 && !isScanning && (
+              <div className="flex flex-col items-center justify-center h-full gap-6 max-w-md mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-foreground/[0.03] border border-border/[0.08] flex items-center justify-center">
+                  <Brain className="h-7 w-7 text-foreground/20" />
+                </div>
+                <div className="text-center space-y-2">
+                  <h2 className="text-sm font-light text-foreground/60 tracking-wide">AXRLEN Intelligence</h2>
+                  <p className="text-[10px] text-muted-foreground/30 leading-relaxed max-w-sm">
+                    9-domain predictive engine combining live data, occultism, history, religion, war strategy, philosophy, psychology, economics, and astronomical cycles.
+                  </p>
+                  <p className="text-[9px] text-muted-foreground/25 mt-3">
+                    Type <span className="text-foreground/40 font-medium">"Scan [region]"</span> to start a prediction scan, or ask any question.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-1.5 w-full max-w-sm">
+                  {suggestions.map((s, i) => (
+                    <button key={i} onClick={() => setInput(s)}
+                      className="w-full text-left px-3 py-2 rounded-xl border border-border/[0.08] bg-foreground/[0.02] text-[10px] text-foreground/45 hover:bg-foreground/[0.05] transition-all">
+                      {s}
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
-                      className="p-2 rounded-lg hover:bg-foreground/[0.06] opacity-0 group-hover:opacity-100 transition-all">
-                      <Trash2 className="h-3 w-3 text-muted-foreground/30 hover:text-red-400/60" />
-                    </button>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* Scan progress */}
+            {isScanning && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/[0.08] bg-foreground/[0.02]">
+                <Loader2 className="h-4 w-4 animate-spin text-foreground/40 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-[10px] text-foreground/60">{scanProgress}</p>
+                  <div className="mt-2 h-1 rounded-full bg-foreground/[0.04] overflow-hidden">
+                    <div className="h-full bg-foreground/20 rounded-full animate-pulse" style={{ width: "65%" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {messages.map((m, i) => {
+              if (m.role === "system") {
+                return (
+                  <div key={i} className="flex justify-center">
+                    <div className="max-w-[85%] px-4 py-2.5 rounded-xl border border-border/[0.08] bg-foreground/[0.02] text-[10px] text-foreground/50">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
+                  <div className={`relative max-w-[85%] rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed ${
+                    m.role === "user"
+                      ? "bg-foreground/[0.08] text-foreground/80"
+                      : "bg-foreground/[0.03] border border-border/[0.08] text-foreground/70"
+                  }`}>
+                    {m.role === "assistant" ? (
+                      <div className="prose prose-sm prose-invert max-w-none select-text [&_p]:mb-2 [&_p]:last:mb-0 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[10px] [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:text-[10px] [&_ul]:space-y-1 [&_li]:text-[11px] [&_h1]:text-[13px] [&_h2]:text-[12px] [&_h3]:text-[11px] [&_h3]:font-medium [&_h3]:text-foreground/70 [&_strong]:text-foreground/80 [&_blockquote]:border-l-foreground/20 [&_blockquote]:text-foreground/50">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <span className="select-text">{m.content}</span>
+                    )}
+                    <div className="flex items-center justify-end mt-1">
+                      <button onClick={() => copyMsg(m.content, i)}
+                        className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition p-0.5" title="Copy">
+                        {copiedIdx === i ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
+              <div className="flex items-center gap-2 px-3 py-2">
+                <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
+                <span className="text-[9px] text-muted-foreground/30">AUREON analyzing across 9 domains...</span>
+              </div>
+            )}
+
+            <div ref={endRef} />
+
+            {showScrollBtn && (
+              <button onClick={() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); setAutoScroll(true); setShowScrollBtn(false); }}
+                className="sticky bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-foreground/[0.1] text-[9px] text-foreground/50 shadow-lg hover:bg-foreground/[0.15] transition z-10">
+                <ArrowDown className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="shrink-0 p-3 border-t border-border/[0.06]">
+            <div className="flex gap-2">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder='Ask AUREON anything, or type "Scan [region]" to begin...'
+                rows={1}
+                className="flex-1 bg-foreground/[0.03] border border-border/[0.08] rounded-xl px-3 py-2.5 text-[11px] text-foreground/70 placeholder:text-muted-foreground/25 outline-none focus:border-foreground/[0.15] transition-all resize-none min-h-[38px] max-h-[120px]"
+                disabled={isStreaming || isScanning}
+                style={{ height: "auto" }}
+                onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={isStreaming || isScanning || !input.trim()}
+                className="p-2.5 rounded-xl bg-foreground/[0.06] border border-border/[0.08] hover:bg-foreground/[0.1] disabled:opacity-30 transition-all self-end">
+                <Send className="h-3.5 w-3.5 text-foreground/50" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Resize handle ── */}
+        {activeSession && (
+          <div onMouseDown={onMouseDown}
+            className="w-[3px] shrink-0 cursor-col-resize bg-border/[0.08] hover:bg-foreground/[0.15] transition-colors relative group">
+            <div className="absolute inset-y-0 -left-1 -right-1" />
           </div>
         )}
-        {view === "new" && <AxrlenNewScan onComplete={handleScanComplete} />}
-        {view === "analysis" && activeSession && <AxrlenAnalysis session={activeSession} />}
+
+        {/* ── Dashboard (right) ── */}
+        {activeSession && (
+          <div className="overflow-hidden" style={{ width: `${dashboardWidth}%` }}>
+            <AxrlenDashboard session={activeSession} />
+          </div>
+        )}
       </div>
     </div>
   );
