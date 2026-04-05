@@ -244,6 +244,16 @@ const ZeeionWasteFraud = () => {
           <h2 className="text-xs font-light tracking-wider text-foreground/60">Waste & Fraud Detection</h2>
           <p className="text-[8px] text-muted-foreground/30 mt-0.5">AI-powered forensic analysis of government spending</p>
         </div>
+        {wasteItems.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setViewMode("scan")} className={`px-3 py-1.5 rounded-lg text-[9px] transition-all ${viewMode === "scan" ? "bg-foreground/[0.08] border border-foreground/[0.12] text-foreground/60" : "border border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
+              <Search className="h-3 w-3 inline mr-1" />Scan Results
+            </button>
+            <button onClick={() => setViewMode("tracker")} className={`px-3 py-1.5 rounded-lg text-[9px] transition-all ${viewMode === "tracker" ? "bg-foreground/[0.08] border border-foreground/[0.12] text-foreground/60" : "border border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
+              <BarChart3 className="h-3 w-3 inline mr-1" />Waste Tracker
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Country Selector + Run */}
