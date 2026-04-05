@@ -683,7 +683,7 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
                       </div>
                     )}
 
-                    {/* Price Comparison with Breakdown */}
+                    {/* Price Comparison with Breakdown + Chart */}
                     {recordDrill.priceComparison && (
                       <div className="rounded-xl border border-border/[0.08] bg-foreground/[0.02] p-4 space-y-4">
                         <p className="text-[8px] uppercase tracking-[0.15em] text-muted-foreground/30 flex items-center gap-1.5"><Scale className="h-3 w-3" /> Price Comparison & Market Analysis</p>
@@ -697,10 +697,58 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
                         </div>
                         <p className="text-[9px] text-red-400/60">Overcharged by {recordDrill.priceComparison.overchargePercent}%</p>
 
+                        {/* Price Comparison Bar Chart */}
+                        {(() => {
+                          const chartData = [
+                            { name: "Current", value: recordDrill.priceComparison!.currentPrice, fill: "hsl(0, 70%, 55%)" },
+                            { name: "Market Avg", value: recordDrill.priceComparison!.marketAverage, fill: "hsl(45, 70%, 55%)" },
+                            { name: "Best Price", value: recordDrill.priceComparison!.bestMarketPrice, fill: "hsl(150, 60%, 45%)" },
+                          ];
+                          if (recordDrill.priceComparison!.comparableSources?.length) {
+                            recordDrill.priceComparison!.comparableSources.slice(0, 3).forEach(s => {
+                              chartData.push({ name: s.name.length > 14 ? s.name.slice(0, 14) + "…" : s.name, value: s.price, fill: "hsl(210, 50%, 55%)" });
+                            });
+                          }
+                          if (recordDrill.priceComparison!.internationalBenchmarks?.length) {
+                            recordDrill.priceComparison!.internationalBenchmarks.forEach(b => {
+                              chartData.push({ name: b.country, value: b.price, fill: "hsl(270, 40%, 55%)" });
+                            });
+                          }
+                          return (
+                            <div className="h-48 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 4, left: 8 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,30%)" strokeOpacity={0.15} />
+                                  <XAxis dataKey="name" tick={{ fontSize: 8, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} />
+                                  <YAxis tick={{ fontSize: 8, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : `${v}`} />
+                                  <Tooltip formatter={(v: number) => fmtVal(v)} contentStyle={{ background: "hsl(0,0%,10%)", border: "1px solid hsl(0,0%,20%)", borderRadius: 8, fontSize: 10 }} labelStyle={{ fontSize: 9, color: "hsl(0,0%,60%)" }} />
+                                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                    {chartData.map((entry, idx) => <Cell key={idx} fill={entry.fill} fillOpacity={0.7} />)}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          );
+                        })()}
+
                         {/* Cost Breakdown */}
                         {recordDrill.priceComparison.breakdown && recordDrill.priceComparison.breakdown.length > 0 && (
                           <div>
                             <p className="text-[7px] uppercase text-muted-foreground/30 mb-2">Cost Breakdown by Component</p>
+                            {/* Breakdown comparison chart */}
+                            <div className="h-40 w-full mb-3">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={recordDrill.priceComparison.breakdown.map(b => ({ name: b.component.length > 16 ? b.component.slice(0, 16) + "…" : b.component, current: b.currentCost, market: b.marketCost, variance: b.variance }))} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(0,0%,30%)" strokeOpacity={0.15} />
+                                  <XAxis dataKey="name" tick={{ fontSize: 7, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} />
+                                  <YAxis tick={{ fontSize: 7, fill: "hsl(0,0%,55%)" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `${(v/1e3).toFixed(0)}K` : `${v}`} />
+                                  <Tooltip formatter={(v: number) => fmtVal(v)} contentStyle={{ background: "hsl(0,0%,10%)", border: "1px solid hsl(0,0%,20%)", borderRadius: 8, fontSize: 10 }} />
+                                  <Bar dataKey="current" name="Current Cost" fill="hsl(0, 65%, 55%)" fillOpacity={0.6} radius={[3, 3, 0, 0]} />
+                                  <Bar dataKey="market" name="Market Cost" fill="hsl(150, 55%, 45%)" fillOpacity={0.6} radius={[3, 3, 0, 0]} />
+                                  <Line type="monotone" dataKey="variance" name="Variance" stroke="hsl(45, 80%, 55%)" strokeWidth={2} dot={{ r: 3 }} />
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                            </div>
                             <div className="space-y-1.5">
                               {recordDrill.priceComparison.breakdown.map((b, i) => (
                                 <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-foreground/[0.02] border border-border/[0.04]">
