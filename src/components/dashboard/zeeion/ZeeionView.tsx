@@ -284,9 +284,5 @@ const ZeeionView = () => {
       </div>
     </div>
   );
-};
-    </div>
-  );
-};
 
 export default ZeeionView;
