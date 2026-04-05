@@ -221,6 +221,43 @@ function buildLiveDataContext(profile: any, countryName: string): string {
     }
   }
 
+  // ── Country-specific national datasets (CKAN portals, Vulekamali, etc.) ──
+  if (profile.nationalSource) {
+    lines.push(`\n[${profile.nationalSource}] National Government Data:`);
+  }
+  if (profile.nationalDatasets?.length) {
+    lines.push(`  Available fiscal/budget datasets from national portal (${profile.nationalDatasets.length} found):`);
+    profile.nationalDatasets.slice(0, 15).forEach((d: any) => {
+      lines.push(`  • ${d.title}${d.organization ? ` (${d.organization})` : ""}`);
+      if (d.notes) lines.push(`    ${d.notes}`);
+      if (d.resources?.length) {
+        d.resources.forEach((r: any) => {
+          if (r.url) lines.push(`    [${r.format || "FILE"}] ${r.url}`);
+        });
+      }
+    });
+  }
+  // South Africa departments & budget
+  if (profile.nationalDepartments?.length) {
+    lines.push("\n  Government Departments:");
+    profile.nationalDepartments.slice(0, 15).forEach((d: any) => {
+      lines.push(`  • ${d.name}${d.government ? ` (${d.government})` : ""}${d.budget ? ` — Budget: ${fmtUsd(d.budget)}` : ""}`);
+    });
+  }
+  if (profile.nationalSpending?.length) {
+    lines.push("\n  Budget Summaries:");
+    profile.nationalSpending.slice(0, 10).forEach((s: any) => {
+      lines.push(`  • ${s.name}: ${s.amount ? fmtUsd(s.amount) : "N/A"}${s.year ? ` (${s.year})` : ""}`);
+    });
+  }
+  // Nigeria AfDB projects
+  if (profile.nationalExtra?.afdbProjects?.length) {
+    lines.push("\n  [African Development Bank] Development Projects:");
+    profile.nationalExtra.afdbProjects.slice(0, 10).forEach((p: any) => {
+      lines.push(`  • ${p.title || p.name}: ${p.amount ? fmtUsd(p.amount) : "N/A"} ${p.currency || ""}`);
+    });
+  }
+
   // Peer comparison
   const peers = profile.peerComparison;
   if (peers?.debt && Object.keys(peers.debt).length) {
