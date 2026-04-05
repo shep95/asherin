@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, FileText, CheckCircle, AlertTriangle, Loader2, X, Clock, BarChart3 } from "lucide-react";
+import { Upload, FileText, CheckCircle, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { AnalysisResult } from "./ZeeionView";
@@ -11,7 +11,7 @@ interface Props {
 }
 
 const ACCEPTED_EXTENSIONS = [".xlsx", ".xls", ".csv", ".pdf", ".json", ".xml"];
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Props) => {
   const { toast } = useToast();
@@ -22,7 +22,6 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
   const [progressLabel, setProgressLabel] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [currency, setCurrency] = useState("USD");
-  const [fiscalStart, setFiscalStart] = useState("January");
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -63,7 +62,6 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
     setProgressLabel("Reading file data...");
 
     try {
-      // Read file as text/base64
       const reader = new FileReader();
       const fileContent = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
@@ -76,20 +74,19 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
       });
 
       setProgress(30);
-      setProgressLabel("Uploading to analysis engine...");
+      setProgressLabel("AUREON analyzing financial patterns...");
 
-      // Send to edge function
       const { data, error } = await supabase.functions.invoke("zeeion-analyze", {
         body: {
           fileName: selectedFile.name,
           fileType: selectedFile.name.split(".").pop()?.toLowerCase(),
-          fileContent: fileContent.substring(0, 100000), // Limit content sent
+          fileContent: fileContent.substring(0, 100000),
           currency,
-          fiscalStart,
         },
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setProgress(80);
       setProgressLabel("Generating insights...");
@@ -149,7 +146,7 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
               </span>
             ))}
           </div>
-          <p className="text-[8px] text-muted-foreground/30 mt-1">Max file size: 50MB</p>
+          <p className="text-[8px] text-muted-foreground/30 mt-1">Max file size: 50MB -- AUREON auto-detects date ranges</p>
         </div>
       </div>
 
@@ -169,33 +166,23 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
             </button>
           </div>
 
-          {/* Settings */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-1 block">Currency</label>
-              <select
-                value={currency}
-                onChange={e => setCurrency(e.target.value)}
-                className="w-full bg-foreground/[0.04] border border-border/[0.08] rounded-xl px-3 py-2 text-[11px] text-foreground/70 focus:outline-none"
-              >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (&euro;)</option>
-                <option value="GBP">GBP (&pound;)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-1 block">Fiscal Year Start</label>
-              <select
-                value={fiscalStart}
-                onChange={e => setFiscalStart(e.target.value)}
-                className="w-full bg-foreground/[0.04] border border-border/[0.08] rounded-xl px-3 py-2 text-[11px] text-foreground/70 focus:outline-none"
-              >
-                {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
+          {/* Currency only - fiscal start auto-detected */}
+          <div>
+            <label className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-1 block">Currency</label>
+            <select
+              value={currency}
+              onChange={e => setCurrency(e.target.value)}
+              className="w-full bg-foreground/[0.04] border border-border/[0.08] rounded-xl px-3 py-2 text-[11px] text-foreground/70 focus:outline-none"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (&euro;)</option>
+              <option value="GBP">GBP (&pound;)</option>
+              <option value="AUD">AUD (A$)</option>
+              <option value="CAD">CAD (C$)</option>
+            </select>
           </div>
+
+          <p className="text-[8px] text-muted-foreground/30">AUREON will automatically detect the fiscal period from your data</p>
 
           <button
             onClick={processFile}
@@ -206,7 +193,7 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
         </div>
       )}
 
-      {/* Processing Progress */}
+      {/* Processing */}
       {uploading && (
         <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] backdrop-blur-sm p-6 space-y-4">
           <div className="flex items-center gap-3">
@@ -216,7 +203,7 @@ const ZeeionUpload = ({ onAnalysisComplete, pastAnalyses, onViewAnalysis }: Prop
           <div className="w-full h-1.5 rounded-full bg-foreground/[0.06] overflow-hidden">
             <div className="h-full rounded-full bg-foreground/20 transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-[9px] text-muted-foreground/30 text-center">AI is analyzing your financial data — this may take a moment</p>
+          <p className="text-[9px] text-muted-foreground/30 text-center">AUREON is running all analytical brains on your data</p>
         </div>
       )}
 
