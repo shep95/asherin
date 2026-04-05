@@ -195,6 +195,9 @@ const ZeeionWasteFraud = () => {
     setResult(null);
     setChatMsgs([]);
     setAnalysisError(null);
+    setPatternDetails({});
+    setExpandedPattern(null);
+    setWasteItems([]);
     try {
       // Fetch gov data
       const calls = [
