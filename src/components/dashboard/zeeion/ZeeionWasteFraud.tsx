@@ -487,7 +487,7 @@ const ZeeionWasteFraud = () => {
                   const expanded = expandedPattern === i;
                   return (
                     <div key={i} className={`w-full text-left p-4 rounded-xl border transition-all ${expanded ? cfg.bg : "bg-foreground/[0.03] border-border/[0.05] hover:bg-foreground/[0.06]"}`}>
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-3 cursor-pointer" onClick={() => setExpandedPattern(expanded ? null : i)}>
                         <span className={`mt-0.5 ${cfg.color}`}>{cfg.icon}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
