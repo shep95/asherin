@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Globe, Loader2, TrendingUp, TrendingDown, DollarSign, Users, Shield, GraduationCap, Heart, BarChart3, RefreshCw, ChevronRight, Sparkles, Send, X, Search, Bot, PieChart } from "lucide-react";
+import { Globe, Loader2, TrendingUp, TrendingDown, DollarSign, Users, Shield, GraduationCap, Heart, BarChart3, RefreshCw, ChevronRight, Sparkles, Send, X, Search, Bot, PieChart, AlertTriangle, FileText, Download, ArrowRight, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import ReactMarkdown from "react-markdown";
@@ -43,12 +43,12 @@ const INDICATORS = [
 
 const COLORS = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#14b8a6", "#f97316", "#6366f1"];
 
-type SubTab = "overview" | "comparison" | "usa_detail" | "waste_fraud" | "jobs" | "budget_optimize" | "aureon";
+type SubTab = "landing" | "overview" | "comparison" | "usa_detail" | "waste_fraud" | "jobs" | "budget_optimize" | "aureon";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
 const ZeeionGovData = () => {
-  const [subTab, setSubTab] = useState<SubTab>("overview");
+  const [subTab, setSubTab] = useState<SubTab>("landing");
   const [selectedCountry, setSelectedCountry] = useState("US");
   const [wbData, setWbData] = useState<any>(null);
   const [usaAgencies, setUsaAgencies] = useState<any>(null);
@@ -195,6 +195,7 @@ const ZeeionGovData = () => {
 
   /* ── Render ── */
   const tabs: { id: SubTab; label: string; icon?: React.ReactNode }[] = [
+    { id: "landing", label: "Home", icon: <Zap className="h-3 w-3" /> },
     { id: "overview", label: "Overview", icon: <Globe className="h-3 w-3" /> },
     { id: "comparison", label: "Compare", icon: <BarChart3 className="h-3 w-3" /> },
     { id: "usa_detail", label: "USA Deep Dive", icon: <DollarSign className="h-3 w-3" /> },
@@ -215,6 +216,140 @@ const ZeeionGovData = () => {
           </button>
         ))}
       </div>
+
+      {/* ═══ LANDING ═══ */}
+      {subTab === "landing" && (
+        <div className="space-y-8">
+          {/* Hero */}
+          <div className="relative rounded-3xl border border-border/[0.08] bg-gradient-to-br from-foreground/[0.03] to-foreground/[0.01] overflow-hidden p-8 md:p-12">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/[0.03] rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <Globe className="h-5 w-5 text-primary/50" />
+                <span className="text-[8px] uppercase tracking-[0.3em] text-primary/40 font-medium">Government Financial Intelligence</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-extralight text-foreground/80 tracking-tight leading-tight mb-3">
+                Analyze Government Spending.<br />
+                <span className="text-foreground/40">Detect Waste. Optimize Budgets.</span>
+              </h1>
+              <p className="text-[11px] text-muted-foreground/40 font-light max-w-xl leading-relaxed mb-8">
+                Real-time access to public finance data from 20+ governments worldwide. AI-powered forensic analysis identifies billions in wasteful spending, fraud patterns, and automation opportunities.
+              </p>
+
+              {/* Country Quick Select */}
+              <div className="mb-6">
+                <p className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground/30 mb-3">Select a country to begin</p>
+                <div className="flex flex-wrap gap-2">
+                  {COUNTRIES.slice(0, 10).map(c => (
+                    <button
+                      key={c.code}
+                      onClick={() => {
+                        setSelectedCountry(c.code);
+                        setSubTab("overview");
+                      }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.06] hover:border-foreground/[0.15] transition-all group"
+                    >
+                      <span className="text-base">{c.flag}</span>
+                      <span className="text-[10px] text-foreground/50 group-hover:text-foreground/70 font-light">{c.name}</span>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground/20 group-hover:text-foreground/40 transition-colors" />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setSubTab("overview")}
+                  className="mt-2 text-[9px] text-primary/40 hover:text-primary/60 transition-colors"
+                >
+                  View all {COUNTRIES.length} countries →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Action Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                icon: <AlertTriangle className="h-5 w-5 text-red-400/50" />,
+                title: "Waste & Fraud Detection",
+                desc: "AI forensic scan identifies duplicate payments, ghost employees, overpriced contracts, and shell companies",
+                action: "Run Forensic Scan",
+                tab: "waste_fraud" as SubTab,
+                accent: "border-red-500/10 hover:border-red-500/20",
+              },
+              {
+                icon: <Bot className="h-5 w-5 text-primary/50" />,
+                title: "Workforce Optimization",
+                desc: "Identify automatable government positions and calculate savings from AI-driven automation",
+                action: "Scan for Automation",
+                tab: "jobs" as SubTab,
+                accent: "border-primary/10 hover:border-primary/20",
+              },
+              {
+                icon: <PieChart className="h-5 w-5 text-emerald-400/50" />,
+                title: "Budget Optimization",
+                desc: "AI-recommended budget reallocations based on OECD benchmarks and efficiency analysis",
+                action: "Optimize Budget",
+                tab: "budget_optimize" as SubTab,
+                accent: "border-emerald-500/10 hover:border-emerald-500/20",
+              },
+            ].map(card => (
+              <button
+                key={card.title}
+                onClick={() => setSubTab(card.tab)}
+                className={`text-left p-6 rounded-2xl border bg-foreground/[0.02] hover:bg-foreground/[0.04] transition-all group ${card.accent}`}
+              >
+                <div className="mb-4">{card.icon}</div>
+                <h3 className="text-[11px] font-light text-foreground/70 mb-2">{card.title}</h3>
+                <p className="text-[9px] text-muted-foreground/35 font-light leading-relaxed mb-4">{card.desc}</p>
+                <span className="inline-flex items-center gap-1.5 text-[9px] text-foreground/40 group-hover:text-foreground/60 transition-colors">
+                  {card.action} <ArrowRight className="h-3 w-3" />
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Value Proposition */}
+          <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-6">
+            <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-4">Who Uses This</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                { icon: "🏛️", label: "Government Oversight", desc: "Automated fraud detection" },
+                { icon: "📰", label: "News Organizations", desc: "Data-driven investigations" },
+                { icon: "⚖️", label: "Opposition Politicians", desc: "Evidence-backed analysis" },
+                { icon: "🏢", label: "Consulting Firms", desc: "Sell savings to governments" },
+                { icon: "👥", label: "Taxpayer Advocates", desc: "Automated watchdog" },
+              ].map(u => (
+                <div key={u.label} className="text-center p-3 rounded-xl bg-foreground/[0.02]">
+                  <span className="text-lg">{u.icon}</span>
+                  <p className="text-[9px] text-foreground/50 mt-1.5 font-light">{u.label}</p>
+                  <p className="text-[7px] text-muted-foreground/30 mt-0.5">{u.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Data Sources */}
+          <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-6">
+            <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-4">Live Data Sources</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { name: "USASpending.gov", type: "Federal spending, contracts, grants", status: "live" },
+                { name: "US Treasury", type: "Debt, revenue, fiscal data", status: "live" },
+                { name: "World Bank", type: "200+ countries, GDP, expenditure", status: "live" },
+                { name: "IMF", type: "Government finance statistics", status: "live" },
+              ].map(s => (
+                <div key={s.name} className="flex items-start gap-2 p-3 rounded-xl bg-foreground/[0.02]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/60 mt-1.5 shrink-0" />
+                  <div>
+                    <p className="text-[9px] text-foreground/60 font-light">{s.name}</p>
+                    <p className="text-[7px] text-muted-foreground/30">{s.type}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ OVERVIEW ═══ */}
       {subTab === "overview" && (
