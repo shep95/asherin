@@ -143,3 +143,6 @@ verify_jwt = false
 
 [functions.cross-analyze]
 verify_jwt = false
+
+[functions.axrlen-analyze]
+verify_jwt = false
