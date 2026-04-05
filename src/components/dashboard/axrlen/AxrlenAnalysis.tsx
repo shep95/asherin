@@ -402,6 +402,8 @@ const AxrlenAnalysis = ({ session }: Props) => {
         )}
       </div>
     </div>
+    {chatOpen && <AxrlenChat session={session} onClose={() => setChatOpen(false)} />}
+    </div>
   );
 };
 
