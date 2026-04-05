@@ -183,9 +183,11 @@ const ZeeionWasteFraud = () => {
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           setResult(parsed);
+          // Convert to trackable waste items
+          const items = convertToWasteItems(parsed);
+          setWasteItems(items);
         }
       } catch {
-        // Fallback: show as executive summary
         setResult({
           totalWaste: 0,
           percentOfBudget: 0,
