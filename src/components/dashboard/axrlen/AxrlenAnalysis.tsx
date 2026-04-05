@@ -92,7 +92,8 @@ const AxrlenAnalysis = ({ session }: Props) => {
   const divergences = session.timelineDivergences || [];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full">
+    <div className="flex flex-col flex-1 min-w-0">
       {/* Tab bar */}
       <div className="shrink-0 border-b border-border/[0.06] px-4 flex items-center gap-1 overflow-x-auto scrollbar-hide">
         {TABS.map(t => {
