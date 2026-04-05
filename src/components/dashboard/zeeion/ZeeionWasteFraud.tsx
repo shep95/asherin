@@ -118,8 +118,56 @@ function buildLiveDataContext(profile: any, countryName: string): string {
   // USA agencies
   if (profile.usaAgencies?.length) {
     lines.push("\n[USASpending.gov] Top Federal Agencies by Budget Authority:");
-    profile.usaAgencies.slice(0, 10).forEach((a: any) => {
-      lines.push(`  ${a.name} (${a.abbreviation}): ${fmtUsd(a.budgetAuthority)}`);
+    profile.usaAgencies.slice(0, 15).forEach((a: any) => {
+      lines.push(`  ${a.name} (${a.abbreviation}): Budget=${fmtUsd(a.budgetAuthority)}, Obligated=${fmtUsd(a.obligated || 0)}, Outlays=${fmtUsd(a.outlays || 0)}`);
+    });
+  }
+
+  // Treasury — Statements of Net Cost (agency-level costs from US Financial Report)
+  if (profile.usaNetCost?.length) {
+    lines.push("\n[US Treasury – Financial Report] Statements of Net Cost by Agency (billions):");
+    profile.usaNetCost.slice(0, 15).forEach((a: any) => {
+      lines.push(`  ${a.agency} (FY${a.fiscalYear}): Gross Cost=$${a.grossCostBil}B, Revenue=$${a.earnedRevenueBil}B, Net Cost=$${a.netCostBil}B`);
+    });
+  }
+
+  // Budget functions
+  if (profile.usaBudgetFunctions?.length) {
+    lines.push(`\n[USASpending.gov] Federal Spending by Budget Function (Total: ${fmtUsd(profile.usaTotalSpending || 0)}):`);
+    profile.usaBudgetFunctions.slice(0, 15).forEach((f: any) => {
+      lines.push(`  ${f.name}: ${fmtUsd(f.amount)} (${typeof f.percentOfTotal === "number" ? f.percentOfTotal.toFixed(1) : f.percentOfTotal}%)`);
+    });
+  }
+
+  // Top awarding agencies
+  if (profile.usaTopAwarding?.length) {
+    lines.push("\n[USASpending.gov] Top Awarding Agencies (contracts/grants):");
+    profile.usaTopAwarding.slice(0, 10).forEach((a: any) => {
+      lines.push(`  ${a.name} (${a.code}): ${fmtUsd(a.amount)}`);
+    });
+  }
+
+  // Debt timeline
+  if (profile.usaDebtTimeline?.length) {
+    lines.push("\n[US Treasury – Debt to the Penny] National Debt Timeline:");
+    profile.usaDebtTimeline.slice(0, 10).forEach((d: any) => {
+      lines.push(`  ${d.date}: Total=$${(d.totalDebt / 1e12).toFixed(3)}T, Public=$${(d.publicDebt / 1e12).toFixed(3)}T`);
+    });
+  }
+
+  // Monthly Treasury Statement summary
+  if (profile.usaMtsSummary?.length) {
+    lines.push("\n[US Treasury – Monthly Treasury Statement] Federal Receipts/Outlays:");
+    profile.usaMtsSummary.slice(0, 10).forEach((r: any) => {
+      lines.push(`  ${r.date} (FY${r.fiscalYear}): Receipts=${fmtUsd(r.receipts)}, Outlays=${fmtUsd(r.outlays)}, Deficit=${fmtUsd(Math.abs(r.deficitSurplus))}`);
+    });
+  }
+
+  // Interest rates on debt
+  if (profile.usaInterestRates?.length) {
+    lines.push("\n[US Treasury – Interest Rates] Average Interest on Federal Debt:");
+    profile.usaInterestRates.slice(0, 10).forEach((r: any) => {
+      lines.push(`  ${r.date}: ${r.securityType} = ${r.avgRate}%`);
     });
   }
 
