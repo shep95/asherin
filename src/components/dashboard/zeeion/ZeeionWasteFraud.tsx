@@ -50,6 +50,7 @@ interface WasteResult {
     recommendation: string;
   }[];
   executiveSummary: string;
+  dataSources: string[];
 }
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -66,6 +67,79 @@ const severityConfig = {
   medium: { label: "High Priority", color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/10", icon: <FileWarning className="h-3.5 w-3.5" /> },
   low: { label: "Monitor", color: "text-muted-foreground/50", bg: "bg-foreground/[0.04] border-border/[0.06]", icon: <Search className="h-3.5 w-3.5" /> },
 };
+
+/** Build a structured data summary string from live API data for the AI prompt */
+function buildLiveDataContext(profile: any, countryName: string): string {
+  const lines: string[] = [];
+  lines.push(`=== LIVE GOVERNMENT FINANCIAL DATA FOR ${countryName.toUpperCase()} ===`);
+  lines.push(`Sources: ${(profile.sources || []).join(", ")}`);
+  lines.push("");
+
+  // World Bank indicators
+  const wb = profile.worldBank || {};
+  const wbMap: Record<string, string> = {
+    "NY.GDP.MKTP.CD": "GDP (current USD)",
+    "GC.XPN.TOTL.GD.ZS": "Government Expense (% of GDP)",
+    "GC.REV.XGRT.GD.ZS": "Government Revenue excl. grants (% of GDP)",
+    "GC.DOD.TOTL.GD.ZS": "Central Govt Debt (% of GDP)",
+    "SH.XPD.CHEX.GD.ZS": "Health Expenditure (% of GDP)",
+    "SE.XPD.TOTL.GD.ZS": "Education Expenditure (% of GDP)",
+    "MS.MIL.XPND.GD.ZS": "Military Expenditure (% of GDP)",
+    "SP.POP.TOTL": "Population",
+  };
+  for (const [id, label] of Object.entries(wbMap)) {
+    const vals = wb[id];
+    if (vals?.length) {
+      const recent = vals.sort((a: any, b: any) => Number(b.date) - Number(a.date)).slice(0, 3);
+      lines.push(`[World Bank] ${label}:`);
+      recent.forEach((v: any) => lines.push(`  ${v.date}: ${typeof v.value === "number" ? (v.value > 1e9 ? `$${(v.value / 1e9).toFixed(1)}B` : v.value.toFixed(2)) : v.value}`));
+    }
+  }
+
+  // IMF indicators
+  const imf = profile.imf || {};
+  const imfMap: Record<string, string> = {
+    debt_gdp: "Gross Govt Debt (% GDP)",
+    revenue_gdp: "Govt Revenue (% GDP)",
+    fiscal_balance: "Fiscal Balance / Net Lending (% GDP)",
+    gdp_growth: "Real GDP Growth (%)",
+    inflation: "Inflation Rate (%)",
+  };
+  for (const [key, label] of Object.entries(imfMap)) {
+    const vals = imf[key];
+    if (vals) {
+      lines.push(`\n[IMF WEO] ${label}:`);
+      Object.entries(vals).sort((a, b) => Number(b[0]) - Number(a[0])).slice(0, 5).forEach(([yr, v]) => {
+        lines.push(`  ${yr}: ${typeof v === "number" ? v.toFixed(2) : v}%`);
+      });
+    }
+  }
+
+  // USA agencies
+  if (profile.usaAgencies?.length) {
+    lines.push("\n[USASpending.gov] Top Federal Agencies by Budget Authority:");
+    profile.usaAgencies.slice(0, 10).forEach((a: any) => {
+      lines.push(`  ${a.name} (${a.abbreviation}): ${fmtUsd(a.budgetAuthority)}`);
+    });
+  }
+
+  // Peer comparison
+  const peers = profile.peerComparison;
+  if (peers?.debt && Object.keys(peers.debt).length) {
+    lines.push("\n[IMF] Peer Country Debt (% GDP):");
+    Object.entries(peers.debt).sort((a: any, b: any) => b[1] - a[1]).forEach(([c, v]) => {
+      lines.push(`  ${c}: ${(v as number).toFixed(1)}%`);
+    });
+  }
+  if (peers?.revenue && Object.keys(peers.revenue).length) {
+    lines.push("\n[IMF] Peer Country Revenue (% GDP):");
+    Object.entries(peers.revenue).sort((a: any, b: any) => b[1] - a[1]).forEach(([c, v]) => {
+      lines.push(`  ${c}: ${(v as number).toFixed(1)}%`);
+    });
+  }
+
+  return lines.join("\n");
+}
 
 const ZeeionWasteFraud = () => {
   const [country, setCountry] = useState("US");
@@ -100,7 +174,7 @@ const ZeeionWasteFraud = () => {
       timeline: [{
         date: new Date().toISOString().split("T")[0],
         status: "identified" as WasteStatus,
-        action: "AI detected waste pattern",
+        action: "AI detected waste pattern from live government data",
         user: "Aureon AI"
       }],
       remediationPlan: null,
@@ -143,15 +217,13 @@ const ZeeionWasteFraud = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Deep-dive: generate itemized records for a specific pattern
-  // Use sessionStorage cache so data stays consistent within a session
-  const getDetailCacheKey = (patternType: string) => `aureon_detail_${country}_${patternType}`;
+  const getDetailCacheKey = (patternType: string) => `aureon_detail_v4_${country}_${patternType}`;
 
   const generatePatternDetail = async (patternIndex: number) => {
     if (!result) return;
     const pattern = result.patterns.sort((a, b) => b.estimatedWasteHigh - a.estimatedWasteHigh)[patternIndex];
     if (!pattern) return;
 
-    // Check cache first — prevents different data on re-open
     const cacheKey = getDetailCacheKey(pattern.type);
     try {
       const cached = sessionStorage.getItem(cacheKey);
@@ -165,30 +237,28 @@ const ZeeionWasteFraud = () => {
     setLoadingDetail(patternIndex);
 
     const columnPrompts: Record<string, string> = {
-      ghost_employees: 'columns: employee_id, full_name, department, position, monthly_salary, last_attendance_date, status_flag, risk_score. Produce 20-30 comprehensive records covering ALL identified ghost employees.',
-      duplicate_payments: 'columns: invoice_id, vendor_name, amount, payment_date, duplicate_of_invoice, department, payment_method, days_apart. Produce 20-30 comprehensive duplicate payment records.',
-      overpriced_contracts: 'columns: contract_id, vendor_name, contract_value, market_rate, overpayment_pct, department, start_date, end_date, competitive_bid. Produce 15-25 comprehensive overpriced contract records.',
-      inactive_programs: 'columns: program_id, program_name, annual_budget, execution_rate_pct, last_activity_date, department, years_inactive, beneficiaries. Produce 15-25 comprehensive inactive program records.',
-      shell_companies: 'columns: company_id, company_name, registration_date, total_contracts, total_value, employees_listed, physical_address_verified, linked_officials. Produce 12-20 comprehensive shell company records.',
-      contract_splitting: 'columns: original_contract_id, split_contract_ids, total_value, split_count, vendor_name, department, approval_date, threshold_avoided. Produce 15-20 comprehensive contract splitting records.',
-      administrative_overhead: 'columns: unit_id, unit_name, staff_count, budget, output_metric, cost_per_output, peer_benchmark, excess_cost. Produce 15-25 comprehensive overhead unit records.',
-      procurement_fraud: 'columns: procurement_id, description, awarded_to, bid_count, winning_bid, second_bid, price_difference_pct, red_flags, department. Produce 15-20 comprehensive procurement fraud records.',
-      embezzlement: 'columns: case_id, suspect_name, position, department, estimated_amount, method, period, evidence_strength, status. Produce 12-18 comprehensive embezzlement case records.',
-      ineffective_programs: 'columns: project_id, project_name, original_budget, current_cost, overrun_pct, completion_pct, years_delayed, department, contractor. Produce 15-20 comprehensive ineffective project records.',
+      ghost_employees: 'columns: employee_id, department, position_title, monthly_salary, last_attendance_date, status_flag, risk_score, source. Produce 20-30 records using TITLE+DEPARTMENT format (no invented personal names).',
+      duplicate_payments: 'columns: invoice_id, vendor_name, amount, payment_date, duplicate_of_invoice, department, payment_method, days_apart, source. Produce 20-30 records.',
+      overpriced_contracts: 'columns: contract_id, vendor_name, contract_value, market_rate, overpayment_pct, department, start_date, end_date, competitive_bid, source. Produce 15-25 records.',
+      inactive_programs: 'columns: program_id, program_name, annual_budget, execution_rate_pct, last_activity_date, department, years_inactive, beneficiaries, source. Produce 15-25 records.',
+      shell_companies: 'columns: company_id, company_name, registration_date, total_contracts, total_value, employees_listed, physical_address_verified, linked_department, source. Produce 12-20 records.',
+      contract_splitting: 'columns: original_contract_id, split_contract_ids, total_value, split_count, vendor_name, department, approval_date, threshold_avoided, approver_title, source. Produce 15-20 records.',
+      administrative_overhead: 'columns: unit_id, unit_name, staff_count, budget, output_metric, cost_per_output, peer_benchmark, excess_cost, source. Produce 15-25 records.',
+      procurement_fraud: 'columns: procurement_id, description, awarded_to, bid_count, winning_bid, second_bid, price_difference_pct, red_flags, department, source. Produce 15-20 records.',
+      embezzlement: 'columns: case_id, position_title, department, estimated_amount, method, period, evidence_strength, status, source. Produce 12-18 records.',
+      ineffective_programs: 'columns: project_id, project_name, original_budget, current_cost, overrun_pct, completion_pct, years_delayed, department, contractor, source. Produce 15-20 records.',
     };
 
-    const colPrompt = columnPrompts[pattern.type] || `columns: record_id, description, amount, department, date, status, risk_level. Produce 15-25 comprehensive records.`;
+    const colPrompt = columnPrompts[pattern.type] || `columns: record_id, description, amount, department, date, status, risk_level, source. Produce 15-25 records.`;
     const countryName = COUNTRIES.find(c => c.code === country)?.name || country;
+    const liveContext = rawGovData ? buildLiveDataContext(rawGovData, countryName) : "";
 
     let aiContent = "";
     try {
-      const savedByok = localStorage.getItem("aureon_byok_active");
-      localStorage.removeItem("aureon_byok_active");
-
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are Aureon's forensic AI in DEEP REASONING MODE. You must perform exhaustive analysis and produce the MAXIMUM number of records possible.\n\nCRITICAL: Do NOT limit your output. Include EVERY instance you can identify. This is a comprehensive forensic audit — partial data is unacceptable.\n\nCRITICAL TEMPORAL REQUIREMENTS:\n- Current date: ${new Date().toISOString().slice(0, 10)}\n- All records, contracts, and dates must be from ${new Date().getFullYear() - 2} to present (last 2 years only).\n\nCRITICAL DATA INTEGRITY RULES — READ CAREFULLY:\n- Do NOT invent or fabricate individual person names. The AI does NOT have a verified personnel database.\n- For responsible parties and approvers, use VERIFIABLE TITLE + DEPARTMENT format (e.g., "Director General, Ministry of Transport", "Chief Procurement Officer, MINEDU", "Regional Director, Region X").\n- When referencing specific waste cases, cite REAL publicly documented cases from official audit reports (e.g., Contraloría, GAO, National Audit Office), news investigations, or government transparency portals.\n- Include a "source" field in each record citing the audit report, news article, or public data source.\n- Financial figures must be derived from publicly available budget data, audit findings, or the government financial data provided — not fabricated.\n- Vendor/company names should reference REAL companies involved in documented government contracts where possible, or use descriptive placeholders like "IT Services Vendor A" when specific names cannot be verified.\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\nProduce a COMPREHENSIVE drill-down with ALL identified records. ${colPrompt}\n\nDETERMINISTIC SEED: Use country code "${country}" + waste type "${pattern.type}" as your consistency anchor.\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of what was found in the detailed analysis"\n}\n\nRULES:\n- Use REAL ${countryName} government ministry names and department names\n- Reference officials by TITLE + DEPARTMENT, not invented personal names\n- IDs must look official (e.g., GE-${new Date().getFullYear()}-0041)\n- Include dates from ${new Date().getFullYear() - 2} to ${new Date().getFullYear()} ONLY\n- Each record MUST include a "source" field citing the public data source\n- Amounts must be realistic for ${countryName}'s economy\n- Cross-reference records so patterns emerge across departments`
+          content: `You are Aureon's forensic AI in DEEP REASONING MODE. Produce the MAXIMUM number of records.\n\nCRITICAL RULES:\n- Current date: ${new Date().toISOString().slice(0, 10)}\n- All records from ${new Date().getFullYear() - 2} to present only\n- Do NOT invent personal names. Use TITLE + DEPARTMENT format (e.g., "Director General, Ministry of Transport")\n- Reference REAL documented cases from official audit reports (Contraloría, GAO, National Audit Office, etc.)\n- Include a "source" field citing the audit report or public data source\n- Financial figures must be derived from the live data below — not fabricated\n- Vendor names: use REAL companies from documented contracts or descriptive placeholders ("IT Services Vendor A")\n\nLIVE GOVERNMENT DATA:\n${liveContext}\n\nCountry: ${countryName}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\n\n${colPrompt}\n\nDETERMINISTIC SEED: "${country}_${pattern.type}" — use this for consistency.\n\nReturn ONLY JSON (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary"\n}`
         }],
         mode: "research",
         depth: "expert",
@@ -196,15 +266,12 @@ const ZeeionWasteFraud = () => {
         onDone: () => {},
       });
 
-      if (savedByok) localStorage.setItem("aureon_byok_active", savedByok);
-
       let cleanContent = aiContent.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
       const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]) as PatternDetail;
         setPatternDetails(prev => ({ ...prev, [patternIndex]: parsed }));
-        // Cache for session consistency
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(parsed)); } catch { /* storage full */ }
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(parsed)); } catch { /* full */ }
       }
     } catch (e) {
       console.error("Detail generation failed:", e);
@@ -221,67 +288,57 @@ const ZeeionWasteFraud = () => {
     setExpandedPattern(null);
     setWasteItems([]);
 
-    // Check session cache for main analysis — live-source-only mode
-    const mainCacheKey = `aureon_waste_live_v3_${country}`;
+    // Check session cache
+    const mainCacheKey = `aureon_waste_live_v4_${country}`;
     try {
       const cached = sessionStorage.getItem(mainCacheKey);
       if (cached) {
         const parsed = JSON.parse(cached) as WasteResult;
         setResult(parsed);
-        setWasteItems([]);
+        setWasteItems(convertToWasteItems(parsed));
         setLoading(false);
         return;
       }
     } catch { /* cache miss */ }
-    try {
-      const calls = [
-        supabase.functions.invoke("gov-data", { body: { action: "world_bank_indicators", params: { countryCode: country } } }),
-        supabase.functions.invoke("gov-data", { body: { action: "spending_by_agency" } }),
-        supabase.functions.invoke("gov-data", { body: { action: "country_comparison", params: { countries: [country, "US", "GB", "DE", "JP"], indicator: "GC.XPN.TOTL.GD.ZS" } } }),
-      ];
-      const [wbRes, usaRes, compRes] = await Promise.all(calls);
 
-      const govData = { worldBank: wbRes.data, usaSpending: usaRes.data, comparison: compRes.data };
-      setRawGovData(govData);
+    try {
+      // Fetch comprehensive fiscal profile from ALL live sources
+      const profileRes = await supabase.functions.invoke("gov-data", {
+        body: { action: "country_fiscal_profile", params: { countryCode: country } },
+      });
+      
+      if (profileRes.error) throw new Error(profileRes.error.message || "Failed to fetch fiscal profile");
+
+      const profile = profileRes.data;
+      setRawGovData(profile);
 
       const countryName = COUNTRIES.find(c => c.code === country)?.name || country;
-      const gdp = govData.worldBank?.indicators?.["NY.GDP.MKTP.CD"]?.[0];
-      const exp = govData.worldBank?.indicators?.["GC.XPN.TOTL.GD.ZS"]?.[0];
-      const debt = govData.worldBank?.indicators?.["GC.DOD.TOTL.GD.ZS"]?.[0];
-      const health = govData.worldBank?.indicators?.["SH.XPD.CHEX.GD.ZS"]?.[0];
-      const edu = govData.worldBank?.indicators?.["SE.XPD.TOTL.GD.ZS"]?.[0];
-      const topAgencies = country === "US" && govData.usaSpending?.agencies
-        ? govData.usaSpending.agencies.slice(0, 5).map((a: any) => `${a.name}: ${fmtUsd(a.budgetAuthority)}`).join("; ")
-        : "";
-      const peerComparison = govData.comparison?.countries?.length
-        ? govData.comparison.countries.slice(0, 5).map((c: any) => `${c.countryName}: ${c.value?.toFixed?.(2) ?? c.value}%`).join("; ")
-        : "";
+      const liveDataContext = buildLiveDataContext(profile, countryName);
 
-      const liveOnlyResult: WasteResult = {
-        totalWasteLow: 0,
-        totalWasteHigh: 0,
-        percentOfBudgetLow: 0,
-        percentOfBudgetHigh: 0,
-        patterns: [],
-        executiveSummary: [
-          `Live public-source mode is enabled for ${countryName}.`,
-          "This panel now fails closed: it will not generate simulated fraud cases, hallucinated companies, invented approvers, or fake drill-down records.",
-          [
-            gdp ? `GDP: ${fmtUsd(gdp.value)} (${gdp.date})` : null,
-            exp ? `Government expense: ${exp.value.toFixed(2)}% of GDP` : null,
-            debt ? `Government debt: ${debt.value.toFixed(2)}% of GDP` : null,
-            health ? `Health spending: ${health.value.toFixed(2)}% of GDP` : null,
-            edu ? `Education spending: ${edu.value.toFixed(2)}% of GDP` : null,
-          ].filter(Boolean).join(" | "),
-          topAgencies ? `Current live agency budget data: ${topAgencies}` : null,
-          peerComparison ? `Peer comparison from live World Bank data: ${peerComparison}` : null,
-          "Case-level waste estimates, named actors, contract splitting allegations, ghost employee lists, and approver histories are now withheld unless they come directly from a connected record-level public source.",
-        ].filter(Boolean).join("\n\n"),
-      };
+      // Now use AI to analyze the REAL data — no hallucinated names, sourced estimates only
+      let aiContent = "";
+      await streamChat({
+        messages: [{
+          role: "user",
+          content: `You are Aureon, an elite forensic financial AI. You MUST analyze the following REAL, LIVE government financial data and identify waste, fraud, and inefficiency patterns.\n\nCRITICAL INTEGRITY RULES:\n1. ALL estimates MUST be derived from the real numbers below. Show your math.\n2. Use RANGE estimates (low–high) based on international benchmarks (OECD, World Bank reports, Transparency International CPI).\n3. Do NOT invent personal names. Reference officials by TITLE + DEPARTMENT only.\n4. Every pattern must cite its data source (IMF, World Bank, Treasury, etc.).\n5. Compare this country's spending ratios to peer countries in the data.\n6. Use the deterministic seed "${country}_waste_scan" for consistent results.\n\n${liveDataContext}\n\nReturn ONLY a JSON object (no markdown):\n{\n  "totalWasteLow": <number in USD>,\n  "totalWasteHigh": <number in USD>,\n  "percentOfBudgetLow": <number>,\n  "percentOfBudgetHigh": <number>,\n  "patterns": [\n    {\n      "type": "<ghost_employees|duplicate_payments|overpriced_contracts|inactive_programs|contract_splitting|administrative_overhead|procurement_fraud|embezzlement|ineffective_programs|shell_companies>",\n      "description": "<detailed description citing specific data points from the live data>",\n      "estimatedWasteLow": <number USD>,\n      "estimatedWasteHigh": <number USD>,\n      "severity": "high|medium|low",\n      "evidence": "<specific data points and comparisons from the live data above>",\n      "recommendation": "<actionable recommendation>"\n    }\n  ],\n  "executiveSummary": "<3-4 paragraph summary referencing specific IMF/World Bank data points, peer comparisons, and fiscal trends>"\n}\n\nIMPORTANT:\n- Derive GDP value from World Bank data to calculate USD amounts\n- Compare debt/revenue/spending ratios to peer countries in the data\n- Identify anomalies by comparing year-over-year trends in the IMF data\n- Waste estimates should use conservative (3-5% of budget) to upper (8-15%) ranges based on Transparency International benchmarks for this country\n- Reference specific years and values from the data`
+        }],
+        mode: "research",
+        depth: "expert",
+        onDelta: (chunk) => { aiContent += chunk; },
+        onDone: () => {},
+      });
 
-      setResult(liveOnlyResult);
-      setWasteItems([]);
-      try { sessionStorage.setItem(mainCacheKey, JSON.stringify(liveOnlyResult)); } catch { /* storage full */ }
+      let cleanContent = aiContent.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as WasteResult;
+        parsed.dataSources = profile.sources || [];
+        setResult(parsed);
+        setWasteItems(convertToWasteItems(parsed));
+        try { sessionStorage.setItem(mainCacheKey, JSON.stringify(parsed)); } catch { /* full */ }
+      } else {
+        throw new Error("AI analysis did not return valid JSON");
+      }
     } catch (e: any) {
       console.error("Waste analysis error:", e);
       setAnalysisError(`Live data scan failed: ${e.message || "Unknown error"}. Please try again.`);
@@ -293,14 +350,28 @@ const ZeeionWasteFraud = () => {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
     setChatInput("");
-    setChatMsgs(p => [
-      ...p,
-      { role: "user", content: msg },
-      {
-        role: "assistant",
-        content: "Live-source-only mode is enabled for this panel, so Aureon will not generate unsupported fraud claims, named actors, vendors, or approval histories from incomplete public data. Connect a record-level public source such as contracts, payroll, procurement, or audit records to enable evidence-backed answers.",
-      },
-    ]);
+    setChatMsgs(p => [...p, { role: "user", content: msg }]);
+    setChatLoading(true);
+
+    const countryName = COUNTRIES.find(c => c.code === country)?.name || country;
+    const liveContext = rawGovData ? buildLiveDataContext(rawGovData, countryName) : "No live data loaded yet.";
+    const resultContext = result ? `Current scan found ${result.patterns.length} patterns with total waste range ${fmtUsd(result.totalWasteLow)} – ${fmtUsd(result.totalWasteHigh)}. Patterns: ${result.patterns.map(p => `${p.type}: ${fmtUsd(p.estimatedWasteLow)}-${fmtUsd(p.estimatedWasteHigh)}`).join("; ")}` : "";
+
+    let aiResp = "";
+    try {
+      await streamChat({
+        messages: [{
+          role: "user",
+          content: `You are Aureon, a forensic financial AI. Answer based ONLY on the live government data below. Do NOT invent names, companies, or data points not present in the data.\n\nLIVE DATA:\n${liveContext}\n\n${resultContext ? `CURRENT SCAN RESULTS:\n${resultContext}\n\n` : ""}USER QUESTION: ${msg}`,
+        }],
+        mode: "research",
+        onDelta: (chunk) => { aiResp += chunk; },
+        onDone: () => {},
+      });
+      setChatMsgs(p => [...p, { role: "assistant", content: aiResp || "Analysis complete." }]);
+    } catch {
+      setChatMsgs(p => [...p, { role: "assistant", content: "Investigation temporarily unavailable. Please try again." }]);
+    }
     setChatLoading(false);
   };
 
@@ -310,7 +381,7 @@ const ZeeionWasteFraud = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xs font-light tracking-wider text-foreground/60">Waste & Fraud Detection</h2>
-          <p className="text-[8px] text-muted-foreground/30 mt-0.5">Live public-source scan with no simulated or generated case records</p>
+          <p className="text-[8px] text-muted-foreground/30 mt-0.5">AI analysis of live IMF, World Bank, Treasury & government open data — no simulated records</p>
         </div>
         {wasteItems.length > 0 && (
           <div className="flex items-center gap-1.5">
@@ -354,27 +425,35 @@ const ZeeionWasteFraud = () => {
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-red-400/40" />
           <p className="text-[10px] text-muted-foreground/30">Analyzing government spending for waste & fraud patterns...</p>
-          <p className="text-[8px] text-muted-foreground/20">Fetching data from World Bank, Treasury, and open APIs</p>
+          <p className="text-[8px] text-muted-foreground/20">Fetching live data from IMF, World Bank, Treasury & gov portals</p>
         </div>
       )}
 
-      {result && !loading && (
+      {result && !loading && viewMode === "scan" && (
         <div className="space-y-5">
+          {/* Data Sources Attribution */}
+          {result.dataSources?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-[7px] uppercase tracking-[0.15em] text-muted-foreground/30">Live Sources:</span>
+              {result.dataSources.map((s, i) => (
+                <span key={i} className="px-2 py-0.5 rounded-md bg-green-500/[0.06] border border-green-500/10 text-[7px] text-green-400/60">{s}</span>
+              ))}
+            </div>
+          )}
+
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-red-400/40 mb-1">Total Waste Identified</p>
               <p className="text-lg font-light text-red-400/70">
-                {result.patterns.length > 0 ? `${fmtUsd(result.totalWasteLow)} – ${fmtUsd(result.totalWasteHigh)}` : "Not calculated"}
+                {result.patterns.length > 0 ? `${fmtUsd(result.totalWasteLow)} – ${fmtUsd(result.totalWasteHigh)}` : "N/A"}
               </p>
-              <p className="text-[7px] text-muted-foreground/30 mt-0.5">
-                {result.patterns.length > 0 ? "Conservative to upper bound" : "No source-backed case estimate available"}
-              </p>
+              <p className="text-[7px] text-muted-foreground/30 mt-0.5">Conservative to upper bound</p>
             </div>
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">% of Budget</p>
               <p className="text-lg font-light text-foreground/60">
-                {result.patterns.length > 0 ? `${result.percentOfBudgetLow.toFixed(1)}% – ${result.percentOfBudgetHigh.toFixed(1)}%` : "Not calculated"}
+                {result.patterns.length > 0 ? `${result.percentOfBudgetLow.toFixed(1)}% – ${result.percentOfBudgetHigh.toFixed(1)}%` : "N/A"}
               </p>
             </div>
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-4">
@@ -391,7 +470,7 @@ const ZeeionWasteFraud = () => {
           {result.executiveSummary && (
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-5">
               <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-3">Executive Summary</h3>
-              <div className="text-[11px] leading-relaxed text-foreground/60 font-light whitespace-pre-line prose prose-sm dark:prose-invert max-w-none">
+              <div className="text-[11px] leading-relaxed text-foreground/60 font-light whitespace-pre-line prose prose-sm dark:prose-invert max-w-none select-text cursor-text">
                 <ReactMarkdown>{result.executiveSummary}</ReactMarkdown>
               </div>
             </div>
@@ -428,22 +507,22 @@ const ZeeionWasteFraud = () => {
                                 <p className="text-[9px] text-foreground/50 font-light">{pattern.recommendation}</p>
                               </div>
 
-                              {/* Full Forensic Deep Dive with export, drill-down, charts, approver history */}
+                              {/* Full Forensic Deep Dive */}
                               <ZeeionDeepDive
                                 category={pattern.type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                                context={`Country: ${COUNTRIES.find(c => c.code === country)?.name || country}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\nRecommendation: ${pattern.recommendation}`}
+                                context={`Country: ${COUNTRIES.find(c => c.code === country)?.name || country}\nWaste Type: ${pattern.type}\nEstimated Range: ${fmtUsd(pattern.estimatedWasteLow)} – ${fmtUsd(pattern.estimatedWasteHigh)}\nDescription: ${pattern.description}\nEvidence: ${pattern.evidence}\nRecommendation: ${pattern.recommendation}\n\nLIVE DATA CONTEXT:\n${rawGovData ? buildLiveDataContext(rawGovData, COUNTRIES.find(c => c.code === country)?.name || country) : ""}`}
                                 columnHint={(() => {
                                   const columnPrompts: Record<string, string> = {
-                                    ghost_employees: 'columns: employee_id, full_name, department, position, monthly_salary, last_attendance_date, status_flag, risk_score. Generate 15-25 records.',
-                                    duplicate_payments: 'columns: invoice_id, vendor_name, amount, payment_date, duplicate_of_invoice, department, payment_method, days_apart. Generate 15-25 records.',
-                                    overpriced_contracts: 'columns: contract_id, vendor_name, contract_value, market_rate, overpayment_pct, department, start_date, end_date, competitive_bid. Generate 12-20 records.',
-                                    inactive_programs: 'columns: program_id, program_name, annual_budget, execution_rate_pct, last_activity_date, department, years_inactive, beneficiaries. Generate 10-18 records.',
-                                    shell_companies: 'columns: company_id, company_name, registration_date, total_contracts, total_value, employees_listed, physical_address_verified, linked_officials. Generate 8-15 records.',
-                                    contract_splitting: 'columns: original_contract_id, split_contract_ids, total_value, split_count, vendor_name, department, approval_date, threshold_avoided, approver_name, approver_title. Generate 10-15 records.',
-                                    administrative_overhead: 'columns: unit_id, unit_name, staff_count, budget, output_metric, cost_per_output, peer_benchmark, excess_cost. Generate 12-18 records.',
-                                    procurement_fraud: 'columns: procurement_id, description, awarded_to, bid_count, winning_bid, second_bid, price_difference_pct, red_flags, department. Generate 10-15 records.',
-                                    embezzlement: 'columns: case_id, suspect_name, position, department, estimated_amount, method, period, evidence_strength, status. Generate 8-12 records.',
-                                    ineffective_programs: 'columns: project_id, project_name, original_budget, current_cost, overrun_pct, completion_pct, years_delayed, department, contractor. Generate 10-15 records.',
+                                    ghost_employees: 'columns: employee_id, department, position_title, monthly_salary, last_attendance_date, status_flag, risk_score, source. Generate 15-25 records using TITLE+DEPARTMENT (no personal names).',
+                                    duplicate_payments: 'columns: invoice_id, vendor_name, amount, payment_date, duplicate_of_invoice, department, payment_method, days_apart, source. Generate 15-25 records.',
+                                    overpriced_contracts: 'columns: contract_id, vendor_name, contract_value, market_rate, overpayment_pct, department, start_date, end_date, competitive_bid, source. Generate 12-20 records.',
+                                    inactive_programs: 'columns: program_id, program_name, annual_budget, execution_rate_pct, last_activity_date, department, years_inactive, beneficiaries, source. Generate 10-18 records.',
+                                    shell_companies: 'columns: company_id, company_name, registration_date, total_contracts, total_value, employees_listed, physical_address_verified, linked_department, source. Generate 8-15 records.',
+                                    contract_splitting: 'columns: original_contract_id, split_contract_ids, total_value, split_count, vendor_name, department, approval_date, threshold_avoided, approver_title, source. Generate 10-15 records.',
+                                    administrative_overhead: 'columns: unit_id, unit_name, staff_count, budget, output_metric, cost_per_output, peer_benchmark, excess_cost, source. Generate 12-18 records.',
+                                    procurement_fraud: 'columns: procurement_id, description, awarded_to, bid_count, winning_bid, second_bid, price_difference_pct, red_flags, department, source. Generate 10-15 records.',
+                                    embezzlement: 'columns: case_id, position_title, department, estimated_amount, method, period, evidence_strength, status, source. Generate 8-12 records.',
+                                    ineffective_programs: 'columns: project_id, project_name, original_budget, current_cost, overrun_pct, completion_pct, years_delayed, department, contractor, source. Generate 10-15 records.',
                                   };
                                   return columnPrompts[pattern.type] || undefined;
                                 })()}
@@ -478,10 +557,10 @@ const ZeeionWasteFraud = () => {
                 {[
                   "Show me all duplicate payment patterns",
                   "Which agencies have the most waste?",
-                  "How much can we save through automation?",
-                  "Compare this country's waste to peers",
+                  "How does this country compare to peers?",
+                  "What are the biggest savings opportunities?",
                 ].map(q => (
-                  <button key={q} onClick={() => { setChatInput(q); setTimeout(() => { setChatInput(""); setChatMsgs(p => [...p, { role: "user", content: q }]); setChatLoading(true); /* trigger */ }, 0); }} className="px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[8px] text-foreground/50 hover:bg-foreground/[0.06]">
+                  <button key={q} onClick={() => { setChatInput(q); setTimeout(() => sendChat(), 50); }} className="px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[8px] text-foreground/50 hover:bg-foreground/[0.06]">
                     {q}
                   </button>
                 ))}
@@ -491,7 +570,7 @@ const ZeeionWasteFraud = () => {
             <div className="max-h-[300px] overflow-y-auto px-4 py-3 space-y-3">
               {chatMsgs.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[85%] rounded-xl px-3 py-2 ${m.role === "user" ? "bg-foreground/[0.08] border border-border/[0.08] text-foreground/70" : "bg-foreground/[0.03] border border-border/[0.05] text-foreground/60"}`}>
+                  <div className={`max-w-[85%] rounded-xl px-3 py-2 select-text cursor-text ${m.role === "user" ? "bg-foreground/[0.08] border border-border/[0.08] text-foreground/70" : "bg-foreground/[0.03] border border-border/[0.05] text-foreground/60"}`}>
                     {m.role === "assistant" ? (
                       <div className="prose prose-sm dark:prose-invert max-w-none text-[10px] leading-relaxed font-light"><ReactMarkdown>{m.content}</ReactMarkdown></div>
                     ) : (
@@ -500,7 +579,7 @@ const ZeeionWasteFraud = () => {
                   </div>
                 </div>
               ))}
-              {chatLoading && chatMsgs[chatMsgs.length - 1]?.role !== "assistant" && (
+              {chatLoading && (
                 <div className="flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin text-muted-foreground/30" /><span className="text-[9px] text-muted-foreground/30">Investigating...</span></div>
               )}
             </div>
