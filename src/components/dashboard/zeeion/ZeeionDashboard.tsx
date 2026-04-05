@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrendingUp, AlertTriangle, DollarSign, BarChart3, Zap, X, ChevronRight, Download, CheckCircle, Clock, Target, LayoutGrid, LineChart, Sparkles, Bell } from "lucide-react";
+import { TrendingUp, AlertTriangle, DollarSign, BarChart3, Zap, X, ChevronRight, Download, CheckCircle, Clock, Target, LayoutGrid, LineChart, Sparkles, Bell, Globe } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AnalysisResult } from "./ZeeionView";
 import SankeyFlow from "./charts/SankeyFlow";
@@ -11,12 +11,13 @@ import AnomalyScatter from "./charts/AnomalyScatter";
 import ZeeionAureonChat from "./ZeeionAureonChat";
 import ZeeionAlerts from "./ZeeionAlerts";
 import ZeeionExport from "./ZeeionExport";
+import ZeeionGovData from "./ZeeionGovData";
 
 interface Props {
   analysis: AnalysisResult;
 }
 
-type DashTab = "overview" | "visualizations" | "alerts" | "export" | "aureon";
+type DashTab = "overview" | "visualizations" | "alerts" | "gov_data" | "export" | "aureon";
 
 const ZeeionDashboard = ({ analysis }: Props) => {
   const s = analysis.summary;
@@ -55,6 +56,7 @@ const ZeeionDashboard = ({ analysis }: Props) => {
     { id: "overview", label: "Overview", icon: <LayoutGrid className="h-3 w-3" /> },
     { id: "visualizations", label: "Analytics", icon: <LineChart className="h-3 w-3" /> },
     { id: "alerts", label: "Alerts", icon: <Bell className="h-3 w-3" /> },
+    { id: "gov_data", label: "Gov Data", icon: <Globe className="h-3 w-3" /> },
     { id: "export", label: "Export", icon: <Download className="h-3 w-3" /> },
     { id: "aureon", label: "Ask Aureon", icon: <Sparkles className="h-3 w-3" /> },
   ];
@@ -270,6 +272,11 @@ const ZeeionDashboard = ({ analysis }: Props) => {
       {/* ═══ ALERTS TAB ═══ */}
       {tab === "alerts" && (
         <ZeeionAlerts analysis={analysis} />
+      )}
+
+      {/* ═══ GOV DATA TAB ═══ */}
+      {tab === "gov_data" && (
+        <ZeeionGovData />
       )}
 
       {/* ═══ EXPORT TAB ═══ */}
