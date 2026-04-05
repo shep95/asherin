@@ -54,6 +54,8 @@ const ZeeionDashboard = ({ analysis }: Props) => {
   const tabs: { id: DashTab; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: "Overview", icon: <LayoutGrid className="h-3 w-3" /> },
     { id: "visualizations", label: "Analytics", icon: <LineChart className="h-3 w-3" /> },
+    { id: "alerts", label: "Alerts", icon: <Bell className="h-3 w-3" /> },
+    { id: "export", label: "Export", icon: <Download className="h-3 w-3" /> },
     { id: "aureon", label: "Ask Aureon", icon: <Sparkles className="h-3 w-3" /> },
   ];
 
