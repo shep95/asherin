@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
-import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X } from "lucide-react";
+import { Loader2, AlertTriangle, Search, Shield, DollarSign, Users, FileWarning, Layers, ChevronRight, Send, Sparkles, X, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat } from "@/lib/ai";
+import ZeeionWasteTracker, { type WasteItem, type WasteStatus } from "./ZeeionWasteTracker";
+import ZeeionWasteExport from "./ZeeionWasteExport";
 import ReactMarkdown from "react-markdown";
 
 const COUNTRIES = [
@@ -59,6 +61,67 @@ const ZeeionWasteFraud = () => {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [expandedPattern, setExpandedPattern] = useState<number | null>(null);
+  const [wasteItems, setWasteItems] = useState<WasteItem[]>([]);
+  const [viewMode, setViewMode] = useState<"scan" | "tracker">("scan");
+  const [generatingPlan, setGeneratingPlan] = useState<string | null>(null);
+
+  // Convert scan results to trackable waste items
+  const convertToWasteItems = (res: WasteResult): WasteItem[] => {
+    return res.patterns.map((p, i) => ({
+      id: `waste-${Date.now()}-${i}`,
+      type: p.type,
+      description: p.description,
+      amount: p.estimatedWaste,
+      annualImpact: p.estimatedWaste,
+      discoveredDate: new Date().toISOString().split("T")[0],
+      status: "identified" as WasteStatus,
+      confidence: p.severity === "high" ? 92 : p.severity === "medium" ? 78 : 60,
+      severity: p.severity,
+      evidence: p.evidence,
+      recommendation: p.recommendation,
+      progress: 0,
+      timeline: [{
+        date: new Date().toISOString().split("T")[0],
+        status: "identified" as WasteStatus,
+        action: "AI detected waste pattern",
+        user: "Aureon AI"
+      }],
+      remediationPlan: null,
+    }));
+  };
+
+  const handleUpdateStatus = (id: string, newStatus: WasteStatus) => {
+    setWasteItems(prev => prev.map(w => w.id === id ? {
+      ...w,
+      status: newStatus,
+      progress: newStatus === "fully_resolved" ? 100 : newStatus === "in_progress" ? 50 : newStatus === "under_review" ? 10 : w.progress,
+      timeline: [...(w.timeline || []), { date: new Date().toISOString().split("T")[0], status: newStatus, action: `Status updated to ${newStatus.replace(/_/g, " ")}`, user: "User" }],
+    } : w));
+  };
+
+  const handleCreatePlan = async (item: WasteItem) => {
+    setGeneratingPlan(item.id);
+    let planContent = "";
+    try {
+      await streamChat({
+        messages: [{ role: "user", content: `Generate a detailed step-by-step remediation plan for this government waste item:\n\nType: ${item.type}\nDescription: ${item.description}\nAnnual Impact: ${fmtUsd(item.annualImpact)}\nSeverity: ${item.severity}\nEvidence: ${item.evidence || "N/A"}\n\nReturn a JSON object with this structure (no markdown):\n{\n  "phases": [\n    {"name": "Investigation", "duration": "1-2 weeks", "steps": [{"action": "step desc", "responsible": "team", "timeline": "3 days", "status": "pending"}]},\n    {"name": "Solution Design", "duration": "1-2 weeks", "steps": [...]},\n    {"name": "Implementation", "duration": "4-8 weeks", "steps": [...]},\n    {"name": "Monitoring", "duration": "90 days", "steps": [...]}\n  ],\n  "totalCost": 50000,\n  "expectedSavings": ${item.annualImpact},\n  "roi": 500,\n  "paybackPeriod": "3 months",\n  "budgetRedirection": [\n    {"destination": "Debt Reduction", "amount": ${item.annualImpact * 0.3}, "percentage": 30, "rationale": "reason"},\n    {"destination": "Infrastructure", "amount": ${item.annualImpact * 0.25}, "percentage": 25, "rationale": "reason"},\n    {"destination": "Education/Healthcare", "amount": ${item.annualImpact * 0.25}, "percentage": 25, "rationale": "reason"},\n    {"destination": "Innovation Fund", "amount": ${item.annualImpact * 0.1}, "percentage": 10, "rationale": "reason"},\n    {"destination": "Emergency Reserve", "amount": ${item.annualImpact * 0.1}, "percentage": 10, "rationale": "reason"}\n  ]\n}` }],
+        mode: "research",
+        onDelta: (chunk) => { planContent += chunk; },
+        onDone: () => {},
+      });
+      const jsonMatch = planContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const plan = JSON.parse(jsonMatch[0]);
+        setWasteItems(prev => prev.map(w => w.id === item.id ? {
+          ...w,
+          status: "plan_created" as WasteStatus,
+          remediationPlan: plan,
+          timeline: [...(w.timeline || []), { date: new Date().toISOString().split("T")[0], status: "plan_created" as WasteStatus, action: "AI-generated remediation plan created", user: "Aureon AI" }],
+        } : w));
+      }
+    } catch (e) { console.error("Plan generation failed:", e); }
+    setGeneratingPlan(null);
+  };
 
   const runAnalysis = useCallback(async () => {
     setLoading(true);
@@ -120,9 +183,11 @@ const ZeeionWasteFraud = () => {
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           setResult(parsed);
+          // Convert to trackable waste items
+          const items = convertToWasteItems(parsed);
+          setWasteItems(items);
         }
       } catch {
-        // Fallback: show as executive summary
         setResult({
           totalWaste: 0,
           percentOfBudget: 0,
@@ -179,6 +244,16 @@ const ZeeionWasteFraud = () => {
           <h2 className="text-xs font-light tracking-wider text-foreground/60">Waste & Fraud Detection</h2>
           <p className="text-[8px] text-muted-foreground/30 mt-0.5">AI-powered forensic analysis of government spending</p>
         </div>
+        {wasteItems.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setViewMode("scan")} className={`px-3 py-1.5 rounded-lg text-[9px] transition-all ${viewMode === "scan" ? "bg-foreground/[0.08] border border-foreground/[0.12] text-foreground/60" : "border border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
+              <Search className="h-3 w-3 inline mr-1" />Scan Results
+            </button>
+            <button onClick={() => setViewMode("tracker")} className={`px-3 py-1.5 rounded-lg text-[9px] transition-all ${viewMode === "tracker" ? "bg-foreground/[0.08] border border-foreground/[0.12] text-foreground/60" : "border border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
+              <BarChart3 className="h-3 w-3 inline mr-1" />Waste Tracker
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Country Selector + Run */}
@@ -330,6 +405,22 @@ const ZeeionWasteFraud = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ═══ WASTE TRACKER VIEW ═══ */}
+      {viewMode === "tracker" && wasteItems.length > 0 && (
+        <>
+          <ZeeionWasteTracker
+            wasteItems={wasteItems}
+            onUpdateStatus={handleUpdateStatus}
+            onCreatePlan={handleCreatePlan}
+            countryName={COUNTRIES.find(c => c.code === country)?.name || country}
+          />
+          <ZeeionWasteExport
+            wasteItems={wasteItems}
+            countryName={COUNTRIES.find(c => c.code === country)?.name || country}
+          />
+        </>
       )}
     </div>
   );
