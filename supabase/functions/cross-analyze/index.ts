@@ -69,6 +69,7 @@ serve(async (req) => {
         "system-brains/zophiel_elite_v4_architecture.txt",
         "system-brains/zophiel_elite_prompt_engine.txt",
         "system-brains/strategic_doctrine.txt",
+        "system-brains/aureon_philosophy_consciousness.txt",
       ];
       const systemParts: string[] = [];
       for (const path of systemBrainPaths) {
