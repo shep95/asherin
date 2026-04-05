@@ -123,8 +123,8 @@ const ZeeionDashboard = ({ analysis }: Props) => {
                   ))}
                 </div>
                 <ZeeionDeepDive
-                  category={`Spending Category Breakdown`}
-                  context={`Categories: ${analysis.categoryBreakdown.map(c => `${c.category}: $${c.amount.toLocaleString()} (${c.percentage}%)`).join(", ")}. Total spending: $${s.totalSpending.toLocaleString()}.`}
+                  category="Spending Category Breakdown"
+                  context={"Categories: " + analysis.categoryBreakdown.map(c => c.category + ": $" + c.amount.toLocaleString() + " (" + c.percentage + "%)").join(", ") + ". Total spending: $" + s.totalSpending.toLocaleString() + "."}
                   columnHint="columns: transaction_id, category, vendor_name, amount, date, department, payment_method, approval_status. Generate 15-20 detailed transaction records across the top spending categories showing individual line items."
                   label="Deep Dive — Show Individual Transactions"
                 />
