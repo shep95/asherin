@@ -331,7 +331,7 @@ const ChessBoard = ({ config, onNewGame }: Props) => {
                     {piece && (
                       <span className={`text-[clamp(1.4rem,4.8vw,2.6rem)] leading-none select-none ${
                         piece.color === "w" ? "drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" : "drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
-                      }`}>
+                      }`} style={{ color: piece.color === "w" ? "#D4AF37" : "#8B6914" }}>
                         {PIECE_UNICODE[`${piece.color}${piece.type}`]}
                       </span>
                     )}
