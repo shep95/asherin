@@ -852,6 +852,63 @@ export type Database = {
         }
         Relationships: []
       }
+      axrlen_sessions: {
+        Row: {
+          ai_summary: string | null
+          confidence_score: number | null
+          created_at: string
+          data_sources: Json | null
+          id: string
+          policy_simulations: Json | null
+          prediction_type: string
+          predictions: Json | null
+          region: string | null
+          resource_analysis: Json | null
+          status: string
+          threat_assessment: Json | null
+          timeline_divergences: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          data_sources?: Json | null
+          id?: string
+          policy_simulations?: Json | null
+          prediction_type?: string
+          predictions?: Json | null
+          region?: string | null
+          resource_analysis?: Json | null
+          status?: string
+          threat_assessment?: Json | null
+          timeline_divergences?: Json | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          data_sources?: Json | null
+          id?: string
+          policy_simulations?: Json | null
+          prediction_type?: string
+          predictions?: Json | null
+          region?: string | null
+          resource_analysis?: Json | null
+          status?: string
+          threat_assessment?: Json | null
+          timeline_divergences?: Json | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       brains: {
         Row: {
           created_at: string
