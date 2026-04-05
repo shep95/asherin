@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Shield, TrendingUp, Zap, GitBranch, FileText, AlertTriangle, Globe, BarChart3, ChevronRight, Copy, Check, Download } from "lucide-react";
+import { Shield, TrendingUp, Zap, GitBranch, FileText, AlertTriangle, Globe, BarChart3, ChevronRight, Copy, Check, Download, MessageSquare } from "lucide-react";
+import AxrlenChat from "./AxrlenChat";
 import ReactMarkdown from "react-markdown";
 import type { AxrlenSession } from "./AxrlenView";
 
@@ -32,6 +33,7 @@ const AxrlenAnalysis = ({ session }: Props) => {
   const [tab, setTab] = useState<Tab>("overview");
   const [copied, setCopied] = useState(false);
   const [expandedPred, setExpandedPred] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const copyText = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -90,7 +92,8 @@ const AxrlenAnalysis = ({ session }: Props) => {
   const divergences = session.timelineDivergences || [];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full">
+    <div className="flex flex-col flex-1 min-w-0">
       {/* Tab bar */}
       <div className="shrink-0 border-b border-border/[0.06] px-4 flex items-center gap-1 overflow-x-auto scrollbar-hide">
         {TABS.map(t => {
@@ -106,6 +109,10 @@ const AxrlenAnalysis = ({ session }: Props) => {
           );
         })}
         <div className="ml-auto flex items-center gap-2 py-2">
+          <button onClick={() => setChatOpen(!chatOpen)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[9px] transition-all ${chatOpen ? "border-foreground/[0.15] bg-foreground/[0.08] text-foreground/70" : "border-border/[0.1] bg-foreground/[0.03] text-foreground/50 hover:bg-foreground/[0.06]"}`}>
+            <MessageSquare className="h-3 w-3" /> Ask AUREON
+          </button>
           <button onClick={() => copyText(session.aiSummary || "")} className="p-1.5 rounded-lg hover:bg-foreground/[0.06] transition-all">
             {copied ? <Check className="h-3 w-3 text-emerald-400/60" /> : <Copy className="h-3 w-3 text-muted-foreground/30" />}
           </button>
@@ -394,6 +401,8 @@ const AxrlenAnalysis = ({ session }: Props) => {
           </div>
         )}
       </div>
+    </div>
+    {chatOpen && <AxrlenChat session={session} onClose={() => setChatOpen(false)} />}
     </div>
   );
 };
