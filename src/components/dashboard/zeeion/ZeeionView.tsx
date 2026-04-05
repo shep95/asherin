@@ -275,7 +275,16 @@ const ZeeionView = () => {
         {view === "dashboard" && activeSession && (
           <ZeeionDashboard analysis={activeSession} />
         )}
+
+        {view === "gov_data" && (
+          <div className="p-6">
+            <ZeeionGovData />
+          </div>
+        )}
       </div>
+    </div>
+  );
+};
     </div>
   );
 };
