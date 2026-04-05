@@ -640,12 +640,12 @@ const ZeeionGovData = () => {
           {chatMsgs.length === 0 && (
             <div className="shrink-0 px-4 py-3 border-b border-border/[0.04] flex flex-wrap gap-1.5">
               {[
-                { l: "💰 Waste", q: "What are the biggest areas of government waste and inefficiency?" },
-                { l: "📊 Compare", q: "How does the US government spending compare to other major economies?" },
-                { l: "💳 Debt", q: "Analyze the national debt trajectory and its implications." },
-                { l: "🏥 Healthcare", q: "Why is US healthcare spending so high compared to other countries?" },
-                { l: "🛡️ Defense", q: "Analyze defense spending across major world powers." },
-                { l: "📚 Education", q: "Which countries invest the most in education and what are the outcomes?" },
+                { l: "Waste", q: "What are the biggest areas of government waste and inefficiency?", icon: <AlertTriangle className="h-2.5 w-2.5" /> },
+                { l: "Compare", q: "How does the US government spending compare to other major economies?", icon: <BarChart3 className="h-2.5 w-2.5" /> },
+                { l: "Debt", q: "Analyze the national debt trajectory and its implications.", icon: <DollarSign className="h-2.5 w-2.5" /> },
+                { l: "Healthcare", q: "Why is US healthcare spending so high compared to other countries?", icon: <Heart className="h-2.5 w-2.5" /> },
+                { l: "Defense", q: "Analyze defense spending across major world powers.", icon: <Shield className="h-2.5 w-2.5" /> },
+                { l: "Education", q: "Which countries invest the most in education and what are the outcomes?", icon: <GraduationCap className="h-2.5 w-2.5" /> },
               ].map(a => (
                 <button key={a.l} onClick={() => sendChat(a.q)} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[9px] text-foreground/50 hover:bg-foreground/[0.06]">
                   {a.icon} {a.l}

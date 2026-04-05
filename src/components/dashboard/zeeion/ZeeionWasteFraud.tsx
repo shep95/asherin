@@ -186,7 +186,7 @@ const ZeeionWasteFraud = () => {
         <div className="flex flex-wrap gap-1">
           {COUNTRIES.map(c => (
             <button key={c.code} onClick={() => setCountry(c.code)} className={`px-2 py-1 rounded-lg text-[9px] transition-all ${country === c.code ? "bg-foreground/[0.08] border border-foreground/[0.12] text-foreground/70" : "border border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
-              {c.flag} {c.name}
+              {c.name}
             </button>
           ))}
         </div>
