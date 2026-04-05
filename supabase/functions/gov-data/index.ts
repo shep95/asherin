@@ -234,7 +234,125 @@ serve(async (req) => {
         break;
       }
 
-      // ── World Bank Indicators (any country) ──
+      // ══════════════════════════════════════════════════════════════
+      // USASpending — Spending by Award (contracts/grants search)
+      // ══════════════════════════════════════════════════════════════
+      case "usa_spending_by_award": {
+        const fy = params?.fiscalYear || new Date().getFullYear();
+        const awardTypes = params?.awardTypes || ["A", "B", "C", "D"];
+        const data = await usaSpendingPost("/search/spending_by_award/", {
+          filters: {
+            time_period: [{ start_date: `${fy - 1}-10-01`, end_date: `${fy}-09-30` }],
+            award_type_codes: awardTypes,
+          },
+          fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Award Type", "Description", "Start Date", "End Date"],
+          limit: params?.limit || 25,
+          page: 1,
+          sort: "Award Amount",
+          order: "desc",
+        });
+        if (!data) throw new Error("USASpending awards API unavailable");
+        result = {
+          country: "USA", source: "USASpending.gov – Federal Awards",
+          fiscalYear: fy,
+          results: data.results || [],
+          totalResults: data.page_metadata?.total || 0,
+        };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // USASpending — Spending by State
+      // ══════════════════════════════════════════════════════════════
+      case "usa_spending_by_state": {
+        const fips = params?.fips || "06"; // California default
+        const data = await fetchJson(`${SOURCES.usa_spending}/recipient/state/${fips}/`);
+        if (!data) throw new Error("USASpending state API unavailable");
+        result = {
+          country: "USA", source: "USASpending.gov – State Spending",
+          state: data.name, code: data.code, fips: data.fips,
+          population: data.population, medianIncome: data.median_household_income,
+          totalPrimeAmount: data.total_prime_amount,
+          totalAwards: data.total_prime_awards,
+          awardPerCapita: data.award_amount_per_capita,
+          totalOutlays: data.total_outlays,
+        };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // USASpending — Exchange Rates (Treasury)
+      // ══════════════════════════════════════════════════════════════
+      case "treasury_exchange_rates": {
+        const data = await fetchJson(treasuryUrl("v1/accounting/od/rates_of_exchange", {
+          sort: "-record_date", "page[size]": "100",
+        }));
+        if (!data?.data) throw new Error("Treasury Exchange Rates API unavailable");
+        result = {
+          country: "USA", source: "US Treasury – Exchange Rates",
+          rates: data.data.map((r: any) => ({
+            date: r.record_date,
+            currency: r.country_currency_desc,
+            rate: parseFloat(r.exchange_rate || "0"),
+          })),
+        };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // Census Bureau — State Government Finances & Demographics
+      // ══════════════════════════════════════════════════════════════
+      case "census_state_finances": {
+        // Census ACS — no API key required for basic queries
+        const year = params?.year || "2022";
+        const [popData, incomeData] = await Promise.all([
+          fetchJson(`${SOURCES.census}/${year}/acs/acs5?get=NAME,B01001_001E&for=state:*`),
+          fetchJson(`${SOURCES.census}/${year}/acs/acs5?get=NAME,B19013_001E&for=state:*`),
+        ]);
+        const states: any[] = [];
+        if (popData && popData.length > 1) {
+          const popMap: Record<string, number> = {};
+          const incMap: Record<string, number> = {};
+          for (let i = 1; i < popData.length; i++) {
+            popMap[popData[i][0]] = parseInt(popData[i][1] || "0");
+          }
+          if (incomeData && incomeData.length > 1) {
+            for (let i = 1; i < incomeData.length; i++) {
+              incMap[incomeData[i][0]] = parseInt(incomeData[i][1] || "0");
+            }
+          }
+          for (const [name, pop] of Object.entries(popMap)) {
+            states.push({ name, population: pop, medianIncome: incMap[name] || null });
+          }
+          states.sort((a, b) => b.population - a.population);
+        }
+        result = {
+          country: "USA", source: `US Census Bureau – ACS ${year}`,
+          year, stateCount: states.length, states,
+        };
+        break;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // FRED — Federal Reserve Economic Data
+      // ══════════════════════════════════════════════════════════════
+      case "fred_series": {
+        const fredKey = Deno.env.get("FRED_API_KEY");
+        if (!fredKey) throw new Error("FRED_API_KEY not configured — add via Settings");
+        const seriesId = params?.seriesId || "GDP";
+        const data = await fetchJson(
+          `${SOURCES.fred}/series/observations?series_id=${seriesId}&api_key=${fredKey}&file_type=json&sort_order=desc&limit=${params?.limit || 20}`
+        );
+        if (!data?.observations) throw new Error("FRED API unavailable");
+        result = {
+          country: "USA", source: `Federal Reserve (FRED) – ${seriesId}`,
+          series: seriesId,
+          observations: data.observations.map((o: any) => ({
+            date: o.date, value: o.value === "." ? null : parseFloat(o.value),
+          })),
+        };
+        break;
+      }
       case "world_bank_indicators": {
         const cc = params?.countryCode || "US";
         const indicators = params?.indicators || [
