@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Eye, Table2, X, ChevronRight, Shield, User, Users, Calendar, FileText, AlertTriangle, CheckCircle, Clock, Search, Download, Link2, TrendingUp, Scale, Repeat, BarChart3, Fingerprint, Network, Gavel, BookOpen, Target, Zap } from "lucide-react";
 import { streamChat } from "@/lib/ai";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, CartesianGrid, ComposedChart, Line } from "recharts";
 
 interface DetailRecord {
   id: string;
