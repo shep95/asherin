@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { streamChat } from "@/lib/ai";
 import ZeeionWasteTracker, { type WasteItem, type WasteStatus } from "./ZeeionWasteTracker";
 import ZeeionWasteExport from "./ZeeionWasteExport";
+import ZeeionDeepDive from "./ZeeionDeepDive";
 import ReactMarkdown from "react-markdown";
 
 const COUNTRIES = [
