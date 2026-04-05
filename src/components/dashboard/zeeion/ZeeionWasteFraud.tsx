@@ -324,6 +324,8 @@ const ZeeionWasteFraud = () => {
           setResult(normalized);
           const items = convertToWasteItems(normalized);
           setWasteItems(items);
+          // Cache for session consistency
+          try { sessionStorage.setItem(mainCacheKey, JSON.stringify(normalized)); } catch { /* storage full */ }
         } else if (aiContent.length > 0) {
           // AI returned text but no JSON - show as summary
         setResult({
