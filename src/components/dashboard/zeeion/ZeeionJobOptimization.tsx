@@ -5,16 +5,16 @@ import { streamChat } from "@/lib/ai";
 import ReactMarkdown from "react-markdown";
 
 const COUNTRIES = [
-  { code: "US", name: "United States", flag: "🇺🇸" },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
-  { code: "DE", name: "Germany", flag: "🇩🇪" },
-  { code: "IN", name: "India", flag: "🇮🇳" },
-  { code: "BR", name: "Brazil", flag: "🇧🇷" },
-  { code: "CA", name: "Canada", flag: "🇨🇦" },
-  { code: "AU", name: "Australia", flag: "🇦🇺" },
-  { code: "PE", name: "Peru", flag: "🇵🇪" },
-  { code: "JP", name: "Japan", flag: "🇯🇵" },
-  { code: "MX", name: "Mexico", flag: "🇲🇽" },
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "IN", name: "India" },
+  { code: "BR", name: "Brazil" },
+  { code: "CA", name: "Canada" },
+  { code: "AU", name: "Australia" },
+  { code: "PE", name: "Peru" },
+  { code: "JP", name: "Japan" },
+  { code: "MX", name: "Mexico" },
 ];
 
 interface JobCategory {

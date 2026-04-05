@@ -5,16 +5,16 @@ import { streamChat } from "@/lib/ai";
 import ReactMarkdown from "react-markdown";
 
 const COUNTRIES = [
-  { code: "US", name: "United States", flag: "🇺🇸" },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
-  { code: "DE", name: "Germany", flag: "🇩🇪" },
-  { code: "IN", name: "India", flag: "🇮🇳" },
-  { code: "BR", name: "Brazil", flag: "🇧🇷" },
-  { code: "CA", name: "Canada", flag: "🇨🇦" },
-  { code: "JP", name: "Japan", flag: "🇯🇵" },
-  { code: "PE", name: "Peru", flag: "🇵🇪" },
-  { code: "AU", name: "Australia", flag: "🇦🇺" },
-  { code: "FR", name: "France", flag: "🇫🇷" },
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "IN", name: "India" },
+  { code: "BR", name: "Brazil" },
+  { code: "CA", name: "Canada" },
+  { code: "JP", name: "Japan" },
+  { code: "PE", name: "Peru" },
+  { code: "AU", name: "Australia" },
+  { code: "FR", name: "France" },
 ];
 
 interface Reallocation {
