@@ -1,0 +1,1 @@
+UPDATE granted_subscriptions SET active = false WHERE email = 'rickvaldivia8@gmail.com' AND id = 'f75fa2ee-c5ec-4302-ba41-664557ce7201';
