@@ -1304,6 +1304,7 @@ ${truncatedDoctrine}
         "system-brains/zophiel_elite_v4_architecture.txt",
         "system-brains/zophiel_elite_prompt_engine.txt",
         "system-brains/anti_spiral_protocol.md",
+        "system-brains/aureon_philosophy_consciousness.txt",
       ];
       for (const bf of brainFiles) {
         try {
