@@ -485,7 +485,7 @@ serve(async (req) => {
           if (vals) imf[s.key] = vals;
         }
 
-        // ── USA-specific: pull expanded Treasury + USASpending data ──
+        // ── USA-specific: pull expanded Treasury + USASpending + Census data ──
         let usaAgencies: any[] = [];
         let usaNetCost: any[] = [];
         let usaBudgetFunctions: any[] = [];
@@ -494,8 +494,14 @@ serve(async (req) => {
         let usaMtsSummary: any[] = [];
         let usaInterestRates: any[] = [];
         let usaTotalSpending = 0;
+        let usaTopAwards: any[] = [];
+        let usaTopStates: any[] = [];
+        let usaCensusStates: any[] = [];
+        let usaExchangeRates: any[] = [];
+        let usaFredData: Record<string, any[]> = {};
 
         if (cc === "US") {
+          // Wave 1: Core financial data (7 calls)
           const [agencyData, netCostData, budgetFuncData, topAwardData, debtData, mtsData, interestData] = await Promise.all([
             fetchJson(`${SOURCES.usa_spending}/references/toptier_agencies/`),
             fetchJson(treasuryUrl("v2/accounting/od/statement_net_cost", { sort: "-record_date", "page[size]": "200" })),
@@ -509,6 +515,39 @@ serve(async (req) => {
             fetchJson(treasuryUrl("v2/accounting/od/avg_interest_rates", { sort: "-record_date", "page[size]": "30" })),
           ]);
 
+          // Wave 2: Awards, state spending, census, exchange rates, FRED (parallel)
+          const topStateFips = ["06", "48", "12", "36", "17"]; // CA, TX, FL, NY, IL
+          const fredKey = Deno.env.get("FRED_API_KEY");
+          const fredSeries = fredKey ? ["GDP", "GFDEBTN", "FYFR", "UNRATE", "CPIAUCSL"] : [];
+
+          const wave2Promises: Promise<any>[] = [
+            // Top awards (largest contracts)
+            usaSpendingPost("/search/spending_by_award/", {
+              filters: {
+                time_period: [{ start_date: `${new Date().getFullYear() - 1}-10-01`, end_date: `${new Date().getFullYear()}-09-30` }],
+                award_type_codes: ["A", "B", "C", "D"],
+              },
+              fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Award Type"],
+              limit: 15, page: 1, sort: "Award Amount", order: "desc",
+            }),
+            // Exchange rates
+            fetchJson(treasuryUrl("v1/accounting/od/rates_of_exchange", { sort: "-record_date", "page[size]": "50" })),
+            // Census ACS (population + income by state)
+            fetchJson(`${SOURCES.census}/2022/acs/acs5?get=NAME,B01001_001E,B19013_001E&for=state:*`),
+            // State spending for top 5 states
+            ...topStateFips.map(f => fetchJson(`${SOURCES.usa_spending}/recipient/state/${f}/`)),
+            // FRED series (if key available)
+            ...fredSeries.map(s => fetchJson(`${SOURCES.fred}/series/observations?series_id=${s}&api_key=${fredKey}&file_type=json&sort_order=desc&limit=12`)),
+          ];
+
+          const wave2Results = await Promise.all(wave2Promises);
+          let idx = 0;
+          const awardsData = wave2Results[idx++];
+          const exchangeData = wave2Results[idx++];
+          const censusData = wave2Results[idx++];
+          const stateResults = topStateFips.map(() => wave2Results[idx++]);
+          const fredResults = fredSeries.map(() => wave2Results[idx++]);
+
           // Agencies
           if (agencyData?.results) {
             usaAgencies = agencyData.results
@@ -518,7 +557,7 @@ serve(async (req) => {
               .map((a: any) => ({ name: a.agency_name, abbreviation: a.abbreviation, budgetAuthority: a.budget_authority_amount, obligated: a.obligated_amount, outlays: a.outlay_amount }));
           }
 
-          // Statements of Net Cost (agency-level costs from Financial Report)
+          // Statements of Net Cost
           if (netCostData?.data) {
             const byAgency: Record<string, any> = {};
             for (const row of netCostData.data) {
@@ -537,7 +576,7 @@ serve(async (req) => {
               .sort((a: any, b: any) => b.netCostBil - a.netCostBil);
           }
 
-          // Budget functions (Defense, Medicare, Social Security, etc.)
+          // Budget functions
           if (budgetFuncData?.results) {
             usaTotalSpending = budgetFuncData.total || 0;
             usaBudgetFunctions = budgetFuncData.results.map((r: any) => ({
@@ -548,9 +587,7 @@ serve(async (req) => {
 
           // Top awarding agencies
           if (topAwardData?.results) {
-            usaTopAwarding = topAwardData.results.map((r: any) => ({
-              name: r.name, code: r.code, amount: r.amount,
-            }));
+            usaTopAwarding = topAwardData.results.map((r: any) => ({ name: r.name, code: r.code, amount: r.amount }));
           }
 
           // Debt timeline
@@ -562,7 +599,7 @@ serve(async (req) => {
             }));
           }
 
-          // MTS summary (receipts, outlays, deficit)
+          // MTS summary
           if (mtsData?.data) {
             usaMtsSummary = mtsData.data.map((r: any) => ({
               date: r.record_date, description: r.classification_desc,
@@ -573,17 +610,71 @@ serve(async (req) => {
             }));
           }
 
-          // Interest rates on debt
+          // Interest rates
           if (interestData?.data) {
             usaInterestRates = interestData.data.slice(0, 20).map((r: any) => ({
-              date: r.record_date,
-              securityType: r.security_type_desc,
+              date: r.record_date, securityType: r.security_type_desc,
               avgRate: parseFloat(r.avg_interest_rate_amt || "0"),
             }));
           }
+
+          // Top awards (largest federal contracts)
+          if (awardsData?.results) {
+            usaTopAwards = awardsData.results.map((r: any) => ({
+              awardId: r["Award ID"], recipient: r["Recipient Name"],
+              amount: r["Award Amount"], agency: r["Awarding Agency"],
+              type: r["Award Type"],
+            }));
+          }
+
+          // Exchange rates
+          if (exchangeData?.data) {
+            usaExchangeRates = exchangeData.data.slice(0, 20).map((r: any) => ({
+              date: r.record_date, currency: r.country_currency_desc,
+              rate: parseFloat(r.exchange_rate || "0"),
+            }));
+          }
+
+          // Census state data
+          if (censusData && censusData.length > 1) {
+            for (let i = 1; i < censusData.length; i++) {
+              usaCensusStates.push({
+                name: censusData[i][0],
+                population: parseInt(censusData[i][1] || "0"),
+                medianIncome: parseInt(censusData[i][2] || "0"),
+              });
+            }
+            usaCensusStates.sort((a, b) => b.population - a.population);
+            usaCensusStates = usaCensusStates.slice(0, 15);
+          }
+
+          // State spending
+          for (let i = 0; i < topStateFips.length; i++) {
+            const sd = stateResults[i];
+            if (sd?.name) {
+              usaTopStates.push({
+                name: sd.name, code: sd.code, population: sd.population,
+                totalPrimeAmount: sd.total_prime_amount,
+                totalAwards: sd.total_prime_awards,
+                awardPerCapita: sd.award_amount_per_capita,
+                totalOutlays: sd.total_outlays,
+                medianIncome: sd.median_household_income,
+              });
+            }
+          }
+
+          // FRED data
+          for (let i = 0; i < fredSeries.length; i++) {
+            const fd = fredResults[i];
+            if (fd?.observations) {
+              usaFredData[fredSeries[i]] = fd.observations.slice(0, 8).map((o: any) => ({
+                date: o.date, value: o.value === "." ? null : parseFloat(o.value),
+              }));
+            }
+          }
         }
 
-        // Get peer comparison for context
+        // Get peer comparison
         const peerCountries = ["US", "GB", "DE", "FR", "JP", "IN", "BR", "CA", "AU", "PE", "MX", "ZA"].filter(c => c !== cc);
         const peerIso3 = peerCountries.map(c => ISO2_TO_ISO3[c] || c);
         const peerDebt: Record<string, number> = {};
@@ -607,18 +698,22 @@ serve(async (req) => {
           sources: [
             "World Bank Open Data", "IMF World Economic Outlook",
             ...(cc === "US" ? [
-              "USASpending.gov",
+              "USASpending.gov – Agency Budgets",
+              "USASpending.gov – Budget Functions",
+              "USASpending.gov – Top Awarding Agencies",
+              "USASpending.gov – Federal Awards (Contracts)",
+              "USASpending.gov – State-Level Spending",
               "US Treasury Fiscal Data – Debt to the Penny",
               "US Treasury – Statements of Net Cost (Financial Report)",
               "US Treasury – Monthly Treasury Statement (MTS)",
               "US Treasury – Average Interest Rates on Debt",
-              "USASpending.gov – Budget Functions",
-              "USASpending.gov – Top Awarding Agencies",
+              "US Treasury – Exchange Rates",
+              "US Census Bureau – ACS Demographics",
+              ...(Object.keys(usaFredData).length ? ["Federal Reserve (FRED) – Economic Indicators"] : []),
             ] : []),
           ],
           worldBank: wbIndicators,
           imf,
-          // USA-specific expanded data
           usaAgencies,
           usaNetCost,
           usaBudgetFunctions,
@@ -627,6 +722,11 @@ serve(async (req) => {
           usaDebtTimeline,
           usaMtsSummary,
           usaInterestRates,
+          usaTopAwards,
+          usaTopStates,
+          usaCensusStates,
+          usaExchangeRates,
+          usaFredData,
           peerComparison: { debt: peerDebt, revenue: peerRev },
         };
         break;
