@@ -88,7 +88,7 @@ const PRO_FEATURES: FeatureId[] = [
   "azplen", "pattern_analysis", "timeseries", "geospatial", "notebooks",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
   "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
-  "vibe_video", "agents",
+  "vibe_video", "agents", "zeeion",
 ];
 
 const ADVISOR_FEATURES: FeatureId[] = [...PRO_FEATURES];
