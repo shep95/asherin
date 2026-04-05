@@ -5,20 +5,20 @@ import { streamChat } from "@/lib/ai";
 import ReactMarkdown from "react-markdown";
 
 const COUNTRIES = [
-  { code: "US", name: "United States", flag: "🇺🇸" },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧" },
-  { code: "DE", name: "Germany", flag: "🇩🇪" },
-  { code: "FR", name: "France", flag: "🇫🇷" },
-  { code: "JP", name: "Japan", flag: "🇯🇵" },
-  { code: "IN", name: "India", flag: "🇮🇳" },
-  { code: "BR", name: "Brazil", flag: "🇧🇷" },
-  { code: "CA", name: "Canada", flag: "🇨🇦" },
-  { code: "AU", name: "Australia", flag: "🇦🇺" },
-  { code: "PE", name: "Peru", flag: "🇵🇪" },
-  { code: "MX", name: "Mexico", flag: "🇲🇽" },
-  { code: "NG", name: "Nigeria", flag: "🇳🇬" },
-  { code: "ZA", name: "South Africa", flag: "🇿🇦" },
-  { code: "ID", name: "Indonesia", flag: "🇮🇩" },
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "JP", name: "Japan" },
+  { code: "IN", name: "India" },
+  { code: "BR", name: "Brazil" },
+  { code: "CA", name: "Canada" },
+  { code: "AU", name: "Australia" },
+  { code: "PE", name: "Peru" },
+  { code: "MX", name: "Mexico" },
+  { code: "NG", name: "Nigeria" },
+  { code: "ZA", name: "South Africa" },
+  { code: "ID", name: "Indonesia" },
 ];
 
 interface WasteResult {
@@ -186,7 +186,7 @@ const ZeeionWasteFraud = () => {
         <div className="flex flex-wrap gap-1">
           {COUNTRIES.map(c => (
             <button key={c.code} onClick={() => setCountry(c.code)} className={`px-2 py-1 rounded-lg text-[9px] transition-all ${country === c.code ? "bg-foreground/[0.08] border border-foreground/[0.12] text-foreground/70" : "border border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
-              {c.flag} {c.name}
+              {c.name}
             </button>
           ))}
         </div>

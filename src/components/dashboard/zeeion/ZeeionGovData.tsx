@@ -10,26 +10,26 @@ import ZeeionBudgetOptimizer from "./ZeeionBudgetOptimizer";
 
 /* ── Country registry ── */
 const COUNTRIES = [
-  { code: "US", name: "United States", flag: "🇺🇸", iso3: "USA" },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧", iso3: "GBR" },
-  { code: "DE", name: "Germany", flag: "🇩🇪", iso3: "DEU" },
-  { code: "FR", name: "France", flag: "🇫🇷", iso3: "FRA" },
-  { code: "JP", name: "Japan", flag: "🇯🇵", iso3: "JPN" },
-  { code: "CN", name: "China", flag: "🇨🇳", iso3: "CHN" },
-  { code: "IN", name: "India", flag: "🇮🇳", iso3: "IND" },
-  { code: "BR", name: "Brazil", flag: "🇧🇷", iso3: "BRA" },
-  { code: "CA", name: "Canada", flag: "🇨🇦", iso3: "CAN" },
-  { code: "AU", name: "Australia", flag: "🇦🇺", iso3: "AUS" },
-  { code: "KR", name: "South Korea", flag: "🇰🇷", iso3: "KOR" },
-  { code: "MX", name: "Mexico", flag: "🇲🇽", iso3: "MEX" },
-  { code: "IT", name: "Italy", flag: "🇮🇹", iso3: "ITA" },
-  { code: "ES", name: "Spain", flag: "🇪🇸", iso3: "ESP" },
-  { code: "PE", name: "Peru", flag: "🇵🇪", iso3: "PER" },
-  { code: "RU", name: "Russia", flag: "🇷🇺", iso3: "RUS" },
-  { code: "ZA", name: "South Africa", flag: "🇿🇦", iso3: "ZAF" },
-  { code: "NG", name: "Nigeria", flag: "🇳🇬", iso3: "NGA" },
-  { code: "SA", name: "Saudi Arabia", flag: "🇸🇦", iso3: "SAU" },
-  { code: "ID", name: "Indonesia", flag: "🇮🇩", iso3: "IDN" },
+  { code: "US", name: "United States", iso3: "USA" },
+  { code: "GB", name: "United Kingdom", iso3: "GBR" },
+  { code: "DE", name: "Germany", iso3: "DEU" },
+  { code: "FR", name: "France", iso3: "FRA" },
+  { code: "JP", name: "Japan", iso3: "JPN" },
+  { code: "CN", name: "China", iso3: "CHN" },
+  { code: "IN", name: "India", iso3: "IND" },
+  { code: "BR", name: "Brazil", iso3: "BRA" },
+  { code: "CA", name: "Canada", iso3: "CAN" },
+  { code: "AU", name: "Australia", iso3: "AUS" },
+  { code: "KR", name: "South Korea", iso3: "KOR" },
+  { code: "MX", name: "Mexico", iso3: "MEX" },
+  { code: "IT", name: "Italy", iso3: "ITA" },
+  { code: "ES", name: "Spain", iso3: "ESP" },
+  { code: "PE", name: "Peru", iso3: "PER" },
+  { code: "RU", name: "Russia", iso3: "RUS" },
+  { code: "ZA", name: "South Africa", iso3: "ZAF" },
+  { code: "NG", name: "Nigeria", iso3: "NGA" },
+  { code: "SA", name: "Saudi Arabia", iso3: "SAU" },
+  { code: "ID", name: "Indonesia", iso3: "IDN" },
 ];
 
 const INDICATORS = [
@@ -249,7 +249,7 @@ const ZeeionGovData = () => {
                       }}
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border/[0.08] bg-foreground/[0.02] hover:bg-foreground/[0.06] hover:border-foreground/[0.15] transition-all group"
                     >
-                      <span className="text-base">{c.flag}</span>
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground/40" />
                       <span className="text-[10px] text-foreground/50 group-hover:text-foreground/70 font-light">{c.name}</span>
                       <ArrowRight className="h-3 w-3 text-muted-foreground/20 group-hover:text-foreground/40 transition-colors" />
                     </button>
@@ -313,14 +313,14 @@ const ZeeionGovData = () => {
             <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 mb-4">Who Uses This</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {[
-                { icon: "🏛️", label: "Government Oversight", desc: "Automated fraud detection" },
-                { icon: "📰", label: "News Organizations", desc: "Data-driven investigations" },
-                { icon: "⚖️", label: "Opposition Politicians", desc: "Evidence-backed analysis" },
-                { icon: "🏢", label: "Consulting Firms", desc: "Sell savings to governments" },
-                { icon: "👥", label: "Taxpayer Advocates", desc: "Automated watchdog" },
+                { icon: <Shield className="h-4 w-4" />, label: "Government Oversight", desc: "Automated fraud detection" },
+                { icon: <FileText className="h-4 w-4" />, label: "News Organizations", desc: "Data-driven investigations" },
+                { icon: <BarChart3 className="h-4 w-4" />, label: "Opposition Politicians", desc: "Evidence-backed analysis" },
+                { icon: <TrendingUp className="h-4 w-4" />, label: "Consulting Firms", desc: "Sell savings to governments" },
+                { icon: <Users className="h-4 w-4" />, label: "Taxpayer Advocates", desc: "Automated watchdog" },
               ].map(u => (
-                <div key={u.label} className="text-center p-3 rounded-xl bg-foreground/[0.02]">
-                  <span className="text-lg">{u.icon}</span>
+                <div key={u.label} className="text-center p-3 rounded-xl bg-foreground/[0.02] flex flex-col items-center">
+                  <span className="text-muted-foreground/40">{u.icon}</span>
                   <p className="text-[9px] text-foreground/50 mt-1.5 font-light">{u.label}</p>
                   <p className="text-[7px] text-muted-foreground/30 mt-0.5">{u.desc}</p>
                 </div>
@@ -360,7 +360,7 @@ const ZeeionGovData = () => {
             <div className="flex flex-wrap gap-1">
               {COUNTRIES.map(c => (
                 <button key={c.code} onClick={() => setSelectedCountry(c.code)} className={`px-2 py-1 rounded-lg text-[9px] transition-all ${selectedCountry === c.code ? "bg-foreground/[0.08] border border-foreground/[0.12] text-foreground/70" : "border border-border/[0.06] text-muted-foreground/40 hover:bg-foreground/[0.04]"}`}>
-                  {c.flag} {c.name}
+                  <Globe className="h-2.5 w-2.5 inline-block mr-1 opacity-40" />{c.name}
                 </button>
               ))}
             </div>
@@ -508,7 +508,7 @@ const ZeeionGovData = () => {
       {subTab === "usa_detail" && (
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40">🇺🇸 United States Federal Budget</h3>
+            <h3 className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/40 flex items-center gap-1.5"><Globe className="h-3 w-3" /> United States Federal Budget</h3>
             <button onClick={() => { fetchUSAAgencies(); fetchDebt(); }} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border/[0.06] text-[8px] text-muted-foreground/30 hover:bg-foreground/[0.04]">
               <RefreshCw className="h-2.5 w-2.5" /> Refresh
             </button>
@@ -640,15 +640,15 @@ const ZeeionGovData = () => {
           {chatMsgs.length === 0 && (
             <div className="shrink-0 px-4 py-3 border-b border-border/[0.04] flex flex-wrap gap-1.5">
               {[
-                { l: "💰 Waste", q: "What are the biggest areas of government waste and inefficiency?" },
-                { l: "📊 Compare", q: "How does the US government spending compare to other major economies?" },
-                { l: "💳 Debt", q: "Analyze the national debt trajectory and its implications." },
-                { l: "🏥 Healthcare", q: "Why is US healthcare spending so high compared to other countries?" },
-                { l: "🛡️ Defense", q: "Analyze defense spending across major world powers." },
-                { l: "📚 Education", q: "Which countries invest the most in education and what are the outcomes?" },
+                { l: "Waste", q: "What are the biggest areas of government waste and inefficiency?", icon: <AlertTriangle className="h-2.5 w-2.5" /> },
+                { l: "Compare", q: "How does the US government spending compare to other major economies?", icon: <BarChart3 className="h-2.5 w-2.5" /> },
+                { l: "Debt", q: "Analyze the national debt trajectory and its implications.", icon: <DollarSign className="h-2.5 w-2.5" /> },
+                { l: "Healthcare", q: "Why is US healthcare spending so high compared to other countries?", icon: <Heart className="h-2.5 w-2.5" /> },
+                { l: "Defense", q: "Analyze defense spending across major world powers.", icon: <Shield className="h-2.5 w-2.5" /> },
+                { l: "Education", q: "Which countries invest the most in education and what are the outcomes?", icon: <GraduationCap className="h-2.5 w-2.5" /> },
               ].map(a => (
-                <button key={a.l} onClick={() => sendChat(a.q)} className="px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[9px] text-foreground/50 hover:bg-foreground/[0.06]">
-                  {a.l}
+                <button key={a.l} onClick={() => sendChat(a.q)} className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[9px] text-foreground/50 hover:bg-foreground/[0.06]">
+                  {a.icon} {a.l}
                 </button>
               ))}
             </div>

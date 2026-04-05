@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Send, X, Sparkles, Loader2, Maximize2, Minimize2 } from "lucide-react";
+import { Send, X, Sparkles, Loader2, Maximize2, Minimize2, DollarSign, AlertTriangle, BarChart3, FileText, Search, TrendingUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat } from "@/lib/ai";
 import type { AnalysisResult } from "./ZeeionView";
@@ -198,12 +198,12 @@ const ZeeionAureonChat = ({ analysis }: Props) => {
   };
 
   const quickActions = [
-    { label: "💰 Savings", q: "What are the biggest savings opportunities and how do I capture them?" },
-    { label: "⚠️ Risks", q: "What are the most concerning spending patterns or anomalies?" },
-    { label: "📊 Departments", q: "Which departments are performing well and which need attention?" },
-    { label: "📄 Summary", q: "Give me a concise executive summary with key action items." },
-    { label: "🔍 Vendors", q: "Analyze our top vendors — who is overpriced, who should we consolidate?" },
-    { label: "📈 Trends", q: "What spending trends should I be aware of and what do they mean for next quarter?" },
+    { label: "Savings", q: "What are the biggest savings opportunities and how do I capture them?", icon: <DollarSign className="h-2.5 w-2.5" /> },
+    { label: "Risks", q: "What are the most concerning spending patterns or anomalies?", icon: <AlertTriangle className="h-2.5 w-2.5" /> },
+    { label: "Departments", q: "Which departments are performing well and which need attention?", icon: <BarChart3 className="h-2.5 w-2.5" /> },
+    { label: "Summary", q: "Give me a concise executive summary with key action items.", icon: <FileText className="h-2.5 w-2.5" /> },
+    { label: "Vendors", q: "Analyze our top vendors — who is overpriced, who should we consolidate?", icon: <Search className="h-2.5 w-2.5" /> },
+    { label: "Trends", q: "What spending trends should I be aware of and what do they mean for next quarter?", icon: <TrendingUp className="h-2.5 w-2.5" /> },
   ];
 
   return (
@@ -236,9 +236,9 @@ const ZeeionAureonChat = ({ analysis }: Props) => {
               <button
                 key={a.label}
                 onClick={() => send(a.q)}
-                className="px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[9px] text-foreground/50 hover:bg-foreground/[0.06] transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[9px] text-foreground/50 hover:bg-foreground/[0.06] transition-all"
               >
-                {a.label}
+                {a.icon} {a.label}
               </button>
             ))}
           </div>
