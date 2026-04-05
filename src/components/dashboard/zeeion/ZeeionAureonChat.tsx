@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send, X, Sparkles, Loader2, Maximize2, Minimize2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { streamChat } from "@/lib/ai";
-import type { AnalysisResult } from "../ZeeionView";
+import type { AnalysisResult } from "./ZeeionView";
 
 interface Props {
   analysis: AnalysisResult;
