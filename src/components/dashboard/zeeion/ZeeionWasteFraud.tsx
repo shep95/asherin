@@ -123,10 +123,13 @@ const ZeeionWasteFraud = () => {
     setGeneratingPlan(null);
   };
 
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
   const runAnalysis = useCallback(async () => {
     setLoading(true);
     setResult(null);
     setChatMsgs([]);
+    setAnalysisError(null);
     try {
       // Fetch gov data
       const calls = [
@@ -166,28 +169,61 @@ const ZeeionWasteFraud = () => {
         ctx.push("Peer Comparison (Govt Expense % GDP): " + govData.comparison.countries.map((c: any) => `${c.countryName}: ${c.value?.toFixed(2)}%`).join("; "));
       }
 
-      // AI waste analysis
+      // AI waste analysis - force default AI (skip BYOK for internal tools)
       let aiContent = "";
-      await streamChat({
-        messages: [
-          { role: "user", content: `[GOV FINANCIAL DATA]\n${ctx.join("\n")}\n\n---\nYou are Aureon's Waste & Fraud Detection Engine. Analyze this government's financial data and identify ALL forms of waste, fraud, and inefficiency.\n\nReturn your analysis as a JSON object with this EXACT structure (no markdown, just JSON):\n{\n  "totalWaste": <number in USD>,\n  "percentOfBudget": <number>,\n  "patterns": [\n    {\n      "type": "duplicate_payments|ghost_employees|overpriced_contracts|inactive_programs|shell_companies|contract_splitting|administrative_overhead|procurement_fraud",\n      "description": "<detailed description>",\n      "estimatedWaste": <number in USD>,\n      "severity": "high|medium|low",\n      "evidence": "<specific evidence from data>",\n      "recommendation": "<actionable recommendation>"\n    }\n  ],\n  "executiveSummary": "<3-4 paragraph executive summary of waste findings>"\n}\n\nBe forensic and specific. Use real data patterns. Estimate real dollar amounts based on the budget data. Include at least 6-8 waste patterns. For ${countryName}, consider country-specific corruption patterns and governance issues.` },
-        ],
-        mode: "research",
-        onDelta: (chunk) => { aiContent += chunk; },
-        onDone: () => {},
-      });
-
-      // Parse result
       try {
-        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+        // Temporarily clear BYOK to force default Aureon AI for internal analysis
+        const savedByok = localStorage.getItem("aureon_byok_active");
+        localStorage.removeItem("aureon_byok_active");
+        
+        await streamChat({
+          messages: [
+            { role: "user", content: `[GOV FINANCIAL DATA]\n${ctx.join("\n")}\n\n---\nYou are Aureon's Waste & Fraud Detection Engine. Analyze this government's financial data and identify ALL forms of waste, fraud, and inefficiency.\n\nReturn your analysis as a JSON object with this EXACT structure (no markdown, no code blocks, just raw JSON):\n{\n  "totalWaste": <number in USD>,\n  "percentOfBudget": <number>,\n  "patterns": [\n    {\n      "type": "duplicate_payments|ghost_employees|overpriced_contracts|inactive_programs|shell_companies|contract_splitting|administrative_overhead|procurement_fraud",\n      "description": "<detailed description>",\n      "estimatedWaste": <number in USD>,\n      "severity": "high|medium|low",\n      "evidence": "<specific evidence from data>",\n      "recommendation": "<actionable recommendation>"\n    }\n  ],\n  "executiveSummary": "<3-4 paragraph executive summary of waste findings>"\n}\n\nIMPORTANT: Return ONLY the raw JSON object. No markdown formatting, no \`\`\`json blocks. Just the JSON.\n\nBe forensic and specific. Use real data patterns. Estimate real dollar amounts based on the budget data. Include at least 6-8 waste patterns. For ${countryName}, consider country-specific corruption patterns and governance issues.` },
+          ],
+          mode: "research",
+          onDelta: (chunk) => { aiContent += chunk; },
+          onDone: () => {},
+        });
+
+        // Restore BYOK preference
+        if (savedByok) localStorage.setItem("aureon_byok_active", savedByok);
+      } catch (streamErr: any) {
+        console.error("Stream error:", streamErr);
+        // If stream failed, still try to parse any partial content
+        if (!aiContent) {
+          setAnalysisError(`Analysis failed: ${streamErr.message || "AI engine unavailable"}. Try running the scan again.`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Parse result - handle markdown-wrapped JSON
+      try {
+        // Strip markdown code blocks if present
+        let cleanContent = aiContent.trim();
+        cleanContent = cleanContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
+        
+        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           setResult(parsed);
-          // Convert to trackable waste items
           const items = convertToWasteItems(parsed);
           setWasteItems(items);
+        } else if (aiContent.length > 0) {
+          // AI returned text but no JSON - show as summary
+          setResult({
+            totalWaste: 0,
+            percentOfBudget: 0,
+            patterns: [],
+            executiveSummary: aiContent,
+          });
+          setAnalysisError("AI returned analysis in text format instead of structured data. Summary shown below.");
+        } else {
+          setAnalysisError("No analysis data received. Please try running the scan again.");
         }
-      } catch {
+      } catch (parseErr) {
+        console.error("JSON parse error:", parseErr, "Content:", aiContent.substring(0, 500));
+        // Show raw content as executive summary
         setResult({
           totalWaste: 0,
           percentOfBudget: 0,
@@ -195,8 +231,9 @@ const ZeeionWasteFraud = () => {
           executiveSummary: aiContent,
         });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Waste analysis error:", e);
+      setAnalysisError(`Scan failed: ${e.message || "Unknown error"}. Please try again.`);
     }
     setLoading(false);
   }, [country]);
