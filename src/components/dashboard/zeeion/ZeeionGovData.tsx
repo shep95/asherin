@@ -48,7 +48,7 @@ type SubTab = "landing" | "overview" | "comparison" | "usa_detail" | "waste_frau
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
 const ZeeionGovData = () => {
-  const [subTab, setSubTab] = useState<SubTab>("overview");
+  const [subTab, setSubTab] = useState<SubTab>("landing");
   const [selectedCountry, setSelectedCountry] = useState("US");
   const [wbData, setWbData] = useState<any>(null);
   const [usaAgencies, setUsaAgencies] = useState<any>(null);
