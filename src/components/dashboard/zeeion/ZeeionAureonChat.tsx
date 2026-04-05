@@ -236,9 +236,9 @@ const ZeeionAureonChat = ({ analysis }: Props) => {
               <button
                 key={a.label}
                 onClick={() => send(a.q)}
-                className="px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[9px] text-foreground/50 hover:bg-foreground/[0.06] transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-border/[0.08] bg-foreground/[0.03] text-[9px] text-foreground/50 hover:bg-foreground/[0.06] transition-all"
               >
-                {a.label}
+                {a.icon} {a.label}
               </button>
             ))}
           </div>
