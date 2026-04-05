@@ -323,23 +323,125 @@ const ZeeionWasteTracker = ({ wasteItems, onUpdateStatus, onCreatePlan, countryN
                       </button>
                     </div>
 
-                    {/* Remediation Plan Preview */}
+                    {/* Remediation Plan — Full Detail View */}
                     {item.remediationPlan && (
-                      <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 mt-2">
-                        <p className="text-[8px] uppercase tracking-[0.15em] text-primary/40 mb-2">Remediation Plan</p>
-                        <div className="space-y-1">
-                          {item.remediationPlan.phases.map((phase, pi) => (
-                            <div key={pi} className="flex items-center gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${pi === 0 ? "bg-primary/40" : "bg-foreground/[0.08]"}`} />
-                              <span className="text-[9px] text-foreground/50 font-light">{phase.name}</span>
-                              <span className="text-[7px] text-muted-foreground/25">{phase.duration}</span>
-                            </div>
-                          ))}
+                      <div className="rounded-2xl border border-primary/10 bg-primary/[0.02] p-4 mt-3 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[8px] uppercase tracking-[0.2em] text-primary/40">Remediation Plan</p>
+                            <p className="text-[9px] text-foreground/50 font-light mt-0.5">Objective: Eliminate {fmtUsd(item.annualImpact)}/yr waste via {item.type.replace(/_/g, " ")}</p>
+                          </div>
+                          <button onClick={() => {
+                            const planTxt = JSON.stringify(item.remediationPlan, null, 2);
+                            const blob = new Blob([planTxt], { type: "application/json" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url; a.download = `remediation_plan_${item.id}.json`; a.click();
+                            URL.revokeObjectURL(url);
+                          }} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border/[0.08] text-[8px] text-foreground/40 hover:bg-foreground/[0.04]">
+                            <Download className="h-2.5 w-2.5" /> Download Plan
+                          </button>
                         </div>
-                        <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border/[0.04]">
-                          <span className="text-[8px] text-foreground/40">Cost: {fmtUsd(item.remediationPlan.totalCost)}</span>
-                          <span className="text-[8px] text-emerald-400/50">ROI: {item.remediationPlan.roi.toFixed(0)}%</span>
-                          <span className="text-[8px] text-muted-foreground/30">Payback: {item.remediationPlan.paybackPeriod}</span>
+
+                        {/* Phases with steps */}
+                        <div className="space-y-3">
+                          {item.remediationPlan.phases.map((phase, pi) => {
+                            const allDone = phase.steps.every(s => s.status === "done" || s.status === "complete" || s.status === "completed");
+                            const someInProgress = phase.steps.some(s => s.status === "in_progress" || s.status === "in progress");
+                            const phaseIcon = allDone ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/60" /> : someInProgress ? <RefreshCw className="h-3.5 w-3.5 text-cyan-400/60 animate-spin" style={{ animationDuration: "3s" }} /> : <Clock className="h-3.5 w-3.5 text-muted-foreground/25" />;
+                            const phaseLabel = allDone ? "Complete" : someInProgress ? "In Progress" : "Not Started";
+                            const phaseLabelColor = allDone ? "text-emerald-400/50" : someInProgress ? "text-cyan-400/50" : "text-muted-foreground/25";
+
+                            return (
+                              <div key={pi} className="rounded-xl border border-border/[0.06] bg-foreground/[0.01] p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    {phaseIcon}
+                                    <span className="text-[10px] text-foreground/60 font-light">Phase {pi + 1}: {phase.name}</span>
+                                    <span className="text-[7px] text-muted-foreground/25">({phase.duration})</span>
+                                  </div>
+                                  <span className={`text-[7px] ${phaseLabelColor}`}>{phaseLabel}</span>
+                                </div>
+                                <div className="space-y-1.5 ml-5">
+                                  {phase.steps.map((step, si) => {
+                                    const isDone = step.status === "done" || step.status === "complete" || step.status === "completed";
+                                    const isActive = step.status === "in_progress" || step.status === "in progress";
+                                    return (
+                                      <div key={si} className="flex items-start gap-2">
+                                        {isDone ? (
+                                          <CheckCircle2 className="h-3 w-3 text-emerald-400/50 mt-0.5 shrink-0" />
+                                        ) : isActive ? (
+                                          <RefreshCw className="h-3 w-3 text-cyan-400/50 mt-0.5 shrink-0 animate-spin" style={{ animationDuration: "3s" }} />
+                                        ) : (
+                                          <Circle className="h-3 w-3 text-muted-foreground/20 mt-0.5 shrink-0" />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            <span className={`text-[9px] font-light ${isDone ? "text-foreground/40 line-through" : isActive ? "text-foreground/60" : "text-foreground/40"}`}>
+                                              Step {(pi * 4) + si + 1}: {step.action}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="text-[7px] text-muted-foreground/25">{step.responsible}</span>
+                                            <span className="text-[7px] text-muted-foreground/20">•</span>
+                                            <span className="text-[7px] text-muted-foreground/25">{step.timeline}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Summary metrics */}
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/[0.04]">
+                          <div className="text-center p-2 rounded-lg bg-foreground/[0.02]">
+                            <p className="text-[7px] text-muted-foreground/30 uppercase tracking-wider">Cost</p>
+                            <p className="text-[11px] text-foreground/60 font-light">{fmtUsd(item.remediationPlan.totalCost)}</p>
+                          </div>
+                          <div className="text-center p-2 rounded-lg bg-emerald-500/[0.03]">
+                            <p className="text-[7px] text-emerald-400/40 uppercase tracking-wider">ROI</p>
+                            <p className="text-[11px] text-emerald-400/60 font-light">{item.remediationPlan.roi.toLocaleString()}%</p>
+                          </div>
+                          <div className="text-center p-2 rounded-lg bg-foreground/[0.02]">
+                            <p className="text-[7px] text-muted-foreground/30 uppercase tracking-wider">Payback</p>
+                            <p className="text-[11px] text-foreground/60 font-light">{item.remediationPlan.paybackPeriod}</p>
+                          </div>
+                        </div>
+
+                        {/* Budget Redirection Plan */}
+                        {item.remediationPlan.budgetRedirection && item.remediationPlan.budgetRedirection.length > 0 && (
+                          <div className="pt-2 border-t border-border/[0.04]">
+                            <p className="text-[8px] uppercase tracking-[0.15em] text-primary/35 mb-2">Budget Redirection Plan</p>
+                            <p className="text-[8px] text-foreground/40 mb-3 font-light">Once {fmtUsd(item.annualImpact)} is saved, recommended allocation:</p>
+                            <div className="space-y-2">
+                              {item.remediationPlan.budgetRedirection.map((rd, ri) => (
+                                <div key={ri}>
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[8px] text-foreground/50 font-light">{rd.percentage}% → {rd.destination}</span>
+                                    <span className="text-[8px] text-foreground/40">{fmtUsd(rd.amount)}</span>
+                                  </div>
+                                  <div className="w-full h-1.5 rounded-full bg-foreground/[0.04] overflow-hidden">
+                                    <div className="h-full rounded-full bg-primary/30 transition-all" style={{ width: `${rd.percentage}%` }} />
+                                  </div>
+                                  <p className="text-[7px] text-muted-foreground/25 mt-0.5 font-light">{rd.rationale}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-border/[0.04]">
+                          <button onClick={() => onUpdateStatus(item.id, "in_progress")} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-[8px] text-cyan-400/70 hover:bg-cyan-500/20">
+                            <ArrowRight className="h-2.5 w-2.5" /> Start Implementation
+                          </button>
+                          <button onClick={() => { setSelectedItem(item); setChatMsgs([]); sendChat(`Analyze the remediation plan for "${item.type}" waste item. What are the risks, and how can we accelerate the timeline?`); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border/[0.08] text-[8px] text-foreground/40 hover:bg-foreground/[0.04]">
+                            <Sparkles className="h-2.5 w-2.5" /> Ask Aureon
+                          </button>
                         </div>
                       </div>
                     )}
