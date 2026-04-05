@@ -221,20 +221,19 @@ const ZeeionWasteFraud = () => {
     setExpandedPattern(null);
     setWasteItems([]);
 
-    // Check session cache for main analysis — prevents different data on refresh
-    const mainCacheKey = `aureon_waste_${country}`;
+    // Check session cache for main analysis — live-source-only mode
+    const mainCacheKey = `aureon_waste_live_v3_${country}`;
     try {
       const cached = sessionStorage.getItem(mainCacheKey);
       if (cached) {
         const parsed = JSON.parse(cached) as WasteResult;
         setResult(parsed);
-        setWasteItems(convertToWasteItems(parsed));
+        setWasteItems([]);
         setLoading(false);
         return;
       }
     } catch { /* cache miss */ }
     try {
-      // Fetch gov data
       const calls = [
         supabase.functions.invoke("gov-data", { body: { action: "world_bank_indicators", params: { countryCode: country } } }),
         supabase.functions.invoke("gov-data", { body: { action: "spending_by_agency" } }),
@@ -246,111 +245,46 @@ const ZeeionWasteFraud = () => {
       setRawGovData(govData);
 
       const countryName = COUNTRIES.find(c => c.code === country)?.name || country;
+      const gdp = govData.worldBank?.indicators?.["NY.GDP.MKTP.CD"]?.[0];
+      const exp = govData.worldBank?.indicators?.["GC.XPN.TOTL.GD.ZS"]?.[0];
+      const debt = govData.worldBank?.indicators?.["GC.DOD.TOTL.GD.ZS"]?.[0];
+      const health = govData.worldBank?.indicators?.["SH.XPD.CHEX.GD.ZS"]?.[0];
+      const edu = govData.worldBank?.indicators?.["SE.XPD.TOTL.GD.ZS"]?.[0];
+      const topAgencies = country === "US" && govData.usaSpending?.agencies
+        ? govData.usaSpending.agencies.slice(0, 5).map((a: any) => `${a.name}: ${fmtUsd(a.budgetAuthority)}`).join("; ")
+        : "";
+      const peerComparison = govData.comparison?.countries?.length
+        ? govData.comparison.countries.slice(0, 5).map((c: any) => `${c.countryName}: ${c.value?.toFixed?.(2) ?? c.value}%`).join("; ")
+        : "";
 
-      // Build context for AI analysis
-      const ctx: string[] = [];
-      ctx.push(`Country: ${countryName} (${country})`);
-      if (govData.worldBank?.indicators) {
-        const gdp = govData.worldBank.indicators["NY.GDP.MKTP.CD"]?.[0];
-        const exp = govData.worldBank.indicators["GC.XPN.TOTL.GD.ZS"]?.[0];
-        const debt = govData.worldBank.indicators["GC.DOD.TOTL.GD.ZS"]?.[0];
-        const mil = govData.worldBank.indicators["MS.MIL.XPND.GD.ZS"]?.[0];
-        const health = govData.worldBank.indicators["SH.XPD.CHEX.GD.ZS"]?.[0];
-        const edu = govData.worldBank.indicators["SE.XPD.TOTL.GD.ZS"]?.[0];
-        if (gdp) ctx.push(`GDP: $${(gdp.value / 1e12).toFixed(2)}T (${gdp.date})`);
-        if (exp) ctx.push(`Government Expense: ${exp.value.toFixed(2)}% of GDP`);
-        if (debt) ctx.push(`Government Debt: ${debt.value.toFixed(2)}% of GDP`);
-        if (mil) ctx.push(`Military Spending: ${mil.value.toFixed(2)}% of GDP`);
-        if (health) ctx.push(`Health Spending: ${health.value.toFixed(2)}% of GDP`);
-        if (edu) ctx.push(`Education Spending: ${edu.value.toFixed(2)}% of GDP`);
-      }
-      if (govData.usaSpending?.agencies && country === "US") {
-        ctx.push(`Total Federal Budget: $${(govData.usaSpending.totalBudget / 1e12).toFixed(2)}T`);
-        ctx.push("Top Agencies: " + govData.usaSpending.agencies.slice(0, 15).map((a: any) => `${a.name}: ${fmtUsd(a.budgetAuthority)}`).join("; "));
-      }
-      if (govData.comparison?.countries) {
-        ctx.push("Peer Comparison (Govt Expense % GDP): " + govData.comparison.countries.map((c: any) => `${c.countryName}: ${c.value?.toFixed(2)}%`).join("; "));
-      }
+      const liveOnlyResult: WasteResult = {
+        totalWasteLow: 0,
+        totalWasteHigh: 0,
+        percentOfBudgetLow: 0,
+        percentOfBudgetHigh: 0,
+        patterns: [],
+        executiveSummary: [
+          `Live public-source mode is enabled for ${countryName}.`,
+          "This panel now fails closed: it will not generate simulated fraud cases, hallucinated companies, invented approvers, or fake drill-down records.",
+          [
+            gdp ? `GDP: ${fmtUsd(gdp.value)} (${gdp.date})` : null,
+            exp ? `Government expense: ${exp.value.toFixed(2)}% of GDP` : null,
+            debt ? `Government debt: ${debt.value.toFixed(2)}% of GDP` : null,
+            health ? `Health spending: ${health.value.toFixed(2)}% of GDP` : null,
+            edu ? `Education spending: ${edu.value.toFixed(2)}% of GDP` : null,
+          ].filter(Boolean).join(" | "),
+          topAgencies ? `Current live agency budget data: ${topAgencies}` : null,
+          peerComparison ? `Peer comparison from live World Bank data: ${peerComparison}` : null,
+          "Case-level waste estimates, named actors, contract splitting allegations, ghost employee lists, and approver histories are now withheld unless they come directly from a connected record-level public source.",
+        ].filter(Boolean).join("\n\n"),
+      };
 
-      // AI waste analysis - force default AI (skip BYOK for internal tools)
-      let aiContent = "";
-      try {
-        // Temporarily clear BYOK to force default Aureon AI for internal analysis
-        const savedByok = localStorage.getItem("aureon_byok_active");
-        localStorage.removeItem("aureon_byok_active");
-        
-        await streamChat({
-          messages: [
-            { role: "user", content: `[GOV FINANCIAL DATA]\n${ctx.join("\n")}\n\n---\nYou are Aureon's Waste & Fraud Detection Engine. Analyze this government's financial data and identify ALL forms of waste, fraud, and inefficiency.\n\nCRITICAL TEMPORAL REQUIREMENTS:\n- Current date: ${new Date().toISOString().slice(0, 10)}\n- All data, contracts, and waste items must be from the last 2 years (${new Date().getFullYear() - 2} to present).\n- Use the CURRENT government structure as of today.\n\nCRITICAL DATA INTEGRITY RULES:\n- Do NOT invent or hallucinate individual names. The AI does NOT have a verified database of current officials.\n- Instead of specific names, reference officials by their VERIFIABLE TITLE + DEPARTMENT (e.g., "Director General, Ministry of Transport" or "Chief Procurement Officer, Ministry of Defense").\n- When referencing specific waste cases, cite REAL publicly documented cases from news reports, audit reports, or government transparency portals.\n- Include source references: audit report names, news outlets, transparency portal URLs, or official gazette references where applicable.\n- Financial figures must be derived from the provided government data, World Bank indicators, or publicly documented audit findings — not invented.\n- If citing a specific scandal or case, it must be a REAL case that can be verified through public records.\n\nReturn your analysis as a JSON object with this EXACT structure (no markdown, no code blocks, just raw JSON):\n{\n  "totalWasteLow": <number in USD - conservative lower bound>,\n  "totalWasteHigh": <number in USD - upper bound>,\n  "percentOfBudgetLow": <number - lower bound>,\n  "percentOfBudgetHigh": <number - upper bound>,\n  "patterns": [\n    {\n      "type": "duplicate_payments|ghost_employees|overpriced_contracts|inactive_programs|shell_companies|contract_splitting|administrative_overhead|procurement_fraud",\n      "description": "<detailed description citing real audit findings or documented cases>",\n      "estimatedWasteLow": <number in USD - conservative lower bound>,\n      "estimatedWasteHigh": <number in USD - upper bound>,\n      "severity": "high|medium|low",\n      "evidence": "<specific evidence from public data, audit reports, or news sources>",\n      "recommendation": "<actionable recommendation>",\n      "sources": ["source1 name/URL", "source2 name/URL"]\n    }\n  ],\n  "executiveSummary": "<3-4 paragraph executive summary of waste findings referencing real documented issues>"\n}\n\nIMPORTANT: All waste amounts MUST be ranges (low to high). Return ONLY the raw JSON object. No markdown formatting.\n\nBe forensic and specific. Use REAL data patterns from the provided government data. Reference REAL audit findings, inspector general reports, GAO reports, or international transparency assessments (Transparency International CPI, World Bank governance indicators). For ${countryName}, cite country-specific publicly documented corruption cases and governance issues. Include at least 6-8 waste patterns.` },
-          ],
-          mode: "research",
-          onDelta: (chunk) => { aiContent += chunk; },
-          onDone: () => {},
-        });
-
-        // Restore BYOK preference
-        if (savedByok) localStorage.setItem("aureon_byok_active", savedByok);
-      } catch (streamErr: any) {
-        console.error("Stream error:", streamErr);
-        // If stream failed, still try to parse any partial content
-        if (!aiContent) {
-          setAnalysisError(`Analysis failed: ${streamErr.message || "AI engine unavailable"}. Try running the scan again.`);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Parse result - handle markdown-wrapped JSON
-      try {
-        // Strip markdown code blocks if present
-        let cleanContent = aiContent.trim();
-        cleanContent = cleanContent.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-        
-        const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const raw = JSON.parse(jsonMatch[0]);
-          const normalized: WasteResult = {
-            totalWasteLow: raw.totalWasteLow ?? (raw.totalWaste ? raw.totalWaste * 0.7 : 0),
-            totalWasteHigh: raw.totalWasteHigh ?? (raw.totalWaste ? raw.totalWaste * 1.3 : 0),
-            percentOfBudgetLow: raw.percentOfBudgetLow ?? (raw.percentOfBudget ? raw.percentOfBudget * 0.7 : 0),
-            percentOfBudgetHigh: raw.percentOfBudgetHigh ?? (raw.percentOfBudget ? raw.percentOfBudget * 1.3 : 0),
-            patterns: (raw.patterns || []).map((p: any) => ({
-              ...p,
-              estimatedWasteLow: p.estimatedWasteLow ?? (p.estimatedWaste ? p.estimatedWaste * 0.7 : 0),
-              estimatedWasteHigh: p.estimatedWasteHigh ?? (p.estimatedWaste ? p.estimatedWaste * 1.3 : 0),
-            })),
-            executiveSummary: raw.executiveSummary || "",
-          };
-          setResult(normalized);
-          const items = convertToWasteItems(normalized);
-          setWasteItems(items);
-          // Cache for session consistency
-          try { sessionStorage.setItem(mainCacheKey, JSON.stringify(normalized)); } catch { /* storage full */ }
-        } else if (aiContent.length > 0) {
-          // AI returned text but no JSON - show as summary
-        setResult({
-          totalWasteLow: 0, totalWasteHigh: 0,
-          percentOfBudgetLow: 0, percentOfBudgetHigh: 0,
-          patterns: [],
-          executiveSummary: aiContent,
-        });
-          setAnalysisError("AI returned analysis in text format instead of structured data. Summary shown below.");
-        } else {
-          setAnalysisError("No analysis data received. Please try running the scan again.");
-        }
-      } catch (parseErr) {
-        console.error("JSON parse error:", parseErr, "Content:", aiContent.substring(0, 500));
-        // Show raw content as executive summary
-          setResult({
-            totalWasteLow: 0, totalWasteHigh: 0,
-            percentOfBudgetLow: 0, percentOfBudgetHigh: 0,
-            patterns: [],
-            executiveSummary: aiContent,
-          });
-      }
+      setResult(liveOnlyResult);
+      setWasteItems([]);
+      try { sessionStorage.setItem(mainCacheKey, JSON.stringify(liveOnlyResult)); } catch { /* storage full */ }
     } catch (e: any) {
       console.error("Waste analysis error:", e);
-      setAnalysisError(`Scan failed: ${e.message || "Unknown error"}. Please try again.`);
+      setAnalysisError(`Live data scan failed: ${e.message || "Unknown error"}. Please try again.`);
     }
     setLoading(false);
   }, [country]);
@@ -359,35 +293,15 @@ const ZeeionWasteFraud = () => {
     const msg = chatInput.trim();
     if (!msg || chatLoading) return;
     setChatInput("");
-    setChatMsgs(p => [...p, { role: "user", content: msg }]);
-    setChatLoading(true);
-    let content = "";
-
-    const ctx = rawGovData ? JSON.stringify(rawGovData).substring(0, 8000) : "";
-    const wasteCtx = result ? JSON.stringify(result).substring(0, 4000) : "";
-
-    try {
-      await streamChat({
-        messages: [
-          { role: "user", content: `[CONTEXT]\nGov Data: ${ctx}\nWaste Analysis: ${wasteCtx}\n\nYou are Aureon's fraud investigator. Answer follow-up questions about waste, fraud, and corruption using the data.` },
-          ...chatMsgs.map(m => ({ role: m.role, content: m.content })),
-          { role: "user" as const, content: msg },
-        ],
-        mode: "research",
-        onDelta: (chunk) => {
-          content += chunk;
-          setChatMsgs(p => {
-            const last = p[p.length - 1];
-            if (last?.role === "assistant") return p.map((m, i) => i === p.length - 1 ? { ...m, content } : m);
-            return [...p, { role: "assistant", content }];
-          });
-        },
-        onDone: () => setChatLoading(false),
-      });
-    } catch {
-      setChatMsgs(p => [...p, { role: "assistant", content: "Analysis failed. Please try again." }]);
-      setChatLoading(false);
-    }
+    setChatMsgs(p => [
+      ...p,
+      { role: "user", content: msg },
+      {
+        role: "assistant",
+        content: "Live-source-only mode is enabled for this panel, so Aureon will not generate unsupported fraud claims, named actors, vendors, or approval histories from incomplete public data. Connect a record-level public source such as contracts, payroll, procurement, or audit records to enable evidence-backed answers.",
+      },
+    ]);
+    setChatLoading(false);
   };
 
   return (
@@ -396,7 +310,7 @@ const ZeeionWasteFraud = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xs font-light tracking-wider text-foreground/60">Waste & Fraud Detection</h2>
-          <p className="text-[8px] text-muted-foreground/30 mt-0.5">AI-powered forensic analysis of government spending</p>
+          <p className="text-[8px] text-muted-foreground/30 mt-0.5">Live public-source scan with no simulated or generated case records</p>
         </div>
         {wasteItems.length > 0 && (
           <div className="flex items-center gap-1.5">
@@ -450,12 +364,18 @@ const ZeeionWasteFraud = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-red-400/40 mb-1">Total Waste Identified</p>
-              <p className="text-lg font-light text-red-400/70">{fmtUsd(result.totalWasteLow)} – {fmtUsd(result.totalWasteHigh)}</p>
-              <p className="text-[7px] text-muted-foreground/30 mt-0.5">Conservative to upper bound</p>
+              <p className="text-lg font-light text-red-400/70">
+                {result.patterns.length > 0 ? `${fmtUsd(result.totalWasteLow)} – ${fmtUsd(result.totalWasteHigh)}` : "Not calculated"}
+              </p>
+              <p className="text-[7px] text-muted-foreground/30 mt-0.5">
+                {result.patterns.length > 0 ? "Conservative to upper bound" : "No source-backed case estimate available"}
+              </p>
             </div>
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">% of Budget</p>
-              <p className="text-lg font-light text-foreground/60">{result.percentOfBudgetLow.toFixed(1)}% – {result.percentOfBudgetHigh.toFixed(1)}%</p>
+              <p className="text-lg font-light text-foreground/60">
+                {result.patterns.length > 0 ? `${result.percentOfBudgetLow.toFixed(1)}% – ${result.percentOfBudgetHigh.toFixed(1)}%` : "Not calculated"}
+              </p>
             </div>
             <div className="rounded-2xl border border-border/[0.08] bg-foreground/[0.02] p-4">
               <p className="text-[7px] uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Issues Found</p>
