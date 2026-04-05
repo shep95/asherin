@@ -23,6 +23,17 @@ const COUNTRIES = [
   { code: "ID", name: "Indonesia" },
 ];
 
+interface DetailRecord {
+  id: string;
+  [key: string]: string | number | null;
+}
+
+interface PatternDetail {
+  columns: { key: string; label: string }[];
+  records: DetailRecord[];
+  summary: string;
+}
+
 interface WasteResult {
   totalWaste: number;
   percentOfBudget: number;
