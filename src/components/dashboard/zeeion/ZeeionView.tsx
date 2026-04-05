@@ -178,6 +178,17 @@ const ZeeionView = () => {
               Dashboard
             </button>
           )}
+          <button
+            onClick={() => setView("gov_data")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${
+              view === "gov_data"
+                ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70"
+                : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"
+            }`}
+          >
+            <Globe className="h-3 w-3" />
+            Gov Data
+          </button>
         </div>
       </div>
 
