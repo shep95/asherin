@@ -220,7 +220,7 @@ const ZeeionBudgetOptimizer = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.reallocations.sort((a, b) => a.change - b.change).map((r, i) => (
+                     {result.reallocations.sort((a, b) => a.change - b.change).map((r, i) => (
                       <tr key={i} className="border-b border-border/[0.04] hover:bg-foreground/[0.03] transition-colors group">
                         <td className="py-2.5 text-foreground/60 font-light">
                           <p>{r.department}</p>
@@ -238,6 +238,12 @@ const ZeeionBudgetOptimizer = () => {
                   </tbody>
                 </table>
               </div>
+              <ZeeionDeepDive
+                category="Budget Reallocation Details"
+                context={"Departments: " + result.reallocations.map(r => r.department + " (" + fmtUsd(r.currentBudget) + " -> " + fmtUsd(r.recommendedBudget) + ")").join(", ") + ". Total budget: " + fmtUsd(result.totalBudget)}
+                columnHint="columns: line_item_id, department, program_name, current_allocation, recommended_allocation, change_amount, priority_score, justification, implementation_phase. Generate 15-20 specific budget line items showing where money should be moved from and to."
+                label="Deep Dive — Show Line-Item Reallocations"
+              />
             </div>
           )}
 
