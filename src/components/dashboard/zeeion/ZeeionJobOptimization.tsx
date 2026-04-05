@@ -3,6 +3,7 @@ import { Loader2, Users, Bot, DollarSign, Zap, ChevronRight, Send, Sparkles, X, 
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat } from "@/lib/ai";
 import ReactMarkdown from "react-markdown";
+import ZeeionDeepDive from "./ZeeionDeepDive";
 
 const COUNTRIES = [
   { code: "US", name: "United States" },

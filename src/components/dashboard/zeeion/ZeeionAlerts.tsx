@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Bell, Shield, TrendingDown, DollarSign, ChevronRight, CheckCircle } from "lucide-react";
 import type { AnalysisResult } from "./ZeeionView";
+import ZeeionDeepDive from "./ZeeionDeepDive";
 
 interface Props {
   analysis: AnalysisResult;
