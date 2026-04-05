@@ -336,21 +336,36 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
   const [drillLoading, setDrillLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "resolved" | "in_progress">("all");
 
+  // Session cache key for consistency
+  const detailCacheKey = `aureon_deepdive_${category.replace(/\s+/g, "_")}`;
+  const drillCacheKey = (recId: string) => `aureon_drill_${category.replace(/\s+/g, "_")}_${recId}`;
+
   const generate = async () => {
+    // Check session cache first
+    try {
+      const cached = sessionStorage.getItem(detailCacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as PatternDetail;
+        setDetail(parsed);
+        return;
+      }
+    } catch { /* cache miss */ }
+
     setLoading(true);
     let aiContent = "";
     try {
       const savedByok = localStorage.getItem("aureon_byok_active");
       localStorage.removeItem("aureon_byok_active");
 
-      const colInstruction = columnHint || `columns: record_id, description, amount, department, responsible_person, approver, date, status, risk_level. Generate 12-18 detailed records.`;
+      const colInstruction = columnHint || `columns: record_id, description, amount, department, responsible_person, approver, date, status, risk_level. Produce 20-30 comprehensive records.`;
 
       await streamChat({
         messages: [{
           role: "user",
-          content: `You are Aureon's forensic AI generating DETAILED itemized data with full attribution and recurring pattern analysis.\n\nCategory: ${category}\nContext: ${context}\n\n${colInstruction}\n\nIMPORTANT: Every record MUST include:\n- "id": Official-looking ID (e.g., REC-2026-0041)\n- "status": One of "Active", "In Progress", "Under Review", "Resolved", "Flagged"\n- "department": The responsible department\n- "responsible_person": Name of responsible individual\n- "approver": Name of person who approved this\n- "amount" or a numeric value column\n\nAlso analyze for RECURRING PATTERNS — same sender, same approver, same vendor appearing repeatedly, same amounts, suspicious timing patterns.\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of findings",\n  "overview": {\n    "totalItems": <number>,\n    "totalAmount": <total dollar amount>,\n    "activeItems": <count>,\n    "resolvedItems": <count>,\n    "inProgressItems": <count>,\n    "departments": ["dept1", ...],\n    "topResponsible": ["person1", ...]\n  },\n  "recurringPatterns": [\n    {\n      "description": "Pattern description — e.g., Judge X approved 5 overpriced contracts for same vendor",\n      "involvedParties": ["Name1", "Name2"],\n      "frequency": "5 times in 6 months",\n      "totalImpact": <dollar amount>\n    }\n  ]\n}\n\nMake data realistic. Generate 12-20 records. Include realistic dates in 2025-2026.`
+          content: `You are Aureon's forensic AI in DEEP REASONING MODE generating COMPREHENSIVE itemized data with full attribution and recurring pattern analysis.\n\nCRITICAL: Do NOT limit your output. Include EVERY instance identified. This is a complete forensic audit.\n\nCategory: ${category}\nContext: ${context}\n\n${colInstruction}\n\nDETERMINISTIC SEED: Use category "${category}" as your consistency anchor. All names, departments, and amounts should be derived from known government structures, real ministry names, and realistic scales.\n\nIMPORTANT: Every record MUST include:\n- "id": Official-looking ID (e.g., REC-2026-0041)\n- "status": One of "Active", "In Progress", "Under Review", "Resolved", "Flagged"\n- "department": The responsible department\n- "responsible_person": Name of responsible individual\n- "approver": Name of person who approved this\n- "amount" or a numeric value column\n\nAlso analyze for RECURRING PATTERNS — same sender, same approver, same vendor appearing repeatedly, same amounts, suspicious timing patterns.\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of findings",\n  "overview": {\n    "totalItems": <number>,\n    "totalAmount": <total dollar amount>,\n    "activeItems": <count>,\n    "resolvedItems": <count>,\n    "inProgressItems": <count>,\n    "departments": ["dept1", ...],\n    "topResponsible": ["person1", ...]\n  },\n  "recurringPatterns": [\n    {\n      "description": "Pattern description — e.g., Official X approved 5 overpriced contracts for same vendor",\n      "involvedParties": ["Name1", "Name2"],\n      "frequency": "5 times in 6 months",\n      "totalImpact": <dollar amount>\n    }\n  ]\n}\n\nUse REAL government ministry names and realistic local names. Cross-reference records so patterns emerge. Produce 20-30 records minimum. Include EVERY identified instance — do NOT truncate.`
         }],
         mode: "research",
+        depth: "expert",
         onDelta: (chunk) => { aiContent += chunk; },
         onDone: () => {},
       });
@@ -382,6 +397,8 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
           };
         }
         setDetail(parsed);
+        // Cache for session consistency
+        try { sessionStorage.setItem(detailCacheKey, JSON.stringify(parsed)); } catch { /* storage full */ }
       }
     } catch (e) {
       console.error("Deep dive failed:", e);
