@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Shield, TrendingUp, Zap, GitBranch, FileText, AlertTriangle, Globe, BarChart3, ChevronRight, Copy, Check, Download } from "lucide-react";
+import { Shield, TrendingUp, Zap, GitBranch, FileText, AlertTriangle, Globe, BarChart3, ChevronRight, Copy, Check, Download, MessageSquare } from "lucide-react";
+import AxrlenChat from "./AxrlenChat";
 import ReactMarkdown from "react-markdown";
 import type { AxrlenSession } from "./AxrlenView";
 
