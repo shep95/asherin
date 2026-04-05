@@ -181,9 +181,9 @@ const ZeeionDashboard = ({ analysis }: Props) => {
                       <ChevronRight className="h-3 w-3 text-muted-foreground/20 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                     <ZeeionDeepDive
-                      category={`Wasteful Spending: ${item.description.substring(0, 60)}`}
-                      context={`Description: ${item.description}. Annual cost: $${item.annualCost.toLocaleString()}. Severity: ${item.severity}. Recommendation: ${item.recommendation}.`}
-                      columnHint={`columns: record_id, description, vendor_or_source, amount, date, department, waste_type, evidence, status. Generate 12-18 specific wasteful spending records showing individual instances of this waste pattern with real-looking IDs and amounts.`}
+                      category={"Wasteful Spending: " + item.description.substring(0, 60)}
+                      context={"Description: " + item.description + ". Annual cost: $" + item.annualCost.toLocaleString() + ". Severity: " + item.severity + ". Recommendation: " + item.recommendation + "."}
+                      columnHint="columns: record_id, description, vendor_or_source, amount, date, department, waste_type, evidence, status. Generate 12-18 specific wasteful spending records showing individual instances of this waste pattern with real-looking IDs and amounts."
                       label="Deep Dive — Show Waste Records"
                     />
                   </div>
