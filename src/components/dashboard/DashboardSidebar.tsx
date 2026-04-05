@@ -81,6 +81,7 @@ const navGroups: NavGroup[] = [
       { id: "lavba" as DashboardView, icon: Zap, label: "Lavba", access: "pro" },
       { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
       { id: "zaplen" as DashboardView, icon: Zap, label: "Zaplen", access: "pro" },
+      { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
       { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
       { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
       { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
@@ -193,9 +194,9 @@ const DashboardSidebar = ({
     items: group.items.filter(item => {
       // Admin-only views
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
-      
       if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
+      if (item.id === "zaplen") return user?.email === "ashernewtonx@gmail.com";
 
       // Use centralized feature map for tier-gated views
       const featureId = VIEW_FEATURE_MAP[item.id];

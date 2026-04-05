@@ -43,7 +43,8 @@ export type FeatureId =
   | "video_intelligence"
   | "vibe_imager"
   | "vibe_video"
-  | "agents";
+  | "agents"
+  | "zeeion";
 
 // ── Plan Definition ──────────────────────────────────────────────────────────
 export interface PlanDefinition {
@@ -87,7 +88,7 @@ const PRO_FEATURES: FeatureId[] = [
   "azplen", "pattern_analysis", "timeseries", "geospatial", "notebooks",
   "zali", "teams", "community", "security_dashboard", "plugins", "audit",
   "entity_resolution", "scenario_simulator", "priority_models", "video_intelligence",
-  "vibe_video", "agents",
+  "vibe_video", "agents", "zeeion",
 ];
 
 const ADVISOR_FEATURES: FeatureId[] = [...PRO_FEATURES];
@@ -343,6 +344,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
   "vibe-imager": "vibe_imager",
   "vibe-video": "vibe_video",
   agents: "agents",
+  zeeion: "zeeion",
 };
 
 // ── "What Powers Each Tier" grid config ──────────────────────────────────────

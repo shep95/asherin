@@ -85,6 +85,7 @@ const LavbaView = React.lazy(() => import("@/components/dashboard/lavba/LavbaVie
 const CrossView = React.lazy(() => import("@/components/dashboard/cross/CrossView"));
 const GuardianVaultView = React.lazy(() => import("@/components/dashboard/GuardianVaultView"));
 const ZaplenView = React.lazy(() => import("@/components/dashboard/zaplen/ZaplenView"));
+const ZeeionView = React.lazy(() => import("@/components/dashboard/zeeion/ZeeionView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -1265,7 +1266,8 @@ const Dashboard = () => {
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "lavba": return gatedView("lavba", LavbaView, "Lavba Strategy Discovery", "Autonomous strategy discovery engine — Aureon scans historical chart data for repeating fractal patterns. Available on Pro plans.");
       case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
-      case "zaplen": return gatedView("zaplen", ZaplenView, "Zaplen — War Scenarios", "Strategic war simulations — play chess against Aureon AI or bring your own AI opponent. Pro tier only ($740/mo).");
+      case "zaplen": return gatedView("zaplen", ZaplenView, "Zaplen — War Scenarios", "Strategic war simulations — play chess against Aureon AI or bring your own AI opponent. Admin only.");
+      case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Pro tier ($740/mo).");
       case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro and Advisor plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
