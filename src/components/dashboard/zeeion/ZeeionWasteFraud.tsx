@@ -308,7 +308,17 @@ const ZeeionWasteFraud = () => {
         </button>
       </div>
 
-      {loading && (
+      {/* Error Display */}
+      {analysisError && !loading && (
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.05] p-4 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-red-400/60 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[10px] text-red-400/70 font-light">{analysisError}</p>
+            <button onClick={runAnalysis} className="mt-2 text-[9px] text-foreground/50 underline hover:text-foreground/70">Retry Scan</button>
+          </div>
+        </div>
+      )}
+
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-red-400/40" />
           <p className="text-[10px] text-muted-foreground/30">Analyzing government spending for waste & fraud patterns...</p>
