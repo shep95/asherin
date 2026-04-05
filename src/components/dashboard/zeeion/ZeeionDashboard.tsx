@@ -267,6 +267,16 @@ const ZeeionDashboard = ({ analysis }: Props) => {
         </div>
       )}
 
+      {/* ═══ ALERTS TAB ═══ */}
+      {tab === "alerts" && (
+        <ZeeionAlerts analysis={analysis} />
+      )}
+
+      {/* ═══ EXPORT TAB ═══ */}
+      {tab === "export" && (
+        <ZeeionExport analysis={analysis} />
+      )}
+
       {/* ═══ AUREON TAB ═══ */}
       {tab === "aureon" && (
         <ZeeionAureonChat analysis={analysis} />
