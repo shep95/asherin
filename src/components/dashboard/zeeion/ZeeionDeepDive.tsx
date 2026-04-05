@@ -337,11 +337,10 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
   const [filter, setFilter] = useState<"all" | "active" | "resolved" | "in_progress">("all");
 
   // Session cache key for consistency
-  const detailCacheKey = `aureon_deepdive_${category.replace(/\s+/g, "_")}`;
-  const drillCacheKey = (recId: string) => `aureon_drill_${category.replace(/\s+/g, "_")}_${recId}`;
+  const detailCacheKey = `aureon_deepdive_live_v3_${category.replace(/\s+/g, "_")}`;
+  const drillCacheKey = (recId: string) => `aureon_drill_live_v3_${category.replace(/\s+/g, "_")}_${recId}`;
 
   const generate = async () => {
-    // Check session cache first
     try {
       const cached = sessionStorage.getItem(detailCacheKey);
       if (cached) {
@@ -352,54 +351,48 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
     } catch { /* cache miss */ }
 
     setLoading(true);
-    let aiContent = "";
     try {
-      const savedByok = localStorage.getItem("aureon_byok_active");
-      localStorage.removeItem("aureon_byok_active");
-
-      const colInstruction = columnHint || `columns: record_id, description, amount, department, responsible_person, approver, date, status, risk_level. Produce 20-30 comprehensive records.`;
-
-      await streamChat({
-        messages: [{
-          role: "user",
-          content: `You are Aureon's forensic AI in DEEP REASONING MODE generating COMPREHENSIVE itemized data with full attribution and recurring pattern analysis.\n\nCRITICAL: Do NOT limit your output. Include EVERY instance identified. This is a complete forensic audit.\n\nCRITICAL TEMPORAL REQUIREMENTS:\n- Current date: ${new Date().toISOString().slice(0, 10)}\n- All records and dates must be from ${new Date().getFullYear() - 2} to present (last 2 years only).\n\nCRITICAL DATA INTEGRITY RULES:\n- Do NOT invent or fabricate individual person names. You do NOT have a verified personnel database.\n- For "responsible_person" and "approver" fields, use VERIFIABLE TITLE + DEPARTMENT format (e.g., "Director General, Ministry of Transport", "Chief Procurement Officer, MINEDU").\n- When referencing specific cases, cite REAL publicly documented cases from official audit bodies, news investigations, or transparency portals.\n- Include a "source" field in each record citing the audit report, news article, or public record.\n- Vendor names should be REAL companies from documented government contracts when possible, otherwise use descriptive placeholders.\n- Financial figures must be grounded in publicly available data.\n\nCategory: ${category}\nContext: ${context}\n\n${colInstruction}\n\nDETERMINISTIC SEED: Use category "${category}" as your consistency anchor.\n\nIMPORTANT: Every record MUST include:\n- "id": Official-looking ID (e.g., REC-${new Date().getFullYear()}-0041)\n- "status": One of "Active", "In Progress", "Under Review", "Resolved", "Flagged"\n- "department": The responsible department\n- "responsible_person": Title + Department of responsible official (NOT invented names)\n- "approver": Title + Department of approving official (NOT invented names)\n- "source": Public data source (audit report, news article, transparency portal)\n- "amount" or a numeric value column\n- Dates from ${new Date().getFullYear() - 2} to ${new Date().getFullYear()} ONLY\n\nAlso analyze for RECURRING PATTERNS — same department, same approver title, same vendor appearing repeatedly, same amounts, suspicious timing patterns.\n\nReturn ONLY a JSON object (no markdown):\n{\n  "columns": [{"key": "column_name", "label": "Display Label"}, ...],\n  "records": [{"id": "REC-001", "column_name": "value", ...}, ...],\n  "summary": "Brief summary of findings",\n  "overview": {\n    "totalItems": <number>,\n    "totalAmount": <total dollar amount>,\n    "activeItems": <count>,\n    "resolvedItems": <count>,\n    "inProgressItems": <count>,\n    "departments": ["dept1", ...],\n    "topResponsible": ["title1", ...]\n  },\n  "recurringPatterns": [\n    {\n      "description": "Pattern description referencing departments and titles, not invented names",\n      "involvedParties": ["Title, Department"],\n      "frequency": "5 times in 6 months",\n      "totalImpact": <dollar amount>\n    }\n  ]\n}\n\nUse REAL government ministry names. Reference officials by TITLE not invented names. Cite public sources. Cross-reference records so patterns emerge. Produce 20-30 records minimum.`
-        }],
-        mode: "research",
-        depth: "expert",
-        onDelta: (chunk) => { aiContent += chunk; },
-        onDone: () => {},
-      });
-
-      if (savedByok) localStorage.setItem("aureon_byok_active", savedByok);
-
-      const clean = aiContent.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-      const jsonMatch = clean.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]) as PatternDetail;
-        if (!parsed.overview) {
-          const amounts = parsed.records.map(r => {
-            for (const k of Object.keys(r)) {
-              if (typeof r[k] === "number" && k !== "id") return r[k] as number;
-            }
-            return 0;
-          });
-          const statuses = parsed.records.map(r => String(r.status || r.status_flag || "Active"));
-          const depts = [...new Set(parsed.records.map(r => String(r.department || r.dept || "Unknown")))];
-          const people = [...new Set(parsed.records.map(r => String(r.responsible_person || r.manager || r.paid_by || "Unknown")))].slice(0, 5);
-          parsed.overview = {
-            totalItems: parsed.records.length,
-            totalAmount: amounts.reduce((s, v) => s + Math.abs(v), 0),
-            activeItems: statuses.filter(s => /active|open|flagged|critical|confirmed/i.test(s)).length,
-            resolvedItems: statuses.filter(s => /resolved|recovered|closed|refunded|terminated/i.test(s)).length,
-            inProgressItems: statuses.filter(s => /progress|review|pending|requested|investigating/i.test(s)).length,
-            departments: depts,
-            topResponsible: people,
-          };
-        }
-        setDetail(parsed);
-        // Cache for session consistency
-        try { sessionStorage.setItem(detailCacheKey, JSON.stringify(parsed)); } catch { /* storage full */ }
-      }
+      const liveOnlyDetail: PatternDetail = {
+        columns: [
+          { key: "field", label: "Field" },
+          { key: "value", label: "Live Source Status" },
+        ],
+        records: [
+          {
+            id: "LIVE-ONLY-001",
+            field: "Case-level drill-down",
+            value: "Unavailable unless a connected public record source provides row-level evidence",
+          },
+          {
+            id: "LIVE-ONLY-002",
+            field: "Named approvers / people",
+            value: "Blocked in live-source-only mode when not present in verifiable public records",
+          },
+          {
+            id: "LIVE-ONLY-003",
+            field: "Vendor / company attribution",
+            value: "Only shown from connected live procurement or contract records",
+          },
+          {
+            id: "LIVE-ONLY-004",
+            field: "Recurring patterns",
+            value: "Only computed from source-backed rows, not generated by AI",
+          },
+        ],
+        summary: `Live-source-only mode is enabled for ${category}. This view will not fabricate itemized records, names, vendors, approval histories, or evidence chains from incomplete public data.`,
+        overview: {
+          totalItems: 0,
+          totalAmount: 0,
+          activeItems: 0,
+          resolvedItems: 0,
+          inProgressItems: 0,
+          departments: [],
+          topResponsible: [],
+        },
+        recurringPatterns: [],
+      };
+      setDetail(liveOnlyDetail);
+      try { sessionStorage.setItem(detailCacheKey, JSON.stringify(liveOnlyDetail)); } catch { /* storage full */ }
     } catch (e) {
       console.error("Deep dive failed:", e);
     }
@@ -410,7 +403,6 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
     setSelectedRecord(record);
     setRecordDrill(null);
 
-    // Check session cache for this record
     const cacheKey = drillCacheKey(String(record.id));
     try {
       const cached = sessionStorage.getItem(cacheKey);
@@ -421,35 +413,55 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
     } catch { /* cache miss */ }
 
     setDrillLoading(true);
-
-    let aiContent = "";
     try {
-      const savedByok = localStorage.getItem("aureon_byok_active");
-      localStorage.removeItem("aureon_byok_active");
-
-      const recordStr = Object.entries(record).map(([k, v]) => `${k}: ${v}`).join("\n");
-
-      await streamChat({
-        messages: [{
-          role: "user",
-          content: `You are Aureon's forensic AI in DEEP REASONING MODE generating a COMPLETE evidence-based investigation for a single waste record. This must be court-admissible quality evidence.\n\nCRITICAL: Use DEEP REASONING. Analyze every angle. Do NOT limit your analysis. Include ALL evidence, ALL patterns, ALL connections.\n\nCRITICAL TEMPORAL REQUIREMENTS:\n- Current date: ${new Date().toISOString().slice(0, 10)}\n- All dates, contracts, and events must be from ${new Date().getFullYear() - 2} to present.\n- Approval histories must reflect the last 2 years only.\n\nCRITICAL DATA INTEGRITY RULES:\n- Do NOT invent or fabricate individual person names. You do NOT have a verified personnel database.\n- For "responsibleParty" and "approvedBy", use VERIFIABLE TITLE + DEPARTMENT (e.g., "Director General, Ministry of Transport") instead of invented names.\n- The "name" fields should contain the official TITLE, not a fabricated personal name.\n- All evidence, price comparisons, and reference links must cite REAL publicly verifiable sources — official audit reports, news investigations, government transparency portals, or international benchmarking databases.\n- Vendor names must be REAL companies from documented government contracts, or use descriptive placeholders like "IT Services Vendor A".\n- comparableSources URLs must be real, verifiable market comparison sites or vendor pages.\n- internationalBenchmarks must cite real international price comparison data.\n\nDETERMINISTIC SEED: Record ID "${record.id}" — maintain consistency with this record's identity across analyses.\n\nCategory: ${category}\nRecord Data:\n${recordStr}\n\nGenerate the MOST COMPREHENSIVE forensic report possible. You MUST include ALL of the following:\n\n1. ROOT CAUSE — Deep analysis of why this waste exists\n2. WHY OVERPRICED — Specific numerical reasoning with market comparison\n3. WHY HARMFUL — How this waste harms citizens, services, budget\n4. CITIZEN IMPACT — Direct impact on taxpayers and public services\n5. EVIDENCE SCORE — Rate your evidence strength 0-100\n6. PRICE COMPARISON with:\n   - Cost breakdown by component (base service, maintenance, licensing, etc.)\n   - At least 3 comparable market sources with REAL verifiable URLs\n   - International benchmarks (3+ countries with PPP adjustment) from real data\n   - Peer agency comparisons (other government agencies paying less)\n7. APPROVER PROFILE (by title, not invented name):\n   - Title and department\n   - Estimated total approvals for this role/department\n   - Behavioral PATTERNS detected (rubber stamp, vendor favoritism, price blindness)\n   - RED FLAGS raised\n   - Approval history examples (use dates and descriptions, reference by title)\n8. COLLUSION INDICATORS — Any signs of collusion between approver role and vendor\n9. RECURRING PATTERNS — Same departments, vendors, amounts appearing repeatedly\n10. ALTERNATIVE USES — What this wasted money could have funded instead\n11. AUREON RECOMMENDATION — Specific strategic recommendation\n\nReturn ONLY JSON (no markdown):\n{\n  "rootCause": "Detailed root cause analysis with systemic issues identified",\n  "evidenceScore": <0-100>,\n  "evidenceStrength": "weak|moderate|strong|forensic",\n  "whyOverpriced": "Specific numerical reasoning",\n  "whyHarmful": "Specific harm description with affected populations",\n  "citizenImpact": "How this directly affects taxpayers",\n  "potentialEffects": ["effect1", "effect2", ...],\n  "aureonRecommendation": "Specific multi-step recommendation",\n  "contributingFactors": ["factor1", "factor2", ...],\n  "evidence": ["evidence1 — cite source", "evidence2 — cite source", ...],\n  "priceComparison": {\n    "currentPrice": <number>,\n    "marketAverage": <number>,\n    "bestMarketPrice": <number>,\n    "overchargePercent": <number>,\n    "breakdown": [{"component": "name", "currentCost": <n>, "marketCost": <n>, "variance": <n>}],\n    "comparableSources": [{"name": "real vendor/source", "price": <n>, "url": "https://real-url...", "type": "direct_competitor"}],\n    "internationalBenchmarks": [{"country": "name", "price": <n>, "source": "real source"}],\n    "peerAgencies": [{"agency": "real agency name", "vendor": "name", "price": <n>}]\n  },\n  "responsibleParty": {"name": "Official Title, Department", "title": "Title", "department": "Dept", "email": "generic@gov.example", "yearsInRole": <n>},\n  "approvedBy": {\n    "name": "Official Title, Department", "title": "Title", "department": "Dept",\n    "totalApprovals": <n>, "totalValueApproved": <n>, "flaggedApprovals": <n>, "wasteRate": <pct>,\n    "patterns": [{"type": "type", "description": "desc", "severity": "high"}],\n    "flags": [{"type": "type", "description": "desc", "severity": "critical"}],\n    "approvalHistory": [{"date": "YYYY-MM-DD", "item": "desc", "amount": <n>, "flagged": true, "vendor": "name", "outcome": "status"}]\n  },\n  "collusionIndicators": [{"type": "type", "description": "desc", "severity": "high", "involvedParties": ["Title, Dept"]}],\n  "recurringPatterns": [{"description": "desc", "involvedPerson": "Title, Dept", "role": "role", "occurrences": <n>, "totalAmount": <n>}],\n  "timeline": [{"date": "YYYY-MM-DD", "event": "desc — cite source"}],\n  "recommendations": [{"priority": "Immediate", "action": "desc", "timeline": "48 hours"}],\n  "supportingDocs": ["Real audit report name", "Real news source"],\n  "referenceLinks": [{"label": "name", "url": "https://real-verifiable-url..."}],\n  "financialImpact": {"immediate": <n>, "annual": <n>, "lifetime": <n>, "opportunityCost": "description"},\n  "alternativeUses": [{"description": "desc", "quantity": "amount"}]\n}\n\nBe FORENSIC. Use REAL sources, REAL ministry names, official titles (not invented names). All evidence must be publicly verifiable.`
-        }],
-        mode: "research",
-        depth: "expert",
-        onDelta: (chunk) => { aiContent += chunk; },
-        onDone: () => {},
-      });
-
-      if (savedByok) localStorage.setItem("aureon_byok_active", savedByok);
-
-      const clean = aiContent.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-      const jsonMatch = clean.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const drillData = JSON.parse(jsonMatch[0]);
-        setRecordDrill(drillData);
-        // Cache for session consistency
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(drillData)); } catch { /* storage full */ }
-      }
+      const unsupportedDrill: RecordDrillDown = {
+        rootCause: "Detailed forensic attribution is disabled here because this panel is restricted to live, source-backed public data only.",
+        contributingFactors: [
+          "No connected row-level procurement, payroll, or audit dataset was provided for this record.",
+          "Aureon will not infer or invent actors, companies, approval chains, or case evidence.",
+        ],
+        evidence: [
+          "Status: no verifiable record-level evidence loaded for this item.",
+          "Policy: unsupported details are withheld instead of being AI-generated.",
+        ],
+        evidenceScore: 0,
+        evidenceStrength: "weak",
+        whyOverpriced: "Not available from the current live public source set.",
+        whyHarmful: "Aureon cannot assert case-specific harm without source-backed record evidence.",
+        potentialEffects: ["Connect live contract, payroll, spending, or audit records to enable real evidence-backed analysis."],
+        aureonRecommendation: "Connect a verifiable public record source before using this panel for case-level accusations or named attribution.",
+        responsibleParty: {
+          name: "Unavailable from live source",
+          title: "Not provided",
+          department: "Not provided",
+          email: "Not available",
+        },
+        approvedBy: {
+          name: "Unavailable from live source",
+          title: "Not provided",
+          department: "Not provided",
+          totalApprovals: 0,
+          totalValueApproved: 0,
+          flaggedApprovals: 0,
+          wasteRate: 0,
+          patterns: [],
+          flags: [],
+          approvalHistory: [],
+        },
+        collusionIndicators: [],
+        recurringPatterns: [],
+        timeline: [],
+        recommendations: [
+          { priority: "Immediate", action: "Load a source-backed record feed for this category.", timeline: "Before further case analysis" },
+        ],
+        supportingDocs: ["No supporting document loaded for this record."],
+        referenceLinks: [],
+        financialImpact: { immediate: 0, annual: 0, lifetime: 0, opportunityCost: "Not calculated without source-backed case data." },
+        citizenImpact: "Not available from the current live source set.",
+        alternativeUses: [],
+      };
+      setRecordDrill(unsupportedDrill);
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(unsupportedDrill)); } catch { /* storage full */ }
     } catch (e) {
       console.error("Record drill-down failed:", e);
     }
@@ -646,11 +658,11 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
                 {drillLoading && (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-foreground/30" />
-                    <span className="text-[10px] text-muted-foreground/40 ml-2">Building forensic evidence chain...</span>
+                    <span className="text-[10px] text-muted-foreground/40 ml-2">Checking live-source availability...</span>
                   </div>
                 )}
 
-                {recordDrill && (
+                {!drillLoading && recordDrill && (
                   <div className="space-y-4">
                     {/* Export + Evidence Strength */}
                     <div className="flex items-center justify-between">
@@ -1167,9 +1179,9 @@ const ZeeionDeepDive = ({ category, context, columnHint, label }: DeepDiveProps)
       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-foreground/[0.05] border border-border/[0.08] text-[9px] text-foreground/50 hover:bg-foreground/[0.08] transition-all disabled:opacity-40 mt-2"
     >
       {loading ? (
-        <><Loader2 className="h-3 w-3 animate-spin" /> Generating forensic records...</>
+        <><Loader2 className="h-3 w-3 animate-spin" /> Loading live-source status...</>
       ) : (
-        <><Eye className="h-3 w-3" /> {label || "Deep Dive — Show Itemized Records"}</>
+        <><Eye className="h-3 w-3" /> {label || "Deep Dive — Live Source Status"}</>
       )}
     </button>
   );
