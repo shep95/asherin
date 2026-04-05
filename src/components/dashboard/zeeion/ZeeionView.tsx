@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { Database, Upload, BarChart3, Clock, Trash2, Loader2 } from "lucide-react";
+import { Database, Upload, BarChart3, Clock, Trash2, Loader2, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ZeeionUpload from "./ZeeionUpload";
 import ZeeionDashboard from "./ZeeionDashboard";
+import ZeeionGovData from "./ZeeionGovData";
 
 export interface AnalysisResult {
   id: string;
