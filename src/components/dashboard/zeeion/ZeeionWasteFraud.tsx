@@ -75,6 +75,8 @@ const ZeeionWasteFraud = () => {
   const [wasteItems, setWasteItems] = useState<WasteItem[]>([]);
   const [viewMode, setViewMode] = useState<"scan" | "tracker">("scan");
   const [generatingPlan, setGeneratingPlan] = useState<string | null>(null);
+  const [patternDetails, setPatternDetails] = useState<Record<number, PatternDetail>>({});
+  const [loadingDetail, setLoadingDetail] = useState<number | null>(null);
 
   // Convert scan results to trackable waste items
   const convertToWasteItems = (res: WasteResult): WasteItem[] => {
