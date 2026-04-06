@@ -400,7 +400,7 @@ Data sources active: ${sourceCount}
 === LIVE INTELLIGENCE DATA ===
 ${JSON.stringify(dataContext, null, 2)}
 
-Generate a comprehensive prediction report combining all 9 domains (live data, occultism, history, religion, war strategy, philosophy, psychology, economics, astronomical cycles). Ground every prediction in actual data, then layer the esoteric/historical/philosophical analysis. Include the esotericAnalysis, warStrategy, archetypeDriver, philosophicalBasis, and esotericTrigger fields.`;
+Generate a comprehensive NEXUS-PRIME prediction report fusing ALL 20+ domains (live data, occultism/esoteric mechanics, historical patterns, religion/theology, war strategy, philosophy, psychology, sociology, geopolitics, mythology, economics, astronomical cycles, cybernetics, game theory, semiotics, biogeography, jurisprudence, neuropolitics, epigenetic warfare, and Ghost Chain synthesis). Every prediction MUST cross-reference minimum 5 domains simultaneously. Ground every prediction in actual data, then layer the full cross-domain analysis. Include esotericAnalysis, warStrategy, archetypeDriver, philosophicalBasis, and esotericTrigger fields.`;
 
     const geminiResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
