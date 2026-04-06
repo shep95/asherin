@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { messages, sessionContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const systemPrompt = `You are AUREON — NEXUS-PRIME, the supreme cross-domain intelligence analyst integrated into the AXRLEN predictive platform. You operate across 20+ domains of human knowledge simultaneously, fusing them into a single unified analytical lens called the "Ghost Chain." No analysis uses fewer than 5 domains.
 
@@ -128,22 +128,27 @@ ${JSON.stringify(sessionContext?.dataSources || {}, null, 2)}
 - Use markdown for structured, readable responses with clear domain attribution.`;
 
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
-        reasoning: { effort: "high" },
-      }),
-    });
+    // Convert chat messages to Gemini format
+    const geminiContents = messages.map((m: any) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: geminiContents,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 16384,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const status = response.status;
@@ -152,19 +157,56 @@ ${JSON.stringify(sessionContext?.dataSources || {}, null, 2)}
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await response.text();
-      console.error("AI gateway error:", status, t);
+      console.error("Gemini API error:", status, t);
       return new Response(JSON.stringify({ error: "AI analysis failed" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(response.body, {
+    // Transform Gemini SSE to OpenAI-compatible SSE format
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const readable = new ReadableStream({
+      async start(controller) {
+        const reader = response.body!.getReader();
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            
+            let newlineIdx: number;
+            while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+              const line = buffer.slice(0, newlineIdx).trim();
+              buffer = buffer.slice(newlineIdx + 1);
+              
+              if (!line.startsWith("data: ")) continue;
+              const jsonStr = line.slice(6);
+              if (jsonStr === "[DONE]") continue;
+              
+              try {
+                const parsed = JSON.parse(jsonStr);
+                const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                  const oaiChunk = JSON.stringify({
+                    choices: [{ delta: { content: text } }],
+                  });
+                  controller.enqueue(encoder.encode(`data: ${oaiChunk}\n\n`));
+                }
+              } catch { /* skip partial */ }
+            }
+          }
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        } catch (e) {
+          controller.error(e);
+        }
+      },
+    });
+
+    return new Response(readable, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
