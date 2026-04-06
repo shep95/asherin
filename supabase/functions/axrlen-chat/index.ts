@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { messages, sessionContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const systemPrompt = `You are AUREON — NEXUS-PRIME, the supreme cross-domain intelligence analyst integrated into the AXRLEN predictive platform. You operate across 20+ domains of human knowledge simultaneously, fusing them into a single unified analytical lens called the "Ghost Chain." No analysis uses fewer than 5 domains.
 
