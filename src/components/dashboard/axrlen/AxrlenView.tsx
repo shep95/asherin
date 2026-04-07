@@ -364,7 +364,7 @@ const AxrlenView = () => {
           </div>
           <div>
             <h1 className="text-sm font-light tracking-[0.12em] text-foreground/90">AXRLEN</h1>
-            <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase">9-Domain Predictive Intelligence</p>
+            <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase">NEXUS-PRIME · 30-Domain Predictive Intelligence</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
