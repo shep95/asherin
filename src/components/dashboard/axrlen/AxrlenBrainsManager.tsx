@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Brain, Trash2, Upload, Loader2, X, ToggleLeft, ToggleRight, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,12 +60,19 @@ const AxrlenBrainsManager = () => {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     if (!showPanel) return;
     loadBrains();
+  }, [showPanel]);
+
+  useEffect(() => {
+    if (!showPanel) {
+      setDragging(false);
+    }
   }, [showPanel]);
 
   const loadBrains = async () => {
@@ -158,6 +166,12 @@ const AxrlenBrainsManager = () => {
     toast({ title: "Brain deleted" });
   };
 
+  const openFilePicker = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (!uploading) inputRef.current?.click();
+  };
+
   if (!isAdmin) return null;
 
   return (
@@ -174,26 +188,31 @@ const AxrlenBrainsManager = () => {
         <Brain className="h-3 w-3" /> Brains
       </button>
 
-      {showPanel && (
-        <>
-          <div className="fixed inset-0 z-[90]" onClick={() => setShowPanel(false)} />
+      {showPanel && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[999] pointer-events-none">
+          <div className="absolute inset-0 pointer-events-auto bg-black/0" onClick={() => setShowPanel(false)} />
           <div
             ref={panelRef}
+            role="dialog"
+            aria-modal="true"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`fixed right-4 top-20 z-[100] w-[420px] max-w-[calc(100vw-2rem)] max-h-[min(520px,calc(100vh-6rem))] overflow-y-auto rounded-xl border bg-card/95 backdrop-blur-xl shadow-2xl animate-fade-in transition-all ${
+            className={`pointer-events-auto fixed right-4 top-20 z-[1000] w-[420px] max-w-[calc(100vw-2rem)] max-h-[min(520px,calc(100vh-6rem))] overflow-y-auto rounded-xl border bg-card/95 backdrop-blur-xl shadow-2xl animate-fade-in transition-all ${
               dragging ? "border-violet-500/60 ring-2 ring-violet-500/20" : "border-border/30"
             }`}
           >
             <input
+              ref={inputRef}
               id={FILE_INPUT_ID}
               type="file"
               multiple
               accept=".txt,.md,.json,.csv,.pdf"
               className="hidden"
+              disabled={uploading}
               onChange={(e) => {
                 if (e.target.files) void handleFileUpload(e.target.files);
                 e.target.value = "";
@@ -217,18 +236,21 @@ const AxrlenBrainsManager = () => {
                   <span className="text-[8px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 uppercase tracking-wider">Admin</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <label
-                    htmlFor={FILE_INPUT_ID}
+                  <button
+                    type="button"
+                    onClick={openFilePicker}
+                    disabled={uploading}
                     className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] transition-colors ${
-                      uploading ? "text-muted-foreground/50 cursor-wait" : "text-violet-400 hover:bg-violet-500/10 cursor-pointer"
+                      uploading ? "text-muted-foreground/50 cursor-wait" : "text-violet-400 hover:bg-violet-500/10"
                     }`}
                   >
                     {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
                     Upload
-                  </label>
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       setShowPanel(false);
                     }}
@@ -247,11 +269,11 @@ const AxrlenBrainsManager = () => {
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               ) : brains.length === 0 ? (
-                <label htmlFor={FILE_INPUT_ID} className="block text-center py-8 cursor-pointer">
+                <button type="button" onClick={openFilePicker} className="block w-full text-center py-8">
                   <Brain className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
                   <p className="text-[10px] text-muted-foreground/40">No brains uploaded yet</p>
                   <p className="text-[9px] text-muted-foreground/25 mt-1">Click here or drag & drop files to add knowledge.</p>
-                </label>
+                </button>
               ) : (
                 <div className="space-y-1">
                   {brains.map((brain) => (
@@ -269,7 +291,7 @@ const AxrlenBrainsManager = () => {
                           <span className="text-[8px] text-muted-foreground/30">{(brain.content.length / 1000).toFixed(1)}k chars</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => void toggleBrain(brain)}
@@ -281,7 +303,7 @@ const AxrlenBrainsManager = () => {
                         <button
                           type="button"
                           onClick={() => void deleteBrain(brain.id)}
-                          className="p-1 rounded text-muted-foreground/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-1 rounded text-muted-foreground/50 hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -292,7 +314,8 @@ const AxrlenBrainsManager = () => {
               )}
             </div>
           </div>
-        </>
+        </div>,
+        document.body,
       )}
     </div>
   );
