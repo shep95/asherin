@@ -497,19 +497,52 @@ const AxrlenView = () => {
                 );
               }
               return (
-              <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
+              <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}`}>
                   {m.role === "assistant" ? (
-                    <div className="relative w-full max-w-[95%] rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
-                      <div className="px-5 py-4 select-text">
-                        <AxrlenMessageRenderer content={m.content} isStreaming={isStreaming && i === messages.length - 1} />
+                    <>
+                      {/* Workflow steps (like Claude's search indicators) */}
+                      {m.workflow && m.workflow.length > 0 && (
+                        <div className="w-full max-w-[95%] mb-1 space-y-1">
+                          {m.workflow.filter(s => s.type === "web_search").map((step, si) => (
+                            <div key={`ws-${si}`} className="flex items-center gap-2 px-3 py-1.5 text-[10px] text-muted-foreground/50">
+                              <Globe className="h-3 w-3 shrink-0 text-muted-foreground/30" />
+                              <span>{step.label}</span>
+                            </div>
+                          ))}
+                          {m.workflow.some(s => s.type === "brain_search") && (
+                            <div className="px-3 py-2 rounded-lg border border-border/[0.06] bg-foreground/[0.015]">
+                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 mb-1.5">
+                                <Brain className="h-3 w-3 shrink-0" />
+                                <span>Searched project for "{messages.filter(msg => msg.role === "user").pop()?.content.slice(0, 60)}"</span>
+                              </div>
+                              <div className="space-y-0.5 ml-5">
+                                {m.workflow.filter(s => s.type === "brain_search").map((step, si) => (
+                                  <div key={`bs-${si}`} className="flex items-center gap-2 text-[10px]">
+                                    <span className="text-foreground/60 font-medium">{step.label}</span>
+                                    <span className="text-muted-foreground/30">{step.sections} relevant sections</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-muted-foreground/40">
+                            <Check className="h-3 w-3 shrink-0 text-muted-foreground/30" />
+                            <span>Done</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="relative w-full max-w-[95%] rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
+                        <div className="px-5 py-4 select-text">
+                          <AxrlenMessageRenderer content={m.content} isStreaming={isStreaming && i === messages.length - 1} />
+                        </div>
+                        <div className="flex items-center justify-end px-3 py-1.5 border-t border-border/[0.05]">
+                          <button onClick={() => copyMsg(m.content, i)}
+                            className="opacity-0 group-hover:opacity-50 hover:!opacity-80 transition p-1" title="Copy">
+                            {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-end px-3 py-1.5 border-t border-border/[0.05]">
-                        <button onClick={() => copyMsg(m.content, i)}
-                          className="opacity-0 group-hover:opacity-50 hover:!opacity-80 transition p-1" title="Copy">
-                          {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
-                        </button>
-                      </div>
-                    </div>
+                    </>
                   ) : (
                     <div className="relative max-w-[85%] rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed bg-foreground/[0.08] text-foreground/80">
                       <span className="select-text">{m.content}</span>
