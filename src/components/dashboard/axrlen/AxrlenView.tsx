@@ -508,7 +508,9 @@ const AxrlenView = () => {
             {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="flex items-center gap-2 px-3 py-2">
                 <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
-                <span className="text-[9px] text-muted-foreground/30">AUREON analyzing across 9 domains...</span>
+                <span className="text-[9px] text-muted-foreground/30">AUREON — NEXUS-PRIME analyzing across 30 domains...</span>
+              </div>
+            )}
               </div>
             )}
 
