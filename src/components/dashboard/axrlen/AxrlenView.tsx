@@ -501,37 +501,7 @@ const AxrlenView = () => {
               <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-1"}`}>
                   {m.role === "assistant" ? (
                     <>
-                      {/* Workflow steps (like Claude's search indicators) */}
-                      {m.workflow && m.workflow.length > 0 && (
-                        <div className="w-full max-w-[95%] mb-1 space-y-1">
-                          {m.workflow.filter(s => s.type === "web_search").map((step, si) => (
-                            <div key={`ws-${si}`} className="flex items-center gap-2 px-3 py-1.5 text-[10px] text-muted-foreground/50">
-                              <Globe className="h-3 w-3 shrink-0 text-muted-foreground/30" />
-                              <span>{step.label}</span>
-                            </div>
-                          ))}
-                          {m.workflow.some(s => s.type === "brain_search") && (
-                            <div className="px-3 py-2 rounded-lg border border-border/[0.06] bg-foreground/[0.015]">
-                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 mb-1.5">
-                                <Brain className="h-3 w-3 shrink-0" />
-                                <span>Searched project for "{messages.filter(msg => msg.role === "user").pop()?.content.slice(0, 60)}"</span>
-                              </div>
-                              <div className="space-y-0.5 ml-5">
-                                {m.workflow.filter(s => s.type === "brain_search").map((step, si) => (
-                                  <div key={`bs-${si}`} className="flex items-center gap-2 text-[10px]">
-                                    <span className={`${(step as any).isPrimary ? "text-foreground/80 font-semibold" : "text-foreground/60 font-medium"}`}>{step.label}</span>
-                                    <span className="text-muted-foreground/30">{step.sections} relevant sections</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-muted-foreground/40">
-                            <Check className="h-3 w-3 shrink-0 text-muted-foreground/30" />
-                            <span>Done</span>
-                          </div>
-                        </div>
-                      )}
+                      {/* Workflow steps hidden — output only */}
                       <div className="relative w-full max-w-[95%] rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
                         <div className="px-5 py-4 select-text">
                           <AxrlenMessageRenderer content={m.content} isStreaming={isStreaming && i === messages.length - 1} />
@@ -560,42 +530,9 @@ const AxrlenView = () => {
             })}
 
             {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="space-y-2 px-3 py-2">
-                {activeWorkflow && activeWorkflow.length > 0 ? (
-                  <div className="space-y-1">
-                    {activeWorkflow.filter(s => s.type === "web_search").map((step, si) => (
-                      <div key={`aw-${si}`} className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
-                        <Globe className="h-3 w-3 shrink-0 text-muted-foreground/30" />
-                        <span>{step.label}</span>
-                      </div>
-                    ))}
-                    {activeWorkflow.some(s => s.type === "brain_search") && (
-                      <div className="px-3 py-2 rounded-lg border border-border/[0.06] bg-foreground/[0.015]">
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 mb-1.5">
-                          <Brain className="h-3 w-3 shrink-0" />
-                          <span>Searched project knowledge...</span>
-                        </div>
-                        <div className="space-y-0.5 ml-5">
-                          {activeWorkflow.filter(s => s.type === "brain_search").map((step, si) => (
-                            <div key={`awb-${si}`} className="flex items-center gap-2 text-[10px]">
-                              <span className="text-foreground/60 font-medium">{step.label}</span>
-                              <span className="text-muted-foreground/30">{step.sections} relevant sections</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40">
-                      <Loader2 className="h-3 w-3 animate-spin shrink-0" />
-                      <span>Generating response...</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
-                    <span className="text-[9px] text-muted-foreground/30">AUREON — searching web & project knowledge...</span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2 px-3 py-2">
+                <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
+                <span className="text-[9px] text-muted-foreground/30">AUREON — analyzing...</span>
               </div>
             )}
 
