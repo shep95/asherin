@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import AxrlenDashboard from "./AxrlenDashboard";
+import AxrlenMessageRenderer from "./AxrlenMessageRenderer";
 
 export interface AxrlenSession {
   id: string;
@@ -363,7 +364,7 @@ const AxrlenView = () => {
           </div>
           <div>
             <h1 className="text-sm font-light tracking-[0.12em] text-foreground/90">AXRLEN</h1>
-            <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase">9-Domain Predictive Intelligence</p>
+            <p className="text-[8px] text-muted-foreground/40 tracking-[0.2em] uppercase">NEXUS-PRIME · 30-Domain Predictive Intelligence</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -435,7 +436,7 @@ const AxrlenView = () => {
                 <div className="text-center space-y-2">
                   <h2 className="text-sm font-light text-foreground/60 tracking-wide">AXRLEN Intelligence</h2>
                   <p className="text-[10px] text-muted-foreground/30 leading-relaxed max-w-sm">
-                    9-domain predictive engine combining live data, occultism, history, religion, war strategy, philosophy, psychology, economics, and astronomical cycles.
+                    NEXUS-PRIME 30-domain predictive engine combining live data, occultism, Vedic Jyotish, history, religion, war strategy, philosophy, psychology, economics, Kabbalistic timing, Hermetic principles, and astronomical cycles.
                   </p>
                   <p className="text-[9px] text-muted-foreground/25 mt-3">
                     Type <span className="text-foreground/40 font-medium">"Scan [region]"</span> to start a prediction scan, or ask any question.
@@ -476,26 +477,30 @@ const AxrlenView = () => {
                 );
               }
               return (
-                <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
-                  <div className={`relative max-w-[85%] rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed ${
-                    m.role === "user"
-                      ? "bg-foreground/[0.08] text-foreground/80"
-                      : "bg-foreground/[0.03] border border-border/[0.08] text-foreground/70"
-                  }`}>
-                    {m.role === "assistant" ? (
-                      <div className="prose prose-sm prose-invert max-w-none select-text [&_p]:mb-2 [&_p]:last:mb-0 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[10px] [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:text-[10px] [&_ul]:space-y-1 [&_li]:text-[11px] [&_h1]:text-[13px] [&_h2]:text-[12px] [&_h3]:text-[11px] [&_h3]:font-medium [&_h3]:text-foreground/70 [&_strong]:text-foreground/80 [&_blockquote]:border-l-foreground/20 [&_blockquote]:text-foreground/50">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
+              <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
+                  {m.role === "assistant" ? (
+                    <div className="relative w-full max-w-[95%] rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
+                      <div className="px-5 py-4 select-text">
+                        <AxrlenMessageRenderer content={m.content} isStreaming={isStreaming && i === messages.length - 1} />
                       </div>
-                    ) : (
-                      <span className="select-text">{m.content}</span>
-                    )}
-                    <div className="flex items-center justify-end mt-1">
-                      <button onClick={() => copyMsg(m.content, i)}
-                        className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition p-0.5" title="Copy">
-                        {copiedIdx === i ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
-                      </button>
+                      <div className="flex items-center justify-end px-3 py-1.5 border-t border-border/[0.05]">
+                        <button onClick={() => copyMsg(m.content, i)}
+                          className="opacity-0 group-hover:opacity-50 hover:!opacity-80 transition p-1" title="Copy">
+                          {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="relative max-w-[85%] rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed bg-foreground/[0.08] text-foreground/80">
+                      <span className="select-text">{m.content}</span>
+                      <div className="flex items-center justify-end mt-1">
+                        <button onClick={() => copyMsg(m.content, i)}
+                          className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition p-0.5" title="Copy">
+                          {copiedIdx === i ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -503,7 +508,7 @@ const AxrlenView = () => {
             {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="flex items-center gap-2 px-3 py-2">
                 <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
-                <span className="text-[9px] text-muted-foreground/30">AUREON analyzing across 9 domains...</span>
+                <span className="text-[9px] text-muted-foreground/30">AUREON — NEXUS-PRIME analyzing across 30 domains...</span>
               </div>
             )}
 
