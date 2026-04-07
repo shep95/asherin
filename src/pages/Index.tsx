@@ -984,7 +984,7 @@ const Index = () => {
                   © {new Date().getFullYear()} Zorak Corp
                 </p>
                 <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30">
-                  AUREON — Founded June 28, 2026
+                  AUREON — Founded July 26, 2026
                 </p>
                 <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                   <Twitter className="h-4 w-4" />
