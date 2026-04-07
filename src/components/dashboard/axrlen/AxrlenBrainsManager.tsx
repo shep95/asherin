@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Brain, Plus, Trash2, Upload, Loader2, X, Check, ToggleLeft, ToggleRight, FileText } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Brain, Trash2, Upload, Loader2, X, ToggleLeft, ToggleRight, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,44 @@ interface AxrlenBrain {
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 
+const extractTextFromPdf = async (file: File): Promise<string> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+  
+  // Simple PDF text extraction - find text between BT/ET blocks and decode
+  let text = "";
+  const decoder = new TextDecoder("latin1");
+  const raw = decoder.decode(uint8);
+  
+  // Extract text from PDF streams - look for text objects
+  const textMatches = raw.match(/\(([^)]*)\)/g);
+  if (textMatches) {
+    const lines = textMatches
+      .map(m => m.slice(1, -1))
+      .filter(t => t.length > 1 && /[a-zA-Z]/.test(t));
+    text = lines.join(" ");
+  }
+  
+  // Also try to find readable text blocks
+  const readable = raw.match(/[\x20-\x7E\n\r\t]{20,}/g);
+  if (readable) {
+    const extraText = readable
+      .filter(s => /[a-zA-Z]{3,}/.test(s) && !/^[%\/\[\]<>{}]+$/.test(s.trim()))
+      .join("\n");
+    if (extraText.length > text.length) text = extraText;
+  }
+  
+  return text || `[PDF file: ${file.name} - content could not be fully extracted client-side. For best results, upload as .txt or .md]`;
+};
+
+const readFileContent = async (file: File): Promise<string> => {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext === "pdf") {
+    return extractTextFromPdf(file);
+  }
+  return file.text();
+};
+
 const AxrlenBrainsManager = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -23,7 +61,9 @@ const AxrlenBrainsManager = () => {
   const [loading, setLoading] = useState(true);
   const [showPanel, setShowPanel] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
 
@@ -42,13 +82,14 @@ const AxrlenBrainsManager = () => {
     setLoading(false);
   };
 
-  const handleFileUpload = async (fileList: FileList) => {
+  const handleFileUpload = async (fileList: FileList | File[]) => {
     if (!isAdmin) return;
     setUploading(true);
+    const files = Array.from(fileList);
 
-    for (const file of Array.from(fileList)) {
+    for (const file of files) {
       try {
-        const text = await file.text();
+        const text = await readFileContent(file);
         const name = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
 
         const { data: row, error } = await supabase
@@ -75,6 +116,27 @@ const AxrlenBrainsManager = () => {
     }
     setUploading(false);
   };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleFileUpload(e.dataTransfer.files);
+    }
+  }, [isAdmin]);
 
   const toggleBrain = async (brain: AxrlenBrain) => {
     if (!isAdmin) return;
@@ -106,18 +168,36 @@ const AxrlenBrainsManager = () => {
       </button>
 
       {showPanel && (
-        <div className="absolute right-0 top-10 z-50 w-[420px] max-h-[520px] overflow-y-auto rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl animate-fade-in">
+        <div
+          ref={dropRef}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`absolute right-0 top-10 z-50 w-[420px] max-h-[520px] overflow-y-auto rounded-xl border bg-card/95 backdrop-blur-xl shadow-2xl animate-fade-in transition-all ${
+            dragging ? "border-violet-500/60 ring-2 ring-violet-500/20" : "border-border/30"
+          }`}
+        >
           <input
             ref={fileRef}
             type="file"
             multiple
-            accept=".txt,.md,.json,.csv"
+            accept=".txt,.md,.json,.csv,.pdf"
             className="hidden"
             onChange={e => {
               if (e.target.files) handleFileUpload(e.target.files);
               e.target.value = "";
             }}
           />
+
+          {/* Drag overlay */}
+          {dragging && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-violet-500/10 backdrop-blur-sm rounded-xl pointer-events-none">
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-8 w-8 text-violet-400 animate-bounce" />
+                <p className="text-xs text-violet-300 font-light">Drop files here</p>
+              </div>
+            </div>
+          )}
 
           {/* Header */}
           <div className="p-4 border-b border-border/20">
@@ -141,7 +221,7 @@ const AxrlenBrainsManager = () => {
                 </button>
               </div>
             </div>
-            <p className="text-[9px] text-muted-foreground/40 mt-1">Upload .txt/.md knowledge files. Active brains are injected into all AXRLEN sessions for all users.</p>
+            <p className="text-[9px] text-muted-foreground/40 mt-1">Drag & drop or upload .txt, .md, .pdf, .json, .csv files. Active brains inject into all AXRLEN sessions.</p>
           </div>
 
           {/* Brain list */}
@@ -151,10 +231,13 @@ const AxrlenBrainsManager = () => {
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : brains.length === 0 ? (
-              <div className="text-center py-8">
+              <div
+                className="text-center py-8 cursor-pointer"
+                onClick={() => fileRef.current?.click()}
+              >
                 <Brain className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
                 <p className="text-[10px] text-muted-foreground/40">No brains uploaded yet</p>
-                <p className="text-[9px] text-muted-foreground/25 mt-1">Upload text files to give AXRLEN deep knowledge.</p>
+                <p className="text-[9px] text-muted-foreground/25 mt-1">Click here or drag & drop files to add knowledge.</p>
               </div>
             ) : (
               <div className="space-y-1">
