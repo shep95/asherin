@@ -334,6 +334,56 @@ const AxrlenView = () => {
           } catch {}
         }
       }
+      // Auto-save chat as a session
+      if (assistantSoFar && !activeSession) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const titleSnippet = text.length > 60 ? text.slice(0, 57) + "..." : text;
+            const { data: saved } = await supabase
+              .from("axrlen_sessions")
+              .insert({
+                user_id: user.id,
+                title: titleSnippet,
+                prediction_type: "chat",
+                status: "complete",
+                ai_summary: assistantSoFar.slice(0, 2000),
+              })
+              .select()
+              .single();
+            if (saved) {
+              setSessions(prev => [{
+                id: saved.id, title: saved.title, region: null,
+                predictionType: "chat", status: "complete",
+                predictions: null, resourceAnalysis: null,
+                threatAssessment: null, policySimulations: null,
+                timelineDivergences: null, dataSources: null,
+                confidenceScore: null, aiSummary: assistantSoFar.slice(0, 2000),
+                createdAt: new Date(saved.created_at),
+              }, ...prev]);
+              setActiveSession({
+                id: saved.id, title: saved.title, region: null,
+                predictionType: "chat", status: "complete",
+                predictions: null, resourceAnalysis: null,
+                threatAssessment: null, policySimulations: null,
+                timelineDivergences: null, dataSources: null,
+                confidenceScore: null, aiSummary: assistantSoFar.slice(0, 2000),
+                createdAt: new Date(saved.created_at),
+              });
+            }
+          }
+        } catch (saveErr) {
+          console.error("Failed to auto-save session:", saveErr);
+        }
+      }
+      // If already in a session, update its ai_summary
+      if (assistantSoFar && activeSession) {
+        try {
+          await supabase.from("axrlen_sessions")
+            .update({ ai_summary: assistantSoFar.slice(0, 2000), updated_at: new Date().toISOString() })
+            .eq("id", activeSession.id);
+        } catch {}
+      }
     } catch (err: any) {
       upsert(`\n\n⚠️ Error: ${err.message}`);
     } finally {
