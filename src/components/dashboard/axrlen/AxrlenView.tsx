@@ -376,6 +376,7 @@ const AxrlenView = () => {
               <span className="text-[8px] text-foreground/40">{activeSession.confidenceScore}%</span>
             </div>
           )}
+          <AxrlenBrainsManager />
           <button onClick={() => setShowSessions(!showSessions)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] tracking-wide transition-all ${showSessions ? "border-foreground/[0.12] bg-foreground/[0.06] text-foreground/70" : "border-border/[0.08] bg-foreground/[0.02] text-muted-foreground/50 hover:bg-foreground/[0.04]"}`}>
             <Clock className="h-3 w-3" /> Sessions
