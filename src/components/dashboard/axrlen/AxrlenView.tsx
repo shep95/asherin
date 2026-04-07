@@ -58,6 +58,7 @@ const AxrlenView = () => {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [activeWorkflow, setActiveWorkflow] = useState<WorkflowStep[] | null>(null);
   const [scanProgress, setScanProgress] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
