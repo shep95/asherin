@@ -28,6 +28,7 @@ interface WorkflowStep {
   type: string;
   label: string;
   sections?: number;
+  isPrimary?: boolean;
   status: string;
 }
 
