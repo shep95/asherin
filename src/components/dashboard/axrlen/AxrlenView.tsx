@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import AxrlenDashboard from "./AxrlenDashboard";
 import AxrlenMessageRenderer from "./AxrlenMessageRenderer";
+import AxrlenBrainsManager from "./AxrlenBrainsManager";
 
 export interface AxrlenSession {
   id: string;
