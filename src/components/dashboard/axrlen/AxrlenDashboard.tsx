@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, TrendingUp, Zap, GitBranch, FileText, AlertTriangle, Globe, BarChart3, ChevronRight, Copy, Check, Download, Eye } from "lucide-react";
+import { Shield, TrendingUp, Zap, GitBranch, FileText, AlertTriangle, Globe, BarChart3, ChevronRight, Copy, Check, Download, Eye, Orbit, Brain } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { AxrlenSession } from "./AxrlenView";
 
@@ -41,7 +41,7 @@ const AxrlenDashboard = ({ session }: Props) => {
 
   const exportReport = () => {
     const lines: string[] = [
-      `AXRLEN INTELLIGENCE REPORT — 9-DOMAIN ANALYSIS`,
+      `AXRLEN INTELLIGENCE REPORT — NEXUS-PRIME 30-DOMAIN ANALYSIS`,
       `Generated: ${session.createdAt.toLocaleString()}`,
       `Region: ${session.region || "Global"}`,
       `Confidence: ${session.confidenceScore}%`,
@@ -52,8 +52,12 @@ const AxrlenDashboard = ({ session }: Props) => {
       lines.push(`\n${i + 1}. [${p.severity?.toUpperCase()}] ${p.title}`);
       lines.push(`   Category: ${p.category} | Probability: ${p.probability}% | Timeframe: ${p.timeframe}`);
       lines.push(`   ${p.description}`);
+      if (p.vedicTiming) lines.push(`   Vedic Timing: ${p.vedicTiming}`);
+      if (p.temporalMultiplier) lines.push(`   Temporal Multiplier: ${p.temporalMultiplier}`);
       if (p.esotericAnalysis) lines.push(`   Esoteric: ${p.esotericAnalysis}`);
+      if (p.archetypeDriver) lines.push(`   Archetype: ${p.archetypeDriver}`);
       if (p.warStrategy) lines.push(`   War Strategy: ${p.warStrategy}`);
+      if (p.consciousnessField) lines.push(`   Consciousness Field: ${p.consciousnessField}`);
       if (p.recommendedAction) lines.push(`   Action: ${p.recommendedAction}`);
       if (p.dataPoints?.length) lines.push(`   Evidence: ${p.dataPoints.join("; ")}`);
     });
@@ -133,6 +137,9 @@ const AxrlenDashboard = ({ session }: Props) => {
                     <div className="flex-1 min-w-0">
                       <p className="text-[9px] font-medium text-foreground/70">{p.title}</p>
                       <p className="text-[7px] text-muted-foreground/40 mt-0.5">{p.probability}% · {p.timeframe} · {p.category}</p>
+                      {p.temporalMultiplier && (
+                        <p className="text-[6px] text-amber-400/50 mt-0.5">⊛ {p.temporalMultiplier}</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -156,6 +163,11 @@ const AxrlenDashboard = ({ session }: Props) => {
                       <span className="text-[7px] text-muted-foreground/40">{p.probability}%</span>
                       <span className="text-[7px] text-muted-foreground/40">{p.timeframe}</span>
                       <span className="text-[7px] text-muted-foreground/40">{p.category}</span>
+                      {p.temporalMultiplier && (
+                        <span className="text-[6px] text-amber-400/50 px-1 py-0.5 rounded border border-amber-500/10 bg-amber-500/[0.05]">
+                          {typeof p.temporalMultiplier === 'string' && p.temporalMultiplier.length > 20 ? p.temporalMultiplier.slice(0, 20) + '…' : p.temporalMultiplier}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronRight className={`h-3 w-3 text-muted-foreground/30 shrink-0 transition-transform ${expandedPred === (p.id || `${i}`) ? "rotate-90" : ""}`} />
@@ -166,6 +178,20 @@ const AxrlenDashboard = ({ session }: Props) => {
                       <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Analysis</p>
                       <p className="text-[9px] text-foreground/60 leading-relaxed">{p.description}</p>
                     </div>
+                    {p.vedicTiming && (
+                      <div>
+                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5 flex items-center gap-1">
+                          <Orbit className="h-2 w-2" /> Vedic Timing Grid
+                        </p>
+                        <p className="text-[9px] text-foreground/55 leading-relaxed">{p.vedicTiming}</p>
+                      </div>
+                    )}
+                    {p.temporalMultiplier && (
+                      <div>
+                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Temporal Multiplier</p>
+                        <p className="text-[9px] text-amber-300/60 leading-relaxed">{p.temporalMultiplier}</p>
+                      </div>
+                    )}
                     {p.esotericAnalysis && (
                       <div>
                         <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5 flex items-center gap-1">
@@ -174,10 +200,24 @@ const AxrlenDashboard = ({ session }: Props) => {
                         <p className="text-[9px] text-foreground/55 leading-relaxed italic">{p.esotericAnalysis}</p>
                       </div>
                     )}
+                    {p.archetypeDriver && (
+                      <div>
+                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Archetype Driver</p>
+                        <p className="text-[9px] text-foreground/55">{p.archetypeDriver}</p>
+                      </div>
+                    )}
                     {p.warStrategy && (
                       <div>
                         <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">War Strategy Framework</p>
                         <p className="text-[9px] text-foreground/55">{p.warStrategy}</p>
+                      </div>
+                    )}
+                    {p.consciousnessField && (
+                      <div>
+                        <p className="text-[7px] uppercase tracking-wider text-muted-foreground/40 mb-0.5 flex items-center gap-1">
+                          <Brain className="h-2 w-2" /> Consciousness Field
+                        </p>
+                        <p className="text-[9px] text-foreground/55">{p.consciousnessField}</p>
                       </div>
                     )}
                     {p.historicalPrecedent && (
@@ -233,6 +273,9 @@ const AxrlenDashboard = ({ session }: Props) => {
                 <p className="text-[9px] text-foreground/60">{v.description}</p>
                 {v.archetypeDriver && (
                   <p className="text-[8px] text-foreground/45 italic">⊛ Archetype: {v.archetypeDriver}</p>
+                )}
+                {v.vedicIndicator && (
+                  <p className="text-[8px] text-amber-300/50 italic">☉ Vedic: {v.vedicIndicator}</p>
                 )}
                 {v.mitigationOptions?.length > 0 && (
                   <ul className="space-y-0.5">
@@ -334,6 +377,11 @@ const AxrlenDashboard = ({ session }: Props) => {
                   <p className="text-[10px] font-medium text-foreground/70">{d.inflectionPoint}</p>
                 </div>
                 {d.criticalDate && <p className="text-[7px] text-muted-foreground/40">Critical: {d.criticalDate}</p>}
+                {d.vedicWindow && (
+                  <p className="text-[8px] text-amber-300/50 italic flex items-center gap-1">
+                    <Orbit className="h-2 w-2" /> Vedic Window: {d.vedicWindow}
+                  </p>
+                )}
                 {d.esotericTrigger && (
                   <p className="text-[8px] text-foreground/45 italic">⊛ Esoteric Trigger: {d.esotericTrigger}</p>
                 )}
