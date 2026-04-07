@@ -24,9 +24,17 @@ export interface AxrlenSession {
   createdAt: Date;
 }
 
+interface WorkflowStep {
+  type: string;
+  label: string;
+  sections?: number;
+  status: string;
+}
+
 interface ChatMsg {
   role: "user" | "assistant" | "system";
   content: string;
+  workflow?: WorkflowStep[];
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/axrlen-chat`;
