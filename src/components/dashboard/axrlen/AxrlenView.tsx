@@ -337,6 +337,7 @@ const AxrlenView = () => {
       upsert(`\n\n⚠️ Error: ${err.message}`);
     } finally {
       setIsStreaming(false);
+      setActiveWorkflow(null);
     }
   };
 
