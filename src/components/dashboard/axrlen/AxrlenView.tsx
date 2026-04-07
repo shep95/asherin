@@ -511,8 +511,6 @@ const AxrlenView = () => {
                 <span className="text-[9px] text-muted-foreground/30">AUREON — NEXUS-PRIME analyzing across 30 domains...</span>
               </div>
             )}
-              </div>
-            )}
 
             <div ref={endRef} />
 
