@@ -559,9 +559,42 @@ const AxrlenView = () => {
             })}
 
             {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex items-center gap-2 px-3 py-2">
-                <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
-                <span className="text-[9px] text-muted-foreground/30">AUREON — NEXUS-PRIME analyzing across 30 domains...</span>
+              <div className="space-y-2 px-3 py-2">
+                {activeWorkflow && activeWorkflow.length > 0 ? (
+                  <div className="space-y-1">
+                    {activeWorkflow.filter(s => s.type === "web_search").map((step, si) => (
+                      <div key={`aw-${si}`} className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+                        <Globe className="h-3 w-3 shrink-0 text-muted-foreground/30" />
+                        <span>{step.label}</span>
+                      </div>
+                    ))}
+                    {activeWorkflow.some(s => s.type === "brain_search") && (
+                      <div className="px-3 py-2 rounded-lg border border-border/[0.06] bg-foreground/[0.015]">
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40 mb-1.5">
+                          <Brain className="h-3 w-3 shrink-0" />
+                          <span>Searched project knowledge...</span>
+                        </div>
+                        <div className="space-y-0.5 ml-5">
+                          {activeWorkflow.filter(s => s.type === "brain_search").map((step, si) => (
+                            <div key={`awb-${si}`} className="flex items-center gap-2 text-[10px]">
+                              <span className="text-foreground/60 font-medium">{step.label}</span>
+                              <span className="text-muted-foreground/30">{step.sections} relevant sections</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40">
+                      <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                      <span>Generating response...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin text-foreground/30" />
+                    <span className="text-[9px] text-muted-foreground/30">AUREON — searching web & project knowledge...</span>
+                  </div>
+                )}
               </div>
             )}
 
