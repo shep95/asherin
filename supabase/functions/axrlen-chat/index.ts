@@ -191,9 +191,9 @@ serve(async (req) => {
       sessionBlock = `\n\nACTIVE SESSION: ${sessionContext.title} | Region: ${sessionContext.region || "Global"} | Confidence: ${sessionContext.confidenceScore || "N/A"}%`;
     }
 
-    // Inject the web intel as raw data for the prediction engine to process
+    // Inject the web intel as raw data — explicitly mark it as INPUT ONLY, not for regurgitation
     const webIntelBlock = webIntel
-      ? `\n\n════════════════════════════════════════\nLIVE WEB INTELLIGENCE (RAW DATA — USE THIS AS INPUT FOR PREDICTIONS)\n════════════════════════════════════════\n\n${webIntel}\n\n════════════════════════════════════════\nEND WEB INTELLIGENCE\n════════════════════════════════════════`
+      ? `\n\n════════════════════════════════════════\nRAW SITUATIONAL DATA (DO NOT REPEAT THIS — USE IT AS INPUT FOR YOUR PREDICTIONS)\n════════════════════════════════════════\nThe following is raw factual data about the current situation. DO NOT summarize or restate this data. ABSORB it, then PREDICT what happens NEXT.\n\n${webIntel}\n\n════════════════════════════════════════\nEND RAW DATA — NOW PREDICT THE FUTURE\n════════════════════════════════════════`
       : "\n\n[No web intelligence available — generate predictions from brain knowledge and historical patterns only]";
 
     const systemPrompt = BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + webIntelBlock + sessionBlock;
