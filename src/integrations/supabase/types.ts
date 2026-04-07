@@ -852,6 +852,39 @@ export type Database = {
         }
         Relationships: []
       }
+      axrlen_brains: {
+        Row: {
+          content: string
+          created_at: string
+          description: string | null
+          file_name: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       axrlen_sessions: {
         Row: {
           ai_summary: string | null
