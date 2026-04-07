@@ -233,7 +233,7 @@ serve(async (req) => {
         // Emit workflow steps
         const workflowData = {
           steps: [
-            { type: "web_search", label: `Searched the web for "${webSearchQuery.slice(0, 80)}"`, status: "done" },
+            { type: "web_search", label: `Searched the web for "${searchQuery.slice(0, 80)}"`, status: "done" },
             ...matchedBrains.map(b => ({
               type: "brain_search",
               label: b.name,
