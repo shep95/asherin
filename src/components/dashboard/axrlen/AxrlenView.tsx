@@ -28,6 +28,7 @@ interface WorkflowStep {
   type: string;
   label: string;
   sections?: number;
+  isPrimary?: boolean;
   status: string;
 }
 
@@ -518,7 +519,7 @@ const AxrlenView = () => {
                               <div className="space-y-0.5 ml-5">
                                 {m.workflow.filter(s => s.type === "brain_search").map((step, si) => (
                                   <div key={`bs-${si}`} className="flex items-center gap-2 text-[10px]">
-                                    <span className="text-foreground/60 font-medium">{step.label}</span>
+                                    <span className={`${(step as any).isPrimary ? "text-foreground/80 font-semibold" : "text-foreground/60 font-medium"}`}>{step.label}</span>
                                     <span className="text-muted-foreground/30">{step.sections} relevant sections</span>
                                   </div>
                                 ))}
