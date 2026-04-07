@@ -230,15 +230,17 @@ const AxrlenView = () => {
     setInput("");
     setIsStreaming(true);
 
+    setActiveWorkflow(null);
     let assistantSoFar = "";
+    let workflowSteps: WorkflowStep[] | null = null;
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
-          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar, workflow: workflowSteps || undefined } : m);
         }
-        return [...prev, { role: "assistant", content: assistantSoFar }];
+        return [...prev, { role: "assistant", content: assistantSoFar, workflow: workflowSteps || undefined }];
       });
     };
 
