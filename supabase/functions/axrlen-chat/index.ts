@@ -40,10 +40,33 @@ serve(async (req) => {
     // STEP 1: UNBIASED WEB SEARCH via Gemini grounding
     // ══════════════════════════════════════
     let webIntel = "";
-    let webSearchQuery = lastUserMsg.slice(0, 200);
     
+    // Extract the TOPIC from the user's message — search for recent news about the subject, NOT the user's exact prompt
+    // e.g. "predictions for IRAN war for today" → search for "Iran war latest news developments April 2026"
+    const topicExtractionPrompt = `Extract the core topic/subject from this user request. Return ONLY a short factual news search query (max 15 words) about recent events on that topic. Do NOT include words like "predictions", "forecast", "tomorrow", "today". Just the subject matter for a news search.\n\nUser request: "${lastUserMsg}"\n\nSearch query:`;
+
+    let searchQuery = lastUserMsg.slice(0, 100);
     try {
-      const searchPrompt = `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about the following topic. Return ONLY factual data — dates, names, numbers, events, quotes, military movements, economic data, death tolls, diplomatic statements, oil prices, troop positions, official statements. Do NOT interpret or predict. Just gather raw intelligence data.\n\nTopic: ${lastUserMsg}`;
+      const extractResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: topicExtractionPrompt }] }],
+            generationConfig: { temperature: 0.0, maxOutputTokens: 50 },
+          }),
+        }
+      );
+      if (extractResp.ok) {
+        const extractData = await extractResp.json();
+        const extracted = extractData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (extracted && extracted.length > 5) searchQuery = extracted;
+      }
+    } catch { /* fallback to raw message */ }
+
+    try {
+      const searchPrompt = `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic. Return ONLY factual data — dates, names, numbers, events, quotes, military movements, economic data, death tolls, diplomatic statements, oil prices, troop positions, official statements. Do NOT interpret or predict. Just gather raw intelligence data.\n\nTopic: ${searchQuery}`;
 
       const searchResp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
