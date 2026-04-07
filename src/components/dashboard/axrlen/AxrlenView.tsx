@@ -303,6 +303,12 @@ const AxrlenView = () => {
           if (jsonStr === "[DONE]") { streamDone = true; break; }
           try {
             const parsed = JSON.parse(jsonStr);
+            // Handle workflow metadata event
+            if (parsed.workflow) {
+              workflowSteps = parsed.workflow.steps || [];
+              setActiveWorkflow(workflowSteps);
+              continue;
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) upsert(content);
           } catch {
