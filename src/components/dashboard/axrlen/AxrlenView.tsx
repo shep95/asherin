@@ -477,26 +477,30 @@ const AxrlenView = () => {
                 );
               }
               return (
-                <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
-                  <div className={`relative max-w-[85%] rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed ${
-                    m.role === "user"
-                      ? "bg-foreground/[0.08] text-foreground/80"
-                      : "bg-foreground/[0.03] border border-border/[0.08] text-foreground/70"
-                  }`}>
-                    {m.role === "assistant" ? (
-                      <div className="prose prose-sm prose-invert max-w-none select-text [&_p]:mb-2 [&_p]:last:mb-0 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[10px] [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:text-[10px] [&_ul]:space-y-1 [&_li]:text-[11px] [&_h1]:text-[13px] [&_h2]:text-[12px] [&_h3]:text-[11px] [&_h3]:font-medium [&_h3]:text-foreground/70 [&_strong]:text-foreground/80 [&_blockquote]:border-l-foreground/20 [&_blockquote]:text-foreground/50">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
+              <div key={i} className={`group ${m.role === "user" ? "flex justify-end" : "flex justify-start"}`}>
+                  {m.role === "assistant" ? (
+                    <div className="relative w-full max-w-[95%] rounded-xl border border-border/[0.08] bg-foreground/[0.02] overflow-hidden">
+                      <div className="px-5 py-4 select-text">
+                        <AxrlenMessageRenderer content={m.content} isStreaming={isStreaming && i === messages.length - 1} />
                       </div>
-                    ) : (
-                      <span className="select-text">{m.content}</span>
-                    )}
-                    <div className="flex items-center justify-end mt-1">
-                      <button onClick={() => copyMsg(m.content, i)}
-                        className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition p-0.5" title="Copy">
-                        {copiedIdx === i ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
-                      </button>
+                      <div className="flex items-center justify-end px-3 py-1.5 border-t border-border/[0.05]">
+                        <button onClick={() => copyMsg(m.content, i)}
+                          className="opacity-0 group-hover:opacity-50 hover:!opacity-80 transition p-1" title="Copy">
+                          {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-muted-foreground/40" />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="relative max-w-[85%] rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed bg-foreground/[0.08] text-foreground/80">
+                      <span className="select-text">{m.content}</span>
+                      <div className="flex items-center justify-end mt-1">
+                        <button onClick={() => copyMsg(m.content, i)}
+                          className="opacity-0 group-hover:opacity-40 hover:!opacity-80 transition p-0.5" title="Copy">
+                          {copiedIdx === i ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
