@@ -436,7 +436,7 @@ const AxrlenView = () => {
                 <div className="text-center space-y-2">
                   <h2 className="text-sm font-light text-foreground/60 tracking-wide">AXRLEN Intelligence</h2>
                   <p className="text-[10px] text-muted-foreground/30 leading-relaxed max-w-sm">
-                    9-domain predictive engine combining live data, occultism, history, religion, war strategy, philosophy, psychology, economics, and astronomical cycles.
+                    NEXUS-PRIME 30-domain predictive engine combining live data, occultism, Vedic Jyotish, history, religion, war strategy, philosophy, psychology, economics, Kabbalistic timing, Hermetic principles, and astronomical cycles.
                   </p>
                   <p className="text-[9px] text-muted-foreground/25 mt-3">
                     Type <span className="text-foreground/40 font-medium">"Scan [region]"</span> to start a prediction scan, or ask any question.
