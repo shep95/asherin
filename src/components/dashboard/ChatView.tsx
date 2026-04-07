@@ -779,7 +779,7 @@ const ChatView = ({ conversation, onSendMessage, mode, onModeChange, depth, onDe
                     className={`rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm font-light leading-relaxed transition-all ${
                       msg.role === "user"
                         ? "bg-foreground/15 text-foreground backdrop-blur-sm border border-border/20"
-                        : "bg-card/50 text-foreground backdrop-blur-md border border-border/20"
+                        : "bg-background/90 text-foreground backdrop-blur-md border border-border/20"
                     }`}
                   >
                     {msg.role === "assistant" && !msg.content && isStreaming && msg === lastMsg ? (
