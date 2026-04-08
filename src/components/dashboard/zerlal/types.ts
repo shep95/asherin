@@ -1,50 +1,83 @@
-export type ZerlalScreen = "dashboard" | "project" | "finding" | "reports" | "integrations" | "settings" | "team";
+export type ZerlalScreen = "dashboard" | "project" | "finding" | "reports" | "integrations" | "settings" | "team" | "compliance" | "supply-chain" | "quantum" | "ai-security" | "zero-trust" | "incident" | "threat-intel" | "governance" | "ot-ics" | "deployment" | "workforce";
 
 export type FindingSeverity = "critical" | "high" | "medium" | "low" | "info";
-export type FindingCategory = "memory-safety" | "injection" | "secrets" | "dependencies" | "logic" | "crypto" | "auth" | "config";
+export type FindingCategory = "memory-safety" | "injection" | "secrets" | "dependencies" | "logic" | "crypto" | "auth" | "config" | "supply-chain" | "ai-security" | "zero-trust" | "ot-ics";
 export type FindingStatus = "open" | "in-progress" | "resolved" | "waived";
-export type ScanStatus = "idle" | "scanning" | "complete" | "failed";
+export type ScanStatus = "idle" | "queued" | "scanning" | "complete" | "failed";
 export type RiskGrade = "A" | "B" | "C" | "D" | "F";
 
 export interface ZerlalProject {
   id: string;
+  user_id: string;
   name: string;
-  repoUrl: string;
-  lastScanAt: string | null;
-  riskGrade: RiskGrade;
-  scanDuration: number | null;
+  repo_url: string | null;
+  source_type: string;
   language: string;
-  criticalCount: number;
-  highCount: number;
-  mediumCount: number;
-  lowCount: number;
-  infoCount: number;
+  risk_grade: RiskGrade;
+  last_scan_at: string | null;
+  scan_duration: number | null;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  info_count: number;
   status: ScanStatus;
+  file_size: number;
+  storage_path: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ZerlalFinding {
   id: string;
-  projectId: string;
+  user_id: string;
+  project_id: string;
+  scan_id: string | null;
   severity: FindingSeverity;
   title: string;
-  file: string;
-  line: number;
-  category: FindingCategory;
+  file_path: string | null;
+  line_number: number;
+  category: string;
   confidence: number;
-  age: number; // days
+  age_days: number;
+  first_seen_at: string;
   assignee: string | null;
   status: FindingStatus;
-  cweId: string;
-  cvssScore: number;
+  cwe_id: string;
+  cvss_score: number;
   description: string;
   impact: string;
-  codeSnippet: string;
-  suggestedFix: string;
-  dataflowTrace: { file: string; line: number; label: string }[];
-  chainedWith: string[];
-  complianceControls: string[];
-  similarCves: string[];
-  discoveredAt: string;
+  exploitation_steps: string[];
+  code_snippet: string;
+  suggested_fix: string;
+  dataflow_trace: { file: string; line: number; label: string }[];
+  chained_with: string[];
+  compliance_controls: string[];
+  similar_cves: string[];
+  is_false_positive: boolean;
+  waiver_reason: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ZerlalScan {
+  id: string;
+  user_id: string;
+  project_id: string;
+  scan_profile: string;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration: number | null;
+  findings_count: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  info_count: number;
+  error: string | null;
+  created_at: string;
 }
 
 export interface ScanProfile {

@@ -1,35 +1,132 @@
-import { useState } from "react";
-import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail } from "lucide-react";
-import { scanProfiles } from "./mockData";
+import { useState, useRef, useCallback } from "react";
+import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle } from "lucide-react";
+import { useCreateProject, useRunScan } from "./useZerlalData";
+import JSZip from "jszip";
 
 interface ScanModalProps {
   open: boolean;
   onClose: () => void;
+  onScanComplete: () => void;
 }
 
 type Step = 1 | 2 | 3;
 
 const sources = [
-  { id: "github", label: "GitHub", icon: Github },
-  { id: "gitlab", label: "GitLab", icon: GitBranch },
-  { id: "bitbucket", label: "Bitbucket", icon: GitBranch },
-  { id: "upload", label: "Upload ZIP", icon: Upload },
-  { id: "url", label: "Paste URL", icon: Link },
-  { id: "docker", label: "Docker Image", icon: Box },
+  { id: "upload", label: "Upload ZIP/Files", icon: Upload, desc: "ZIP, TAR, or individual code files" },
+  { id: "github-url", label: "GitHub URL", icon: Github, desc: "Public repository link" },
+  { id: "paste-url", label: "Paste URL", icon: Link, desc: "Any public Git repository" },
+  { id: "dependency", label: "Dependency File", icon: FileCode, desc: "package.json, requirements.txt, etc." },
+  { id: "github", label: "GitHub OAuth", icon: Github, desc: "Connect private repos" },
+  { id: "docker", label: "Docker Image", icon: Box, desc: "Container registry scan" },
 ];
 
-const ScanModal = ({ open, onClose }: ScanModalProps) => {
+const scanProfiles = [
+  { id: "security-audit", name: "Security Audit", desc: "Full SAST, SCA, secret detection, compliance mapping", time: "15-30 min", includes: ["Static Analysis", "Dependency Scan", "Secret Detection", "License Check", "SBOM Generation"] },
+  { id: "pre-deploy", name: "Pre-deployment Check", desc: "Critical and high-severity only", time: "3-8 min", includes: ["Critical SAST", "Known CVE", "Secret Detection"] },
+  { id: "compliance", name: "Compliance Scan", desc: "Maps to CMMC, NIST, SOC2, PCI DSS, HIPAA, FedRAMP, ISO27001, DORA, NIS2", time: "20-45 min", includes: ["Full SAST", "SCA", "Multi-Framework Mapping", "SBOM", "FCA Shield"] },
+  { id: "deep-scan", name: "Full Deep Scan", desc: "AI-assisted novel pattern detection, chain analysis, quantum crypto audit", time: "45-120 min", includes: ["Full SAST", "SCA", "AI Analysis", "Chain Detection", "Dataflow Tracing", "Quantum Crypto Audit", "Supply Chain Intel", "Zero-Trust Validation"] },
+];
+
+const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
   const [step, setStep] = useState<Step>(1);
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
-  const [selectedProfile, setSelectedProfile] = useState<string>("security-audit");
+  const [selectedProfile, setSelectedProfile] = useState("security-audit");
+  const [url, setUrl] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [codeContent, setCodeContent] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { createProject, creating } = useCreateProject();
+  const { runScan, scanning } = useRunScan();
+
+  const handleFileSelect = useCallback(async (selectedFiles: FileList) => {
+    const fileArray = Array.from(selectedFiles);
+    setFiles(fileArray);
+    setIsProcessing(true);
+
+    try {
+      let allContent = "";
+      for (const file of fileArray) {
+        if (file.name.endsWith(".zip")) {
+          const zip = new JSZip();
+          const contents = await zip.loadAsync(file);
+          for (const [path, entry] of Object.entries(contents.files)) {
+            if (!entry.dir && !path.includes("node_modules") && !path.includes(".git") && !path.startsWith("__MACOSX")) {
+              try {
+                const text = await entry.async("text");
+                if (text.length < 100000) {
+                  allContent += `\n--- FILE: ${path} ---\n${text}\n`;
+                }
+              } catch { /* binary file */ }
+            }
+          }
+        } else {
+          const text = await file.text();
+          allContent += `\n--- FILE: ${file.name} ---\n${text}\n`;
+        }
+      }
+      setCodeContent(allContent);
+      if (!projectName && fileArray.length > 0) {
+        setProjectName(fileArray[0].name.replace(/\.(zip|tar|gz)$/, ""));
+      }
+    } catch (e) {
+      console.error("File processing error:", e);
+      setScanError("Failed to process files");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [projectName]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length > 0) {
+      handleFileSelect(e.dataTransfer.files);
+    }
+  }, [handleFileSelect]);
+
+  const handleStartScan = async () => {
+    setScanError(null);
+
+    if (!projectName.trim()) {
+      setScanError("Project name is required");
+      return;
+    }
+
+    const sourceType = selectedSource || "upload";
+    const project = await createProject(projectName, sourceType, url || undefined);
+    if (!project) return;
+
+    const result = await runScan(project.id, codeContent, files[0]?.name || projectName, selectedProfile);
+    if (result) {
+      onScanComplete();
+      onClose();
+      resetState();
+    }
+  };
+
+  const resetState = () => {
+    setStep(1);
+    setSelectedSource(null);
+    setSelectedProfile("security-audit");
+    setUrl("");
+    setProjectName("");
+    setFiles([]);
+    setCodeContent("");
+    setScanError(null);
+  };
 
   if (!open) return null;
 
+  const isBusy = creating || scanning || isProcessing;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-border/[0.08] bg-card/95 backdrop-blur-md shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl border border-border/[0.08] bg-card/95 backdrop-blur-md shadow-2xl max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/[0.06]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border/[0.06] shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-light text-foreground/80 tracking-wide">New Scan</span>
             <div className="flex items-center gap-1">
@@ -38,51 +135,95 @@ const ScanModal = ({ open, onClose }: ScanModalProps) => {
               ))}
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-muted-foreground/30 hover:text-foreground/50">
+          <button onClick={() => { onClose(); resetState(); }} className="p-1 text-muted-foreground/30 hover:text-foreground/50">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-5">
-          {/* Step 1: Source */}
+        <div className="p-5 overflow-y-auto flex-1">
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-3">Select Source</h3>
+                <label className="text-[10px] text-muted-foreground/40 uppercase tracking-wider block mb-2">Project Name</label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="my-codebase"
+                  className="w-full px-3 py-2 rounded-lg bg-foreground/[0.03] border border-border/[0.06] text-[10px] text-foreground/70 placeholder:text-muted-foreground/20 focus:outline-none focus:border-foreground/10"
+                />
+              </div>
+
+              <div>
+                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-2">Select Source</h3>
                 <div className="grid grid-cols-3 gap-2">
                   {sources.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => setSelectedSource(s.id)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
                         selectedSource === s.id
                           ? "border-foreground/15 bg-foreground/[0.04]"
                           : "border-border/[0.06] hover:border-foreground/10 hover:bg-foreground/[0.02]"
                       }`}
                     >
-                      <s.icon className="h-5 w-5 text-foreground/40" />
-                      <span className="text-[10px] text-foreground/50">{s.label}</span>
+                      <s.icon className="h-4 w-4 text-foreground/40" />
+                      <span className="text-[9px] text-foreground/50 text-center">{s.label}</span>
+                      <span className="text-[7px] text-muted-foreground/25 text-center">{s.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
+
               {selectedSource && (
                 <div className="space-y-2">
-                  {selectedSource === "url" ? (
+                  {(selectedSource === "upload" || selectedSource === "dependency") && (
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={(e) => e.preventDefault()}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-border/[0.08] rounded-xl p-6 text-center cursor-pointer hover:border-foreground/10 transition-colors"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".zip,.tar,.gz,.js,.ts,.tsx,.jsx,.py,.go,.rs,.java,.php,.rb,.c,.cpp,.h,.json,.yaml,.yml,.xml,.toml,.tf,.md,.txt,.css,.html,.vue,.svelte,.swift,.kt,.cs,.sh,.bat,.sql,.r,.scala,.dart,.lua,.zig,.hcl,.dockerfile,.env,.gitignore,.lock,.sum,.mod,.cfg,.ini,.properties,.gradle"
+                        onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+                        className="hidden"
+                      />
+                      {isProcessing ? (
+                        <Loader2 className="h-5 w-5 text-foreground/30 mx-auto mb-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" />
+                      )}
+                      {files.length > 0 ? (
+                        <div>
+                          <p className="text-[10px] text-foreground/50">{files.length} file(s) selected</p>
+                          <p className="text-[8px] text-muted-foreground/30 mt-1">{files.map(f => f.name).join(", ")}</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground/30">Drop ZIP/TAR archives, code files, or dependency manifests</p>
+                          <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB • All languages supported</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(selectedSource === "github-url" || selectedSource === "paste-url") && (
                     <input
                       type="text"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://github.com/owner/repo"
                       className="w-full px-3 py-2 rounded-lg bg-foreground/[0.03] border border-border/[0.06] text-[10px] text-foreground/70 placeholder:text-muted-foreground/20 focus:outline-none focus:border-foreground/10"
                     />
-                  ) : selectedSource === "upload" ? (
-                    <div className="border-2 border-dashed border-border/[0.08] rounded-xl p-8 text-center">
-                      <Upload className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" />
-                      <p className="text-[10px] text-muted-foreground/30">Drop ZIP/TAR archive here or click to browse</p>
-                      <p className="text-[8px] text-muted-foreground/20 mt-1">Up to 5GB</p>
-                    </div>
-                  ) : (
+                  )}
+
+                  {(selectedSource === "github" || selectedSource === "docker") && (
                     <div className="text-[10px] text-muted-foreground/30 p-3 rounded-lg bg-foreground/[0.02] border border-border/[0.04]">
-                      OAuth connection required — click Next to authenticate
+                      {selectedSource === "github" ? "GitHub OAuth connection — click Next to authenticate" : "Docker registry connection — click Next to configure"}
                     </div>
                   )}
                 </div>
@@ -90,30 +231,27 @@ const ScanModal = ({ open, onClose }: ScanModalProps) => {
             </div>
           )}
 
-          {/* Step 2: Profile */}
           {step === 2 && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Scan Profile</h3>
               {scanProfiles.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => setSelectedProfile(p.id)}
-                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${
                     selectedProfile === p.id
                       ? "border-foreground/15 bg-foreground/[0.04]"
                       : "border-border/[0.06] hover:border-foreground/10"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-foreground/60">{p.name}</span>
-                    <span className="text-[9px] text-muted-foreground/25">{p.estimatedTime}</span>
+                    <span className="text-[10px] text-foreground/60">{p.name}</span>
+                    <span className="text-[8px] text-muted-foreground/25">{p.time}</span>
                   </div>
-                  <p className="text-[9px] text-muted-foreground/30 mt-1">{p.description}</p>
-                  <div className="flex flex-wrap gap-1 mt-2">
+                  <p className="text-[9px] text-muted-foreground/30 mt-0.5">{p.desc}</p>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
                     {p.includes.map((inc) => (
-                      <span key={inc} className="text-[8px] px-1.5 py-0.5 rounded bg-foreground/[0.03] text-muted-foreground/30">
-                        {inc}
-                      </span>
+                      <span key={inc} className="text-[7px] px-1.5 py-0.5 rounded bg-foreground/[0.03] text-muted-foreground/30">{inc}</span>
                     ))}
                   </div>
                 </button>
@@ -121,31 +259,56 @@ const ScanModal = ({ open, onClose }: ScanModalProps) => {
             </div>
           )}
 
-          {/* Step 3: Notifications */}
           {step === 3 && (
             <div className="space-y-4">
-              <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Notification Settings</h3>
-              <div className="space-y-3">
-                <label className="flex items-center justify-between p-3 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
+              <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Confirm & Start</h3>
+              
+              <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.02] p-4 space-y-2">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground/40">Project</span>
+                  <span className="text-foreground/60">{projectName}</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground/40">Source</span>
+                  <span className="text-foreground/60">{selectedSource}</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground/40">Profile</span>
+                  <span className="text-foreground/60">{scanProfiles.find(p => p.id === selectedProfile)?.name}</span>
+                </div>
+                {files.length > 0 && (
+                  <div className="flex justify-between text-[10px]">
+                    <span className="text-muted-foreground/40">Files</span>
+                    <span className="text-foreground/60">{files.length} file(s)</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground/40">Code Size</span>
+                  <span className="text-foreground/60">{(codeContent.length / 1024).toFixed(1)} KB</span>
+                </div>
+              </div>
+
+              {scanError && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/[0.05] border border-red-500/[0.1]">
+                  <AlertTriangle className="h-3 w-3 text-red-400" />
+                  <span className="text-[10px] text-red-400">{scanError}</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="flex items-center justify-between p-2.5 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
                   <div className="flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5 text-muted-foreground/30" />
+                    <Mail className="h-3 w-3 text-muted-foreground/30" />
                     <span className="text-[10px] text-foreground/50">Email on completion</span>
                   </div>
-                  <input type="checkbox" defaultChecked className="w-3.5 h-3.5 rounded accent-foreground/30" />
+                  <input type="checkbox" defaultChecked className="w-3 h-3 rounded accent-foreground/30" />
                 </label>
-                <label className="flex items-center justify-between p-3 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
+                <label className="flex items-center justify-between p-2.5 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
                   <div className="flex items-center gap-2">
-                    <Bell className="h-3.5 w-3.5 text-red-400/50" />
+                    <Bell className="h-3 w-3 text-red-400/50" />
                     <span className="text-[10px] text-foreground/50">Immediate alert on critical findings</span>
                   </div>
-                  <input type="checkbox" defaultChecked className="w-3.5 h-3.5 rounded accent-foreground/30" />
-                </label>
-                <label className="flex items-center justify-between p-3 rounded-xl border border-border/[0.06] hover:bg-foreground/[0.02] cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] text-muted-foreground/30">Slack</span>
-                    <span className="text-[10px] text-foreground/50">Post to #security channel</span>
-                  </div>
-                  <input type="checkbox" className="w-3.5 h-3.5 rounded accent-foreground/30" />
+                  <input type="checkbox" defaultChecked className="w-3 h-3 rounded accent-foreground/30" />
                 </label>
               </div>
             </div>
@@ -153,26 +316,28 @@ const ScanModal = ({ open, onClose }: ScanModalProps) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-4 border-t border-border/[0.06]">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-border/[0.06] shrink-0">
           <button
             onClick={() => step > 1 ? setStep((step - 1) as Step) : onClose()}
             className="text-[10px] text-muted-foreground/30 hover:text-foreground/50"
+            disabled={isBusy}
           >
             {step > 1 ? "← Back" : "Cancel"}
           </button>
           <button
-            onClick={() => step < 3 ? setStep((step + 1) as Step) : onClose()}
-            disabled={step === 1 && !selectedSource}
+            onClick={() => {
+              if (step < 3) setStep((step + 1) as Step);
+              else handleStartScan();
+            }}
+            disabled={(step === 1 && (!selectedSource || !projectName.trim())) || isBusy}
             className="px-4 py-1.5 rounded-lg bg-foreground/[0.08] text-[10px] text-foreground/60 hover:bg-foreground/[0.12] transition-colors disabled:opacity-30 flex items-center gap-1"
           >
-            {step === 3 ? (
-              <>
-                <Check className="h-3 w-3" /> Start Scan
-              </>
+            {isBusy ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> {scanning ? "Scanning..." : "Processing..."}</>
+            ) : step === 3 ? (
+              <><Check className="h-3 w-3" /> Start Scan</>
             ) : (
-              <>
-                Next <ChevronRight className="h-3 w-3" />
-              </>
+              <>Next <ChevronRight className="h-3 w-3" /></>
             )}
           </button>
         </div>

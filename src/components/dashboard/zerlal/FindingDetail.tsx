@@ -1,5 +1,5 @@
-import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Tag, Shield, Link2 } from "lucide-react";
-import { mockFindings } from "./mockData";
+import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2 } from "lucide-react";
+import { useZerlalFindings } from "./useZerlalData";
 
 interface FindingDetailProps {
   findingId: string;
@@ -15,34 +15,32 @@ const severityBg: Record<string, string> = {
 };
 
 const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
-  const finding = mockFindings.find((f) => f.id === findingId);
-  if (!finding) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-[11px] text-muted-foreground/30">Finding not found</p>
-      </div>
-    );
-  }
+  const { findings, loading } = useZerlalFindings();
+  const finding = findings.find(f => f.id === findingId);
+
+  if (loading) return <div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/20" /></div>;
+  if (!finding) return <div className="flex-1 flex items-center justify-center"><p className="text-[11px] text-muted-foreground/30">Finding not found</p></div>;
+
+  const dataflow = Array.isArray(finding.dataflow_trace) ? finding.dataflow_trace : [];
+  const exploitSteps = Array.isArray(finding.exploitation_steps) ? finding.exploitation_steps : [];
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="p-6 max-w-[1200px] mx-auto">
-        {/* Back */}
+      <div className="p-5 max-w-[1200px] mx-auto">
         <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1 mb-4">
           <ArrowLeft className="h-3 w-3" /> Back to findings
         </button>
 
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left Column (2/3) */}
-          <div className="col-span-2 space-y-5">
-            {/* Title Block */}
-            <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <span className={`text-[10px] px-2.5 py-1 rounded-md border ${severityBg[finding.severity]}`}>
+        <div className="grid grid-cols-3 gap-5">
+          <div className="col-span-2 space-y-4">
+            {/* Title */}
+            <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className={`text-[10px] px-2.5 py-1 rounded-md border ${severityBg[finding.severity] || severityBg.info}`}>
                   {finding.severity.toUpperCase()}
                 </span>
-                <span className="text-[10px] text-muted-foreground/40 font-mono">CVSS {finding.cvssScore}</span>
-                <span className="text-[10px] text-muted-foreground/30 font-mono">{finding.cweId}</span>
+                <span className="text-[10px] text-muted-foreground/40 font-mono">CVSS {finding.cvss_score}</span>
+                <span className="text-[10px] text-muted-foreground/30 font-mono">{finding.cwe_id}</span>
               </div>
               <h1 className="text-sm font-light text-foreground/80 leading-relaxed">{finding.title}</h1>
               <div className="mt-3 p-3 rounded-lg bg-red-500/[0.03] border border-red-500/[0.06]">
@@ -53,40 +51,46 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
               </div>
             </div>
 
-            {/* Vulnerable Code */}
-            <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-5">
-              <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-3">Vulnerable Code</h3>
-              <div className="relative">
-                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-red-500/30 rounded" />
-                <pre className="text-[10px] font-mono bg-background/60 rounded-lg p-4 pl-5 border border-red-500/10 text-foreground/60 overflow-x-auto whitespace-pre-wrap leading-6">
-                  {finding.codeSnippet}
-                </pre>
+            {/* Exploitation Steps */}
+            {exploitSteps.length > 0 && (
+              <div className="rounded-xl border border-red-500/[0.08] bg-card/20 backdrop-blur-sm p-4">
+                <h3 className="text-[10px] text-red-400/60 uppercase tracking-wider mb-3">How a Hacker Exploits This</h3>
+                <ol className="space-y-2">
+                  {exploitSteps.map((step, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="w-5 h-5 rounded-full bg-red-500/10 text-red-400 text-[9px] flex items-center justify-center shrink-0">{i + 1}</span>
+                      <span className="text-[10px] text-foreground/55 leading-relaxed">{String(step)}</span>
+                    </li>
+                  ))}
+                </ol>
               </div>
-              <div className="text-[9px] text-muted-foreground/25 mt-2 font-mono">
-                {finding.file}:{finding.line}
-              </div>
-            </div>
+            )}
 
-            {/* Dataflow Trace */}
-            {finding.dataflowTrace.length > 0 && (
-              <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-5">
+            {/* Vulnerable Code */}
+            {finding.code_snippet && (
+              <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4">
+                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-3">Vulnerable Code</h3>
+                <div className="relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-red-500/30 rounded" />
+                  <pre className="text-[10px] font-mono bg-background/60 rounded-lg p-4 pl-5 border border-red-500/10 text-foreground/60 overflow-x-auto whitespace-pre-wrap leading-6">{finding.code_snippet}</pre>
+                </div>
+                <div className="text-[9px] text-muted-foreground/25 mt-2 font-mono">{finding.file_path}:{finding.line_number}</div>
+              </div>
+            )}
+
+            {/* Dataflow */}
+            {dataflow.length > 0 && (
+              <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4">
                 <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-3">Dataflow Trace</h3>
-                <div className="relative space-y-0">
-                  {finding.dataflowTrace.map((step, i) => (
+                <div className="space-y-0">
+                  {dataflow.map((step: any, i: number) => (
                     <div key={i} className="flex gap-3 relative">
-                      {/* Connector line */}
-                      {i < finding.dataflowTrace.length - 1 && (
-                        <div className="absolute left-[9px] top-5 bottom-0 w-px bg-border/10" />
-                      )}
+                      {i < dataflow.length - 1 && <div className="absolute left-[9px] top-5 bottom-0 w-px bg-border/10" />}
                       <div className={`w-[19px] h-[19px] rounded-full flex items-center justify-center text-[8px] shrink-0 z-10 ${
-                        i === 0
-                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/20"
-                          : i === finding.dataflowTrace.length - 1
-                            ? "bg-red-500/20 text-red-400 border border-red-500/20"
-                            : "bg-foreground/[0.04] text-muted-foreground/40 border border-border/[0.08]"
-                      }`}>
-                        {i + 1}
-                      </div>
+                        i === 0 ? "bg-blue-500/20 text-blue-400 border border-blue-500/20"
+                        : i === dataflow.length - 1 ? "bg-red-500/20 text-red-400 border border-red-500/20"
+                        : "bg-foreground/[0.04] text-muted-foreground/40 border border-border/[0.08]"
+                      }`}>{i + 1}</div>
                       <div className="pb-4">
                         <span className="text-[9px] font-mono text-muted-foreground/40">{step.file}:{step.line}</span>
                         <p className="text-[10px] text-foreground/50 mt-0.5">{step.label}</p>
@@ -98,43 +102,35 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
             )}
 
             {/* Suggested Fix */}
-            <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-5">
-              <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-3 flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 text-emerald-400/50" /> Suggested Fix
-              </h3>
-              <div className="relative">
-                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-emerald-500/30 rounded" />
-                <pre className="text-[10px] font-mono bg-background/60 rounded-lg p-4 pl-5 border border-emerald-500/10 text-emerald-300/70 overflow-x-auto whitespace-pre-wrap leading-6">
-                  {finding.suggestedFix}
-                </pre>
+            {finding.suggested_fix && (
+              <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4">
+                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-3 flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-emerald-400/50" /> Suggested Fix
+                </h3>
+                <div className="relative">
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-emerald-500/30 rounded" />
+                  <pre className="text-[10px] font-mono bg-background/60 rounded-lg p-4 pl-5 border border-emerald-500/10 text-emerald-300/70 overflow-x-auto whitespace-pre-wrap leading-6">{finding.suggested_fix}</pre>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button className="px-4 py-2 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1]">Create PR with this fix</button>
+                  <button className="px-4 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40">Export to JIRA</button>
+                </div>
               </div>
-              <div className="flex gap-2 mt-4">
-                <button className="px-4 py-2 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors">
-                  Create PR with this fix
-                </button>
-                <button className="px-4 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 transition-colors">
-                  Export to JIRA
-                </button>
-                <button className="px-4 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 transition-colors">
-                  Export to Linear
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Right Column (1/3) */}
+          {/* Right Column */}
           <div className="space-y-4">
-            {/* Metadata */}
             <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4 space-y-3">
               <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Metadata</h3>
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {[
                   ["Category", finding.category],
-                  ["CWE", finding.cweId],
-                  ["CVSS", finding.cvssScore.toString()],
+                  ["CWE", finding.cwe_id],
+                  ["CVSS", String(finding.cvss_score)],
                   ["Confidence", `${finding.confidence}%`],
-                  ["Discovered", new Date(finding.discoveredAt).toLocaleDateString()],
-                  ["Age", `${finding.age} days`],
+                  ["Discovered", new Date(finding.first_seen_at).toLocaleDateString()],
+                  ["Age", `${finding.age_days} days`],
                   ["Status", finding.status],
                   ["Assignee", finding.assignee || "Unassigned"],
                 ].map(([label, value]) => (
@@ -146,13 +142,10 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
               </div>
             </div>
 
-            {/* Similar CVEs */}
-            {finding.similarCves.length > 0 && (
+            {finding.similar_cves && finding.similar_cves.length > 0 && (
               <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4 space-y-2">
-                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider flex items-center gap-1">
-                  <Link2 className="h-3 w-3" /> Similar CVEs
-                </h3>
-                {finding.similarCves.map((cve) => (
+                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider flex items-center gap-1"><Link2 className="h-3 w-3" /> Similar CVEs</h3>
+                {finding.similar_cves.map(cve => (
                   <div key={cve} className="text-[10px] text-foreground/40 font-mono hover:text-foreground/60 cursor-pointer flex items-center gap-1">
                     {cve} <ExternalLink className="h-2.5 w-2.5" />
                   </div>
@@ -160,63 +153,44 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
               </div>
             )}
 
-            {/* Compliance */}
-            {finding.complianceControls.length > 0 && (
+            {finding.compliance_controls && finding.compliance_controls.length > 0 && (
               <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4 space-y-2">
-                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider flex items-center gap-1">
-                  <Shield className="h-3 w-3" /> Compliance
-                </h3>
+                <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider flex items-center gap-1"><Shield className="h-3 w-3" /> Compliance</h3>
                 <div className="flex flex-wrap gap-1.5">
-                  {finding.complianceControls.map((ctrl) => (
-                    <span key={ctrl} className="text-[8px] px-2 py-0.5 rounded-md bg-foreground/[0.03] border border-border/[0.06] text-muted-foreground/40">
-                      {ctrl}
-                    </span>
+                  {finding.compliance_controls.map(ctrl => (
+                    <span key={ctrl} className="text-[8px] px-2 py-0.5 rounded-md bg-foreground/[0.03] border border-border/[0.06] text-muted-foreground/40">{ctrl}</span>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Actions */}
             <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4 space-y-2">
               <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Actions</h3>
               <div className="space-y-1.5">
-                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05] transition-colors">
-                  Assign to team member
-                </button>
-                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05] transition-colors">
-                  Mark as false positive
-                </button>
-                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05] transition-colors">
-                  Accept risk (waive)
-                </button>
-                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-red-400/50 hover:text-red-400/70 hover:bg-red-500/[0.05] transition-colors">
-                  Escalate to PagerDuty
-                </button>
+                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Assign to team member</button>
+                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Mark as false positive</button>
+                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Accept risk (waive)</button>
+                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-red-400/50 hover:text-red-400/70 hover:bg-red-500/[0.05]">Escalate</button>
               </div>
             </div>
 
-            {/* Timeline */}
             <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4 space-y-2">
-              <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Timeline
-              </h3>
+              <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider flex items-center gap-1"><Clock className="h-3 w-3" /> Timeline</h3>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <div className="w-1 h-1 rounded-full bg-foreground/10 mt-1.5 shrink-0" />
                   <div>
-                    <span className="text-[9px] text-muted-foreground/30">Discovered by deep scan</span>
-                    <p className="text-[8px] text-muted-foreground/20">{new Date(finding.discoveredAt).toLocaleString()}</p>
+                    <span className="text-[9px] text-muted-foreground/30">First discovered</span>
+                    <p className="text-[8px] text-muted-foreground/20">{new Date(finding.first_seen_at).toLocaleString()}</p>
                   </div>
                 </div>
-                {finding.assignee && (
-                  <div className="flex gap-2">
-                    <div className="w-1 h-1 rounded-full bg-foreground/10 mt-1.5 shrink-0" />
-                    <div>
-                      <span className="text-[9px] text-muted-foreground/30">Assigned to {finding.assignee}</span>
-                      <p className="text-[8px] text-muted-foreground/20">Auto-assigned by policy</p>
-                    </div>
+                <div className="flex gap-2">
+                  <div className="w-1 h-1 rounded-full bg-foreground/10 mt-1.5 shrink-0" />
+                  <div>
+                    <span className="text-[9px] text-muted-foreground/30">Vulnerability age: {finding.age_days} days</span>
+                    <p className="text-[8px] text-muted-foreground/20">Present in codebase since ~{new Date(Date.now() - finding.age_days * 86400000).toLocaleDateString()}</p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
