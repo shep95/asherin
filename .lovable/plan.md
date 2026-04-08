@@ -1,42 +1,38 @@
+## ZERLAL — Vulnerability Intelligence Platform Build Plan
 
-## Cross Universal Platform — Implementation Plan
+### Phase 1: Foundation & Dashboard (Screen 1)
+- Create Zerlal layout with persistent left nav (Projects, Findings, Reports, Integrations, Settings, Team)
+- Build "Security Posture" center panel (critical count, trend line, severity/category donut charts)
+- Build "Action Required" right panel (top 5 findings by risk)
+- Top bar with Scan Now, Notifications, Team count
 
-### Phase 1: Core Types & Mode System (Now)
-- Expand `AnalysisMode` to include all use cases: `trading`, `coding`, `design`, `finance`, `writing`, `research`, `healthcare`, `education`, `music`, `gaming`, `email`, `general`
-- Add `CrossContext` fields for each domain (language, file, tool, project, etc.)
-- Add universal `VerdictAction` types beyond trading: `FIX_NOW`, `OPTIMIZE`, `REFACTOR`, `APPROVE`, `FLAG`, `IMPROVE`
-- Expand `AlertType` to include domain-specific types: `BUG`, `VULNERABILITY`, `DESIGN_ISSUE`, `OPTIMIZATION`, `COMPLIANCE`, `DEADLINE`
+### Phase 2: Project View (Screen 2)
+- Repository header with risk grade (A-F), last scan, scan duration
+- Tab bar: Findings | Dependency Graph | History | Settings
+- Findings table with severity, title, file/line, category, confidence, age, assignee, status
+- Filter bar (severity, category, status, confidence slider, search)
+- Expandable rows with explanation, code snippet, suggested fix diff, actions
 
-### Phase 2: Dashboard Redesign (Now)
-- **Active Monitoring Card**: Shows currently watched app + detected context + domain-specific status
-- **Mode Selector**: Visual mode picker with icons for each domain
-- **Recent Activity Feed**: Universal timeline of actions/suggestions across domains
-- **Active Automations Panel**: List of running automations with toggle controls
-- **Analytics Summary**: Time saved, success rate, suggestions accepted
-- **Quick Stats Bar**: Mode-aware metrics (bugs found for coding, signals for trading, etc.)
+### Phase 3: Finding Detail Page (Screen 3)
+- Full-page finding view with 2/3 + 1/3 layout
+- Code view with highlighted vulnerability
+- Chained vulnerability flow diagram
+- Dataflow trace visualization
+- Metadata panel, similar CVEs, compliance mapping, timeline
 
-### Phase 3: Cloud Intelligence Update (Now)
-- Update `cross-analyze` edge function to handle all modes with domain-specific prompts
-- Trading mode: Keep existing Nestal Fractal strategy
-- Coding mode: Code review, bug detection, refactoring suggestions
-- Design mode: Composition, accessibility, consistency analysis
-- Finance mode: Formula errors, data validation, anomaly detection
-- General mode: Workflow optimization, productivity suggestions
+### Phase 4: Ingestion Flow (Screen 4)
+- 3-step modal: Source → Scan Profile → Notifications
+- Source icons (GitHub, GitLab, Bitbucket, Upload, URL, Docker)
+- Scan presets with time estimates
+- Notification configuration
 
-### Phase 4: Local Intelligence Engine (Now)
-- Keep `LocalIntelligenceEngine` for trading (Nestal Fractal)
-- Add `UniversalLocalEngine` for non-trading modes with domain-specific pattern detection
-- Coding: Syntax patterns, error detection from screen
-- Design: Layout analysis, color consistency
-- General: Workflow timing, idle detection
+### Phase 5: Reports (Screen 5)
+- Report type selection (Executive, Technical, Compliance, Remediation, Benchmark)
+- Format options (PDF, CSV, JSON)
+- Scheduled report configuration
 
-### Phase 5: Extension Update (Future)
-- Update Chrome extension to support multi-mode operation
-- Mode auto-detection based on active tab
+### Phase 6: Integrations Hub (Screen 6)
+- Visual grid of integration tiles by category
+- Connected status, configure button per tile
 
-### What ships NOW (this implementation):
-1. ✅ Expanded types system for universal modes
-2. ✅ New Cross dashboard with monitoring dashboard, activity feed, automations panel
-3. ✅ Updated edge function with multi-domain prompts
-4. ✅ Mode-aware UI that changes layout/context based on selected mode
-5. ✅ Analytics summary cards
+**Note:** All screens use mock/demo data. Backend tables and edge functions will be added in a follow-up phase. Uses existing design system tokens and AUREON aesthetic.
