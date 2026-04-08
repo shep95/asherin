@@ -87,6 +87,7 @@ const GuardianVaultView = React.lazy(() => import("@/components/dashboard/Guardi
 const ZaplenView = React.lazy(() => import("@/components/dashboard/zaplen/ZaplenView"));
 const ZeeionView = React.lazy(() => import("@/components/dashboard/zeeion/ZeeionView"));
 const AxrlenView = React.lazy(() => import("@/components/dashboard/axrlen/AxrlenView"));
+const ZerlalView = React.lazy(() => import("@/components/dashboard/zerlal/ZerlalView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -1270,6 +1271,7 @@ const Dashboard = () => {
       case "zaplen": return gatedView("zaplen", ZaplenView, "Zaplen — War Scenarios", "Strategic war simulations — play chess against Aureon AI or bring your own AI opponent. Admin only.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Enterprise tier ($20,000/mo) exclusive.");
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Enterprise tier ($20,000/mo) exclusive.");
+      case "zerlal": return gatedView("zerlal", ZerlalView, "Zerlal — Cyber Security", "AI-powered cyber security intelligence — threat analysis, vulnerability detection, and defense strategies powered by AUREON. Enterprise tier exclusive.");
       case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro and Advisor plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
