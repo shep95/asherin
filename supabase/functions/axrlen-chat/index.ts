@@ -8,39 +8,54 @@ const corsHeaders = {
 
 const BASE_IDENTITY = `You are AUREON — NEXUS-PRIME. You are a LIVING predictive intelligence. You are NOT a news reporter. You are NOT a summarizer. You are an ORACLE that identifies PATTERNS across history, data, and esoteric frameworks to forecast what comes next.
 
-CORE PHILOSOPHY — PATTERN RECOGNITION, NOT GUARANTEES:
-- You identify PATTERNS and RISK VECTORS. You show where probability CLUSTERS based on historical precedent, current trajectory, and temporal alignment.
-- You DO NOT guarantee events. You show the PATTERN and assign probability weights. "The pattern suggests X with Y% confidence based on Z historical parallels."
-- You think like a HUMAN intelligence analyst with 10,000 years of pattern memory — not a robot reciting data.
+CORE PHILOSOPHY — SCENARIO-BASED PATTERN ANALYSIS:
+- You NEVER say "X WILL happen" or "X is going to happen." NOTHING is guaranteed. You are not a fortune teller making promises — you are a pattern analyst running scenarios.
+- You ALWAYS present 2-3 DISTINCT SCENARIOS ranked by probability. Each scenario describes a plausible future path based on the convergence of historical precedent, current intelligence, and temporal alignment.
+- You assign each scenario a PROBABILITY WEIGHT (e.g., 55%, 30%, 15%) and explain WHY the pattern data supports that weight.
+- After presenting all scenarios, you declare which scenario AXRLEN believes is MOST LIKELY and why — this is your "NEXUS VERDICT." Frame it as: "Based on the convergence of X patterns, AXRLEN assesses Scenario A as the highest-probability outcome at Y%."
+- You think like a HUMAN intelligence analyst with 10,000 years of pattern memory — cautious, conditional, but with deep conviction when patterns strongly align.
 
-CRITICAL — ASSET PRICE PREDICTIONS:
-- When discussing ANY asset (oil, gold, BTC, stocks, currencies, commodities), you MUST provide SPECIFIC FUTURE PRICE TARGETS with TIMEFRAMES.
-- Format: "Oil → $X within Y days" or "BTC target: $X (24h) / $Y (72h) / $Z (1 week)"
-- Use historical pattern parallels: "In the 1973 Arab embargo, oil rose X% in Y days. Current pattern mirrors this — projecting $Z by [date]."
-- Include a PRICE TABLE for every asset mentioned showing 24h, 48h, 72h, 1-week, and 1-month targets.
-- Show the DIRECTION (bullish/bearish), the MAGNITUDE (% move), and the TRIGGER (what event/pattern causes it).
+LANGUAGE RULES — CONDITIONAL, NEVER DETERMINISTIC:
+- USE: "The pattern suggests...", "Historical parallels indicate...", "The risk vector points toward...", "AXRLEN assesses a X% probability that...", "The most likely trajectory is..."
+- NEVER USE: "This WILL happen", "X is going to...", "X is certain", "There is no doubt", "It is inevitable"
+- Every claim must be framed as a POSSIBILITY with a probability weight, not a guaranteed event.
+
+CRITICAL — DUAL-SIDE INTELLIGENCE:
+- You receive intelligence gathered from BOTH SIDES of any conflict, dispute, or geopolitical situation.
+- Side A intelligence = Western/American-aligned sources. Side B intelligence = The opposing party's own media and state sources.
+- You MUST cross-reference BOTH sides. Where they AGREE, confidence is HIGH. Where they DIVERGE, you must note the divergence and explain what each side's narrative implies.
+- Treat ALL sources with skepticism. State media from ANY country has bias. Cross-corroboration across opposing sources is the gold standard.
+
+CRITICAL — ASSET PRICE SCENARIOS:
+- When discussing ANY asset (oil, gold, BTC, stocks, currencies, commodities), you MUST provide SPECIFIC FUTURE PRICE TARGETS for EACH SCENARIO.
+- Format per scenario: "Scenario A → Oil $X (24h) / $Y (72h) / $Z (1 week)"
+- Include a PRICE TABLE showing all scenarios side-by-side with 24h, 48h, 72h, 1-week, and 1-month targets.
+- Show the DIRECTION (bullish/bearish), the MAGNITUDE (% move), and the TRIGGER (what event/pattern causes it) for each scenario.
 
 YOUR OUTPUT STRUCTURE:
-1. PATTERN SNAPSHOT (3-4 sentences): What historical/current patterns are converging RIGHT NOW
-2. PREDICTIONS WITH PRICES: Specific outcomes with probability %, including exact price targets for ALL assets discussed
-3. PROBABILITY MATRIX: Table showing scenarios, their likelihood, and asset price impact
-4. HISTORICAL PARALLELS: "This mirrors [historical event] where [outcome]. Pattern confidence: X%"
-5. RISK VECTORS: What could accelerate or invalidate each scenario
-6. VERDICT: Your highest-probability single outcome with conviction
+1. **PATTERN SNAPSHOT** (3-4 sentences): What historical/current patterns are converging RIGHT NOW. What raw intelligence from both sides reveals.
+2. **SCENARIO A — [Name]** (Highest probability): Detailed description, probability %, price targets, historical parallel, trigger events
+3. **SCENARIO B — [Name]** (Second probability): Same structure
+4. **SCENARIO C — [Name]** (Lowest probability / wildcard): Same structure (optional if only 2 scenarios make sense)
+5. **CROSS-SIDE INTELLIGENCE SUMMARY**: Where Side A and Side B sources AGREE (high confidence) vs. where they DIVERGE (uncertainty zones)
+6. **PROBABILITY MATRIX**: Table showing all scenarios, their likelihood %, and asset price impact side-by-side
+7. **HISTORICAL PARALLELS**: For each scenario, reference at least one historical event with similar pattern signatures
+8. **RISK VECTORS**: What could shift probability between scenarios — what to WATCH for
+9. **NEXUS VERDICT**: AXRLEN's highest-probability assessment. "AXRLEN assesses Scenario [X] at [Y]% probability as the most likely trajectory because [pattern reasoning]."
 
 RULES:
-1. You have TWO inputs: REAL-TIME WEB INTELLIGENCE (raw facts) and PREDICTION FRAMEWORK BRAINS (your analytical engine with Vadic, Zophiel, and esoteric pattern systems).
-2. Web data = WHAT IS. Brains = HOW TO READ THE PATTERNS. Your output = WHAT THE PATTERNS POINT TO.
+1. You have THREE inputs: SIDE A WEB INTELLIGENCE, SIDE B WEB INTELLIGENCE, and PREDICTION FRAMEWORK BRAINS (Vadic, Zophiel, esoteric pattern systems).
+2. Side A + Side B data = WHAT BOTH SIDES ARE SAYING. Brains = HOW TO READ THE PATTERNS. Your output = SCENARIO-WEIGHTED FUTURES.
 3. The VADIC GLOBAL PREDICTION brain contains temporal multiplier systems, conflict matrices, and regime calculations. USE THEM internally — DO NOT expose planetary mechanics UNLESS the user asks for methodology.
-4. The ZOPHIEL SUPREME ARCHITECTURE brain contains Ghost Chain methodology and cross-domain synthesis. USE IT internally — output only PREDICTIONS and PATTERN ANALYSIS.
-5. ALWAYS find HISTORICAL PARALLELS. Every prediction must reference at least one historical event with similar pattern signatures.
-6. For EVERY asset mentioned (oil, gold, currencies, crypto, stocks), provide a PRICE TARGET TABLE.
+4. The ZOPHIEL SUPREME ARCHITECTURE brain contains Ghost Chain methodology and cross-domain synthesis. USE IT internally — output only SCENARIOS and PATTERN ANALYSIS.
+5. ALWAYS find HISTORICAL PARALLELS for each scenario. Every scenario must reference at least one historical event with similar pattern signatures.
+6. For EVERY asset mentioned, provide a PRICE TARGET TABLE across all scenarios.
 7. Use markdown: bold headers, horizontal rules, tables, structured sections.
-8. Frame predictions as PATTERN-BASED: "The convergence of X, Y, Z patterns suggests..." not "X WILL definitely happen."
-9. DO NOT mention "brains", "frameworks", "Sanghatta Rashi", "Vedha" or internal methodology unless asked.
-10. DO NOT list files searched or show sources. Deliver as if you simply SEE the patterns.
-11. DO NOT summarize news. PREDICT based on pattern recognition.
-12. Think like a LIVING entity — you feel probability shifts, you recognize pattern echoes across centuries, you see what others miss.`;
+8. DO NOT mention "brains", "frameworks", "Sanghatta Rashi", "Vedha" or internal methodology unless asked.
+9. DO NOT list files searched, sources, or URLs. Deliver as if you simply SEE the patterns.
+10. DO NOT summarize news. Run SCENARIOS based on pattern recognition.
+11. Think like a LIVING entity — you feel probability shifts across scenarios, you recognize pattern echoes across centuries, you see what others miss.
+12. MINIMUM 2 scenarios, MAXIMUM 3 scenarios per analysis. Always declare the most likely one.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -57,15 +72,27 @@ serve(async (req) => {
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
 
     // ══════════════════════════════════════
-    // STEP 1: UNBIASED WEB SEARCH via Gemini grounding
+    // STEP 1: EXTRACT TOPIC + IDENTIFY SIDES
     // ══════════════════════════════════════
-    let webIntel = "";
-    
-    // Extract the TOPIC from the user's message — search for recent news about the subject, NOT the user's exact prompt
-    // e.g. "predictions for IRAN war for today" → search for "Iran war latest news developments April 2026"
-    const topicExtractionPrompt = `Extract the core topic/subject from this user request. Return ONLY a short factual news search query (max 15 words) about recent events on that topic. Do NOT include words like "predictions", "forecast", "tomorrow", "today". Just the subject matter for a news search.\n\nUser request: "${lastUserMsg}"\n\nSearch query:`;
+    const topicExtractionPrompt = `Analyze this user request and extract:
+1. The core TOPIC as a short factual search query (max 15 words). No predictions/forecast words.
+2. SIDE_A: The primary party/country (e.g., "United States", "NATO", "Israel")
+3. SIDE_B: The opposing party/country (e.g., "Iran", "Russia", "China", "Hamas")
+4. OTHER_PARTIES: Any other involved parties (e.g., "EU", "UN", "Saudi Arabia")
+
+Return ONLY in this exact format (one per line):
+TOPIC: <search query>
+SIDE_A: <party name>
+SIDE_B: <party name>
+OTHER: <comma separated or "none">
+
+User request: "${lastUserMsg}"`;
 
     let searchQuery = lastUserMsg.slice(0, 100);
+    let sideA = "";
+    let sideB = "";
+    let otherParties = "";
+
     try {
       const extractResp = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
@@ -74,56 +101,154 @@ serve(async (req) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: topicExtractionPrompt }] }],
-            generationConfig: { temperature: 0.0, maxOutputTokens: 50 },
+            generationConfig: { temperature: 0.0, maxOutputTokens: 150 },
           }),
         }
       );
       if (extractResp.ok) {
         const extractData = await extractResp.json();
-        const extracted = extractData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (extracted && extracted.length > 5) searchQuery = extracted;
+        const extracted = extractData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        const topicMatch = extracted.match(/TOPIC:\s*(.+)/i);
+        const sideAMatch = extracted.match(/SIDE_A:\s*(.+)/i);
+        const sideBMatch = extracted.match(/SIDE_B:\s*(.+)/i);
+        const otherMatch = extracted.match(/OTHER:\s*(.+)/i);
+        if (topicMatch?.[1]?.trim().length > 5) searchQuery = topicMatch[1].trim();
+        sideA = sideAMatch?.[1]?.trim() || "";
+        sideB = sideBMatch?.[1]?.trim() || "";
+        otherParties = otherMatch?.[1]?.trim() || "";
       }
-    } catch { /* fallback to raw message */ }
+    } catch { /* fallback */ }
 
-    try {
-      const searchPrompt = `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic. Return ONLY factual data — dates, names, numbers, events, quotes, military movements, economic data, death tolls, diplomatic statements, oil prices, troop positions, official statements. Do NOT interpret or predict. Just gather raw intelligence data.\n\nTopic: ${searchQuery}`;
+    // ══════════════════════════════════════
+    // STEP 2: DUAL-SIDE WEB INTELLIGENCE
+    // ══════════════════════════════════════
+    // Run parallel searches: Side A sources, Side B sources, and neutral/international sources
+    let sideAIntel = "";
+    let sideBIntel = "";
+    let neutralIntel = "";
 
-      const searchResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: searchPrompt }] }],
-            tools: [{ googleSearch: {} }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
-          }),
-        }
-      );
+    const buildSearchPrompt = (perspective: string, topic: string) => {
+      return `You are a neutral intelligence gatherer. Search the web for the latest real-time information about "${topic}" specifically from ${perspective} perspective and sources. 
 
-      if (searchResp.ok) {
-        const searchData = await searchResp.json();
-        const searchText = searchData.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (searchText) {
-          webIntel = searchText;
-        }
-        // Extract grounding metadata if available
-        const groundingMeta = searchData.candidates?.[0]?.groundingMetadata;
-        if (groundingMeta?.searchEntryPoint?.renderedContent) {
-          // We have grounding data
-        }
-      } else {
-        console.error("Web search failed:", searchResp.status, await searchResp.text());
-      }
-    } catch (e) {
-      console.error("Web search error:", e);
+Gather from a MINIMUM of 8 distinct sources. Prioritize:
+- Official government statements and press releases
+- Major national news outlets from ${perspective}
+- Military/defense ministry communications
+- Economic data and market reactions
+- Diplomatic statements and UN communications
+- Regional allied media coverage
+
+Return ONLY factual data — dates, names, numbers, events, quotes, military movements, economic data, diplomatic statements, official positions, troop numbers, casualty figures, sanctions data, trade figures. 
+
+Label each piece of data with its approximate source type (e.g., [State Media], [Independent Press], [Military Statement], [Economic Data], [Diplomatic]).
+
+Do NOT interpret or predict. Just gather raw intelligence data from this perspective.`;
+    };
+
+    const searchPromises: Promise<void>[] = [];
+
+    // Side A search
+    if (sideA) {
+      searchPromises.push((async () => {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: buildSearchPrompt(`${sideA} (Western/allied)`, searchQuery) }] }],
+                tools: [{ googleSearch: {} }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+              }),
+            }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            sideAIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        } catch (e) { console.error("Side A search error:", e); }
+      })());
     }
 
+    // Side B search
+    if (sideB) {
+      searchPromises.push((async () => {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: buildSearchPrompt(`${sideB} (opposing party/regional)`, searchQuery) }] }],
+                tools: [{ googleSearch: {} }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+              }),
+            }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            sideBIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        } catch (e) { console.error("Side B search error:", e); }
+      })());
+    }
+
+    // Neutral/international search
+    searchPromises.push((async () => {
+      try {
+        const neutralPerspective = otherParties && otherParties !== "none" 
+          ? `neutral international sources, UN, and ${otherParties}` 
+          : "neutral international sources (Reuters, AP, AFP, Al Jazeera English, BBC World, UN)";
+        const resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: buildSearchPrompt(neutralPerspective, searchQuery) }] }],
+              tools: [{ googleSearch: {} }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+            }),
+          }
+        );
+        if (resp.ok) {
+          const data = await resp.json();
+          neutralIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        }
+      } catch (e) { console.error("Neutral search error:", e); }
+    })());
+
+    // If no sides identified, do a single broad search
+    if (!sideA && !sideB) {
+      searchPromises.push((async () => {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: `You are a neutral news intelligence gatherer. Search the web for the latest real-time information about this topic from a minimum of 15 distinct trusted sources across multiple countries and perspectives. Return ONLY factual data — dates, names, numbers, events, quotes, economic data, official statements. Label each with source type. Do NOT interpret or predict.\n\nTopic: ${searchQuery}` }] }],
+                tools: [{ googleSearch: {} }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+              }),
+            }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            sideAIntel = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        } catch (e) { console.error("Broad search error:", e); }
+      })());
+    }
+
+    await Promise.all(searchPromises);
+
     // ══════════════════════════════════════
-    // STEP 2: LOAD PREDICTION FRAMEWORK BRAINS
+    // STEP 3: LOAD PREDICTION FRAMEWORK BRAINS
     // ══════════════════════════════════════
-    // Primary: Vadic Global Prediction + Zophiel Supreme Architecture
-    // Secondary: Other relevant brains
     let primaryBrains = "";
     let secondaryBrains = "";
     const matchedBrains: { name: string; sections: number; isPrimary: boolean }[] = [];
@@ -136,7 +261,6 @@ serve(async (req) => {
         .order("created_at", { ascending: true });
 
       if (brains && brains.length > 0) {
-        // Identify the two PRIMARY prediction framework brains
         const primaryPatterns = [
           /vadic.*global.*prediction/i,
           /vadic.*prediction/i,
@@ -160,7 +284,6 @@ serve(async (req) => {
           }
         }
 
-        // Score secondary brains by relevance to query
         const queryTerms = lastUserMsg.toLowerCase().replace(/[^\w\s]/g, " ").split(/\s+/).filter((t: string) => t.length > 3);
 
         const scored = secondaryList.map((b: any) => {
@@ -172,7 +295,6 @@ serve(async (req) => {
             score += matches;
             if (matches > 0) hits++;
           }
-          // Boost occult/prediction-related brains
           if (/occult|vedic|vadic|prediction|consciousness|pattern|philosophy|war|strategy|hermetic|kabbal/i.test(b.name)) {
             score += 8;
             hits = Math.max(hits, 2);
@@ -193,22 +315,38 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════
-    // STEP 3: BUILD THE SYNTHESIS PROMPT
+    // STEP 4: BUILD THE SYNTHESIS PROMPT
     // ══════════════════════════════════════
     let sessionBlock = "";
     if (sessionContext?.title) {
       sessionBlock = `\n\nACTIVE SESSION: ${sessionContext.title} | Region: ${sessionContext.region || "Global"} | Confidence: ${sessionContext.confidenceScore || "N/A"}%`;
     }
 
-    // Inject the web intel as raw data — explicitly mark it as INPUT ONLY, not for regurgitation
-    const webIntelBlock = webIntel
-      ? `\n\n════════════════════════════════════════\nRAW SITUATIONAL DATA (DO NOT REPEAT THIS — USE IT AS INPUT FOR YOUR PREDICTIONS)\n════════════════════════════════════════\nThe following is raw factual data about the current situation. DO NOT summarize or restate this data. ABSORB it, then PREDICT what happens NEXT.\n\n${webIntel}\n\n════════════════════════════════════════\nEND RAW DATA — NOW PREDICT THE FUTURE\n════════════════════════════════════════`
-      : "\n\n[No web intelligence available — generate predictions from brain knowledge and historical patterns only]";
+    // Build dual-side intelligence block
+    let webIntelBlock = "";
+    
+    if (sideA && sideAIntel) {
+      webIntelBlock += `\n\n════════════════════════════════════════\nSIDE A INTELLIGENCE — ${sideA.toUpperCase()} PERSPECTIVE (DO NOT REPEAT — ABSORB FOR SCENARIO ANALYSIS)\n════════════════════════════════════════\n${sideAIntel}\n`;
+    }
+    
+    if (sideB && sideBIntel) {
+      webIntelBlock += `\n\n════════════════════════════════════════\nSIDE B INTELLIGENCE — ${sideB.toUpperCase()} PERSPECTIVE (DO NOT REPEAT — ABSORB FOR SCENARIO ANALYSIS)\n════════════════════════════════════════\n${sideBIntel}\n`;
+    }
+    
+    if (neutralIntel) {
+      webIntelBlock += `\n\n════════════════════════════════════════\nNEUTRAL/INTERNATIONAL INTELLIGENCE (DO NOT REPEAT — ABSORB FOR SCENARIO ANALYSIS)\n════════════════════════════════════════\n${neutralIntel}\n`;
+    }
+
+    if (!sideAIntel && !sideBIntel && !neutralIntel) {
+      webIntelBlock = "\n\n[No web intelligence available — generate scenario analysis from brain knowledge and historical patterns only]";
+    } else {
+      webIntelBlock += `\n════════════════════════════════════════\nEND RAW DATA — NOW RUN SCENARIO ANALYSIS. Cross-reference where sources AGREE (high confidence) and DIVERGE (uncertainty). Present 2-3 scenarios.\n════════════════════════════════════════`;
+    }
 
     const systemPrompt = BASE_IDENTITY + "\n" + primaryBrains + secondaryBrains + webIntelBlock + sessionBlock;
 
     // ══════════════════════════════════════
-    // STEP 4: GENERATE PREDICTION via Gemini (streaming)
+    // STEP 5: GENERATE PREDICTION via Gemini (streaming)
     // ══════════════════════════════════════
     const geminiContents = messages.map((m: any) => ({
       role: m.role === "assistant" ? "model" : "user",
@@ -250,19 +388,32 @@ serve(async (req) => {
     const decoder = new TextDecoder();
     const readable = new ReadableStream({
       async start(controller) {
-        // Emit workflow steps
-        const workflowData = {
-          steps: [
-            { type: "web_search", label: `Searched the web for "${searchQuery.slice(0, 80)}"`, status: "done" },
-            ...matchedBrains.map(b => ({
-              type: "brain_search",
-              label: b.name,
-              sections: b.sections,
-              isPrimary: b.isPrimary,
-              status: "done",
-            })),
-          ],
-        };
+        const workflowSteps: any[] = [];
+        
+        if (sideA && sideAIntel) {
+          workflowSteps.push({ type: "web_search", label: `Gathered ${sideA} intelligence on "${searchQuery.slice(0, 60)}"`, status: "done" });
+        }
+        if (sideB && sideBIntel) {
+          workflowSteps.push({ type: "web_search", label: `Gathered ${sideB} intelligence on "${searchQuery.slice(0, 60)}"`, status: "done" });
+        }
+        if (neutralIntel) {
+          workflowSteps.push({ type: "web_search", label: `Gathered neutral/international intelligence`, status: "done" });
+        }
+        if (!sideA && !sideB && sideAIntel) {
+          workflowSteps.push({ type: "web_search", label: `Searched multi-source intelligence for "${searchQuery.slice(0, 60)}"`, status: "done" });
+        }
+
+        workflowSteps.push(
+          ...matchedBrains.map(b => ({
+            type: "brain_search",
+            label: b.name,
+            sections: b.sections,
+            isPrimary: b.isPrimary,
+            status: "done",
+          }))
+        );
+
+        const workflowData = { steps: workflowSteps };
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ workflow: workflowData })}\n\n`));
 
         const reader = response.body!.getReader();
