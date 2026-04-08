@@ -83,6 +83,7 @@ const navGroups: NavGroup[] = [
       { id: "zaplen" as DashboardView, icon: Zap, label: "Zaplen", access: "pro" },
       { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "enterprise" },
       { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "enterprise" },
+      { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "enterprise" },
       { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
       { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
       { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
