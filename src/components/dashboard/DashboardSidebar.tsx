@@ -5,7 +5,7 @@ import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin, Sparkles, Lock as LockIcon,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin, Sparkles, Lock as LockIcon, Shield,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -83,6 +83,7 @@ const navGroups: NavGroup[] = [
       { id: "zaplen" as DashboardView, icon: Zap, label: "Zaplen", access: "pro" },
       { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "enterprise" },
       { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "enterprise" },
+      { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "enterprise" },
       { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
       { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
       { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
