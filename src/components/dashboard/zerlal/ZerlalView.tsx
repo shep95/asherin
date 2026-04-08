@@ -6,17 +6,25 @@ import ProjectView from "./ProjectView";
 import FindingDetail from "./FindingDetail";
 import ReportsScreen from "./ReportsScreen";
 import IntegrationsScreen from "./IntegrationsScreen";
+import IntelligenceModule from "./IntelligenceModule";
 import ScanModal from "./ScanModal";
-import { mockFindings } from "./mockData";
+import { useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
+
+const intelligenceScreens: ZerlalScreen[] = [
+  "compliance", "supply-chain", "quantum", "ai-security", "zero-trust",
+  "ot-ics", "incident", "threat-intel", "governance", "deployment", "workforce"
+];
 
 const ZerlalView = () => {
   const [activeScreen, setActiveScreen] = useState<ZerlalScreen>("dashboard");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
   const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const criticalCount = mockFindings.filter((f) => f.severity === "critical" && f.status === "open").length;
+  const { findings } = useZerlalFindings();
+  const criticalCount = findings.filter(f => f.severity === "critical" && f.status === "open").length;
 
   const handleNavigate = (screen: ZerlalScreen) => {
     setActiveScreen(screen);
@@ -41,26 +49,33 @@ const ZerlalView = () => {
 
   const handleBackFromFinding = () => {
     setSelectedFindingId(null);
-    if (selectedProjectId) {
-      setActiveScreen("project");
-    } else {
-      setActiveScreen("dashboard");
-    }
+    setActiveScreen(selectedProjectId ? "project" : "dashboard");
+  };
+
+  const handleScanComplete = () => {
+    setRefreshKey(k => k + 1);
   };
 
   const renderScreen = () => {
+    if (intelligenceScreens.includes(activeScreen)) {
+      return <IntelligenceModule screen={activeScreen} />;
+    }
+
     switch (activeScreen) {
       case "dashboard":
         return (
           <DashboardScreen
+            key={refreshKey}
             onNavigate={handleNavigate}
             onSelectProject={handleSelectProject}
             onSelectFinding={handleSelectFinding}
+            onOpenScan={() => setScanModalOpen(true)}
           />
         );
       case "project":
         return (
           <ProjectView
+            key={`${selectedProjectId}-${refreshKey}`}
             projectId={selectedProjectId}
             onSelectFinding={handleSelectFinding}
             onBack={handleBackFromProject}
@@ -68,7 +83,7 @@ const ZerlalView = () => {
         );
       case "finding":
         return selectedFindingId ? (
-          <FindingDetail findingId={selectedFindingId} onBack={handleBackFromFinding} />
+          <FindingDetail key={selectedFindingId} findingId={selectedFindingId} onBack={handleBackFromFinding} />
         ) : (
           <ProjectView projectId={null} onSelectFinding={handleSelectFinding} onBack={handleBackFromProject} />
         );
@@ -96,7 +111,7 @@ const ZerlalView = () => {
   return (
     <div className="h-full flex flex-col">
       {/* Top Bar */}
-      <div className="shrink-0 border-b border-border/[0.06] px-5 py-3 flex items-center justify-between backdrop-blur-md bg-background/40">
+      <div className="shrink-0 border-b border-border/[0.06] px-5 py-2.5 flex items-center justify-between backdrop-blur-md bg-background/40">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-foreground/[0.04] border border-border/[0.08] flex items-center justify-center">
             <Shield className="h-3.5 w-3.5 text-foreground/60" />
@@ -115,25 +130,17 @@ const ZerlalView = () => {
           </button>
           <button className="p-2 rounded-lg hover:bg-foreground/[0.03] transition-colors relative">
             <Bell className="h-3.5 w-3.5 text-muted-foreground/30" />
-            {criticalCount > 0 && (
-              <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400" />
-            )}
+            {criticalCount > 0 && <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-400" />}
           </button>
-          <div className="flex items-center gap-1.5 ml-1">
-            <Users className="h-3 w-3 text-muted-foreground/20" />
-            <span className="text-[9px] text-muted-foreground/25">3</span>
-            <button className="text-[9px] text-muted-foreground/30 hover:text-foreground/50 ml-1">Invite</button>
-          </div>
         </div>
       </div>
 
-      {/* Body */}
       <div className="flex-1 flex min-h-0">
         <ZerlalNav activeScreen={activeScreen} onNavigate={handleNavigate} criticalCount={criticalCount} />
         {renderScreen()}
       </div>
 
-      <ScanModal open={scanModalOpen} onClose={() => setScanModalOpen(false)} />
+      <ScanModal open={scanModalOpen} onClose={() => setScanModalOpen(false)} onScanComplete={handleScanComplete} />
     </div>
   );
 };
