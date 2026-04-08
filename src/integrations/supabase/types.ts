@@ -4976,6 +4976,363 @@ export type Database = {
         }
         Relationships: []
       }
+      zerlal_compliance_mappings: {
+        Row: {
+          control_id: string
+          control_name: string | null
+          created_at: string
+          evidence: string | null
+          finding_id: string | null
+          framework: string
+          id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          control_id: string
+          control_name?: string | null
+          created_at?: string
+          evidence?: string | null
+          finding_id?: string | null
+          framework: string
+          id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          control_id?: string
+          control_name?: string | null
+          created_at?: string
+          evidence?: string | null
+          finding_id?: string | null
+          framework?: string
+          id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zerlal_compliance_mappings_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zerlal_findings: {
+        Row: {
+          age_days: number | null
+          assignee: string | null
+          category: string | null
+          chained_with: string[] | null
+          code_snippet: string | null
+          compliance_controls: string[] | null
+          confidence: number | null
+          created_at: string
+          cvss_score: number | null
+          cwe_id: string | null
+          dataflow_trace: Json | null
+          description: string | null
+          exploitation_steps: Json | null
+          file_path: string | null
+          first_seen_at: string | null
+          id: string
+          impact: string | null
+          is_false_positive: boolean | null
+          line_number: number | null
+          project_id: string | null
+          resolved_at: string | null
+          scan_id: string | null
+          severity: string
+          similar_cves: string[] | null
+          status: string | null
+          suggested_fix: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          waived_at: string | null
+          waived_by: string | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          age_days?: number | null
+          assignee?: string | null
+          category?: string | null
+          chained_with?: string[] | null
+          code_snippet?: string | null
+          compliance_controls?: string[] | null
+          confidence?: number | null
+          created_at?: string
+          cvss_score?: number | null
+          cwe_id?: string | null
+          dataflow_trace?: Json | null
+          description?: string | null
+          exploitation_steps?: Json | null
+          file_path?: string | null
+          first_seen_at?: string | null
+          id?: string
+          impact?: string | null
+          is_false_positive?: boolean | null
+          line_number?: number | null
+          project_id?: string | null
+          resolved_at?: string | null
+          scan_id?: string | null
+          severity?: string
+          similar_cves?: string[] | null
+          status?: string | null
+          suggested_fix?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          age_days?: number | null
+          assignee?: string | null
+          category?: string | null
+          chained_with?: string[] | null
+          code_snippet?: string | null
+          compliance_controls?: string[] | null
+          confidence?: number | null
+          created_at?: string
+          cvss_score?: number | null
+          cwe_id?: string | null
+          dataflow_trace?: Json | null
+          description?: string | null
+          exploitation_steps?: Json | null
+          file_path?: string | null
+          first_seen_at?: string | null
+          id?: string
+          impact?: string | null
+          is_false_positive?: boolean | null
+          line_number?: number | null
+          project_id?: string | null
+          resolved_at?: string | null
+          scan_id?: string | null
+          severity?: string
+          similar_cves?: string[] | null
+          status?: string | null
+          suggested_fix?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zerlal_findings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zerlal_findings_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zerlal_projects: {
+        Row: {
+          created_at: string
+          critical_count: number | null
+          file_size: number | null
+          high_count: number | null
+          id: string
+          info_count: number | null
+          language: string | null
+          last_scan_at: string | null
+          low_count: number | null
+          medium_count: number | null
+          name: string
+          repo_url: string | null
+          risk_grade: string | null
+          scan_duration: number | null
+          source_type: string
+          status: string | null
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          critical_count?: number | null
+          file_size?: number | null
+          high_count?: number | null
+          id?: string
+          info_count?: number | null
+          language?: string | null
+          last_scan_at?: string | null
+          low_count?: number | null
+          medium_count?: number | null
+          name: string
+          repo_url?: string | null
+          risk_grade?: string | null
+          scan_duration?: number | null
+          source_type?: string
+          status?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          critical_count?: number | null
+          file_size?: number | null
+          high_count?: number | null
+          id?: string
+          info_count?: number | null
+          language?: string | null
+          last_scan_at?: string | null
+          low_count?: number | null
+          medium_count?: number | null
+          name?: string
+          repo_url?: string | null
+          risk_grade?: string | null
+          scan_duration?: number | null
+          source_type?: string
+          status?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      zerlal_sbom_components: {
+        Row: {
+          created_at: string
+          cve_ids: string[] | null
+          ecosystem: string | null
+          id: string
+          is_direct: boolean | null
+          is_vulnerable: boolean | null
+          last_update: string | null
+          license: string | null
+          maintainer_status: string | null
+          name: string
+          origin_country: string | null
+          project_id: string | null
+          risk_score: number | null
+          user_id: string
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          cve_ids?: string[] | null
+          ecosystem?: string | null
+          id?: string
+          is_direct?: boolean | null
+          is_vulnerable?: boolean | null
+          last_update?: string | null
+          license?: string | null
+          maintainer_status?: string | null
+          name: string
+          origin_country?: string | null
+          project_id?: string | null
+          risk_score?: number | null
+          user_id: string
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          cve_ids?: string[] | null
+          ecosystem?: string | null
+          id?: string
+          is_direct?: boolean | null
+          is_vulnerable?: boolean | null
+          last_update?: string | null
+          license?: string | null
+          maintainer_status?: string | null
+          name?: string
+          origin_country?: string | null
+          project_id?: string | null
+          risk_score?: number | null
+          user_id?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zerlal_sbom_components_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zerlal_scans: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          critical_count: number | null
+          duration: number | null
+          error: string | null
+          findings_count: number | null
+          high_count: number | null
+          id: string
+          info_count: number | null
+          low_count: number | null
+          medium_count: number | null
+          project_id: string | null
+          scan_profile: string | null
+          started_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          critical_count?: number | null
+          duration?: number | null
+          error?: string | null
+          findings_count?: number | null
+          high_count?: number | null
+          id?: string
+          info_count?: number | null
+          low_count?: number | null
+          medium_count?: number | null
+          project_id?: string | null
+          scan_profile?: string | null
+          started_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          critical_count?: number | null
+          duration?: number | null
+          error?: string | null
+          findings_count?: number | null
+          high_count?: number | null
+          id?: string
+          info_count?: number | null
+          low_count?: number | null
+          medium_count?: number | null
+          project_id?: string | null
+          scan_profile?: string | null
+          started_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zerlal_scans_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "zerlal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
