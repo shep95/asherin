@@ -64,9 +64,18 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-5 max-w-[1200px] mx-auto">
-        <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1 mb-4">
-          <ArrowLeft className="h-3 w-3" /> Back to findings
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1">
+            <ArrowLeft className="h-3 w-3" /> Back to findings
+          </button>
+          <button
+            onClick={handleCopyReport}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+          >
+            {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+            {copied ? "Copied!" : "Copy Detailed Report"}
+          </button>
+        </div>
 
         <div className="grid grid-cols-3 gap-5">
           <div className="col-span-2 space-y-4">
