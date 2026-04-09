@@ -249,21 +249,28 @@ Return ONLY this JSON — no text before or after:
 
       log("Running AI prediction");
 
-      const predResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: predictionPrompt }] }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" },
-          }),
+      let predData: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const predResp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: predictionPrompt }] }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" },
+            }),
+          }
+        );
+        if (predResp.ok) {
+          predData = await predResp.json();
+          break;
         }
-      );
+        log(`Gemini attempt ${attempt + 1} failed: ${predResp.status}`);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+      }
+      if (!predData) throw new Error("Gemini API failed after 3 retries");
 
-      if (!predResp.ok) throw new Error(`Gemini API error: ${predResp.status}`);
-
-      const predData = await predResp.json();
       const rawPrediction = predData.candidates?.[0]?.content?.parts?.[0]?.text || "";
       
       log("Raw prediction received", { length: rawPrediction.length });
