@@ -276,6 +276,41 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
           </div>
         </div>
       </div>
+
+      {/* Report Preview Modal */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-xl flex flex-col animate-in fade-in duration-200">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-border/[0.08]">
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-foreground/60" />
+              <span className="text-[11px] font-light tracking-wider text-foreground/80 uppercase">Finding Report Preview</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyReport}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+              >
+                <Download className="h-3 w-3" /> Download
+              </button>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="p-2 rounded-lg text-muted-foreground/40 hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            <pre className="max-w-4xl mx-auto text-[11px] font-mono text-foreground/70 leading-6 whitespace-pre-wrap">{reportText}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
