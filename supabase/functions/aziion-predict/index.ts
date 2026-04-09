@@ -173,9 +173,12 @@ serve(async (req) => {
           );
           if (resp.ok) {
             const data = await resp.json();
-            oilMarketData = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            oilMarketData = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n") || "";
+          } else {
+            const errBody = await resp.text();
+            log("Oil market search failed", { status: resp.status, body: errBody.slice(0, 300) });
           }
-        } catch (e) { log("Oil market search error", e); }
+        } catch (e: any) { log("Oil market search error", e.message); }
       })());
 
       // Geopolitical factors
