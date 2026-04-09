@@ -7,6 +7,7 @@ import FindingDetail from "./FindingDetail";
 import ReportsScreen from "./ReportsScreen";
 import IntegrationsScreen from "./IntegrationsScreen";
 import IntelligenceModule from "./IntelligenceModule";
+import DeviceSecurityScanner from "./DeviceSecurityScanner";
 import ScanModal from "./ScanModal";
 import { useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
@@ -58,6 +59,10 @@ const ZerlalView = () => {
   };
 
   const renderScreen = () => {
+    if (activeScreen === "device-security") {
+      return <DeviceSecurityScanner />;
+    }
+
     if (intelligenceScreens.includes(activeScreen)) {
       return <IntelligenceModule screen={activeScreen} />;
     }
