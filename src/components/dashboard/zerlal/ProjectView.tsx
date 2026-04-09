@@ -1,13 +1,63 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen } from "lucide-react";
 import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
-import type { FindingSeverity, FindingStatus } from "./types";
+import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
+import { toast } from "sonner";
 
 interface ProjectViewProps {
   projectId: string | null;
+  onSelectProject: (id: string) => void;
   onSelectFinding: (id: string) => void;
   onBack: () => void;
 }
+
+const generateFindingReport = (f: ZerlalFinding): string => {
+  let report = `══════════════════════════════════════════\n`;
+  report += `SECURITY FINDING REPORT\n`;
+  report += `══════════════════════════════════════════\n\n`;
+  report += `Title: ${f.title}\n`;
+  report += `Severity: ${f.severity.toUpperCase()} | CVSS: ${f.cvss_score} | CWE: ${f.cwe_id}\n`;
+  report += `File: ${f.file_path || "N/A"}:${f.line_number}\n`;
+  report += `Category: ${f.category} | Confidence: ${f.confidence}%\n`;
+  report += `Status: ${f.status} | Age: ${f.age_days} days\n\n`;
+
+  report += `── WHAT'S WRONG ──────────────────────────\n`;
+  report += `${f.description}\n\n`;
+
+  report += `── IMPACT ────────────────────────────────\n`;
+  report += `${f.impact}\n\n`;
+
+  if (f.exploitation_steps?.length > 0) {
+    report += `── HOW HACKERS CAN EXPLOIT THIS ──────────\n`;
+    f.exploitation_steps.forEach((step, i) => {
+      report += `  ${i + 1}. ${step}\n`;
+    });
+    report += `\n`;
+  }
+
+  if (f.code_snippet) {
+    report += `── VULNERABLE CODE ───────────────────────\n`;
+    report += `${f.code_snippet}\n\n`;
+  }
+
+  if (f.suggested_fix) {
+    report += `── HOW TO FIX IT ─────────────────────────\n`;
+    report += `${f.suggested_fix}\n\n`;
+  }
+
+  if (f.compliance_controls?.length > 0) {
+    report += `── COMPLIANCE ────────────────────────────\n`;
+    report += `${f.compliance_controls.join(", ")}\n\n`;
+  }
+
+  if (f.similar_cves?.length > 0) {
+    report += `── SIMILAR CVEs ──────────────────────────\n`;
+    report += `${f.similar_cves.join(", ")}\n\n`;
+  }
+
+  report += `══════════════════════════════════════════\n`;
+  return report;
+};
 
 const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const severityBadge: Record<string, string> = {
