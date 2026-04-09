@@ -202,55 +202,112 @@ ${truncatedCode}
 
     console.log("[ZERLAL] Sending to Gemini, prompt length:", analysisPrompt.length);
 
-    const geminiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: analysisPrompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
-        }),
+    // Helper to call Gemini
+    async function callGemini(prompt: string): Promise<string> {
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
+          }),
+        }
+      );
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("[ZERLAL] Gemini error:", resp.status, errText);
+        
+        // Update scan as failed
+        await supabase.from("zerlal_scans").update({
+          status: "failed",
+          error: `Gemini API error: ${resp.status}`,
+          completed_at: new Date().toISOString(),
+        }).eq("id", scan.id);
+        
+        await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", project_id);
+        
+        throw new Error(`AI analysis engine error: ${resp.status}: ${errText}`);
       }
-    );
-
-    if (!geminiResp.ok) {
-      const errText = await geminiResp.text();
-      console.error("[ZERLAL] Gemini error:", geminiResp.status, errText);
-      
-      // Update scan as failed
-      await supabase.from("zerlal_scans").update({
-        status: "failed",
-        error: `Gemini API error: ${geminiResp.status}`,
-        completed_at: new Date().toISOString(),
-      }).eq("id", scan.id);
-      
-      await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", project_id);
-      
-      throw new Error(`AI analysis engine error: ${geminiResp.status}`);
+      const data = await resp.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     }
 
-    const geminiData = await geminiResp.json();
-    const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
-    console.log("[ZERLAL] Gemini response length:", responseText.length);
+    function parseFindings(text: string): any {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      throw new Error("No JSON found in response");
+    }
 
-    // Extract JSON from response
+    // PASS 1: Initial comprehensive scan
     let analysis: any;
     try {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found in response");
-      }
+      const responseText = await callGemini(analysisPrompt);
+      console.log("[ZERLAL] Pass 1 response length:", responseText.length);
+      analysis = parseFindings(responseText);
     } catch (parseErr) {
-      console.error("[ZERLAL] Parse error:", parseErr, "Response preview:", responseText.substring(0, 500));
+      console.error("[ZERLAL] Pass 1 parse error:", parseErr);
       analysis = { findings: [], risk_grade: "F", summary: "Analysis engine returned unparseable output. Retry recommended." };
     }
 
-    const findings = analysis.findings || [];
-    console.log("[ZERLAL] Findings count:", findings.length);
+    let allFindings = analysis.findings || [];
+    console.log("[ZERLAL] Pass 1 findings:", allFindings.length);
+
+    // PASS 2: If pass 1 found fewer than 20, ask for MORE missed findings
+    if (allFindings.length > 0 && allFindings.length < 30) {
+      const existingTitles = allFindings.map((f: any) => f.title).join("\n- ");
+      const pass2Prompt = `You are ZERLAL, an elite vulnerability intelligence engine. You already performed a first-pass audit and found these vulnerabilities:
+- ${existingTitles}
+
+But you MISSED many more. Perform a SECOND PASS on the same codebase. Find ALL vulnerabilities that were NOT in the list above. Look harder at:
+- Edge cases in error handling and input validation
+- Subtle logic flaws and race conditions  
+- Dependency and supply chain risks for EVERY import/package
+- Configuration weaknesses (CORS, headers, TLS, debug endpoints)
+- Information disclosure through error messages, logs, comments
+- Business logic flaws and access control gaps
+- Cryptographic implementation details
+- Resource exhaustion and DoS vectors
+- Third-party integration security
+- Data flow between components
+- Missing security controls (rate limiting, CSP, HSTS, etc.)
+- Code quality issues that have security implications
+
+IMPORTANT: Do NOT repeat any finding from the first pass. Only report NEW findings.
+Report at MINIMUM 10 additional findings. Be thorough — scan every file, every function, every import.
+
+Return ONLY a JSON object: { "findings": [...] }
+Each finding uses the same schema as before (severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves, age_estimate_days).
+
+CODE TO ANALYZE:
+\`\`\`
+${truncatedCode}
+\`\`\``;
+
+      try {
+        const pass2Text = await callGemini(pass2Prompt);
+        console.log("[ZERLAL] Pass 2 response length:", pass2Text.length);
+        const pass2Analysis = parseFindings(pass2Text);
+        const pass2Findings = pass2Analysis.findings || [];
+        console.log("[ZERLAL] Pass 2 additional findings:", pass2Findings.length);
+        
+        // Deduplicate by title
+        const existingTitleSet = new Set(allFindings.map((f: any) => (f.title || "").toLowerCase().trim()));
+        for (const f of pass2Findings) {
+          const key = (f.title || "").toLowerCase().trim();
+          if (!existingTitleSet.has(key)) {
+            allFindings.push(f);
+            existingTitleSet.add(key);
+          }
+        }
+      } catch (pass2Err) {
+        console.error("[ZERLAL] Pass 2 error (non-fatal):", pass2Err);
+      }
+    }
+
+    const findings = allFindings;
+    console.log("[ZERLAL] Total findings after all passes:", findings.length);
 
     // Insert all findings - NO LIMIT
     let criticalCount = 0, highCount = 0, mediumCount = 0, lowCount = 0, infoCount = 0;
