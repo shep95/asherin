@@ -41,8 +41,21 @@ const severityBg: Record<string, string> = {
   info: "bg-muted/40 text-muted-foreground/60 border-border/20",
 };
 
+const downloadTextFile = (content: string, filename: string) => {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
   const [copied, setCopied] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const { findings, loading, refetch } = useZerlalFindings();
   const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
   const finding = findings.find(f => f.id === findingId);
@@ -52,13 +65,19 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
 
   const dataflow = Array.isArray(finding.dataflow_trace) ? finding.dataflow_trace : [];
   const exploitSteps = Array.isArray(finding.exploitation_steps) ? finding.exploitation_steps : [];
+  const reportText = generateFindingReport(finding);
 
   const handleCopyReport = async () => {
-    const report = generateFindingReport(finding);
-    await navigator.clipboard.writeText(report);
+    await navigator.clipboard.writeText(reportText);
     setCopied(true);
     toast.success("Detailed report copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const safeName = finding.title.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 50);
+    downloadTextFile(reportText, `zerlal-finding-${safeName}.txt`);
+    toast.success("Report downloaded");
   };
 
   return (
