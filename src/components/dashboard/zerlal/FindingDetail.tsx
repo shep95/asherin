@@ -42,6 +42,7 @@ const severityBg: Record<string, string> = {
 };
 
 const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
+  const [copied, setCopied] = useState(false);
   const { findings, loading, refetch } = useZerlalFindings();
   const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
   const finding = findings.find(f => f.id === findingId);
@@ -51,6 +52,14 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
 
   const dataflow = Array.isArray(finding.dataflow_trace) ? finding.dataflow_trace : [];
   const exploitSteps = Array.isArray(finding.exploitation_steps) ? finding.exploitation_steps : [];
+
+  const handleCopyReport = async () => {
+    const report = generateFindingReport(finding);
+    await navigator.clipboard.writeText(report);
+    setCopied(true);
+    toast.success("Detailed report copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="flex-1 overflow-y-auto">
