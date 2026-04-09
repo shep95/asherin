@@ -3,10 +3,16 @@
 
 const AUREON_API_BASE = "https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1";
 
+// Allowed setting values (whitelist for backend validation)
+const VALID_MODES = ["trading", "general", "analysis"];
+const VALID_SENSITIVITIES = ["low", "medium", "high"];
+const MAX_FRAME_RATE = 10;
+const MIN_FRAME_RATE = 1;
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "chat") {
     handleChat(message, sendResponse);
-    return true; // async
+    return true;
   }
   if (message.type === "analyze") {
     handleAnalyze(message, sendResponse);
@@ -34,6 +40,28 @@ function sanitizeInput(str, maxLen = 2000) {
   return cleaned.slice(0, maxLen);
 }
 
+// Validate and sanitize settings to prevent client-side tampering
+function sanitizeSettings(settings) {
+  if (!settings || typeof settings !== "object") {
+    return { mode: "trading", sensitivity: "medium" };
+  }
+  return {
+    mode: VALID_MODES.includes(settings.mode) ? settings.mode : "trading",
+    sensitivity: VALID_SENSITIVITIES.includes(settings.sensitivity) ? settings.sensitivity : "medium",
+    frameRate: Math.min(MAX_FRAME_RATE, Math.max(MIN_FRAME_RATE, parseInt(settings.frameRate) || 3)),
+    quality: settings.quality === "high" ? "high" : "medium",
+  };
+}
+
+// Sanitize context — cap size and strip potential PII patterns
+function sanitizeContext(ctx, maxLen = 4000) {
+  if (typeof ctx !== "string") return "";
+  let cleaned = ctx.slice(0, maxLen);
+  // Strip control chars
+  cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  return cleaned;
+}
+
 async function handleChat(message, sendResponse) {
   try {
     const { aureonToken } = await chrome.storage.local.get("aureonToken");
@@ -43,7 +71,7 @@ async function handleChat(message, sendResponse) {
     }
 
     const sanitizedMessage = sanitizeInput(message.message, 2000);
-    const sanitizedContext = sanitizeInput(message.context, 4000);
+    const sanitizedContext = sanitizeContext(message.context, 4000);
 
     if (!sanitizedMessage.trim()) {
       sendResponse({ text: "Please enter a valid message." });
@@ -60,7 +88,7 @@ async function handleChat(message, sendResponse) {
         frame: null,
         context: sanitizedContext,
         chatMessage: sanitizedMessage,
-        settings: { mode: "trading", sensitivity: "medium" },
+        settings: sanitizeSettings(message.settings || { mode: "trading", sensitivity: "medium" }),
       }),
     });
 
@@ -85,6 +113,13 @@ async function handleAnalyze(message, sendResponse) {
       return;
     }
 
+    // Validate frame data — must be a data URL and within size limits (2MB max)
+    const frame = message.frame;
+    if (frame && (typeof frame !== "string" || !frame.startsWith("data:image/") || frame.length > 2 * 1024 * 1024)) {
+      sendResponse({ error: "Invalid frame data" });
+      return;
+    }
+
     const resp = await fetch(`${AUREON_API_BASE}/cross-analyze`, {
       method: "POST",
       headers: {
@@ -92,10 +127,10 @@ async function handleAnalyze(message, sendResponse) {
         Authorization: `Bearer ${aureonToken}`,
       },
       body: JSON.stringify({
-        frame: message.frame,
-        context: message.context,
-        previousAlerts: message.previousAlerts || [],
-        settings: message.settings || { mode: "trading", sensitivity: "medium" },
+        frame: frame || null,
+        context: sanitizeContext(message.context, 4000),
+        previousAlerts: Array.isArray(message.previousAlerts) ? message.previousAlerts.slice(-3) : [],
+        settings: sanitizeSettings(message.settings),
       }),
     });
 

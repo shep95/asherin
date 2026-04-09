@@ -15,7 +15,9 @@
   let previousAlerts = [];
   let currentContext = {};
   let settings = { mode: "trading", sensitivity: "medium", frameRate: 3, quality: "medium" };
-  
+
+  // Context size cap to prevent unbounded data accumulation
+  const MAX_CONTEXT_SIZE = 4000;
 
   // ── ROOT CONTAINER ──
   const root = document.createElement("div");
@@ -65,7 +67,7 @@
     </div>
     <div class="aureon-chat-messages" id="aureon-msgs"></div>
     <div class="aureon-chat-input-area">
-      <input class="aureon-chat-input" id="aureon-input" placeholder="Ask Aureon..." />
+      <input class="aureon-chat-input" id="aureon-input" placeholder="Ask Aureon..." maxlength="2000" />
       <button class="aureon-chat-send" id="aureon-send">SEND</button>
     </div>
   `;
@@ -98,10 +100,12 @@
     addMsg("user", text);
 
     try {
+      // Only send a capped, serialized context — never raw DOM data
+      const cappedContext = JSON.stringify(currentContext).slice(0, MAX_CONTEXT_SIZE);
       const resp = await chrome.runtime.sendMessage({
         type: "chat",
         message: text,
-        context: JSON.stringify(currentContext),
+        context: cappedContext,
       });
       addMsg("ai", resp.text || "...");
       if (resp.analysis?.quickVerdict && resp.analysis.quickVerdict.action !== "NONE") {
@@ -139,6 +143,24 @@
     }
   }
 
+  // Sanitize context returned by AI — only keep expected keys, cap size
+  function sanitizeReturnedContext(ctx) {
+    if (!ctx || typeof ctx !== "object") return {};
+    // Only allow string/number/boolean values, no nested objects beyond 1 level
+    const clean = {};
+    const allowed = Object.keys(ctx).slice(0, 20); // max 20 keys
+    for (const key of allowed) {
+      const val = ctx[key];
+      if (typeof val === "string") {
+        clean[key] = val.slice(0, 500);
+      } else if (typeof val === "number" || typeof val === "boolean") {
+        clean[key] = val;
+      }
+      // Skip objects/arrays to prevent unbounded data accumulation
+    }
+    return clean;
+  }
+
   async function analyzeFrame() {
     const frame = captureFrame();
     if (!frame) return;
@@ -147,10 +169,11 @@
     updateStatus("", `SCANNING · F${frameCount}`);
 
     try {
+      const cappedContext = JSON.stringify(currentContext).slice(0, MAX_CONTEXT_SIZE);
       const resp = await chrome.runtime.sendMessage({
         type: "analyze",
         frame: frame,
-        context: JSON.stringify(currentContext),
+        context: cappedContext,
         previousAlerts: previousAlerts.slice(-3),
         settings: settings,
       });
@@ -163,7 +186,10 @@
       const analysis = resp.analysis;
       if (!analysis) return;
 
-      if (analysis.context) currentContext = analysis.context;
+      // Sanitize context before storing — prevent unbounded data accumulation
+      if (analysis.context) {
+        currentContext = sanitizeReturnedContext(analysis.context);
+      }
 
       // Show instant verdict with disclaimer
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
