@@ -942,6 +942,188 @@ export type Database = {
         }
         Relationships: []
       }
+      aziion_bot_state: {
+        Row: {
+          created_at: string
+          current_position_id: string | null
+          emergency_reason: string | null
+          emergency_stopped: boolean
+          enabled: boolean
+          id: string
+          last_prediction_at: string | null
+          next_prediction_at: string | null
+          successful_trades: number
+          total_pnl: number
+          total_trades: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_position_id?: string | null
+          emergency_reason?: string | null
+          emergency_stopped?: boolean
+          enabled?: boolean
+          id?: string
+          last_prediction_at?: string | null
+          next_prediction_at?: string | null
+          successful_trades?: number
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_position_id?: string | null
+          emergency_reason?: string | null
+          emergency_stopped?: boolean
+          enabled?: boolean
+          id?: string
+          last_prediction_at?: string | null
+          next_prediction_at?: string | null
+          successful_trades?: number
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      aziion_sessions: {
+        Row: {
+          ai_prediction: string | null
+          confidence_score: number | null
+          created_at: string
+          id: string
+          predicted_direction: string | null
+          predicted_entry: number | null
+          predicted_sl: number | null
+          predicted_tp: number | null
+          prediction_type: string
+          raw_intelligence: string | null
+          status: string
+          title: string
+          trade_id: string | null
+          trade_placed: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_prediction?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          predicted_direction?: string | null
+          predicted_entry?: number | null
+          predicted_sl?: number | null
+          predicted_tp?: number | null
+          prediction_type?: string
+          raw_intelligence?: string | null
+          status?: string
+          title?: string
+          trade_id?: string | null
+          trade_placed?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_prediction?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          predicted_direction?: string | null
+          predicted_entry?: number | null
+          predicted_sl?: number | null
+          predicted_tp?: number | null
+          prediction_type?: string
+          raw_intelligence?: string | null
+          status?: string
+          title?: string
+          trade_id?: string | null
+          trade_placed?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      aziion_trades: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          direction: string
+          entry_price: number
+          fees: number | null
+          id: string
+          leverage: number
+          opened_at: string
+          pnl: number | null
+          position_size: number | null
+          session_id: string | null
+          signal_confidence: number | null
+          signal_reasoning: string | null
+          size_usd: number | null
+          status: string
+          stop_loss: number | null
+          symbol: string
+          take_profit: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          direction: string
+          entry_price: number
+          fees?: number | null
+          id?: string
+          leverage?: number
+          opened_at?: string
+          pnl?: number | null
+          position_size?: number | null
+          session_id?: string | null
+          signal_confidence?: number | null
+          signal_reasoning?: string | null
+          size_usd?: number | null
+          status?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          direction?: string
+          entry_price?: number
+          fees?: number | null
+          id?: string
+          leverage?: number
+          opened_at?: string
+          pnl?: number | null
+          position_size?: number | null
+          session_id?: string | null
+          signal_confidence?: number | null
+          signal_reasoning?: string | null
+          size_usd?: number | null
+          status?: string
+          stop_loss?: number | null
+          symbol?: string
+          take_profit?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aziion_trades_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "aziion_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brains: {
         Row: {
           created_at: string

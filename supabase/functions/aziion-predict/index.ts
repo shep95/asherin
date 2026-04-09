@@ -1,0 +1,532 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const HL_API = "https://api.hyperliquid.xyz";
+const LEVERAGE = 10;
+const CAPITAL_PERCENT = 0.90;
+
+// Brent Oil on Hyperliquid — if available. Fallback logic included.
+const OIL_SYMBOL = "OIL";
+const OIL_ASSET_IDX = -1; // Will be resolved dynamically
+
+const log = (step: string, details?: any) => {
+  console.log(`[AZIION] ${step}`, details ? JSON.stringify(details) : "");
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY not configured");
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+
+    const body = await req.json().catch(() => ({}));
+    const { action, userId } = body;
+
+    // ── MANUAL TRIGGER or CRON ──
+    // For cron: no auth needed (service key). For manual: verify admin.
+    let adminUserId = userId;
+
+    if (!adminUserId) {
+      // Try to get from auth header
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader?.startsWith("Bearer ")) {
+        const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: { user } } = await anonClient.auth.getUser();
+        if (user?.email !== ADMIN_EMAIL) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        adminUserId = user.id;
+      }
+    }
+
+    // ── GET STATUS ──
+    if (action === "get_status") {
+      const [botState, sessions, trades] = await Promise.all([
+        sb.from("aziion_bot_state").select("*").eq("user_id", adminUserId).maybeSingle(),
+        sb.from("aziion_sessions").select("*").eq("user_id", adminUserId).order("created_at", { ascending: false }).limit(20),
+        sb.from("aziion_trades").select("*").eq("user_id", adminUserId).order("opened_at", { ascending: false }).limit(50),
+      ]);
+
+      // Get HL balance
+      let hlBalance = { accountValue: "0", availableBalance: "0" };
+      try {
+        const walletAddress = Deno.env.get("HYPERLIQUID_WALLET_ADDRESS");
+        if (walletAddress) {
+          const resp = await fetch(`${HL_API}/info`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "clearinghouseState", user: walletAddress }),
+          });
+          const state = await resp.json();
+          hlBalance = {
+            accountValue: state.marginSummary?.accountValue || "0",
+            availableBalance: state.marginSummary?.totalRawUsd || "0",
+          };
+        }
+      } catch {}
+
+      return new Response(JSON.stringify({
+        botState: botState.data,
+        sessions: sessions.data || [],
+        trades: trades.data || [],
+        hlBalance,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── INIT BOT ──
+    if (action === "init_bot") {
+      const { data } = await sb.from("aziion_bot_state").upsert({
+        user_id: adminUserId,
+        enabled: false,
+        emergency_stopped: false,
+      }, { onConflict: "user_id" }).select().single();
+
+      return new Response(JSON.stringify({ success: true, state: data }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── TOGGLE BOT ──
+    if (action === "toggle_bot") {
+      const { enabled } = body;
+      const { data } = await sb.from("aziion_bot_state").update({
+        enabled,
+        emergency_stopped: false,
+        emergency_reason: null,
+        next_prediction_at: enabled ? new Date(Date.now() + 5000).toISOString() : null, // First prediction in 5s
+      }).eq("user_id", adminUserId).select().single();
+
+      return new Response(JSON.stringify({ success: true, state: data }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── EMERGENCY STOP ──
+    if (action === "emergency_stop") {
+      await sb.from("aziion_bot_state").update({
+        enabled: false,
+        emergency_stopped: true,
+        emergency_reason: body.reason || "Manual emergency stop",
+      }).eq("user_id", adminUserId);
+
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── RUN PREDICTION (the core logic) ──
+    if (action === "run_prediction") {
+      log("Starting Brent Oil prediction cycle");
+
+      // Check for active trade
+      const { data: activeTrades } = await sb.from("aziion_trades")
+        .select("id")
+        .eq("user_id", adminUserId)
+        .in("status", ["open", "pending"])
+        .limit(1);
+
+      if (activeTrades && activeTrades.length > 0) {
+        log("Active trade exists, skipping prediction");
+        return new Response(JSON.stringify({ skipped: true, reason: "Active trade exists" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Create session
+      const { data: session } = await sb.from("aziion_sessions").insert({
+        user_id: adminUserId,
+        title: `Brent Oil — ${new Date().toISOString().split("T")[0]}`,
+        status: "analyzing",
+      }).select().single();
+
+      if (!session) throw new Error("Failed to create session");
+
+      // ═══════════════════════════════════
+      // STEP 1: Gather Brent Oil intelligence
+      // ═══════════════════════════════════
+      log("Gathering Brent Oil market intelligence");
+
+      const searchPromises = [];
+      let oilMarketData = "";
+      let geopoliticalData = "";
+      let technicalData = "";
+
+      // Market data search
+      searchPromises.push((async () => {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: `Search for the latest Brent crude oil price, market data, OPEC decisions, supply/demand reports, inventory data (EIA, API), and price forecasts from major banks and analysts. Include exact current price, recent highs/lows, and any breaking oil market news from the last 24 hours. Return only raw factual data with numbers and dates.` }] }],
+                tools: [{ googleSearch: {} }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+              }),
+            }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            oilMarketData = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        } catch (e) { log("Oil market search error", e); }
+      })());
+
+      // Geopolitical factors
+      searchPromises.push((async () => {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: `Search for the latest geopolitical events affecting oil prices: Middle East tensions, Russia-Ukraine conflict impact on energy, Iran sanctions, OPEC+ production decisions, US strategic petroleum reserve status, China demand outlook, shipping/Strait of Hormuz news. Return only factual data from the last 48 hours.` }] }],
+                tools: [{ googleSearch: {} }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+              }),
+            }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            geopoliticalData = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        } catch (e) { log("Geopolitical search error", e); }
+      })());
+
+      // Technical analysis
+      searchPromises.push((async () => {
+        try {
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: `Search for Brent crude oil technical analysis: support/resistance levels, RSI, MACD, moving averages (50, 100, 200 day), chart patterns, volume analysis, and any technical analyst forecasts for the next 24-72 hours. Return specific numbers and levels.` }] }],
+                tools: [{ googleSearch: {} }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 8192 },
+              }),
+            }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            technicalData = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+        } catch (e) { log("Technical search error", e); }
+      })());
+
+      await Promise.all(searchPromises);
+      log("Intelligence gathered", { market: oilMarketData.length, geo: geopoliticalData.length, tech: technicalData.length });
+
+      // ═══════════════════════════════════
+      // STEP 2: Load AXRLEN brains for pattern analysis
+      // ═══════════════════════════════════
+      let brainsContext = "";
+      try {
+        const { data: brains } = await sb.from("axrlen_brains").select("name, content").eq("is_active", true);
+        if (brains) {
+          for (const b of brains) {
+            brainsContext += `\n--- BRAIN: ${b.name} ---\n${b.content}\n`;
+          }
+        }
+      } catch {}
+
+      // ═══════════════════════════════════
+      // STEP 3: AI Prediction
+      // ═══════════════════════════════════
+      const predictionPrompt = `You are AZIION — an automated Brent crude oil trading algorithm. You have access to real-time market data, geopolitical intelligence, and pattern analysis frameworks.
+
+Your SOLE purpose: Determine whether Brent Oil will go UP or DOWN in the next 24 hours, and to what EXACT price.
+
+═══════════════════════════════════
+MARKET DATA (LIVE):
+${oilMarketData || "No market data available"}
+
+═══════════════════════════════════
+GEOPOLITICAL FACTORS:
+${geopoliticalData || "No geopolitical data available"}
+
+═══════════════════════════════════  
+TECHNICAL ANALYSIS:
+${technicalData || "No technical data available"}
+
+═══════════════════════════════════
+PATTERN FRAMEWORKS:
+${brainsContext || "No brain frameworks loaded"}
+
+═══════════════════════════════════
+
+INSTRUCTIONS:
+1. Analyze ALL the data above
+2. Determine if Brent Oil will PUMP (go up) or DUMP (go down) in the next 24 hours
+3. Provide EXACT price targets
+
+You MUST respond in this EXACT JSON format and NOTHING else:
+{
+  "direction": "LONG" or "SHORT",
+  "confidence": 0-100,
+  "current_price": <current Brent oil price as number>,
+  "entry_price": <recommended entry price as number>,
+  "take_profit": <take profit price as number>,
+  "stop_loss": <stop loss price as number>,
+  "reasoning": "<2-3 sentence explanation of why>",
+  "key_factors": ["factor1", "factor2", "factor3"],
+  "timeframe": "24h"
+}
+
+CRITICAL: Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
+
+      log("Running AI prediction");
+
+      const predResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: predictionPrompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+          }),
+        }
+      );
+
+      if (!predResp.ok) throw new Error(`Gemini API error: ${predResp.status}`);
+
+      const predData = await predResp.json();
+      const rawPrediction = predData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      
+      log("Raw prediction received", { length: rawPrediction.length });
+
+      // Parse JSON from response (handle markdown wrapping)
+      let prediction: any;
+      try {
+        const jsonMatch = rawPrediction.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("No JSON found in prediction");
+        prediction = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        log("Failed to parse prediction JSON", { raw: rawPrediction.slice(0, 500) });
+        await sb.from("aziion_sessions").update({
+          status: "failed",
+          ai_prediction: rawPrediction,
+        }).eq("id", session.id);
+        throw new Error("Failed to parse AI prediction");
+      }
+
+      log("Prediction parsed", prediction);
+
+      // Update session with prediction
+      await sb.from("aziion_sessions").update({
+        status: "predicted",
+        ai_prediction: rawPrediction,
+        predicted_direction: prediction.direction,
+        predicted_entry: prediction.entry_price,
+        predicted_tp: prediction.take_profit,
+        predicted_sl: prediction.stop_loss,
+        confidence_score: prediction.confidence,
+        raw_intelligence: JSON.stringify({
+          market: oilMarketData.slice(0, 2000),
+          geopolitical: geopoliticalData.slice(0, 2000),
+          technical: technicalData.slice(0, 2000),
+        }),
+      }).eq("id", session.id);
+
+      // ═══════════════════════════════════
+      // STEP 4: EXECUTE TRADE on Hyperliquid
+      // ═══════════════════════════════════
+      const privateKey = Deno.env.get("HYPERLIQUID_PRIVATE_KEY");
+      const walletAddress = Deno.env.get("HYPERLIQUID_WALLET_ADDRESS");
+      
+      let tradeResult: any = null;
+      let tradePlaced = false;
+
+      if (privateKey && walletAddress && prediction.confidence >= 60) {
+        log("Attempting trade execution");
+
+        try {
+          // Get available assets on Hyperliquid
+          const metaResp = await fetch(`${HL_API}/info`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "meta" }),
+          });
+          const meta = await metaResp.json();
+          
+          // Find oil/commodity asset
+          const oilAsset = meta.universe?.find((a: any) => 
+            a.name === "OIL" || a.name === "BRENT" || a.name === "WTI" || a.name === "CRUDE"
+          );
+
+          if (!oilAsset) {
+            log("OIL asset not found on Hyperliquid — recording prediction only");
+            await sb.from("aziion_sessions").update({
+              status: "predicted_no_trade",
+              trade_placed: false,
+            }).eq("id", session.id);
+          } else {
+            const assetIdx = meta.universe.indexOf(oilAsset);
+            
+            // Get HL state for capital
+            const hlStateResp = await fetch(`${HL_API}/info`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "clearinghouseState", user: walletAddress }),
+            });
+            const hlState = await hlStateResp.json();
+            const totalCapital = parseFloat(hlState.marginSummary?.accountValue || "0");
+
+            if (totalCapital <= 0) {
+              log("No capital available");
+            } else {
+              const tradeCapital = totalCapital * CAPITAL_PERCENT;
+              const entryPrice = prediction.entry_price;
+              const rawSize = (tradeCapital * LEVERAGE) / entryPrice;
+              const posSize = rawSize.toFixed(4);
+
+              const { privateKeyToAccount } = await import("npm:viem@2.21.0/accounts");
+              const { HttpTransport, ExchangeClient } = await import("npm:@nktkas/hyperliquid@5");
+
+              const pk = privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
+              const account = privateKeyToAccount(pk as `0x${string}`);
+              const transport = new HttpTransport();
+              const exchange = new ExchangeClient({ wallet: account, transport });
+
+              // Set leverage
+              try {
+                await exchange.updateLeverage({ asset: assetIdx, isCross: true, leverage: LEVERAGE });
+              } catch {}
+
+              // Place entry order
+              const result = await exchange.order({
+                orders: [{
+                  a: assetIdx,
+                  b: prediction.direction === "LONG",
+                  p: entryPrice.toFixed(2),
+                  s: posSize,
+                  r: false,
+                  t: { limit: { tif: "Gtc" } },
+                }],
+                grouping: "na",
+              });
+
+              // Place TP
+              if (prediction.take_profit) {
+                try {
+                  await exchange.order({
+                    orders: [{
+                      a: assetIdx,
+                      b: prediction.direction !== "LONG",
+                      p: prediction.take_profit.toFixed(2),
+                      s: posSize,
+                      r: true,
+                      t: { trigger: { triggerPx: prediction.take_profit.toFixed(2), isMarket: true, tpsl: "tp" } },
+                    }],
+                    grouping: "na",
+                  });
+                } catch (e) { log("TP order error", e); }
+              }
+
+              // Place SL
+              if (prediction.stop_loss) {
+                try {
+                  await exchange.order({
+                    orders: [{
+                      a: assetIdx,
+                      b: prediction.direction !== "LONG",
+                      p: prediction.stop_loss.toFixed(2),
+                      s: posSize,
+                      r: true,
+                      t: { trigger: { triggerPx: prediction.stop_loss.toFixed(2), isMarket: true, tpsl: "sl" } },
+                    }],
+                    grouping: "na",
+                  });
+                } catch (e) { log("SL order error", e); }
+              }
+
+              // Record trade
+              const { data: trade } = await sb.from("aziion_trades").insert({
+                user_id: adminUserId,
+                session_id: session.id,
+                symbol: oilAsset.name,
+                direction: prediction.direction,
+                entry_price: entryPrice,
+                take_profit: prediction.take_profit,
+                stop_loss: prediction.stop_loss,
+                position_size: parseFloat(posSize),
+                size_usd: tradeCapital,
+                leverage: LEVERAGE,
+                fees: tradeCapital * 0.00035 * 2,
+                status: "open",
+                signal_confidence: prediction.confidence,
+                signal_reasoning: prediction.reasoning,
+              }).select().single();
+
+              tradePlaced = true;
+              tradeResult = { trade, order: result };
+
+              // Update session
+              await sb.from("aziion_sessions").update({
+                status: "traded",
+                trade_placed: true,
+                trade_id: trade?.id,
+              }).eq("id", session.id);
+
+              // Update bot state
+              await sb.from("aziion_bot_state").update({
+                last_prediction_at: new Date().toISOString(),
+                next_prediction_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                total_trades: sb.rpc ? undefined : undefined, // Will increment manually
+                current_position_id: trade?.id,
+              }).eq("user_id", adminUserId);
+
+              log("Trade placed successfully", { tradeId: trade?.id });
+            }
+          }
+        } catch (tradeErr: any) {
+          log("Trade execution failed", { error: tradeErr.message });
+          await sb.from("aziion_sessions").update({
+            status: "prediction_only",
+            trade_placed: false,
+          }).eq("id", session.id);
+        }
+      } else {
+        log("Trade not executed", { 
+          hasKey: !!privateKey, 
+          hasWallet: !!walletAddress, 
+          confidence: prediction.confidence 
+        });
+        
+        await sb.from("aziion_sessions").update({
+          status: prediction.confidence < 60 ? "low_confidence" : "predicted_no_trade",
+          trade_placed: false,
+        }).eq("id", session.id);
+      }
+
+      // Set next prediction
+      await sb.from("aziion_bot_state").update({
+        last_prediction_at: new Date().toISOString(),
+        next_prediction_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      }).eq("user_id", adminUserId);
+
+      return new Response(JSON.stringify({
+        success: true,
+        prediction,
+        tradePlaced,
+        tradeResult,
+        sessionId: session.id,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  } catch (error: any) {
+    log("ERROR", { message: error.message });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+});
