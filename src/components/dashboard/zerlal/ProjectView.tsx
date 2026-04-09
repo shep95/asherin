@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen, Download, Eye } from "lucide-react";
 import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
 import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
 import { toast } from "sonner";
@@ -59,6 +59,38 @@ const generateFindingReport = (f: ZerlalFinding): string => {
   return report;
 };
 
+const generateFullReport = (projectName: string, findings: ZerlalFinding[]): string => {
+  const now = new Date().toLocaleString();
+  let report = `╔══════════════════════════════════════════════════════════════╗\n`;
+  report += `║         ZERLAL SECURITY FINDINGS REPORT                     ║\n`;
+  report += `╚══════════════════════════════════════════════════════════════╝\n\n`;
+  report += `Project: ${projectName}\n`;
+  report += `Generated: ${now}\n`;
+  report += `Total Findings: ${findings.length}\n`;
+  const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  findings.forEach(f => { if (f.severity in counts) counts[f.severity as keyof typeof counts]++; });
+  report += `Critical: ${counts.critical} | High: ${counts.high} | Medium: ${counts.medium} | Low: ${counts.low} | Info: ${counts.info}\n\n`;
+  report += `${"═".repeat(64)}\n\n`;
+  findings.forEach((f, i) => {
+    report += `[${i + 1}/${findings.length}] `;
+    report += generateFindingReport(f);
+    report += `\n`;
+  });
+  return report;
+};
+
+const downloadTextFile = (content: string, filename: string) => {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const severityBadge: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border-red-500/20",
@@ -76,6 +108,8 @@ const statusBadge: Record<string, string> = {
 
 const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: ProjectViewProps) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string[]>([]);
@@ -160,19 +194,56 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: Pr
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-0 border-b border-border/[0.06]">
-          {(["findings", "history", "sbom"] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-[10px] tracking-wider uppercase border-b-2 transition-all ${
-                activeTab === tab ? "border-foreground/30 text-foreground/70" : "border-transparent text-muted-foreground/30 hover:text-foreground/50"
-              }`}
-            >
-              {tab === "findings" ? `Findings (${filtered.length})` : tab === "history" ? `Scan History (${scans.length})` : "SBOM"}
-            </button>
-          ))}
+        {/* Tabs + Report Actions */}
+        <div className="flex items-center justify-between border-b border-border/[0.06]">
+          <div className="flex gap-0">
+            {(["findings", "history", "sbom"] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-[10px] tracking-wider uppercase border-b-2 transition-all ${
+                  activeTab === tab ? "border-foreground/30 text-foreground/70" : "border-transparent text-muted-foreground/30 hover:text-foreground/50"
+                }`}
+              >
+                {tab === "findings" ? `Findings (${filtered.length})` : tab === "history" ? `Scan History (${scans.length})` : "SBOM"}
+              </button>
+            ))}
+          </div>
+          {activeTab === "findings" && filtered.length > 0 && (
+            <div className="flex items-center gap-1.5 pb-1">
+              <button
+                onClick={() => {
+                  const report = generateFullReport(project?.name || "Unknown", filtered);
+                  setPreviewContent(report);
+                  setPreviewOpen(true);
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.07] transition-colors"
+              >
+                <Eye className="h-3 w-3" /> Preview
+              </button>
+              <button
+                onClick={() => {
+                  const report = generateFullReport(project?.name || "Unknown", filtered);
+                  navigator.clipboard.writeText(report);
+                  toast.success("Full report copied to clipboard");
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.07] transition-colors"
+              >
+                <Copy className="h-3 w-3" /> Copy All
+              </button>
+              <button
+                onClick={() => {
+                  const report = generateFullReport(project?.name || "Unknown", filtered);
+                  const safeName = (project?.name || "report").replace(/[^a-zA-Z0-9-_]/g, "_");
+                  downloadTextFile(report, `zerlal-report-${safeName}.txt`);
+                  toast.success("Report downloaded");
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.06] text-[9px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+              >
+                <Download className="h-3 w-3" /> Download .txt
+              </button>
+            </div>
+          )}
         </div>
 
         {activeTab === "findings" && (
@@ -353,6 +424,48 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: Pr
           </div>
         )}
       </div>
+
+      {/* Report Preview Modal */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-xl flex flex-col animate-in fade-in duration-200">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-border/[0.08]">
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-foreground/60" />
+              <span className="text-[11px] font-light tracking-wider text-foreground/80 uppercase">Report Preview</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(previewContent);
+                  toast.success("Copied to clipboard");
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </button>
+              <button
+                onClick={() => {
+                  const safeName = (project?.name || "report").replace(/[^a-zA-Z0-9-_]/g, "_");
+                  downloadTextFile(previewContent, `zerlal-report-${safeName}.txt`);
+                  toast.success("Downloaded");
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+              >
+                <Download className="h-3 w-3" /> Download
+              </button>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="p-2 rounded-lg text-muted-foreground/40 hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            <pre className="max-w-4xl mx-auto text-[11px] font-mono text-foreground/70 leading-6 whitespace-pre-wrap">{previewContent}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

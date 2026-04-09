@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2, Copy, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2, Copy, Check, Download, Eye, X } from "lucide-react";
 import { useZerlalFindings, useUpdateFinding } from "./useZerlalData";
 import type { ZerlalFinding } from "./types";
 import { toast } from "sonner";
@@ -41,8 +41,21 @@ const severityBg: Record<string, string> = {
   info: "bg-muted/40 text-muted-foreground/60 border-border/20",
 };
 
+const downloadTextFile = (content: string, filename: string) => {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
   const [copied, setCopied] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const { findings, loading, refetch } = useZerlalFindings();
   const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
   const finding = findings.find(f => f.id === findingId);
@@ -52,13 +65,19 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
 
   const dataflow = Array.isArray(finding.dataflow_trace) ? finding.dataflow_trace : [];
   const exploitSteps = Array.isArray(finding.exploitation_steps) ? finding.exploitation_steps : [];
+  const reportText = generateFindingReport(finding);
 
   const handleCopyReport = async () => {
-    const report = generateFindingReport(finding);
-    await navigator.clipboard.writeText(report);
+    await navigator.clipboard.writeText(reportText);
     setCopied(true);
     toast.success("Detailed report copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const safeName = finding.title.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 50);
+    downloadTextFile(reportText, `zerlal-finding-${safeName}.txt`);
+    toast.success("Report downloaded");
   };
 
   return (
@@ -68,13 +87,27 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
           <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1">
             <ArrowLeft className="h-3 w-3" /> Back to findings
           </button>
-          <button
-            onClick={handleCopyReport}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
-          >
-            {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-            {copied ? "Copied!" : "Copy Detailed Report"}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setPreviewOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.04] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.07] transition-colors"
+            >
+              <Eye className="h-3 w-3" /> Preview
+            </button>
+            <button
+              onClick={handleCopyReport}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.04] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.07] transition-colors"
+            >
+              {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+              {copied ? "Copied!" : "Copy"}
+            </button>
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+            >
+              <Download className="h-3 w-3" /> Download .txt
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-5">
@@ -243,6 +276,41 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
           </div>
         </div>
       </div>
+
+      {/* Report Preview Modal */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-xl flex flex-col animate-in fade-in duration-200">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-border/[0.08]">
+            <div className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-foreground/60" />
+              <span className="text-[11px] font-light tracking-wider text-foreground/80 uppercase">Finding Report Preview</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyReport}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+              >
+                <Download className="h-3 w-3" /> Download
+              </button>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                className="p-2 rounded-lg text-muted-foreground/40 hover:text-foreground transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            <pre className="max-w-4xl mx-auto text-[11px] font-mono text-foreground/70 leading-6 whitespace-pre-wrap">{reportText}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
