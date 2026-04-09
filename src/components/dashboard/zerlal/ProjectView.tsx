@@ -108,6 +108,8 @@ const statusBadge: Record<string, string> = {
 
 const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: ProjectViewProps) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string[]>([]);
