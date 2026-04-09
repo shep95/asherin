@@ -14,7 +14,7 @@ import type { ZerlalScreen } from "./types";
 const intelligenceScreens: ZerlalScreen[] = [
   "compliance", "supply-chain", "quantum", "ai-security", "zero-trust",
   "ot-ics", "incident", "threat-intel", "dark-web", "ueba", "red-team",
-  "exec-risk", "cvd-pipeline", "device-security", "governance", "deployment", "workforce"
+  "exec-risk", "cvd-pipeline", "device-security", "governance", "deployment", "workforce", "pattern-engine"
 ];
 
 const ZerlalView = () => {
