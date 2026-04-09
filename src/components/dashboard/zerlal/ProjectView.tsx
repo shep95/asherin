@@ -59,6 +59,38 @@ const generateFindingReport = (f: ZerlalFinding): string => {
   return report;
 };
 
+const generateFullReport = (projectName: string, findings: ZerlalFinding[]): string => {
+  const now = new Date().toLocaleString();
+  let report = `╔══════════════════════════════════════════════════════════════╗\n`;
+  report += `║         ZERLAL SECURITY FINDINGS REPORT                     ║\n`;
+  report += `╚══════════════════════════════════════════════════════════════╝\n\n`;
+  report += `Project: ${projectName}\n`;
+  report += `Generated: ${now}\n`;
+  report += `Total Findings: ${findings.length}\n`;
+  const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  findings.forEach(f => { if (f.severity in counts) counts[f.severity as keyof typeof counts]++; });
+  report += `Critical: ${counts.critical} | High: ${counts.high} | Medium: ${counts.medium} | Low: ${counts.low} | Info: ${counts.info}\n\n`;
+  report += `${"═".repeat(64)}\n\n`;
+  findings.forEach((f, i) => {
+    report += `[${i + 1}/${findings.length}] `;
+    report += generateFindingReport(f);
+    report += `\n`;
+  });
+  return report;
+};
+
+const downloadTextFile = (content: string, filename: string) => {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const severityBadge: Record<string, string> = {
   critical: "bg-red-500/15 text-red-400 border-red-500/20",
