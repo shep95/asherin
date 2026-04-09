@@ -1,5 +1,5 @@
 import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2 } from "lucide-react";
-import { useZerlalFindings } from "./useZerlalData";
+import { useZerlalFindings, useUpdateFinding } from "./useZerlalData";
 
 interface FindingDetailProps {
   findingId: string;
@@ -15,7 +15,8 @@ const severityBg: Record<string, string> = {
 };
 
 const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
-  const { findings, loading } = useZerlalFindings();
+  const { findings, loading, refetch } = useZerlalFindings();
+  const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
   const finding = findings.find(f => f.id === findingId);
 
   if (loading) return <div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground/20" /></div>;
@@ -167,9 +168,10 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
             <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm p-4 space-y-2">
               <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider">Actions</h3>
               <div className="space-y-1.5">
-                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Assign to team member</button>
-                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Mark as false positive</button>
-                <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Accept risk (waive)</button>
+                <button onClick={async () => { const name = prompt("Assign to (name/email):"); if (name) { await assignFinding(findingId, name); refetch(); } }} className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Assign to team member</button>
+                <button onClick={async () => { await markFalsePositive(findingId); refetch(); }} className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Mark as false positive</button>
+                <button onClick={async () => { const reason = prompt("Waiver reason:"); if (reason) { await waiveFinding(findingId, reason); refetch(); } }} className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.05]">Accept risk (waive)</button>
+                <button onClick={async () => { await resolveFinding(findingId); refetch(); }} className="w-full text-left px-3 py-2 rounded-lg bg-emerald-500/[0.05] text-[10px] text-emerald-400/60 hover:text-emerald-400/80 hover:bg-emerald-500/[0.1]">Mark as resolved</button>
                 <button className="w-full text-left px-3 py-2 rounded-lg bg-foreground/[0.03] text-[10px] text-red-400/50 hover:text-red-400/70 hover:bg-red-500/[0.05]">Escalate</button>
               </div>
             </div>
