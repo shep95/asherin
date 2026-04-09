@@ -107,7 +107,7 @@ const statusBadge: Record<string, string> = {
   waived: "bg-muted/30 text-muted-foreground/50",
 };
 
-const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: ProjectViewProps) => {
+const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRetryScan }: ProjectViewProps) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState("");
