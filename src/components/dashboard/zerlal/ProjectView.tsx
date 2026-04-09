@@ -9,6 +9,7 @@ interface ProjectViewProps {
   onSelectProject: (id: string) => void;
   onSelectFinding: (id: string) => void;
   onBack: () => void;
+  onRetryScan?: (projectId: string) => void;
 }
 
 const generateFindingReport = (f: ZerlalFinding): string => {
