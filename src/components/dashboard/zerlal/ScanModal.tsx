@@ -95,11 +95,17 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
       return;
     }
 
+    if (!codeContent && !url && selectedSource !== "github" && selectedSource !== "docker") {
+      setScanError("Please upload files or provide a repository URL");
+      return;
+    }
+
     const sourceType = selectedSource || "upload";
     const project = await createProject(projectName, sourceType, url || undefined);
     if (!project) return;
 
-    const result = await runScan(project.id, codeContent, files[0]?.name || projectName, selectedProfile);
+    const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
+    const result = await runScan(project.id, codeContent, files[0]?.name || projectName, selectedProfile, githubUrl);
     if (result) {
       onScanComplete();
       onClose();
