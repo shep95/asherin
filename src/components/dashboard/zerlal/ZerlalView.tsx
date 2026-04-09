@@ -78,6 +78,7 @@ const ZerlalView = () => {
           <ProjectView
             key={`${selectedProjectId}-${refreshKey}`}
             projectId={selectedProjectId}
+            onSelectProject={handleSelectProject}
             onSelectFinding={handleSelectFinding}
             onBack={handleBackFromProject}
           />
@@ -86,7 +87,7 @@ const ZerlalView = () => {
         return selectedFindingId ? (
           <FindingDetail key={selectedFindingId} findingId={selectedFindingId} onBack={handleBackFromFinding} />
         ) : (
-          <ProjectView projectId={null} onSelectFinding={handleSelectFinding} onBack={handleBackFromProject} />
+          <ProjectView projectId={null} onSelectProject={handleSelectProject} onSelectFinding={handleSelectFinding} onBack={handleBackFromProject} />
         );
       case "reports":
         return <ReportsScreen />;

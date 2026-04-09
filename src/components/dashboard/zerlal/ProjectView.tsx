@@ -1,13 +1,63 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen } from "lucide-react";
 import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
-import type { FindingSeverity, FindingStatus } from "./types";
+import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
+import { toast } from "sonner";
 
 interface ProjectViewProps {
   projectId: string | null;
+  onSelectProject: (id: string) => void;
   onSelectFinding: (id: string) => void;
   onBack: () => void;
 }
+
+const generateFindingReport = (f: ZerlalFinding): string => {
+  let report = `══════════════════════════════════════════\n`;
+  report += `SECURITY FINDING REPORT\n`;
+  report += `══════════════════════════════════════════\n\n`;
+  report += `Title: ${f.title}\n`;
+  report += `Severity: ${f.severity.toUpperCase()} | CVSS: ${f.cvss_score} | CWE: ${f.cwe_id}\n`;
+  report += `File: ${f.file_path || "N/A"}:${f.line_number}\n`;
+  report += `Category: ${f.category} | Confidence: ${f.confidence}%\n`;
+  report += `Status: ${f.status} | Age: ${f.age_days} days\n\n`;
+
+  report += `── WHAT'S WRONG ──────────────────────────\n`;
+  report += `${f.description}\n\n`;
+
+  report += `── IMPACT ────────────────────────────────\n`;
+  report += `${f.impact}\n\n`;
+
+  if (f.exploitation_steps?.length > 0) {
+    report += `── HOW HACKERS CAN EXPLOIT THIS ──────────\n`;
+    f.exploitation_steps.forEach((step, i) => {
+      report += `  ${i + 1}. ${step}\n`;
+    });
+    report += `\n`;
+  }
+
+  if (f.code_snippet) {
+    report += `── VULNERABLE CODE ───────────────────────\n`;
+    report += `${f.code_snippet}\n\n`;
+  }
+
+  if (f.suggested_fix) {
+    report += `── HOW TO FIX IT ─────────────────────────\n`;
+    report += `${f.suggested_fix}\n\n`;
+  }
+
+  if (f.compliance_controls?.length > 0) {
+    report += `── COMPLIANCE ────────────────────────────\n`;
+    report += `${f.compliance_controls.join(", ")}\n\n`;
+  }
+
+  if (f.similar_cves?.length > 0) {
+    report += `── SIMILAR CVEs ──────────────────────────\n`;
+    report += `${f.similar_cves.join(", ")}\n\n`;
+  }
+
+  report += `══════════════════════════════════════════\n`;
+  return report;
+};
 
 const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 const severityBadge: Record<string, string> = {
@@ -24,7 +74,8 @@ const statusBadge: Record<string, string> = {
   waived: "bg-muted/30 text-muted-foreground/50",
 };
 
-const ProjectView = ({ projectId, onSelectFinding, onBack }: ProjectViewProps) => {
+const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: ProjectViewProps) => {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string[]>([]);
@@ -63,10 +114,40 @@ const ProjectView = ({ projectId, onSelectFinding, onBack }: ProjectViewProps) =
         {/* Header */}
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50">← Back</button>
+          
+          {/* Project Dropdown Switcher */}
+          {projects.length > 1 && (
+            <div className="relative group">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-foreground/[0.04] border border-border/[0.08] hover:bg-foreground/[0.07] transition-colors">
+                <FolderOpen className="h-3 w-3 text-muted-foreground/40" />
+                <span className="text-[10px] text-foreground/70 max-w-[160px] truncate">{project?.name || "Select Project"}</span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground/30" />
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border border-border/[0.08] bg-background/95 backdrop-blur-xl shadow-xl z-50 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                {projects.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelectProject(p.id)}
+                    className={`w-full text-left px-3 py-2 hover:bg-foreground/[0.04] transition-colors flex items-center justify-between ${p.id === projectId ? "bg-foreground/[0.03]" : ""}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-foreground/70 truncate">{p.name}</p>
+                      <p className="text-[8px] text-muted-foreground/30">{p.source_type} · {p.critical_count + p.high_count} issues</p>
+                    </div>
+                    <span className={`text-[10px] font-extralight shrink-0 ml-2 ${
+                      p.risk_grade === "A" ? "text-emerald-400" : p.risk_grade === "B" ? "text-blue-400" :
+                      p.risk_grade === "C" ? "text-yellow-400" : p.risk_grade === "D" ? "text-orange-400" : "text-red-400"
+                    }`}>{p.risk_grade}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {project && (
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
-                <h2 className="text-sm font-light tracking-wide text-foreground/80">{project.name}</h2>
+                {projects.length <= 1 && <h2 className="text-sm font-light tracking-wide text-foreground/80">{project.name}</h2>}
                 <span className={`text-lg font-extralight ${gradeColor}`}>{project.risk_grade}</span>
               </div>
               <div className="flex items-center gap-4 mt-0.5">
@@ -200,6 +281,19 @@ const ProjectView = ({ projectId, onSelectFinding, onBack }: ProjectViewProps) =
                       )}
 
                       <div className="flex items-center gap-2 pt-2 border-t border-border/[0.04]">
+                        <button
+                          onClick={async () => {
+                            const report = generateFindingReport(f);
+                            await navigator.clipboard.writeText(report);
+                            setCopiedId(f.id);
+                            toast.success("Detailed report copied to clipboard");
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[9px] text-foreground/60 hover:bg-foreground/[0.1] flex items-center gap-1"
+                        >
+                          {copiedId === f.id ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+                          {copiedId === f.id ? "Copied!" : "Copy Report"}
+                        </button>
                         <button className="px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[9px] text-foreground/60 hover:bg-foreground/[0.1]">Create PR with fix</button>
                         <button onClick={async () => { const name = prompt("Assign to (name/email):"); if (name) { await assignFinding(f.id, name); refetch(); } }} className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40 hover:text-foreground/60">Assign</button>
                         <button onClick={async () => { await markFalsePositive(f.id); refetch(); }} className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40 hover:text-foreground/60">False positive</button>

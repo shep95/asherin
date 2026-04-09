@@ -1,5 +1,32 @@
-import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2, Copy, Check } from "lucide-react";
 import { useZerlalFindings, useUpdateFinding } from "./useZerlalData";
+import type { ZerlalFinding } from "./types";
+import { toast } from "sonner";
+
+const generateFindingReport = (f: ZerlalFinding): string => {
+  let report = `══════════════════════════════════════════\n`;
+  report += `SECURITY FINDING REPORT\n`;
+  report += `══════════════════════════════════════════\n\n`;
+  report += `Title: ${f.title}\n`;
+  report += `Severity: ${f.severity.toUpperCase()} | CVSS: ${f.cvss_score} | CWE: ${f.cwe_id}\n`;
+  report += `File: ${f.file_path || "N/A"}:${f.line_number}\n`;
+  report += `Category: ${f.category} | Confidence: ${f.confidence}%\n`;
+  report += `Status: ${f.status} | Age: ${f.age_days} days\n\n`;
+  report += `── WHAT'S WRONG ──────────────────────────\n${f.description}\n\n`;
+  report += `── IMPACT ────────────────────────────────\n${f.impact}\n\n`;
+  if (f.exploitation_steps?.length > 0) {
+    report += `── HOW HACKERS CAN EXPLOIT THIS ──────────\n`;
+    f.exploitation_steps.forEach((step, i) => { report += `  ${i + 1}. ${step}\n`; });
+    report += `\n`;
+  }
+  if (f.code_snippet) report += `── VULNERABLE CODE ───────────────────────\n${f.code_snippet}\n\n`;
+  if (f.suggested_fix) report += `── HOW TO FIX IT ─────────────────────────\n${f.suggested_fix}\n\n`;
+  if (f.compliance_controls?.length > 0) report += `── COMPLIANCE ────────────────────────────\n${f.compliance_controls.join(", ")}\n\n`;
+  if (f.similar_cves?.length > 0) report += `── SIMILAR CVEs ──────────────────────────\n${f.similar_cves.join(", ")}\n\n`;
+  report += `══════════════════════════════════════════\n`;
+  return report;
+};
 
 interface FindingDetailProps {
   findingId: string;
@@ -15,6 +42,7 @@ const severityBg: Record<string, string> = {
 };
 
 const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
+  const [copied, setCopied] = useState(false);
   const { findings, loading, refetch } = useZerlalFindings();
   const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
   const finding = findings.find(f => f.id === findingId);
@@ -25,12 +53,29 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
   const dataflow = Array.isArray(finding.dataflow_trace) ? finding.dataflow_trace : [];
   const exploitSteps = Array.isArray(finding.exploitation_steps) ? finding.exploitation_steps : [];
 
+  const handleCopyReport = async () => {
+    const report = generateFindingReport(finding);
+    await navigator.clipboard.writeText(report);
+    setCopied(true);
+    toast.success("Detailed report copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="p-5 max-w-[1200px] mx-auto">
-        <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1 mb-4">
-          <ArrowLeft className="h-3 w-3" /> Back to findings
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1">
+            <ArrowLeft className="h-3 w-3" /> Back to findings
+          </button>
+          <button
+            onClick={handleCopyReport}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+          >
+            {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+            {copied ? "Copied!" : "Copy Detailed Report"}
+          </button>
+        </div>
 
         <div className="grid grid-cols-3 gap-5">
           <div className="col-span-2 space-y-4">
