@@ -86,6 +86,7 @@ const ZerlalView = () => {
             onSelectProject={handleSelectProject}
             onSelectFinding={handleSelectFinding}
             onBack={handleBackFromProject}
+            onRetryScan={() => setScanModalOpen(true)}
           />
         );
       case "finding":
