@@ -233,47 +233,19 @@ serve(async (req) => {
       // ═══════════════════════════════════
       // STEP 3: AI Prediction
       // ═══════════════════════════════════
-      const predictionPrompt = `You are AZIION — an automated Brent crude oil trading algorithm. You have access to real-time market data, geopolitical intelligence, and pattern analysis frameworks.
+      const predictionPrompt = `You are a quantitative Brent crude oil trading algorithm. Analyze the data and return ONLY a JSON object.
 
-Your SOLE purpose: Determine whether Brent Oil will go UP or DOWN in the next 24 hours, and to what EXACT price.
+MARKET DATA:
+${oilMarketData || "No data"}
 
-═══════════════════════════════════
-MARKET DATA (LIVE):
-${oilMarketData || "No market data available"}
+GEOPOLITICAL:
+${geopoliticalData || "No data"}
 
-═══════════════════════════════════
-GEOPOLITICAL FACTORS:
-${geopoliticalData || "No geopolitical data available"}
+TECHNICAL:
+${technicalData || "No data"}
 
-═══════════════════════════════════  
-TECHNICAL ANALYSIS:
-${technicalData || "No technical data available"}
-
-═══════════════════════════════════
-PATTERN FRAMEWORKS:
-${brainsContext || "No brain frameworks loaded"}
-
-═══════════════════════════════════
-
-INSTRUCTIONS:
-1. Analyze ALL the data above
-2. Determine if Brent Oil will PUMP (go up) or DUMP (go down) in the next 24 hours
-3. Provide EXACT price targets
-
-You MUST respond in this EXACT JSON format and NOTHING else:
-{
-  "direction": "LONG" or "SHORT",
-  "confidence": 0-100,
-  "current_price": <current Brent oil price as number>,
-  "entry_price": <recommended entry price as number>,
-  "take_profit": <take profit price as number>,
-  "stop_loss": <stop loss price as number>,
-  "reasoning": "<2-3 sentence explanation of why>",
-  "key_factors": ["factor1", "factor2", "factor3"],
-  "timeframe": "24h"
-}
-
-CRITICAL: Return ONLY valid JSON. No markdown, no explanation outside the JSON.`;
+Return ONLY this JSON — no text before or after:
+{"direction":"LONG or SHORT","confidence":75,"current_price":65.50,"entry_price":65.50,"take_profit":67.00,"stop_loss":64.00,"reasoning":"why","key_factors":["f1","f2","f3"],"timeframe":"24h"}`;
 
       log("Running AI prediction");
 
