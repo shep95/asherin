@@ -26,11 +26,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+// Input sanitization: strip control chars, limit length
+function sanitizeInput(str, maxLen = 2000) {
+  if (typeof str !== "string") return "";
+  // Remove control characters except newlines/tabs
+  const cleaned = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+  return cleaned.slice(0, maxLen);
+}
+
 async function handleChat(message, sendResponse) {
   try {
     const { aureonToken } = await chrome.storage.local.get("aureonToken");
     if (!aureonToken) {
       sendResponse({ text: "Please set your Aureon token in the extension popup first." });
+      return;
+    }
+
+    const sanitizedMessage = sanitizeInput(message.message, 2000);
+    const sanitizedContext = sanitizeInput(message.context, 4000);
+
+    if (!sanitizedMessage.trim()) {
+      sendResponse({ text: "Please enter a valid message." });
       return;
     }
 
@@ -42,8 +58,8 @@ async function handleChat(message, sendResponse) {
       },
       body: JSON.stringify({
         frame: null,
-        context: message.context || "",
-        chatMessage: message.message,
+        context: sanitizedContext,
+        chatMessage: sanitizedMessage,
         settings: { mode: "trading", sensitivity: "medium" },
       }),
     });

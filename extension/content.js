@@ -105,6 +105,8 @@
       });
       addMsg("ai", resp.text || "...");
       if (resp.analysis?.quickVerdict && resp.analysis.quickVerdict.action !== "NONE") {
+        // Add disclaimer to AI-generated verdicts
+        resp.analysis.quickVerdict.message = (resp.analysis.quickVerdict.message || "") + " ⚠️ AI analysis only — not financial advice. Verify independently.";
         showVerdict(resp.analysis.quickVerdict);
       }
     } catch (e) {
@@ -116,6 +118,9 @@
   chatInput.onkeydown = (e) => { if (e.key === "Enter") sendChat(); };
 
   // ── SCREEN CAPTURE ──
+  // Max canvas area: 16 megapixels (4000x4000) to prevent DoS via oversized canvases
+  const MAX_CANVAS_AREA = 16000000;
+
   function captureFrame() {
     try {
       const canvases = document.querySelectorAll("canvas");
@@ -123,7 +128,7 @@
       let maxArea = 0;
       canvases.forEach((c) => {
         const a = c.width * c.height;
-        if (a > maxArea) { maxArea = a; bestCanvas = c; }
+        if (a > maxArea && a <= MAX_CANVAS_AREA) { maxArea = a; bestCanvas = c; }
       });
       if (bestCanvas && maxArea > 10000) {
         return bestCanvas.toDataURL("image/jpeg", 0.5);
@@ -160,10 +165,10 @@
 
       if (analysis.context) currentContext = analysis.context;
 
-      // Show instant verdict
+      // Show instant verdict with disclaimer
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
+        analysis.quickVerdict.message = (analysis.quickVerdict.message || "") + " ⚠️ AI analysis only — not financial advice.";
         showVerdict(analysis.quickVerdict);
-
       }
 
       // Show alerts
