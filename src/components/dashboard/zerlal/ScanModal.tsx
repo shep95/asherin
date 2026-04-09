@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe } from "lucide-react";
+import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe, Binary } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
 import JSZip from "jszip";
 
@@ -20,6 +20,7 @@ const sources = [
   { id: "github", label: "GitHub OAuth", icon: Github, desc: "Connect private repos" },
   { id: "api-endpoint", label: "API Endpoint", icon: Globe, desc: "Swagger/OpenAPI or live API URL" },
   { id: "docker", label: "Docker Image", icon: Box, desc: "Container registry scan" },
+  { id: "binary", label: "Binary Upload", icon: Binary, desc: "Stripped binaries, reverse-engineer & scan" },
 ];
 
 const scanProfiles = [
