@@ -165,10 +165,10 @@
 
       if (analysis.context) currentContext = analysis.context;
 
-      // Show instant verdict
+      // Show instant verdict with disclaimer
       if (analysis.quickVerdict && analysis.quickVerdict.action !== "NONE") {
+        analysis.quickVerdict.message = (analysis.quickVerdict.message || "") + " ⚠️ AI analysis only — not financial advice.";
         showVerdict(analysis.quickVerdict);
-
       }
 
       // Show alerts
