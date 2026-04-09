@@ -198,9 +198,11 @@ serve(async (req) => {
           );
           if (resp.ok) {
             const data = await resp.json();
-            geopoliticalData = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            geopoliticalData = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n") || "";
+          } else {
+            log("Geo search failed", { status: resp.status });
           }
-        } catch (e) { log("Geopolitical search error", e); }
+        } catch (e: any) { log("Geopolitical search error", e.message); }
       })());
 
       // Technical analysis
@@ -220,9 +222,11 @@ serve(async (req) => {
           );
           if (resp.ok) {
             const data = await resp.json();
-            technicalData = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            technicalData = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).filter(Boolean).join("\n") || "";
+          } else {
+            log("Tech search failed", { status: resp.status });
           }
-        } catch (e) { log("Technical search error", e); }
+        } catch (e: any) { log("Technical search error", e.message); }
       })());
 
       await Promise.all(searchPromises);
