@@ -125,7 +125,8 @@ serve(async (req) => {
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_KEY) throw new Error("No Gemini API key configured");
 
-    const truncatedCode = codeToAnalyze.substring(0, 80000);
+    // Cap code at 50K chars to stay within edge function time limits
+    const truncatedCode = codeToAnalyze.substring(0, 50000);
 
     const analysisPrompt = `You are ZERLAL, an elite vulnerability intelligence engine built for government-grade security auditing. You operate with the precision of a nation-state red team.
 
