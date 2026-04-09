@@ -93,7 +93,7 @@ const ZerlalView = () => {
         return selectedFindingId ? (
           <FindingDetail key={selectedFindingId} findingId={selectedFindingId} onBack={handleBackFromFinding} />
         ) : (
-          <ProjectView projectId={null} onSelectProject={handleSelectProject} onSelectFinding={handleSelectFinding} onBack={handleBackFromProject} />
+          <ProjectView projectId={null} onSelectProject={handleSelectProject} onSelectFinding={handleSelectFinding} onBack={handleBackFromProject} onRetryScan={() => setScanModalOpen(true)} />
         );
       case "reports":
         return <ReportsScreen />;
