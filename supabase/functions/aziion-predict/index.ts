@@ -251,8 +251,8 @@ ${geopoliticalData || "No data"}
 TECHNICAL:
 ${technicalData || "No data"}
 
-Return ONLY this JSON — no text before or after:
-{"direction":"LONG or SHORT","confidence":75,"current_price":65.50,"entry_price":65.50,"take_profit":67.00,"stop_loss":64.00,"reasoning":"why","key_factors":["f1","f2","f3"],"timeframe":"24h"}`;
+Return ONLY valid JSON. Keep reasoning under 100 words. Example format:
+{"direction":"LONG","confidence":75,"current_price":65.50,"entry_price":65.50,"take_profit":67.00,"stop_loss":64.00,"reasoning":"short reason","key_factors":["f1","f2"],"timeframe":"24h"}`;
 
       log("Running AI prediction");
 
