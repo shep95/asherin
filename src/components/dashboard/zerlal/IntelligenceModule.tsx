@@ -1,4 +1,4 @@
-import { Landmark, Package, Atom, Brain, Lock, Cpu, Siren, Crosshair, Scale, Server, GraduationCap, Globe, UserSearch, Sword, BarChart3, FileCheck, Smartphone } from "lucide-react";
+import { Landmark, Package, Atom, Brain, Lock, Cpu, Siren, Crosshair, Scale, Server, GraduationCap, Globe, UserSearch, Sword, BarChart3, FileCheck, Smartphone, Radar } from "lucide-react";
 import type { ZerlalScreen } from "./types";
 
 interface IntelligenceModuleProps {
@@ -205,6 +205,19 @@ const moduleData: Record<string, { title: string; subtitle: string; icon: React.
       { name: "Junior Analyst Augmentation Mode", desc: "Guided interface explaining every finding in educational context — turns a junior analyst into mid-level within weeks", status: "active" },
       { name: "CMMC Assessment Preparation Pack", desc: "Generates system security plan, network diagrams from code, control implementation statements, evidence artifacts for Level 2/3 assessment", status: "active" },
       { name: "vCISO Support Package", desc: "Multi-client dashboard, client-specific reporting, cross-client anonymized benchmarking, white-label reporting", status: "coming" },
+    ],
+  },
+  "pattern-engine": {
+    title: "Pattern Recognition Engine",
+    subtitle: "Cross-codebase vulnerability pattern mapping, developer-level attribution, temporal drift detection, architectural risk clustering",
+    icon: Radar,
+    features: [
+      { name: "Recurring Vulnerability Class Detection", desc: "Identifies patterns across your entire codebase — e.g., 'you consistently mishandle input validation in async functions' — with root cause analysis and org-wide remediation plans", status: "active" },
+      { name: "Developer-Level Attribution", desc: "Connect Git history to see which developer introduced the most security debt. Not for blame — for targeted training and code review prioritization.", status: "active" },
+      { name: "Cross-Project Pattern Analysis", desc: "Enterprise tier: identifies when the same vulnerability class appears across multiple repos. 'This vuln class appeared in 3 of your 7 repos' with shared root cause.", status: "active" },
+      { name: "Temporal Drift & Regression Tracking", desc: "Tracks whether new code introduces more vulnerabilities than old code. Detects security regressions, measures improvement over sprints, flags backsliding.", status: "active" },
+      { name: "Architectural Risk Clustering", desc: "Maps whole subsystems that are structurally more dangerous than others — identifies high-risk zones in your architecture before they become breach points.", status: "active" },
+      { name: "Zero-Day Confidence Scoring", desc: "Proprietary score showing how likely a finding is to be a genuine novel zero-day vs a known vulnerability class. The number governments care about most.", status: "active" },
     ],
   },
 };
