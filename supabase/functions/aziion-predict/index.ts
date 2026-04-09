@@ -240,32 +240,33 @@ serve(async (req) => {
       // ═══════════════════════════════════
       // STEP 3: AI Prediction
       // ═══════════════════════════════════
-      const predictionPrompt = `You are a quantitative Brent crude oil trading algorithm. Analyze the data and return ONLY a JSON object.
+      const trimmedMarket = (oilMarketData || "No data").slice(0, 1500);
+      const trimmedGeo = (geopoliticalData || "No data").slice(0, 1500);
+      const trimmedTech = (technicalData || "No data").slice(0, 1500);
 
-MARKET DATA:
-${oilMarketData || "No data"}
+      const predictionPrompt = `You are a quantitative Brent crude oil trading algorithm. Return ONLY a compact JSON object with your trade signal.
 
-GEOPOLITICAL:
-${geopoliticalData || "No data"}
+MARKET: ${trimmedMarket}
 
-TECHNICAL:
-${technicalData || "No data"}
+GEO: ${trimmedGeo}
 
-Return ONLY this JSON — no text before or after:
-{"direction":"LONG or SHORT","confidence":75,"current_price":65.50,"entry_price":65.50,"take_profit":67.00,"stop_loss":64.00,"reasoning":"why","key_factors":["f1","f2","f3"],"timeframe":"24h"}`;
+TECH: ${trimmedTech}
+
+Return ONLY this JSON (no markdown, no extra text):
+{"direction":"LONG","confidence":75,"current_price":65.5,"entry_price":65.5,"take_profit":67.0,"stop_loss":64.0,"reasoning":"brief reason","key_factors":["f1","f2"],"timeframe":"24h"}`;
 
       log("Running AI prediction");
 
       let predData: any = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         const predResp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ role: "user", parts: [{ text: predictionPrompt }] }],
-              generationConfig: { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" },
+              generationConfig: { temperature: 0.1, maxOutputTokens: 1024, responseMimeType: "application/json" },
             }),
           }
         );
