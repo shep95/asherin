@@ -59,6 +59,10 @@ const ZerlalView = () => {
   };
 
   const renderScreen = () => {
+    if (activeScreen === "device-security") {
+      return <DeviceSecurityScanner />;
+    }
+
     if (intelligenceScreens.includes(activeScreen)) {
       return <IntelligenceModule screen={activeScreen} />;
     }
