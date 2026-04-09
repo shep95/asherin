@@ -114,10 +114,40 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: Pr
         {/* Header */}
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50">← Back</button>
+          
+          {/* Project Dropdown Switcher */}
+          {projects.length > 1 && (
+            <div className="relative group">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-foreground/[0.04] border border-border/[0.08] hover:bg-foreground/[0.07] transition-colors">
+                <FolderOpen className="h-3 w-3 text-muted-foreground/40" />
+                <span className="text-[10px] text-foreground/70 max-w-[160px] truncate">{project?.name || "Select Project"}</span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground/30" />
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-64 rounded-xl border border-border/[0.08] bg-background/95 backdrop-blur-xl shadow-xl z-50 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                {projects.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelectProject(p.id)}
+                    className={`w-full text-left px-3 py-2 hover:bg-foreground/[0.04] transition-colors flex items-center justify-between ${p.id === projectId ? "bg-foreground/[0.03]" : ""}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-foreground/70 truncate">{p.name}</p>
+                      <p className="text-[8px] text-muted-foreground/30">{p.source_type} · {p.critical_count + p.high_count} issues</p>
+                    </div>
+                    <span className={`text-[10px] font-extralight shrink-0 ml-2 ${
+                      p.risk_grade === "A" ? "text-emerald-400" : p.risk_grade === "B" ? "text-blue-400" :
+                      p.risk_grade === "C" ? "text-yellow-400" : p.risk_grade === "D" ? "text-orange-400" : "text-red-400"
+                    }`}>{p.risk_grade}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {project && (
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
-                <h2 className="text-sm font-light tracking-wide text-foreground/80">{project.name}</h2>
+                {projects.length <= 1 && <h2 className="text-sm font-light tracking-wide text-foreground/80">{project.name}</h2>}
                 <span className={`text-lg font-extralight ${gradeColor}`}>{project.risk_grade}</span>
               </div>
               <div className="flex items-center gap-4 mt-0.5">
