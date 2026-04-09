@@ -87,13 +87,27 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
           <button onClick={onBack} className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1">
             <ArrowLeft className="h-3 w-3" /> Back to findings
           </button>
-          <button
-            onClick={handleCopyReport}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
-          >
-            {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-            {copied ? "Copied!" : "Copy Detailed Report"}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setPreviewOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.04] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.07] transition-colors"
+            >
+              <Eye className="h-3 w-3" /> Preview
+            </button>
+            <button
+              onClick={handleCopyReport}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.04] text-[10px] text-muted-foreground/40 hover:text-foreground/60 hover:bg-foreground/[0.07] transition-colors"
+            >
+              {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+              {copied ? "Copied!" : "Copy"}
+            </button>
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-foreground/[0.06] text-[10px] text-foreground/60 hover:bg-foreground/[0.1] transition-colors"
+            >
+              <Download className="h-3 w-3" /> Download .txt
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-5">
