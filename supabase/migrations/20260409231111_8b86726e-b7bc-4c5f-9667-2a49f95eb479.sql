@@ -1,0 +1,2 @@
+UPDATE public.zerlal_scans SET status = 'failed', error = 'Edge function timed out', completed_at = now() WHERE id = '80e4e2ae-45f0-45bd-a395-ce81fb7ebc2f' AND status = 'running';
+UPDATE public.zerlal_projects SET status = 'idle' WHERE id = '85da70a3-1197-4220-b774-7ac74cefc003';

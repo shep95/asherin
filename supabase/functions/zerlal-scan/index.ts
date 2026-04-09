@@ -125,7 +125,8 @@ serve(async (req) => {
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_KEY) throw new Error("No Gemini API key configured");
 
-    const truncatedCode = codeToAnalyze.substring(0, 80000);
+    // Cap code at 50K chars to stay within edge function time limits
+    const truncatedCode = codeToAnalyze.substring(0, 50000);
 
     const analysisPrompt = `You are ZERLAL, an elite vulnerability intelligence engine built for government-grade security auditing. You operate with the precision of a nation-state red team.
 
@@ -240,6 +241,8 @@ ${truncatedCode}
       throw new Error("No JSON found in response");
     }
 
+    const scanStartTime = Date.now();
+
     // PASS 1: Initial comprehensive scan
     let analysis: any;
     try {
@@ -254,33 +257,20 @@ ${truncatedCode}
     let allFindings = analysis.findings || [];
     console.log("[ZERLAL] Pass 1 findings:", allFindings.length);
 
-    // PASS 2: If pass 1 found fewer than 20, ask for MORE missed findings
-    if (allFindings.length > 0 && allFindings.length < 30) {
+    // PASS 2: Only if pass 1 found few results AND we have time (< 120s elapsed)
+    const elapsedMs = Date.now() - scanStartTime;
+    if (allFindings.length > 0 && allFindings.length < 30 && elapsedMs < 120000) {
+      console.log("[ZERLAL] Starting Pass 2 (elapsed:", Math.round(elapsedMs/1000), "s)");
       const existingTitles = allFindings.map((f: any) => f.title).join("\n- ");
-      const pass2Prompt = `You are ZERLAL, an elite vulnerability intelligence engine. You already performed a first-pass audit and found these vulnerabilities:
+      const pass2Prompt = `You are ZERLAL. You already found these vulnerabilities:
 - ${existingTitles}
 
-But you MISSED many more. Perform a SECOND PASS on the same codebase. Find ALL vulnerabilities that were NOT in the list above. Look harder at:
-- Edge cases in error handling and input validation
-- Subtle logic flaws and race conditions  
-- Dependency and supply chain risks for EVERY import/package
-- Configuration weaknesses (CORS, headers, TLS, debug endpoints)
-- Information disclosure through error messages, logs, comments
-- Business logic flaws and access control gaps
-- Cryptographic implementation details
-- Resource exhaustion and DoS vectors
-- Third-party integration security
-- Data flow between components
-- Missing security controls (rate limiting, CSP, HSTS, etc.)
-- Code quality issues that have security implications
+Find ALL additional vulnerabilities NOT in the list above. Look at: input validation, logic flaws, race conditions, dependency risks, CORS/headers, info disclosure, access control, crypto, DoS, missing security controls.
 
-IMPORTANT: Do NOT repeat any finding from the first pass. Only report NEW findings.
-Report at MINIMUM 10 additional findings. Be thorough — scan every file, every function, every import.
+Do NOT repeat findings. Report NEW ones only. Return ONLY JSON: { "findings": [...] }
+Each finding: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves, age_estimate_days.
 
-Return ONLY a JSON object: { "findings": [...] }
-Each finding uses the same schema as before (severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves, age_estimate_days).
-
-CODE TO ANALYZE:
+CODE:
 \`\`\`
 ${truncatedCode}
 \`\`\``;
@@ -292,7 +282,6 @@ ${truncatedCode}
         const pass2Findings = pass2Analysis.findings || [];
         console.log("[ZERLAL] Pass 2 additional findings:", pass2Findings.length);
         
-        // Deduplicate by title
         const existingTitleSet = new Set(allFindings.map((f: any) => (f.title || "").toLowerCase().trim()));
         for (const f of pass2Findings) {
           const key = (f.title || "").toLowerCase().trim();
@@ -304,6 +293,8 @@ ${truncatedCode}
       } catch (pass2Err) {
         console.error("[ZERLAL] Pass 2 error (non-fatal):", pass2Err);
       }
+    } else if (elapsedMs >= 120000) {
+      console.log("[ZERLAL] Skipping Pass 2 — time limit reached (", Math.round(elapsedMs/1000), "s)");
     }
 
     const findings = allFindings;
