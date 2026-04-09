@@ -281,6 +281,19 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: Pr
                       )}
 
                       <div className="flex items-center gap-2 pt-2 border-t border-border/[0.04]">
+                        <button
+                          onClick={async () => {
+                            const report = generateFindingReport(f);
+                            await navigator.clipboard.writeText(report);
+                            setCopiedId(f.id);
+                            toast.success("Detailed report copied to clipboard");
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[9px] text-foreground/60 hover:bg-foreground/[0.1] flex items-center gap-1"
+                        >
+                          {copiedId === f.id ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+                          {copiedId === f.id ? "Copied!" : "Copy Report"}
+                        </button>
                         <button className="px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[9px] text-foreground/60 hover:bg-foreground/[0.1]">Create PR with fix</button>
                         <button onClick={async () => { const name = prompt("Assign to (name/email):"); if (name) { await assignFinding(f.id, name); refetch(); } }} className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40 hover:text-foreground/60">Assign</button>
                         <button onClick={async () => { await markFalsePositive(f.id); refetch(); }} className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40 hover:text-foreground/60">False positive</button>
