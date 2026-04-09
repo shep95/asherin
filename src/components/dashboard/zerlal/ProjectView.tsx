@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen, Download, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen, Download, Eye, RefreshCw } from "lucide-react";
 import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
 import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ interface ProjectViewProps {
   onSelectProject: (id: string) => void;
   onSelectFinding: (id: string) => void;
   onBack: () => void;
+  onRetryScan?: (projectId: string) => void;
 }
 
 const generateFindingReport = (f: ZerlalFinding): string => {
@@ -106,7 +107,7 @@ const statusBadge: Record<string, string> = {
   waived: "bg-muted/30 text-muted-foreground/50",
 };
 
-const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: ProjectViewProps) => {
+const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRetryScan }: ProjectViewProps) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState("");
@@ -398,11 +399,11 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: Pr
 
         {activeTab === "history" && (
           <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm overflow-hidden">
-            <div className="grid grid-cols-[1fr_120px_80px_80px_80px_80px_100px] gap-2 px-4 py-2 border-b border-border/[0.06] text-[9px] text-muted-foreground/30 uppercase tracking-wider">
-              <span>Profile</span><span>Status</span><span>Findings</span><span>Critical</span><span>High</span><span>Duration</span><span>Date</span>
+            <div className="grid grid-cols-[1fr_120px_80px_80px_80px_80px_100px_60px] gap-2 px-4 py-2 border-b border-border/[0.06] text-[9px] text-muted-foreground/30 uppercase tracking-wider">
+              <span>Profile</span><span>Status</span><span>Findings</span><span>Critical</span><span>High</span><span>Duration</span><span>Date</span><span></span>
             </div>
             {scans.map(s => (
-              <div key={s.id} className="grid grid-cols-[1fr_120px_80px_80px_80px_80px_100px] gap-2 px-4 py-2.5 border-b border-border/[0.03] text-[10px]">
+              <div key={s.id} className="grid grid-cols-[1fr_120px_80px_80px_80px_80px_100px_60px] gap-2 px-4 py-2.5 border-b border-border/[0.03] text-[10px] items-center">
                 <span className="text-foreground/60">{s.scan_profile}</span>
                 <span className={s.status === "complete" ? "text-emerald-400" : s.status === "running" ? "text-yellow-400" : "text-red-400"}>{s.status}</span>
                 <span className="text-foreground/50">{s.findings_count}</span>
@@ -410,6 +411,17 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack }: Pr
                 <span className="text-orange-400">{s.high_count}</span>
                 <span className="text-muted-foreground/40">{s.duration ? `${s.duration}s` : "—"}</span>
                 <span className="text-muted-foreground/30">{new Date(s.created_at).toLocaleDateString()}</span>
+                <span>
+                  {s.status === "failed" && onRetryScan && projectId && (
+                    <button
+                      onClick={() => onRetryScan(projectId)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-md bg-foreground/[0.05] text-[9px] text-muted-foreground/50 hover:text-foreground/70 hover:bg-foreground/[0.08] transition-colors"
+                      title="Retry scan"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Retry
+                    </button>
+                  )}
+                </span>
               </div>
             ))}
             {scans.length === 0 && (
