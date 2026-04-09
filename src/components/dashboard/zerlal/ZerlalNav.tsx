@@ -1,4 +1,4 @@
-import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu } from "lucide-react";
+import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone } from "lucide-react";
 import type { ZerlalScreen } from "./types";
 
 interface ZerlalNavProps {
@@ -24,6 +24,12 @@ const categoryNav: { id: ZerlalScreen; label: string; icon: React.ElementType }[
   { id: "ot-ics", label: "OT/ICS", icon: Cpu },
   { id: "incident", label: "Incident Response", icon: Siren },
   { id: "threat-intel", label: "Threat Intel", icon: Crosshair },
+  { id: "dark-web", label: "Dark Web Intel", icon: Globe },
+  { id: "ueba", label: "Insider Threat / UEBA", icon: UserSearch },
+  { id: "red-team", label: "Red Team Agent", icon: Sword },
+  { id: "exec-risk", label: "Executive Risk Score", icon: BarChart3 },
+  { id: "cvd-pipeline", label: "CVD Pipeline", icon: FileCheck },
+  { id: "device-security", label: "Device Security", icon: Smartphone },
   { id: "governance", label: "Governance", icon: Scale },
   { id: "deployment", label: "Deployment", icon: Server },
   { id: "workforce", label: "Workforce", icon: GraduationCap },
@@ -39,7 +45,7 @@ const ZerlalNav = ({ activeScreen, onNavigate, criticalCount }: ZerlalNavProps) 
           </div>
           <div>
             <span className="text-[11px] font-light tracking-[0.15em] text-foreground/90 uppercase">Zerlal</span>
-            <p className="text-[7px] text-muted-foreground/30 tracking-[0.2em] uppercase">Vulnerability Intel</p>
+            <p className="text-[7px] text-muted-foreground/30 tracking-[0.2em] uppercase">Cyber Intelligence Engine</p>
           </div>
         </div>
       </div>
