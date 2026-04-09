@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle } from "lucide-react";
+import { Github, GitBranch, Upload, Link, Box, X, ChevronRight, Check, Bell, Mail, FileCode, Loader2, AlertTriangle, Code, Globe } from "lucide-react";
 import { useCreateProject, useRunScan } from "./useZerlalData";
 import JSZip from "jszip";
 
@@ -14,17 +14,19 @@ type Step = 1 | 2 | 3;
 const sources = [
   { id: "upload", label: "Upload ZIP/Files", icon: Upload, desc: "ZIP, TAR, or individual code files" },
   { id: "github-url", label: "GitHub URL", icon: Github, desc: "Public repository link" },
-  { id: "paste-url", label: "Paste URL", icon: Link, desc: "Any public Git repository" },
+  { id: "paste-code", label: "Paste Code", icon: Code, desc: "Direct code paste, instant scan" },
+  { id: "paste-url", label: "Any Git URL", icon: Link, desc: "GitLab, Bitbucket, any public repo" },
   { id: "dependency", label: "Dependency File", icon: FileCode, desc: "package.json, requirements.txt, etc." },
   { id: "github", label: "GitHub OAuth", icon: Github, desc: "Connect private repos" },
+  { id: "api-endpoint", label: "API Endpoint", icon: Globe, desc: "Swagger/OpenAPI or live API URL" },
   { id: "docker", label: "Docker Image", icon: Box, desc: "Container registry scan" },
 ];
 
 const scanProfiles = [
+  { id: "quick", name: "Quick Scan", desc: "Critical and high-severity only, fastest turnaround", time: "1-3 min", includes: ["Critical SAST", "Known CVE", "Secret Detection"] },
   { id: "security-audit", name: "Security Audit", desc: "Full SAST, SCA, secret detection, compliance mapping", time: "15-30 min", includes: ["Static Analysis", "Dependency Scan", "Secret Detection", "License Check", "SBOM Generation"] },
-  { id: "pre-deploy", name: "Pre-deployment Check", desc: "Critical and high-severity only", time: "3-8 min", includes: ["Critical SAST", "Known CVE", "Secret Detection"] },
-  { id: "compliance", name: "Compliance Scan", desc: "Maps to CMMC, NIST, SOC2, PCI DSS, HIPAA, FedRAMP, ISO27001, DORA, NIS2", time: "20-45 min", includes: ["Full SAST", "SCA", "Multi-Framework Mapping", "SBOM", "FCA Shield"] },
-  { id: "deep-scan", name: "Full Deep Scan", desc: "AI-assisted novel pattern detection, chain analysis, quantum crypto audit", time: "45-120 min", includes: ["Full SAST", "SCA", "AI Analysis", "Chain Detection", "Dataflow Tracing", "Quantum Crypto Audit", "Supply Chain Intel", "Zero-Trust Validation"] },
+  { id: "compliance", name: "Compliance Scan", desc: "Maps to CMMC, NIST, SOC2, PCI DSS, HIPAA, FedRAMP, GDPR, ISO27001, DORA, NIS2, EU CRA", time: "20-45 min", includes: ["Full SAST", "SCA", "Multi-Framework Mapping", "SBOM", "FCA Shield"] },
+  { id: "deep-scan", name: "Full Deep Scan", desc: "AI-assisted novel pattern detection, chain analysis, quantum crypto audit, red team simulation", time: "45-120 min", includes: ["Full SAST", "SCA", "AI Analysis", "Chain Detection", "Dataflow Tracing", "Quantum Crypto Audit", "Supply Chain Intel", "Zero-Trust Validation", "PoC Generation"] },
 ];
 
 const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
@@ -35,6 +37,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
   const [projectName, setProjectName] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [codeContent, setCodeContent] = useState("");
+  const [pastedCode, setPastedCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -95,8 +98,11 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
       return;
     }
 
-    if (!codeContent && !url && selectedSource !== "github" && selectedSource !== "docker") {
-      setScanError("Please upload files or provide a repository URL");
+    // For paste-code source, use the pasted code
+    const finalCode = selectedSource === "paste-code" ? pastedCode : codeContent;
+
+    if (!finalCode && !url && selectedSource !== "github" && selectedSource !== "docker") {
+      setScanError("Please upload files, paste code, or provide a repository URL");
       return;
     }
 
@@ -105,7 +111,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
     if (!project) return;
 
     const githubUrl = (selectedSource === "github-url" || selectedSource === "paste-url") ? url : undefined;
-    const result = await runScan(project.id, codeContent, files[0]?.name || projectName, selectedProfile, githubUrl);
+    const result = await runScan(project.id, finalCode, files[0]?.name || projectName, selectedProfile, githubUrl);
     if (result) {
       onScanComplete();
       onClose();
@@ -121,6 +127,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
     setProjectName("");
     setFiles([]);
     setCodeContent("");
+    setPastedCode("");
     setScanError(null);
   };
 
@@ -162,7 +169,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
 
               <div>
                 <h3 className="text-[10px] text-muted-foreground/40 uppercase tracking-wider mb-2">Select Source</h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   {sources.map((s) => (
                     <button
                       key={s.id}
@@ -174,8 +181,8 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
                       }`}
                     >
                       <s.icon className="h-4 w-4 text-foreground/40" />
-                      <span className="text-[9px] text-foreground/50 text-center">{s.label}</span>
-                      <span className="text-[7px] text-muted-foreground/25 text-center">{s.desc}</span>
+                      <span className="text-[8px] text-foreground/50 text-center leading-tight">{s.label}</span>
+                      <span className="text-[7px] text-muted-foreground/25 text-center leading-tight">{s.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -217,14 +224,37 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
                     </div>
                   )}
 
+                  {selectedSource === "paste-code" && (
+                    <textarea
+                      value={pastedCode}
+                      onChange={(e) => setPastedCode(e.target.value)}
+                      placeholder="Paste your code here for instant analysis..."
+                      rows={8}
+                      className="w-full px-3 py-2 rounded-lg bg-foreground/[0.03] border border-border/[0.06] text-[10px] text-foreground/70 placeholder:text-muted-foreground/20 focus:outline-none focus:border-foreground/10 font-mono resize-none"
+                    />
+                  )}
+
                   {(selectedSource === "github-url" || selectedSource === "paste-url") && (
                     <input
                       type="text"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://github.com/owner/repo"
+                      placeholder={selectedSource === "github-url" ? "https://github.com/owner/repo" : "https://gitlab.com/owner/repo or any Git URL"}
                       className="w-full px-3 py-2 rounded-lg bg-foreground/[0.03] border border-border/[0.06] text-[10px] text-foreground/70 placeholder:text-muted-foreground/20 focus:outline-none focus:border-foreground/10"
                     />
+                  )}
+
+                  {selectedSource === "api-endpoint" && (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder="https://api.example.com/v1 or paste Swagger/OpenAPI spec URL"
+                        className="w-full px-3 py-2 rounded-lg bg-foreground/[0.03] border border-border/[0.06] text-[10px] text-foreground/70 placeholder:text-muted-foreground/20 focus:outline-none focus:border-foreground/10"
+                      />
+                      <p className="text-[8px] text-muted-foreground/25">Probes every endpoint for IDOR, auth bypass, injection, and rate limit flaws</p>
+                    </div>
                   )}
 
                   {(selectedSource === "github" || selectedSource === "docker") && (
@@ -276,7 +306,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
                 </div>
                 <div className="flex justify-between text-[10px]">
                   <span className="text-muted-foreground/40">Source</span>
-                  <span className="text-foreground/60">{selectedSource}</span>
+                  <span className="text-foreground/60">{sources.find(s => s.id === selectedSource)?.label || selectedSource}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
                   <span className="text-muted-foreground/40">Profile</span>
@@ -290,7 +320,7 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
                 )}
                 <div className="flex justify-between text-[10px]">
                   <span className="text-muted-foreground/40">Code Size</span>
-                  <span className="text-foreground/60">{(codeContent.length / 1024).toFixed(1)} KB</span>
+                  <span className="text-foreground/60">{((selectedSource === "paste-code" ? pastedCode.length : codeContent.length) / 1024).toFixed(1)} KB</span>
                 </div>
               </div>
 
