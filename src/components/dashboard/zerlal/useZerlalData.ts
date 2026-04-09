@@ -137,7 +137,7 @@ export const useCreateProject = () => {
 export const useRunScan = () => {
   const [scanning, setScanning] = useState(false);
 
-  const runScan = async (projectId: string, codeContent: string, fileName: string, scanProfile?: string) => {
+  const runScan = async (projectId: string, codeContent: string, fileName: string, scanProfile?: string, githubUrl?: string) => {
     setScanning(true);
     try {
       const { data, error } = await supabase.functions.invoke("zerlal-scan", {
@@ -146,6 +146,7 @@ export const useRunScan = () => {
           scan_profile: scanProfile || "security-audit",
           code_content: codeContent,
           file_name: fileName,
+          github_url: githubUrl || undefined,
         },
       });
 
@@ -166,20 +167,38 @@ export const useRunScan = () => {
 };
 
 export const useUpdateFinding = () => {
-  const updateFinding = async (findingId: string, updates: Partial<ZerlalFinding>) => {
+  const updateFinding = async (findingId: string, updates: Record<string, any>) => {
     try {
       const { error } = await supabase
         .from("zerlal_findings")
-        .update(updates as any)
+        .update(updates)
         .eq("id", findingId);
 
       if (error) throw error;
       toast.success("Finding updated");
+      return true;
     } catch (e) {
       console.error("Failed to update finding:", e);
       toast.error("Failed to update finding");
+      return false;
     }
   };
 
-  return { updateFinding };
+  const markFalsePositive = async (findingId: string) => {
+    return updateFinding(findingId, { is_false_positive: true, status: "waived", waiver_reason: "Marked as false positive" });
+  };
+
+  const waiveFinding = async (findingId: string, reason: string) => {
+    return updateFinding(findingId, { status: "waived", waiver_reason: reason });
+  };
+
+  const resolveFinding = async (findingId: string) => {
+    return updateFinding(findingId, { status: "resolved", resolved_at: new Date().toISOString() });
+  };
+
+  const assignFinding = async (findingId: string, assignee: string) => {
+    return updateFinding(findingId, { assignee, status: "in-progress" });
+  };
+
+  return { updateFinding, markFalsePositive, waiveFinding, resolveFinding, assignFinding };
 };
