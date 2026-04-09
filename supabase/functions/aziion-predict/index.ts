@@ -265,7 +265,7 @@ Return ONLY valid JSON. Keep reasoning under 100 words. Example format:
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ role: "user", parts: [{ text: predictionPrompt }] }],
-              generationConfig: { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" },
+              generationConfig: { temperature: 0.1, maxOutputTokens: 4096, responseMimeType: "application/json" },
             }),
           }
         );
