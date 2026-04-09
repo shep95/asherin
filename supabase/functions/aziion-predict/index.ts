@@ -228,15 +228,7 @@ serve(async (req) => {
       // ═══════════════════════════════════
       // STEP 2: Load AXRLEN brains for pattern analysis
       // ═══════════════════════════════════
-      let brainsContext = "";
-      try {
-        const { data: brains } = await sb.from("axrlen_brains").select("name, content").eq("is_active", true);
-        if (brains) {
-          for (const b of brains) {
-            brainsContext += `\n--- BRAIN: ${b.name} ---\n${b.content}\n`;
-          }
-        }
-      } catch {}
+      // Note: AZIION does NOT use axrlen_brains — it's a pure data-driven trading bot
 
       // ═══════════════════════════════════
       // STEP 3: AI Prediction
