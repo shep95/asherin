@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2 } from "lucide-react";
-import { useZerlalFindings, useZerlalProjects, useZerlalScans } from "./useZerlalData";
+import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
 import type { FindingSeverity, FindingStatus } from "./types";
 
 interface ProjectViewProps {
@@ -32,8 +32,9 @@ const ProjectView = ({ projectId, onSelectFinding, onBack }: ProjectViewProps) =
   const [activeTab, setActiveTab] = useState<"findings" | "history" | "sbom">("findings");
 
   const { projects } = useZerlalProjects();
-  const { findings, loading: fLoading } = useZerlalFindings(projectId);
+  const { findings, loading: fLoading, refetch } = useZerlalFindings(projectId);
   const { scans, loading: sLoading } = useZerlalScans(projectId);
+  const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
 
   const project = projects.find(p => p.id === projectId);
 
@@ -200,9 +201,10 @@ const ProjectView = ({ projectId, onSelectFinding, onBack }: ProjectViewProps) =
 
                       <div className="flex items-center gap-2 pt-2 border-t border-border/[0.04]">
                         <button className="px-3 py-1.5 rounded-lg bg-foreground/[0.06] text-[9px] text-foreground/60 hover:bg-foreground/[0.1]">Create PR with fix</button>
-                        <button className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40">Assign</button>
-                        <button className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40">False positive</button>
-                        <button className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40">Waive</button>
+                        <button onClick={async () => { const name = prompt("Assign to (name/email):"); if (name) { await assignFinding(f.id, name); refetch(); } }} className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40 hover:text-foreground/60">Assign</button>
+                        <button onClick={async () => { await markFalsePositive(f.id); refetch(); }} className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40 hover:text-foreground/60">False positive</button>
+                        <button onClick={async () => { const reason = prompt("Waiver reason:"); if (reason) { await waiveFinding(f.id, reason); refetch(); } }} className="px-3 py-1.5 rounded-lg bg-foreground/[0.03] text-[9px] text-muted-foreground/40 hover:text-foreground/60">Waive</button>
+                        <button onClick={async () => { await resolveFinding(f.id); refetch(); }} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-[9px] text-emerald-400/60 hover:bg-emerald-500/20">Resolve</button>
                         <button onClick={() => onSelectFinding(f.id)} className="ml-auto px-3 py-1.5 rounded-lg text-[9px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1">
                           Full detail <ExternalLink className="h-2.5 w-2.5" />
                         </button>
