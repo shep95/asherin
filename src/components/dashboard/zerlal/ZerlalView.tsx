@@ -7,6 +7,7 @@ import FindingDetail from "./FindingDetail";
 import ReportsScreen from "./ReportsScreen";
 import IntegrationsScreen from "./IntegrationsScreen";
 import IntelligenceModule from "./IntelligenceModule";
+import DeviceSecurityScanner from "./DeviceSecurityScanner";
 import ScanModal from "./ScanModal";
 import { useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
