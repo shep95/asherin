@@ -1,5 +1,32 @@
-import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2, Copy, Check } from "lucide-react";
 import { useZerlalFindings, useUpdateFinding } from "./useZerlalData";
+import type { ZerlalFinding } from "./types";
+import { toast } from "sonner";
+
+const generateFindingReport = (f: ZerlalFinding): string => {
+  let report = `══════════════════════════════════════════\n`;
+  report += `SECURITY FINDING REPORT\n`;
+  report += `══════════════════════════════════════════\n\n`;
+  report += `Title: ${f.title}\n`;
+  report += `Severity: ${f.severity.toUpperCase()} | CVSS: ${f.cvss_score} | CWE: ${f.cwe_id}\n`;
+  report += `File: ${f.file_path || "N/A"}:${f.line_number}\n`;
+  report += `Category: ${f.category} | Confidence: ${f.confidence}%\n`;
+  report += `Status: ${f.status} | Age: ${f.age_days} days\n\n`;
+  report += `── WHAT'S WRONG ──────────────────────────\n${f.description}\n\n`;
+  report += `── IMPACT ────────────────────────────────\n${f.impact}\n\n`;
+  if (f.exploitation_steps?.length > 0) {
+    report += `── HOW HACKERS CAN EXPLOIT THIS ──────────\n`;
+    f.exploitation_steps.forEach((step, i) => { report += `  ${i + 1}. ${step}\n`; });
+    report += `\n`;
+  }
+  if (f.code_snippet) report += `── VULNERABLE CODE ───────────────────────\n${f.code_snippet}\n\n`;
+  if (f.suggested_fix) report += `── HOW TO FIX IT ─────────────────────────\n${f.suggested_fix}\n\n`;
+  if (f.compliance_controls?.length > 0) report += `── COMPLIANCE ────────────────────────────\n${f.compliance_controls.join(", ")}\n\n`;
+  if (f.similar_cves?.length > 0) report += `── SIMILAR CVEs ──────────────────────────\n${f.similar_cves.join(", ")}\n\n`;
+  report += `══════════════════════════════════════════\n`;
+  return report;
+};
 
 interface FindingDetailProps {
   findingId: string;
