@@ -170,6 +170,8 @@ ALSO ASSESS:
 - Compliance gaps: Which major frameworks have coverage gaps?
 - Zero-trust readiness: Score 0-100
 - Overall risk narrative: A 2-3 sentence executive summary of the most critical risks
+- Pattern analysis: Identify recurring vulnerability classes, architectural risk clusters, and temporal patterns in the code structure
+- Zero-day confidence: For each critical/high finding, assess if it could be a novel zero-day (no known CVE match)
 
 CRITICAL RULES:
 - Find ALL vulnerabilities. Do NOT limit to 5 or 10. Report EVERY one.

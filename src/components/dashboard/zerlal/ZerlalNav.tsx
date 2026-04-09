@@ -1,4 +1,4 @@
-import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone } from "lucide-react";
+import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone, Radar } from "lucide-react";
 import type { ZerlalScreen } from "./types";
 
 interface ZerlalNavProps {
@@ -30,6 +30,7 @@ const categoryNav: { id: ZerlalScreen; label: string; icon: React.ElementType }[
   { id: "exec-risk", label: "Executive Risk Score", icon: BarChart3 },
   { id: "cvd-pipeline", label: "CVD Pipeline", icon: FileCheck },
   { id: "device-security", label: "Device Security", icon: Smartphone },
+  { id: "pattern-engine", label: "Pattern Engine", icon: Radar },
   { id: "governance", label: "Governance", icon: Scale },
   { id: "deployment", label: "Deployment", icon: Server },
   { id: "workforce", label: "Workforce", icon: GraduationCap },
