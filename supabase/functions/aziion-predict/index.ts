@@ -160,7 +160,7 @@ serve(async (req) => {
       searchPromises.push((async () => {
         try {
           const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -182,7 +182,7 @@ serve(async (req) => {
       searchPromises.push((async () => {
         try {
           const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -204,7 +204,7 @@ serve(async (req) => {
       searchPromises.push((async () => {
         try {
           const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -252,7 +252,7 @@ Return ONLY this JSON — no text before or after:
       let predData: any = null;
       for (let attempt = 0; attempt < 3; attempt++) {
         const predResp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
