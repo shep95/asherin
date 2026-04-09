@@ -263,6 +263,35 @@ const ScanModal = ({ open, onClose, onScanComplete }: ScanModalProps) => {
                       {selectedSource === "github" ? "GitHub OAuth connection — click Next to authenticate" : "Docker registry connection — click Next to configure"}
                     </div>
                   )}
+
+                  {selectedSource === "binary" && (
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={(e) => e.preventDefault()}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-border/[0.08] rounded-xl p-6 text-center cursor-pointer hover:border-foreground/10 transition-colors"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".exe,.dll,.so,.dylib,.elf,.bin,.o,.a,.wasm,.apk,.ipa,.deb,.rpm"
+                        onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+                        className="hidden"
+                      />
+                      <Binary className="h-5 w-5 text-muted-foreground/20 mx-auto mb-2" />
+                      {files.length > 0 ? (
+                        <div>
+                          <p className="text-[10px] text-foreground/50">{files[0].name}</p>
+                          <p className="text-[8px] text-muted-foreground/30 mt-1">Binary will be reverse-engineered and scanned</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground/30">Upload compiled binaries (.exe, .dll, .so, .elf, .wasm, .apk)</p>
+                          <p className="text-[8px] text-muted-foreground/20 mt-1">ZERLAL reverse-engineers, reconstructs pseudo-source, then hunts vulnerabilities</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
