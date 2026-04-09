@@ -140,23 +140,54 @@ export const useRunScan = () => {
   const runScan = async (projectId: string, codeContent: string, fileName: string, scanProfile?: string, githubUrl?: string) => {
     setScanning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("zerlal-scan", {
-        body: {
+      // Use fetch directly with a longer timeout since scans can take 2+ minutes
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Not authenticated");
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+
+      const resp = await fetch(`${supabaseUrl}/functions/v1/zerlal-scan`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": anonKey,
+        },
+        body: JSON.stringify({
           project_id: projectId,
           scan_profile: scanProfile || "security-audit",
           code_content: codeContent,
           file_name: fileName,
           github_url: githubUrl || undefined,
-        },
+        }),
+        signal: controller.signal,
       });
 
-      if (error) throw error;
-      
+      clearTimeout(timeout);
+
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        throw new Error(errBody || `Scan failed with status ${resp.status}`);
+      }
+
+      const data = await resp.json();
+
+      if (data.error) throw new Error(data.error);
+
       toast.success(`Scan complete: ${data.findings_count} vulnerabilities found`);
       return data;
     } catch (e) {
       console.error("Scan failed:", e);
-      toast.error("Scan failed: " + (e instanceof Error ? e.message : "Unknown error"));
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      if (msg.includes("aborted")) {
+        toast.error("Scan is still running in the background. Refresh to see results.");
+      } else {
+        toast.error("Scan failed: " + msg);
+      }
       return null;
     } finally {
       setScanning(false);
