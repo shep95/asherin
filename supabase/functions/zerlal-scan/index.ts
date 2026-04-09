@@ -217,7 +217,18 @@ ${truncatedCode}
       );
       if (!resp.ok) {
         const errText = await resp.text();
-        throw new Error(`Gemini API error ${resp.status}: ${errText}`);
+        console.error("[ZERLAL] Gemini error:", resp.status, errText);
+        
+        // Update scan as failed
+        await supabase.from("zerlal_scans").update({
+          status: "failed",
+          error: `Gemini API error: ${resp.status}`,
+          completed_at: new Date().toISOString(),
+        }).eq("id", scan.id);
+        
+        await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", project_id);
+        
+        throw new Error(`AI analysis engine error: ${resp.status}: ${errText}`);
       }
       const data = await resp.json();
       return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
