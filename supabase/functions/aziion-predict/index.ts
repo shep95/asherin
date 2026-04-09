@@ -256,7 +256,7 @@ Return ONLY this JSON — no text before or after:
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: predictionPrompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+            generationConfig: { temperature: 0.1, maxOutputTokens: 2048, responseMimeType: "application/json" },
           }),
         }
       );
