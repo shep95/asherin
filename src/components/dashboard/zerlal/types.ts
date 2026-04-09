@@ -1,7 +1,7 @@
-export type ZerlalScreen = "dashboard" | "project" | "finding" | "reports" | "integrations" | "settings" | "team" | "compliance" | "supply-chain" | "quantum" | "ai-security" | "zero-trust" | "incident" | "threat-intel" | "governance" | "ot-ics" | "deployment" | "workforce";
+export type ZerlalScreen = "dashboard" | "project" | "finding" | "reports" | "integrations" | "settings" | "team" | "compliance" | "supply-chain" | "quantum" | "ai-security" | "zero-trust" | "incident" | "threat-intel" | "governance" | "ot-ics" | "deployment" | "workforce" | "dark-web" | "ueba" | "cvd-pipeline" | "exec-risk" | "red-team" | "device-security";
 
 export type FindingSeverity = "critical" | "high" | "medium" | "low" | "info";
-export type FindingCategory = "memory-safety" | "injection" | "secrets" | "dependencies" | "logic" | "crypto" | "auth" | "config" | "supply-chain" | "ai-security" | "zero-trust" | "ot-ics";
+export type FindingCategory = "memory-safety" | "injection" | "secrets" | "dependencies" | "logic" | "crypto" | "auth" | "config" | "supply-chain" | "ai-security" | "zero-trust" | "ot-ics" | "infrastructure";
 export type FindingStatus = "open" | "in-progress" | "resolved" | "waived";
 export type ScanStatus = "idle" | "queued" | "scanning" | "complete" | "failed";
 export type RiskGrade = "A" | "B" | "C" | "D" | "F";

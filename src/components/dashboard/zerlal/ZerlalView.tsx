@@ -13,7 +13,8 @@ import type { ZerlalScreen } from "./types";
 
 const intelligenceScreens: ZerlalScreen[] = [
   "compliance", "supply-chain", "quantum", "ai-security", "zero-trust",
-  "ot-ics", "incident", "threat-intel", "governance", "deployment", "workforce"
+  "ot-ics", "incident", "threat-intel", "dark-web", "ueba", "red-team",
+  "exec-risk", "cvd-pipeline", "device-security", "governance", "deployment", "workforce"
 ];
 
 const ZerlalView = () => {
@@ -118,7 +119,7 @@ const ZerlalView = () => {
           </div>
           <div>
             <h1 className="text-[11px] font-light tracking-[0.12em] text-foreground/90 uppercase">Zerlal</h1>
-            <p className="text-[8px] text-muted-foreground/30 tracking-[0.15em] uppercase">Vulnerability Intelligence Platform</p>
+            <p className="text-[8px] text-muted-foreground/30 tracking-[0.15em] uppercase">Cyber Intelligence Engine</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
