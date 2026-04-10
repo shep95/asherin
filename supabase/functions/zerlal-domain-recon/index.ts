@@ -26,8 +26,11 @@ serve(async (req) => {
 
     console.log("[ZERLAL-DOMAIN-RECON] Starting domain recon for:", domain);
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_KEY) throw new Error("No Gemini API key configured");
+    
+    const useLovableGateway = !!LOVABLE_API_KEY;
+    if (!useLovableGateway && !GEMINI_KEY) throw new Error("No AI API key configured");
 
     // Load AXRLEN brains for intelligence injection
     let brainsContext = "";
@@ -81,7 +84,6 @@ serve(async (req) => {
 
     const scanStartTime = Date.now();
 
-    // The comprehensive domain recon prompt combining Elion/Zohar intelligence + ZERLAL brains
     const reconPrompt = `You are ZERLAL integrated with ELION/ZOHAR — the most advanced domain reconnaissance and vulnerability intelligence engine. You operate at government-grade forensic precision.
 
 === ZERLAL INTELLIGENCE KNOWLEDGE BASE ===
@@ -93,29 +95,23 @@ The provided Vault 7 dossiers, ExpressLane v3.1.1, HTTPBrowser, and Protego, off
 Executive Summary: The Nexus of Ancient & Modern Exploitation Elite adversaries, whether nation-state intelligence or sophisticated criminal organizations, fuse ancient principles of deception, physical infiltration, and psychological manipulation with bleeding-edge technological prowess. They target vulnerabilities across the entire digital and physical attack surface, treating software, hardware, networks, and human trust as integrated components in a single, exploitable system. The goal is covert, persistent access and data exfiltration, with robust self-preservation and deniability mechanisms.
 
 1. Adversary Operational Calculus: Exploitation Archetypes
-To understand how software is exploited, one must adopt the adversary's Zero-Point Perspective: every component is a potential point of failure or leverage. The operational methodology revealed in these documents highlights several archetypal exploitation vectors, blending historical and modern techniques.
+To understand how software is exploited, one must adopt the adversary's Zero-Point Perspective: every component is a potential point of failure or leverage.
 
 1.1. Initial Access & Infiltration (The Trojan Horse Reborn)
 Vector: Physical Insertion / Social Engineering (ExpressLane)
-Method: The ExpressLane v3.1.1 tool is delivered via a USB drive. An "OTS officer" acts as the Installer, using the cover of "upgrading biometric software" with "liaison services."
-Look For: Any installation routine that bypasses standard security prompts. Unsigned executables or executables with misleading names. Lack of strong code signing enforcement.
-
 Vector: DLL Side-Loading / Masquerading (HTTPBrowser)
-Method: Uses a "self-extracting zip file" with a "legitimate executable associated with a Citrix Single Sign-On product" to side-load the attackers initial DLL.
-Look For: Applications that do not specify full paths for DLLs. Lack of application whitelisting policies.
 
 1.2. Persistence & Stealth (The Shadow's Grip)
-Vector: Windows Service / Covert Partition (ExpressLane) — runs as a Windows Service, collects to a covert partition on a USB drive.
-Vector: Auto-Start Execution Point (ASEP) (HTTPBrowser) — copies itself and sets an ASEP.
-Vector: Hardware/Firmware Rootkits & Kill Switches (Protego) — microcontrollers store unique keys and executable program memory with self-destruct triggers.
+Vector: Windows Service / Covert Partition (ExpressLane)
+Vector: Auto-Start Execution Point (ASEP) (HTTPBrowser)
+Vector: Hardware/Firmware Rootkits & Kill Switches (Protego)
 
 1.3. Evasion & Anti-Forensics
-ExpressLane: Shall not be detectable by Norton, McAfee, Kaspersky, firewalls. Uses polymorphic code, obfuscation, anti-analysis, LOLBINs.
-File Timestamp Preservation: Collection shall not change date modified for files.
+ExpressLane: Polymorphic code, obfuscation, anti-analysis, LOLBINs.
+File Timestamp Preservation.
 
 1.4. Command & Control & Data Exfiltration
-HTTPBrowser: Clear-text C2, continuously contacts C2 server.
-Protego/ExpressLane: Encrypted serial data, covert USB partitions.
+HTTPBrowser: Clear-text C2. Protego/ExpressLane: Encrypted serial data, covert USB partitions.
 
 2. Software & System Vulnerability Points
 Frontend: Deceptive UI elements, insecure input handling, XSS/CSRF.
@@ -135,128 +131,23 @@ TARGET DOMAIN: ${domain}
 
 Execute a FULL-SPECTRUM domain security reconnaissance. You must identify EVERY weakness, misconfiguration, and vulnerability across the entire attack surface. DO NOT LIMIT your output — report ALL findings.
 
-Additionally, perform INFRASTRUCTURE MAPPING — identify and map out the complete architecture of this domain:
-- Detect if the domain has a linked GitHub repository (check .git exposure, meta tags, source maps, package.json references, deployment configs)
-- If a GitHub repo is found, include the full URL
-- Map the entire infrastructure: servers, CDNs, load balancers, APIs, databases (inferred), microservices, third-party services
-- Identify the deployment pipeline (CI/CD indicators)
-- Map data flow between components
-- Identify all external service integrations
+Additionally, perform INFRASTRUCTURE MAPPING — identify and map out the complete architecture of this domain.
 
 === RECONNAISSANCE MODULES TO EXECUTE ===
 
-MODULE 1: DNS & DOMAIN INTELLIGENCE
-- Full DNS record enumeration (A, AAAA, MX, TXT, CNAME, NS, SOA, SRV, CAA)
-- DNSSEC validation status
-- SPF, DKIM, DMARC policy analysis — check for spoofing risk
-- Zone transfer vulnerability (AXFR)
-- Subdomain enumeration via certificate transparency logs (crt.sh)
-- Wildcard DNS detection
-- Domain age, registrar, WHOIS exposure
-- Nameserver security assessment
-
-MODULE 2: TLS/SSL SECURITY ANALYSIS
-- Certificate validity, issuer, chain completeness
-- Protocol versions supported (TLS 1.0/1.1/1.2/1.3, SSLv3)
-- Cipher suite analysis — weak ciphers, export ciphers, NULL ciphers
-- HSTS enforcement and preload status
-- Certificate transparency monitoring
-- OCSP stapling status
-- Mixed content vulnerability
-- Certificate pinning assessment
-
-MODULE 3: HTTP SECURITY HEADERS
-- Content-Security-Policy (or lack thereof)
-- X-Frame-Options / Clickjacking vulnerability
-- X-Content-Type-Options
-- Referrer-Policy
-- Permissions-Policy
-- X-XSS-Protection
-- Strict-Transport-Security
-- Cross-Origin-Resource-Policy
-- Cross-Origin-Embedder-Policy
-
-MODULE 4: WEB APPLICATION SECURITY
-- Server/technology fingerprinting (web server, framework, CMS)
-- Information disclosure (Server header, X-Powered-By, debug pages)
-- Error handling analysis (verbose errors, stack traces)
-- Directory listing enabled
-- Backup file exposure (.bak, .old, .swp, ~)
-- Source map exposure (.js.map)
-- Admin panel exposure (/admin, /wp-admin, /dashboard, /console, /phpmyadmin)
-- robots.txt and sitemap.xml intelligence
-- Default credentials on exposed services
-- CORS misconfiguration
-- Cookie security (Secure, HttpOnly, SameSite flags)
-
-MODULE 5: INFRASTRUCTURE & NETWORK
-- IP address and ASN mapping
-- Hosting provider / cloud platform identification
-- CDN detection (Cloudflare, Akamai, AWS CloudFront)
-- WAF detection and bypass indicators
-- Open port analysis (common web ports: 80, 443, 8080, 8443, 3000, 4443)
-- Geographic server location
-- Load balancer detection
-- Reverse proxy identification
-
-MODULE 6: SUBDOMAIN SECURITY
-- Enumerate all discoverable subdomains
-- Subdomain takeover candidates (dangling CNAMEs to unclaimed services)
-- Staging/dev environment exposure
-- Internal service exposure
-- Wildcard subdomain abuse potential
-
-MODULE 7: API & ENDPOINT DISCOVERY
-- REST API endpoint patterns (/api/v1, /api/v2, /graphql)
-- GraphQL introspection exposure
-- Swagger/OpenAPI documentation exposure
-- WebSocket endpoint discovery
-- Authentication mechanism analysis
-- Rate limiting assessment
-
-MODULE 8: EMAIL SECURITY
-- SPF record strictness (softfail vs hardfail)
-- DMARC policy enforcement (none/quarantine/reject)
-- DKIM key strength
-- Email spoofing viability
-- MX record analysis
-
-MODULE 9: CLOUD & STORAGE EXPOSURE
-- S3 bucket enumeration (company-name variations)
-- Azure Blob storage discovery
-- GCS bucket discovery
-- Public storage misconfiguration
-
-MODULE 10: SECRET & CREDENTIAL EXPOSURE
-- Exposed API keys in JavaScript source
-- Hardcoded credentials in public-facing code
-- .env file exposure
-- Git repository exposure (.git/)
-- Source code leak indicators
-- JWT secret weakness indicators
-
-MODULE 11: SUPPLY CHAIN & THIRD-PARTY RISK
-- Third-party JavaScript dependencies
-- Known vulnerable libraries (outdated jQuery, Angular, etc.)
-- Analytics/tracking script analysis
-- CDN integrity (SRI tags)
-
-MODULE 12: COMPLIANCE & REGULATORY
-- GDPR indicators (cookie consent, privacy policy)
-- PCI DSS surface exposure
-- HIPAA-relevant data handling signals
-- SOC 2 compliance indicators
-
-MODULE 13: INFRASTRUCTURE ARCHITECTURE MAPPING
-- Map ALL server components (web servers, app servers, database servers)
-- Identify CI/CD pipeline (GitHub Actions, GitLab CI, Jenkins, CircleCI, Vercel, Netlify)
-- Detect GitHub/GitLab repository links (from source, headers, meta, deployment indicators)
-- Map API gateway / load balancer / reverse proxy architecture
-- Identify microservices architecture patterns
-- Map third-party service integrations (auth providers, payment, analytics, monitoring)
-- Identify container/orchestration (Docker, Kubernetes indicators)
-- Map data flow between components
-- Identify backup/disaster recovery indicators
+MODULE 1: DNS & DOMAIN INTELLIGENCE (Full DNS records, DNSSEC, SPF/DKIM/DMARC, zone transfer, subdomain enumeration, WHOIS)
+MODULE 2: TLS/SSL SECURITY (Certificate, protocols, cipher suites, HSTS, OCSP, mixed content)
+MODULE 3: HTTP SECURITY HEADERS (CSP, X-Frame-Options, HSTS, Referrer-Policy, Permissions-Policy, CORP, COEP)
+MODULE 4: WEB APPLICATION SECURITY (Server fingerprinting, info disclosure, directory listing, backup files, source maps, admin panels, CORS, cookies)
+MODULE 5: INFRASTRUCTURE & NETWORK (IP/ASN, hosting, CDN, WAF, ports, geo, load balancer, reverse proxy)
+MODULE 6: SUBDOMAIN SECURITY (Takeover candidates, staging/dev exposure, internal services)
+MODULE 7: API & ENDPOINT DISCOVERY (REST, GraphQL, WebSocket, auth mechanisms, rate limiting)
+MODULE 8: EMAIL SECURITY (SPF strictness, DMARC enforcement, DKIM strength, spoofing viability)
+MODULE 9: CLOUD & STORAGE EXPOSURE (S3, Azure Blob, GCS bucket enumeration)
+MODULE 10: SECRET & CREDENTIAL EXPOSURE (API keys in JS, .env, .git, JWT weakness)
+MODULE 11: SUPPLY CHAIN & THIRD-PARTY RISK (Vulnerable libraries, SRI, analytics scripts)
+MODULE 12: COMPLIANCE & REGULATORY (GDPR, PCI DSS, HIPAA, SOC 2)
+MODULE 13: INFRASTRUCTURE ARCHITECTURE MAPPING (Components, CI/CD, GitHub detection, data flows)
 
 === OUTPUT FORMAT ===
 
@@ -279,7 +170,8 @@ Return ONLY a JSON object:
       "suggested_fix": "Exact remediation steps",
       "dataflow_trace": [],
       "compliance_controls": ["NIST 800-53 XX-X", "PCI DSS X.X"],
-      "similar_cves": ["CVE-XXXX-XXXXX"]
+      "similar_cves": ["CVE-XXXX-XXXXX"],
+      "age_days_estimate": 0
     }
   ],
   "risk_grade": "A"|"B"|"C"|"D"|"F",
@@ -339,42 +231,85 @@ CRITICAL RULES:
 - Each finding must have actionable exploitation_steps.
 - Minimum 20+ findings expected for any production domain.
 - The infrastructure_map MUST be populated with every detected component and connection.
-- Apply the adversary's Zero-Point Perspective from the intelligence knowledge base.`;
+- Apply the adversary's Zero-Point Perspective from the intelligence knowledge base.
+- For "age_days_estimate": estimate how long this type of vulnerability has likely existed based on when the technology/version was deployed, when default configs were set, or when the CVE was first published. Use your intelligence to infer realistic ages (e.g. missing security headers on a site launched 2 years ago = ~730 days, a recently published CVE = days since CVE publication). This is a forensic estimate — be realistic.`;
 
-    // Call Gemini
-    async function callGemini(prompt: string): Promise<string> {
-      const maxRetries = 3;
+    // Call AI via Lovable Gateway or Gemini direct
+    async function callAI(prompt: string): Promise<string> {
+      const maxRetries = 4;
       for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
-            }),
+        try {
+          let responseText = "";
+          
+          if (useLovableGateway) {
+            const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: "You are ZERLAL, an elite domain security reconnaissance engine. Return ONLY valid JSON. No markdown, no explanation." },
+                  { role: "user", content: prompt },
+                ],
+                temperature: 0.1,
+                max_tokens: 65536,
+              }),
+            });
+
+            if (!resp.ok) {
+              const errText = await resp.text();
+              console.log(`[ZERLAL-DOMAIN-RECON] Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
+              if (resp.status === 503 || resp.status === 429 || resp.status === 500) {
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+                continue;
+              }
+              throw new Error(`AI Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
+            }
+
+            const data = await resp.json();
+            responseText = data.choices?.[0]?.message?.content || "";
+          } else {
+            const resp = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
+                }),
+              }
+            );
+            if (!resp.ok) {
+              if (resp.status === 503 || resp.status === 429) {
+                console.log(`[ZERLAL-DOMAIN-RECON] Retry ${attempt + 1} after ${resp.status}`);
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+                continue;
+              }
+              const errText = await resp.text();
+              throw new Error(`Gemini error ${resp.status}: ${errText}`);
+            }
+            const data = await resp.json();
+            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
           }
-        );
-        if (resp.ok) {
-          const data = await resp.json();
-          return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        }
-        if (resp.status === 503 || resp.status === 429) {
-          console.log(`[ZERLAL-DOMAIN-RECON] Retry ${attempt + 1} after ${resp.status}`);
+
+          return responseText;
+        } catch (e) {
+          if (attempt === maxRetries - 1) throw e;
+          console.log(`[ZERLAL-DOMAIN-RECON] Attempt ${attempt + 1} failed:`, e);
           await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
-          continue;
         }
-        const errText = await resp.text();
-        throw new Error(`Gemini error ${resp.status}: ${errText}`);
       }
-      throw new Error("Gemini API failed after retries");
+      throw new Error("AI API failed after retries");
     }
 
     // Pass 1: Full recon
     let analysis: any;
     try {
-      const responseText = await callGemini(reconPrompt);
+      const responseText = await callAI(reconPrompt);
       console.log("[ZERLAL-DOMAIN-RECON] Pass 1 response length:", responseText.length);
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -395,32 +330,24 @@ CRITICAL RULES:
     if (allFindings.length > 0 && allFindings.length < 30 && elapsed < 120000) {
       console.log("[ZERLAL-DOMAIN-RECON] Starting Pass 2");
       const existingTitles = allFindings.map((f: any) => f.title).join("\n- ");
-      const pass2Prompt = `You are ZERLAL with ELION/ZOHAR, armed with the full intelligence knowledge base (Vault 7 dossiers, ExpressLane, HTTPBrowser, Protego archetypes). You already found these domain weaknesses for ${domain}:
+      const pass2Prompt = `You are ZERLAL with ELION/ZOHAR, armed with the full intelligence knowledge base. You already found these domain weaknesses for ${domain}:
 - ${existingTitles}
 
 Find ALL ADDITIONAL weaknesses NOT listed above. Apply the adversary's Zero-Point Perspective. Focus on:
-- Subdomain takeover vectors
-- Cloud storage misconfigurations  
-- API endpoint vulnerabilities
-- Email spoofing viability
-- Cookie/session security gaps
-- JavaScript library vulnerabilities
-- Information disclosure vectors
-- CORS misconfigurations
-- Missing rate limiting
-- Default credential exposure
-- Backup file exposure
-- Source map leaks
-- GraphQL introspection
-- Supply chain risks (DLL side-loading patterns, compromised dependencies)
-- Persistence mechanisms (hidden services, ASEPs)
-- Anti-forensic indicators
+- Subdomain takeover vectors, Cloud storage misconfigurations, API endpoint vulnerabilities
+- Email spoofing viability, Cookie/session security gaps, JavaScript library vulnerabilities
+- Information disclosure vectors, CORS misconfigurations, Missing rate limiting
+- Default credential exposure, Backup file exposure, Source map leaks
+- GraphQL introspection, Supply chain risks, Persistence mechanisms, Anti-forensic indicators
 
-Do NOT repeat findings. Report NEW ones only. Return ONLY JSON: { "findings": [...] }
-Each finding: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves.`;
+Do NOT repeat findings. Report NEW ones only.
+For each finding include "age_days_estimate" — your forensic estimate of how long this vulnerability has likely existed in this domain.
+
+Return ONLY JSON: { "findings": [...] }
+Each finding: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves, age_days_estimate.`;
 
       try {
-        const pass2Text = await callGemini(pass2Prompt);
+        const pass2Text = await callAI(pass2Prompt);
         const pass2Match = pass2Text.match(/\{[\s\S]*\}/);
         if (pass2Match) {
           const pass2 = JSON.parse(pass2Match[0]);
@@ -451,6 +378,9 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
       else if (severity === "low") lowCount++;
       else infoCount++;
 
+      const ageDays = Math.max(0, Math.round(f.age_days_estimate || 0));
+      const firstSeenDate = new Date(Date.now() - ageDays * 86400000).toISOString();
+
       await supabase.from("zerlal_findings").insert({
         user_id: user.id,
         project_id: projectId,
@@ -461,8 +391,8 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
         line_number: f.line_number || 0,
         category: f.category || "config",
         confidence: Math.min(100, Math.max(0, f.confidence || 50)),
-        age_days: 0,
-        first_seen_at: new Date().toISOString(),
+        age_days: ageDays,
+        first_seen_at: firstSeenDate,
         status: "open",
         cwe_id: f.cwe_id || "",
         cvss_score: Math.min(10, Math.max(0, f.cvss_score || 0)),
