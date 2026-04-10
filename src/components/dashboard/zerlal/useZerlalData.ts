@@ -32,11 +32,23 @@ export const useZerlalProjects = () => {
   return { projects, loading, refetch: fetchProjects };
 };
 
-export const useZerlalFindings = (projectId?: string | null) => {
+export const useZerlalFindings = (
+  projectId?: string | null,
+  options?: { fetchAllWhenNoProjectId?: boolean }
+) => {
   const [findings, setFindings] = useState<ZerlalFinding[]>([]);
   const [loading, setLoading] = useState(true);
+  const fetchAllWhenNoProjectId = options?.fetchAllWhenNoProjectId ?? true;
 
   const fetchFindings = useCallback(async () => {
+    if (!projectId && !fetchAllWhenNoProjectId) {
+      setFindings([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -51,7 +63,6 @@ export const useZerlalFindings = (projectId?: string | null) => {
         query = query.eq("project_id", projectId);
       }
 
-      // No limit - show ALL findings
       const { data, error } = await query;
       if (error) throw error;
       setFindings((data || []) as unknown as ZerlalFinding[]);
@@ -60,7 +71,7 @@ export const useZerlalFindings = (projectId?: string | null) => {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [fetchAllWhenNoProjectId, projectId]);
 
   useEffect(() => { fetchFindings(); }, [fetchFindings]);
 

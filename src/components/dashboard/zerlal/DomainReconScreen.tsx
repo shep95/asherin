@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Globe, Search, Shield, AlertTriangle, ChevronDown, ChevronUp, Copy, Download, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Globe, Search, Shield, ChevronDown, ChevronUp, Copy, Download, Loader2, ExternalLink, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useZerlalFindings } from "./useZerlalData";
 import InfrastructureMap from "./InfrastructureMap";
+import type { ZerlalFinding } from "./types";
 
 interface DomainInfo {
   ip?: string;
@@ -13,6 +14,34 @@ interface DomainInfo {
   tech_stack?: string[];
   tls_grade?: string;
   email_security_grade?: string;
+}
+
+interface InfrastructureMapData {
+  github_repo: string | null;
+  deployment_platform: string;
+  ci_cd: string;
+  components: Array<{
+    id: string;
+    type: string;
+    name: string;
+    provider: string;
+    details: string;
+    exposed: boolean;
+  }>;
+  connections: Array<{
+    from: string;
+    to: string;
+    label: string;
+    protocol: string;
+    encrypted: boolean;
+  }>;
+  data_flows: Array<{
+    description: string;
+    source: string;
+    destination: string;
+    data_type: string;
+    risk_level: string;
+  }>;
 }
 
 interface ScanResult {
@@ -26,7 +55,7 @@ interface ScanResult {
   total_attack_surface_score: number;
   zero_trust_score: number;
   duration: number;
-  infrastructure_map: any;
+  infrastructure_map: InfrastructureMapData | null;
 }
 
 const severityColor: Record<string, string> = {
@@ -45,6 +74,234 @@ const gradeColor: Record<string, string> = {
   F: "text-red-400",
 };
 
+const hasInfrastructureMapData = (map: InfrastructureMapData | null | undefined) => {
+  if (!map) return false;
+
+  return Boolean(
+    map.github_repo ||
+    (map.deployment_platform && map.deployment_platform !== "unknown") ||
+    (map.ci_cd && map.ci_cd !== "unknown") ||
+    (Array.isArray(map.components) && map.components.length > 0) ||
+    (Array.isArray(map.connections) && map.connections.length > 0) ||
+    (Array.isArray(map.data_flows) && map.data_flows.length > 0)
+  );
+};
+
+const extractGithubRepo = (findings: ZerlalFinding[]) => {
+  const haystack = findings
+    .flatMap((finding) => [
+      finding.title,
+      finding.description,
+      finding.impact,
+      finding.code_snippet,
+      finding.suggested_fix,
+      finding.file_path ?? "",
+      ...(finding.exploitation_steps || []),
+    ])
+    .join("\n");
+
+  const match = haystack.match(/https?:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i);
+  return match ? match[0].replace(/[),.;\]]+$/, "") : null;
+};
+
+const detectPlatform = (domainInfo: DomainInfo, findings: ZerlalFinding[]) => {
+  const haystack = [
+    domainInfo.hosting,
+    domainInfo.cdn,
+    domainInfo.waf,
+    ...(domainInfo.tech_stack || []),
+    ...findings.flatMap((finding) => [finding.title, finding.description, finding.code_snippet, finding.suggested_fix]),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes("vercel")) return { deployment: "Vercel", ciCd: "Git-based deployment" };
+  if (haystack.includes("netlify")) return { deployment: "Netlify", ciCd: "Git-based deployment" };
+  if (haystack.includes("cloudflare")) return { deployment: "Cloudflare", ciCd: "Cloudflare deployment pipeline" };
+  if (haystack.includes("aws") || haystack.includes("amazon")) return { deployment: "AWS", ciCd: "Cloud CI/CD or Git pipeline" };
+  if (haystack.includes("azure")) return { deployment: "Azure", ciCd: "Azure DevOps or Git pipeline" };
+  if (haystack.includes("gcp") || haystack.includes("google cloud")) return { deployment: "Google Cloud", ciCd: "Cloud Build or Git pipeline" };
+
+  return { deployment: domainInfo.hosting || "unknown", ciCd: "unknown" };
+};
+
+const buildFallbackInfrastructureMap = (
+  domain: string,
+  domainInfo: DomainInfo,
+  findings: ZerlalFinding[]
+): InfrastructureMapData => {
+  const cleanDomain = domain.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+  const techStack = domainInfo.tech_stack || [];
+  const githubRepo = extractGithubRepo(findings);
+  const { deployment, ciCd } = detectPlatform(domainInfo, findings);
+
+  const components: InfrastructureMapData["components"] = [];
+  const connections: InfrastructureMapData["connections"] = [];
+  const dataFlows: InfrastructureMapData["data_flows"] = [];
+
+  const addComponent = (component: InfrastructureMapData["components"][number]) => {
+    if (!components.some((existing) => existing.id === component.id)) {
+      components.push(component);
+    }
+  };
+
+  addComponent({
+    id: "dns-core",
+    type: "dns",
+    name: cleanDomain,
+    provider: "Domain / DNS",
+    details: `Primary domain entry point for ${cleanDomain}`,
+    exposed: true,
+  });
+
+  if (domainInfo.cdn) {
+    addComponent({
+      id: "cdn-edge",
+      type: "cdn",
+      name: "Edge CDN",
+      provider: domainInfo.cdn,
+      details: `Traffic acceleration and caching handled by ${domainInfo.cdn}`,
+      exposed: true,
+    });
+  }
+
+  if (domainInfo.waf) {
+    addComponent({
+      id: "waf-edge",
+      type: "waf",
+      name: "Web Application Firewall",
+      provider: domainInfo.waf,
+      details: `Inbound traffic inspected by ${domainInfo.waf}`,
+      exposed: false,
+    });
+  }
+
+  addComponent({
+    id: "web-app",
+    type: "web-server",
+    name: cleanDomain,
+    provider: techStack[0] || domainInfo.hosting || "Web Application",
+    details: techStack.length > 0 ? `Detected stack: ${techStack.join(", ")}` : "Public-facing web surface inferred from reconnaissance findings",
+    exposed: true,
+  });
+
+  if (domainInfo.hosting || deployment !== "unknown") {
+    addComponent({
+      id: "app-runtime",
+      type: "app-server",
+      name: "Application Runtime",
+      provider: deployment !== "unknown" ? deployment : domainInfo.hosting || "Hosting Platform",
+      details: `Runtime and hosting layer inferred from ${deployment !== "unknown" ? deployment : domainInfo.hosting || "available evidence"}`,
+      exposed: false,
+    });
+  }
+
+  if (domainInfo.email_security_grade) {
+    addComponent({
+      id: "email-security",
+      type: "email",
+      name: "Email Security",
+      provider: `Grade ${domainInfo.email_security_grade}`,
+      details: "Mail authentication posture inferred from SPF / DKIM / DMARC signals",
+      exposed: true,
+    });
+  }
+
+  if (ciCd !== "unknown" || githubRepo) {
+    addComponent({
+      id: "ci-cd",
+      type: "ci-cd",
+      name: "Deployment Pipeline",
+      provider: ciCd !== "unknown" ? ciCd : "Git-linked workflow",
+      details: githubRepo ? `Repository evidence detected: ${githubRepo}` : "CI/CD inferred from hosting and application evidence",
+      exposed: false,
+    });
+  }
+
+  if (githubRepo) {
+    addComponent({
+      id: "github-origin",
+      type: "third-party",
+      name: "GitHub Repository",
+      provider: "GitHub",
+      details: githubRepo,
+      exposed: true,
+    });
+  }
+
+  const hasComponent = (id: string) => components.some((component) => component.id === id);
+
+  if (hasComponent("dns-core") && hasComponent("cdn-edge")) {
+    connections.push({ from: "dns-core", to: "cdn-edge", label: "DNS resolves traffic to CDN edge", protocol: "DNS/HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("cdn-edge") && hasComponent("waf-edge")) {
+    connections.push({ from: "cdn-edge", to: "waf-edge", label: "Edge requests pass through traffic inspection", protocol: "HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("waf-edge") && hasComponent("web-app")) {
+    connections.push({ from: "waf-edge", to: "web-app", label: "Filtered requests reach the application surface", protocol: "HTTPS", encrypted: true });
+  } else if (hasComponent("cdn-edge") && hasComponent("web-app")) {
+    connections.push({ from: "cdn-edge", to: "web-app", label: "Edge requests forwarded to the web surface", protocol: "HTTPS", encrypted: true });
+  } else if (hasComponent("dns-core") && hasComponent("web-app")) {
+    connections.push({ from: "dns-core", to: "web-app", label: "Domain resolves directly to the public application", protocol: "HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("web-app") && hasComponent("app-runtime")) {
+    connections.push({ from: "web-app", to: "app-runtime", label: "Frontend serves or proxies into the runtime layer", protocol: "HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("app-runtime") && hasComponent("email-security")) {
+    connections.push({ from: "app-runtime", to: "email-security", label: "Transactional or domain email flows", protocol: "SMTP/TLS", encrypted: true });
+  }
+
+  if (hasComponent("ci-cd") && hasComponent("app-runtime")) {
+    connections.push({ from: "ci-cd", to: "app-runtime", label: "Deployments update the runtime environment", protocol: "CI/CD", encrypted: true });
+  }
+
+  if (hasComponent("github-origin") && hasComponent("ci-cd")) {
+    connections.push({ from: "github-origin", to: "ci-cd", label: "Repository changes trigger deployment automation", protocol: "Git/Webhook", encrypted: true });
+  }
+
+  dataFlows.push({
+    description: "User requests reach the public application surface",
+    source: "dns-core",
+    destination: hasComponent("cdn-edge") ? "cdn-edge" : "web-app",
+    data_type: "web-traffic",
+    risk_level: "medium",
+  });
+
+  if (hasComponent("web-app") && hasComponent("app-runtime")) {
+    dataFlows.push({
+      description: "Application traffic is processed by the backend/runtime layer",
+      source: "web-app",
+      destination: "app-runtime",
+      data_type: "user-data",
+      risk_level: "high",
+    });
+  }
+
+  if (hasComponent("github-origin") && hasComponent("ci-cd")) {
+    dataFlows.push({
+      description: "Source changes propagate into build and deployment systems",
+      source: "github-origin",
+      destination: "ci-cd",
+      data_type: "source-code",
+      risk_level: "medium",
+    });
+  }
+
+  return {
+    github_repo: githubRepo,
+    deployment_platform: deployment,
+    ci_cd: ciCd,
+    components,
+    connections,
+    data_flows: dataFlows,
+  };
+};
+
 const DomainReconScreen = () => {
   const [domain, setDomain] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -53,13 +310,27 @@ const DomainReconScreen = () => {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"findings" | "infrastructure">("findings");
 
-  const { findings, loading: findingsLoading, refetch } = useZerlalFindings(projectId);
+  const { findings, loading: findingsLoading, refetch } = useZerlalFindings(projectId, { fetchAllWhenNoProjectId: false });
+
+  const resolvedInfrastructureMap = useMemo(() => {
+    if (!result) return null;
+    if (hasInfrastructureMapData(result.infrastructure_map)) return result.infrastructure_map;
+    return buildFallbackInfrastructureMap(domain.trim(), result.domain_info || {}, findings);
+  }, [domain, findings, result]);
+
+  const isRecoveredInfrastructureMap = Boolean(
+    result &&
+    !hasInfrastructureMapData(result.infrastructure_map) &&
+    hasInfrastructureMapData(resolvedInfrastructureMap)
+  );
 
   const handleScan = async () => {
     if (!domain.trim()) return;
     setScanning(true);
     setResult(null);
     setProjectId(null);
+    setExpandedFinding(null);
+    setActiveTab("findings");
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -95,8 +366,6 @@ const DomainReconScreen = () => {
       setResult(data);
       setProjectId(data.project_id);
       toast.success(`Domain recon complete: ${data.findings_count} weaknesses found`);
-
-      setTimeout(() => refetch(), 500);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       if (msg.includes("aborted")) {
@@ -134,7 +403,6 @@ const DomainReconScreen = () => {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Globe className="h-4 w-4 text-foreground/60" />
@@ -147,7 +415,6 @@ const DomainReconScreen = () => {
         </p>
       </div>
 
-      {/* Input */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/30" />
@@ -180,7 +447,6 @@ const DomainReconScreen = () => {
         </button>
       </div>
 
-      {/* Scanning State */}
       {scanning && (
         <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.02] p-8 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-foreground/30 mx-auto mb-3" />
@@ -196,10 +462,8 @@ const DomainReconScreen = () => {
         </div>
       )}
 
-      {/* Results Overview */}
       {result && (
         <div className="space-y-4">
-          {/* Summary Card */}
           <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.02] p-5">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -218,6 +482,14 @@ const DomainReconScreen = () => {
             </div>
 
             <p className="text-[10px] text-muted-foreground/50 leading-relaxed mb-4">{result.summary}</p>
+
+            {isRecoveredInfrastructureMap && (
+              <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                <p className="text-[9px] text-amber-400/80 leading-relaxed">
+                  The native infrastructure topology did not come back from this run, so ZERLAL reconstructed the map from domain intelligence and the findings below.
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="rounded-lg bg-foreground/[0.03] border border-border/[0.06] p-3 text-center">
@@ -238,7 +510,6 @@ const DomainReconScreen = () => {
               </div>
             </div>
 
-            {/* Domain Info */}
             {result.domain_info && (
               <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
                 {result.domain_info.ip && (
@@ -280,7 +551,6 @@ const DomainReconScreen = () => {
               </div>
             )}
 
-            {/* Tech Stack */}
             {result.domain_info?.tech_stack && result.domain_info.tech_stack.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1">
                 {result.domain_info.tech_stack.map(t => (
@@ -291,7 +561,6 @@ const DomainReconScreen = () => {
               </div>
             )}
 
-            {/* Subdomains */}
             {result.subdomains_found && result.subdomains_found.length > 0 && (
               <div className="mt-3">
                 <span className="text-[9px] text-muted-foreground/30 uppercase tracking-wider">Discovered Subdomains ({result.subdomains_found.length})</span>
@@ -306,7 +575,6 @@ const DomainReconScreen = () => {
             )}
           </div>
 
-          {/* Tab Switcher */}
           <div className="flex items-center gap-1 border-b border-border/[0.06] pb-0">
             <button
               onClick={() => setActiveTab("findings")}
@@ -326,22 +594,24 @@ const DomainReconScreen = () => {
                   : "border-transparent text-muted-foreground/40 hover:text-foreground/60"
               }`}
             >
-              Infrastructure Map
+              Infrastructure Map {isRecoveredInfrastructureMap ? "• reconstructed" : ""}
             </button>
           </div>
 
-          {/* Infrastructure Map Tab */}
           {activeTab === "infrastructure" && (
-            <InfrastructureMap data={result.infrastructure_map} domain={domain} />
+            <InfrastructureMap
+              data={resolvedInfrastructureMap}
+              domain={domain}
+              isFallback={isRecoveredInfrastructureMap}
+              unavailableReason={result.summary}
+            />
           )}
 
-          {/* Findings Tab */}
           {activeTab === "findings" && (
             <>
-              {/* Actions */}
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground/40">
-                  {findings.length} weaknesses — showing all, no limit
+                  {findingsLoading ? "Loading weaknesses for this scan…" : `${findings.length} weaknesses — showing all, no limit`}
                 </span>
                 <div className="flex gap-2">
                   <button onClick={() => refetch()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-foreground/50 hover:bg-foreground/[0.07] transition-colors">
@@ -356,7 +626,6 @@ const DomainReconScreen = () => {
                 </div>
               </div>
 
-              {/* Findings List */}
               <div className="space-y-1.5">
                 {findings.map((f) => (
                   <div
@@ -483,7 +752,6 @@ const DomainReconScreen = () => {
         </div>
       )}
 
-      {/* Empty State */}
       {!scanning && !result && (
         <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.015] p-12 text-center">
           <div className="w-14 h-14 rounded-2xl bg-foreground/[0.03] border border-border/[0.06] flex items-center justify-center mx-auto mb-4">
