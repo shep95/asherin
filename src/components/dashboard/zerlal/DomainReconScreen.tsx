@@ -3,6 +3,7 @@ import { Globe, Search, Shield, AlertTriangle, ChevronDown, ChevronUp, Copy, Dow
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useZerlalFindings } from "./useZerlalData";
+import InfrastructureMap from "./InfrastructureMap";
 
 interface DomainInfo {
   ip?: string;
@@ -25,6 +26,7 @@ interface ScanResult {
   total_attack_surface_score: number;
   zero_trust_score: number;
   duration: number;
+  infrastructure_map: any;
 }
 
 const severityColor: Record<string, string> = {
@@ -49,6 +51,7 @@ const DomainReconScreen = () => {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [expandedFinding, setExpandedFinding] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"findings" | "infrastructure">("findings");
 
   const { findings, loading: findingsLoading, refetch } = useZerlalFindings(projectId);
 
@@ -93,7 +96,6 @@ const DomainReconScreen = () => {
       setProjectId(data.project_id);
       toast.success(`Domain recon complete: ${data.findings_count} weaknesses found`);
 
-      // Refetch findings
       setTimeout(() => refetch(), 500);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
@@ -141,7 +143,7 @@ const DomainReconScreen = () => {
           </h2>
         </div>
         <p className="text-[10px] text-muted-foreground/40 tracking-wide">
-          ELION/ZOHAR Intelligence Engine — Full-spectrum domain vulnerability analysis
+          ELION/ZOHAR Intelligence Engine — Full-spectrum domain vulnerability analysis & infrastructure mapping
         </p>
       </div>
 
@@ -183,9 +185,9 @@ const DomainReconScreen = () => {
         <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.02] p-8 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-foreground/30 mx-auto mb-3" />
           <p className="text-[11px] text-foreground/50 tracking-wide">ZERLAL Agent executing domain reconnaissance…</p>
-          <p className="text-[9px] text-muted-foreground/30 mt-1">Running 12 intelligence modules against {domain}</p>
+          <p className="text-[9px] text-muted-foreground/30 mt-1">Running 13 intelligence modules against {domain}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-            {["DNS Intel", "TLS/SSL", "Headers", "Web App", "Infrastructure", "Subdomains", "APIs", "Email", "Cloud", "Secrets", "Supply Chain", "Compliance"].map(m => (
+            {["DNS Intel", "TLS/SSL", "Headers", "Web App", "Infrastructure", "Subdomains", "APIs", "Email", "Cloud", "Secrets", "Supply Chain", "Compliance", "Infra Map"].map(m => (
               <span key={m} className="text-[8px] px-2 py-0.5 rounded-full bg-foreground/[0.04] text-muted-foreground/40 animate-pulse">
                 {m}
               </span>
@@ -304,129 +306,163 @@ const DomainReconScreen = () => {
             )}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground/40">
-              {findings.length} weaknesses — showing all, no limit
-            </span>
-            <div className="flex gap-2">
-              <button onClick={() => refetch()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-foreground/50 hover:bg-foreground/[0.07] transition-colors">
-                <RefreshCw className="h-2.5 w-2.5" /> Refresh
-              </button>
-              <button onClick={copyAllFindings} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-foreground/50 hover:bg-foreground/[0.07] transition-colors">
-                <Copy className="h-2.5 w-2.5" /> Copy All
-              </button>
-              <button onClick={downloadFindings} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-foreground/50 hover:bg-foreground/[0.07] transition-colors">
-                <Download className="h-2.5 w-2.5" /> Download Report
-              </button>
-            </div>
+          {/* Tab Switcher */}
+          <div className="flex items-center gap-1 border-b border-border/[0.06] pb-0">
+            <button
+              onClick={() => setActiveTab("findings")}
+              className={`px-4 py-2 text-[10px] tracking-wide border-b-2 transition-colors ${
+                activeTab === "findings"
+                  ? "border-foreground/30 text-foreground/80"
+                  : "border-transparent text-muted-foreground/40 hover:text-foreground/60"
+              }`}
+            >
+              Weaknesses ({findings.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("infrastructure")}
+              className={`px-4 py-2 text-[10px] tracking-wide border-b-2 transition-colors ${
+                activeTab === "infrastructure"
+                  ? "border-foreground/30 text-foreground/80"
+                  : "border-transparent text-muted-foreground/40 hover:text-foreground/60"
+              }`}
+            >
+              Infrastructure Map
+            </button>
           </div>
 
-          {/* Findings List — ALL, no limit */}
-          <div className="space-y-1.5">
-            {findings.map((f) => (
-              <div
-                key={f.id}
-                className="rounded-lg border border-border/[0.06] bg-foreground/[0.015] overflow-hidden"
-              >
-                <button
-                  onClick={() => setExpandedFinding(expandedFinding === f.id ? null : f.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-foreground/[0.02] transition-colors"
-                >
-                  <span className={`shrink-0 text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${severityColor[f.severity] || severityColor.info}`}>
-                    {f.severity}
-                  </span>
-                  <span className="flex-1 text-[10px] text-foreground/70 truncate">{f.title}</span>
-                  <span className="text-[8px] text-muted-foreground/30 shrink-0">{f.category}</span>
-                  <span className="text-[8px] text-muted-foreground/30 shrink-0">CVSS {f.cvss_score}</span>
-                  {expandedFinding === f.id ? (
-                    <ChevronUp className="h-3 w-3 text-muted-foreground/30 shrink-0" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3 text-muted-foreground/30 shrink-0" />
-                  )}
-                </button>
+          {/* Infrastructure Map Tab */}
+          {activeTab === "infrastructure" && (
+            <InfrastructureMap data={result.infrastructure_map} domain={domain} />
+          )}
 
-                {expandedFinding === f.id && (
-                  <div className="px-4 pb-4 border-t border-border/[0.04] pt-3 space-y-3">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[9px]">
-                      <div><span className="text-muted-foreground/30">CWE:</span> <span className="text-foreground/60">{f.cwe_id}</span></div>
-                      <div><span className="text-muted-foreground/30">Confidence:</span> <span className="text-foreground/60">{f.confidence}%</span></div>
-                      <div><span className="text-muted-foreground/30">Component:</span> <span className="text-foreground/60">{f.file_path}</span></div>
-                      <div><span className="text-muted-foreground/30">Status:</span> <span className="text-foreground/60">{f.status}</span></div>
-                    </div>
+          {/* Findings Tab */}
+          {activeTab === "findings" && (
+            <>
+              {/* Actions */}
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground/40">
+                  {findings.length} weaknesses — showing all, no limit
+                </span>
+                <div className="flex gap-2">
+                  <button onClick={() => refetch()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-foreground/50 hover:bg-foreground/[0.07] transition-colors">
+                    <RefreshCw className="h-2.5 w-2.5" /> Refresh
+                  </button>
+                  <button onClick={copyAllFindings} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-foreground/50 hover:bg-foreground/[0.07] transition-colors">
+                    <Copy className="h-2.5 w-2.5" /> Copy All
+                  </button>
+                  <button onClick={downloadFindings} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/[0.04] text-[9px] text-foreground/50 hover:bg-foreground/[0.07] transition-colors">
+                    <Download className="h-2.5 w-2.5" /> Download Report
+                  </button>
+                </div>
+              </div>
 
-                    <div>
-                      <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Description</span>
-                      <p className="text-[10px] text-foreground/60 leading-relaxed mt-1">{f.description}</p>
-                    </div>
+              {/* Findings List */}
+              <div className="space-y-1.5">
+                {findings.map((f) => (
+                  <div
+                    key={f.id}
+                    className="rounded-lg border border-border/[0.06] bg-foreground/[0.015] overflow-hidden"
+                  >
+                    <button
+                      onClick={() => setExpandedFinding(expandedFinding === f.id ? null : f.id)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-foreground/[0.02] transition-colors"
+                    >
+                      <span className={`shrink-0 text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${severityColor[f.severity] || severityColor.info}`}>
+                        {f.severity}
+                      </span>
+                      <span className="flex-1 text-[10px] text-foreground/70 truncate">{f.title}</span>
+                      <span className="text-[8px] text-muted-foreground/30 shrink-0">{f.category}</span>
+                      <span className="text-[8px] text-muted-foreground/30 shrink-0">CVSS {f.cvss_score}</span>
+                      {expandedFinding === f.id ? (
+                        <ChevronUp className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                      )}
+                    </button>
 
-                    <div>
-                      <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Impact</span>
-                      <p className="text-[10px] text-foreground/60 leading-relaxed mt-1">{f.impact}</p>
-                    </div>
+                    {expandedFinding === f.id && (
+                      <div className="px-4 pb-4 border-t border-border/[0.04] pt-3 space-y-3">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[9px]">
+                          <div><span className="text-muted-foreground/30">CWE:</span> <span className="text-foreground/60">{f.cwe_id}</span></div>
+                          <div><span className="text-muted-foreground/30">Confidence:</span> <span className="text-foreground/60">{f.confidence}%</span></div>
+                          <div><span className="text-muted-foreground/30">Component:</span> <span className="text-foreground/60">{f.file_path}</span></div>
+                          <div><span className="text-muted-foreground/30">Status:</span> <span className="text-foreground/60">{f.status}</span></div>
+                        </div>
 
-                    {f.exploitation_steps && f.exploitation_steps.length > 0 && (
-                      <div>
-                        <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Exploitation Steps</span>
-                        <ol className="mt-1 space-y-1">
-                          {f.exploitation_steps.map((step: string, i: number) => (
-                            <li key={i} className="text-[9px] text-foreground/50 flex gap-2">
-                              <span className="text-red-400/60 shrink-0">{i + 1}.</span>
-                              <span>{step}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
+                        <div>
+                          <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Description</span>
+                          <p className="text-[10px] text-foreground/60 leading-relaxed mt-1">{f.description}</p>
+                        </div>
 
-                    {f.code_snippet && (
-                      <div>
-                        <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Evidence</span>
-                        <pre className="mt-1 rounded-md bg-foreground/[0.03] border border-border/[0.06] p-3 text-[9px] text-red-300/70 overflow-x-auto font-mono whitespace-pre-wrap">
-                          {f.code_snippet}
-                        </pre>
-                      </div>
-                    )}
+                        <div>
+                          <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Impact</span>
+                          <p className="text-[10px] text-foreground/60 leading-relaxed mt-1">{f.impact}</p>
+                        </div>
 
-                    {f.suggested_fix && (
-                      <div>
-                        <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Remediation</span>
-                        <pre className="mt-1 rounded-md bg-foreground/[0.03] border border-border/[0.06] p-3 text-[9px] text-green-300/70 overflow-x-auto font-mono whitespace-pre-wrap">
-                          {f.suggested_fix}
-                        </pre>
-                      </div>
-                    )}
+                        {f.exploitation_steps && f.exploitation_steps.length > 0 && (
+                          <div>
+                            <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Exploitation Steps</span>
+                            <ol className="mt-1 space-y-1">
+                              {f.exploitation_steps.map((step: string, i: number) => (
+                                <li key={i} className="text-[9px] text-foreground/50 flex gap-2">
+                                  <span className="text-red-400/60 shrink-0">{i + 1}.</span>
+                                  <span>{step}</span>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
 
-                    {f.compliance_controls && f.compliance_controls.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {f.compliance_controls.map((c: string) => (
-                          <span key={c} className="text-[7px] px-1.5 py-0.5 rounded bg-foreground/[0.03] border border-border/[0.06] text-muted-foreground/40">
-                            {c}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                        {f.code_snippet && (
+                          <div>
+                            <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Evidence</span>
+                            <pre className="mt-1 rounded-md bg-foreground/[0.03] border border-border/[0.06] p-3 text-[9px] text-red-300/70 overflow-x-auto font-mono whitespace-pre-wrap">
+                              {f.code_snippet}
+                            </pre>
+                          </div>
+                        )}
 
-                    {f.similar_cves && f.similar_cves.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {f.similar_cves.map((cve: string) => (
-                          <a
-                            key={cve}
-                            href={`https://nvd.nist.gov/vuln/detail/${cve}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[7px] px-1.5 py-0.5 rounded bg-red-500/5 border border-red-500/10 text-red-400/60 hover:text-red-400 flex items-center gap-0.5"
-                          >
-                            {cve} <ExternalLink className="h-2 w-2" />
-                          </a>
-                        ))}
+                        {f.suggested_fix && (
+                          <div>
+                            <span className="text-[8px] text-muted-foreground/30 uppercase tracking-wider">Remediation</span>
+                            <pre className="mt-1 rounded-md bg-foreground/[0.03] border border-border/[0.06] p-3 text-[9px] text-green-300/70 overflow-x-auto font-mono whitespace-pre-wrap">
+                              {f.suggested_fix}
+                            </pre>
+                          </div>
+                        )}
+
+                        {f.compliance_controls && f.compliance_controls.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {f.compliance_controls.map((c: string) => (
+                              <span key={c} className="text-[7px] px-1.5 py-0.5 rounded bg-foreground/[0.03] border border-border/[0.06] text-muted-foreground/40">
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {f.similar_cves && f.similar_cves.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {f.similar_cves.map((cve: string) => (
+                              <a
+                                key={cve}
+                                href={`https://nvd.nist.gov/vuln/detail/${cve}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[7px] px-1.5 py-0.5 rounded bg-red-500/5 border border-red-500/10 text-red-400/60 hover:text-red-400 flex items-center gap-0.5"
+                              >
+                                {cve} <ExternalLink className="h-2 w-2" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       )}
 
@@ -438,11 +474,11 @@ const DomainReconScreen = () => {
           </div>
           <h3 className="text-[12px] font-light text-foreground/70 tracking-wide mb-1">Domain Reconnaissance</h3>
           <p className="text-[9px] text-muted-foreground/30 max-w-md mx-auto leading-relaxed">
-            Enter any domain to execute a full-spectrum security reconnaissance using ELION/ZOHAR intelligence modules.
-            ZERLAL will scan DNS, TLS, headers, subdomains, APIs, cloud storage, secrets, supply chain, and compliance — listing every weakness without limits.
+            Enter any domain to execute a full-spectrum security reconnaissance using ELION/ZOHAR intelligence modules with the ZERLAL intelligence knowledge base.
+            Scans DNS, TLS, headers, subdomains, APIs, cloud storage, secrets, supply chain, compliance, and maps the full infrastructure architecture — listing every weakness without limits.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-            {["DNS Intel", "TLS/SSL", "Security Headers", "Web App", "Infrastructure", "Subdomains", "APIs", "Email", "Cloud Storage", "Secrets", "Supply Chain", "Compliance"].map(m => (
+            {["DNS Intel", "TLS/SSL", "Security Headers", "Web App", "Infrastructure", "Subdomains", "APIs", "Email", "Cloud Storage", "Secrets", "Supply Chain", "Compliance", "Infra Map"].map(m => (
               <span key={m} className="text-[8px] px-2 py-0.5 rounded-full bg-foreground/[0.04] text-muted-foreground/30">
                 {m}
               </span>
