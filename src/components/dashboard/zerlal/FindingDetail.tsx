@@ -260,6 +260,23 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
                 <div className="flex gap-2">
                   <div className="w-1 h-1 rounded-full bg-foreground/10 mt-1.5 shrink-0" />
                   <div>
+                    <span className="text-[9px] text-muted-foreground/30">Exploit Age</span>
+                    <p className={`text-[11px] font-mono font-medium ${
+                      finding.age_days >= 365 ? "text-red-400" : finding.age_days >= 90 ? "text-orange-400" : finding.age_days >= 30 ? "text-yellow-400" : "text-foreground/60"
+                    }`}>
+                      {finding.age_days > 0
+                        ? finding.age_days >= 365
+                          ? `${Math.floor(finding.age_days / 365)} year${Math.floor(finding.age_days / 365) > 1 ? "s" : ""}, ${Math.floor((finding.age_days % 365) / 30)} months`
+                          : finding.age_days >= 30
+                            ? `${Math.floor(finding.age_days / 30)} month${Math.floor(finding.age_days / 30) > 1 ? "s" : ""}, ${finding.age_days % 30} days`
+                            : `${finding.age_days} days`
+                        : "Recently identified"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div className="w-1 h-1 rounded-full bg-foreground/10 mt-1.5 shrink-0" />
+                  <div>
                     <span className="text-[9px] text-muted-foreground/30">First discovered</span>
                     <p className="text-[8px] text-muted-foreground/20">{new Date(finding.first_seen_at).toLocaleString()}</p>
                   </div>
@@ -267,8 +284,10 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
                 <div className="flex gap-2">
                   <div className="w-1 h-1 rounded-full bg-foreground/10 mt-1.5 shrink-0" />
                   <div>
-                    <span className="text-[9px] text-muted-foreground/30">Vulnerability age: {finding.age_days} days</span>
-                    <p className="text-[8px] text-muted-foreground/20">Present in codebase since ~{new Date(Date.now() - finding.age_days * 86400000).toLocaleDateString()}</p>
+                    <span className="text-[9px] text-muted-foreground/30">Estimated origin</span>
+                    <p className="text-[8px] text-muted-foreground/20">
+                      {finding.age_days > 0 ? `Vulnerability likely present since ~${new Date(Date.now() - finding.age_days * 86400000).toLocaleDateString()}` : "Origin date unknown"}
+                    </p>
                   </div>
                 </div>
               </div>
