@@ -101,6 +101,7 @@ const navGroups: NavGroup[] = [
       { id: "pdf-generator", icon: FileText, label: "PDF Generator" },
       { id: "ebook" as DashboardView, icon: FileText, label: "E-Book Generator" },
       { id: "slideshow", icon: Layers, label: "Slideshow Generator", access: "search" },
+      { id: "file-scrapper" as DashboardView, icon: FileText, label: "File Scrapper", access: "search" },
       { id: "snippets", icon: Code2, label: "Code Snippets" },
       { id: "projects", icon: Layers, label: "Projects" },
     ],

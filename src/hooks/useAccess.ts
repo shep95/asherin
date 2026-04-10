@@ -17,7 +17,7 @@ const PRO_VIEWS: DashboardView[] = [
 ];
 
 // Views that require any paid plan (search-tier)
-const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "notebooks", "reverse-engineer"];
+const SEARCH_VIEWS: DashboardView[] = ["search", "imagine-intelligence", "notebooks", "reverse-engineer", "file-scrapper"];
 
 // Views that require any paid plan (chat-tier minimum)
 const CHAT_VIEWS: DashboardView[] = ["chat", "pdf-generator", "slideshow"];
