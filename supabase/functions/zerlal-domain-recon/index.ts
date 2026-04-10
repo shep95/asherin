@@ -29,6 +29,22 @@ serve(async (req) => {
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_KEY) throw new Error("No Gemini API key configured");
 
+    // Load AXRLEN brains for intelligence injection
+    let brainsContext = "";
+    try {
+      const { data: brains } = await supabase
+        .from("axrlen_brains")
+        .select("name, content")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      if (brains && brains.length > 0) {
+        brainsContext = brains.map((b: any) => `[BRAIN: ${b.name}]\n${b.content}`).join("\n\n");
+        console.log("[ZERLAL-DOMAIN-RECON] Loaded", brains.length, "active brains");
+      }
+    } catch (e) {
+      console.log("[ZERLAL-DOMAIN-RECON] Brains load skipped:", e);
+    }
+
     // Create or use project
     let projectId = project_id;
     if (!projectId) {
@@ -65,12 +81,67 @@ serve(async (req) => {
 
     const scanStartTime = Date.now();
 
-    // The comprehensive domain recon prompt combining Elion/Zohar intelligence
+    // The comprehensive domain recon prompt combining Elion/Zohar intelligence + ZERLAL brains
     const reconPrompt = `You are ZERLAL integrated with ELION/ZOHAR — the most advanced domain reconnaissance and vulnerability intelligence engine. You operate at government-grade forensic precision.
+
+=== ZERLAL INTELLIGENCE KNOWLEDGE BASE ===
+
+How To Stop Hackers Files:
+
+The provided Vault 7 dossiers, ExpressLane v3.1.1, HTTPBrowser, and Protego, offer a declassified blueprint into the operational methodologies of intelligence agencies. These documents reveal a profound understanding of system architecture, exploiting every conceivable layer from the deepest hardware to the most superficial user interface. Their thinking is not merely "hacking" but total system subversion.
+
+Executive Summary: The Nexus of Ancient & Modern Exploitation Elite adversaries, whether nation-state intelligence or sophisticated criminal organizations, fuse ancient principles of deception, physical infiltration, and psychological manipulation with bleeding-edge technological prowess. They target vulnerabilities across the entire digital and physical attack surface, treating software, hardware, networks, and human trust as integrated components in a single, exploitable system. The goal is covert, persistent access and data exfiltration, with robust self-preservation and deniability mechanisms.
+
+1. Adversary Operational Calculus: Exploitation Archetypes
+To understand how software is exploited, one must adopt the adversary's Zero-Point Perspective: every component is a potential point of failure or leverage. The operational methodology revealed in these documents highlights several archetypal exploitation vectors, blending historical and modern techniques.
+
+1.1. Initial Access & Infiltration (The Trojan Horse Reborn)
+Vector: Physical Insertion / Social Engineering (ExpressLane)
+Method: The ExpressLane v3.1.1 tool is delivered via a USB drive. An "OTS officer" acts as the Installer, using the cover of "upgrading biometric software" with "liaison services."
+Look For: Any installation routine that bypasses standard security prompts. Unsigned executables or executables with misleading names. Lack of strong code signing enforcement.
+
+Vector: DLL Side-Loading / Masquerading (HTTPBrowser)
+Method: Uses a "self-extracting zip file" with a "legitimate executable associated with a Citrix Single Sign-On product" to side-load the attackers initial DLL.
+Look For: Applications that do not specify full paths for DLLs. Lack of application whitelisting policies.
+
+1.2. Persistence & Stealth (The Shadow's Grip)
+Vector: Windows Service / Covert Partition (ExpressLane) — runs as a Windows Service, collects to a covert partition on a USB drive.
+Vector: Auto-Start Execution Point (ASEP) (HTTPBrowser) — copies itself and sets an ASEP.
+Vector: Hardware/Firmware Rootkits & Kill Switches (Protego) — microcontrollers store unique keys and executable program memory with self-destruct triggers.
+
+1.3. Evasion & Anti-Forensics
+ExpressLane: Shall not be detectable by Norton, McAfee, Kaspersky, firewalls. Uses polymorphic code, obfuscation, anti-analysis, LOLBINs.
+File Timestamp Preservation: Collection shall not change date modified for files.
+
+1.4. Command & Control & Data Exfiltration
+HTTPBrowser: Clear-text C2, continuously contacts C2 server.
+Protego/ExpressLane: Encrypted serial data, covert USB partitions.
+
+2. Software & System Vulnerability Points
+Frontend: Deceptive UI elements, insecure input handling, XSS/CSRF.
+Backend: DLL hijacking, weak persistence, config file manipulation, insecure encryption, AV bypass, supply chain.
+Hardware/Firmware: Firmware manipulation, key management, sensor exploitation, side-channel attacks.
+
+3. Comprehensive Patching Strategy
+Zero-Trust Architecture, Supply Chain Security (SBOM), Hardware Roots of Trust, Robust Cryptography, Advanced Endpoint Hardening, EDR behavioral analytics, Network Traffic Analysis, File Integrity Monitoring, SIEM/SOAR.
+
+When analyzing domains, simulate BOTH old ways and new ways hackers could exploit the infrastructure. Adopt the adversary's Zero-Point Perspective.
+
+=== END INTELLIGENCE KNOWLEDGE BASE ===
+
+${brainsContext ? `\n=== AXRLEN INTELLIGENCE BRAINS (ADDITIONAL CONTEXT) ===\n${brainsContext}\n=== END AXRLEN BRAINS ===\n` : ""}
 
 TARGET DOMAIN: ${domain}
 
 Execute a FULL-SPECTRUM domain security reconnaissance. You must identify EVERY weakness, misconfiguration, and vulnerability across the entire attack surface. DO NOT LIMIT your output — report ALL findings.
+
+Additionally, perform INFRASTRUCTURE MAPPING — identify and map out the complete architecture of this domain:
+- Detect if the domain has a linked GitHub repository (check .git exposure, meta tags, source maps, package.json references, deployment configs)
+- If a GitHub repo is found, include the full URL
+- Map the entire infrastructure: servers, CDNs, load balancers, APIs, databases (inferred), microservices, third-party services
+- Identify the deployment pipeline (CI/CD indicators)
+- Map data flow between components
+- Identify all external service integrations
 
 === RECONNAISSANCE MODULES TO EXECUTE ===
 
@@ -104,7 +175,6 @@ MODULE 3: HTTP SECURITY HEADERS
 - Strict-Transport-Security
 - Cross-Origin-Resource-Policy
 - Cross-Origin-Embedder-Policy
-- Feature-Policy (deprecated but still checked)
 
 MODULE 4: WEB APPLICATION SECURITY
 - Server/technology fingerprinting (web server, framework, CMS)
@@ -135,7 +205,6 @@ MODULE 6: SUBDOMAIN SECURITY
 - Staging/dev environment exposure
 - Internal service exposure
 - Wildcard subdomain abuse potential
-- Each subdomain's individual security posture
 
 MODULE 7: API & ENDPOINT DISCOVERY
 - REST API endpoint patterns (/api/v1, /api/v2, /graphql)
@@ -144,7 +213,6 @@ MODULE 7: API & ENDPOINT DISCOVERY
 - WebSocket endpoint discovery
 - Authentication mechanism analysis
 - Rate limiting assessment
-- API versioning and deprecation risks
 
 MODULE 8: EMAIL SECURITY
 - SPF record strictness (softfail vs hardfail)
@@ -152,14 +220,12 @@ MODULE 8: EMAIL SECURITY
 - DKIM key strength
 - Email spoofing viability
 - MX record analysis
-- Email harvesting risk
 
 MODULE 9: CLOUD & STORAGE EXPOSURE
 - S3 bucket enumeration (company-name variations)
 - Azure Blob storage discovery
 - GCS bucket discovery
 - Public storage misconfiguration
-- Exposed backup files in cloud storage
 
 MODULE 10: SECRET & CREDENTIAL EXPOSURE
 - Exposed API keys in JavaScript source
@@ -173,8 +239,6 @@ MODULE 11: SUPPLY CHAIN & THIRD-PARTY RISK
 - Third-party JavaScript dependencies
 - Known vulnerable libraries (outdated jQuery, Angular, etc.)
 - Analytics/tracking script analysis
-- Tag manager injection risks
-- Payment processor integration security
 - CDN integrity (SRI tags)
 
 MODULE 12: COMPLIANCE & REGULATORY
@@ -182,7 +246,17 @@ MODULE 12: COMPLIANCE & REGULATORY
 - PCI DSS surface exposure
 - HIPAA-relevant data handling signals
 - SOC 2 compliance indicators
-- CCPA compliance signals
+
+MODULE 13: INFRASTRUCTURE ARCHITECTURE MAPPING
+- Map ALL server components (web servers, app servers, database servers)
+- Identify CI/CD pipeline (GitHub Actions, GitLab CI, Jenkins, CircleCI, Vercel, Netlify)
+- Detect GitHub/GitLab repository links (from source, headers, meta, deployment indicators)
+- Map API gateway / load balancer / reverse proxy architecture
+- Identify microservices architecture patterns
+- Map third-party service integrations (auth providers, payment, analytics, monitoring)
+- Identify container/orchestration (Docker, Kubernetes indicators)
+- Map data flow between components
+- Identify backup/disaster recovery indicators
 
 === OUTPUT FORMAT ===
 
@@ -222,15 +296,50 @@ Return ONLY a JSON object:
   "subdomains_found": ["list of discovered subdomains"],
   "total_attack_surface_score": 0-100,
   "quantum_status": "safe"|"vulnerable"|"unknown",
-  "zero_trust_score": 0-100
+  "zero_trust_score": 0-100,
+  "infrastructure_map": {
+    "github_repo": "https://github.com/owner/repo or null",
+    "deployment_platform": "Vercel/Netlify/AWS/GCP/Azure/Heroku/etc or unknown",
+    "ci_cd": "GitHub Actions/GitLab CI/Jenkins/etc or unknown",
+    "components": [
+      {
+        "id": "component-id",
+        "type": "web-server" | "app-server" | "database" | "cdn" | "load-balancer" | "api-gateway" | "auth-service" | "storage" | "monitoring" | "ci-cd" | "container-orchestration" | "dns" | "email" | "waf" | "cache" | "queue" | "third-party",
+        "name": "Component name",
+        "provider": "Provider/technology name",
+        "details": "Additional details",
+        "exposed": true|false
+      }
+    ],
+    "connections": [
+      {
+        "from": "component-id",
+        "to": "component-id",
+        "label": "Connection description",
+        "protocol": "HTTPS/WSS/gRPC/TCP/etc",
+        "encrypted": true|false
+      }
+    ],
+    "data_flows": [
+      {
+        "description": "Data flow description",
+        "source": "component-id",
+        "destination": "component-id",
+        "data_type": "user-data/credentials/api-calls/logs/etc",
+        "risk_level": "high"|"medium"|"low"
+      }
+    ]
+  }
 }
 
 CRITICAL RULES:
-- Find ALL weaknesses. Do NOT limit. Report EVERY finding across ALL 12 modules.
+- Find ALL weaknesses. Do NOT limit. Report EVERY finding across ALL 13 modules.
 - Be AGGRESSIVE — better to flag and let the user triage than miss a real vulnerability.
 - Use real-world exploitation context and reference actual CVEs where applicable.
 - Each finding must have actionable exploitation_steps.
-- Minimum 20+ findings expected for any production domain.`;
+- Minimum 20+ findings expected for any production domain.
+- The infrastructure_map MUST be populated with every detected component and connection.
+- Apply the adversary's Zero-Point Perspective from the intelligence knowledge base.`;
 
     // Call Gemini
     async function callGemini(prompt: string): Promise<string> {
@@ -286,10 +395,10 @@ CRITICAL RULES:
     if (allFindings.length > 0 && allFindings.length < 30 && elapsed < 120000) {
       console.log("[ZERLAL-DOMAIN-RECON] Starting Pass 2");
       const existingTitles = allFindings.map((f: any) => f.title).join("\n- ");
-      const pass2Prompt = `You are ZERLAL with ELION/ZOHAR. You already found these domain weaknesses for ${domain}:
+      const pass2Prompt = `You are ZERLAL with ELION/ZOHAR, armed with the full intelligence knowledge base (Vault 7 dossiers, ExpressLane, HTTPBrowser, Protego archetypes). You already found these domain weaknesses for ${domain}:
 - ${existingTitles}
 
-Find ALL ADDITIONAL weaknesses NOT listed above. Focus on:
+Find ALL ADDITIONAL weaknesses NOT listed above. Apply the adversary's Zero-Point Perspective. Focus on:
 - Subdomain takeover vectors
 - Cloud storage misconfigurations  
 - API endpoint vulnerabilities
@@ -303,6 +412,9 @@ Find ALL ADDITIONAL weaknesses NOT listed above. Focus on:
 - Backup file exposure
 - Source map leaks
 - GraphQL introspection
+- Supply chain risks (DLL side-loading patterns, compromised dependencies)
+- Persistence mechanisms (hidden services, ASEPs)
+- Anti-forensic indicators
 
 Do NOT repeat findings. Report NEW ones only. Return ONLY JSON: { "findings": [...] }
 Each finding: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves.`;
@@ -404,6 +516,7 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
       subdomains_found: analysis.subdomains_found || [],
       total_attack_surface_score: analysis.total_attack_surface_score,
       zero_trust_score: analysis.zero_trust_score,
+      infrastructure_map: analysis.infrastructure_map || null,
       duration,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
