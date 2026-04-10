@@ -88,6 +88,7 @@ const ZaplenView = React.lazy(() => import("@/components/dashboard/zaplen/Zaplen
 const ZeeionView = React.lazy(() => import("@/components/dashboard/zeeion/ZeeionView"));
 const AxrlenView = React.lazy(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZerlalView = React.lazy(() => import("@/components/dashboard/zerlal/ZerlalView"));
+const FileScrapperView = React.lazy(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 const AziionView = React.lazy(() => import("@/components/dashboard/aziion/AziionView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
@@ -1275,6 +1276,7 @@ const Dashboard = () => {
       case "zerlal": return gatedView("zerlal", ZerlalView, "Zerlal — Cyber Security", "AI-powered cyber security intelligence — threat analysis, vulnerability detection, and defense strategies powered by AUREON. Enterprise tier exclusive.");
       case "aziion": return gatedView("aziion", AziionView, "Aziion — Automated Oil Trading", "Automated Brent Oil trading bot — AI predicts price direction every 24h and executes trades on Hyperliquid. Admin only.");
       case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
+      case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon ($199/mo) and above.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro and Advisor plans.");
       case "vibe-imager": return gatedView("vibe-imager", VibeImagerView, "Vibe Imager", "Conversational AI image creation — describe, iterate, version control. Available on all paid plans.");
       case "vibe-video": return gatedView("vibe-video", VibeVideoView, "Vibe Video", "Conversational AI video editing — upload, describe edits, and Aureon analyzes your footage. Available on Pro and Advisor plans.");
