@@ -3488,6 +3488,89 @@ export type Database = {
         }
         Relationships: []
       }
+      scrapper_files: {
+        Row: {
+          created_at: string
+          extracted_text: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          session_id: string
+          status: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          session_id: string
+          status?: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          session_id?: string
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scrapper_files_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "scrapper_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scrapper_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          status: string
+          total_files: number
+          total_text_length: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          total_files?: number
+          total_text_length?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          total_files?: number
+          total_text_length?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           action_taken: string
