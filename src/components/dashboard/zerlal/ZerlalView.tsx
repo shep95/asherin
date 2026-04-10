@@ -8,6 +8,7 @@ import ReportsScreen from "./ReportsScreen";
 import IntegrationsScreen from "./IntegrationsScreen";
 import IntelligenceModule from "./IntelligenceModule";
 import DeviceSecurityScanner from "./DeviceSecurityScanner";
+import DomainReconScreen from "./DomainReconScreen";
 import ScanModal from "./ScanModal";
 import { useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
@@ -59,6 +60,10 @@ const ZerlalView = () => {
   };
 
   const renderScreen = () => {
+    if (activeScreen === "domain-recon") {
+      return <DomainReconScreen />;
+    }
+
     if (activeScreen === "device-security") {
       return <DeviceSecurityScanner />;
     }
