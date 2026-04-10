@@ -6,6 +6,315 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type ReconFinding = {
+  severity?: string;
+  title?: string;
+  file_path?: string;
+  line_number?: number;
+  category?: string;
+  confidence?: number;
+  cwe_id?: string;
+  cvss_score?: number;
+  description?: string;
+  impact?: string;
+  exploitation_steps?: string[];
+  code_snippet?: string;
+  suggested_fix?: string;
+  dataflow_trace?: unknown[];
+  compliance_controls?: string[];
+  similar_cves?: string[];
+  age_days_estimate?: number;
+};
+
+type ReconAnalysis = {
+  findings?: ReconFinding[];
+  risk_grade?: string;
+  summary?: string;
+  domain_info?: {
+    ip?: string;
+    hosting?: string;
+    cdn?: string;
+    waf?: string;
+    tech_stack?: string[];
+    tls_grade?: string;
+    email_security_grade?: string;
+  };
+  subdomains_found?: string[];
+  total_attack_surface_score?: number;
+  zero_trust_score?: number;
+  infrastructure_map?: {
+    github_repo?: string | null;
+    deployment_platform?: string;
+    ci_cd?: string;
+    components?: Array<{
+      id: string;
+      type: string;
+      name: string;
+      provider: string;
+      details: string;
+      exposed: boolean;
+    }>;
+    connections?: Array<{
+      from: string;
+      to: string;
+      label: string;
+      protocol: string;
+      encrypted: boolean;
+    }>;
+    data_flows?: Array<{
+      description: string;
+      source: string;
+      destination: string;
+      data_type: string;
+      risk_level: string;
+    }>;
+  } | null;
+};
+
+const hasInfrastructureMap = (map: ReconAnalysis["infrastructure_map"]) => {
+  if (!map) return false;
+
+  return Boolean(
+    map.github_repo ||
+    (map.deployment_platform && map.deployment_platform !== "unknown") ||
+    (map.ci_cd && map.ci_cd !== "unknown") ||
+    (Array.isArray(map.components) && map.components.length > 0) ||
+    (Array.isArray(map.connections) && map.connections.length > 0) ||
+    (Array.isArray(map.data_flows) && map.data_flows.length > 0)
+  );
+};
+
+const parseJsonObject = (text: string) => {
+  const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fencedMatch?.[1] || text;
+  const jsonMatch = candidate.match(/\{[\s\S]*\}/);
+
+  if (!jsonMatch) {
+    throw new Error("No JSON in response");
+  }
+
+  return JSON.parse(jsonMatch[0]);
+};
+
+const extractGithubRepo = (analysis: ReconAnalysis, findings: ReconFinding[]) => {
+  const haystack = [
+    JSON.stringify(analysis.domain_info || {}),
+    analysis.summary || "",
+    ...(findings || []).flatMap((finding) => [
+      finding.title || "",
+      finding.description || "",
+      finding.impact || "",
+      finding.code_snippet || "",
+      finding.suggested_fix || "",
+      finding.file_path || "",
+      ...(finding.exploitation_steps || []),
+    ]),
+  ].join("\n");
+
+  const match = haystack.match(/https?:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i);
+  return match ? match[0].replace(/[),.;\]]+$/, "") : null;
+};
+
+const detectPlatform = (analysis: ReconAnalysis, findings: ReconFinding[]) => {
+  const haystack = [
+    analysis.domain_info?.hosting,
+    analysis.domain_info?.cdn,
+    analysis.domain_info?.waf,
+    ...(analysis.domain_info?.tech_stack || []),
+    ...findings.flatMap((finding) => [finding.title, finding.description, finding.code_snippet, finding.suggested_fix]),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes("vercel")) return { deployment: "Vercel", ciCd: "Git-based deployment" };
+  if (haystack.includes("netlify")) return { deployment: "Netlify", ciCd: "Git-based deployment" };
+  if (haystack.includes("cloudflare")) return { deployment: "Cloudflare", ciCd: "Cloudflare deployment pipeline" };
+  if (haystack.includes("aws") || haystack.includes("amazon")) return { deployment: "AWS", ciCd: "Cloud CI/CD or Git pipeline" };
+  if (haystack.includes("azure")) return { deployment: "Azure", ciCd: "Azure DevOps or Git pipeline" };
+  if (haystack.includes("gcp") || haystack.includes("google cloud")) return { deployment: "Google Cloud", ciCd: "Cloud Build or Git pipeline" };
+
+  return { deployment: analysis.domain_info?.hosting || "unknown", ciCd: "unknown" };
+};
+
+const inferRiskGrade = (counts: { critical: number; high: number; medium: number; low: number; info: number }) => {
+  if (counts.critical > 0 || counts.high >= 3) return "F";
+  if (counts.high > 0 || counts.medium >= 5) return "D";
+  if (counts.medium > 0 || counts.low >= 5) return "C";
+  if (counts.low > 0 || counts.info >= 5) return "B";
+  return "A";
+};
+
+const buildFallbackInfrastructureMap = (domain: string, analysis: ReconAnalysis, findings: ReconFinding[]) => {
+  const cleanDomain = domain.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+  const techStack = analysis.domain_info?.tech_stack || [];
+  const githubRepo = extractGithubRepo(analysis, findings);
+  const { deployment, ciCd } = detectPlatform(analysis, findings);
+
+  const components: NonNullable<ReconAnalysis["infrastructure_map"]>["components"] = [];
+  const connections: NonNullable<ReconAnalysis["infrastructure_map"]>["connections"] = [];
+  const dataFlows: NonNullable<ReconAnalysis["infrastructure_map"]>["data_flows"] = [];
+
+  const addComponent = (component: NonNullable<ReconAnalysis["infrastructure_map"]>["components"][number]) => {
+    if (!components.some((existing) => existing.id === component.id)) {
+      components.push(component);
+    }
+  };
+
+  addComponent({
+    id: "dns-core",
+    type: "dns",
+    name: cleanDomain,
+    provider: "Domain / DNS",
+    details: `Primary domain entry point for ${cleanDomain}`,
+    exposed: true,
+  });
+
+  if (analysis.domain_info?.cdn) {
+    addComponent({
+      id: "cdn-edge",
+      type: "cdn",
+      name: "Edge CDN",
+      provider: analysis.domain_info.cdn,
+      details: `Traffic acceleration and caching handled by ${analysis.domain_info.cdn}`,
+      exposed: true,
+    });
+  }
+
+  if (analysis.domain_info?.waf) {
+    addComponent({
+      id: "waf-edge",
+      type: "waf",
+      name: "Web Application Firewall",
+      provider: analysis.domain_info.waf,
+      details: `Inbound traffic inspected by ${analysis.domain_info.waf}`,
+      exposed: false,
+    });
+  }
+
+  addComponent({
+    id: "web-app",
+    type: "web-server",
+    name: cleanDomain,
+    provider: techStack[0] || analysis.domain_info?.hosting || "Web Application",
+    details: techStack.length > 0 ? `Detected stack: ${techStack.join(", ")}` : "Public-facing web surface inferred from reconnaissance findings",
+    exposed: true,
+  });
+
+  addComponent({
+    id: "app-runtime",
+    type: "app-server",
+    name: "Application Runtime",
+    provider: deployment !== "unknown" ? deployment : analysis.domain_info?.hosting || "Hosting Platform",
+    details: `Runtime and hosting layer inferred from ${deployment !== "unknown" ? deployment : analysis.domain_info?.hosting || "available evidence"}`,
+    exposed: false,
+  });
+
+  if (analysis.domain_info?.email_security_grade) {
+    addComponent({
+      id: "email-security",
+      type: "email",
+      name: "Email Security",
+      provider: `Grade ${analysis.domain_info.email_security_grade}`,
+      details: "Mail authentication posture inferred from SPF / DKIM / DMARC signals",
+      exposed: true,
+    });
+  }
+
+  if (ciCd !== "unknown" || githubRepo) {
+    addComponent({
+      id: "ci-cd",
+      type: "ci-cd",
+      name: "Deployment Pipeline",
+      provider: ciCd !== "unknown" ? ciCd : "Git-linked workflow",
+      details: githubRepo ? `Repository evidence detected: ${githubRepo}` : "CI/CD inferred from hosting and application evidence",
+      exposed: false,
+    });
+  }
+
+  if (githubRepo) {
+    addComponent({
+      id: "github-origin",
+      type: "third-party",
+      name: "GitHub Repository",
+      provider: "GitHub",
+      details: githubRepo,
+      exposed: true,
+    });
+  }
+
+  const hasComponent = (id: string) => components.some((component) => component.id === id);
+
+  if (hasComponent("dns-core") && hasComponent("cdn-edge")) {
+    connections.push({ from: "dns-core", to: "cdn-edge", label: "DNS resolves traffic to CDN edge", protocol: "DNS/HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("cdn-edge") && hasComponent("waf-edge")) {
+    connections.push({ from: "cdn-edge", to: "waf-edge", label: "Edge requests pass through traffic inspection", protocol: "HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("waf-edge") && hasComponent("web-app")) {
+    connections.push({ from: "waf-edge", to: "web-app", label: "Filtered requests reach the application surface", protocol: "HTTPS", encrypted: true });
+  } else if (hasComponent("cdn-edge") && hasComponent("web-app")) {
+    connections.push({ from: "cdn-edge", to: "web-app", label: "Edge requests forwarded to the web surface", protocol: "HTTPS", encrypted: true });
+  } else if (hasComponent("dns-core") && hasComponent("web-app")) {
+    connections.push({ from: "dns-core", to: "web-app", label: "Domain resolves directly to the public application", protocol: "HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("web-app") && hasComponent("app-runtime")) {
+    connections.push({ from: "web-app", to: "app-runtime", label: "Frontend serves or proxies into the runtime layer", protocol: "HTTPS", encrypted: true });
+  }
+
+  if (hasComponent("app-runtime") && hasComponent("email-security")) {
+    connections.push({ from: "app-runtime", to: "email-security", label: "Transactional or domain email flows", protocol: "SMTP/TLS", encrypted: true });
+  }
+
+  if (hasComponent("ci-cd") && hasComponent("app-runtime")) {
+    connections.push({ from: "ci-cd", to: "app-runtime", label: "Deployments update the runtime environment", protocol: "CI/CD", encrypted: true });
+  }
+
+  if (hasComponent("github-origin") && hasComponent("ci-cd")) {
+    connections.push({ from: "github-origin", to: "ci-cd", label: "Repository changes trigger deployment automation", protocol: "Git/Webhook", encrypted: true });
+  }
+
+  dataFlows.push({
+    description: "User requests reach the public application surface",
+    source: "dns-core",
+    destination: hasComponent("cdn-edge") ? "cdn-edge" : "web-app",
+    data_type: "web-traffic",
+    risk_level: "medium",
+  });
+
+  if (hasComponent("web-app") && hasComponent("app-runtime")) {
+    dataFlows.push({
+      description: "Application traffic is processed by the backend/runtime layer",
+      source: "web-app",
+      destination: "app-runtime",
+      data_type: "user-data",
+      risk_level: "high",
+    });
+  }
+
+  if (hasComponent("github-origin") && hasComponent("ci-cd")) {
+    dataFlows.push({
+      description: "Source changes propagate into build and deployment systems",
+      source: "github-origin",
+      destination: "ci-cd",
+      data_type: "source-code",
+      risk_level: "medium",
+    });
+  }
+
+  return {
+    github_repo: githubRepo,
+    deployment_platform: deployment,
+    ci_cd: ciCd,
+    components,
+    connections,
+    data_flows: dataFlows,
+  };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -28,11 +337,10 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    
     const useLovableGateway = !!LOVABLE_API_KEY;
+
     if (!useLovableGateway && !GEMINI_KEY) throw new Error("No AI API key configured");
 
-    // Load AXRLEN brains for intelligence injection
     let brainsContext = "";
     try {
       const { data: brains } = await supabase
@@ -40,15 +348,15 @@ serve(async (req) => {
         .select("name, content")
         .eq("is_active", true)
         .order("created_at", { ascending: true });
+
       if (brains && brains.length > 0) {
-        brainsContext = brains.map((b: any) => `[BRAIN: ${b.name}]\n${b.content}`).join("\n\n");
+        brainsContext = brains.map((b: { name: string; content: string }) => `[BRAIN: ${b.name}]\n${b.content}`).join("\n\n");
         console.log("[ZERLAL-DOMAIN-RECON] Loaded", brains.length, "active brains");
       }
     } catch (e) {
       console.log("[ZERLAL-DOMAIN-RECON] Brains load skipped:", e);
     }
 
-    // Create or use project
     let projectId = project_id;
     if (!projectId) {
       const { data: proj, error: projErr } = await supabase
@@ -68,7 +376,6 @@ serve(async (req) => {
       await supabase.from("zerlal_projects").update({ status: "scanning" }).eq("id", projectId);
     }
 
-    // Create scan record
     const { data: scan, error: scanErr } = await supabase
       .from("zerlal_scans")
       .insert({
@@ -234,13 +541,13 @@ CRITICAL RULES:
 - Apply the adversary's Zero-Point Perspective from the intelligence knowledge base.
 - For "age_days_estimate": estimate how long this type of vulnerability has likely existed based on when the technology/version was deployed, when default configs were set, or when the CVE was first published. Use your intelligence to infer realistic ages (e.g. missing security headers on a site launched 2 years ago = ~730 days, a recently published CVE = days since CVE publication). This is a forensic estimate — be realistic.`;
 
-    // Call AI via Lovable Gateway or Gemini direct
     async function callAI(prompt: string): Promise<string> {
       const maxRetries = 4;
+
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           let responseText = "";
-          
+
           if (useLovableGateway) {
             const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
@@ -249,7 +556,7 @@ CRITICAL RULES:
                 "Authorization": `Bearer ${LOVABLE_API_KEY}`,
               },
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
+                model: "google/gemini-3-flash-preview",
                 messages: [
                   { role: "system", content: "You are ZERLAL, an elite domain security reconnaissance engine. Return ONLY valid JSON. No markdown, no explanation." },
                   { role: "user", content: prompt },
@@ -262,10 +569,20 @@ CRITICAL RULES:
             if (!resp.ok) {
               const errText = await resp.text();
               console.log(`[ZERLAL-DOMAIN-RECON] Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
-              if (resp.status === 503 || resp.status === 429 || resp.status === 500) {
-                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+
+              if (resp.status === 429) {
+                throw new Error("Lovable AI rate limit reached. Please wait a minute and retry.");
+              }
+
+              if (resp.status === 402) {
+                throw new Error("Lovable AI credits exhausted. Please top up workspace usage and retry.");
+              }
+
+              if (resp.status === 503 || resp.status === 500) {
+                await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
                 continue;
               }
+
               throw new Error(`AI Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
             }
 
@@ -283,15 +600,18 @@ CRITICAL RULES:
                 }),
               }
             );
+
             if (!resp.ok) {
               if (resp.status === 503 || resp.status === 429) {
                 console.log(`[ZERLAL-DOMAIN-RECON] Retry ${attempt + 1} after ${resp.status}`);
-                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+                await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
                 continue;
               }
+
               const errText = await resp.text();
               throw new Error(`Gemini error ${resp.status}: ${errText}`);
             }
+
             const data = await resp.json();
             responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
           }
@@ -300,23 +620,18 @@ CRITICAL RULES:
         } catch (e) {
           if (attempt === maxRetries - 1) throw e;
           console.log(`[ZERLAL-DOMAIN-RECON] Attempt ${attempt + 1} failed:`, e);
-          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
         }
       }
+
       throw new Error("AI API failed after retries");
     }
 
-    // Pass 1: Full recon
-    let analysis: any;
+    let analysis: ReconAnalysis;
     try {
       const responseText = await callAI(reconPrompt);
       console.log("[ZERLAL-DOMAIN-RECON] Pass 1 response length:", responseText.length);
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON in response");
-      }
+      analysis = parseJsonObject(responseText);
     } catch (e) {
       console.error("[ZERLAL-DOMAIN-RECON] Pass 1 error:", e);
       analysis = { findings: [], risk_grade: "F", summary: "Analysis failed. Retry recommended." };
@@ -325,11 +640,10 @@ CRITICAL RULES:
     let allFindings = analysis.findings || [];
     console.log("[ZERLAL-DOMAIN-RECON] Pass 1 findings:", allFindings.length);
 
-    // Pass 2: Deep dive if < 30 findings
     const elapsed = Date.now() - scanStartTime;
     if (allFindings.length > 0 && allFindings.length < 30 && elapsed < 120000) {
       console.log("[ZERLAL-DOMAIN-RECON] Starting Pass 2");
-      const existingTitles = allFindings.map((f: any) => f.title).join("\n- ");
+      const existingTitles = allFindings.map((finding) => finding.title).join("\n- ");
       const pass2Prompt = `You are ZERLAL with ELION/ZOHAR, armed with the full intelligence knowledge base. You already found these domain weaknesses for ${domain}:
 - ${existingTitles}
 
@@ -348,16 +662,14 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
 
       try {
         const pass2Text = await callAI(pass2Prompt);
-        const pass2Match = pass2Text.match(/\{[\s\S]*\}/);
-        if (pass2Match) {
-          const pass2 = JSON.parse(pass2Match[0]);
-          const existingSet = new Set(allFindings.map((f: any) => (f.title || "").toLowerCase().trim()));
-          for (const f of (pass2.findings || [])) {
-            const key = (f.title || "").toLowerCase().trim();
-            if (!existingSet.has(key)) {
-              allFindings.push(f);
-              existingSet.add(key);
-            }
+        const pass2 = parseJsonObject(pass2Text) as ReconAnalysis;
+        const existingSet = new Set(allFindings.map((finding) => (finding.title || "").toLowerCase().trim()));
+
+        for (const finding of pass2.findings || []) {
+          const key = (finding.title || "").toLowerCase().trim();
+          if (!existingSet.has(key)) {
+            allFindings.push(finding);
+            existingSet.add(key);
           }
         }
       } catch (e) {
@@ -365,20 +677,46 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
       }
     }
 
-    console.log("[ZERLAL-DOMAIN-RECON] Total findings:", allFindings.length);
+    let criticalCount = 0;
+    let highCount = 0;
+    let mediumCount = 0;
+    let lowCount = 0;
+    let infoCount = 0;
 
-    // Insert all findings — NO LIMIT
-    let criticalCount = 0, highCount = 0, mediumCount = 0, lowCount = 0, infoCount = 0;
-
-    for (const f of allFindings) {
-      const severity = f.severity || "medium";
+    for (const finding of allFindings) {
+      const severity = finding.severity || "medium";
       if (severity === "critical") criticalCount++;
       else if (severity === "high") highCount++;
       else if (severity === "medium") mediumCount++;
       else if (severity === "low") lowCount++;
       else infoCount++;
+    }
 
-      const ageDays = Math.max(0, Math.round(f.age_days_estimate || 0));
+    if (!hasInfrastructureMap(analysis.infrastructure_map)) {
+      analysis.infrastructure_map = buildFallbackInfrastructureMap(domain, analysis, allFindings);
+    }
+
+    if (!analysis.summary || analysis.summary.toLowerCase().includes("analysis failed")) {
+      analysis.summary = allFindings.length > 0
+        ? `Partial reconnaissance completed. ${allFindings.length} weaknesses were identified, and the infrastructure map was reconstructed from the available evidence.`
+        : "Reconnaissance returned limited evidence. The infrastructure map shown is reconstructed from the domain surface that could be inferred.";
+    }
+
+    analysis.risk_grade = analysis.risk_grade || inferRiskGrade({
+      critical: criticalCount,
+      high: highCount,
+      medium: mediumCount,
+      low: lowCount,
+      info: infoCount,
+    });
+
+    analysis.findings = allFindings;
+
+    console.log("[ZERLAL-DOMAIN-RECON] Total findings:", allFindings.length);
+
+    for (const finding of allFindings) {
+      const severity = finding.severity || "medium";
+      const ageDays = Math.max(0, Math.round(finding.age_days_estimate || 0));
       const firstSeenDate = new Date(Date.now() - ageDays * 86400000).toISOString();
 
       await supabase.from("zerlal_findings").insert({
@@ -386,30 +724,29 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
         project_id: projectId,
         scan_id: scan.id,
         severity,
-        title: f.title || "Unnamed finding",
-        file_path: f.file_path || `Domain: ${domain}`,
-        line_number: f.line_number || 0,
-        category: f.category || "config",
-        confidence: Math.min(100, Math.max(0, f.confidence || 50)),
+        title: finding.title || "Unnamed finding",
+        file_path: finding.file_path || `Domain: ${domain}`,
+        line_number: finding.line_number || 0,
+        category: finding.category || "config",
+        confidence: Math.min(100, Math.max(0, finding.confidence || 50)),
         age_days: ageDays,
         first_seen_at: firstSeenDate,
         status: "open",
-        cwe_id: f.cwe_id || "",
-        cvss_score: Math.min(10, Math.max(0, f.cvss_score || 0)),
-        description: f.description || "",
-        impact: f.impact || "",
-        exploitation_steps: f.exploitation_steps || [],
-        code_snippet: f.code_snippet || "",
-        suggested_fix: f.suggested_fix || "",
-        dataflow_trace: f.dataflow_trace || [],
-        compliance_controls: f.compliance_controls || [],
-        similar_cves: f.similar_cves || [],
+        cwe_id: finding.cwe_id || "",
+        cvss_score: Math.min(10, Math.max(0, finding.cvss_score || 0)),
+        description: finding.description || "",
+        impact: finding.impact || "",
+        exploitation_steps: finding.exploitation_steps || [],
+        code_snippet: finding.code_snippet || "",
+        suggested_fix: finding.suggested_fix || "",
+        dataflow_trace: finding.dataflow_trace || [],
+        compliance_controls: finding.compliance_controls || [],
+        similar_cves: finding.similar_cves || [],
       });
     }
 
     const duration = Math.floor((Date.now() - scanStartTime) / 1000);
 
-    // Update scan
     await supabase.from("zerlal_scans").update({
       status: "complete",
       completed_at: new Date().toISOString(),
@@ -422,7 +759,6 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
       info_count: infoCount,
     }).eq("id", scan.id);
 
-    // Update project
     await supabase.from("zerlal_projects").update({
       risk_grade: analysis.risk_grade || "F",
       last_scan_at: new Date().toISOString(),

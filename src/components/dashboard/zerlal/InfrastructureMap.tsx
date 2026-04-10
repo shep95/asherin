@@ -43,6 +43,8 @@ interface InfrastructureMapData {
 interface InfrastructureMapProps {
   data: InfrastructureMapData | null;
   domain: string;
+  isFallback?: boolean;
+  unavailableReason?: string | null;
 }
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -138,15 +140,18 @@ function groupByPhase(components: InfraComponent[]) {
   return Object.entries(phases).filter(([, items]) => items.length > 0);
 }
 
-const InfrastructureMap = ({ data, domain }: InfrastructureMapProps) => {
+const InfrastructureMap = ({ data, domain, isFallback = false, unavailableReason }: InfrastructureMapProps) => {
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
   const [showDataFlows, setShowDataFlows] = useState(false);
 
   if (!data) {
     return (
-      <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.015] p-8 text-center">
-        <Server className="h-6 w-6 text-muted-foreground/20 mx-auto mb-3" />
-        <p className="text-[10px] text-muted-foreground/30">No infrastructure data available. Run a domain scan to map the architecture.</p>
+      <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.015] p-8 text-center space-y-2">
+        <Server className="h-6 w-6 text-muted-foreground/20 mx-auto" />
+        <p className="text-[10px] text-foreground/45">Infrastructure map could not be generated for this scan.</p>
+        {unavailableReason && (
+          <p className="text-[9px] text-muted-foreground/30 max-w-lg mx-auto leading-relaxed">{unavailableReason}</p>
+        )}
       </div>
     );
   }
@@ -178,6 +183,18 @@ const InfrastructureMap = ({ data, domain }: InfrastructureMapProps) => {
 
   return (
     <div className="space-y-4">
+      {isFallback && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <RefreshCw className="h-3.5 w-3.5 text-amber-400/70" />
+            <span className="text-[9px] uppercase tracking-wider text-amber-400/70">Reconstructed map</span>
+          </div>
+          <p className="text-[9px] text-foreground/55 leading-relaxed">
+            ZERLAL rebuilt this architecture map from detected hosting, security layers, domain intelligence, and finding evidence because the scan did not return a full native topology payload.
+          </p>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
