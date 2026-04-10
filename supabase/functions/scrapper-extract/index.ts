@@ -86,40 +86,58 @@ serve(async (req) => {
       });
     }
 
-    // For images, PDFs, and documents — use Gemini Vision
-    const geminiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inlineData: {
-                    mimeType,
-                    data: fileBase64,
-                  },
-                },
-                {
-                  text: `You are a document text extraction engine. Extract ALL text content from this document/image exactly as it appears. Preserve the original structure, formatting, line breaks, and order. Do not summarize, interpret, or add commentary. If the document contains tables, preserve them in a readable text format. If there are multiple pages, extract text from all pages. If the document is an image with text (OCR), extract all visible text. Output ONLY the raw extracted text, nothing else.`,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0,
-            maxOutputTokens: 65536,
-          },
-        }),
-      }
-    );
+    // For images, PDFs, and documents — use Gemini Vision (with retry)
+    const maxRetries = 4;
+    let geminiResp: Response | null = null;
+    let lastError = "";
 
-    if (!geminiResp.ok) {
-      const errBody = await geminiResp.text();
-      console.error("[SCRAPPER] Gemini error:", errBody);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      geminiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType,
+                      data: fileBase64,
+                    },
+                  },
+                  {
+                    text: `You are a document text extraction engine. Extract ALL text content from this document/image exactly as it appears. Preserve the original structure, formatting, line breaks, and order. Do not summarize, interpret, or add commentary. If the document contains tables, preserve them in a readable text format. If there are multiple pages, extract text from all pages. If the document is an image with text (OCR), extract all visible text. Output ONLY the raw extracted text, nothing else.`,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0,
+              maxOutputTokens: 65536,
+            },
+          }),
+        }
+      );
+
+      if (geminiResp.ok) break;
+
+      lastError = await geminiResp.text();
+
+      if ((geminiResp.status === 503 || geminiResp.status === 429) && attempt < maxRetries) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.warn(`[SCRAPPER] Gemini ${geminiResp.status} (attempt ${attempt}/${maxRetries}), retrying in ${delayMs}ms...`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        continue;
+      }
+
+      console.error("[SCRAPPER] Gemini error:", lastError);
       throw new Error(`AI extraction failed: ${geminiResp.status}`);
+    }
+
+    if (!geminiResp || !geminiResp.ok) {
+      throw new Error(`AI extraction failed after ${maxRetries} attempts`);
     }
 
     const geminiData = await geminiResp.json();
