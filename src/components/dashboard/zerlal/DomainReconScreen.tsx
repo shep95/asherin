@@ -371,6 +371,11 @@ const DomainReconScreen = () => {
                         {f.severity}
                       </span>
                       <span className="flex-1 text-[10px] text-foreground/70 truncate">{f.title}</span>
+                      {f.age_days > 0 && (
+                        <span className="text-[8px] text-orange-400/60 shrink-0 font-mono">
+                          {f.age_days >= 365 ? `${Math.floor(f.age_days / 365)}y ${Math.floor((f.age_days % 365) / 30)}m` : f.age_days >= 30 ? `${Math.floor(f.age_days / 30)}m ${f.age_days % 30}d` : `${f.age_days}d`} old
+                        </span>
+                      )}
                       <span className="text-[8px] text-muted-foreground/30 shrink-0">{f.category}</span>
                       <span className="text-[8px] text-muted-foreground/30 shrink-0">CVSS {f.cvss_score}</span>
                       {expandedFinding === f.id ? (
@@ -382,11 +387,23 @@ const DomainReconScreen = () => {
 
                     {expandedFinding === f.id && (
                       <div className="px-4 pb-4 border-t border-border/[0.04] pt-3 space-y-3">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[9px]">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[9px]">
                           <div><span className="text-muted-foreground/30">CWE:</span> <span className="text-foreground/60">{f.cwe_id}</span></div>
                           <div><span className="text-muted-foreground/30">Confidence:</span> <span className="text-foreground/60">{f.confidence}%</span></div>
                           <div><span className="text-muted-foreground/30">Component:</span> <span className="text-foreground/60">{f.file_path}</span></div>
                           <div><span className="text-muted-foreground/30">Status:</span> <span className="text-foreground/60">{f.status}</span></div>
+                          <div>
+                            <span className="text-muted-foreground/30">Exploit Age:</span>{" "}
+                            <span className={`font-mono ${f.age_days >= 365 ? "text-red-400" : f.age_days >= 90 ? "text-orange-400" : f.age_days >= 30 ? "text-yellow-400" : "text-foreground/60"}`}>
+                              {f.age_days > 0
+                                ? f.age_days >= 365
+                                  ? `${Math.floor(f.age_days / 365)} year${Math.floor(f.age_days / 365) > 1 ? "s" : ""}, ${Math.floor((f.age_days % 365) / 30)} months`
+                                  : f.age_days >= 30
+                                    ? `${Math.floor(f.age_days / 30)} month${Math.floor(f.age_days / 30) > 1 ? "s" : ""}, ${f.age_days % 30} days`
+                                    : `${f.age_days} days`
+                                : "Unknown"}
+                            </span>
+                          </div>
                         </div>
 
                         <div>
