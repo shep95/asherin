@@ -1294,7 +1294,7 @@ const ElionView = () => {
                   <div>
                     <p className="text-xs font-light text-foreground mb-1">Pro & Advisor Access</p>
                     <p className="text-[11px] font-light text-muted-foreground/70 leading-relaxed">
-                      Elion is available on Aureon Pro ($399/mo) and Advisor ($20,000/mo) plans. All intelligence operations are processed through Aureon's secure AI engine. No raw target data is retained beyond your session.
+                      Elion is available on Aureon Pro ($399/mo) plans. All intelligence operations are processed through Aureon's secure AI engine. No raw target data is retained beyond your session.
                     </p>
                   </div>
                 </div>
