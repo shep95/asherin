@@ -13,7 +13,6 @@ import {
 const tiers = {
   aureon: { label: "Aureon — $18/mo", accent: "text-emerald-400/80", dot: "bg-emerald-400/70" },
   pro:    { label: "Pro — $399/mo", accent: "text-accent/80", dot: "bg-accent/70" },
-  advisor:{ label: "Advisor — $20,000/mo", accent: "text-amber-400/80", dot: "bg-amber-400/70" },
 } as const;
 
 type Tier = keyof typeof tiers;
@@ -318,53 +317,24 @@ const features: Feature[] = [
     ],
     tier: "pro",
   },
-  /* ─── Advisor tier ─── */
-  {
-    icon: Server,
-    title: "Private Deployment",
-    description:
-      "Maximum control — Aureon deployed on-premise or in your private cloud. Full data sovereignty with zero external dependencies and dedicated engineering support.",
-    details: [
-      "On-premise or private cloud deployment",
-      "Full data sovereignty — nothing leaves your network",
-      "Custom model fine-tuning available",
-      "Dedicated 24/7 engineering support",
-      "SLA-backed uptime guarantees",
-    ],
-    tier: "advisor",
-  },
-  {
-    icon: Sparkles,
-    title: "Direct Advisory Access",
-    description:
-      "Limited to 8 seats. Direct strategic advisory from Asher Newton — the founder and architect of Aureon. Your intelligence needs, personally handled.",
-    details: [
-      "Direct communication channel with the founder",
-      "Custom intelligence workflows built for your org",
-      "Priority feature requests and roadmap input",
-      "Quarterly strategic intelligence reviews",
-      "Limited to 8 active Advisor accounts globally",
-    ],
-    tier: "advisor",
-  },
 ];
 
 /* ─── Feature Card ─── */
 const FeatureCard = ({ icon: Icon, title, description, details, tier }: Feature) => {
   const { label, accent, dot } = tiers[tier];
-  const isAdvisor = tier === "advisor";
+  const isPro = tier === "pro";
 
   return (
     <div
       className={`group rounded-2xl border backdrop-blur-md p-8 transition-all duration-300 hover:border-border/40 ${
-        isAdvisor
+        isPro
           ? "border-accent/15 bg-accent/[0.03] hover:bg-accent/[0.06]"
           : "border-border/15 bg-card/20 hover:bg-card/30"
       }`}
     >
       <div className="flex items-start gap-4 mb-5">
-        <div className={`rounded-xl p-2.5 ${isAdvisor ? "bg-accent/10" : "bg-foreground/5"}`}>
-          <Icon className={`h-5 w-5 ${isAdvisor ? "text-accent" : "text-foreground/80"}`} />
+        <div className={`rounded-xl p-2.5 ${isPro ? "bg-accent/10" : "bg-foreground/5"}`}>
+          <Icon className={`h-5 w-5 ${isPro ? "text-accent" : "text-foreground/80"}`} />
         </div>
         <div>
           <h3 className="text-base font-light tracking-wide text-foreground">{title}</h3>
@@ -382,7 +352,7 @@ const FeatureCard = ({ icon: Icon, title, description, details, tier }: Feature)
       <ul className="space-y-2.5">
         {details.map((d) => (
           <li key={d} className="flex items-start gap-2.5 text-xs font-extralight text-foreground/75">
-            <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${isAdvisor ? "text-accent/60" : "text-emerald-400/60"}`} />
+            <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${isPro ? "text-accent/60" : "text-emerald-400/60"}`} />
             {d}
           </li>
         ))}
@@ -456,7 +426,6 @@ const Features = () => {
             offers: [
               { "@type": "Offer", name: "Aureon", price: "18", priceCurrency: "USD", billingDuration: "P1M" },
               { "@type": "Offer", name: "Pro", price: "399", priceCurrency: "USD", billingDuration: "P1M" },
-              { "@type": "Offer", name: "Advisor", price: "20000", priceCurrency: "USD", billingDuration: "P1M" },
             ],
           }),
         }}
@@ -483,7 +452,6 @@ const Features = () => {
           {[
             { label: "Aureon — $18/mo", anchor: "#aureon", border: "border-emerald-400/25", text: "text-emerald-400" },
             { label: "Pro — $399/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
-            { label: "Advisor — $20K/mo", anchor: "#advisor", border: "border-amber-400/25", text: "text-amber-400" },
           ].map(({ label, anchor, border, text }) => (
             <a
               key={anchor}
@@ -511,12 +479,6 @@ const Features = () => {
         tierKey="pro"
       />
 
-      <TierSection
-        id="advisor"
-        title="Aureon Advisor"
-        subtitle="$20,000/month — Limited to 8 seats. The complete intelligence platform with direct advisory from Asher Newton."
-        tierKey="advisor"
-      />
 
       {/* CTA */}
       <section className="relative z-10 px-6 pb-28">
@@ -536,13 +498,6 @@ const Features = () => {
                 className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background hover:bg-foreground/90 transition-all"
               >
                 View Pricing
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <Link
-                to="/pricing"
-                className="group flex items-center gap-2 rounded-xl border border-accent/25 bg-accent/10 px-8 py-3 text-sm font-light tracking-wide text-accent hover:bg-accent/20 transition-all"
-              >
-                Advisor Access
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>

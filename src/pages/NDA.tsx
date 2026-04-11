@@ -31,7 +31,7 @@ const NDA = () => {
               Non-Disclosure Agreement
             </h1>
             <p className="mt-4 text-sm font-extralight text-muted-foreground">
-              AUREON Advisor Tier — Required for all $20,000/month and $240,000/year subscribers.
+              AUREON Pro Tier — Required for all Pro subscribers.
             </p>
           </div>
 
@@ -103,7 +103,7 @@ const NDA = () => {
 
               <section>
                 <h3 className="text-xs font-light tracking-[0.15em] text-foreground uppercase mb-3">8. ACCEPTANCE</h3>
-                <p>By completing the purchase of an Aureon Advisor subscription ($20,000/month or $240,000/year), the Receiving Party acknowledges that they have read, understood, and agree to be bound by the terms of this Non-Disclosure Agreement. The act of payment constitutes electronic acceptance of this Agreement.</p>
+                <p>By completing the purchase of an Aureon Pro subscription ($740/month), the Receiving Party acknowledges that they have read, understood, and agree to be bound by the terms of this Non-Disclosure Agreement. The act of payment constitutes electronic acceptance of this Agreement.</p>
               </section>
             </div>
 

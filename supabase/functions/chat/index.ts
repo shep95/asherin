@@ -57,15 +57,6 @@ Aureon is an uncensored AI intelligence platform built for builders, researchers
 - **Scenario Simulator & Threat Modeling**: Advanced analytical tools.
 - **200 messages per 3-hour window** (vs 60 for Aureon tier).
 
-### Advisor Tier ($20,000/mo or $240,000/yr)
-- Everything in Pro, unlimited.
-- Direct advisor access to Asher (the founder).
-- Limited to 8 clients worldwide.
-- NDA required upon purchase.
-- Custom intelligence operations.
-- Private deployment option.
-- 24/7 direct support line.
-
 ### Chat Modes
 - **Chat Mode**: Conversational, helpful, direct.
 - **Code Mode**: Production-grade coding with elite debugging protocols.
@@ -75,7 +66,6 @@ Aureon is an uncensored AI intelligence platform built for builders, researchers
 ### Pricing
 - **Aureon**: $18/month — 60 messages per 3-hour window.
 - **Aureon Pro**: $399/month — 200 messages per 3-hour window + all advanced tools.
-- **Aureon Advisor**: $20,000/month — Unlimited + direct access to founder.
 - No free tier. "Because free tiers turn users into products."
 
 ### Data Privacy

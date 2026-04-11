@@ -251,7 +251,7 @@ const FeatureElion = () => {
             Intelligence Built For Operators.
           </h2>
           <p className="text-sm font-extralight text-muted-foreground mb-8 max-w-xl mx-auto">
-            Elion / Zohar Toolkit is available on Pro and Advisor plans. Ghost Mode, full parallel
+            Elion / Zohar Toolkit is available on Pro plans. Ghost Mode, full parallel
             scanning, and Aureon chat integration are included with every access tier.
           </p>
           <div className="flex flex-wrap justify-center gap-4">

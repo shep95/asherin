@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, createContext, useContext } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, hasSearchAccess, hasProAccess, hasEnterpriseOnlyAccess } from "@/contexts/SubscriptionContext";
+import { useSubscription, hasSearchAccess, hasProAccess } from "@/contexts/SubscriptionContext";
 import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -54,7 +54,7 @@ interface DashboardSidebarProps {
 
 interface NavGroup {
   label: string;
-  items: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" | "pro" }[];
+  items: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" }[];
 }
 
 const navGroups: NavGroup[] = [
@@ -81,10 +81,10 @@ const navGroups: NavGroup[] = [
       { id: "lavba" as DashboardView, icon: Zap, label: "Lavba", access: "pro" },
       { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
       { id: "zaplen" as DashboardView, icon: Zap, label: "Zaplen", access: "pro" },
-      { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "enterprise" },
-      { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "enterprise" },
-      { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "enterprise" },
-      { id: "aziion" as DashboardView, icon: Zap, label: "Aziion", access: "enterprise" },
+      { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
+      { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
+      { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
+      { id: "aziion" as DashboardView, icon: Zap, label: "Aziion", access: "pro" },
       { id: "timeseries", icon: Activity, label: "Time-Series", access: "pro" },
       { id: "geospatial", icon: Globe, label: "Geospatial", access: "pro" },
       { id: "notebooks", icon: FileText, label: "Notebooks", access: "pro" },
@@ -213,7 +213,7 @@ const DashboardSidebar = ({
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
       if (item.access === "pro") return hasProAccess(tierKey);
-      if (item.access === "enterprise") return hasEnterpriseOnlyAccess(tierKey);
+      
       return true;
     }),
   })).filter(group => group.items.length > 0);

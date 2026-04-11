@@ -21,7 +21,7 @@ const plans = getDashboardPlans().map(p => ({
 }));
 
 // Tier hierarchy for upgrade logic
-const TIER_ORDER: TierKey[] = ["starter", "lifetime", "chat", "aureon", "pro", "advisor_monthly", "advisor_annual"];
+const TIER_ORDER: TierKey[] = ["starter", "lifetime", "chat", "aureon", "pro"];
 
 function isUpgrade(current: TierKey | null, target: TierKey): boolean {
   if (!current) return false;
