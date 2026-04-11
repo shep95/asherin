@@ -232,7 +232,7 @@ const FeaturePredictive = () => {
         <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">
           Stop Reacting. Start Predicting.
         </h2>
-        <p className="text-sm font-extralight text-muted-foreground mb-8">Available on Pro ($399/mo) and Advisor ($20,000/mo) plans.</p>
+        <p className="text-sm font-extralight text-muted-foreground mb-8">Available on Pro plans.</p>
         <Link to="/pricing" className="group inline-flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
           View Plans <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </Link>

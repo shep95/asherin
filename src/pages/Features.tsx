@@ -500,13 +500,6 @@ const Features = () => {
                 View Pricing
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-              <Link
-                to="/pricing"
-                className="group flex items-center gap-2 rounded-xl border border-accent/25 bg-accent/10 px-8 py-3 text-sm font-light tracking-wide text-accent hover:bg-accent/20 transition-all"
-              >
-                Advisor Access
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
             </div>
           </div>
         </div>
