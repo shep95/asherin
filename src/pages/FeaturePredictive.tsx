@@ -61,7 +61,7 @@ const FeaturePredictive = () => {
   useEffect(() => {
     document.title = "Predictive Intelligence — Aureon";
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", "AI-powered predictive intelligence — detect signals from web sources and forecast corporate events before they happen. Available on Pro and Advisor plans.");
+    if (meta) meta.setAttribute("content", "AI-powered predictive intelligence — detect signals from web sources and forecast corporate events before they happen. Available on Pro plans.");
   }, []);
 
   return (
