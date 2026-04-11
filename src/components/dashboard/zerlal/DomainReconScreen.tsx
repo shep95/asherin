@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Globe, Search, Shield, ChevronDown, ChevronUp, Copy, Download, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import { Globe, Search, Shield, ChevronDown, ChevronUp, Copy, Download, Loader2, ExternalLink, RefreshCw, Skull } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useZerlalFindings } from "./useZerlalData";
 import InfrastructureMap from "./InfrastructureMap";
+import ExploitIntelTab from "./ExploitIntelTab";
 import type { ZerlalFinding } from "./types";
 
 interface DomainInfo {
@@ -326,7 +327,8 @@ const DomainReconScreen = ({ onSelectFinding }: DomainReconScreenProps) => {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [expandedFinding, setExpandedFinding] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"findings" | "infrastructure">("findings");
+  const [activeTab, setActiveTab] = useState<"findings" | "infrastructure" | "exploit">("findings");
+  const [selectedExploitFinding, setSelectedExploitFinding] = useState<string | null>(null);
 
   const { findings, loading: findingsLoading, refetch } = useZerlalFindings(projectId, { fetchAllWhenNoProjectId: false });
 
@@ -613,6 +615,16 @@ const DomainReconScreen = ({ onSelectFinding }: DomainReconScreenProps) => {
             >
               Infrastructure Map {isRecoveredInfrastructureMap ? "• reconstructed" : ""}
             </button>
+            <button
+              onClick={() => setActiveTab("exploit")}
+              className={`px-4 py-2 text-[10px] tracking-wide border-b-2 transition-colors flex items-center gap-1.5 ${
+                activeTab === "exploit"
+                  ? "border-red-400/50 text-red-400"
+                  : "border-transparent text-muted-foreground/40 hover:text-red-400/50"
+              }`}
+            >
+              <Skull className="h-3 w-3" /> Exploit Intelligence
+            </button>
           </div>
 
           {activeTab === "infrastructure" && (
@@ -622,6 +634,51 @@ const DomainReconScreen = ({ onSelectFinding }: DomainReconScreenProps) => {
               isFallback={isRecoveredInfrastructureMap}
               unavailableReason={result.summary}
             />
+          )}
+
+          {activeTab === "exploit" && (
+            <div className="space-y-4">
+              {findings.length === 0 ? (
+                <div className="rounded-xl border border-border/[0.06] bg-foreground/[0.02] p-8 text-center">
+                  <Skull className="h-6 w-6 text-muted-foreground/20 mx-auto mb-3" />
+                  <p className="text-[11px] text-foreground/50">No findings available for exploit analysis</p>
+                  <p className="text-[9px] text-muted-foreground/30 mt-1">Run a domain scan first to generate findings</p>
+                </div>
+              ) : !selectedExploitFinding ? (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-red-500/[0.08] bg-red-500/[0.02] p-4">
+                    <h3 className="text-[10px] text-red-400/60 uppercase tracking-wider mb-1">Select a Weakness to Analyze</h3>
+                    <p className="text-[9px] text-muted-foreground/40">Choose a finding below to generate its full adversarial exploitation dossier and run a live shutdown test.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {findings.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => setSelectedExploitFinding(f.id)}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border/[0.06] bg-foreground/[0.015] hover:bg-red-500/[0.03] hover:border-red-500/[0.1] transition-colors text-left"
+                      >
+                        <span className={`shrink-0 text-[8px] uppercase tracking-wider px-2 py-0.5 rounded border ${severityColor[f.severity] || severityColor.info}`}>
+                          {f.severity}
+                        </span>
+                        <span className="flex-1 text-[10px] text-foreground/70 truncate">{f.title}</span>
+                        <span className="text-[8px] text-muted-foreground/30 shrink-0">CVSS {f.cvss_score}</span>
+                        <Skull className="h-3 w-3 text-red-400/30 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setSelectedExploitFinding(null)}
+                    className="text-[10px] text-muted-foreground/30 hover:text-foreground/50 flex items-center gap-1"
+                  >
+                    ← Back to findings list
+                  </button>
+                  <ExploitIntelTab finding={findings.find(f => f.id === selectedExploitFinding)!} />
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab === "findings" && (
