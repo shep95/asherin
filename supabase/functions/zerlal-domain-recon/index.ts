@@ -96,6 +96,36 @@ const parseJsonObject = (text: string) => {
   return JSON.parse(jsonMatch[0]);
 };
 
+type RouteError = Error & { status?: number };
+type AIProvider = "lovable" | "gemini";
+
+const createRouteError = (message: string, status = 500): RouteError => {
+  const error = new Error(message) as RouteError;
+  error.status = status;
+  return error;
+};
+
+const getErrorStatus = (error: unknown) => (
+  typeof error === "object" && error !== null && "status" in error && typeof (error as { status?: unknown }).status === "number"
+    ? (error as { status: number }).status
+    : 500
+);
+
+const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : "Unknown error";
+
+const parseGatewayError = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.error === "string") return parsed.error;
+    if (typeof parsed?.message === "string") return parsed.message;
+    if (typeof parsed?.details === "string" && parsed.details) return `${parsed.message || "Request failed"}: ${parsed.details}`;
+  } catch {
+    // Ignore JSON parse issues and return raw text below.
+  }
+
+  return raw;
+};
+
 const extractGithubRepo = (analysis: ReconAnalysis, findings: ReconFinding[]) => {
   const haystack = [
     JSON.stringify(analysis.domain_info || {}),
@@ -337,9 +367,11 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    const useLovableGateway = !!LOVABLE_API_KEY;
+    const providers: AIProvider[] = [];
+    if (LOVABLE_API_KEY) providers.push("lovable");
+    if (GEMINI_KEY) providers.push("gemini");
 
-    if (!useLovableGateway && !GEMINI_KEY) throw new Error("No AI API key configured");
+    if (providers.length === 0) throw createRouteError("No AI API key configured", 500);
 
     let brainsContext = "";
     try {
@@ -541,14 +573,12 @@ CRITICAL RULES:
 - Apply the adversary's Zero-Point Perspective from the intelligence knowledge base.
 - For "age_days_estimate": estimate how long this type of vulnerability has likely existed based on when the technology/version was deployed, when default configs were set, or when the CVE was first published. Use your intelligence to infer realistic ages (e.g. missing security headers on a site launched 2 years ago = ~730 days, a recently published CVE = days since CVE publication). This is a forensic estimate — be realistic.`;
 
-    async function callAI(prompt: string): Promise<string> {
-      const maxRetries = 4;
+    async function requestProviderText(provider: AIProvider, prompt: string): Promise<string> {
+      const maxRetries = provider === "lovable" ? 4 : 3;
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-          let responseText = "";
-
-          if (useLovableGateway) {
+          if (provider === "lovable") {
             const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: {
@@ -567,78 +597,123 @@ CRITICAL RULES:
             });
 
             if (!resp.ok) {
-              const errText = await resp.text();
-              console.log(`[ZERLAL-DOMAIN-RECON] Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
+              const errText = parseGatewayError(await resp.text());
+              console.log(`[ZERLAL-DOMAIN-RECON] Lovable AI error ${resp.status}: ${errText.slice(0, 200)}`);
 
-              if (resp.status === 429) {
-                throw new Error("Lovable AI rate limit reached. Please wait a minute and retry.");
+              if (resp.status === 500 || resp.status === 503 || resp.status === 429) {
+                if (attempt < maxRetries - 1) {
+                  await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
+                  continue;
+                }
               }
 
               if (resp.status === 402) {
-                throw new Error("Lovable AI credits exhausted. Please top up workspace usage and retry.");
+                throw createRouteError("Lovable AI credits exhausted. Falling back to backup analysis provider failed too.", 402);
               }
 
-              if (resp.status === 503 || resp.status === 500) {
-                await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
-                continue;
+              if (resp.status === 429) {
+                throw createRouteError("Lovable AI rate limit reached. Please wait a minute and retry.", 429);
               }
 
-              throw new Error(`AI Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
+              if (resp.status === 500 || resp.status === 503) {
+                throw createRouteError("Lovable AI is temporarily unavailable. Backup analysis provider also failed.", 503);
+              }
+
+              throw createRouteError(`AI gateway error: ${errText.slice(0, 200)}`, resp.status);
             }
 
             const data = await resp.json();
-            responseText = data.choices?.[0]?.message?.content || "";
-          } else {
-            const resp = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [{ parts: [{ text: prompt }] }],
-                  generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
-                }),
-              }
-            );
-
-            if (!resp.ok) {
-              if (resp.status === 503 || resp.status === 429) {
-                console.log(`[ZERLAL-DOMAIN-RECON] Retry ${attempt + 1} after ${resp.status}`);
-                await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
-                continue;
-              }
-
-              const errText = await resp.text();
-              throw new Error(`Gemini error ${resp.status}: ${errText}`);
-            }
-
-            const data = await resp.json();
-            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const responseText = data.choices?.[0]?.message?.content || "";
+            if (!responseText.trim()) throw createRouteError("Lovable AI returned an empty response", 502);
+            return responseText;
           }
 
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
+              }),
+            }
+          );
+
+          if (!resp.ok) {
+            const errText = await resp.text();
+            console.log(`[ZERLAL-DOMAIN-RECON] Gemini error ${resp.status}: ${errText.slice(0, 200)}`);
+
+            if (resp.status === 503 || resp.status === 429) {
+              if (attempt < maxRetries - 1) {
+                await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
+                continue;
+              }
+            }
+
+            if (resp.status === 429) {
+              throw createRouteError("Backup analysis provider rate limit reached. Please retry shortly.", 429);
+            }
+
+            throw createRouteError(`Backup analysis provider error ${resp.status}: ${errText.slice(0, 200)}`, resp.status);
+          }
+
+          const data = await resp.json();
+          const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (!responseText.trim()) throw createRouteError("Backup analysis provider returned an empty response", 502);
           return responseText;
-        } catch (e) {
-          if (attempt === maxRetries - 1) throw e;
-          console.log(`[ZERLAL-DOMAIN-RECON] Attempt ${attempt + 1} failed:`, e);
+        } catch (error) {
+          if (attempt === maxRetries - 1) throw error;
+          console.log(`[ZERLAL-DOMAIN-RECON] ${provider} attempt ${attempt + 1} failed:`, error);
           await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
         }
       }
 
-      throw new Error("AI API failed after retries");
+      throw createRouteError("AI API failed after retries", 500);
+    }
+
+    async function requestAnalysis<T>(prompt: string): Promise<T> {
+      let lastError: RouteError | null = null;
+
+      for (const provider of providers) {
+        try {
+          const responseText = await requestProviderText(provider, prompt);
+          return parseJsonObject(responseText) as T;
+        } catch (error) {
+          lastError = createRouteError(getErrorMessage(error), getErrorStatus(error));
+          console.log(`[ZERLAL-DOMAIN-RECON] ${provider} provider failed, ${provider === providers[providers.length - 1] ? "no providers left" : "trying fallback"}: ${lastError.message}`);
+        }
+      }
+
+      throw lastError ?? createRouteError("AI analysis failed", 500);
     }
 
     let analysis: ReconAnalysis;
     try {
-      const responseText = await callAI(reconPrompt);
-      console.log("[ZERLAL-DOMAIN-RECON] Pass 1 response length:", responseText.length);
-      analysis = parseJsonObject(responseText);
+      analysis = await requestAnalysis<ReconAnalysis>(reconPrompt);
+      console.log("[ZERLAL-DOMAIN-RECON] Pass 1 findings:", analysis.findings?.length || 0);
     } catch (e) {
       console.error("[ZERLAL-DOMAIN-RECON] Pass 1 error:", e);
-      analysis = { findings: [], risk_grade: "F", summary: "Analysis failed. Retry recommended." };
+      const errorMessage = getErrorMessage(e);
+      const errorStatus = getErrorStatus(e);
+
+      await supabase.from("zerlal_scans").update({
+        status: "failed",
+        error: errorMessage,
+        completed_at: new Date().toISOString(),
+      }).eq("id", scan.id);
+
+      await supabase.from("zerlal_projects").update({
+        status: "failed",
+      }).eq("id", projectId);
+
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: errorStatus,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     let allFindings = analysis.findings || [];
-    console.log("[ZERLAL-DOMAIN-RECON] Pass 1 findings:", allFindings.length);
 
     const elapsed = Date.now() - scanStartTime;
     if (allFindings.length > 0 && allFindings.length < 30 && elapsed < 120000) {
@@ -661,8 +736,7 @@ Return ONLY JSON: { "findings": [...] }
 Each finding: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves, age_days_estimate.`;
 
       try {
-        const pass2Text = await callAI(pass2Prompt);
-        const pass2 = parseJsonObject(pass2Text) as ReconAnalysis;
+        const pass2 = await requestAnalysis<ReconAnalysis>(pass2Prompt);
         const existingSet = new Set(allFindings.map((finding) => (finding.title || "").toLowerCase().trim()));
 
         for (const finding of pass2.findings || []) {
