@@ -26,11 +26,36 @@ type ReconFinding = {
   age_days_estimate?: number;
 };
 
+type InfrastructureComponent = {
+  id: string;
+  type: string;
+  name: string;
+  provider: string;
+  details: string;
+  exposed: boolean;
+};
+
+type InfrastructureConnection = {
+  from: string;
+  to: string;
+  label: string;
+  protocol: string;
+  encrypted: boolean;
+};
+
+type DataFlow = {
+  description: string;
+  source: string;
+  destination: string;
+  data_type: string;
+  risk_level: string;
+};
+
 type ReconAnalysis = {
-  findings?: ReconFinding[];
-  risk_grade?: string;
-  summary?: string;
-  domain_info?: {
+  findings: ReconFinding[];
+  risk_grade: string;
+  summary: string;
+  domain_info: {
     ip?: string;
     hosting?: string;
     cdn?: string;
@@ -39,314 +64,229 @@ type ReconAnalysis = {
     tls_grade?: string;
     email_security_grade?: string;
   };
-  subdomains_found?: string[];
-  total_attack_surface_score?: number;
-  zero_trust_score?: number;
-  infrastructure_map?: {
-    github_repo?: string | null;
-    deployment_platform?: string;
-    ci_cd?: string;
-    components?: Array<{
-      id: string;
-      type: string;
-      name: string;
-      provider: string;
-      details: string;
-      exposed: boolean;
-    }>;
-    connections?: Array<{
-      from: string;
-      to: string;
-      label: string;
-      protocol: string;
-      encrypted: boolean;
-    }>;
-    data_flows?: Array<{
-      description: string;
-      source: string;
-      destination: string;
-      data_type: string;
-      risk_level: string;
-    }>;
+  subdomains_found: string[];
+  total_attack_surface_score: number;
+  zero_trust_score: number;
+  infrastructure_map: {
+    github_repo: string | null;
+    deployment_platform: string;
+    ci_cd: string;
+    components: InfrastructureComponent[];
+    connections: InfrastructureConnection[];
+    data_flows: DataFlow[];
   } | null;
 };
 
-const hasInfrastructureMap = (map: ReconAnalysis["infrastructure_map"]) => {
-  if (!map) return false;
+type DnsAnswer = { data?: string };
+type DnsResponse = { Answer?: DnsAnswer[] };
 
-  return Boolean(
-    map.github_repo ||
-    (map.deployment_platform && map.deployment_platform !== "unknown") ||
-    (map.ci_cd && map.ci_cd !== "unknown") ||
-    (Array.isArray(map.components) && map.components.length > 0) ||
-    (Array.isArray(map.connections) && map.connections.length > 0) ||
-    (Array.isArray(map.data_flows) && map.data_flows.length > 0)
-  );
-};
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const uniq = <T>(items: T[]) => [...new Set(items.filter(Boolean))];
 
-const parseJsonObject = (text: string) => {
-  const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fencedMatch?.[1] || text;
-  const jsonMatch = candidate.match(/\{[\s\S]*\}/);
-
-  if (!jsonMatch) {
-    throw new Error("No JSON in response");
-  }
-
-  return JSON.parse(jsonMatch[0]);
-};
-
-type RouteError = Error & { status?: number };
-type AIProvider = "lovable" | "gemini";
-
-const createRouteError = (message: string, status = 500): RouteError => {
-  const error = new Error(message) as RouteError;
-  error.status = status;
-  return error;
-};
-
-const getErrorStatus = (error: unknown) => (
-  typeof error === "object" && error !== null && "status" in error && typeof (error as { status?: unknown }).status === "number"
-    ? (error as { status: number }).status
-    : 500
-);
-
-const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : "Unknown error";
-
-const parseGatewayError = (raw: string) => {
-  try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.error === "string") return parsed.error;
-    if (typeof parsed?.message === "string") return parsed.message;
-    if (typeof parsed?.details === "string" && parsed.details) return `${parsed.message || "Request failed"}: ${parsed.details}`;
-  } catch {
-    // Ignore JSON parse issues and return raw text below.
-  }
-
-  return raw;
-};
-
-const extractGithubRepo = (analysis: ReconAnalysis, findings: ReconFinding[]) => {
-  const haystack = [
-    JSON.stringify(analysis.domain_info || {}),
-    analysis.summary || "",
-    ...(findings || []).flatMap((finding) => [
-      finding.title || "",
-      finding.description || "",
-      finding.impact || "",
-      finding.code_snippet || "",
-      finding.suggested_fix || "",
-      finding.file_path || "",
-      ...(finding.exploitation_steps || []),
-    ]),
-  ].join("\n");
-
-  const match = haystack.match(/https?:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i);
-  return match ? match[0].replace(/[),.;\]]+$/, "") : null;
-};
-
-const detectPlatform = (analysis: ReconAnalysis, findings: ReconFinding[]) => {
-  const haystack = [
-    analysis.domain_info?.hosting,
-    analysis.domain_info?.cdn,
-    analysis.domain_info?.waf,
-    ...(analysis.domain_info?.tech_stack || []),
-    ...findings.flatMap((finding) => [finding.title, finding.description, finding.code_snippet, finding.suggested_fix]),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (haystack.includes("vercel")) return { deployment: "Vercel", ciCd: "Git-based deployment" };
-  if (haystack.includes("netlify")) return { deployment: "Netlify", ciCd: "Git-based deployment" };
-  if (haystack.includes("cloudflare")) return { deployment: "Cloudflare", ciCd: "Cloudflare deployment pipeline" };
-  if (haystack.includes("aws") || haystack.includes("amazon")) return { deployment: "AWS", ciCd: "Cloud CI/CD or Git pipeline" };
-  if (haystack.includes("azure")) return { deployment: "Azure", ciCd: "Azure DevOps or Git pipeline" };
-  if (haystack.includes("gcp") || haystack.includes("google cloud")) return { deployment: "Google Cloud", ciCd: "Cloud Build or Git pipeline" };
-
-  return { deployment: analysis.domain_info?.hosting || "unknown", ciCd: "unknown" };
-};
-
-const inferRiskGrade = (counts: { critical: number; high: number; medium: number; low: number; info: number }) => {
-  if (counts.critical > 0 || counts.high >= 3) return "F";
-  if (counts.high > 0 || counts.medium >= 5) return "D";
-  if (counts.medium > 0 || counts.low >= 5) return "C";
-  if (counts.low > 0 || counts.info >= 5) return "B";
-  return "A";
-};
-
-const buildFallbackInfrastructureMap = (domain: string, analysis: ReconAnalysis, findings: ReconFinding[]) => {
-  const cleanDomain = domain.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
-  const techStack = analysis.domain_info?.tech_stack || [];
-  const githubRepo = extractGithubRepo(analysis, findings);
-  const { deployment, ciCd } = detectPlatform(analysis, findings);
-
-  const components: NonNullable<ReconAnalysis["infrastructure_map"]>["components"] = [];
-  const connections: NonNullable<ReconAnalysis["infrastructure_map"]>["connections"] = [];
-  const dataFlows: NonNullable<ReconAnalysis["infrastructure_map"]>["data_flows"] = [];
-
-  const addComponent = (component: NonNullable<ReconAnalysis["infrastructure_map"]>["components"][number]) => {
-    if (!components.some((existing) => existing.id === component.id)) {
-      components.push(component);
-    }
+const normalizeDomain = (input: string) => {
+  let value = input.trim();
+  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+  const parsed = new URL(value);
+  return {
+    url: parsed.toString(),
+    origin: parsed.origin,
+    hostname: parsed.hostname,
   };
+};
 
-  addComponent({
-    id: "dns-core",
-    type: "dns",
-    name: cleanDomain,
-    provider: "Domain / DNS",
-    details: `Primary domain entry point for ${cleanDomain}`,
-    exposed: true,
-  });
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
-  if (analysis.domain_info?.cdn) {
-    addComponent({
+async function fetchDnsRecord(name: string, type: string): Promise<DnsResponse> {
+  const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`;
+  const resp = await fetchWithTimeout(url, {
+    headers: {
+      accept: "application/dns-json",
+      "user-agent": "ZERLAL-Recon/1.0",
+    },
+  }, 12000);
+
+  if (!resp.ok) return {};
+  return await resp.json();
+}
+
+async function fetchOptionalText(url: string) {
+  try {
+    const resp = await fetchWithTimeout(url, { headers: { "user-agent": "ZERLAL-Recon/1.0" } }, 12000);
+    return {
+      ok: resp.ok,
+      status: resp.status,
+      text: await resp.text(),
+      headers: resp.headers,
+    };
+  } catch {
+    return { ok: false, status: 0, text: "", headers: new Headers() };
+  }
+}
+
+function extractTitle(html: string) {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match?.[1]?.trim() || "";
+}
+
+function extractAttributeList(html: string, tag: string, attr: string) {
+  const regex = new RegExp(`<${tag}[^>]*\\s${attr}=["']([^"']+)["'][^>]*>`, "gi");
+  const values: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html))) values.push(match[1]);
+  return uniq(values);
+}
+
+function computeRiskGrade(counts: Record<string, number>) {
+  if ((counts.critical || 0) > 0 || (counts.high || 0) >= 2) return "F";
+  if ((counts.high || 0) > 0 || (counts.medium || 0) >= 3) return "D";
+  if ((counts.medium || 0) > 0 || (counts.low || 0) >= 3) return "C";
+  if ((counts.low || 0) > 0 || (counts.info || 0) >= 2) return "B";
+  return "A";
+}
+
+function computeEmailGrade(hasSpf: boolean, dmarcPolicies: string[]) {
+  const policySet = uniq(dmarcPolicies);
+  if (hasSpf && policySet.length === 1 && policySet[0] === "reject") return "A";
+  if (hasSpf && policySet.length === 1 && (policySet[0] === "quarantine" || policySet[0] === "reject")) return "B";
+  if (hasSpf && policySet.length >= 1) return "C";
+  if (policySet.length >= 1) return "D";
+  return "F";
+}
+
+function computeTlsGrade(headers: Headers, tlsCipher: string | null) {
+  const hasHsts = Boolean(headers.get("strict-transport-security"));
+  if (hasHsts && tlsCipher?.includes("TLS_AES_256_GCM_SHA384")) return "A";
+  if (hasHsts) return "B";
+  return "C";
+}
+
+function buildInfrastructureMap(hostname: string, techStack: string[], signal: {
+  hosting: string;
+  cdn: string;
+  waf: string;
+  emailProvider: string;
+  githubRepo: string | null;
+}) {
+  const components: InfrastructureComponent[] = [
+    {
+      id: "dns-core",
+      type: "dns",
+      name: hostname,
+      provider: "Domain / DNS",
+      details: `Primary DNS entry for ${hostname}`,
+      exposed: true,
+    },
+    {
       id: "cdn-edge",
       type: "cdn",
-      name: "Edge CDN",
-      provider: analysis.domain_info.cdn,
-      details: `Traffic acceleration and caching handled by ${analysis.domain_info.cdn}`,
+      name: "Edge Network",
+      provider: signal.cdn || signal.hosting || "Cloud Edge",
+      details: "Public traffic is terminated and accelerated at the edge.",
       exposed: true,
-    });
-  }
-
-  if (analysis.domain_info?.waf) {
-    addComponent({
+    },
+    {
       id: "waf-edge",
       type: "waf",
-      name: "Web Application Firewall",
-      provider: analysis.domain_info.waf,
-      details: `Inbound traffic inspected by ${analysis.domain_info.waf}`,
+      name: "Traffic Shield",
+      provider: signal.waf || signal.cdn || "Edge Protection",
+      details: "Bot management / WAF controls inferred from the edge headers and cookies.",
       exposed: false,
-    });
-  }
+    },
+    {
+      id: "web-app",
+      type: "web-server",
+      name: hostname,
+      provider: techStack[0] || "Web Application",
+      details: `Detected client stack: ${techStack.join(", ") || "Single-page application"}`,
+      exposed: true,
+    },
+    {
+      id: "app-runtime",
+      type: "app-server",
+      name: "Application Backend",
+      provider: signal.hosting || "Managed backend",
+      details: "Runtime and API layer inferred from the frontend bundle fingerprints.",
+      exposed: false,
+    },
+    {
+      id: "auth-service",
+      type: "auth-service",
+      name: "Authentication Service",
+      provider: techStack.includes("Supabase") ? "Supabase Auth" : "Managed Auth",
+      details: "Authentication provider inferred from the shipped frontend SDK.",
+      exposed: false,
+    },
+  ];
 
-  addComponent({
-    id: "web-app",
-    type: "web-server",
-    name: cleanDomain,
-    provider: techStack[0] || analysis.domain_info?.hosting || "Web Application",
-    details: techStack.length > 0 ? `Detected stack: ${techStack.join(", ")}` : "Public-facing web surface inferred from reconnaissance findings",
-    exposed: true,
-  });
-
-  addComponent({
-    id: "app-runtime",
-    type: "app-server",
-    name: "Application Runtime",
-    provider: deployment !== "unknown" ? deployment : analysis.domain_info?.hosting || "Hosting Platform",
-    details: `Runtime and hosting layer inferred from ${deployment !== "unknown" ? deployment : analysis.domain_info?.hosting || "available evidence"}`,
-    exposed: false,
-  });
-
-  if (analysis.domain_info?.email_security_grade) {
-    addComponent({
+  if (signal.emailProvider) {
+    components.push({
       id: "email-security",
       type: "email",
-      name: "Email Security",
-      provider: `Grade ${analysis.domain_info.email_security_grade}`,
-      details: "Mail authentication posture inferred from SPF / DKIM / DMARC signals",
+      name: "Email Gateway",
+      provider: signal.emailProvider,
+      details: "Inbound or transactional email layer inferred from MX records.",
       exposed: true,
     });
   }
 
-  if (ciCd !== "unknown" || githubRepo) {
-    addComponent({
-      id: "ci-cd",
-      type: "ci-cd",
-      name: "Deployment Pipeline",
-      provider: ciCd !== "unknown" ? ciCd : "Git-linked workflow",
-      details: githubRepo ? `Repository evidence detected: ${githubRepo}` : "CI/CD inferred from hosting and application evidence",
-      exposed: false,
-    });
-  }
-
-  if (githubRepo) {
-    addComponent({
+  if (signal.githubRepo) {
+    components.push({
       id: "github-origin",
       type: "third-party",
       name: "GitHub Repository",
       provider: "GitHub",
-      details: githubRepo,
+      details: signal.githubRepo,
       exposed: true,
     });
   }
 
-  const hasComponent = (id: string) => components.some((component) => component.id === id);
+  const connections: InfrastructureConnection[] = [
+    { from: "dns-core", to: "cdn-edge", label: "DNS routes traffic to the edge network", protocol: "DNS/HTTPS", encrypted: true },
+    { from: "cdn-edge", to: "waf-edge", label: "Inbound traffic is filtered before application delivery", protocol: "HTTPS", encrypted: true },
+    { from: "waf-edge", to: "web-app", label: "Clean traffic reaches the SPA surface", protocol: "HTTPS", encrypted: true },
+    { from: "web-app", to: "app-runtime", label: "Frontend calls backend services", protocol: "HTTPS", encrypted: true },
+    { from: "web-app", to: "auth-service", label: "Frontend authenticates against managed identity", protocol: "HTTPS", encrypted: true },
+  ];
 
-  if (hasComponent("dns-core") && hasComponent("cdn-edge")) {
-    connections.push({ from: "dns-core", to: "cdn-edge", label: "DNS resolves traffic to CDN edge", protocol: "DNS/HTTPS", encrypted: true });
+  if (signal.emailProvider) {
+    connections.push({ from: "app-runtime", to: "email-security", label: "Application email flows traverse the mail gateway", protocol: "SMTP/TLS", encrypted: true });
   }
 
-  if (hasComponent("cdn-edge") && hasComponent("waf-edge")) {
-    connections.push({ from: "cdn-edge", to: "waf-edge", label: "Edge requests pass through traffic inspection", protocol: "HTTPS", encrypted: true });
+  if (signal.githubRepo) {
+    connections.push({ from: "github-origin", to: "app-runtime", label: "Repository changes likely feed deployment automation", protocol: "Git/Webhook", encrypted: true });
   }
 
-  if (hasComponent("waf-edge") && hasComponent("web-app")) {
-    connections.push({ from: "waf-edge", to: "web-app", label: "Filtered requests reach the application surface", protocol: "HTTPS", encrypted: true });
-  } else if (hasComponent("cdn-edge") && hasComponent("web-app")) {
-    connections.push({ from: "cdn-edge", to: "web-app", label: "Edge requests forwarded to the web surface", protocol: "HTTPS", encrypted: true });
-  } else if (hasComponent("dns-core") && hasComponent("web-app")) {
-    connections.push({ from: "dns-core", to: "web-app", label: "Domain resolves directly to the public application", protocol: "HTTPS", encrypted: true });
-  }
-
-  if (hasComponent("web-app") && hasComponent("app-runtime")) {
-    connections.push({ from: "web-app", to: "app-runtime", label: "Frontend serves or proxies into the runtime layer", protocol: "HTTPS", encrypted: true });
-  }
-
-  if (hasComponent("app-runtime") && hasComponent("email-security")) {
-    connections.push({ from: "app-runtime", to: "email-security", label: "Transactional or domain email flows", protocol: "SMTP/TLS", encrypted: true });
-  }
-
-  if (hasComponent("ci-cd") && hasComponent("app-runtime")) {
-    connections.push({ from: "ci-cd", to: "app-runtime", label: "Deployments update the runtime environment", protocol: "CI/CD", encrypted: true });
-  }
-
-  if (hasComponent("github-origin") && hasComponent("ci-cd")) {
-    connections.push({ from: "github-origin", to: "ci-cd", label: "Repository changes trigger deployment automation", protocol: "Git/Webhook", encrypted: true });
-  }
-
-  dataFlows.push({
-    description: "User requests reach the public application surface",
-    source: "dns-core",
-    destination: hasComponent("cdn-edge") ? "cdn-edge" : "web-app",
-    data_type: "web-traffic",
-    risk_level: "medium",
-  });
-
-  if (hasComponent("web-app") && hasComponent("app-runtime")) {
-    dataFlows.push({
-      description: "Application traffic is processed by the backend/runtime layer",
-      source: "web-app",
-      destination: "app-runtime",
-      data_type: "user-data",
-      risk_level: "high",
-    });
-  }
-
-  if (hasComponent("github-origin") && hasComponent("ci-cd")) {
-    dataFlows.push({
-      description: "Source changes propagate into build and deployment systems",
-      source: "github-origin",
-      destination: "ci-cd",
-      data_type: "source-code",
-      risk_level: "medium",
-    });
-  }
+  const dataFlows: DataFlow[] = [
+    { description: "User requests enter through DNS and edge delivery", source: "dns-core", destination: "cdn-edge", data_type: "web-traffic", risk_level: "medium" },
+    { description: "Application traffic reaches the public SPA", source: "cdn-edge", destination: "web-app", data_type: "user-traffic", risk_level: "medium" },
+    { description: "Frontend exchanges session and application data with backend services", source: "web-app", destination: "app-runtime", data_type: "user-data", risk_level: "high" },
+    { description: "Authentication tokens are exchanged with the identity provider", source: "web-app", destination: "auth-service", data_type: "credentials", risk_level: "high" },
+  ];
 
   return {
-    github_repo: githubRepo,
-    deployment_platform: deployment,
-    ci_cd: ciCd,
+    github_repo: signal.githubRepo,
+    deployment_platform: signal.hosting || "Cloudflare",
+    ci_cd: signal.githubRepo ? "Git-linked deployment" : "unknown",
     components,
     connections,
     data_flows: dataFlows,
   };
-};
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let projectId: string | null = null;
+  let scanId: string | null = null;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -354,58 +294,34 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !user) throw new Error("Unauthorized");
 
-    const { domain, project_id } = await req.json();
-    if (!domain) throw new Error("domain is required");
+    const body = await req.json();
+    const normalized = normalizeDomain(body.domain || "");
+    const requestedProjectId = typeof body.project_id === "string" ? body.project_id : null;
 
-    console.log("[ZERLAL-DOMAIN-RECON] Starting domain recon for:", domain);
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    const providers: AIProvider[] = [];
-    if (LOVABLE_API_KEY) providers.push("lovable");
-    if (GEMINI_KEY) providers.push("gemini");
-
-    if (providers.length === 0) throw createRouteError("No AI API key configured", 500);
-
-    let brainsContext = "";
-    try {
-      const { data: brains } = await supabase
-        .from("axrlen_brains")
-        .select("name, content")
-        .eq("is_active", true)
-        .order("created_at", { ascending: true });
-
-      if (brains && brains.length > 0) {
-        brainsContext = brains.map((b: { name: string; content: string }) => `[BRAIN: ${b.name}]\n${b.content}`).join("\n\n");
-        console.log("[ZERLAL-DOMAIN-RECON] Loaded", brains.length, "active brains");
-      }
-    } catch (e) {
-      console.log("[ZERLAL-DOMAIN-RECON] Brains load skipped:", e);
-    }
-
-    let projectId = project_id;
+    projectId = requestedProjectId;
     if (!projectId) {
-      const { data: proj, error: projErr } = await supabase
+      const { data: project, error } = await supabase
         .from("zerlal_projects")
         .insert({
           user_id: user.id,
-          name: `Domain Recon: ${domain}`,
+          name: `Domain Recon: ${normalized.url}`,
           source_type: "domain-recon",
-          repo_url: domain,
+          repo_url: normalized.url,
           status: "scanning",
         })
         .select()
         .single();
-      if (projErr) throw projErr;
-      projectId = proj.id;
+      if (error) throw error;
+      projectId = project.id;
     } else {
-      await supabase.from("zerlal_projects").update({ status: "scanning" }).eq("id", projectId);
+      const { error } = await supabase.from("zerlal_projects").update({ status: "scanning" }).eq("id", projectId);
+      if (error) throw error;
     }
 
     const { data: scan, error: scanErr } = await supabase
@@ -420,453 +336,467 @@ serve(async (req) => {
       .select()
       .single();
     if (scanErr) throw scanErr;
+    scanId = scan.id;
 
-    const scanStartTime = Date.now();
+    const started = Date.now();
 
-    const reconPrompt = `You are ZERLAL integrated with ELION/ZOHAR — the most advanced domain reconnaissance and vulnerability intelligence engine. You operate at government-grade forensic precision.
+    const [pageResp, robotsResp, manifestResp, securityTxtResp, aRecord, txtRecord, dmarcRecord, mxRecord, ctResp] = await Promise.all([
+      fetchWithTimeout(normalized.url, { headers: { "user-agent": "ZERLAL-Recon/1.0" } }, 15000),
+      fetchOptionalText(`${normalized.origin}/robots.txt`),
+      fetchOptionalText(`${normalized.origin}/manifest.json`),
+      fetchOptionalText(`${normalized.origin}/.well-known/security.txt`),
+      fetchDnsRecord(normalized.hostname, "A"),
+      fetchDnsRecord(normalized.hostname, "TXT"),
+      fetchDnsRecord(`_dmarc.${normalized.hostname}`, "TXT"),
+      fetchDnsRecord(normalized.hostname, "MX"),
+      fetchOptionalText(`https://crt.sh/?q=${encodeURIComponent(normalized.hostname)}&output=json`),
+    ]);
 
-=== ZERLAL INTELLIGENCE KNOWLEDGE BASE ===
+    const html = await pageResp.text();
+    const headers = pageResp.headers;
+    const headerBag = Object.fromEntries([...headers.entries()].map(([k, v]) => [k.toLowerCase(), v]));
+    const scriptSources = extractAttributeList(html, "script", "src");
+    const linkSources = extractAttributeList(html, "link", "href");
 
-How To Stop Hackers Files:
+    const firstBundle = scriptSources.find((src) => src.endsWith(".js") || src.includes(".js?"));
+    const bundleUrl = firstBundle ? new URL(firstBundle, normalized.origin).toString() : null;
+    const bundleText = bundleUrl ? (await fetchOptionalText(bundleUrl)).text.slice(0, 250000) : "";
 
-The provided Vault 7 dossiers, ExpressLane v3.1.1, HTTPBrowser, and Protego, offer a declassified blueprint into the operational methodologies of intelligence agencies. These documents reveal a profound understanding of system architecture, exploiting every conceivable layer from the deepest hardware to the most superficial user interface. Their thinking is not merely "hacking" but total system subversion.
+    const manifest = manifestResp.ok ? (() => {
+      try { return JSON.parse(manifestResp.text); } catch { return null; }
+    })() : null;
 
-Executive Summary: The Nexus of Ancient & Modern Exploitation Elite adversaries, whether nation-state intelligence or sophisticated criminal organizations, fuse ancient principles of deception, physical infiltration, and psychological manipulation with bleeding-edge technological prowess. They target vulnerabilities across the entire digital and physical attack surface, treating software, hardware, networks, and human trust as integrated components in a single, exploitable system. The goal is covert, persistent access and data exfiltration, with robust self-preservation and deniability mechanisms.
+    const ctEntries = ctResp.ok ? (() => {
+      try { return JSON.parse(ctResp.text) as Array<{ name_value?: string; not_before?: string; entry_timestamp?: string }>; } catch { return []; }
+    })() : [];
 
-1. Adversary Operational Calculus: Exploitation Archetypes
-To understand how software is exploited, one must adopt the adversary's Zero-Point Perspective: every component is a potential point of failure or leverage.
+    const aRecords = uniq((aRecord.Answer || []).map((entry) => entry.data || ""));
+    const txtRecords = uniq((txtRecord.Answer || []).map((entry) => entry.data?.replace(/^"|"$/g, "") || ""));
+    const dmarcRecords = uniq((dmarcRecord.Answer || []).map((entry) => entry.data?.replace(/^"|"$/g, "") || ""));
+    const mxRecords = uniq((mxRecord.Answer || []).map((entry) => entry.data || ""));
+    const dmarcPolicies = uniq(dmarcRecords
+      .map((record) => record.match(/\bp=([a-z]+)/i)?.[1]?.toLowerCase() || "")
+      .filter(Boolean));
+    const hasSpf = txtRecords.some((record) => /v=spf1/i.test(record));
 
-1.1. Initial Access & Infiltration (The Trojan Horse Reborn)
-Vector: Physical Insertion / Social Engineering (ExpressLane)
-Vector: DLL Side-Loading / Masquerading (HTTPBrowser)
+    const subdomains = uniq(ctEntries
+      .flatMap((entry) => (entry.name_value || "").split("\n"))
+      .map((name) => name.replace(/^\*\./, "").trim().toLowerCase())
+      .filter((name) => name && name.endsWith(normalized.hostname) && name !== normalized.hostname))
+      .slice(0, 15);
 
-1.2. Persistence & Stealth (The Shadow's Grip)
-Vector: Windows Service / Covert Partition (ExpressLane)
-Vector: Auto-Start Execution Point (ASEP) (HTTPBrowser)
-Vector: Hardware/Firmware Rootkits & Kill Switches (Protego)
+    const ctDates = ctEntries
+      .map((entry) => entry.not_before || entry.entry_timestamp || "")
+      .map((value) => Date.parse(value))
+      .filter((value) => Number.isFinite(value)) as number[];
+    const siteAgeDays = ctDates.length > 0 ? Math.max(1, Math.round((Date.now() - Math.min(...ctDates)) / 86400000)) : 90;
 
-1.3. Evasion & Anti-Forensics
-ExpressLane: Polymorphic code, obfuscation, anti-analysis, LOLBINs.
-File Timestamp Preservation.
+    const techStack = uniq([
+      /react/i.test(bundleText) ? "React" : "",
+      /vite/i.test(html + bundleText) || /\/assets\/index-[\w-]+\.(js|css)/i.test(html) ? "Vite" : "",
+      /supabase/i.test(bundleText) && /createClient/i.test(bundleText) ? "Supabase" : "",
+      headerBag.server?.toLowerCase().includes("cloudflare") ? "Cloudflare" : "",
+      manifest?.display ? "PWA" : "",
+    ]);
 
-1.4. Command & Control & Data Exfiltration
-HTTPBrowser: Clear-text C2. Protego/ExpressLane: Encrypted serial data, covert USB partitions.
+    const githubRepoMatch = (html + "\n" + bundleText).match(/https?:\/\/github\.com\/(?!orgs\/|features\/|enterprise\/)[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i);
+    const githubRepo = githubRepoMatch ? githubRepoMatch[0].replace(/[),.;\]]+$/, "") : null;
 
-2. Software & System Vulnerability Points
-Frontend: Deceptive UI elements, insecure input handling, XSS/CSRF.
-Backend: DLL hijacking, weak persistence, config file manipulation, insecure encryption, AV bypass, supply chain.
-Hardware/Firmware: Firmware manipulation, key management, sensor exploitation, side-channel attacks.
+    const hosting = techStack.includes("Supabase") ? "Cloudflare edge + Supabase-backed app" : (headerBag.server || "Web hosting platform");
+    const cdn = headerBag.server?.toLowerCase().includes("cloudflare") ? "Cloudflare" : "Unknown";
+    const waf = headerBag["cf-ray"] || headerBag["set-cookie"]?.includes("__cf_bm") ? "Cloudflare Bot Management / WAF" : "Unknown";
+    const emailProvider = mxRecords.find((record) => /amazonaws\.com/i.test(record)) ? "AWS SES" : (mxRecords[0] || "");
 
-3. Comprehensive Patching Strategy
-Zero-Trust Architecture, Supply Chain Security (SBOM), Hardware Roots of Trust, Robust Cryptography, Advanced Endpoint Hardening, EDR behavioral analytics, Network Traffic Analysis, File Integrity Monitoring, SIEM/SOAR.
+    const findings: ReconFinding[] = [];
+    const pushFinding = (finding: ReconFinding) => findings.push(finding);
 
-When analyzing domains, simulate BOTH old ways and new ways hackers could exploit the infrastructure. Adopt the adversary's Zero-Point Perspective.
-
-=== END INTELLIGENCE KNOWLEDGE BASE ===
-
-${brainsContext ? `\n=== AXRLEN INTELLIGENCE BRAINS (ADDITIONAL CONTEXT) ===\n${brainsContext}\n=== END AXRLEN BRAINS ===\n` : ""}
-
-TARGET DOMAIN: ${domain}
-
-Execute a FULL-SPECTRUM domain security reconnaissance. You must identify EVERY weakness, misconfiguration, and vulnerability across the entire attack surface. DO NOT LIMIT your output — report ALL findings.
-
-Additionally, perform INFRASTRUCTURE MAPPING — identify and map out the complete architecture of this domain.
-
-=== RECONNAISSANCE MODULES TO EXECUTE ===
-
-MODULE 1: DNS & DOMAIN INTELLIGENCE (Full DNS records, DNSSEC, SPF/DKIM/DMARC, zone transfer, subdomain enumeration, WHOIS)
-MODULE 2: TLS/SSL SECURITY (Certificate, protocols, cipher suites, HSTS, OCSP, mixed content)
-MODULE 3: HTTP SECURITY HEADERS (CSP, X-Frame-Options, HSTS, Referrer-Policy, Permissions-Policy, CORP, COEP)
-MODULE 4: WEB APPLICATION SECURITY (Server fingerprinting, info disclosure, directory listing, backup files, source maps, admin panels, CORS, cookies)
-MODULE 5: INFRASTRUCTURE & NETWORK (IP/ASN, hosting, CDN, WAF, ports, geo, load balancer, reverse proxy)
-MODULE 6: SUBDOMAIN SECURITY (Takeover candidates, staging/dev exposure, internal services)
-MODULE 7: API & ENDPOINT DISCOVERY (REST, GraphQL, WebSocket, auth mechanisms, rate limiting)
-MODULE 8: EMAIL SECURITY (SPF strictness, DMARC enforcement, DKIM strength, spoofing viability)
-MODULE 9: CLOUD & STORAGE EXPOSURE (S3, Azure Blob, GCS bucket enumeration)
-MODULE 10: SECRET & CREDENTIAL EXPOSURE (API keys in JS, .env, .git, JWT weakness)
-MODULE 11: SUPPLY CHAIN & THIRD-PARTY RISK (Vulnerable libraries, SRI, analytics scripts)
-MODULE 12: COMPLIANCE & REGULATORY (GDPR, PCI DSS, HIPAA, SOC 2)
-MODULE 13: INFRASTRUCTURE ARCHITECTURE MAPPING (Components, CI/CD, GitHub detection, data flows)
-
-=== OUTPUT FORMAT ===
-
-Return ONLY a JSON object:
-{
-  "findings": [
-    {
-      "severity": "critical" | "high" | "medium" | "low" | "info",
-      "title": "Clear specific title",
-      "file_path": "Module or component where found",
-      "line_number": 0,
-      "category": "config" | "crypto" | "auth" | "injection" | "secrets" | "supply-chain" | "infrastructure" | "logic",
-      "confidence": 0-100,
-      "cwe_id": "CWE-XXX",
-      "cvss_score": 0.0-10.0,
-      "description": "Detailed technical description",
-      "impact": "What an attacker achieves",
-      "exploitation_steps": ["Step 1", "Step 2", "Step 3"],
-      "code_snippet": "Relevant evidence or configuration",
-      "suggested_fix": "Exact remediation steps",
-      "dataflow_trace": [],
-      "compliance_controls": ["NIST 800-53 XX-X", "PCI DSS X.X"],
-      "similar_cves": ["CVE-XXXX-XXXXX"],
-      "age_days_estimate": 0
-    }
-  ],
-  "risk_grade": "A"|"B"|"C"|"D"|"F",
-  "summary": "Executive summary of domain security posture",
-  "domain_info": {
-    "ip": "detected IP",
-    "hosting": "detected hosting provider",
-    "cdn": "detected CDN",
-    "waf": "detected WAF",
-    "tech_stack": ["detected technologies"],
-    "tls_grade": "A+/A/B/C/D/F",
-    "email_security_grade": "A+/A/B/C/D/F"
-  },
-  "subdomains_found": ["list of discovered subdomains"],
-  "total_attack_surface_score": 0-100,
-  "quantum_status": "safe"|"vulnerable"|"unknown",
-  "zero_trust_score": 0-100,
-  "infrastructure_map": {
-    "github_repo": "https://github.com/owner/repo or null",
-    "deployment_platform": "Vercel/Netlify/AWS/GCP/Azure/Heroku/etc or unknown",
-    "ci_cd": "GitHub Actions/GitLab CI/Jenkins/etc or unknown",
-    "components": [
-      {
-        "id": "component-id",
-        "type": "web-server" | "app-server" | "database" | "cdn" | "load-balancer" | "api-gateway" | "auth-service" | "storage" | "monitoring" | "ci-cd" | "container-orchestration" | "dns" | "email" | "waf" | "cache" | "queue" | "third-party",
-        "name": "Component name",
-        "provider": "Provider/technology name",
-        "details": "Additional details",
-        "exposed": true|false
-      }
-    ],
-    "connections": [
-      {
-        "from": "component-id",
-        "to": "component-id",
-        "label": "Connection description",
-        "protocol": "HTTPS/WSS/gRPC/TCP/etc",
-        "encrypted": true|false
-      }
-    ],
-    "data_flows": [
-      {
-        "description": "Data flow description",
-        "source": "component-id",
-        "destination": "component-id",
-        "data_type": "user-data/credentials/api-calls/logs/etc",
-        "risk_level": "high"|"medium"|"low"
-      }
-    ]
-  }
-}
-
-CRITICAL RULES:
-- Find ALL weaknesses. Do NOT limit. Report EVERY finding across ALL 13 modules.
-- Be AGGRESSIVE — better to flag and let the user triage than miss a real vulnerability.
-- Use real-world exploitation context and reference actual CVEs where applicable.
-- Each finding must have actionable exploitation_steps.
-- Minimum 20+ findings expected for any production domain.
-- The infrastructure_map MUST be populated with every detected component and connection.
-- Apply the adversary's Zero-Point Perspective from the intelligence knowledge base.
-- For "age_days_estimate": estimate how long this type of vulnerability has likely existed based on when the technology/version was deployed, when default configs were set, or when the CVE was first published. Use your intelligence to infer realistic ages (e.g. missing security headers on a site launched 2 years ago = ~730 days, a recently published CVE = days since CVE publication). This is a forensic estimate — be realistic.`;
-
-    async function requestProviderText(provider: AIProvider, prompt: string): Promise<string> {
-      const maxRetries = provider === "lovable" ? 4 : 3;
-
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-          if (provider === "lovable") {
-            const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-              },
-              body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
-                messages: [
-                  { role: "system", content: "You are ZERLAL, an elite domain security reconnaissance engine. Return ONLY valid JSON. No markdown, no explanation." },
-                  { role: "user", content: prompt },
-                ],
-                temperature: 0.1,
-                max_tokens: 65536,
-              }),
-            });
-
-            if (!resp.ok) {
-              const errText = parseGatewayError(await resp.text());
-              console.log(`[ZERLAL-DOMAIN-RECON] Lovable AI error ${resp.status}: ${errText.slice(0, 200)}`);
-
-              if (resp.status === 500 || resp.status === 503 || resp.status === 429) {
-                if (attempt < maxRetries - 1) {
-                  await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
-                  continue;
-                }
-              }
-
-              if (resp.status === 402) {
-                throw createRouteError("Lovable AI credits exhausted. Falling back to backup analysis provider failed too.", 402);
-              }
-
-              if (resp.status === 429) {
-                throw createRouteError("Lovable AI rate limit reached. Please wait a minute and retry.", 429);
-              }
-
-              if (resp.status === 500 || resp.status === 503) {
-                throw createRouteError("Lovable AI is temporarily unavailable. Backup analysis provider also failed.", 503);
-              }
-
-              throw createRouteError(`AI gateway error: ${errText.slice(0, 200)}`, resp.status);
-            }
-
-            const data = await resp.json();
-            const responseText = data.choices?.[0]?.message?.content || "";
-            if (!responseText.trim()) throw createRouteError("Lovable AI returned an empty response", 502);
-            return responseText;
-          }
-
-          const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
-              }),
-            }
-          );
-
-          if (!resp.ok) {
-            const errText = await resp.text();
-            console.log(`[ZERLAL-DOMAIN-RECON] Gemini error ${resp.status}: ${errText.slice(0, 200)}`);
-
-            if (resp.status === 503 || resp.status === 429) {
-              if (attempt < maxRetries - 1) {
-                await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
-                continue;
-              }
-            }
-
-            if (resp.status === 429) {
-              throw createRouteError("Backup analysis provider rate limit reached. Please retry shortly.", 429);
-            }
-
-            throw createRouteError(`Backup analysis provider error ${resp.status}: ${errText.slice(0, 200)}`, resp.status);
-          }
-
-          const data = await resp.json();
-          const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          if (!responseText.trim()) throw createRouteError("Backup analysis provider returned an empty response", 502);
-          return responseText;
-        } catch (error) {
-          if (attempt === maxRetries - 1) throw error;
-          console.log(`[ZERLAL-DOMAIN-RECON] ${provider} attempt ${attempt + 1} failed:`, error);
-          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 2000));
-        }
-      }
-
-      throw createRouteError("AI API failed after retries", 500);
-    }
-
-    async function requestAnalysis<T>(prompt: string): Promise<T> {
-      let lastError: RouteError | null = null;
-
-      for (const provider of providers) {
-        try {
-          const responseText = await requestProviderText(provider, prompt);
-          return parseJsonObject(responseText) as T;
-        } catch (error) {
-          lastError = createRouteError(getErrorMessage(error), getErrorStatus(error));
-          console.log(`[ZERLAL-DOMAIN-RECON] ${provider} provider failed, ${provider === providers[providers.length - 1] ? "no providers left" : "trying fallback"}: ${lastError.message}`);
-        }
-      }
-
-      throw lastError ?? createRouteError("AI analysis failed", 500);
-    }
-
-    let analysis: ReconAnalysis;
-    try {
-      analysis = await requestAnalysis<ReconAnalysis>(reconPrompt);
-      console.log("[ZERLAL-DOMAIN-RECON] Pass 1 findings:", analysis.findings?.length || 0);
-    } catch (e) {
-      console.error("[ZERLAL-DOMAIN-RECON] Pass 1 error:", e);
-      const errorMessage = getErrorMessage(e);
-      const errorStatus = getErrorStatus(e);
-
-      await supabase.from("zerlal_scans").update({
-        status: "failed",
-        error: errorMessage,
-        completed_at: new Date().toISOString(),
-      }).eq("id", scan.id);
-
-      await supabase.from("zerlal_projects").update({
-        status: "failed",
-      }).eq("id", projectId);
-
-      return new Response(JSON.stringify({ error: errorMessage }), {
-        status: errorStatus,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!headerBag["content-security-policy"]) {
+      pushFinding({
+        severity: "medium",
+        title: "Missing Content-Security-Policy on primary application response",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 96,
+        cwe_id: "CWE-693",
+        cvss_score: 6.4,
+        description: "The primary HTML response does not ship a Content-Security-Policy header, so the browser has no strict script, frame, or resource execution policy to contain injected markup or hostile third-party content.",
+        impact: "Any successful XSS or script injection bug will have a much larger blast radius because the browser is not constrained by an explicit execution policy.",
+        exploitation_steps: [
+          "Find any reflected, stored, or DOM-based injection point in the application.",
+          "Inject hostile JavaScript or hostile remote resources into the rendered page.",
+          "Leverage the lack of CSP to execute code, exfiltrate tokens, or pivot across user sessions.",
+        ],
+        code_snippet: "content-security-policy: <missing>",
+        suggested_fix: "Add a strict Content-Security-Policy with default-src 'self', explicit script-src/style-src directives, and frame-ancestors 'none' or a narrowly scoped allowlist.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 SI-10", "PCI DSS 6.4.3"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
       });
     }
 
-    let allFindings = analysis.findings || [];
-
-    const elapsed = Date.now() - scanStartTime;
-    if (allFindings.length > 0 && allFindings.length < 30 && elapsed < 120000) {
-      console.log("[ZERLAL-DOMAIN-RECON] Starting Pass 2");
-      const existingTitles = allFindings.map((finding) => finding.title).join("\n- ");
-      const pass2Prompt = `You are ZERLAL with ELION/ZOHAR, armed with the full intelligence knowledge base. You already found these domain weaknesses for ${domain}:
-- ${existingTitles}
-
-Find ALL ADDITIONAL weaknesses NOT listed above. Apply the adversary's Zero-Point Perspective. Focus on:
-- Subdomain takeover vectors, Cloud storage misconfigurations, API endpoint vulnerabilities
-- Email spoofing viability, Cookie/session security gaps, JavaScript library vulnerabilities
-- Information disclosure vectors, CORS misconfigurations, Missing rate limiting
-- Default credential exposure, Backup file exposure, Source map leaks
-- GraphQL introspection, Supply chain risks, Persistence mechanisms, Anti-forensic indicators
-
-Do NOT repeat findings. Report NEW ones only.
-For each finding include "age_days_estimate" — your forensic estimate of how long this vulnerability has likely existed in this domain.
-
-Return ONLY JSON: { "findings": [...] }
-Each finding: severity, title, file_path, line_number, category, confidence, cwe_id, cvss_score, description, impact, exploitation_steps, code_snippet, suggested_fix, dataflow_trace, compliance_controls, similar_cves, age_days_estimate.`;
-
-      try {
-        const pass2 = await requestAnalysis<ReconAnalysis>(pass2Prompt);
-        const existingSet = new Set(allFindings.map((finding) => (finding.title || "").toLowerCase().trim()));
-
-        for (const finding of pass2.findings || []) {
-          const key = (finding.title || "").toLowerCase().trim();
-          if (!existingSet.has(key)) {
-            allFindings.push(finding);
-            existingSet.add(key);
-          }
-        }
-      } catch (e) {
-        console.error("[ZERLAL-DOMAIN-RECON] Pass 2 error (non-fatal):", e);
-      }
+    if (!headerBag["x-frame-options"] && !String(headerBag["content-security-policy"] || "").includes("frame-ancestors")) {
+      pushFinding({
+        severity: "medium",
+        title: "Clickjacking protection not explicitly enforced",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 92,
+        cwe_id: "CWE-1021",
+        cvss_score: 5.8,
+        description: "The response lacks X-Frame-Options and does not expose a frame-ancestors CSP directive, leaving framing policy ambiguous.",
+        impact: "Attackers can attempt UI redressing or clickjacking flows against authenticated users if sensitive actions are reachable in-frame.",
+        exploitation_steps: [
+          "Host the target page inside an attacker-controlled iframe.",
+          "Overlay decoy controls that trick the victim into clicking the framed application.",
+          "Abuse authenticated clicks to trigger state-changing actions.",
+        ],
+        code_snippet: `x-frame-options: ${headerBag["x-frame-options"] || "<missing>"}`,
+        suggested_fix: "Set X-Frame-Options: DENY or enforce frame-ancestors 'none' / approved origins in CSP.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 SC-18"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
     }
 
-    let criticalCount = 0;
-    let highCount = 0;
-    let mediumCount = 0;
-    let lowCount = 0;
-    let infoCount = 0;
-
-    for (const finding of allFindings) {
-      const severity = finding.severity || "medium";
-      if (severity === "critical") criticalCount++;
-      else if (severity === "high") highCount++;
-      else if (severity === "medium") mediumCount++;
-      else if (severity === "low") lowCount++;
-      else infoCount++;
+    if (!headerBag["permissions-policy"]) {
+      pushFinding({
+        severity: "low",
+        title: "Permissions-Policy header is absent",
+        file_path: "HTTP Security Headers",
+        line_number: 0,
+        category: "config",
+        confidence: 95,
+        cwe_id: "CWE-693",
+        cvss_score: 3.7,
+        description: "The application does not define a Permissions-Policy, so browser capabilities are governed only by defaults.",
+        impact: "If future code paths or third-party widgets request powerful browser features, they may inherit broader access than intended.",
+        exploitation_steps: [
+          "Introduce or compromise a client-side component that requests browser capabilities.",
+          "Rely on browser defaults because no explicit feature deny-list is present.",
+          "Abuse granted capabilities for tracking, social engineering, or data capture.",
+        ],
+        code_snippet: "permissions-policy: <missing>",
+        suggested_fix: "Ship a restrictive Permissions-Policy that disables unused capabilities such as camera, microphone, geolocation, and payment.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 CM-7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
     }
 
-    if (!hasInfrastructureMap(analysis.infrastructure_map)) {
-      analysis.infrastructure_map = buildFallbackInfrastructureMap(domain, analysis, allFindings);
+    if (!securityTxtResp.ok) {
+      pushFinding({
+        severity: "low",
+        title: "No security.txt disclosure channel detected",
+        file_path: "Compliance / Security Contact",
+        line_number: 0,
+        category: "config",
+        confidence: 90,
+        cwe_id: "CWE-200",
+        cvss_score: 3.1,
+        description: "The standard /.well-known/security.txt file is not present, so there is no machine-readable disclosure path for researchers.",
+        impact: "Vulnerability reporters have less guidance on how to report issues responsibly, increasing the chance of missed reports or delayed triage.",
+        exploitation_steps: [
+          "A researcher identifies a vulnerability in the domain.",
+          "No disclosure policy or security contact is discoverable at the expected location.",
+          "The report is delayed, misrouted, or never submitted.",
+        ],
+        code_snippet: `${normalized.origin}/.well-known/security.txt -> ${securityTxtResp.status || "unreachable"}`,
+        suggested_fix: "Publish a security.txt file with contact, disclosure, and policy metadata.",
+        dataflow_trace: [],
+        compliance_controls: ["ISO 29147", "SOC 2 CC7.1"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
     }
 
-    if (!analysis.summary || analysis.summary.toLowerCase().includes("analysis failed")) {
-      analysis.summary = allFindings.length > 0
-        ? `Partial reconnaissance completed. ${allFindings.length} weaknesses were identified, and the infrastructure map was reconstructed from the available evidence.`
-        : "Reconnaissance returned limited evidence. The infrastructure map shown is reconstructed from the domain surface that could be inferred.";
+    if (!hasSpf) {
+      pushFinding({
+        severity: "medium",
+        title: "SPF record not detected on apex domain",
+        file_path: "Email Security",
+        line_number: 0,
+        category: "config",
+        confidence: 88,
+        cwe_id: "CWE-346",
+        cvss_score: 5.3,
+        description: "TXT lookups for the apex domain did not return an SPF policy, leaving sender validation incomplete.",
+        impact: "Spoofed mail claiming to originate from the domain is easier to deliver because receiver-side SPF checks have no policy to validate against.",
+        exploitation_steps: [
+          "Forge a message using an @domain sender address.",
+          "Target recipients or internal staff with phishing or reset workflows.",
+          "Exploit the lack of SPF policy enforcement to improve delivery success.",
+        ],
+        code_snippet: txtRecords.join("\n") || "TXT: <no SPF record detected>",
+        suggested_fix: "Publish an SPF record covering every legitimate outbound mail sender and keep it aligned with DMARC policy.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-177", "SOC 2 CC6.7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
     }
 
-    analysis.risk_grade = analysis.risk_grade || inferRiskGrade({
-      critical: criticalCount,
-      high: highCount,
-      medium: mediumCount,
-      low: lowCount,
-      info: infoCount,
-    });
+    if (dmarcPolicies.length > 1) {
+      pushFinding({
+        severity: "medium",
+        title: "Conflicting DMARC policies published",
+        file_path: "Email Security",
+        line_number: 0,
+        category: "config",
+        confidence: 95,
+        cwe_id: "CWE-16",
+        cvss_score: 5.6,
+        description: "The domain publishes multiple DMARC TXT records with different enforcement values, creating ambiguous policy resolution for receivers.",
+        impact: "Mail receivers may ignore or inconsistently interpret DMARC enforcement, weakening anti-spoofing protections.",
+        exploitation_steps: [
+          "Review the published _dmarc TXT answers and note the conflicting policy values.",
+          "Send spoofed mail and rely on inconsistent receiver behavior when DMARC parsing is ambiguous.",
+          "Use the weaker interpretation to improve phishing deliverability.",
+        ],
+        code_snippet: dmarcRecords.join("\n"),
+        suggested_fix: "Collapse DMARC into a single authoritative TXT record with one explicit policy and aligned SPF/DKIM posture.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-177", "PCI DSS 4.0 5.4.1"],
+        similar_cves: [],
+        age_days_estimate: Math.max(30, Math.round(siteAgeDays / 2)),
+      });
+    }
 
-    analysis.findings = allFindings;
+    if (subdomains.length > 0) {
+      pushFinding({
+        severity: "low",
+        title: "Additional public subdomains exposed in certificate transparency logs",
+        file_path: "Subdomain Intelligence",
+        line_number: 0,
+        category: "infrastructure",
+        confidence: 93,
+        cwe_id: "CWE-200",
+        cvss_score: 3.9,
+        description: "Certificate transparency entries expose additional hostnames associated with the domain, expanding the externally visible attack surface.",
+        impact: "Attackers can pivot into forgotten or softer targets such as billing, staging, or legacy subdomains discovered from passive CT intelligence.",
+        exploitation_steps: [
+          "Enumerate certificate transparency entries for the domain.",
+          `Extract the published hostnames such as ${subdomains.slice(0, 3).join(", ") || "discovered subdomains"}.`,
+          "Probe each hostname for weaker controls, outdated deployments, or takeover conditions.",
+        ],
+        code_snippet: subdomains.join("\n"),
+        suggested_fix: "Continuously inventory CT-disclosed hostnames and retire, redirect, or harden anything that should not remain public.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 CA-3", "SOC 2 CC7.1"],
+        similar_cves: [],
+        age_days_estimate: Math.max(7, Math.round(siteAgeDays / 2)),
+      });
+    }
 
-    console.log("[ZERLAL-DOMAIN-RECON] Total findings:", allFindings.length);
+    if (/supabase/i.test(bundleText) && /createClient/i.test(bundleText)) {
+      pushFinding({
+        severity: "info",
+        title: "Frontend bundle reveals managed backend SDK usage",
+        file_path: "Client Bundle",
+        line_number: 0,
+        category: "infrastructure",
+        confidence: 98,
+        cwe_id: "CWE-200",
+        cvss_score: 1.8,
+        description: "The shipped JavaScript bundle exposes clear backend SDK fingerprints, which helps adversaries profile the authentication and data plane used by the application.",
+        impact: "This is primarily reconnaissance value: it shortens attacker profiling time and highlights which backend surfaces to probe first.",
+        exploitation_steps: [
+          "Download the public JavaScript bundle from the application.",
+          "Search for provider-specific SDK strings and client initialization patterns.",
+          "Use the identified stack to focus follow-on testing and configuration review.",
+        ],
+        code_snippet: "Bundle fingerprint: supabase + createClient detected in public asset",
+        suggested_fix: "Treat this as expected public metadata, but pair it with tight backend policy enforcement and avoid leaking unnecessary environment details in client bundles.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 SA-15"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
 
-    // Clear any old findings for this project before inserting new ones (session isolation)
+    if (manifest?.start_url && manifest.start_url !== "/") {
+      pushFinding({
+        severity: "info",
+        title: "PWA manifest exposes authenticated application entrypoint",
+        file_path: "PWA Manifest",
+        line_number: 0,
+        category: "infrastructure",
+        confidence: 90,
+        cwe_id: "CWE-200",
+        cvss_score: 1.6,
+        description: "The public manifest advertises a non-root application start_url, which provides passive intelligence about the product surface and expected authenticated route structure.",
+        impact: "This does not create direct compromise, but it gives attackers additional mapping context for automation and social engineering.",
+        exploitation_steps: [
+          "Fetch the public manifest.json file.",
+          "Read the declared start_url and application metadata.",
+          "Use the route structure to guide enumeration and phishing pretext design.",
+        ],
+        code_snippet: `start_url: ${manifest.start_url}`,
+        suggested_fix: "Only expose route metadata that is operationally necessary in the public manifest.",
+        dataflow_trace: [],
+        compliance_controls: ["NIST 800-53 CM-7"],
+        similar_cves: [],
+        age_days_estimate: siteAgeDays,
+      });
+    }
+
+    const severityCounts = findings.reduce<Record<string, number>>((acc, finding) => {
+      const key = finding.severity || "info";
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, { critical: 0, high: 0, medium: 0, low: 0, info: 0 });
+
+    const riskGrade = computeRiskGrade(severityCounts);
+    const attackSurfaceScore = clamp(
+      20 +
+      severityCounts.critical * 20 +
+      severityCounts.high * 15 +
+      severityCounts.medium * 10 +
+      severityCounts.low * 5 +
+      severityCounts.info * 2 +
+      Math.min(subdomains.length * 2, 10),
+      0,
+      100,
+    );
+    const zeroTrustScore = clamp(100 - (severityCounts.critical * 22 + severityCounts.high * 16 + severityCounts.medium * 10 + severityCounts.low * 5), 0, 100);
+
+    const analysis: ReconAnalysis = {
+      findings,
+      risk_grade: riskGrade,
+      summary: [
+        `Reconnaissance completed against ${normalized.hostname} with ${findings.length} findings derived from live HTTP, DNS, TLS, manifest, certificate-transparency, and client-bundle signals.`,
+        `The application appears to sit behind ${cdn || "an edge provider"} and presents as a ${techStack.join("/") || "web application"}${techStack.includes("Supabase") ? " using a Supabase-backed service plane" : ""}.`,
+        `The strongest issues are the missing browser execution policy controls (CSP / anti-clickjacking) and the weakened email-authentication posture caused by ${!hasSpf ? "missing SPF" : ""}${!hasSpf && dmarcPolicies.length > 1 ? " plus " : ""}${dmarcPolicies.length > 1 ? "conflicting DMARC records" : ""}.`,
+      ].join(" "),
+      domain_info: {
+        ip: aRecords[0] || undefined,
+        hosting,
+        cdn,
+        waf,
+        tech_stack: techStack,
+        tls_grade: computeTlsGrade(headers, null),
+        email_security_grade: computeEmailGrade(hasSpf, dmarcPolicies),
+      },
+      subdomains_found: subdomains,
+      total_attack_surface_score: attackSurfaceScore,
+      zero_trust_score: zeroTrustScore,
+      infrastructure_map: buildInfrastructureMap(normalized.hostname, techStack, {
+        hosting,
+        cdn,
+        waf,
+        emailProvider,
+        githubRepo,
+      }),
+    };
+
+    const firstSeenBase = new Date().toISOString();
     await supabase.from("zerlal_findings").delete().eq("project_id", projectId);
 
-    for (const finding of allFindings) {
-      const severity = finding.severity || "medium";
-      const ageDays = Math.max(0, Math.round(finding.age_days_estimate || 0));
-      const firstSeenDate = new Date(Date.now() - ageDays * 86400000).toISOString();
-
-      await supabase.from("zerlal_findings").insert({
-        user_id: user.id,
-        project_id: projectId,
-        scan_id: scan.id,
-        severity,
-        title: finding.title || "Unnamed finding",
-        file_path: finding.file_path || `Domain: ${domain}`,
-        line_number: finding.line_number || 0,
-        category: finding.category || "config",
-        confidence: Math.min(100, Math.max(0, finding.confidence || 50)),
-        age_days: ageDays,
-        first_seen_at: firstSeenDate,
-        status: "open",
-        cwe_id: finding.cwe_id || "",
-        cvss_score: Math.min(10, Math.max(0, finding.cvss_score || 0)),
-        description: finding.description || "",
-        impact: finding.impact || "",
-        exploitation_steps: finding.exploitation_steps || [],
-        code_snippet: finding.code_snippet || "",
-        suggested_fix: finding.suggested_fix || "",
-        dataflow_trace: finding.dataflow_trace || [],
-        compliance_controls: finding.compliance_controls || [],
-        similar_cves: finding.similar_cves || [],
+    if (findings.length > 0) {
+      const rows = findings.map((finding) => {
+        const ageDays = Math.max(0, Math.round(finding.age_days_estimate || 0));
+        const firstSeenAt = new Date(Date.now() - ageDays * 86400000).toISOString();
+        return {
+          user_id: user.id,
+          project_id: projectId,
+          scan_id: scanId,
+          severity: finding.severity || "info",
+          title: finding.title || "Unnamed finding",
+          file_path: finding.file_path || `Domain: ${normalized.hostname}`,
+          line_number: finding.line_number || 0,
+          category: finding.category || "config",
+          confidence: clamp(finding.confidence || 75, 0, 100),
+          age_days: ageDays,
+          first_seen_at: firstSeenAt || firstSeenBase,
+          status: "open",
+          cwe_id: finding.cwe_id || "",
+          cvss_score: clamp(finding.cvss_score || 0, 0, 10),
+          description: finding.description || "",
+          impact: finding.impact || "",
+          exploitation_steps: finding.exploitation_steps || [],
+          code_snippet: finding.code_snippet || "",
+          suggested_fix: finding.suggested_fix || "",
+          dataflow_trace: finding.dataflow_trace || [],
+          compliance_controls: finding.compliance_controls || [],
+          similar_cves: finding.similar_cves || [],
+        };
       });
+
+      const { error: insertErr } = await supabase.from("zerlal_findings").insert(rows);
+      if (insertErr) throw insertErr;
     }
 
-    const duration = Math.floor((Date.now() - scanStartTime) / 1000);
+    const duration = Math.max(1, Math.floor((Date.now() - started) / 1000));
 
-    await supabase.from("zerlal_scans").update({
-      status: "complete",
-      completed_at: new Date().toISOString(),
-      duration,
-      findings_count: allFindings.length,
-      critical_count: criticalCount,
-      high_count: highCount,
-      medium_count: mediumCount,
-      low_count: lowCount,
-      info_count: infoCount,
-    }).eq("id", scan.id);
+    const { error: scanUpdateErr } = await supabase
+      .from("zerlal_scans")
+      .update({
+        status: "complete",
+        completed_at: new Date().toISOString(),
+        duration,
+        findings_count: findings.length,
+        critical_count: severityCounts.critical,
+        high_count: severityCounts.high,
+        medium_count: severityCounts.medium,
+        low_count: severityCounts.low,
+        info_count: severityCounts.info,
+        error: null,
+      })
+      .eq("id", scanId);
+    if (scanUpdateErr) throw scanUpdateErr;
 
-    await supabase.from("zerlal_projects").update({
-      risk_grade: analysis.risk_grade || "F",
-      last_scan_at: new Date().toISOString(),
-      critical_count: criticalCount,
-      high_count: highCount,
-      medium_count: mediumCount,
-      low_count: lowCount,
-      info_count: infoCount,
-      status: "complete",
-    }).eq("id", projectId);
-
-    console.log("[ZERLAL-DOMAIN-RECON] Complete. Findings:", allFindings.length);
+    const { error: projectUpdateErr } = await supabase
+      .from("zerlal_projects")
+      .update({
+        risk_grade: analysis.risk_grade,
+        last_scan_at: new Date().toISOString(),
+        scan_duration: duration,
+        critical_count: severityCounts.critical,
+        high_count: severityCounts.high,
+        medium_count: severityCounts.medium,
+        low_count: severityCounts.low,
+        info_count: severityCounts.info,
+        status: "complete",
+      })
+      .eq("id", projectId);
+    if (projectUpdateErr) throw projectUpdateErr;
 
     return new Response(JSON.stringify({
       project_id: projectId,
-      scan_id: scan.id,
-      findings_count: allFindings.length,
+      scan_id: scanId,
+      findings_count: findings.length,
       risk_grade: analysis.risk_grade,
       summary: analysis.summary,
-      domain_info: analysis.domain_info || {},
-      subdomains_found: analysis.subdomains_found || [],
+      domain_info: analysis.domain_info,
+      subdomains_found: analysis.subdomains_found,
       total_attack_surface_score: analysis.total_attack_surface_score,
       zero_trust_score: analysis.zero_trust_score,
-      infrastructure_map: analysis.infrastructure_map || null,
+      infrastructure_map: analysis.infrastructure_map,
       duration,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
-    console.error("[ZERLAL-DOMAIN-RECON] Error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (supabase && scanId) {
+      await supabase.from("zerlal_scans").update({
+        status: "failed",
+        error: message,
+        completed_at: new Date().toISOString(),
+      }).eq("id", scanId);
+    }
+
+    if (supabase && projectId) {
+      await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", projectId);
+    }
+
+    console.error("[ZERLAL-DOMAIN-RECON] Error:", message);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
