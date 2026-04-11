@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2, Copy, Check, Download, Eye, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, AlertTriangle, CheckCircle, Clock, Shield, Link2, Loader2, Copy, Check, Download, Eye, X, Skull } from "lucide-react";
 import { useZerlalFindings, useUpdateFinding } from "./useZerlalData";
 import type { ZerlalFinding } from "./types";
+import { toast } from "sonner";
+import ExploitIntelTab from "./ExploitIntelTab";
 import { toast } from "sonner";
 
 const generateFindingReport = (f: ZerlalFinding): string => {
