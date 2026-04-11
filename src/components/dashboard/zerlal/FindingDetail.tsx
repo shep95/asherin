@@ -57,6 +57,7 @@ const downloadTextFile = (content: string, filename: string) => {
 const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
   const [copied, setCopied] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "exploit">("overview");
   const { findings, loading, refetch } = useZerlalFindings();
   const { markFalsePositive, waiveFinding, resolveFinding, assignFinding } = useUpdateFinding();
   const finding = findings.find(f => f.id === findingId);
