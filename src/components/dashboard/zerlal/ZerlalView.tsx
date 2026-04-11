@@ -61,7 +61,7 @@ const ZerlalView = () => {
 
   const renderScreen = () => {
     if (activeScreen === "domain-recon") {
-      return <DomainReconScreen />;
+      return <DomainReconScreen onSelectFinding={handleSelectFinding} />;
     }
 
     if (activeScreen === "device-security") {

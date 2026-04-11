@@ -58,6 +58,10 @@ interface ScanResult {
   infrastructure_map: InfrastructureMapData | null;
 }
 
+interface DomainReconScreenProps {
+  onSelectFinding?: (id: string) => void;
+}
+
 const severityColor: Record<string, string> = {
   critical: "text-red-400 bg-red-500/10 border-red-500/20",
   high: "text-orange-400 bg-orange-500/10 border-orange-500/20",
@@ -316,7 +320,7 @@ const buildFallbackInfrastructureMap = (
   };
 };
 
-const DomainReconScreen = () => {
+const DomainReconScreen = ({ onSelectFinding }: DomainReconScreenProps) => {
   const [domain, setDomain] = useState("");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -669,6 +673,21 @@ const DomainReconScreen = () => {
 
                     {expandedFinding === f.id && (
                       <div className="px-4 pb-4 border-t border-border/[0.04] pt-3 space-y-3">
+                        {onSelectFinding && (
+                          <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/[0.08] bg-red-500/[0.03] p-3">
+                            <div>
+                              <p className="text-[9px] text-red-400/60 uppercase tracking-wider">Exploit Intelligence</p>
+                              <p className="text-[10px] text-foreground/55 mt-1">Open the full finding view to access the adversarial dossier and live shutdown test for this weakness.</p>
+                            </div>
+                            <button
+                              onClick={() => onSelectFinding(f.id)}
+                              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[9px] text-red-400 hover:bg-red-500/20 transition-colors"
+                            >
+                              Open Exploit Intelligence <ExternalLink className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[9px]">
                           <div><span className="text-muted-foreground/30">CWE:</span> <span className="text-foreground/60">{f.cwe_id}</span></div>
                           <div><span className="text-muted-foreground/30">Confidence:</span> <span className="text-foreground/60">{f.confidence}%</span></div>
