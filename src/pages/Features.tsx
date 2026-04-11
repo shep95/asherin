@@ -426,7 +426,6 @@ const Features = () => {
             offers: [
               { "@type": "Offer", name: "Aureon", price: "18", priceCurrency: "USD", billingDuration: "P1M" },
               { "@type": "Offer", name: "Pro", price: "399", priceCurrency: "USD", billingDuration: "P1M" },
-              { "@type": "Offer", name: "Advisor", price: "20000", priceCurrency: "USD", billingDuration: "P1M" },
             ],
           }),
         }}
@@ -453,7 +452,6 @@ const Features = () => {
           {[
             { label: "Aureon — $18/mo", anchor: "#aureon", border: "border-emerald-400/25", text: "text-emerald-400" },
             { label: "Pro — $399/mo", anchor: "#pro", border: "border-accent/25", text: "text-accent" },
-            { label: "Advisor — $20K/mo", anchor: "#advisor", border: "border-amber-400/25", text: "text-amber-400" },
           ].map(({ label, anchor, border, text }) => (
             <a
               key={anchor}
