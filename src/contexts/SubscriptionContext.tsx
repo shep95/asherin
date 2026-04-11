@@ -24,18 +24,6 @@ export const TIERS = {
     product_id: "prod_U1PuUztkmieRrE",
     price_id: "price_1T3N4iRxgCpmPfiFGbJkXY33",
   },
-  enterprise: {
-    product_id: "prod_UHYvzFQmO9cob8",
-    price_id: "price_1TIznDRxgCpmPfiFI2nyoWAG",
-  },
-  advisor_monthly: {
-    product_id: "prod_TzZlilj5l50ena",
-    price_id: "price_1T1abVRxgCpmPfiFsZcq9ZNM",
-  },
-  advisor_annual: {
-    product_id: "prod_TzZlU2MDFcXG7o",
-    price_id: "price_1T1abXRxgCpmPfiFFyuty5i6",
-  },
 } as const;
 
 export type TierKey = keyof typeof TIERS;
@@ -95,27 +83,22 @@ function productToTier(productId: string | null): TierKey | null {
 
 /** Check if user has chat-only access */
 export function hasChatAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "starter" || tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro" || tierKey === "enterprise" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+  return tierKey === "starter" || tierKey === "lifetime" || tierKey === "chat" || tierKey === "aureon" || tierKey === "pro";
 }
 
 /** Check if user has access to Zophiel Search, Imagine Intelligence, Notebooks (chat+ tiers) */
 export function hasSearchAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "chat" || tierKey === "starter" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro" || tierKey === "enterprise" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+  return tierKey === "chat" || tierKey === "starter" || tierKey === "lifetime" || tierKey === "aureon" || tierKey === "pro";
 }
 
-/** Check if user has pro-level access (pro, enterprise, or advisor) */
+/** Check if user has pro-level access */
 export function hasProAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "pro" || tierKey === "enterprise" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+  return tierKey === "pro";
 }
 
-/** Check if user has enterprise-level access (enterprise or advisor) — required for Axrlen & Zeeion */
+/** Check if user has enterprise-level access — required for Axrlen, Zeeion & Zerlal (admin only) */
 export function hasEnterpriseOnlyAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "enterprise" || tierKey === "advisor_monthly" || tierKey === "advisor_annual";
-}
-
-/** Check if user has advisor-level access */
-export function hasAdvisorAccess(tierKey: TierKey | null): boolean {
-  return tierKey === "advisor_monthly" || tierKey === "advisor_annual";
+  return tierKey === "pro";
 }
 
 /** @deprecated Use hasEnterpriseOnlyAccess instead */
