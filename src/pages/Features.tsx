@@ -322,19 +322,19 @@ const features: Feature[] = [
 /* ─── Feature Card ─── */
 const FeatureCard = ({ icon: Icon, title, description, details, tier }: Feature) => {
   const { label, accent, dot } = tiers[tier];
-  const isAdvisor = tier === "advisor";
+  const isPro = tier === "pro";
 
   return (
     <div
       className={`group rounded-2xl border backdrop-blur-md p-8 transition-all duration-300 hover:border-border/40 ${
-        isAdvisor
+        isPro
           ? "border-accent/15 bg-accent/[0.03] hover:bg-accent/[0.06]"
           : "border-border/15 bg-card/20 hover:bg-card/30"
       }`}
     >
       <div className="flex items-start gap-4 mb-5">
-        <div className={`rounded-xl p-2.5 ${isAdvisor ? "bg-accent/10" : "bg-foreground/5"}`}>
-          <Icon className={`h-5 w-5 ${isAdvisor ? "text-accent" : "text-foreground/80"}`} />
+        <div className={`rounded-xl p-2.5 ${isPro ? "bg-accent/10" : "bg-foreground/5"}`}>
+          <Icon className={`h-5 w-5 ${isPro ? "text-accent" : "text-foreground/80"}`} />
         </div>
         <div>
           <h3 className="text-base font-light tracking-wide text-foreground">{title}</h3>
@@ -352,7 +352,7 @@ const FeatureCard = ({ icon: Icon, title, description, details, tier }: Feature)
       <ul className="space-y-2.5">
         {details.map((d) => (
           <li key={d} className="flex items-start gap-2.5 text-xs font-extralight text-foreground/75">
-            <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${isAdvisor ? "text-accent/60" : "text-emerald-400/60"}`} />
+            <Check className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${isPro ? "text-accent/60" : "text-emerald-400/60"}`} />
             {d}
           </li>
         ))}
@@ -481,12 +481,6 @@ const Features = () => {
         tierKey="pro"
       />
 
-      <TierSection
-        id="advisor"
-        title="Aureon Advisor"
-        subtitle="$20,000/month — Limited to 8 seats. The complete intelligence platform with direct advisory from Asher Newton."
-        tierKey="advisor"
-      />
 
       {/* CTA */}
       <section className="relative z-10 px-6 pb-28">
