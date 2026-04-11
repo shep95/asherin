@@ -714,6 +714,9 @@ Each finding: severity, title, file_path, line_number, category, confidence, cwe
 
     console.log("[ZERLAL-DOMAIN-RECON] Total findings:", allFindings.length);
 
+    // Clear any old findings for this project before inserting new ones (session isolation)
+    await supabase.from("zerlal_findings").delete().eq("project_id", projectId);
+
     for (const finding of allFindings) {
       const severity = finding.severity || "medium";
       const ageDays = Math.max(0, Math.round(finding.age_days_estimate || 0));
