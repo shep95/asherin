@@ -13,7 +13,6 @@ import {
 const tiers = {
   aureon: { label: "Aureon — $18/mo", accent: "text-emerald-400/80", dot: "bg-emerald-400/70" },
   pro:    { label: "Pro — $399/mo", accent: "text-accent/80", dot: "bg-accent/70" },
-  advisor:{ label: "Advisor — $20,000/mo", accent: "text-amber-400/80", dot: "bg-amber-400/70" },
 } as const;
 
 type Tier = keyof typeof tiers;
@@ -317,35 +316,6 @@ const features: Feature[] = [
       "Immutable log — entries cannot be modified or deleted",
     ],
     tier: "pro",
-  },
-  /* ─── Advisor tier ─── */
-  {
-    icon: Server,
-    title: "Private Deployment",
-    description:
-      "Maximum control — Aureon deployed on-premise or in your private cloud. Full data sovereignty with zero external dependencies and dedicated engineering support.",
-    details: [
-      "On-premise or private cloud deployment",
-      "Full data sovereignty — nothing leaves your network",
-      "Custom model fine-tuning available",
-      "Dedicated 24/7 engineering support",
-      "SLA-backed uptime guarantees",
-    ],
-    tier: "advisor",
-  },
-  {
-    icon: Sparkles,
-    title: "Direct Advisory Access",
-    description:
-      "Limited to 8 seats. Direct strategic advisory from Asher Newton — the founder and architect of Aureon. Your intelligence needs, personally handled.",
-    details: [
-      "Direct communication channel with the founder",
-      "Custom intelligence workflows built for your org",
-      "Priority feature requests and roadmap input",
-      "Quarterly strategic intelligence reviews",
-      "Limited to 8 active Advisor accounts globally",
-    ],
-    tier: "advisor",
   },
 ];
 

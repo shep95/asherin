@@ -284,7 +284,7 @@ export const VIEW_FEATURE_MAP: Record<string, FeatureId> = {
 export interface TierFeatureCard {
   label: string;
   desc: string;
-  tier: "All tiers" | "Pro & Advisor" | "Advisor Only";
+  tier: "All tiers" | "Pro";
 }
 
 export const TIER_FEATURE_CARDS: TierFeatureCard[] = [
@@ -293,12 +293,12 @@ export const TIER_FEATURE_CARDS: TierFeatureCard[] = [
   { label: "End-to-End Encryption", desc: "Every message encrypted. Never stored as training data.", tier: "All tiers" },
   { label: "Zophiel Search", desc: "Privacy-first search with source credibility tiers and page preview.", tier: "All tiers" },
   { label: "Aureon IDE", desc: "Full cloud development environment with AI chat, terminals, sessions, undo/redo, and ZIP export.", tier: "All tiers" },
-  { label: "Google Intelligence", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome, and more.", tier: "Pro & Advisor" },
-  { label: "Predictive Intelligence", desc: "AI-powered event forecasting with signal detection and confidence scoring.", tier: "Pro & Advisor" },
-  { label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask AUREON to design directly on the canvas.", tier: "Pro & Advisor" },
-  { label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro & Advisor" },
-  { label: "Azplen Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro & Advisor" },
-  { label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro & Advisor" },
-  { label: "Elion / Zohar Toolkit", desc: "Domain forensics, security scoring, subdomain recon, and full attack surface mapping.", tier: "Pro & Advisor" },
-  { label: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", tier: "Pro & Advisor" },
+  { label: "Google Intelligence", desc: "Multi-account Google data analysis — email, calendar, contacts, YouTube, Chrome, and more.", tier: "Pro" },
+  { label: "Predictive Intelligence", desc: "AI-powered event forecasting with signal detection and confidence scoring.", tier: "Pro" },
+  { label: "Imagine To Code", desc: "AI-powered pixel art & SVG editor — draw, upload images, or ask AUREON to design directly on the canvas.", tier: "Pro" },
+  { label: "NOMAD OSINT", desc: "Public intelligence agent across 40+ data sources with dossier output.", tier: "Pro" },
+  { label: "Azplen Intelligence", desc: "Full data intelligence platform — ingest, analyze, branch, and visualize.", tier: "Pro" },
+  { label: "Daily Briefings", desc: "Personalized intelligence briefings delivered every morning.", tier: "Pro" },
+  { label: "Elion / Zohar Toolkit", desc: "Domain forensics, security scoring, subdomain recon, and full attack surface mapping.", tier: "Pro" },
+  { label: "Security Dashboard", desc: "WAF, honeypots, threat intelligence feeds, and behavioral analytics.", tier: "Pro" },
 ];
