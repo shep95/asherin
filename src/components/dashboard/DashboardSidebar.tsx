@@ -213,7 +213,7 @@ const DashboardSidebar = ({
       if (!item.access) return true;
       if (item.access === "search") return hasSearchAccess(tierKey);
       if (item.access === "pro") return hasProAccess(tierKey);
-      if (item.access === "enterprise") return hasEnterpriseOnlyAccess(tierKey);
+      
       return true;
     }),
   })).filter(group => group.items.length > 0);
