@@ -121,9 +121,28 @@ serve(async (req) => {
 
     console.log("[ZERLAL] Scan record created:", scan.id, "Code size:", codeToAnalyze.length);
 
-    // Use Gemini to analyze the code
+    // Use Lovable AI Gateway (preferred) or Gemini
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_KEY) throw new Error("No Gemini API key configured");
+    const useLovableGateway = !!LOVABLE_API_KEY;
+    if (!useLovableGateway && !GEMINI_KEY) throw new Error("No AI API key configured");
+
+    // Load active brains for intelligence context
+    let brainsContext = "";
+    try {
+      const { data: brains } = await supabase
+        .from("axrlen_brains")
+        .select("name, content")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      if (brains && brains.length > 0) {
+        brainsContext = brains.map((b: { name: string; content: string }) => `[BRAIN: ${b.name}]\n${b.content}`).join("\n\n");
+        console.log("[ZERLAL] Loaded", brains.length, "active brains");
+      }
+    } catch (e) {
+      console.log("[ZERLAL] Brains load skipped:", e);
+    }
+
 
     // Cap code at 50K chars to stay within edge function time limits
     const truncatedCode = codeToAnalyze.substring(0, 50000);
