@@ -486,42 +486,83 @@ CODE TO ANALYZE:
 ${truncatedCode}
 \`\`\``;
 
-    console.log("[ZERLAL] Sending to Gemini, prompt length:", analysisPrompt.length);
+    console.log("[ZERLAL] Sending to AI, prompt length:", analysisPrompt.length);
 
-    // Helper to call Gemini
-    async function callGemini(prompt: string): Promise<string> {
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
-          }),
+    async function callAI(prompt: string): Promise<string> {
+      const maxRetries = 4;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          let responseText = "";
+          if (useLovableGateway) {
+            const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                messages: [
+                  { role: "system", content: "You are ZERLAL, an elite vulnerability intelligence engine. Return ONLY valid JSON. No markdown, no explanation." },
+                  { role: "user", content: prompt },
+                ],
+                temperature: 0.1,
+                max_tokens: 65536,
+              }),
+            });
+            if (!resp.ok) {
+              const errText = await resp.text();
+              console.log(`[ZERLAL] Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
+              if (resp.status === 429) throw new Error("AI rate limit reached. Please wait and retry.");
+              if (resp.status === 402) throw new Error("AI credits exhausted. Please top up and retry.");
+              if (resp.status === 503 || resp.status === 500) {
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+                continue;
+              }
+              throw new Error(`AI Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
+            }
+            const data = await resp.json();
+            responseText = data.choices?.[0]?.message?.content || "";
+          } else {
+            const resp = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: prompt }] }],
+                  generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
+                }),
+              }
+            );
+            if (!resp.ok) {
+              if (resp.status === 503 || resp.status === 429) {
+                console.log(`[ZERLAL] Retry ${attempt + 1} after ${resp.status}`);
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+                continue;
+              }
+              const errText = await resp.text();
+              await supabase.from("zerlal_scans").update({ status: "failed", error: `AI error: ${resp.status}`, completed_at: new Date().toISOString() }).eq("id", scan.id);
+              await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", project_id);
+              throw new Error(`AI analysis engine error: ${resp.status}: ${errText}`);
+            }
+            const data = await resp.json();
+            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          }
+          return responseText;
+        } catch (e) {
+          if (attempt === maxRetries - 1) throw e;
+          console.log(`[ZERLAL] Attempt ${attempt + 1} failed:`, e);
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
         }
-      );
-      if (!resp.ok) {
-        const errText = await resp.text();
-        console.error("[ZERLAL] Gemini error:", resp.status, errText);
-        
-        // Update scan as failed
-        await supabase.from("zerlal_scans").update({
-          status: "failed",
-          error: `Gemini API error: ${resp.status}`,
-          completed_at: new Date().toISOString(),
-        }).eq("id", scan.id);
-        
-        await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", project_id);
-        
-        throw new Error(`AI analysis engine error: ${resp.status}: ${errText}`);
       }
-      const data = await resp.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      throw new Error("AI API failed after retries");
     }
 
     function parseFindings(text: string): any {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      const candidate = fencedMatch?.[1] || text;
+      const jsonMatch = candidate.match(/\{[\s\S]*\}/);
       if (jsonMatch) return JSON.parse(jsonMatch[0]);
       throw new Error("No JSON found in response");
     }
@@ -531,7 +572,7 @@ ${truncatedCode}
     // PASS 1: Initial comprehensive scan
     let analysis: any;
     try {
-      const responseText = await callGemini(analysisPrompt);
+      const responseText = await callAI(analysisPrompt);
       console.log("[ZERLAL] Pass 1 response length:", responseText.length);
       analysis = parseFindings(responseText);
     } catch (parseErr) {
@@ -561,7 +602,7 @@ ${truncatedCode}
 \`\`\``;
 
       try {
-        const pass2Text = await callGemini(pass2Prompt);
+        const pass2Text = await callAI(pass2Prompt);
         console.log("[ZERLAL] Pass 2 response length:", pass2Text.length);
         const pass2Analysis = parseFindings(pass2Text);
         const pass2Findings = pass2Analysis.findings || [];
