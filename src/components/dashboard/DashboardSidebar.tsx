@@ -54,7 +54,7 @@ interface DashboardSidebarProps {
 
 interface NavGroup {
   label: string;
-  items: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "enterprise" | "pro" }[];
+  items: { id: DashboardView; icon: React.ElementType; label: string; access?: "search" | "pro" }[];
 }
 
 const navGroups: NavGroup[] = [
