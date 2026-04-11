@@ -179,7 +179,7 @@ const SettingsView = () => {
       return;
     }
     // Also unlock for Pro tier users as a perk
-    if (tierKey === "pro" || tierKey === "advisor_monthly" || tierKey === "advisor_annual") {
+    if (tierKey === "pro") {
       setHasWallpaperAddon(true);
     }
   };
