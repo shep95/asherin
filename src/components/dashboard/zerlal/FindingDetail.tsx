@@ -4,7 +4,6 @@ import { useZerlalFindings, useUpdateFinding } from "./useZerlalData";
 import type { ZerlalFinding } from "./types";
 import { toast } from "sonner";
 import ExploitIntelTab from "./ExploitIntelTab";
-import { toast } from "sonner";
 
 const generateFindingReport = (f: ZerlalFinding): string => {
   let report = `══════════════════════════════════════════\n`;
