@@ -323,6 +323,7 @@ const FindingDetail = ({ findingId, onBack }: FindingDetailProps) => {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Report Preview Modal */}
