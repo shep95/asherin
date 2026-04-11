@@ -645,6 +645,9 @@ ${truncatedCode}
     const findings = allFindings;
     console.log("[ZERLAL] Total findings after all passes:", findings.length);
 
+    // Clear old findings for this project before inserting new scan results (session isolation)
+    await supabase.from("zerlal_findings").delete().eq("project_id", project_id);
+
     // Insert all findings - NO LIMIT
     let criticalCount = 0, highCount = 0, mediumCount = 0, lowCount = 0, infoCount = 0;
 
