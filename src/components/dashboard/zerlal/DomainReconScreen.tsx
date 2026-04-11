@@ -74,6 +74,20 @@ const gradeColor: Record<string, string> = {
   F: "text-red-400",
 };
 
+const getResponseErrorMessage = async (resp: Response) => {
+  const raw = await resp.text();
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.error === "string") return parsed.error;
+    if (typeof parsed?.message === "string") return parsed.message;
+  } catch {
+    // Ignore parse errors and fall back to raw body.
+  }
+
+  return raw || `Scan failed with status ${resp.status}`;
+};
+
 const hasInfrastructureMapData = (map: InfrastructureMapData | null | undefined) => {
   if (!map) return false;
 
@@ -356,8 +370,7 @@ const DomainReconScreen = () => {
       clearTimeout(timeout);
 
       if (!resp.ok) {
-        const errBody = await resp.text();
-        throw new Error(errBody || `Scan failed with status ${resp.status}`);
+        throw new Error(await getResponseErrorMessage(resp));
       }
 
       const data = await resp.json();

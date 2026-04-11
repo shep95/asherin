@@ -6,6 +6,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type RouteError = Error & { status?: number };
+type AIProvider = "lovable" | "gemini";
+
+const createRouteError = (message: string, status = 500): RouteError => {
+  const error = new Error(message) as RouteError;
+  error.status = status;
+  return error;
+};
+
+const getErrorStatus = (error: unknown) => (
+  typeof error === "object" && error !== null && "status" in error && typeof (error as { status?: unknown }).status === "number"
+    ? (error as { status: number }).status
+    : 500
+);
+
+const getErrorMessage = (error: unknown) => error instanceof Error ? error.message : "Unknown error";
+
+const parseGatewayError = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.error === "string") return parsed.error;
+    if (typeof parsed?.message === "string") return parsed.message;
+    if (typeof parsed?.details === "string" && parsed.details) return `${parsed.message || "Request failed"}: ${parsed.details}`;
+  } catch {
+    // Ignore JSON parse issues and fall back to raw text.
+  }
+
+  return raw;
+};
+
 async function fetchGitHubContent(url: string): Promise<string> {
   // Convert github.com URL to raw content or API URL
   let apiUrl = url;
@@ -124,8 +154,10 @@ serve(async (req) => {
     // Use Lovable AI Gateway (preferred) or Gemini
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY_APP") || Deno.env.get("GEMINI_API_KEY");
-    const useLovableGateway = !!LOVABLE_API_KEY;
-    if (!useLovableGateway && !GEMINI_KEY) throw new Error("No AI API key configured");
+    const providers: AIProvider[] = [];
+    if (LOVABLE_API_KEY) providers.push("lovable");
+    if (GEMINI_KEY) providers.push("gemini");
+    if (providers.length === 0) throw createRouteError("No AI API key configured", 500);
 
     // Load active brains for intelligence context
     let brainsContext = "";
@@ -507,12 +539,12 @@ ${truncatedCode}
 
     console.log("[ZERLAL] Sending to AI, prompt length:", analysisPrompt.length);
 
-    async function callAI(prompt: string): Promise<string> {
-      const maxRetries = 4;
+    async function requestProviderText(provider: AIProvider, prompt: string): Promise<string> {
+      const maxRetries = provider === "lovable" ? 4 : 3;
+
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-          let responseText = "";
-          if (useLovableGateway) {
+          if (provider === "lovable") {
             const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: {
@@ -529,53 +561,85 @@ ${truncatedCode}
                 max_tokens: 65536,
               }),
             });
+
             if (!resp.ok) {
-              const errText = await resp.text();
-              console.log(`[ZERLAL] Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
-              if (resp.status === 429) throw new Error("AI rate limit reached. Please wait and retry.");
-              if (resp.status === 402) throw new Error("AI credits exhausted. Please top up and retry.");
-              if (resp.status === 503 || resp.status === 500) {
-                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
-                continue;
+              const errText = parseGatewayError(await resp.text());
+              console.log(`[ZERLAL] Lovable AI error ${resp.status}: ${errText.slice(0, 200)}`);
+
+              if (resp.status === 500 || resp.status === 503 || resp.status === 429) {
+                if (attempt < maxRetries - 1) {
+                  await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+                  continue;
+                }
               }
-              throw new Error(`AI Gateway error ${resp.status}: ${errText.slice(0, 200)}`);
+
+              if (resp.status === 402) throw createRouteError("Lovable AI credits exhausted. Backup analysis provider failed too.", 402);
+              if (resp.status === 429) throw createRouteError("AI rate limit reached. Please wait and retry.", 429);
+              if (resp.status === 500 || resp.status === 503) throw createRouteError("Lovable AI is temporarily unavailable. Backup analysis provider also failed.", 503);
+              throw createRouteError(`AI gateway error: ${errText.slice(0, 200)}`, resp.status);
             }
+
             const data = await resp.json();
-            responseText = data.choices?.[0]?.message?.content || "";
-          } else {
-            const resp = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [{ parts: [{ text: prompt }] }],
-                  generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
-                }),
-              }
-            );
-            if (!resp.ok) {
-              if (resp.status === 503 || resp.status === 429) {
-                console.log(`[ZERLAL] Retry ${attempt + 1} after ${resp.status}`);
-                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
-                continue;
-              }
-              const errText = await resp.text();
-              await supabase.from("zerlal_scans").update({ status: "failed", error: `AI error: ${resp.status}`, completed_at: new Date().toISOString() }).eq("id", scan.id);
-              await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", project_id);
-              throw new Error(`AI analysis engine error: ${resp.status}: ${errText}`);
-            }
-            const data = await resp.json();
-            responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const responseText = data.choices?.[0]?.message?.content || "";
+            if (!responseText.trim()) throw createRouteError("Lovable AI returned an empty response", 502);
+            return responseText;
           }
+
+          const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 65536 },
+              }),
+            }
+          );
+
+          if (!resp.ok) {
+            const errText = await resp.text();
+            console.log(`[ZERLAL] Gemini error ${resp.status}: ${errText.slice(0, 200)}`);
+
+            if (resp.status === 503 || resp.status === 429) {
+              if (attempt < maxRetries - 1) {
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
+                continue;
+              }
+            }
+
+            if (resp.status === 429) throw createRouteError("Backup analysis provider rate limit reached. Please retry shortly.", 429);
+            throw createRouteError(`Backup analysis provider error ${resp.status}: ${errText.slice(0, 200)}`, resp.status);
+          }
+
+          const data = await resp.json();
+          const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (!responseText.trim()) throw createRouteError("Backup analysis provider returned an empty response", 502);
           return responseText;
-        } catch (e) {
-          if (attempt === maxRetries - 1) throw e;
-          console.log(`[ZERLAL] Attempt ${attempt + 1} failed:`, e);
+        } catch (error) {
+          if (attempt === maxRetries - 1) throw error;
+          console.log(`[ZERLAL] ${provider} attempt ${attempt + 1} failed:`, error);
           await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 2000));
         }
       }
-      throw new Error("AI API failed after retries");
+
+      throw createRouteError("AI API failed after retries", 500);
+    }
+
+    async function requestAnalysis(prompt: string): Promise<any> {
+      let lastError: RouteError | null = null;
+
+      for (const provider of providers) {
+        try {
+          const responseText = await requestProviderText(provider, prompt);
+          return parseFindings(responseText);
+        } catch (error) {
+          lastError = createRouteError(getErrorMessage(error), getErrorStatus(error));
+          console.log(`[ZERLAL] ${provider} provider failed, ${provider === providers[providers.length - 1] ? "no providers left" : "trying fallback"}: ${lastError.message}`);
+        }
+      }
+
+      throw lastError ?? createRouteError("AI analysis failed", 500);
     }
 
     function parseFindings(text: string): any {
@@ -591,16 +655,21 @@ ${truncatedCode}
     // PASS 1: Initial comprehensive scan
     let analysis: any;
     try {
-      const responseText = await callAI(analysisPrompt);
-      console.log("[ZERLAL] Pass 1 response length:", responseText.length);
-      analysis = parseFindings(responseText);
+      analysis = await requestAnalysis(analysisPrompt);
+      console.log("[ZERLAL] Pass 1 findings:", analysis.findings?.length || 0);
     } catch (parseErr) {
       console.error("[ZERLAL] Pass 1 parse error:", parseErr);
-      analysis = { findings: [], risk_grade: "F", summary: "Analysis engine returned unparseable output. Retry recommended." };
+      const errorMessage = getErrorMessage(parseErr);
+      const errorStatus = getErrorStatus(parseErr);
+      await supabase.from("zerlal_scans").update({ status: "failed", error: errorMessage, completed_at: new Date().toISOString() }).eq("id", scan.id);
+      await supabase.from("zerlal_projects").update({ status: "failed" }).eq("id", project_id);
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: errorStatus,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     let allFindings = analysis.findings || [];
-    console.log("[ZERLAL] Pass 1 findings:", allFindings.length);
 
     // PASS 2: Only if pass 1 found few results AND we have time (< 120s elapsed)
     const elapsedMs = Date.now() - scanStartTime;
@@ -621,9 +690,7 @@ ${truncatedCode}
 \`\`\``;
 
       try {
-        const pass2Text = await callAI(pass2Prompt);
-        console.log("[ZERLAL] Pass 2 response length:", pass2Text.length);
-        const pass2Analysis = parseFindings(pass2Text);
+        const pass2Analysis = await requestAnalysis(pass2Prompt);
         const pass2Findings = pass2Analysis.findings || [];
         console.log("[ZERLAL] Pass 2 additional findings:", pass2Findings.length);
         

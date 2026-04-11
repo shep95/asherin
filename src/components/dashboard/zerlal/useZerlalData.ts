@@ -181,8 +181,17 @@ export const useRunScan = () => {
       clearTimeout(timeout);
 
       if (!resp.ok) {
-        const errBody = await resp.text();
-        throw new Error(errBody || `Scan failed with status ${resp.status}`);
+        const raw = await resp.text();
+        let message = raw || `Scan failed with status ${resp.status}`;
+
+        try {
+          const parsed = JSON.parse(raw);
+          message = parsed?.error || parsed?.message || message;
+        } catch {
+          // Ignore parse errors and keep the raw response body.
+        }
+
+        throw new Error(message);
       }
 
       const data = await resp.json();
