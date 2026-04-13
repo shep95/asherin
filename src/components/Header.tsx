@@ -98,6 +98,9 @@ const Header = () => {
               {/* Creation Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Creation</p>
               <DropdownMenuItem asChild>
+                <Link to="/whiteboard" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Whiteboard</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/feature/zali" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">ZALI Design Lab</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -188,6 +191,7 @@ const Header = () => {
                 <Link to="/feature/notebooks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Notebooks</Link>
                 <Link to="/feature/zali" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">ZALI Design Lab</Link>
                 <Link to="/feature/imagine-to-code" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Imagine To Code</Link>
+                <Link to="/whiteboard" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Whiteboard</Link>
                 <Link to="/feature/ide" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Aureon IDE</Link>
                 <Link to="/feature/byok" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Bring Your Own AI Key</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />
