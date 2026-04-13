@@ -42,6 +42,7 @@ const WW3 = lazy(() => import("./pages/WW3"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TrackPage = lazy(() => import("./pages/TrackPage"));
 const ProjAureon = lazy(() => import("./pages/ProjAureon"));
+const Whiteboard = lazy(() => import("./pages/Whiteboard"));
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const PageLoader = () => (
@@ -96,6 +97,7 @@ const App = () => (
             <Route path="/i" element={<TrackPage />} />
             <Route path="/ww3" element={<WW3 />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
+            <Route path="/whiteboard" element={<Whiteboard />} />
             <Route
               path="/dashboard"
               element={
