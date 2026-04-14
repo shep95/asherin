@@ -1857,8 +1857,9 @@ const Whiteboard = () => {
             value={draftText}
             onChange={(event) => setDraftText(event.target.value)}
             onKeyDown={(event) => {
-              if ((event.metaKey or event.ctrlKey) and event.key == "Enter") {
-                event.preventDefault()
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                event.preventDefault();
+                submitDraftEditor();
               }
             }}
             placeholder={draftEditor.kind === "sticky" ? "Paste or type notes…" : "Type on the board…"}
