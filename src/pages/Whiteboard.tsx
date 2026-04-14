@@ -1,12 +1,30 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  Pencil, Type, Eraser, Move, Minus, Plus,
-  Square, Circle as CircleIcon, Triangle, Diamond, Star,
-  MousePointer, Image as ImageIcon, Undo2, Redo2, Trash2,
-  Wallpaper, ChevronDown
+  Pencil,
+  Type,
+  Eraser,
+  Move,
+  Minus,
+  Plus,
+  Square,
+  Circle as CircleIcon,
+  Triangle,
+  Diamond,
+  Star,
+  MousePointer,
+  Image as ImageIcon,
+  Undo2,
+  Redo2,
+  Trash2,
+  Wallpaper,
+  ChevronDown,
+  Lock,
 } from "lucide-react";
 
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import { decryptText, encryptText } from "@/lib/encryption";
 import heroBgDefault from "@/assets/hero-bg.png";
 import wallpaperRaven from "@/assets/wallpaper-raven.png";
 import wallpaperEclipse from "@/assets/wallpaper-eclipse.png";
@@ -22,9 +40,112 @@ import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
 import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
 import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
 
+type Tool =
+  | "select"
+  | "pen"
+  | "marker"
+  | "highlighter"
+  | "text"
+  | "sticky"
+  | "eraser"
+  | "laser"
+  | "pan"
+  | "rect"
+  | "circle"
+  | "triangle"
+  | "diamond"
+  | "star"
+  | "line";
+
+type GridMode = "freeform" | "dots" | "square";
+type FontFamilyKey = "Sans" | "Serif" | "Mono";
+type FontWeightKey = "300" | "400" | "500" | "700";
+type WallpaperMode = "dark" | "current" | "wallpaper";
+
+type ElementType =
+  | "path"
+  | "text"
+  | "sticky"
+  | "image"
+  | "document"
+  | "chart"
+  | "rect"
+  | "circle"
+  | "triangle"
+  | "diamond"
+  | "star"
+  | "line";
+
+interface Point {
+  x: number;
+  y: number;
+  p?: number;
+}
+
+interface WhiteboardLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+}
+
+interface WhiteboardElement {
+  id: string;
+  layerId: string;
+  type: ElementType;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  points?: Point[];
+  color?: string;
+  fillColor?: string;
+  width?: number;
+  opacity?: number;
+  text?: string;
+  fontSize?: number;
+  fontFamily?: FontFamilyKey;
+  fontWeight?: FontWeightKey;
+  src?: string;
+  imgWidth?: number;
+  imgHeight?: number;
+  borderRadius?: number;
+  noteColor?: string;
+  fileName?: string;
+  fileType?: string;
+  preview?: string;
+  chartType?: "line" | "bar";
+  series?: number[];
+  live?: boolean;
+}
+
+interface WhiteboardBoard {
+  id: string;
+  name: string;
+  wallpaperMode: WallpaperMode;
+  wallpaperKey: string;
+  wallpaperBlur: number;
+  gridMode: GridMode;
+  snapMode: GridMode;
+  smartShapes: boolean;
+  layers: WhiteboardLayer[];
+  elements: WhiteboardElement[];
+}
+
+interface DraftEditorState {
+  x: number;
+  y: number;
+  kind: "text" | "sticky";
+  existingId?: string;
+}
+
+interface HistoryState {
+  boards: WhiteboardBoard[];
+  activeBoardId: string;
+  activeLayerId: string | null;
+}
+
 const WALLPAPERS = [
-  { key: "none", label: "Dark", src: "" },
-  { key: "default", label: "Original", src: heroBgDefault },
+  { key: "default", label: "Current", src: heroBgDefault },
   { key: "raven", label: "Raven", src: wallpaperRaven },
   { key: "eclipse", label: "Eclipse", src: wallpaperEclipse },
   { key: "glitch", label: "Glitch", src: wallpaperGlitch },
@@ -40,37 +161,32 @@ const WALLPAPERS = [
   { key: "abyss", label: "Abyss", src: wallpaperAbyss },
 ];
 
-/* ─── Types ─── */
-type Tool = "select" | "draw" | "text" | "eraser" | "pan" | "rect" | "circle" | "triangle" | "diamond" | "star" | "line";
-interface Point { x: number; y: number }
-
-interface DrawElement {
-  id: string;
-  type: "path" | "text" | "image" | "rect" | "circle" | "triangle" | "diamond" | "star" | "line";
-  points?: Point[];
-  color?: string;
-  fillColor?: string;
-  width?: number;
-  text?: string;
-  x?: number; y?: number;
-  x2?: number; y2?: number;
-  w?: number; h?: number;
-  fontSize?: number;
-  src?: string;
-  imgWidth?: number; imgHeight?: number;
-  borderRadius?: number;
-  radius?: number;
-}
-
-const uid = () => Math.random().toString(36).slice(2, 10);
-
 const COLORS = [
-  "#ffffff", "#ef4444", "#f97316", "#eab308", "#22c55e",
-  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#f43f5e",
-  "#14b8a6", "#84cc16", "#000000", "#6b7280", "#d1d5db",
+  "#ffffff",
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#14b8a6",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#f43f5e",
+  "#94a3b8",
+  "#111827",
+  "#0f766e",
+  "#d1fae5",
 ];
 
-const SHAPE_TOOLS: { tool: Tool; icon: any; label: string }[] = [
+const NOTE_COLORS = ["#fde68a", "#bfdbfe", "#fbcfe8", "#bbf7d0", "#fecaca", "#ddd6fe"];
+const FONT_FAMILIES: Record<FontFamilyKey, string> = {
+  Sans: "ui-sans-serif, system-ui, sans-serif",
+  Serif: "ui-serif, Georgia, serif",
+  Mono: "ui-monospace, SFMono-Regular, monospace",
+};
+
+const SHAPE_TOOLS: { tool: Tool; icon: typeof Square; label: string }[] = [
   { tool: "rect", icon: Square, label: "Rectangle" },
   { tool: "circle", icon: CircleIcon, label: "Circle" },
   { tool: "triangle", icon: Triangle, label: "Triangle" },
@@ -79,611 +195,1721 @@ const SHAPE_TOOLS: { tool: Tool; icon: any; label: string }[] = [
   { tool: "line", icon: Minus, label: "Line" },
 ];
 
+const uid = () => Math.random().toString(36).slice(2, 10);
+const deepClone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+
+const normalizeRect = (x: number, y: number, w: number, h: number) => ({
+  x: Math.min(x, x + w),
+  y: Math.min(y, y + h),
+  w: Math.abs(w),
+  h: Math.abs(h),
+});
+
+const createLayer = (name = "Topic 1"): WhiteboardLayer => ({
+  id: uid(),
+  name,
+  visible: true,
+});
+
+const createBoard = (name = "Board 1"): WhiteboardBoard => {
+  const layer = createLayer("Topic 1");
+  return {
+    id: uid(),
+    name,
+    wallpaperMode: "current",
+    wallpaperKey: "default",
+    wallpaperBlur: 10,
+    gridMode: "dots",
+    snapMode: "freeform",
+    smartShapes: true,
+    layers: [layer],
+    elements: [],
+  };
+};
+
+const STORAGE_DEVICE_KEY = "aureon-whiteboard-device-key";
+const STORAGE_NAMESPACE = "aureon-whiteboards-v3";
+
+const getDeviceKey = () => {
+  if (typeof window === "undefined") return "guest-device";
+  const existing = window.localStorage.getItem(STORAGE_DEVICE_KEY);
+  if (existing) return existing;
+  const next = `device-${crypto.randomUUID()}`;
+  window.localStorage.setItem(STORAGE_DEVICE_KEY, next);
+  return next;
+};
+
+const getWallpaperSource = (board: WhiteboardBoard) => {
+  if (board.wallpaperMode === "dark") return "";
+  if (board.wallpaperMode === "current") return heroBgDefault;
+  return WALLPAPERS.find((wallpaper) => wallpaper.key === board.wallpaperKey)?.src || heroBgDefault;
+};
+
+const getElementBounds = (element: WhiteboardElement) => {
+  if (element.type === "path" && element.points?.length) {
+    const xs = element.points.map((point) => point.x);
+    const ys = element.points.map((point) => point.y);
+    const stroke = (element.width || 2) * 2;
+    return {
+      x: Math.min(...xs) - stroke,
+      y: Math.min(...ys) - stroke,
+      w: Math.max(...xs) - Math.min(...xs) + stroke * 2,
+      h: Math.max(...ys) - Math.min(...ys) + stroke * 2,
+    };
+  }
+
+  if (element.type === "text") {
+    const lines = (element.text || "").split("\n");
+    const fontSize = element.fontSize || 18;
+    const longest = lines.reduce((max, line) => Math.max(max, line.length), 0);
+    return {
+      x: element.x || 0,
+      y: (element.y || 0) - fontSize,
+      w: Math.max(80, longest * fontSize * 0.62),
+      h: Math.max(fontSize * 1.4, lines.length * fontSize * 1.3),
+    };
+  }
+
+  if (element.type === "sticky") {
+    return {
+      x: element.x || 0,
+      y: element.y || 0,
+      w: element.w || 220,
+      h: element.h || 160,
+    };
+  }
+
+  if (element.type === "image") {
+    return {
+      x: element.x || 0,
+      y: element.y || 0,
+      w: element.imgWidth || 260,
+      h: element.imgHeight || 180,
+    };
+  }
+
+  return {
+    x: element.x || 0,
+    y: element.y || 0,
+    w: element.w || 220,
+    h: element.h || 140,
+  };
+};
+
+const moveElement = (element: WhiteboardElement, dx: number, dy: number): WhiteboardElement => {
+  if (element.type === "path" && element.points) {
+    return {
+      ...element,
+      points: element.points.map((point) => ({ ...point, x: point.x + dx, y: point.y + dy })),
+    };
+  }
+
+  return {
+    ...element,
+    x: (element.x || 0) + dx,
+    y: (element.y || 0) + dy,
+  };
+};
+
+const pointHitsElement = (point: Point, element: WhiteboardElement) => {
+  const bounds = getElementBounds(element);
+  return (
+    point.x >= bounds.x &&
+    point.x <= bounds.x + bounds.w &&
+    point.y >= bounds.y &&
+    point.y <= bounds.y + bounds.h
+  );
+};
+
+const detectSmartShape = (points: Point[]) => {
+  if (points.length < 8) return null;
+
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  if (width < 18 && height < 18) return null;
+
+  const start = points[0];
+  const end = points[points.length - 1];
+  const closed = distance(start, end) < Math.max(18, Math.min(width, height) * 0.22);
+
+  if (!closed) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const error =
+      points.reduce((sum, point) => {
+        const numerator = Math.abs(dy * point.x - dx * point.y + end.x * start.y - end.y * start.x);
+        return sum + numerator / length;
+      }, 0) / points.length;
+
+    if (error < Math.max(4, Math.min(width, height) * 0.12)) {
+      return { type: "line" as const, x: start.x, y: start.y, w: dx, h: dy };
+    }
+
+    return null;
+  }
+
+  const ratio = width / Math.max(height, 1);
+  if (ratio > 0.76 && ratio < 1.24) {
+    return { type: "circle" as const, x: minX, y: minY, w: width, h: height };
+  }
+
+  return { type: "rect" as const, x: minX, y: minY, w: width, h: height };
+};
+
+const getPathOpacity = (element: WhiteboardElement) => {
+  if (element.type !== "path") return 1;
+  if (element.opacity) return element.opacity;
+  if (element.fillColor === "highlighter") return 0.2;
+  if (element.fillColor === "marker") return 0.8;
+  return 1;
+};
+
+const drawCoverImage = (
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+) => {
+  const scale = Math.max(width / image.width, height / image.height);
+  const drawWidth = image.width * scale;
+  const drawHeight = image.height * scale;
+  const offsetX = (width - drawWidth) / 2;
+  const offsetY = (height - drawHeight) / 2;
+  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+};
+
+const drawRoundedRectPath = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) => {
+  const safeRadius = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + safeRadius, y);
+  ctx.lineTo(x + width - safeRadius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+  ctx.lineTo(x + width, y + height - safeRadius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+  ctx.lineTo(x + safeRadius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+  ctx.lineTo(x, y + safeRadius);
+  ctx.quadraticCurveTo(x, y, x + safeRadius, y);
+  ctx.closePath();
+};
+
+const parseNumbersFromText = (text: string) => {
+  const matches = text.match(/-?\d+(?:\.\d+)?/g) || [];
+  return matches.slice(0, 24).map((value) => Number(value)).filter((value) => Number.isFinite(value));
+};
+
+const normalizeBoard = (raw: Partial<WhiteboardBoard>, index: number): WhiteboardBoard => {
+  const board = raw as WhiteboardBoard;
+  const layers = Array.isArray(board.layers) && board.layers.length ? board.layers : [createLayer(`Topic ${index + 1}`)];
+  return {
+    id: board.id || uid(),
+    name: board.name || `Board ${index + 1}`,
+    wallpaperMode: board.wallpaperMode || "current",
+    wallpaperKey: board.wallpaperKey || "default",
+    wallpaperBlur: typeof board.wallpaperBlur === "number" ? board.wallpaperBlur : 10,
+    gridMode: board.gridMode || "dots",
+    snapMode: board.snapMode || "freeform",
+    smartShapes: board.smartShapes ?? true,
+    layers,
+    elements: Array.isArray(board.elements)
+      ? board.elements.map((element) => ({ ...element, layerId: element.layerId || layers[0].id }))
+      : [],
+  };
+};
+
 const Whiteboard = () => {
+  const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const backgroundCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const loadedRef = useRef(false);
+  const dragSnapshotRef = useRef<WhiteboardElement | null>(null);
 
-  const [tool, setTool] = useState<Tool>("draw");
+  const [storageUserKey, setStorageUserKey] = useState("guest-device");
+  const [boards, setBoards] = useState<WhiteboardBoard[]>([createBoard()]);
+  const [activeBoardId, setActiveBoardId] = useState<string>(() => createBoard().id);
+  const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+  const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState("#ffffff");
   const [fillColor, setFillColor] = useState("transparent");
-  const [brushSize, setBrushSize] = useState(3);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showFillPicker, setShowFillPicker] = useState(false);
-  const [customColor, setCustomColor] = useState("#ffffff");
-  const [customFill, setCustomFill] = useState("#3b82f6");
-  const [showShapes, setShowShapes] = useState(false);
-  const [showWallpapers, setShowWallpapers] = useState(false);
-  const [wallpaper, setWallpaper] = useState("none");
-
-  const [elements, setElements] = useState<DrawElement[]>([]);
-  const [undoStack, setUndoStack] = useState<DrawElement[][]>([]);
-  const [redoStack, setRedoStack] = useState<DrawElement[][]>([]);
-
+  const [brushSize, setBrushSize] = useState(4);
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
-  const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
-  const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
   const [shapeStart, setShapeStart] = useState<Point | null>(null);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [selectedShapeMenu, setSelectedShapeMenu] = useState(false);
+  const [draftEditor, setDraftEditor] = useState<DraftEditorState | null>(null);
+  const [draftText, setDraftText] = useState("");
+  const [draftFontSize, setDraftFontSize] = useState(18);
+  const [draftFontFamily, setDraftFontFamily] = useState<FontFamilyKey>("Sans");
+  const [draftFontWeight, setDraftFontWeight] = useState<FontWeightKey>("400");
+  const [draftStickyColor, setDraftStickyColor] = useState(NOTE_COLORS[0]);
+  const [undoStack, setUndoStack] = useState<HistoryState[]>([]);
+  const [redoStack, setRedoStack] = useState<HistoryState[]>([]);
+  const [laserTrail, setLaserTrail] = useState<Point[]>([]);
+  const [layerPanelOpen, setLayerPanelOpen] = useState(true);
+  const [backgroundPanelOpen, setBackgroundPanelOpen] = useState(false);
 
-  const [editingText, setEditingText] = useState<{ x: number; y: number } | null>(null);
-  const [textValue, setTextValue] = useState("");
-  const [textFontSize, setTextFontSize] = useState(18);
+  useEffect(() => {
+    setStorageUserKey(user?.id || getDeviceKey());
+  }, [user?.id]);
 
-  const [selectedElement, setSelectedElement] = useState<string | null>(null);
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-  const [imageRadius, setImageRadius] = useState(0);
-  const [dragStart, setDragStart] = useState<Point | null>(null);
+  useEffect(() => {
+    const initialBoard = createBoard();
+    setBoards([initialBoard]);
+    setActiveBoardId(initialBoard.id);
+    setActiveLayerId(initialBoard.layers[0]?.id ?? null);
+  }, []);
 
-  const wpSrc = WALLPAPERS.find(w => w.key === wallpaper)?.src || "";
-  const isShapeTool = ["rect", "circle", "triangle", "diamond", "star", "line"].includes(tool);
+  useEffect(() => {
+    const storageKey = `${STORAGE_NAMESPACE}:${storageUserKey}`;
+    let cancelled = false;
 
-  const screenToCanvas = useCallback((sx: number, sy: number): Point => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: sx, y: sy };
-    return { x: (sx - rect.left - panOffset.x) / zoom, y: (sy - rect.top - panOffset.y) / zoom };
-  }, [panOffset, zoom]);
+    const loadBoards = async () => {
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (!raw) {
+          loadedRef.current = true;
+          return;
+        }
 
-  const pushUndo = useCallback(() => {
-    setUndoStack(prev => [...prev.slice(-30), elements.map(e => ({ ...e, points: e.points ? [...e.points] : undefined }))]);
+        const decrypted = await decryptText(raw, storageUserKey);
+        const parsed = JSON.parse(decrypted) as { boards?: Partial<WhiteboardBoard>[]; activeBoardId?: string; activeLayerId?: string | null };
+        if (cancelled || !parsed.boards?.length) {
+          loadedRef.current = true;
+          return;
+        }
+
+        const normalized = parsed.boards.map((board, index) => normalizeBoard(board, index));
+        const fallbackBoard = normalized[0];
+        setBoards(normalized);
+        setActiveBoardId(normalized.some((board) => board.id === parsed.activeBoardId) ? parsed.activeBoardId || fallbackBoard.id : fallbackBoard.id);
+        const resolvedBoard = normalized.find((board) => board.id === parsed.activeBoardId) || fallbackBoard;
+        setActiveLayerId(
+          resolvedBoard.layers.some((layer) => layer.id === parsed.activeLayerId)
+            ? parsed.activeLayerId || resolvedBoard.layers[0]?.id || null
+            : resolvedBoard.layers[0]?.id || null,
+        );
+      } catch {
+        const resetBoard = createBoard();
+        setBoards([resetBoard]);
+        setActiveBoardId(resetBoard.id);
+        setActiveLayerId(resetBoard.layers[0]?.id ?? null);
+      } finally {
+        loadedRef.current = true;
+      }
+    };
+
+    loadBoards();
+    return () => {
+      cancelled = true;
+    };
+  }, [storageUserKey]);
+
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    const storageKey = `${STORAGE_NAMESPACE}:${storageUserKey}`;
+    const saveBoards = async () => {
+      const encrypted = await encryptText(JSON.stringify({ boards, activeBoardId, activeLayerId }), storageUserKey);
+      window.localStorage.setItem(storageKey, encrypted);
+    };
+    saveBoards();
+  }, [boards, activeBoardId, activeLayerId, storageUserKey]);
+
+  const activeBoard = useMemo(() => {
+    return boards.find((board) => board.id === activeBoardId) || boards[0];
+  }, [boards, activeBoardId]);
+
+  useEffect(() => {
+    if (!activeBoard) return;
+    if (!activeBoard.layers.some((layer) => layer.id === activeLayerId)) {
+      setActiveLayerId(activeBoard.layers[0]?.id || null);
+    }
+  }, [activeBoard, activeLayerId]);
+
+  const selectedElement = useMemo(() => {
+    return activeBoard?.elements.find((element) => element.id === selectedElementId) || null;
+  }, [activeBoard, selectedElementId]);
+
+  const selectedImage = selectedElement?.type === "image" ? selectedElement : null;
+  const selectedTextElement = selectedElement && ["text", "sticky"].includes(selectedElement.type) ? selectedElement : null;
+  const selectedChart = selectedElement?.type === "chart" ? selectedElement : null;
+
+  const pushHistory = useCallback(() => {
+    setUndoStack((previous) => [
+      ...previous.slice(-29),
+      {
+        boards: deepClone(boards),
+        activeBoardId,
+        activeLayerId,
+      },
+    ]);
     setRedoStack([]);
-  }, [elements]);
+  }, [boards, activeBoardId, activeLayerId]);
 
-  const undo = () => { if (!undoStack.length) return; setRedoStack(p => [...p, elements]); setElements(undoStack[undoStack.length - 1]); setUndoStack(p => p.slice(0, -1)); };
-  const redo = () => { if (!redoStack.length) return; setUndoStack(p => [...p, elements]); setElements(redoStack[redoStack.length - 1]); setRedoStack(p => p.slice(0, -1)); };
+  const restoreHistory = (snapshot: HistoryState | undefined) => {
+    if (!snapshot) return;
+    setBoards(snapshot.boards);
+    setActiveBoardId(snapshot.activeBoardId);
+    setActiveLayerId(snapshot.activeLayerId);
+    setSelectedElementId(null);
+    setDraftEditor(null);
+  };
 
-  /* ─── Pointer handlers ─── */
-  const handlePointerDown = (e: React.PointerEvent) => {
-    const { x, y } = screenToCanvas(e.clientX, e.clientY);
+  const undo = useCallback(() => {
+    setUndoStack((previous) => {
+      const next = [...previous];
+      const snapshot = next.pop();
+      if (snapshot) {
+        setRedoStack((redoPrevious) => [
+          ...redoPrevious,
+          {
+            boards: deepClone(boards),
+            activeBoardId,
+            activeLayerId,
+          },
+        ]);
+        restoreHistory(snapshot);
+      }
+      return next;
+    });
+  }, [boards, activeBoardId, activeLayerId]);
 
-    if (tool === "pan" || e.button === 1 || (e.button === 0 && e.altKey)) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  const redo = useCallback(() => {
+    setRedoStack((previous) => {
+      const next = [...previous];
+      const snapshot = next.pop();
+      if (snapshot) {
+        setUndoStack((undoPrevious) => [
+          ...undoPrevious,
+          {
+            boards: deepClone(boards),
+            activeBoardId,
+            activeLayerId,
+          },
+        ]);
+        restoreHistory(snapshot);
+      }
+      return next;
+    });
+  }, [boards, activeBoardId, activeLayerId]);
+
+  const updateActiveBoard = useCallback((updater: (board: WhiteboardBoard) => WhiteboardBoard) => {
+    setBoards((previous) => previous.map((board) => (board.id === activeBoardId ? updater(board) : board)));
+  }, [activeBoardId]);
+
+  const updateActiveBoardElements = useCallback((updater: (elements: WhiteboardElement[]) => WhiteboardElement[]) => {
+    updateActiveBoard((board) => ({ ...board, elements: updater(board.elements) }));
+  }, [updateActiveBoard]);
+
+  const updateSelectedElement = useCallback((updater: (element: WhiteboardElement) => WhiteboardElement) => {
+    if (!selectedElementId) return;
+    updateActiveBoardElements((elements) =>
+      elements.map((element) => (element.id === selectedElementId ? updater(element) : element)),
+    );
+  }, [selectedElementId, updateActiveBoardElements]);
+
+  const getCanvasPoint = useCallback((clientX: number, clientY: number, snap = false) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: clientX, y: clientY };
+    const basePoint = {
+      x: (clientX - rect.left - panOffset.x) / zoom,
+      y: (clientY - rect.top - panOffset.y) / zoom,
+    };
+
+    if (!snap || !activeBoard || activeBoard.snapMode === "freeform") return basePoint;
+
+    const spacing = activeBoard.snapMode === "dots" ? 28 : 40;
+    return {
+      x: Math.round(basePoint.x / spacing) * spacing,
+      y: Math.round(basePoint.y / spacing) * spacing,
+    };
+  }, [activeBoard, panOffset.x, panOffset.y, zoom]);
+
+  const toScreenPoint = useCallback((point: Point) => ({
+    x: point.x * zoom + panOffset.x,
+    y: point.y * zoom + panOffset.y,
+  }), [panOffset.x, panOffset.y, zoom]);
+
+  const createChartElement = useCallback((position?: Point) => {
+    if (!activeLayerId) return;
+    pushHistory();
+    const point = position || getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+    const chart: WhiteboardElement = {
+      id: uid(),
+      layerId: activeLayerId,
+      type: "chart",
+      x: point.x,
+      y: point.y,
+      w: 320,
+      h: 180,
+      color,
+      fillColor,
+      chartType: "line",
+      series: [22, 35, 30, 52, 45, 66, 58, 74],
+      live: true,
+      text: "Live Signal",
+    };
+    updateActiveBoardElements((elements) => [...elements, chart]);
+    setSelectedElementId(chart.id);
+  }, [activeLayerId, color, fillColor, getCanvasPoint, pushHistory, updateActiveBoardElements]);
+
+  const createDocumentElement = useCallback((fileName: string, fileType: string, preview = "", position?: Point) => {
+    if (!activeLayerId) return;
+    const point = position || getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+    const doc: WhiteboardElement = {
+      id: uid(),
+      layerId: activeLayerId,
+      type: "document",
+      x: point.x,
+      y: point.y,
+      w: 280,
+      h: 140,
+      fileName,
+      fileType,
+      preview,
+      color,
+    };
+    updateActiveBoardElements((elements) => [...elements, doc]);
+    setSelectedElementId(doc.id);
+  }, [activeLayerId, color, getCanvasPoint, updateActiveBoardElements]);
+
+  const startDraftEditor = useCallback((point: Point, kind: "text" | "sticky", existing?: WhiteboardElement) => {
+    setDraftEditor({ x: point.x, y: point.y, kind, existingId: existing?.id });
+    setDraftText(existing?.text || "");
+    setDraftFontSize(existing?.fontSize || 18);
+    setDraftFontFamily(existing?.fontFamily || "Sans");
+    setDraftFontWeight(existing?.fontWeight || "400");
+    setDraftStickyColor(existing?.noteColor || NOTE_COLORS[0]);
+  }, []);
+
+  const submitDraftEditor = useCallback(() => {
+    if (!draftEditor || !activeLayerId) return;
+    if (!draftText.trim()) {
+      setDraftEditor(null);
+      setDraftText("");
       return;
     }
 
-    if (tool === "select") {
-      for (let i = elements.length - 1; i >= 0; i--) {
-        const el = elements[i];
-        if (el.type === "image" && el.x != null && el.y != null && el.imgWidth && el.imgHeight) {
-          if (x >= el.x && x <= el.x + el.imgWidth && y >= el.y && y <= el.y + el.imgHeight) {
-            setSelectedElement(el.id); setSelectedImageId(el.id); setImageRadius(el.borderRadius || 0);
-            setDragStart({ x: x - el.x, y: y - el.y }); return;
-          }
-        }
-        if (el.type === "text" && el.x != null && el.y != null) {
-          const tw = (el.text?.length || 1) * (el.fontSize || 18) * 0.6;
-          const th = (el.fontSize || 18) * 1.4;
-          if (x >= el.x && x <= el.x + tw && y >= el.y - th && y <= el.y) {
-            setSelectedElement(el.id); setSelectedImageId(null); setDragStart({ x: x - el.x, y: y - el.y }); return;
-          }
-        }
-        // Shape hit test (bounding box)
-        if (["rect", "circle", "triangle", "diamond", "star", "line"].includes(el.type) && el.x != null && el.y != null) {
-          const sw = el.w || 0; const sh = el.h || 0;
-          const minX = Math.min(el.x, el.x + sw); const maxX = Math.max(el.x, el.x + sw);
-          const minY = Math.min(el.y, el.y + sh); const maxY = Math.max(el.y, el.y + sh);
-          if (x >= minX - 5 && x <= maxX + 5 && y >= minY - 5 && y <= maxY + 5) {
-            setSelectedElement(el.id); setSelectedImageId(null); setDragStart({ x: x - el.x, y: y - el.y }); return;
-          }
-        }
-      }
-      setSelectedElement(null); setSelectedImageId(null); return;
+    pushHistory();
+
+    if (draftEditor.existingId) {
+      updateActiveBoardElements((elements) =>
+        elements.map((element) => {
+          if (element.id !== draftEditor.existingId) return element;
+          return {
+            ...element,
+            text: draftText,
+            fontSize: draftFontSize,
+            fontFamily: draftFontFamily,
+            fontWeight: draftFontWeight,
+            noteColor: draftEditor.kind === "sticky" ? draftStickyColor : element.noteColor,
+          };
+        }),
+      );
+      setSelectedElementId(draftEditor.existingId);
+    } else {
+      const nextElement: WhiteboardElement =
+        draftEditor.kind === "sticky"
+          ? {
+              id: uid(),
+              layerId: activeLayerId,
+              type: "sticky",
+              x: draftEditor.x,
+              y: draftEditor.y,
+              w: 240,
+              h: 170,
+              text: draftText,
+              fontSize: draftFontSize,
+              fontFamily: draftFontFamily,
+              fontWeight: draftFontWeight,
+              noteColor: draftStickyColor,
+              color: "#111827",
+            }
+          : {
+              id: uid(),
+              layerId: activeLayerId,
+              type: "text",
+              x: draftEditor.x,
+              y: draftEditor.y,
+              text: draftText,
+              fontSize: draftFontSize,
+              fontFamily: draftFontFamily,
+              fontWeight: draftFontWeight,
+              color,
+            };
+      updateActiveBoardElements((elements) => [...elements, nextElement]);
+      setSelectedElementId(nextElement.id);
     }
 
-    if (tool === "text") { setEditingText({ x, y }); setTextValue(""); return; }
+    setDraftEditor(null);
+    setDraftText("");
+  }, [activeLayerId, color, draftEditor, draftFontFamily, draftFontSize, draftFontWeight, draftStickyColor, draftText, pushHistory, updateActiveBoardElements]);
 
-    if (isShapeTool) {
-      pushUndo();
-      setShapeStart({ x, y });
-      setElements(prev => [...prev, { id: uid(), type: tool as any, x, y, w: 0, h: 0, color, fillColor, width: brushSize }]);
+  const clearSelection = useCallback(() => {
+    setSelectedElementId(null);
+    setDraftEditor(null);
+    dragSnapshotRef.current = null;
+  }, []);
+
+  const deleteSelected = useCallback(() => {
+    if (!selectedElementId) return;
+    pushHistory();
+    updateActiveBoardElements((elements) => elements.filter((element) => element.id !== selectedElementId));
+    setSelectedElementId(null);
+  }, [pushHistory, selectedElementId, updateActiveBoardElements]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const rawPoint = getCanvasPoint(event.clientX, event.clientY, false);
+    const snappedPoint = getCanvasPoint(event.clientX, event.clientY, true);
+
+    if (tool === "pan" || event.button === 1 || event.altKey) {
+      setIsPanning(true);
+      return;
+    }
+
+    if (!activeBoard || !activeLayerId) return;
+
+    const visibleElements = activeBoard.elements.filter((element) => activeBoard.layers.find((layer) => layer.id === element.layerId)?.visible);
+
+    if (tool === "select") {
+      const hit = [...visibleElements].reverse().find((element) => pointHitsElement(rawPoint, element));
+
+      if (!hit) {
+        clearSelection();
+        return;
+      }
+
+      setSelectedElementId(hit.id);
+
+      if (event.detail > 1 && (hit.type === "text" || hit.type === "sticky")) {
+        startDraftEditor({ x: hit.x || 0, y: hit.y || 0 }, hit.type === "sticky" ? "sticky" : "text", hit);
+        return;
+      }
+
+      dragSnapshotRef.current = deepClone(hit);
+      return;
+    }
+
+    if (tool === "text") {
+      startDraftEditor(snappedPoint, "text");
+      return;
+    }
+
+    if (tool === "sticky") {
+      startDraftEditor(snappedPoint, "sticky");
+      return;
+    }
+
+    if (["rect", "circle", "triangle", "diamond", "star", "line"].includes(tool)) {
+      pushHistory();
+      setShapeStart(snappedPoint);
+      updateActiveBoardElements((elements) => [
+        ...elements,
+        {
+          id: uid(),
+          layerId: activeLayerId,
+          type: tool as ElementType,
+          x: snappedPoint.x,
+          y: snappedPoint.y,
+          w: 0,
+          h: 0,
+          color,
+          fillColor,
+          width: brushSize,
+        },
+      ]);
       setIsDrawing(true);
       return;
     }
 
-    if (tool === "draw" || tool === "eraser") {
-      pushUndo();
-      setElements(prev => [...prev, {
-        id: uid(), type: "path", points: [{ x, y }],
-        color: tool === "eraser" ? "eraser" : color,
-        width: tool === "eraser" ? brushSize * 4 : brushSize,
-      }]);
+    if (tool === "laser") {
+      setLaserTrail([{ ...rawPoint, p: 1 }]);
+      setIsDrawing(true);
+      return;
+    }
+
+    if (["pen", "marker", "highlighter", "eraser"].includes(tool)) {
+      pushHistory();
+      updateActiveBoardElements((elements) => [
+        ...elements,
+        {
+          id: uid(),
+          layerId: activeLayerId,
+          type: "path",
+          points: [{ ...rawPoint, p: event.pointerType === "pen" ? Math.max(0.2, event.pressure || 0.5) : 1 }],
+          color: tool === "eraser" ? "eraser" : color,
+          fillColor: tool === "highlighter" ? "highlighter" : tool === "marker" ? "marker" : undefined,
+          width: tool === "eraser" ? brushSize * 4 : brushSize,
+          opacity: tool === "highlighter" ? 0.2 : tool === "marker" ? 0.8 : 1,
+        },
+      ]);
       setIsDrawing(true);
     }
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (isPanning) { setPanOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y }); return; }
-
-    if (tool === "select" && selectedElement && dragStart) {
-      const { x, y } = screenToCanvas(e.clientX, e.clientY);
-      setElements(prev => prev.map(el => el.id !== selectedElement ? el : { ...el, x: x - dragStart.x, y: y - dragStart.y }));
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (isPanning) {
+      setPanOffset((previous) => ({
+        x: previous.x + event.movementX,
+        y: previous.y + event.movementY,
+      }));
       return;
     }
 
-    if (!isDrawing) return;
-    const { x, y } = screenToCanvas(e.clientX, e.clientY);
+    const rawPoint = getCanvasPoint(event.clientX, event.clientY, false);
+    const snappedPoint = getCanvasPoint(event.clientX, event.clientY, true);
 
-    if (isShapeTool && shapeStart) {
-      setElements(prev => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last) { last.w = x - shapeStart.x; last.h = y - shapeStart.y; }
-        return updated;
+    if (tool === "select" && selectedElementId && dragSnapshotRef.current) {
+      const snapshot = dragSnapshotRef.current;
+      const origin = getElementBounds(snapshot);
+      const dx = rawPoint.x - origin.x - (snapshot.type === "path" ? 0 : 0);
+      const dy = rawPoint.y - origin.y - (snapshot.type === "path" ? 0 : 0);
+      const moved = moveElement(snapshot, dx, dy);
+      updateActiveBoardElements((elements) => elements.map((element) => (element.id === selectedElementId ? moved : element)));
+      return;
+    }
+
+    if (!isDrawing || !activeBoard) return;
+
+    if (tool === "laser") {
+      setLaserTrail((previous) => [...previous, { ...rawPoint, p: 1 }]);
+      return;
+    }
+
+    if (shapeStart && ["rect", "circle", "triangle", "diamond", "star", "line"].includes(tool)) {
+      updateActiveBoardElements((elements) => {
+        const next = [...elements];
+        const last = next[next.length - 1];
+        if (!last) return next;
+        last.w = snappedPoint.x - shapeStart.x;
+        last.h = snappedPoint.y - shapeStart.y;
+        return next;
       });
       return;
     }
 
-    setElements(prev => {
-      const updated = [...prev];
-      const last = updated[updated.length - 1];
-      if (last?.points) last.points = [...last.points, { x, y }];
-      return updated;
+    updateActiveBoardElements((elements) => {
+      const next = [...elements];
+      const last = next[next.length - 1];
+      if (last?.type === "path" && last.points) {
+        last.points = [
+          ...last.points,
+          {
+            ...rawPoint,
+            p: event.pointerType === "pen" ? Math.max(0.2, event.pressure || 0.5) : 1,
+          },
+        ];
+      }
+      return next;
     });
   };
 
-  const handlePointerUp = () => { setIsDrawing(false); setIsPanning(false); setDragStart(null); setShapeStart(null); };
+  const handlePointerUp = () => {
+    if (tool === "laser") {
+      window.setTimeout(() => setLaserTrail([]), 500);
+    }
 
-  const submitText = () => {
-    if (!editingText || !textValue.trim()) { setEditingText(null); return; }
-    pushUndo();
-    setElements(prev => [...prev, { id: uid(), type: "text", text: textValue, x: editingText.x, y: editingText.y, fontSize: textFontSize, color }]);
-    setEditingText(null); setTextValue("");
+    if (activeBoard?.smartShapes && ["pen", "marker", "highlighter"].includes(tool)) {
+      updateActiveBoardElements((elements) => {
+        const next = [...elements];
+        const last = next[next.length - 1];
+        if (last?.type !== "path" || !last.points?.length) return next;
+        const detected = detectSmartShape(last.points);
+        if (!detected) return next;
+        next[next.length - 1] = {
+          id: last.id,
+          layerId: last.layerId,
+          type: detected.type,
+          x: detected.x,
+          y: detected.y,
+          w: detected.w,
+          h: detected.h,
+          color: last.color,
+          fillColor: fillColor,
+          width: last.width,
+        };
+        return next;
+      });
+    }
+
+    setIsDrawing(false);
+    setIsPanning(false);
+    setShapeStart(null);
+    dragSnapshotRef.current = null;
   };
 
-  /* ─── Image paste ─── */
-  useEffect(() => {
-    const handler = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith("image/")) {
-          e.preventDefault();
-          const blob = item.getAsFile();
-          if (!blob) return;
+  const handleImportFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length || !activeLayerId) return;
+    pushHistory();
+
+    for (const file of files) {
+      if (file.type.startsWith("image/")) {
+        const imageUrl = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => {
-            const img = new window.Image();
-            img.onload = () => {
-              const maxDim = 400;
-              let w = img.width, h = img.height;
-              if (w > maxDim || h > maxDim) { const r = Math.min(maxDim / w, maxDim / h); w *= r; h *= r; }
-              pushUndo();
-              setElements(prev => [...prev, { id: uid(), type: "image", src: reader.result as string, x: -panOffset.x / zoom + 100, y: -panOffset.y / zoom + 100, imgWidth: w, imgHeight: h, borderRadius: 0 }]);
-            };
-            img.src = reader.result as string;
-          };
-          reader.readAsDataURL(blob);
-        }
-      }
-    };
-    document.addEventListener("paste", handler);
-    return () => document.removeEventListener("paste", handler);
-  }, [panOffset, zoom, pushUndo]);
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new window.Image();
-      img.onload = () => {
-        const maxDim = 400;
-        let w = img.width, h = img.height;
-        if (w > maxDim || h > maxDim) { const r = Math.min(maxDim / w, maxDim / h); w *= r; h *= r; }
-        pushUndo();
-        setElements(prev => [...prev, { id: uid(), type: "image", src: reader.result as string, x: -panOffset.x / zoom + 100, y: -panOffset.y / zoom + 100, imgWidth: w, imgHeight: h, borderRadius: 0 }]);
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
+          const image = new window.Image();
+          image.onload = () => {
+            const scale = Math.min(420 / image.width, 320 / image.height, 1);
+            resolve({ width: image.width * scale, height: image.height * scale });
+          };
+          image.src = imageUrl;
+        });
+
+        const point = getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+        updateActiveBoardElements((elements) => [
+          ...elements,
+          {
+            id: uid(),
+            layerId: activeLayerId,
+            type: "image",
+            src: imageUrl,
+            x: point.x,
+            y: point.y,
+            imgWidth: dimensions.width,
+            imgHeight: dimensions.height,
+            borderRadius: 16,
+          },
+        ]);
+        continue;
+      }
+
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        createDocumentElement(file.name, "PDF", "Imported onto canvas");
+        continue;
+      }
+
+      const text = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.readAsText(file);
+      }).catch(() => "");
+
+      const numbers = parseNumbersFromText(text);
+      if ((file.name.endsWith(".csv") || file.name.endsWith(".json") || file.name.endsWith(".txt")) && numbers.length >= 6) {
+        const point = getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+        updateActiveBoardElements((elements) => [
+          ...elements,
+          {
+            id: uid(),
+            layerId: activeLayerId,
+            type: "chart",
+            x: point.x,
+            y: point.y,
+            w: 320,
+            h: 180,
+            color,
+            fillColor,
+            chartType: "line",
+            series: numbers.slice(0, 10),
+            live: true,
+            text: file.name,
+          },
+        ]);
+      } else {
+        createDocumentElement(file.name, file.type || "File", text.slice(0, 180));
+      }
+    }
+
+    event.target.value = "";
   };
 
-  /* ─── Render ─── */
-  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
-  const bgImageRef = useRef<HTMLImageElement | null>(null);
-  const bgLoadedSrc = useRef("");
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const activeTag = (document.activeElement as HTMLElement | null)?.tagName;
+      if (activeTag === "TEXTAREA" || activeTag === "INPUT") return;
+      const items = event.clipboardData?.items || [];
+      for (const item of items) {
+        if (!activeLayerId) continue;
+        if (item.type.startsWith("image/")) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (!file) continue;
+          const synthetic = { target: { files: [file], value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>;
+          handleImportFiles(synthetic);
+          return;
+        }
+      }
+
+      const pastedText = event.clipboardData?.getData("text");
+      if (pastedText?.trim() && activeLayerId) {
+        event.preventDefault();
+        const point = getCanvasPoint(window.innerWidth / 2, window.innerHeight / 2, true);
+        pushHistory();
+        updateActiveBoardElements((elements) => [
+          ...elements,
+          {
+            id: uid(),
+            layerId: activeLayerId,
+            type: "sticky",
+            x: point.x,
+            y: point.y,
+            w: 240,
+            h: 170,
+            text: pastedText,
+            fontSize: 16,
+            fontFamily: "Sans",
+            fontWeight: "400",
+            noteColor: NOTE_COLORS[0],
+            color: "#111827",
+          },
+        ]);
+      }
+    };
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [activeLayerId, getCanvasPoint, pushHistory, updateActiveBoardElements]);
 
   useEffect(() => {
-    if (wpSrc && wpSrc !== bgLoadedSrc.current) {
-      const img = new window.Image();
-      img.src = wpSrc;
-      img.onload = () => { bgImageRef.current = img; bgLoadedSrc.current = wpSrc; };
-    } else if (!wpSrc) {
-      bgImageRef.current = null;
-      bgLoadedSrc.current = "";
-    }
-  }, [wpSrc]);
+    const handleKeyDown = async (event: KeyboardEvent) => {
+      const activeTag = (document.activeElement as HTMLElement | null)?.tagName;
+      const isTyping = activeTag === "TEXTAREA" || activeTag === "INPUT";
+      if (draftEditor && isTyping) return;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    // Background
-    if (bgImageRef.current && bgImageRef.current.complete && wpSrc) {
-      ctx.drawImage(bgImageRef.current, 0, 0, rect.width, rect.height);
-      ctx.fillStyle = "rgba(0,0,0,0.4)";
-      ctx.fillRect(0, 0, rect.width, rect.height);
-      // Blur effect via re-draw with filter
-      ctx.filter = "blur(4px)";
-      ctx.drawImage(bgImageRef.current, 0, 0, rect.width, rect.height);
-      ctx.filter = "none";
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.fillRect(0, 0, rect.width, rect.height);
-    } else {
-      ctx.fillStyle = "#111111";
-      ctx.fillRect(0, 0, rect.width, rect.height);
-    }
-
-    ctx.save();
-    ctx.translate(panOffset.x, panOffset.y);
-    ctx.scale(zoom, zoom);
-
-    // Grid
-    const gridSize = 40;
-    const sX = Math.floor(-panOffset.x / zoom / gridSize) * gridSize - gridSize;
-    const sY = Math.floor(-panOffset.y / zoom / gridSize) * gridSize - gridSize;
-    const eX = sX + rect.width / zoom + gridSize * 2;
-    const eY = sY + rect.height / zoom + gridSize * 2;
-    ctx.strokeStyle = "rgba(255,255,255,0.025)";
-    ctx.lineWidth = 0.5;
-    for (let gx = sX; gx < eX; gx += gridSize) { ctx.beginPath(); ctx.moveTo(gx, sY); ctx.lineTo(gx, eY); ctx.stroke(); }
-    for (let gy = sY; gy < eY; gy += gridSize) { ctx.beginPath(); ctx.moveTo(sX, gy); ctx.lineTo(eX, gy); ctx.stroke(); }
-
-    // Elements
-    for (const el of elements) {
-      if (el.type === "path" && el.points && el.points.length > 1) {
-        ctx.beginPath(); ctx.moveTo(el.points[0].x, el.points[0].y);
-        for (let i = 1; i < el.points.length; i++) ctx.lineTo(el.points[i].x, el.points[i].y);
-        if (el.color === "eraser") { ctx.globalCompositeOperation = "destination-out"; ctx.strokeStyle = "rgba(0,0,0,1)"; }
-        else { ctx.globalCompositeOperation = "source-over"; ctx.strokeStyle = el.color || "#fff"; }
-        ctx.lineWidth = el.width || 2; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke();
-        ctx.globalCompositeOperation = "source-over";
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
       }
 
-      if (el.type === "text" && el.text && el.x != null && el.y != null) {
-        ctx.font = `${el.fontSize || 18}px 'Inter', sans-serif`;
-        ctx.fillStyle = el.color || "#fff";
-        ctx.fillText(el.text, el.x, el.y);
-        if (el.id === selectedElement) {
-          const tw = ctx.measureText(el.text).width;
-          ctx.strokeStyle = "rgba(59,130,246,0.5)"; ctx.lineWidth = 1;
-          ctx.strokeRect(el.x - 4, el.y - (el.fontSize || 18) - 4, tw + 8, (el.fontSize || 18) * 1.4 + 8);
-        }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c" && selectedElement) {
+        event.preventDefault();
+        const copyValue = selectedElement.text || selectedElement.fileName || JSON.stringify(selectedElement);
+        await navigator.clipboard.writeText(copyValue);
+        return;
       }
 
-      if (el.type === "image" && el.src && el.x != null && el.y != null) {
-        let cached = imageCache.current.get(el.id);
-        if (!cached) { cached = new window.Image(); cached.src = el.src; imageCache.current.set(el.id, cached); cached.onload = () => setElements(p => [...p]); }
-        if (cached.complete) {
-          const iw = el.imgWidth || 200, ih = el.imgHeight || 200, ir = el.borderRadius || 0;
-          ctx.save();
-          if (ir > 0) {
-            ctx.beginPath();
-            ctx.moveTo(el.x + ir, el.y); ctx.lineTo(el.x + iw - ir, el.y);
-            ctx.quadraticCurveTo(el.x + iw, el.y, el.x + iw, el.y + ir);
-            ctx.lineTo(el.x + iw, el.y + ih - ir);
-            ctx.quadraticCurveTo(el.x + iw, el.y + ih, el.x + iw - ir, el.y + ih);
-            ctx.lineTo(el.x + ir, el.y + ih);
-            ctx.quadraticCurveTo(el.x, el.y + ih, el.x, el.y + ih - ir);
-            ctx.lineTo(el.x, el.y + ir);
-            ctx.quadraticCurveTo(el.x, el.y, el.x + ir, el.y);
-            ctx.closePath(); ctx.clip();
-          }
-          ctx.drawImage(cached, el.x, el.y, iw, ih);
-          ctx.restore();
-          if (el.id === selectedElement) { ctx.strokeStyle = "rgba(59,130,246,0.6)"; ctx.lineWidth = 2; ctx.strokeRect(el.x - 2, el.y - 2, iw + 4, ih + 4); }
-        }
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        undo();
+        return;
       }
 
-      // ── Shapes ──
-      if (["rect", "circle", "triangle", "diamond", "star", "line"].includes(el.type) && el.x != null && el.y != null) {
-        const sw = el.w || 0, sh = el.h || 0;
-        ctx.strokeStyle = el.color || "#fff";
-        ctx.lineWidth = el.width || 2;
-        ctx.lineCap = "round"; ctx.lineJoin = "round";
-        const fc = el.fillColor && el.fillColor !== "transparent" ? el.fillColor : null;
-
-        if (el.type === "rect") {
-          if (fc) { ctx.fillStyle = fc; ctx.fillRect(el.x, el.y, sw, sh); }
-          ctx.strokeRect(el.x, el.y, sw, sh);
-        }
-        if (el.type === "circle") {
-          const cx = el.x + sw / 2, cy = el.y + sh / 2;
-          const rx = Math.abs(sw / 2), ry = Math.abs(sh / 2);
-          ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-          if (fc) { ctx.fillStyle = fc; ctx.fill(); }
-          ctx.stroke();
-        }
-        if (el.type === "triangle") {
-          ctx.beginPath();
-          ctx.moveTo(el.x + sw / 2, el.y);
-          ctx.lineTo(el.x + sw, el.y + sh);
-          ctx.lineTo(el.x, el.y + sh);
-          ctx.closePath();
-          if (fc) { ctx.fillStyle = fc; ctx.fill(); }
-          ctx.stroke();
-        }
-        if (el.type === "diamond") {
-          ctx.beginPath();
-          ctx.moveTo(el.x + sw / 2, el.y);
-          ctx.lineTo(el.x + sw, el.y + sh / 2);
-          ctx.lineTo(el.x + sw / 2, el.y + sh);
-          ctx.lineTo(el.x, el.y + sh / 2);
-          ctx.closePath();
-          if (fc) { ctx.fillStyle = fc; ctx.fill(); }
-          ctx.stroke();
-        }
-        if (el.type === "star") {
-          const cx = el.x + sw / 2, cy = el.y + sh / 2;
-          const outerR = Math.min(Math.abs(sw), Math.abs(sh)) / 2;
-          const innerR = outerR * 0.4;
-          ctx.beginPath();
-          for (let i = 0; i < 10; i++) {
-            const r = i % 2 === 0 ? outerR : innerR;
-            const angle = (Math.PI / 5) * i - Math.PI / 2;
-            const px = cx + r * Math.cos(angle), py = cy + r * Math.sin(angle);
-            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-          if (fc) { ctx.fillStyle = fc; ctx.fill(); }
-          ctx.stroke();
-        }
-        if (el.type === "line") {
-          ctx.beginPath(); ctx.moveTo(el.x, el.y); ctx.lineTo(el.x + sw, el.y + sh); ctx.stroke();
-        }
-
-        if (el.id === selectedElement) {
-          ctx.strokeStyle = "rgba(59,130,246,0.4)"; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
-          ctx.strokeRect(Math.min(el.x, el.x + sw) - 4, Math.min(el.y, el.y + sh) - 4, Math.abs(sw) + 8, Math.abs(sh) + 8);
-          ctx.setLineDash([]);
-        }
+      if (event.key === "Delete" && selectedElementId) {
+        event.preventDefault();
+        deleteSelected();
+        return;
       }
-    }
-    ctx.restore();
-  }, [elements, panOffset, zoom, selectedElement, wpSrc]);
 
-  /* ─── Zoom via wheel ─── */
+      if (event.key === "Escape") {
+        clearSelection();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [clearSelection, deleteSelected, draftEditor, redo, selectedElement, selectedElementId, undo]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const handler = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        setZoom(prev => Math.max(0.1, Math.min(5, prev * (e.deltaY > 0 ? 0.9 : 1.1))));
+
+    const handleWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        setZoom((previous) => clamp(previous * (event.deltaY > 0 ? 0.92 : 1.08), 0.2, 4));
       } else {
-        setPanOffset(prev => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
+        setPanOffset((previous) => ({
+          x: previous.x - event.deltaX,
+          y: previous.y - event.deltaY,
+        }));
       }
     };
-    container.addEventListener("wheel", handler, { passive: false });
-    return () => container.removeEventListener("wheel", handler);
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
   }, []);
 
-  useEffect(() => { const h = () => setZoom(z => z); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setBoards((previous) =>
+        previous.map((board) => ({
+          ...board,
+          elements: board.elements.map((element) => {
+            if (element.type !== "chart" || !element.live || !element.series?.length) return element;
+            const nextValue = clamp((element.series[element.series.length - 1] || 40) + (Math.random() * 24 - 12), 8, 96);
+            return {
+              ...element,
+              series: [...element.series.slice(-9), Number(nextValue.toFixed(1))],
+            };
+          }),
+        })),
+      );
+    }, 2400);
 
-  const updateImageRadius = (val: number) => { setImageRadius(val); if (!selectedImageId) return; setElements(prev => prev.map(el => el.id === selectedImageId ? { ...el, borderRadius: val } : el)); };
-  const resizeSelectedImage = (factor: number) => { if (!selectedImageId) return; setElements(prev => prev.map(el => el.id !== selectedImageId ? el : { ...el, imgWidth: (el.imgWidth || 200) * factor, imgHeight: (el.imgHeight || 200) * factor })); };
-  const clearAll = () => { pushUndo(); setElements([]); setSelectedElement(null); setSelectedImageId(null); };
-  const deleteSelected = () => { if (!selectedElement) return; pushUndo(); setElements(prev => prev.filter(el => el.id !== selectedElement)); setSelectedElement(null); setSelectedImageId(null); };
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (editingText) return;
-      if (e.key === "Delete" || e.key === "Backspace") deleteSelected();
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  });
+    const canvas = canvasRef.current;
+    if (!canvas || !activeBoard) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
 
-  const toolBtn = (t: Tool) => `p-2 rounded-lg transition-all duration-200 ${tool === t ? "bg-foreground/15 text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.clearRect(0, 0, rect.width, rect.height);
 
-  const cursorStyle = tool === "pan" ? "grab" : tool === "select" ? "default" : "crosshair";
+    const wallpaperSource = getWallpaperSource(activeBoard);
+    const cachedBackground = wallpaperSource ? backgroundCacheRef.current.get(wallpaperSource) : null;
+
+    if (wallpaperSource) {
+      if (cachedBackground) {
+        context.save();
+        context.filter = `blur(${activeBoard.wallpaperBlur}px) brightness(0.55) saturate(0.9)`;
+        drawCoverImage(context, cachedBackground, rect.width, rect.height);
+        context.restore();
+      } else {
+        const image = new window.Image();
+        image.src = wallpaperSource;
+        image.onload = () => backgroundCacheRef.current.set(wallpaperSource, image);
+      }
+    }
+
+    context.fillStyle = wallpaperSource ? "rgba(3, 7, 18, 0.5)" : "rgba(8, 8, 10, 1)";
+    context.fillRect(0, 0, rect.width, rect.height);
+
+    context.save();
+    context.translate(panOffset.x, panOffset.y);
+    context.scale(zoom, zoom);
+
+    if (activeBoard.gridMode !== "freeform") {
+      const spacing = activeBoard.gridMode === "dots" ? 28 : 40;
+      const startX = Math.floor((-panOffset.x / zoom) / spacing) * spacing - spacing;
+      const startY = Math.floor((-panOffset.y / zoom) / spacing) * spacing - spacing;
+      const endX = startX + rect.width / zoom + spacing * 3;
+      const endY = startY + rect.height / zoom + spacing * 3;
+      if (activeBoard.gridMode === "square") {
+        context.strokeStyle = "rgba(255,255,255,0.055)";
+        context.lineWidth = 0.75;
+        for (let x = startX; x < endX; x += spacing) {
+          context.beginPath();
+          context.moveTo(x, startY);
+          context.lineTo(x, endY);
+          context.stroke();
+        }
+        for (let y = startY; y < endY; y += spacing) {
+          context.beginPath();
+          context.moveTo(startX, y);
+          context.lineTo(endX, y);
+          context.stroke();
+        }
+      } else {
+        context.fillStyle = "rgba(255,255,255,0.09)";
+        for (let x = startX; x < endX; x += spacing) {
+          for (let y = startY; y < endY; y += spacing) {
+            context.beginPath();
+            context.arc(x, y, 1.2, 0, Math.PI * 2);
+            context.fill();
+          }
+        }
+      }
+    }
+
+    const visibleLayerIds = new Set(activeBoard.layers.filter((layer) => layer.visible).map((layer) => layer.id));
+
+    for (const element of activeBoard.elements) {
+      if (!visibleLayerIds.has(element.layerId)) continue;
+
+      if (element.type === "path" && element.points?.length) {
+        context.save();
+        const points = element.points;
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.globalAlpha = getPathOpacity(element);
+        if (element.color === "eraser") {
+          context.globalCompositeOperation = "destination-out";
+        }
+        for (let index = 1; index < points.length; index += 1) {
+          const previous = points[index - 1];
+          const point = points[index];
+          const pressure = ((previous.p || 1) + (point.p || 1)) / 2;
+          context.strokeStyle = element.color === "eraser" ? "rgba(0,0,0,1)" : element.color || "#ffffff";
+          context.lineWidth = (element.width || 2) * pressure * (element.fillColor === "marker" ? 1.2 : element.fillColor === "highlighter" ? 2.2 : 1);
+          context.beginPath();
+          context.moveTo(previous.x, previous.y);
+          context.lineTo(point.x, point.y);
+          context.stroke();
+        }
+        if (points.length === 1) {
+          context.fillStyle = element.color || "#ffffff";
+          context.beginPath();
+          context.arc(points[0].x, points[0].y, element.width || 2, 0, Math.PI * 2);
+          context.fill();
+        }
+        context.restore();
+      }
+
+      if (element.type === "text" && element.text) {
+        const lines = element.text.split("\n");
+        const fontSize = element.fontSize || 18;
+        context.save();
+        context.font = `${element.fontWeight || "400"} ${fontSize}px ${FONT_FAMILIES[element.fontFamily || "Sans"]}`;
+        context.fillStyle = element.color || "#ffffff";
+        lines.forEach((line, index) => {
+          context.fillText(line, element.x || 0, (element.y || 0) + index * fontSize * 1.32);
+        });
+        context.restore();
+      }
+
+      if (element.type === "sticky") {
+        const x = element.x || 0;
+        const y = element.y || 0;
+        const width = element.w || 240;
+        const height = element.h || 170;
+        context.save();
+        drawRoundedRectPath(context, x, y, width, height, 18);
+        context.fillStyle = element.noteColor || NOTE_COLORS[0];
+        context.fill();
+        context.strokeStyle = "rgba(17,24,39,0.15)";
+        context.lineWidth = 1;
+        context.stroke();
+        context.fillStyle = "rgba(17,24,39,0.9)";
+        context.font = `${element.fontWeight || "400"} ${element.fontSize || 16}px ${FONT_FAMILIES[element.fontFamily || "Sans"]}`;
+        const textLines = (element.text || "").split("\n");
+        textLines.forEach((line, index) => {
+          context.fillText(line, x + 18, y + 32 + index * (element.fontSize || 16) * 1.28);
+        });
+        context.restore();
+      }
+
+      if (element.type === "image" && element.src) {
+        let image = imageCacheRef.current.get(element.id);
+        if (!image) {
+          image = new window.Image();
+          image.src = element.src;
+          image.onload = () => imageCacheRef.current.set(element.id, image as HTMLImageElement);
+          imageCacheRef.current.set(element.id, image);
+        }
+        if (image.complete) {
+          const imageWidth = element.imgWidth || 260;
+          const imageHeight = element.imgHeight || 180;
+          const radius = ((element.borderRadius || 0) / 100) * Math.min(imageWidth, imageHeight) * 0.5;
+          context.save();
+          drawRoundedRectPath(context, element.x || 0, element.y || 0, imageWidth, imageHeight, radius);
+          context.clip();
+          context.drawImage(image, element.x || 0, element.y || 0, imageWidth, imageHeight);
+          context.restore();
+        }
+      }
+
+      if (element.type === "document") {
+        const x = element.x || 0;
+        const y = element.y || 0;
+        const width = element.w || 280;
+        const height = element.h || 140;
+        context.save();
+        drawRoundedRectPath(context, x, y, width, height, 20);
+        context.fillStyle = "rgba(15,23,42,0.88)";
+        context.fill();
+        context.strokeStyle = "rgba(255,255,255,0.08)";
+        context.stroke();
+        context.fillStyle = "rgba(255,255,255,0.92)";
+        context.font = `600 14px ${FONT_FAMILIES.Sans}`;
+        context.fillText(element.fileName || "Imported file", x + 18, y + 30);
+        context.fillStyle = "rgba(255,255,255,0.45)";
+        context.font = `400 12px ${FONT_FAMILIES.Mono}`;
+        context.fillText(element.fileType || "Document", x + 18, y + 52);
+        context.font = `400 12px ${FONT_FAMILIES.Sans}`;
+        const preview = (element.preview || "Dropped onto the canvas").slice(0, 120);
+        context.fillText(preview, x + 18, y + 84, width - 36);
+        context.restore();
+      }
+
+      if (element.type === "chart") {
+        const x = element.x || 0;
+        const y = element.y || 0;
+        const width = element.w || 320;
+        const height = element.h || 180;
+        const series = element.series || [];
+        const min = Math.min(...series, 0);
+        const max = Math.max(...series, 100);
+        context.save();
+        drawRoundedRectPath(context, x, y, width, height, 22);
+        context.fillStyle = "rgba(2,6,23,0.86)";
+        context.fill();
+        context.strokeStyle = "rgba(255,255,255,0.08)";
+        context.stroke();
+        context.fillStyle = "rgba(255,255,255,0.9)";
+        context.font = `600 14px ${FONT_FAMILIES.Sans}`;
+        context.fillText(element.text || "Live chart", x + 18, y + 30);
+        context.fillStyle = "rgba(255,255,255,0.45)";
+        context.font = `400 11px ${FONT_FAMILIES.Mono}`;
+        context.fillText(element.live ? "auto-updating" : "static", x + 18, y + 50);
+        const chartX = x + 18;
+        const chartY = y + 70;
+        const chartWidth = width - 36;
+        const chartHeight = height - 92;
+        context.strokeStyle = "rgba(255,255,255,0.08)";
+        context.strokeRect(chartX, chartY, chartWidth, chartHeight);
+        if (series.length > 1) {
+          context.strokeStyle = element.color || "#60a5fa";
+          context.lineWidth = 2;
+          context.beginPath();
+          series.forEach((value, index) => {
+            const px = chartX + (index / Math.max(series.length - 1, 1)) * chartWidth;
+            const py = chartY + chartHeight - ((value - min) / Math.max(max - min, 1)) * chartHeight;
+            if (index === 0) context.moveTo(px, py);
+            else context.lineTo(px, py);
+            context.fillStyle = element.color || "#60a5fa";
+            context.beginPath();
+            context.arc(px, py, 2.4, 0, Math.PI * 2);
+            context.fill();
+            context.beginPath();
+            if (index === 0) context.moveTo(px, py);
+            else context.lineTo(px, py);
+          });
+          context.stroke();
+        }
+        context.restore();
+      }
+
+      if (["rect", "circle", "triangle", "diamond", "star", "line"].includes(element.type)) {
+        const rectData = normalizeRect(element.x || 0, element.y || 0, element.w || 0, element.h || 0);
+        const stroke = element.color || "#ffffff";
+        const fill = element.fillColor && element.fillColor !== "transparent" ? element.fillColor : null;
+        context.save();
+        context.lineWidth = element.width || 2;
+        context.strokeStyle = stroke;
+        if (element.type === "rect") {
+          if (fill) {
+            context.fillStyle = fill;
+            context.fillRect(rectData.x, rectData.y, rectData.w, rectData.h);
+          }
+          context.strokeRect(rectData.x, rectData.y, rectData.w, rectData.h);
+        }
+        if (element.type === "circle") {
+          context.beginPath();
+          context.ellipse(rectData.x + rectData.w / 2, rectData.y + rectData.h / 2, rectData.w / 2, rectData.h / 2, 0, 0, Math.PI * 2);
+          if (fill) {
+            context.fillStyle = fill;
+            context.fill();
+          }
+          context.stroke();
+        }
+        if (element.type === "triangle") {
+          context.beginPath();
+          context.moveTo(rectData.x + rectData.w / 2, rectData.y);
+          context.lineTo(rectData.x + rectData.w, rectData.y + rectData.h);
+          context.lineTo(rectData.x, rectData.y + rectData.h);
+          context.closePath();
+          if (fill) {
+            context.fillStyle = fill;
+            context.fill();
+          }
+          context.stroke();
+        }
+        if (element.type === "diamond") {
+          context.beginPath();
+          context.moveTo(rectData.x + rectData.w / 2, rectData.y);
+          context.lineTo(rectData.x + rectData.w, rectData.y + rectData.h / 2);
+          context.lineTo(rectData.x + rectData.w / 2, rectData.y + rectData.h);
+          context.lineTo(rectData.x, rectData.y + rectData.h / 2);
+          context.closePath();
+          if (fill) {
+            context.fillStyle = fill;
+            context.fill();
+          }
+          context.stroke();
+        }
+        if (element.type === "star") {
+          const cx = rectData.x + rectData.w / 2;
+          const cy = rectData.y + rectData.h / 2;
+          const outerRadius = Math.min(rectData.w, rectData.h) / 2;
+          const innerRadius = outerRadius * 0.45;
+          context.beginPath();
+          for (let index = 0; index < 10; index += 1) {
+            const radius = index % 2 === 0 ? outerRadius : innerRadius;
+            const angle = (Math.PI / 5) * index - Math.PI / 2;
+            const px = cx + radius * Math.cos(angle);
+            const py = cy + radius * Math.sin(angle);
+            if (index === 0) context.moveTo(px, py);
+            else context.lineTo(px, py);
+          }
+          context.closePath();
+          if (fill) {
+            context.fillStyle = fill;
+            context.fill();
+          }
+          context.stroke();
+        }
+        if (element.type === "line") {
+          context.beginPath();
+          context.moveTo(element.x || 0, element.y || 0);
+          context.lineTo((element.x || 0) + (element.w || 0), (element.y || 0) + (element.h || 0));
+          context.stroke();
+        }
+        context.restore();
+      }
+
+      if (selectedElementId === element.id) {
+        const bounds = getElementBounds(element);
+        context.save();
+        context.setLineDash([6, 6]);
+        context.strokeStyle = "rgba(96,165,250,0.7)";
+        context.lineWidth = 1;
+        context.strokeRect(bounds.x - 6, bounds.y - 6, bounds.w + 12, bounds.h + 12);
+        context.restore();
+      }
+    }
+
+    if (laserTrail.length > 1) {
+      context.save();
+      context.strokeStyle = "rgba(250,204,21,0.95)";
+      context.lineWidth = 4;
+      context.shadowBlur = 16;
+      context.shadowColor = "rgba(250,204,21,0.8)";
+      context.beginPath();
+      context.moveTo(laserTrail[0].x, laserTrail[0].y);
+      laserTrail.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+      context.stroke();
+      context.restore();
+    }
+
+    context.restore();
+  }, [activeBoard, fillColor, laserTrail, panOffset.x, panOffset.y, selectedElementId, zoom]);
+
+  const boardScreenPoint = draftEditor ? toScreenPoint({ x: draftEditor.x, y: draftEditor.y }) : null;
+  const activeLayer = activeBoard?.layers.find((layer) => layer.id === activeLayerId) || null;
+  const isShapeTool = ["rect", "circle", "triangle", "diamond", "star", "line"].includes(tool);
+  const toolButton = (active: boolean) =>
+    `rounded-xl border px-2.5 py-2 transition-colors ${
+      active
+        ? "border-foreground/25 bg-foreground/10 text-foreground"
+        : "border-transparent text-muted-foreground hover:border-border/30 hover:bg-foreground/5 hover:text-foreground"
+    }`;
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-background relative flex flex-col">
-      {/* ─── Header watermark ─── */}
+    <div className="relative flex h-screen w-screen overflow-hidden bg-background">
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/20" />
+
       <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2 rounded-xl border border-border/30 bg-card/60 backdrop-blur-xl px-5 py-2.5 hover:bg-card/80 transition-colors">
             <span className="text-base font-extralight tracking-[0.25em] text-foreground">AUREON</span>
           </Link>
-          <span className="text-[10px] font-extralight tracking-[0.3em] text-muted-foreground/40 uppercase hidden sm:block">Whiteboard</span>
+          <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border/30 bg-card/55 px-3 py-2 backdrop-blur-xl">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">Board</span>
+            <select
+              value={activeBoard?.id || ""}
+              onChange={(event) => {
+                const nextBoard = boards.find((board) => board.id === event.target.value);
+                if (!nextBoard) return;
+                setActiveBoardId(nextBoard.id);
+                setActiveLayerId(nextBoard.layers[0]?.id || null);
+                clearSelection();
+              }}
+              className="bg-transparent text-sm text-foreground outline-none"
+            >
+              {boards.map((board) => (
+                <option key={board.id} value={board.id} className="bg-background text-foreground">
+                  {board.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                const nextBoard = createBoard(`Board ${boards.length + 1}`);
+                pushHistory();
+                setBoards((previous) => [...previous, nextBoard]);
+                setActiveBoardId(nextBoard.id);
+                setActiveLayerId(nextBoard.layers[0]?.id || null);
+                clearSelection();
+              }}
+              className="rounded-lg border border-border/30 px-2 py-1 text-[11px] text-foreground hover:bg-foreground/5"
+            >
+              New
+            </button>
+          </div>
         </div>
-        <div className="text-[9px] font-extralight tracking-[0.25em] text-muted-foreground/20 uppercase">◈ AUREON INTELLIGENCE PLATFORM</div>
+        <div className="hidden md:flex items-center gap-2 rounded-xl border border-border/25 bg-card/45 px-3 py-2 backdrop-blur-xl pointer-events-auto">
+          <Lock className="h-3.5 w-3.5 text-emerald-400/80" />
+          <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/70">Encrypted boards</span>
+        </div>
       </div>
 
-      {/* ─── Toolbar ─── */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-2xl border border-border/30 bg-card/80 backdrop-blur-xl px-3 py-2 shadow-2xl flex-wrap justify-center">
-        <button onClick={() => setTool("select")} className={toolBtn("select")} title="Select"><MousePointer className="h-4 w-4" /></button>
-        <button onClick={() => setTool("draw")} className={toolBtn("draw")} title="Draw"><Pencil className="h-4 w-4" /></button>
-        <button onClick={() => setTool("text")} className={toolBtn("text")} title="Text"><Type className="h-4 w-4" /></button>
-        <button onClick={() => setTool("eraser")} className={toolBtn("eraser")} title="Eraser"><Eraser className="h-4 w-4" /></button>
-        <button onClick={() => setTool("pan")} className={toolBtn("pan")} title="Pan"><Move className="h-4 w-4" /></button>
+      <div className="absolute top-16 left-1/2 z-40 flex w-[min(96vw,1320px)] -translate-x-1/2 flex-wrap items-center justify-center gap-1.5 rounded-[1.6rem] border border-border/30 bg-card/75 px-3 py-2 shadow-2xl backdrop-blur-2xl">
+        <button onClick={() => setTool("select")} className={toolButton(tool === "select")} title="Select"><MousePointer className="h-4 w-4" /></button>
+        <button onClick={() => setTool("pen")} className={toolButton(tool === "pen")} title="Pen"><Pencil className="h-4 w-4" /></button>
+        <button onClick={() => setTool("marker")} className={toolButton(tool === "marker")} title="Marker"><span className="text-xs">Marker</span></button>
+        <button onClick={() => setTool("highlighter")} className={toolButton(tool === "highlighter")} title="Highlighter"><span className="text-xs">Highlight</span></button>
+        <button onClick={() => setTool("text")} className={toolButton(tool === "text")} title="Text"><Type className="h-4 w-4" /></button>
+        <button onClick={() => setTool("sticky")} className={toolButton(tool === "sticky")} title="Sticky"><span className="text-xs">Note</span></button>
+        <button onClick={() => setTool("eraser")} className={toolButton(tool === "eraser")} title="Eraser"><Eraser className="h-4 w-4" /></button>
+        <button onClick={() => setTool("laser")} className={toolButton(tool === "laser")} title="Laser"><span className="text-xs">Laser</span></button>
+        <button onClick={() => setTool("pan")} className={toolButton(tool === "pan")} title="Pan"><Move className="h-4 w-4" /></button>
 
-        <div className="w-px h-6 bg-border/20 mx-1" />
+        <div className="mx-1 h-6 w-px bg-border/25" />
 
-        {/* Shapes dropdown */}
         <div className="relative">
-          <button onClick={() => setShowShapes(!showShapes)} className={`p-2 rounded-lg transition-all duration-200 ${isShapeTool ? "bg-foreground/15 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`} title="Shapes">
+          <button onClick={() => setSelectedShapeMenu((previous) => !previous)} className={toolButton(isShapeTool)} title="Shapes">
             <Square className="h-4 w-4" />
-            <ChevronDown className="h-2.5 w-2.5 absolute bottom-1 right-1" />
+            <ChevronDown className="ml-1 inline h-3 w-3" />
           </button>
-          {showShapes && (
-            <div className="absolute top-full mt-2 left-0 p-2 rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl z-50 flex gap-1" onClick={e => e.stopPropagation()}>
-              {SHAPE_TOOLS.map(s => (
-                <button key={s.tool} onClick={() => { setTool(s.tool); setShowShapes(false); }} className={`p-2.5 rounded-lg transition-all ${tool === s.tool ? "bg-foreground/15 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"}`} title={s.label}>
-                  <s.icon className="h-4 w-4" />
+          {selectedShapeMenu && (
+            <div className="absolute left-0 top-full mt-2 flex gap-1 rounded-2xl border border-border/30 bg-card/95 p-2 shadow-2xl backdrop-blur-xl">
+              {SHAPE_TOOLS.map((shape) => (
+                <button
+                  key={shape.tool}
+                  onClick={() => {
+                    setTool(shape.tool);
+                    setSelectedShapeMenu(false);
+                  }}
+                  className={toolButton(tool === shape.tool)}
+                  title={shape.label}
+                >
+                  <shape.icon className="h-4 w-4" />
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        <div className="w-px h-6 bg-border/20 mx-1" />
+        <button onClick={() => createChartElement()} className={toolButton(false)} title="Insert live chart"><span className="text-xs">Chart</span></button>
+        <button onClick={() => fileInputRef.current?.click()} className={toolButton(false)} title="Import PDF, image, spreadsheet"><ImageIcon className="h-4 w-4" /></button>
+        <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.csv,.json,.txt,.xls,.xlsx" className="hidden" onChange={handleImportFiles} />
 
-        {/* Stroke color */}
-        <div className="relative">
-          <button onClick={() => { setShowColorPicker(!showColorPicker); setShowFillPicker(false); }} className="p-2 rounded-lg hover:bg-foreground/5 transition-colors flex items-center gap-1" title="Stroke Color">
-            <div className="h-4 w-4 rounded-full border border-border/40" style={{ backgroundColor: color }} />
-          </button>
-          {showColorPicker && (
-            <div className="absolute top-full mt-2 left-0 p-3 rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl z-50 w-[200px]" onClick={e => e.stopPropagation()}>
-              <p className="text-[8px] tracking-wider uppercase text-muted-foreground/50 mb-1.5">Stroke</p>
-              <div className="grid grid-cols-5 gap-1.5 mb-3">
-                {COLORS.map(c => (
-                  <button key={c} onClick={() => { setColor(c); setShowColorPicker(false); }}
-                    className={`h-7 w-7 rounded-lg border transition-all ${color === c ? "border-foreground scale-110" : "border-border/30 hover:scale-105"}`}
-                    style={{ backgroundColor: c }} />
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="color" value={customColor} onChange={e => setCustomColor(e.target.value)} className="h-7 w-7 rounded cursor-pointer bg-transparent border-0" />
-                <button onClick={() => { setColor(customColor); setShowColorPicker(false); }} className="flex-1 text-xs py-1.5 rounded-lg bg-foreground/10 text-foreground hover:bg-foreground/20">Use Custom</button>
-              </div>
-            </div>
-          )}
+        <div className="mx-1 h-6 w-px bg-border/25" />
+
+        <div className="flex items-center gap-1 rounded-xl border border-border/20 bg-background/40 px-2 py-1">
+          {COLORS.slice(0, 8).map((swatch) => (
+            <button
+              key={swatch}
+              onClick={() => setColor(swatch)}
+              className={`h-5 w-5 rounded-full border ${color === swatch ? "border-foreground scale-110" : "border-border/30"}`}
+              style={{ backgroundColor: swatch }}
+              title={swatch}
+            />
+          ))}
+          <input value={color} onChange={(event) => setColor(event.target.value)} type="color" className="h-6 w-6 rounded bg-transparent" />
         </div>
 
-        {/* Fill color (shapes only) */}
         {isShapeTool && (
-          <div className="relative">
-            <button onClick={() => { setShowFillPicker(!showFillPicker); setShowColorPicker(false); }} className="p-2 rounded-lg hover:bg-foreground/5 transition-colors flex items-center gap-1" title="Fill Color">
-              <div className="h-4 w-4 rounded border border-border/40" style={{ backgroundColor: fillColor === "transparent" ? "transparent" : fillColor, backgroundImage: fillColor === "transparent" ? "repeating-conic-gradient(#333 0% 25%, transparent 0% 50%) 50% / 8px 8px" : "none" }} />
-            </button>
-            {showFillPicker && (
-              <div className="absolute top-full mt-2 left-0 p-3 rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl z-50 w-[200px]" onClick={e => e.stopPropagation()}>
-                <p className="text-[8px] tracking-wider uppercase text-muted-foreground/50 mb-1.5">Fill</p>
-                <button onClick={() => { setFillColor("transparent"); setShowFillPicker(false); }} className={`w-full mb-2 text-xs py-1.5 rounded-lg ${fillColor === "transparent" ? "bg-foreground/15 text-foreground" : "bg-foreground/5 text-muted-foreground"}`}>No Fill</button>
-                <div className="grid grid-cols-5 gap-1.5 mb-3">
-                  {COLORS.map(c => (
-                    <button key={c} onClick={() => { setFillColor(c); setShowFillPicker(false); }}
-                      className={`h-7 w-7 rounded-lg border transition-all ${fillColor === c ? "border-foreground scale-110" : "border-border/30 hover:scale-105"}`}
-                      style={{ backgroundColor: c }} />
+          <div className="flex items-center gap-1 rounded-xl border border-border/20 bg-background/40 px-2 py-1">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">Fill</span>
+            <button onClick={() => setFillColor("transparent")} className={`rounded-lg px-2 py-1 text-[10px] ${fillColor === "transparent" ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}>None</button>
+            <input value={fillColor === "transparent" ? "#3b82f6" : fillColor} onChange={(event) => setFillColor(event.target.value)} type="color" className="h-6 w-6 rounded bg-transparent" />
+          </div>
+        )}
+
+        <div className="flex items-center gap-1 rounded-xl border border-border/20 bg-background/40 px-2 py-1">
+          <button onClick={() => setBrushSize((previous) => Math.max(1, previous - 1))} className="p-1 text-muted-foreground hover:text-foreground"><Minus className="h-3 w-3" /></button>
+          <span className="min-w-6 text-center text-[11px] text-foreground">{brushSize}</span>
+          <button onClick={() => setBrushSize((previous) => Math.min(36, previous + 1))} className="p-1 text-muted-foreground hover:text-foreground"><Plus className="h-3 w-3" /></button>
+        </div>
+
+        <select
+          value={activeBoard?.gridMode || "freeform"}
+          onChange={(event) => updateActiveBoard((board) => ({ ...board, gridMode: event.target.value as GridMode }))}
+          className="rounded-xl border border-border/20 bg-background/40 px-3 py-2 text-xs text-foreground outline-none"
+        >
+          <option value="freeform">Freeform grid</option>
+          <option value="dots">Dot grid</option>
+          <option value="square">Square grid</option>
+        </select>
+
+        <select
+          value={activeBoard?.snapMode || "freeform"}
+          onChange={(event) => updateActiveBoard((board) => ({ ...board, snapMode: event.target.value as GridMode }))}
+          className="rounded-xl border border-border/20 bg-background/40 px-3 py-2 text-xs text-foreground outline-none"
+        >
+          <option value="freeform">Free snap</option>
+          <option value="dots">Snap dots</option>
+          <option value="square">Snap square</option>
+        </select>
+
+        <button
+          onClick={() => updateActiveBoard((board) => ({ ...board, smartShapes: !board.smartShapes }))}
+          className={`rounded-xl border px-3 py-2 text-xs ${activeBoard?.smartShapes ? "border-foreground/25 bg-foreground/10 text-foreground" : "border-border/25 text-muted-foreground"}`}
+        >
+          Smart shape
+        </button>
+
+        <button onClick={() => setBackgroundPanelOpen((previous) => !previous)} className={toolButton(backgroundPanelOpen)} title="Wallpapers">
+          <Wallpaper className="h-4 w-4" />
+        </button>
+
+        <button onClick={undo} className={toolButton(false)} title="Undo"><Undo2 className="h-4 w-4" /></button>
+        <button onClick={redo} className={toolButton(false)} title="Redo"><Redo2 className="h-4 w-4" /></button>
+        <button
+          onClick={() => {
+            pushHistory();
+            updateActiveBoard((board) => ({ ...board, elements: [] }));
+            clearSelection();
+          }}
+          className="rounded-xl border border-transparent px-2.5 py-2 text-muted-foreground transition-colors hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+          title="Clear board"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      {backgroundPanelOpen && activeBoard && (
+        <div className="absolute top-[7.4rem] left-1/2 z-40 w-[min(92vw,720px)] -translate-x-1/2 rounded-[1.4rem] border border-border/30 bg-card/82 p-4 shadow-2xl backdrop-blur-2xl">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "dark" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "dark" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Dark board</button>
+            <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "current" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "current" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Current wallpaper</button>
+            <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "wallpaper" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "wallpaper" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Wallpaper library</button>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">Blur</span>
+              <input type="range" min="0" max="24" value={activeBoard.wallpaperBlur} onChange={(event) => updateActiveBoard((board) => ({ ...board, wallpaperBlur: Number(event.target.value) }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+            {WALLPAPERS.map((wallpaper) => (
+              <button
+                key={wallpaper.key}
+                onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "wallpaper", wallpaperKey: wallpaper.key }))}
+                className={`overflow-hidden rounded-2xl border-2 ${activeBoard.wallpaperKey === wallpaper.key && activeBoard.wallpaperMode === "wallpaper" ? "border-foreground/60" : "border-border/20"}`}
+              >
+                <img src={wallpaper.src} alt={`${wallpaper.label} whiteboard wallpaper`} className="h-20 w-full object-cover" loading="lazy" />
+                <div className="bg-background/80 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{wallpaper.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedElement && (
+        <div className="absolute top-[7.4rem] left-4 z-40 flex flex-wrap items-center gap-2 rounded-[1.25rem] border border-border/30 bg-card/78 px-4 py-3 shadow-2xl backdrop-blur-2xl">
+          <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/60">Selected</span>
+          {selectedImage && (
+            <>
+              <span className="text-xs text-foreground">Image</span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">Roundness</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={selectedImage.borderRadius || 0}
+                onChange={(event) => updateSelectedElement((element) => ({ ...element, borderRadius: Number(event.target.value) }))}
+              />
+              <button onClick={() => updateSelectedElement((element) => ({ ...element, imgWidth: (element.imgWidth || 260) * 1.12, imgHeight: (element.imgHeight || 180) * 1.12 }))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">Bigger</button>
+              <button onClick={() => updateSelectedElement((element) => ({ ...element, imgWidth: (element.imgWidth || 260) * 0.88, imgHeight: (element.imgHeight || 180) * 0.88 }))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">Smaller</button>
+            </>
+          )}
+          {selectedTextElement && (
+            <>
+              <span className="text-xs text-foreground">{selectedTextElement.type === "sticky" ? "Sticky note" : "Text box"}</span>
+              <select value={selectedTextElement.fontFamily || "Sans"} onChange={(event) => updateSelectedElement((element) => ({ ...element, fontFamily: event.target.value as FontFamilyKey }))} className="rounded-lg border border-border/20 bg-background/40 px-2 py-1 text-xs text-foreground outline-none">
+                <option value="Sans">Sans</option>
+                <option value="Serif">Serif</option>
+                <option value="Mono">Mono</option>
+              </select>
+              <select value={selectedTextElement.fontWeight || "400"} onChange={(event) => updateSelectedElement((element) => ({ ...element, fontWeight: event.target.value as FontWeightKey }))} className="rounded-lg border border-border/20 bg-background/40 px-2 py-1 text-xs text-foreground outline-none">
+                <option value="300">Light</option>
+                <option value="400">Regular</option>
+                <option value="500">Medium</option>
+                <option value="700">Bold</option>
+              </select>
+              <button onClick={() => updateSelectedElement((element) => ({ ...element, fontSize: (element.fontSize || 18) + 2 }))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">A+</button>
+              <button onClick={() => updateSelectedElement((element) => ({ ...element, fontSize: Math.max(10, (element.fontSize || 18) - 2) }))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">A-</button>
+              {selectedTextElement.type === "sticky" && (
+                <div className="flex items-center gap-1">
+                  {NOTE_COLORS.map((noteColor) => (
+                    <button key={noteColor} onClick={() => updateSelectedElement((element) => ({ ...element, noteColor }))} className="h-5 w-5 rounded-full border border-border/30" style={{ backgroundColor: noteColor }} />
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <input type="color" value={customFill} onChange={e => setCustomFill(e.target.value)} className="h-7 w-7 rounded cursor-pointer bg-transparent border-0" />
-                  <button onClick={() => { setFillColor(customFill); setShowFillPicker(false); }} className="flex-1 text-xs py-1.5 rounded-lg bg-foreground/10 text-foreground hover:bg-foreground/20">Use Custom</button>
+              )}
+              <button onClick={() => startDraftEditor({ x: selectedTextElement.x || 0, y: selectedTextElement.y || 0 }, selectedTextElement.type === "sticky" ? "sticky" : "text", selectedTextElement)} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">Edit</button>
+            </>
+          )}
+          {selectedChart && (
+            <>
+              <span className="text-xs text-foreground">Live chart</span>
+              <button onClick={() => updateSelectedElement((element) => ({ ...element, live: !element.live }))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">
+                {selectedChart.live ? "Pause live" : "Resume live"}
+              </button>
+            </>
+          )}
+          <button onClick={deleteSelected} className="rounded-lg border border-destructive/20 px-2 py-1 text-xs text-destructive">Delete</button>
+        </div>
+      )}
+
+      {layerPanelOpen && activeBoard && (
+        <aside className="absolute right-4 top-28 z-40 w-72 rounded-[1.4rem] border border-border/30 bg-card/78 p-4 shadow-2xl backdrop-blur-2xl">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground/60">Layers</p>
+              <h2 className="text-sm font-light text-foreground">Topic stack</h2>
+            </div>
+            <button onClick={() => setLayerPanelOpen(false)} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-muted-foreground">Hide</button>
+          </div>
+          <div className="space-y-2">
+            {activeBoard.layers.map((layer, index) => (
+              <div key={layer.id} className={`rounded-2xl border px-3 py-2 ${activeLayerId === layer.id ? "border-foreground/25 bg-foreground/8" : "border-border/20 bg-background/30"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <button onClick={() => setActiveLayerId(layer.id)} className="text-left">
+                    <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground/60">Topic {index + 1}</div>
+                    <div className="text-sm text-foreground">{layer.name}</div>
+                  </button>
+                  <button
+                    onClick={() => updateActiveBoard((board) => ({
+                      ...board,
+                      layers: board.layers.map((entry) => entry.id === layer.id ? { ...entry, visible: !entry.visible } : entry),
+                    }))}
+                    className={`rounded-lg px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${layer.visible ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}
+                  >
+                    {layer.visible ? "On" : "Off"}
+                  </button>
                 </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              onClick={() => {
+                const nextLayer = createLayer(`Topic ${activeBoard.layers.length + 1}`);
+                pushHistory();
+                updateActiveBoard((board) => ({ ...board, layers: [...board.layers, nextLayer] }));
+                setActiveLayerId(nextLayer.id);
+              }}
+              className="rounded-xl border border-border/20 px-3 py-2 text-xs text-foreground"
+            >
+              Add layer
+            </button>
+            {activeLayer && (
+              <input
+                value={activeLayer.name}
+                onChange={(event) => updateActiveBoard((board) => ({
+                  ...board,
+                  layers: board.layers.map((layer) => layer.id === activeLayer.id ? { ...layer, name: event.target.value } : layer),
+                }))}
+                className="flex-1 rounded-xl border border-border/20 bg-background/40 px-3 py-2 text-xs text-foreground outline-none"
+                placeholder="Layer name"
+              />
+            )}
+          </div>
+        </aside>
+      )}
+
+      {!layerPanelOpen && (
+        <button onClick={() => setLayerPanelOpen(true)} className="absolute right-4 top-28 z-40 rounded-xl border border-border/30 bg-card/78 px-3 py-2 text-xs text-foreground backdrop-blur-xl">
+          Show layers
+        </button>
+      )}
+
+      <div className="absolute bottom-4 left-4 z-40 rounded-2xl border border-border/25 bg-card/48 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/55 backdrop-blur-xl">
+        Scroll to pan · Ctrl/⌘ + wheel to zoom · Backspace = undo · Paste text/images onto the board
+      </div>
+
+      <div className="absolute bottom-4 right-4 z-40 flex items-center gap-2 rounded-2xl border border-border/25 bg-card/48 px-3 py-2 backdrop-blur-xl">
+        <button onClick={() => setZoom((previous) => clamp(previous * 0.85, 0.2, 4))} className="p-1 text-muted-foreground hover:text-foreground"><Minus className="h-3.5 w-3.5" /></button>
+        <span className="w-12 text-center text-[10px] uppercase tracking-[0.18em] text-foreground">{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom((previous) => clamp(previous * 1.15, 0.2, 4))} className="p-1 text-muted-foreground hover:text-foreground"><Plus className="h-3.5 w-3.5" /></button>
+        <button onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="rounded-lg px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">Reset</button>
+      </div>
+
+      <div ref={containerRef} className="relative z-20 h-full w-full" style={{ cursor: tool === "pan" ? "grab" : tool === "select" ? "default" : "crosshair" }}>
+        <canvas
+          ref={canvasRef}
+          className="h-full w-full"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+        />
+      </div>
+
+      {draftEditor && boardScreenPoint && (
+        <div className="absolute z-[70] w-[min(90vw,360px)] rounded-[1.35rem] border border-border/30 bg-card/92 p-4 shadow-2xl backdrop-blur-2xl" style={{ left: boardScreenPoint.x + 14, top: boardScreenPoint.y + 14 }}>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">{draftEditor.kind === "sticky" ? "Sticky note" : "Text box"}</div>
+              <div className="text-sm font-light text-foreground">Full font control</div>
+            </div>
+            <button onClick={() => setDraftEditor(null)} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-muted-foreground">Close</button>
+          </div>
+          <Textarea
+            autoFocus
+            value={draftText}
+            onChange={(event) => setDraftText(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                event.preventDefault();
+                submitDraftEditor();
+              }
+            }}
+            placeholder={draftEditor.kind === "sticky" ? "Paste or type notes…" : "Type on the board…"}
+            className="min-h-[130px] resize-none rounded-2xl border-border/30 bg-background/50 text-foreground"
+            style={{
+              fontSize: draftFontSize,
+              fontFamily: FONT_FAMILIES[draftFontFamily],
+              fontWeight: Number(draftFontWeight),
+              color: draftEditor.kind === "sticky" ? "#111827" : color,
+            }}
+          />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <select value={draftFontFamily} onChange={(event) => setDraftFontFamily(event.target.value as FontFamilyKey)} className="rounded-xl border border-border/20 bg-background/50 px-3 py-2 text-xs text-foreground outline-none">
+              <option value="Sans">Sans</option>
+              <option value="Serif">Serif</option>
+              <option value="Mono">Mono</option>
+            </select>
+            <select value={draftFontWeight} onChange={(event) => setDraftFontWeight(event.target.value as FontWeightKey)} className="rounded-xl border border-border/20 bg-background/50 px-3 py-2 text-xs text-foreground outline-none">
+              <option value="300">Light</option>
+              <option value="400">Regular</option>
+              <option value="500">Medium</option>
+              <option value="700">Bold</option>
+            </select>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <button onClick={() => setDraftFontSize((previous) => Math.max(10, previous - 2))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">A-</button>
+            <span className="text-xs text-foreground">{draftFontSize}px</span>
+            <button onClick={() => setDraftFontSize((previous) => Math.min(96, previous + 2))} className="rounded-lg border border-border/20 px-2 py-1 text-xs text-foreground">A+</button>
+            {draftEditor.kind === "sticky" && (
+              <div className="ml-auto flex items-center gap-1">
+                {NOTE_COLORS.map((noteColor) => (
+                  <button key={noteColor} onClick={() => setDraftStickyColor(noteColor)} className={`h-6 w-6 rounded-full border ${draftStickyColor === noteColor ? "border-foreground" : "border-border/30"}`} style={{ backgroundColor: noteColor }} />
+                ))}
               </div>
             )}
           </div>
-        )}
-
-        {/* Brush size */}
-        <div className="flex items-center gap-1 px-1">
-          <button onClick={() => setBrushSize(Math.max(1, brushSize - 1))} className="p-1 text-muted-foreground hover:text-foreground"><Minus className="h-3 w-3" /></button>
-          <span className="text-[10px] text-muted-foreground w-5 text-center">{brushSize}</span>
-          <button onClick={() => setBrushSize(Math.min(30, brushSize + 1))} className="p-1 text-muted-foreground hover:text-foreground"><Plus className="h-3 w-3" /></button>
-        </div>
-
-        {tool === "text" && (
-          <>
-            <div className="w-px h-6 bg-border/20 mx-1" />
-            <div className="flex items-center gap-1 px-1">
-              <span className="text-[9px] text-muted-foreground/60">SIZE</span>
-              <button onClick={() => setTextFontSize(Math.max(8, textFontSize - 2))} className="p-1 text-muted-foreground hover:text-foreground"><Minus className="h-3 w-3" /></button>
-              <span className="text-[10px] text-muted-foreground w-5 text-center">{textFontSize}</span>
-              <button onClick={() => setTextFontSize(Math.min(120, textFontSize + 2))} className="p-1 text-muted-foreground hover:text-foreground"><Plus className="h-3 w-3" /></button>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/55">Cmd/Ctrl + Enter to place</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setDraftEditor(null)} className="rounded-xl border border-border/20 px-3 py-2 text-xs text-muted-foreground">Cancel</button>
+              <button onClick={submitDraftEditor} className="rounded-xl bg-primary px-3 py-2 text-xs text-primary-foreground">Place</button>
             </div>
-          </>
-        )}
-
-        <div className="w-px h-6 bg-border/20 mx-1" />
-
-        {/* Wallpaper picker */}
-        <div className="relative">
-          <button onClick={() => setShowWallpapers(!showWallpapers)} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Background">
-            <Wallpaper className="h-4 w-4" />
-          </button>
-          {showWallpapers && (
-            <div className="absolute top-full mt-2 right-0 p-3 rounded-xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl z-50 w-[280px] max-h-[50vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <p className="text-[8px] tracking-wider uppercase text-muted-foreground/50 mb-2">Background</p>
-              <div className="grid grid-cols-4 gap-2">
-                {WALLPAPERS.map(wp => (
-                  <button key={wp.key} onClick={() => { setWallpaper(wp.key); setShowWallpapers(false); }}
-                    className={`rounded-lg overflow-hidden border-2 transition-all ${wallpaper === wp.key ? "border-foreground/60 scale-105" : "border-border/20 hover:border-border/50"}`}>
-                    {wp.src ? (
-                      <img src={wp.src} alt={wp.label} className="w-full h-12 object-cover" />
-                    ) : (
-                      <div className="w-full h-12 bg-[#111]" />
-                    )}
-                    <p className="text-[7px] text-muted-foreground/60 text-center py-0.5 truncate">{wp.label}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5" title="Add Image"><ImageIcon className="h-4 w-4" /></button>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-        <button onClick={undo} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5" title="Undo"><Undo2 className="h-4 w-4" /></button>
-        <button onClick={redo} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5" title="Redo"><Redo2 className="h-4 w-4" /></button>
-        <button onClick={clearAll} className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Clear"><Trash2 className="h-4 w-4" /></button>
-      </div>
-
-      {/* ─── Image controls ─── */}
-      {selectedImageId && (
-        <div className="absolute top-[7.5rem] left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-xl border border-border/30 bg-card/80 backdrop-blur-xl px-4 py-2 shadow-xl">
-          <span className="text-[9px] text-muted-foreground/60 tracking-wider uppercase">Image</span>
-          <div className="flex items-center gap-1">
-            <span className="text-[9px] text-muted-foreground/60">Radius</span>
-            <input type="range" min="0" max="50" value={imageRadius} onChange={e => updateImageRadius(Number(e.target.value))} className="w-20 h-1 accent-foreground" />
-            <span className="text-[10px] text-muted-foreground w-6">{imageRadius}%</span>
           </div>
-          <div className="w-px h-5 bg-border/20" />
-          <button onClick={() => resizeSelectedImage(1.1)} className="p-1 text-muted-foreground hover:text-foreground"><Plus className="h-3.5 w-3.5" /></button>
-          <button onClick={() => resizeSelectedImage(0.9)} className="p-1 text-muted-foreground hover:text-foreground"><Minus className="h-3.5 w-3.5" /></button>
-          <div className="w-px h-5 bg-border/20" />
-          <button onClick={deleteSelected} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
         </div>
       )}
 
-      {/* ─── Zoom ─── */}
-      <div className="absolute bottom-4 right-4 z-40 flex items-center gap-2 rounded-xl border border-border/30 bg-card/60 backdrop-blur-xl px-3 py-1.5">
-        <button onClick={() => setZoom(z => Math.max(0.1, z * 0.8))} className="p-1 text-muted-foreground hover:text-foreground"><Minus className="h-3.5 w-3.5" /></button>
-        <span className="text-[10px] text-muted-foreground font-light w-10 text-center">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom(z => Math.min(5, z * 1.2))} className="p-1 text-muted-foreground hover:text-foreground"><Plus className="h-3.5 w-3.5" /></button>
-        <button onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }); }} className="text-[9px] text-muted-foreground/50 hover:text-foreground px-1">Reset</button>
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-[0.028]">
+        <div className="text-[11rem] font-extralight tracking-[0.35em] text-foreground">A</div>
       </div>
-
-      <div className="absolute bottom-4 left-4 z-40 text-[9px] text-muted-foreground/30 font-extralight tracking-wider">
-        Scroll to pan · Ctrl+Scroll zoom · Ctrl+V paste images · Alt+Drag pan
-      </div>
-
-      {/* ─── Canvas ─── */}
-      <div ref={containerRef} className="flex-1" style={{ cursor: cursorStyle }}>
-        <canvas ref={canvasRef} className="w-full h-full"
-          onPointerDown={handlePointerDown} onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} />
-      </div>
-
-      {/* ─── Text input ─── */}
-      {editingText && (
-        <div className="absolute z-50" style={{ left: editingText.x * zoom + panOffset.x, top: editingText.y * zoom + panOffset.y }}>
-          <input autoFocus value={textValue} onChange={e => setTextValue(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") submitText(); if (e.key === "Escape") setEditingText(null); }}
-            onBlur={submitText}
-            className="bg-transparent border border-border/40 rounded-lg px-2 py-1 text-foreground outline-none backdrop-blur-md min-w-[100px]"
-            style={{ fontSize: textFontSize * zoom, color }} placeholder="Type..." />
-        </div>
-      )}
-
-      {/* ─── Watermark ─── */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 opacity-[0.015]">
-        <span className="text-[200px] font-extralight tracking-[0.5em] text-foreground select-none">A</span>
-      </div>
+      <div className="pointer-events-none absolute right-4 top-5 z-10 text-[9px] uppercase tracking-[0.28em] text-muted-foreground/25">◈ AUREON INTELLIGENCE PLATFORM</div>
     </div>
   );
 };
