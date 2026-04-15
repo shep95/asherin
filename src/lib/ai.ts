@@ -1,5 +1,6 @@
 import type { ChatMode, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
+import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
@@ -78,13 +79,17 @@ export async function streamChat({
     if (session?.access_token) authToken = session.access_token;
   } catch { /* fallback to anon key */ }
 
+  // Auto-detect and inject domain skills based on conversation context
+  const detectedSkills = detectRelevantSkills(messages.map(m => ({ role: m.role, content: m.content })));
+  const skillInjection = buildSkillInjectionPrompt(detectedSkills);
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext }),
+    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection }),
     signal,
   });
 
