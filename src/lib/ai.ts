@@ -1,6 +1,7 @@
 import type { ChatMode, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";
+import { buildSwarmContext } from "@/lib/swarmOrchestrator";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
@@ -83,13 +84,18 @@ export async function streamChat({
   const detectedSkills = detectRelevantSkills(messages.map(m => ({ role: m.role, content: m.content })));
   const skillInjection = buildSkillInjectionPrompt(detectedSkills);
 
+  // Swarm Agent Orchestration — select best specialist agent for the conversation
+  const swarmContext = buildSwarmContext(messages.map(m => ({ role: m.role, content: m.content })));
+  const swarmInjection = swarmContext.swarmPrompt;
+  const activeAgentId = swarmContext.activeAgent.id;
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${authToken}`,
     },
-    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection }),
+    body: JSON.stringify({ messages: apiMessages, mode, personaId, personaSystemPrompt, depth, userProfile, byokProvider, byokModel, brainContext, skillInjection, swarmInjection, activeAgentId }),
     signal,
   });
 
