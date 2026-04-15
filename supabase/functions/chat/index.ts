@@ -1377,6 +1377,7 @@ ${zophielCodingBrainContent}
       userContextStr,
       brainContextStr,
       skillInjection ? `\n${skillInjection}` : "",
+      swarmInjection ? `\n[SWARM ORCHESTRATOR — Active Agent: ${activeAgentId || "general"}]\n${swarmInjection}` : "",
       webSearchContext,
       adminBackendContext,
       
