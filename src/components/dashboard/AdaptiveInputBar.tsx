@@ -3,6 +3,8 @@ import { Send, Loader2, Square, Bug, Zap, TestTubes, FileText, Link, Search, Bar
 import { saveDraft, getDraft, deleteDraft } from "@/lib/messageQueue";
 import SmartAutocomplete, { trackPhrase } from "./SmartAutocomplete";
 import VoiceRecordingOrb from "./VoiceRecordingOrb";
+import SlashCommandPalette from "./SlashCommandPalette";
+import { parseSlashCommand, type SlashCommand } from "@/lib/slashCommands";
 import type { FileAttachment } from "./types";
 
 const LONG_PASTE_THRESHOLD = 500; // chars
@@ -573,17 +575,32 @@ const AdaptiveInputBar = forwardRef<AdaptiveInputBarHandle, AdaptiveInputBarProp
           )}
 
           <div className="flex-1 relative min-w-0">
+            <SlashCommandPalette
+              input={value}
+              visible={value.startsWith("/") && !value.includes("\n")}
+              onSelect={(cmd: SlashCommand) => {
+                const args = value.slice(cmd.command.length).trim();
+                if (args) {
+                  const transformed = cmd.skillPrompt(args);
+                  onSendMessage(transformed, attachments.length > 0 ? attachments : undefined);
+                  setValue("");
+                  setAttachments([]);
+                } else {
+                  setValue(cmd.command + " ");
+                }
+              }}
+            />
             <textarea
               ref={textareaRef}
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              placeholder={online ? "Message Aureon…" : "Offline — messages will queue…"}
+              placeholder={online ? "Message Aureon… (try /comps, /scan, /legal)" : "Offline — messages will queue…"}
               rows={1}
               className="w-full resize-none bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/50 outline-none max-h-32"
             />
-            {value && !value.includes("\n") && (
+            {value && !value.includes("\n") && !value.startsWith("/") && (
               <div className="absolute top-0 left-0 pointer-events-none text-sm font-light whitespace-pre overflow-hidden" style={{ color: "transparent" }}>
                 {value}<SmartAutocomplete value={value} onAccept={acceptSuggestion} />
               </div>
