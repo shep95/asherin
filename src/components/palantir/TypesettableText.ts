@@ -58,7 +58,7 @@ export function measureText(
   const lines: string[] = [];
   let currentLine = "";
   const actualLineHeight = fontSize * lineHeight;
-  const maxLinesCount = options.maxLines ?? Math.floor(height / actualLineHeight) || 999;
+  const maxLinesCount = options.maxLines ?? (Math.floor(height / actualLineHeight) || 999);
 
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
