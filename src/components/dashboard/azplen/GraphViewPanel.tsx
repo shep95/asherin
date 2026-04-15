@@ -442,8 +442,18 @@ const GraphViewPanel = () => {
           <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1" />
           <circle cx="7" cy="7" r="2" fill="currentColor" />
         </svg>
-        <p className="text-sm font-extralight text-muted-foreground">No data to visualize.</p>
-        <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1">Upload files or documents to build the graph.</p>
+        <p className="text-sm font-extralight text-muted-foreground">No graph data in this session yet.</p>
+        <p className="text-[10px] font-extralight text-muted-foreground/50 mt-1 max-w-xs">
+          {viewMode === "entities"
+            ? "Upload documents via Doc Intel to extract entities and build the knowledge graph."
+            : "Upload structured datasets (CSV, JSON) via Ingest to visualize schema relationships."}
+        </p>
+        <div className="flex gap-2 mt-4">
+          <button onClick={() => setViewMode(viewMode === "entities" ? "datasets" : "entities")}
+            className="px-3 py-1.5 rounded-lg border border-border/20 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+            Try {viewMode === "entities" ? "Dataset" : "Entity"} View
+          </button>
+        </div>
       </div>
     );
   }
