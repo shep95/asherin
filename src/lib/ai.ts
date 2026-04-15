@@ -1,6 +1,7 @@
 import type { ChatMode, FileAttachment } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
 import { detectRelevantSkills, buildSkillInjectionPrompt } from "@/lib/autoSkillInjection";
+import { buildSwarmContext } from "@/lib/swarmOrchestrator";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const SUGGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`;
