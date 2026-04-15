@@ -150,10 +150,35 @@ const DataTablePanel = ({ initialDatasetId }: { initialDatasetId?: string | null
               }));
             }
           } catch { setRows([]); setColumns([]); setTotalRows(0); }
+        } else if (ext === "tsv") {
+          const lines = text.split("\n").filter((l: string) => l.trim());
+          if (lines.length > 0) {
+            const headers = lines[0].split("\t").map((h: string) => h.trim());
+            setColumns(headers);
+            setTotalRows(lines.length - 1);
+            const dataRows = lines.slice(1).map((line: string) => {
+              const vals = line.split("\t");
+              const row: Record<string, string> = {};
+              headers.forEach((h, i) => { row[h] = (vals[i] || "").trim(); });
+              return row;
+            });
+            setRows(dataRows);
+          }
         } else {
-          setRows([]);
-          setColumns(["content"]);
-          setTotalRows(0);
+          // For TXT, PDF text, and other unstructured files — render as line-based content
+          const lines = text.split("\n").filter((l: string) => l.trim());
+          if (lines.length > 0) {
+            setColumns(["Line", "Content"]);
+            setTotalRows(lines.length);
+            setRows(lines.map((line: string, i: number) => ({
+              "Line": String(i + 1),
+              "Content": line.trim(),
+            })));
+          } else {
+            setRows([]);
+            setColumns(["content"]);
+            setTotalRows(0);
+          }
         }
       } finally {
         setLoadingData(false);
