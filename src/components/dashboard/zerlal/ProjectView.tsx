@@ -418,6 +418,7 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
                 </div>
               )}
             </div>
+            )}
 
             {/* Count indicator */}
             {filtered.length > 0 && (
