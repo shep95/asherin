@@ -1,4 +1,4 @@
-import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone, Radar, ScanSearch } from "lucide-react";
+import { Shield, FolderSearch, FileWarning, FileText, Plug, Settings, Users, Landmark, Package, Atom, Brain, Lock, Siren, Crosshair, Scale, Server, GraduationCap, Cpu, Globe, UserSearch, FileCheck, BarChart3, Sword, Smartphone, Radar, ScanSearch, BookOpen, Rss, ScrollText, Award, Code2, Wifi, Clock, Eye } from "lucide-react";
 import type { ZerlalScreen } from "./types";
 
 interface ZerlalNavProps {
@@ -32,6 +32,14 @@ const categoryNav: { id: ZerlalScreen; label: string; icon: React.ElementType }[
   { id: "cvd-pipeline", label: "CVD Pipeline", icon: FileCheck },
   { id: "device-security", label: "Device Security", icon: Smartphone },
   { id: "pattern-engine", label: "Pattern Engine", icon: Radar },
+  { id: "sigma-rules", label: "SIGMA Rules", icon: BookOpen },
+  { id: "stix-feed", label: "Threat Feed", icon: Rss },
+  { id: "log-correlation", label: "Log Correlator", icon: ScrollText },
+  { id: "cert-transparency", label: "Cert Monitor", icon: Award },
+  { id: "code-scanner", label: "Code Scanner", icon: Code2 },
+  { id: "port-scanner", label: "Port Scanner", icon: Wifi },
+  { id: "whois-timeline", label: "WHOIS Timeline", icon: Clock },
+  { id: "tor-checker", label: "Tor/VPN Checker", icon: Eye },
   { id: "governance", label: "Governance", icon: Scale },
   { id: "deployment", label: "Deployment", icon: Server },
   { id: "workforce", label: "Workforce", icon: GraduationCap },

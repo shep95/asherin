@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Shield, Bell, Plus, Users } from "lucide-react";
 import ZerlalNav from "./ZerlalNav";
 import DashboardScreen from "./DashboardScreen";
@@ -12,6 +12,15 @@ import DomainReconScreen from "./DomainReconScreen";
 import ScanModal from "./ScanModal";
 import { useZerlalFindings } from "./useZerlalData";
 import type { ZerlalScreen } from "./types";
+
+const SigmaRuleEngine = lazy(() => import("./SigmaRuleEngine"));
+const StixTaxiiFeed = lazy(() => import("./StixTaxiiFeed"));
+const LogCorrelationEngine = lazy(() => import("./LogCorrelationEngine"));
+const CertTransparencyMonitor = lazy(() => import("./CertTransparencyMonitor"));
+const CodeVulnScanner = lazy(() => import("./CodeVulnScanner"));
+const PortScannerUI = lazy(() => import("./PortScannerUI"));
+const WhoisTimeline = lazy(() => import("./WhoisTimeline"));
+const TorExitNodeChecker = lazy(() => import("./TorExitNodeChecker"));
 
 const intelligenceScreens: ZerlalScreen[] = [
   "compliance", "supply-chain", "quantum", "ai-security", "zero-trust",
@@ -60,6 +69,22 @@ const ZerlalView = () => {
   };
 
   const renderScreen = () => {
+    const toolScreens: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+      "sigma-rules": SigmaRuleEngine,
+      "stix-feed": StixTaxiiFeed,
+      "log-correlation": LogCorrelationEngine,
+      "cert-transparency": CertTransparencyMonitor,
+      "code-scanner": CodeVulnScanner,
+      "port-scanner": PortScannerUI,
+      "whois-timeline": WhoisTimeline,
+      "tor-checker": TorExitNodeChecker,
+    };
+
+    if (activeScreen in toolScreens) {
+      const Component = toolScreens[activeScreen];
+      return <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="text-[10px] text-muted-foreground/30">Loading...</div></div>}><Component /></Suspense>;
+    }
+
     if (activeScreen === "domain-recon") {
       return <DomainReconScreen onSelectFinding={handleSelectFinding} />;
     }
