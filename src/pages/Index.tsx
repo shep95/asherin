@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import AuthOverlay from "@/components/AuthOverlay";
-import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle } from "lucide-react";
+import { AlertCircle, Smile, AlertTriangle, Send, ArrowRight, Hammer, FlaskConical, Code, Target, Feather, BarChart3, Unlock, Monitor, Search, Brain, Users, Globe, Check, X, AlertOctagon, Lock, ShieldOff, Flag, Trash2, ChevronDown, Twitter, Download, Zap, GitBranch, Key, Layers, Cpu, Shuffle, Github } from "lucide-react";
 import DashboardPreview from "@/components/landing/DashboardPreview";
 import { useState, useEffect } from "react";
 import { useScrollFadeIn } from "@/hooks/useScrollFadeIn";
@@ -986,9 +986,14 @@ const Index = () => {
                 <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30">
                   AUREON — Founded July 26, 2026
                 </p>
-                <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                  <Twitter className="h-4 w-4" />
-                </a>
+                <div className="flex items-center gap-3">
+                  <a href="https://x.com/shep_newton" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                    <Twitter className="h-4 w-4" />
+                  </a>
+                  <a href="https://github.com/ZorakCorp" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                    <Github className="h-4 w-4" />
+                  </a>
+                </div>
               </div>
             </div>
           </div>
