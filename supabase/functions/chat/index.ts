@@ -1376,6 +1376,7 @@ ${zophielCodingBrainContent}
       CONTEXT_INTELLIGENCE_PROMPT,
       userContextStr,
       brainContextStr,
+      skillInjection ? `\n${skillInjection}` : "",
       webSearchContext,
       adminBackendContext,
       
