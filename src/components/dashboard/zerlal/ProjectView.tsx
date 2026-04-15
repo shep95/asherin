@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen, Download, Eye, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, ExternalLink, AlertTriangle, CheckCircle, Clock, Loader2, Copy, Check, FolderOpen, Download, Eye, RefreshCw, LayoutGrid, List } from "lucide-react";
 import { useZerlalFindings, useZerlalProjects, useZerlalScans, useUpdateFinding } from "./useZerlalData";
 import type { FindingSeverity, FindingStatus, ZerlalFinding } from "./types";
 import { toast } from "sonner";
+import BlueprintFindingsTable from "@/components/palantir/BlueprintFindingsTable";
 
 interface ProjectViewProps {
   projectId: string | null;
@@ -116,6 +117,7 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
   const [severityFilter, setSeverityFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"findings" | "history" | "sbom">("findings");
+  const [tableMode, setTableMode] = useState<"palantir" | "classic">("palantir");
 
   const { projects } = useZerlalProjects();
   const { findings, loading: fLoading, refetch } = useZerlalFindings(projectId);
@@ -273,7 +275,36 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
               )}
             </div>
 
-            {/* Findings - ALL shown, no limit */}
+            {/* Table Mode Toggle */}
+            <div className="flex items-center justify-end gap-1">
+              <span className="text-[8px] text-muted-foreground/25 uppercase tracking-wider mr-1">View</span>
+              <button
+                onClick={() => setTableMode("palantir")}
+                className={`p-1.5 rounded-md transition-colors ${tableMode === "palantir" ? "bg-foreground/[0.08] text-foreground/60" : "text-muted-foreground/25 hover:text-foreground/40"}`}
+                title="Palantir Blueprint Table (sortable, resizable)"
+              >
+                <LayoutGrid className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => setTableMode("classic")}
+                className={`p-1.5 rounded-md transition-colors ${tableMode === "classic" ? "bg-foreground/[0.08] text-foreground/60" : "text-muted-foreground/25 hover:text-foreground/40"}`}
+                title="Classic expandable view"
+              >
+                <List className="h-3 w-3" />
+              </button>
+            </div>
+
+            {/* Palantir Blueprint Table Mode */}
+            {tableMode === "palantir" && (
+              <BlueprintFindingsTable
+                findings={filtered}
+                onSelectFinding={onSelectFinding}
+                onExpandFinding={(id) => setExpandedId(expandedId === id ? null : id)}
+              />
+            )}
+
+            {/* Classic Expandable Table Mode */}
+            {tableMode === "classic" && (
             <div className="rounded-xl border border-border/[0.06] bg-card/20 backdrop-blur-sm overflow-hidden">
               <div className="grid grid-cols-[80px_1fr_180px_80px_50px_50px_70px_70px] gap-2 px-4 py-2 border-b border-border/[0.06] text-[9px] text-muted-foreground/30 uppercase tracking-wider">
                 <span>Severity</span><span>Title</span><span>File & Line</span><span>Category</span><span>Conf.</span><span>Age</span><span>CVSS</span><span>Status</span>
@@ -387,6 +418,7 @@ const ProjectView = ({ projectId, onSelectProject, onSelectFinding, onBack, onRe
                 </div>
               )}
             </div>
+            )}
 
             {/* Count indicator */}
             {filtered.length > 0 && (

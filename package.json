@@ -13,6 +13,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@blueprintjs/core": "5",
+    "@blueprintjs/icons": "5",
+    "@blueprintjs/table": "5",
     "@elevenlabs/react": "^0.14.1",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
@@ -76,6 +79,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.170.0",
+    "typesettable": "^4.1.0",
     "vaul": "^0.9.9",
     "zod": "^3.25.76"
   },
