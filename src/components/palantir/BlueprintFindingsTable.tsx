@@ -1,7 +1,7 @@
 /**
- * PALANTIR BLUEPRINT TABLE INTEGRATION
+ * SOVEREIGN TABLE ENGINE
  * Enterprise-grade sortable, resizable, virtualized table for ZERLAL findings.
- * Uses @blueprintjs/table for Palantir-class data density.
+ * Uses @blueprintjs/table for intelligence-class data density.
  */
 import { useState, useMemo, useCallback } from "react";
 import { Column, Table2, Cell, ColumnHeaderCell, RenderMode } from "@blueprintjs/table";
