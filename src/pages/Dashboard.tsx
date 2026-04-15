@@ -90,6 +90,7 @@ const AxrlenView = React.lazy(() => import("@/components/dashboard/axrlen/Axrlen
 const ZerlalView = React.lazy(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const FileScrapperView = React.lazy(() => import("@/components/dashboard/scrapper/FileScrapperView"));
 const AziionView = React.lazy(() => import("@/components/dashboard/aziion/AziionView"));
+const CipherView = React.lazy(() => import("@/components/dashboard/cipher/CipherView"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
 import SplitPaneManager, { type SplitPane } from "@/components/dashboard/SplitPaneManager";
@@ -1284,6 +1285,7 @@ const Dashboard = () => {
       case "bug-reports": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><BugReportsView /></Suspense></ErrorBoundary>;
       case "guardian-vault": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><GuardianVaultView /></Suspense></ErrorBoundary>;
       case "reverse-engineer": return gatedView("reverse-engineer", ReverseEngineerView, "Reverse Engineering Intelligence", "Upload screenshots of any software or hardware system — Aureon deconstructs the entire architecture. Available on Aureon and Pro plans.");
+      case "cipher": return gatedView("cipher", CipherView, "Cipher — Data Operations", "Intelligence-grade data toolkit — encoding, hashing, encryption, format conversion, and recipe chaining. All operations run client-side. Available on Aureon and above.");
       // Always-accessible views
       case "library": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><LibraryView /></Suspense></ErrorBoundary>;
       case "snippets": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><CodeSnippetsView /></Suspense></ErrorBoundary>;
