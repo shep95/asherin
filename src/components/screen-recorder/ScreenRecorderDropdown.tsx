@@ -521,23 +521,93 @@ const ScreenRecorderDropdown = () => {
           {/* ═══ DEVICES TAB ═══ */}
           {tab === "devices" && (
             <>
-              {/* Microphone */}
+              {/* Live Camera Preview */}
               <div className="space-y-1.5">
                 <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50 font-medium flex items-center gap-1.5">
-                  <Mic className="h-3 w-3" /> Microphone
+                  <Camera className="h-3 w-3" /> Camera Preview
+                  {camPreviewing && <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                 </p>
+                <div className="rounded-xl overflow-hidden border border-border/15 bg-black/80 relative">
+                  {camPreviewing ? (
+                    <video
+                      ref={devCamPreviewRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="w-full h-32 object-cover mirror"
+                      style={{ transform: "scaleX(-1)" }}
+                    />
+                  ) : (
+                    <div className="w-full h-32 flex flex-col items-center justify-center gap-2">
+                      <CameraOff className="h-5 w-5 text-muted-foreground/30" />
+                      <button
+                        onClick={startCamPreview}
+                        className="text-[10px] text-muted-foreground/50 hover:text-foreground transition-colors"
+                      >
+                        Click to enable camera
+                      </button>
+                    </div>
+                  )}
+                  {camPreviewing && (
+                    <div className="absolute top-1.5 right-1.5">
+                      <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full border border-emerald-500/30">LIVE</span>
+                    </div>
+                  )}
+                </div>
                 <select
-                  value={selectedMic}
-                  onChange={e => { setSelectedMic(e.target.value); stopMicTest(); }}
+                  value={selectedCam}
+                  onChange={e => { setSelectedCam(e.target.value); stopCamPreview(); setTimeout(startCamPreview, 200); }}
                   className="w-full bg-foreground/5 border border-border/15 rounded-lg px-3 py-2 text-xs text-foreground font-light outline-none focus:border-foreground/30 appearance-none"
                 >
                   <option value="">System Default</option>
-                  {audioInputs.map(d => (
+                  {videoInputs.map(d => (
                     <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
                   ))}
                 </select>
+              </div>
 
-                {/* Mic test */}
+              {/* Microphone + Audio Waveform */}
+              <div className="space-y-1.5">
+                <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50 font-medium flex items-center gap-1.5">
+                  <Mic className="h-3 w-3" /> Microphone
+                  {testingMic && <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                </p>
+
+                {/* Audio Waveform Visualizer */}
+                <div className="rounded-xl border border-border/15 bg-foreground/[0.02] p-2 h-16 flex items-end gap-[2px]">
+                  {micWaveform.map((val, i) => {
+                    const height = testingMic ? Math.max(2, val * 48) : 2;
+                    const isActive = val > 0.05;
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 rounded-full transition-all duration-75"
+                        style={{
+                          height: `${height}px`,
+                          backgroundColor: isActive
+                            ? `hsl(142, 71%, ${45 + val * 20}%, ${0.4 + val * 0.5})`
+                            : "hsl(var(--foreground) / 0.08)",
+                          minHeight: "2px",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Level indicator */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-foreground/5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-75"
+                      style={{
+                        width: `${micLevel}%`,
+                        backgroundColor: micLevel > 70 ? "hsl(0, 84%, 60%)" : micLevel > 30 ? "hsl(45, 93%, 47%)" : "hsl(142, 71%, 45%)",
+                      }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-mono text-muted-foreground/50 w-8 text-right">{micLevel}%</span>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={testingMic ? stopMicTest : startMicTest}
@@ -548,31 +618,23 @@ const ScreenRecorderDropdown = () => {
                     }`}
                   >
                     {testingMic ? <Check className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                    {testingMic ? "Stop Test" : "Test Mic"}
+                    {testingMic ? "Listening..." : "Test Mic"}
                   </button>
-                  {testingMic && (
-                    <div className="flex-1 h-2 rounded-full bg-foreground/5 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-500/60 transition-all duration-75"
-                        style={{ width: `${micLevel}%` }}
-                      />
-                    </div>
-                  )}
+                  <span className="text-[9px] text-muted-foreground/40">
+                    {testingMic
+                      ? micLevel > 10 ? "✓ Mic working" : "Speak to test..."
+                      : "Click to test"
+                    }
+                  </span>
                 </div>
-              </div>
 
-              {/* Camera */}
-              <div className="space-y-1.5">
-                <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50 font-medium flex items-center gap-1.5">
-                  <Camera className="h-3 w-3" /> Camera
-                </p>
                 <select
-                  value={selectedCam}
-                  onChange={e => setSelectedCam(e.target.value)}
+                  value={selectedMic}
+                  onChange={e => { setSelectedMic(e.target.value); stopMicTest(); setTimeout(startMicTest, 200); }}
                   className="w-full bg-foreground/5 border border-border/15 rounded-lg px-3 py-2 text-xs text-foreground font-light outline-none focus:border-foreground/30 appearance-none"
                 >
                   <option value="">System Default</option>
-                  {videoInputs.map(d => (
+                  {audioInputs.map(d => (
                     <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
                   ))}
                 </select>
