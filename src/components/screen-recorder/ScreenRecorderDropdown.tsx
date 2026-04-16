@@ -414,7 +414,6 @@ const ScreenRecorderDropdown = () => {
                   )}
                 </>
               )}
-              )}
 
               {/* Main action */}
               <div className="pt-1">
