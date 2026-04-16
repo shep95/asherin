@@ -450,6 +450,39 @@ const ScreenRecorderDropdown = () => {
                 </div>
               </div>
 
+              {/* Camera shape selector — visible when cam modes are active */}
+              {(mode === "screen+cam" || mode === "cam-only") && (
+                <div className="space-y-1.5">
+                  <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50 font-medium">Camera Shape</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={() => setCamShape("rounded-rect")}
+                      disabled={isRecording}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-light transition-all border ${
+                        camShape === "rounded-rect"
+                          ? "bg-foreground/10 text-foreground border-foreground/20"
+                          : "text-muted-foreground/50 border-border/15 hover:bg-foreground/5"
+                      } disabled:opacity-40`}
+                    >
+                      <RectangleHorizontal className="h-3 w-3" />
+                      Rounded Rect
+                    </button>
+                    <button
+                      onClick={() => setCamShape("rounded")}
+                      disabled={isRecording}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-light transition-all border ${
+                        camShape === "rounded"
+                          ? "bg-foreground/10 text-foreground border-foreground/20"
+                          : "text-muted-foreground/50 border-border/15 hover:bg-foreground/5"
+                      } disabled:opacity-40`}
+                    >
+                      <CircleIcon className="h-3 w-3" />
+                      Rounded
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Quick toggles */}
               <div className="flex items-center gap-2">
                 <button
