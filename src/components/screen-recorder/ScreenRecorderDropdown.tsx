@@ -62,6 +62,8 @@ const ScreenRecorderDropdown = () => {
   const micTestRef = useRef<{ stream: MediaStream; analyser: AnalyserNode; raf: number } | null>(null);
   const previewUrlRef = useRef<string>("");
   const camPreviewRef = useRef<HTMLVideoElement>(null);
+  const devCamPreviewRef = useRef<HTMLVideoElement>(null);
+  const devCamStreamRef = useRef<MediaStream | null>(null);
 
   // Enumerate devices
   const refreshDevices = useCallback(async () => {
