@@ -13,6 +13,7 @@ import {
 
 type RecordingState = "idle" | "recording" | "paused" | "preview";
 type RecordingMode = "screen" | "screen+cam" | "cam-only";
+type CamShape = "rounded-rect" | "rounded";
 
 interface DeviceInfo {
   deviceId: string;
