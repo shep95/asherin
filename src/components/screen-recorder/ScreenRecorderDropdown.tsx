@@ -369,17 +369,51 @@ const ScreenRecorderDropdown = () => {
                 </button>
               </div>
 
-              {/* Camera preview (small) */}
-              {(mode === "screen+cam" || mode === "cam-only") && camStreamRef.current && (
-                <div className="rounded-xl overflow-hidden border border-border/15 bg-black/50">
-                  <video
-                    ref={camPreviewRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-24 object-cover"
-                  />
-                </div>
+              {/* Camera shape selector + preview */}
+              {(mode === "screen+cam" || mode === "cam-only") && (
+                <>
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/50 font-medium">Camera Shape</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        onClick={() => setCamShape("rounded-rect")}
+                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-light transition-all border ${
+                          camShape === "rounded-rect"
+                            ? "bg-foreground/10 text-foreground border-foreground/20"
+                            : "text-muted-foreground/50 border-border/15 hover:bg-foreground/5"
+                        }`}
+                      >
+                        <div className="w-4 h-3 rounded border border-current" />
+                        Rounded Rect
+                      </button>
+                      <button
+                        onClick={() => setCamShape("rounded")}
+                        className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-light transition-all border ${
+                          camShape === "rounded"
+                            ? "bg-foreground/10 text-foreground border-foreground/20"
+                            : "text-muted-foreground/50 border-border/15 hover:bg-foreground/5"
+                        }`}
+                      >
+                        <div className="w-3.5 h-3.5 rounded-full border border-current" />
+                        Rounded
+                      </button>
+                    </div>
+                  </div>
+                  {camStreamRef.current && (
+                    <div className={`overflow-hidden border border-border/15 bg-black/50 mx-auto ${
+                      camShape === "rounded" ? "rounded-full w-24 h-24" : "rounded-xl w-full"
+                    }`}>
+                      <video
+                        ref={camPreviewRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className={`object-cover ${camShape === "rounded" ? "w-24 h-24" : "w-full h-24"}`}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
               )}
 
               {/* Main action */}
