@@ -151,11 +151,22 @@ const ScreenRecorderDropdown = () => {
   // Cleanup on unmount
   useEffect(() => () => {
     stopMicTest();
+    stopCamPreview();
     streamRef.current?.getTracks().forEach(t => t.stop());
     camStreamRef.current?.getTracks().forEach(t => t.stop());
     if (timerRef.current) clearInterval(timerRef.current);
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-  }, [stopMicTest]);
+  }, [stopMicTest, stopCamPreview]);
+
+  // Auto-start previews when switching to devices tab
+  useEffect(() => {
+    if (tab === "devices") {
+      if (!testingMic) startMicTest();
+      if (!camPreviewing) startCamPreview();
+    } else {
+      // Don't stop mic test when leaving — user might want it running
+    }
+  }, [tab]);
 
   // Start recording
   const startRecording = useCallback(async () => {
