@@ -308,9 +308,72 @@ const ScreenRecorderDropdown = () => {
     }
   }, []);
 
-  const isRecording = state === "recording" || state === "paused";
+  // Sync floating cam video element when camStream changes during recording
+  useEffect(() => {
+    if (floatingCamRef.current && camStreamRef.current && isRecording && mode === "screen+cam") {
+      floatingCamRef.current.srcObject = camStreamRef.current;
+    }
+  }, [isRecording, mode]);
+
+  // Drag handlers for floating overlay
+  const onOverlayMouseDown = useCallback((e: React.MouseEvent) => {
+    draggingRef.current = true;
+    dragOffsetRef.current = { x: e.clientX - overlayPos.x, y: e.clientY - overlayPos.y };
+    e.preventDefault();
+  }, [overlayPos]);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return;
+      setOverlayPos({ x: e.clientX - dragOffsetRef.current.x, y: e.clientY - dragOffsetRef.current.y });
+    };
+    const onUp = () => { draggingRef.current = false; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, []);
+
+  const showFloatingCam = isRecording && mode === "screen+cam";
 
   return (
+    <>
+      {/* Floating webcam overlay — renders on the page so it appears in the recording */}
+      {showFloatingCam && createPortal(
+        <div
+          onMouseDown={onOverlayMouseDown}
+          style={{
+            position: "fixed",
+            left: overlayPos.x,
+            top: overlayPos.y,
+            zIndex: 99999,
+            cursor: draggingRef.current ? "grabbing" : "grab",
+            userSelect: "none",
+          }}
+          className="group"
+        >
+          <div className={`relative overflow-hidden border-2 border-foreground/20 shadow-2xl bg-black ${
+            camShape === "rounded" ? "rounded-full w-40 h-40" : "rounded-2xl w-52 h-36"
+          }`}>
+            <video
+              ref={floatingCamRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              style={{ transform: "scaleX(-1)" }}
+            />
+            {/* Drag handle */}
+            <div className="absolute top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <GripHorizontal className="h-4 w-4 text-white/60" />
+            </div>
+            {/* Recording indicator */}
+            <div className="absolute bottom-1.5 right-1.5">
+              <Circle className="h-2.5 w-2.5 fill-red-500 text-red-500 animate-pulse" />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger className="px-4 py-2 sm:py-2.5 flex items-center gap-1.5 text-sm font-light tracking-wide text-muted-foreground transition-colors hover:text-foreground hover:bg-card/80 outline-none">
         {isRecording ? (
