@@ -812,6 +812,7 @@ const ScreenRecorderDropdown = () => {
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 };
 
