@@ -40,7 +40,9 @@ const ScreenRecorderDropdown = () => {
   const [format, setFormat] = useState<"webm" | "mp4">("webm");
   const [quality, setQuality] = useState<"high" | "medium" | "low">("high");
   const [micLevel, setMicLevel] = useState(0);
+  const [micWaveform, setMicWaveform] = useState<number[]>(new Array(32).fill(0));
   const [testingMic, setTestingMic] = useState(false);
+  const [camPreviewing, setCamPreviewing] = useState(false);
   const [tab, setTab] = useState<"record" | "devices" | "settings">("record");
 
   // Devices
