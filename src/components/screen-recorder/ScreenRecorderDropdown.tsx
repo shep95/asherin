@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Monitor, Mic, MicOff, Camera, CameraOff, Video, Square, Download,
   Settings, ChevronDown, Circle, Pause, Play, Volume2, Clock,
   Maximize2, PictureInPicture2, MousePointer2, Scissors, RotateCcw,
-  AlertCircle, Check, X
+  AlertCircle, Check, X, GripHorizontal, RectangleHorizontal, CircleIcon
 } from "lucide-react";
 import {
   DropdownMenu,
