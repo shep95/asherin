@@ -308,6 +308,8 @@ const ScreenRecorderDropdown = () => {
     }
   }, []);
 
+  const isRecording = state === "recording" || state === "paused";
+
   // Sync floating cam video element when camStream changes during recording
   useEffect(() => {
     if (floatingCamRef.current && camStreamRef.current && isRecording && mode === "screen+cam") {
