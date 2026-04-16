@@ -84,7 +84,7 @@ const ScreenRecorderDropdown = () => {
     if (open) refreshDevices();
   }, [open, refreshDevices]);
 
-  // Mic test
+  // Mic test with waveform
   const startMicTest = useCallback(async () => {
     if (micTestRef.current) return;
     try {
@@ -94,13 +94,23 @@ const ScreenRecorderDropdown = () => {
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
+      analyser.fftSize = 64;
       source.connect(analyser);
-      const data = new Uint8Array(analyser.frequencyBinCount);
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      const timeData = new Uint8Array(analyser.fftSize);
       const tick = () => {
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        analyser.getByteFrequencyData(freqData);
+        analyser.getByteTimeDomainData(timeData);
+        const avg = freqData.reduce((a, b) => a + b, 0) / freqData.length;
         setMicLevel(Math.min(100, Math.round((avg / 128) * 100)));
+        // Build waveform from time domain data (32 bars)
+        const bars: number[] = [];
+        const step = Math.floor(timeData.length / 32);
+        for (let i = 0; i < 32; i++) {
+          const val = Math.abs(timeData[i * step] - 128) / 128;
+          bars.push(val);
+        }
+        setMicWaveform(bars);
         micTestRef.current!.raf = requestAnimationFrame(tick);
       };
       micTestRef.current = { stream, analyser, raf: requestAnimationFrame(tick) };
@@ -115,6 +125,27 @@ const ScreenRecorderDropdown = () => {
     micTestRef.current = null;
     setTestingMic(false);
     setMicLevel(0);
+    setMicWaveform(new Array(32).fill(0));
+  }, []);
+
+  // Camera preview for devices tab
+  const startCamPreview = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: selectedCam ? { deviceId: { exact: selectedCam } } : true,
+      });
+      devCamStreamRef.current = stream;
+      if (devCamPreviewRef.current) {
+        devCamPreviewRef.current.srcObject = stream;
+      }
+      setCamPreviewing(true);
+    } catch { /* no cam */ }
+  }, [selectedCam]);
+
+  const stopCamPreview = useCallback(() => {
+    devCamStreamRef.current?.getTracks().forEach(t => t.stop());
+    devCamStreamRef.current = null;
+    setCamPreviewing(false);
   }, []);
 
   // Cleanup on unmount
