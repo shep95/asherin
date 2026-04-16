@@ -33,6 +33,7 @@ const ScreenRecorderDropdown = () => {
   const [elapsed, setElapsed] = useState(0);
   const [micEnabled, setMicEnabled] = useState(true);
   const [camEnabled, setCamEnabled] = useState(false);
+  const [camShape, setCamShape] = useState<CamShape>("rounded-rect");
   const [showCursor, setShowCursor] = useState(true);
   const [countdown, setCountdown] = useState(0);
   const [countdownDelay, setCountdownDelay] = useState(3);
