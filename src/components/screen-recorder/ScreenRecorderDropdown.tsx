@@ -45,6 +45,11 @@ const ScreenRecorderDropdown = () => {
   const [testingMic, setTestingMic] = useState(false);
   const [camPreviewing, setCamPreviewing] = useState(false);
   const [tab, setTab] = useState<"record" | "devices" | "settings">("record");
+  const [camShape, setCamShape] = useState<CamShape>("rounded-rect");
+  const [overlayPos, setOverlayPos] = useState({ x: 20, y: window.innerHeight - 220 });
+  const draggingRef = useRef(false);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const floatingCamRef = useRef<HTMLVideoElement>(null);
 
   // Devices
   const [audioInputs, setAudioInputs] = useState<DeviceInfo[]>([]);
