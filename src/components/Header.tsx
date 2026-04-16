@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import AuthOverlay from "@/components/AuthOverlay";
+import ScreenRecorderDropdown from "@/components/screen-recorder/ScreenRecorderDropdown";
 
 const Header = () => {
   const { user, loading } = useAuth();
@@ -142,6 +143,10 @@ const Header = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <div className="w-px h-5 bg-border/30" />
+
+          <ScreenRecorderDropdown />
         </div>
 
         {/* Mobile: just logo */}
