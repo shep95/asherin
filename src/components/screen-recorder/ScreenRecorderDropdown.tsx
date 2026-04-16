@@ -308,31 +308,68 @@ const ScreenRecorderDropdown = () => {
         camVideo.muted = true;
         await camVideo.play();
 
-        const camSize = Math.round(Math.min(w, h) * 0.18);
-        const camMargin = Math.round(camSize * 0.15);
+        // Base size from screen short edge
+        const baseSize = Math.round(Math.min(w, h) * 0.18);
+        const camMargin = Math.round(baseSize * 0.15);
 
         const draw = () => {
           cctx.drawImage(screenVideo, 0, 0, w, h);
-          // Cam overlay bottom-right, mirrored
-          const cx = w - camSize - camMargin;
-          const cy = h - camSize - camMargin;
+
+          // Use camera's actual aspect ratio to prevent squishing
+          const camVW = camVideo.videoWidth || 640;
+          const camVH = camVideo.videoHeight || 480;
+          const camAspect = camVW / camVH;
+
+          // Destination box on canvas: square for circle, aspect-correct for rounded rect
+          let destW: number;
+          let destH: number;
+          if (camShape === "rounded") {
+            // Circle — keep square
+            destW = baseSize;
+            destH = baseSize;
+          } else {
+            // Rounded rect — preserve camera aspect ratio
+            destW = Math.round(baseSize * 1.5);
+            destH = Math.round(destW / camAspect);
+          }
+
+          const cx = w - destW - camMargin;
+          const cy = h - destH - camMargin;
+
+          // Source crop from camera (center-crop to match destination aspect)
+          const destAspect = destW / destH;
+          let srcW = camVW;
+          let srcH = camVH;
+          let srcX = 0;
+          let srcY = 0;
+          if (camAspect > destAspect) {
+            // Camera wider than dest — crop sides
+            srcW = camVH * destAspect;
+            srcX = (camVW - srcW) / 2;
+          } else if (camAspect < destAspect) {
+            // Camera taller than dest — crop top/bottom
+            srcH = camVW / destAspect;
+            srcY = (camVH - srcH) / 2;
+          }
+
           cctx.save();
           cctx.beginPath();
           if (camShape === "rounded") {
-            cctx.arc(cx + camSize / 2, cy + camSize / 2, camSize / 2, 0, Math.PI * 2);
+            cctx.arc(cx + destW / 2, cy + destH / 2, Math.min(destW, destH) / 2, 0, Math.PI * 2);
           } else {
-            const r = camSize * 0.12;
+            const r = Math.min(destW, destH) * 0.12;
             cctx.moveTo(cx + r, cy);
-            cctx.arcTo(cx + camSize, cy, cx + camSize, cy + camSize, r);
-            cctx.arcTo(cx + camSize, cy + camSize, cx, cy + camSize, r);
-            cctx.arcTo(cx, cy + camSize, cx, cy, r);
-            cctx.arcTo(cx, cy, cx + camSize, cy, r);
+            cctx.arcTo(cx + destW, cy, cx + destW, cy + destH, r);
+            cctx.arcTo(cx + destW, cy + destH, cx, cy + destH, r);
+            cctx.arcTo(cx, cy + destH, cx, cy, r);
+            cctx.arcTo(cx, cy, cx + destW, cy, r);
             cctx.closePath();
           }
           cctx.clip();
-          cctx.translate(cx + camSize, cy);
+          // Mirror horizontally
+          cctx.translate(cx + destW, cy);
           cctx.scale(-1, 1);
-          cctx.drawImage(camVideo, 0, 0, camSize, camSize);
+          cctx.drawImage(camVideo, srcX, srcY, srcW, srcH, 0, 0, destW, destH);
           cctx.restore();
           compositeRafRef.current = requestAnimationFrame(draw);
         };
