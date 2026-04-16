@@ -221,6 +221,10 @@ const ScreenRecorderDropdown = () => {
         if (camPreviewRef.current) {
           camPreviewRef.current.srcObject = camStream;
         }
+        // Also feed floating overlay
+        if (floatingCamRef.current) {
+          floatingCamRef.current.srcObject = camStream;
+        }
       }
 
       // Microphone
