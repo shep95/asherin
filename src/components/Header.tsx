@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import AuthOverlay from "@/components/AuthOverlay";
+import ScreenRecorderDropdown from "@/components/screen-recorder/ScreenRecorderDropdown";
 
 const Header = () => {
   const { user, loading } = useAuth();
