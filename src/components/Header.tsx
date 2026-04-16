@@ -143,6 +143,10 @@ const Header = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <div className="w-px h-5 bg-border/30" />
+
+          <ScreenRecorderDropdown />
         </div>
 
         {/* Mobile: just logo */}
