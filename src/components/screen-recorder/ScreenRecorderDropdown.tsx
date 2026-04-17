@@ -67,7 +67,7 @@ const ScreenRecorderDropdown = () => {
   const camStreamRef = useRef<MediaStream | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const compositeStreamRef = useRef<MediaStream | null>(null);
-  const compositeRafRef = useRef<number | null>(null);
+  const compositeRafRef = useRef<{ cancel: () => void } | null>(null);
   const compositeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const micTestRef = useRef<{ stream: MediaStream; ctx: AudioContext; analyser: AnalyserNode; raf: number } | null>(null);
   const devCamPreviewRef = useRef<HTMLVideoElement>(null);
@@ -198,7 +198,7 @@ const ScreenRecorderDropdown = () => {
     displayStreamRef.current?.getTracks().forEach(t => t.stop());
     camStreamRef.current?.getTracks().forEach(t => t.stop());
     micStreamRef.current?.getTracks().forEach(t => t.stop());
-    if (compositeRafRef.current) cancelAnimationFrame(compositeRafRef.current);
+    if (compositeRafRef.current) compositeRafRef.current.cancel();
     if (timerRef.current) clearInterval(timerRef.current);
   }, [stopMicTest, stopCamPreview]);
 
@@ -463,7 +463,7 @@ const ScreenRecorderDropdown = () => {
         setTimeout(() => URL.revokeObjectURL(url), 5000);
 
         // Cleanup
-        if (compositeRafRef.current) { cancelAnimationFrame(compositeRafRef.current); compositeRafRef.current = null; }
+        if (compositeRafRef.current) { compositeRafRef.current.cancel(); compositeRafRef.current = null; }
         displayStreamRef.current?.getTracks().forEach(t => t.stop());
         camStreamRef.current?.getTracks().forEach(t => t.stop());
         micStreamRef.current?.getTracks().forEach(t => t.stop());
