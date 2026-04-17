@@ -35,7 +35,7 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">2. Service Description</h2>
-                <p>Aureon is an AI-powered platform providing uncensored responses, an elite coding engine, live web search, persistent memory across sessions, team workspace functionality, and multi-language output. The Service is offered across multiple tiers starting at $18/month with full access to core features from day one.</p>
+                <p>Aureon is an AI-powered platform providing uncensored responses, an elite coding engine, live web search, persistent memory across sessions, team workspace functionality, multi-language output, and a full intelligence suite (Zerlal, Zeeion, NOMAD, Azplen, Aziion, AXRLEN, CROSS, and more). The Service is offered across multiple tiers starting at $47/month with full access to core features from day one.</p>
               </section>
 
               <section>
@@ -61,9 +61,10 @@ const TermsOfService = () => {
                 <h2 className="text-lg font-light tracking-wide text-foreground mb-3">5. Subscription & Billing</h2>
                 <p className="mb-3">The Service operates on a tiered pricing model:</p>
                 <ul className="space-y-2 ml-4">
-                  <li>→ Aureon Individual — $18/month (60 messages per 3 hours).</li>
-                  <li>→ Aureon Pro — $74/month (200 messages per 3 hours).</li>
-                  <li>→ Aureon Enterprise — $5,000/week (unlimited, full intelligence suite).</li>
+                  <li>→ Chat — $47/month (core uncensored AI, coding engine, search).</li>
+                  <li>→ Aureon — $199/month (full intelligence suite, NOMAD, Azplen, Imagine Intelligence, File Scrapper).</li>
+                  <li>→ Pro — $740/month (Zerlal, Zeeion, AXRLEN, CROSS, Predictive Intelligence, team workspace, all Pro modules).</li>
+                  <li>→ Lifetime — $4,700 one-time (permanent access to all current and future modules).</li>
                   <li>→ No free tier. No upsells. No hidden fees.</li>
                   <li>→ Cancel anytime in one click. No retention flow.</li>
                   <li>→ Access continues until the end of the current billing cycle.</li>

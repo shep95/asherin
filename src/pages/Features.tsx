@@ -11,8 +11,8 @@ import {
 
 /* ─── Tier config ─── */
 const tiers = {
-  aureon: { label: "Aureon — $18/mo", accent: "text-emerald-400/80", dot: "bg-emerald-400/70" },
-  pro:    { label: "Pro — $399/mo", accent: "text-accent/80", dot: "bg-accent/70" },
+  aureon: { label: "Aureon — $199/mo", accent: "text-emerald-400/80", dot: "bg-emerald-400/70" },
+  pro:    { label: "Pro — $740/mo", accent: "text-accent/80", dot: "bg-accent/70" },
 } as const;
 
 type Tier = keyof typeof tiers;
