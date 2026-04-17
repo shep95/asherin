@@ -315,7 +315,9 @@ const ScreenRecorderDropdown = () => {
         const baseSize = Math.round(Math.min(w, h) * 0.18);
         const camMargin = Math.round(baseSize * 0.15);
 
+        let stopDraw = false;
         const draw = () => {
+          if (stopDraw) return;
           cctx.drawImage(screenVideo, 0, 0, w, h);
 
           // Use camera's actual aspect ratio to prevent squishing
@@ -374,9 +376,29 @@ const ScreenRecorderDropdown = () => {
           cctx.scale(-1, 1);
           cctx.drawImage(camVideo, srcX, srcY, srcW, srcH, 0, 0, destW, destH);
           cctx.restore();
-          compositeRafRef.current = requestAnimationFrame(draw);
         };
-        draw();
+
+        // CRITICAL: requestVideoFrameCallback fires per actual video frame
+        // and KEEPS FIRING when the tab is hidden — unlike requestAnimationFrame
+        // which throttles to 1Hz on background tabs. This is what makes the
+        // recording continue when you switch away to record another tab/window.
+        const hasVFC = typeof (screenVideo as any).requestVideoFrameCallback === "function";
+        if (hasVFC) {
+          const onFrame = () => {
+            if (stopDraw) return;
+            draw();
+            (screenVideo as any).requestVideoFrameCallback(onFrame);
+          };
+          (screenVideo as any).requestVideoFrameCallback(onFrame);
+        } else {
+          // Fallback: setInterval (also throttled in background but better than rAF)
+          const id = window.setInterval(() => {
+            if (stopDraw) { window.clearInterval(id); return; }
+            draw();
+          }, 1000 / 30);
+        }
+        // Track stop flag via the existing ref slot
+        compositeRafRef.current = { cancel: () => { stopDraw = true; } } as any;
 
         finalVideoStream = canvas.captureStream(30);
       } else if (mode === "cam-only" && camStream) {
