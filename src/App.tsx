@@ -38,6 +38,25 @@ const FeatureVibeImager = lazy(() => import("./pages/FeatureVibeImager"));
 const FeatureVibeVideo = lazy(() => import("./pages/FeatureVibeVideo"));
 const FeatureVideoIntelligence = lazy(() => import("./pages/FeatureVideoIntelligence"));
 const FeatureBYOK = lazy(() => import("./pages/FeatureBYOK"));
+const FeatureZerlal = lazy(() => import("./pages/FeatureZerlal"));
+const FeatureZeeion = lazy(() => import("./pages/FeatureZeeion"));
+const FeatureAziion = lazy(() => import("./pages/FeatureAziion"));
+const FeatureAxrlen = lazy(() => import("./pages/FeatureAxrlen"));
+const FeatureCross = lazy(() => import("./pages/FeatureCross"));
+const FeatureLavba = lazy(() => import("./pages/FeatureLavba"));
+const FeatureZaplen = lazy(() => import("./pages/FeatureZaplen"));
+const FeatureCipher = lazy(() => import("./pages/FeatureCipher"));
+const FeaturePatternAnalysis = lazy(() => import("./pages/FeaturePatternAnalysis"));
+const FeatureReverseEngineer = lazy(() => import("./pages/FeatureReverseEngineer"));
+const FeatureFileScrapper = lazy(() => import("./pages/FeatureFileScrapper"));
+const FeatureEbook = lazy(() => import("./pages/FeatureEbook"));
+const FeaturePluginMarketplace = lazy(() => import("./pages/FeaturePluginMarketplace"));
+const FeatureCodingLaws = lazy(() => import("./pages/FeatureCodingLaws"));
+const FeatureAutomatedAgents = lazy(() => import("./pages/FeatureAutomatedAgents"));
+const FeatureMemoryCenter = lazy(() => import("./pages/FeatureMemoryCenter"));
+const FeatureBrains = lazy(() => import("./pages/FeatureBrains"));
+const FeatureLibrary = lazy(() => import("./pages/FeatureLibrary"));
+const FeatureWhiteboardPage = lazy(() => import("./pages/FeatureWhiteboard"));
 const WW3 = lazy(() => import("./pages/WW3"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TrackPage = lazy(() => import("./pages/TrackPage"));
@@ -94,6 +113,25 @@ const App = () => (
             <Route path="/feature/vibe-video" element={<FeatureVibeVideo />} />
             <Route path="/feature/video-intelligence" element={<FeatureVideoIntelligence />} />
             <Route path="/feature/byok" element={<FeatureBYOK />} />
+            <Route path="/feature/zerlal" element={<FeatureZerlal />} />
+            <Route path="/feature/zeeion" element={<FeatureZeeion />} />
+            <Route path="/feature/aziion" element={<FeatureAziion />} />
+            <Route path="/feature/axrlen" element={<FeatureAxrlen />} />
+            <Route path="/feature/cross" element={<FeatureCross />} />
+            <Route path="/feature/lavba" element={<FeatureLavba />} />
+            <Route path="/feature/zaplen" element={<FeatureZaplen />} />
+            <Route path="/feature/cipher" element={<FeatureCipher />} />
+            <Route path="/feature/pattern-analysis" element={<FeaturePatternAnalysis />} />
+            <Route path="/feature/reverse-engineer" element={<FeatureReverseEngineer />} />
+            <Route path="/feature/file-scrapper" element={<FeatureFileScrapper />} />
+            <Route path="/feature/ebook" element={<FeatureEbook />} />
+            <Route path="/feature/plugin-marketplace" element={<FeaturePluginMarketplace />} />
+            <Route path="/feature/coding-laws" element={<FeatureCodingLaws />} />
+            <Route path="/feature/automated-agents" element={<FeatureAutomatedAgents />} />
+            <Route path="/feature/memory-center" element={<FeatureMemoryCenter />} />
+            <Route path="/feature/brains" element={<FeatureBrains />} />
+            <Route path="/feature/library" element={<FeatureLibrary />} />
+            <Route path="/feature/whiteboard-info" element={<FeatureWhiteboardPage />} />
             <Route path="/i" element={<TrackPage />} />
             <Route path="/ww3" element={<WW3 />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
