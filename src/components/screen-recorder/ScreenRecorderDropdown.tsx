@@ -457,12 +457,18 @@ const ScreenRecorderDropdown = () => {
       setOpen(false); // Close dropdown so user sees their content
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
     } catch (err: any) {
-      console.error("Recording failed:", err);
+      const isCancel = err.name === "NotAllowedError" && /denied by (system|user)|permission denied/i.test(err.message || "");
+      // Don't log user cancellations as errors — it's expected behavior
+      if (!isCancel) console.error("Recording failed:", err);
       setPermError(
-        err.name === "NotAllowedError" ? "Permission denied. Allow screen/camera/mic access."
-        : err.name === "NotFoundError" ? "Required device not found."
-        : err.name === "NotReadableError" ? "Device in use by another app."
-        : `Recording failed: ${err.message}`
+        err.name === "NotAllowedError"
+          ? (isCancel
+              ? "Recording cancelled — you closed the screen-share picker. Click Start to try again."
+              : "Permission denied. Allow screen, camera, or microphone access in your browser settings.")
+        : err.name === "NotFoundError" ? "Required device not found. Check your camera/microphone is connected."
+        : err.name === "NotReadableError" ? "Device is busy — another app (Zoom, Meet, etc.) is using your camera or mic. Close it and retry."
+        : err.name === "AbortError" ? "Recording was aborted. Try again."
+        : `Recording failed: ${err.message || "Unknown error"}`
       );
       // Cleanup partial streams
       displayStreamRef.current?.getTracks().forEach(t => t.stop());
@@ -473,6 +479,7 @@ const ScreenRecorderDropdown = () => {
       micStreamRef.current = null;
       setState("idle");
       setCountdown(0);
+      setOpen(true); // Re-open dropdown so user sees the error message
     }
   }, [mode, micEnabled, selectedMic, selectedCam, showCursor, countdownDelay, quality, camShape, stopMicTest, stopRecording]);
 
