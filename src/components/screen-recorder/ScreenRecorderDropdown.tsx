@@ -301,11 +301,14 @@ const ScreenRecorderDropdown = () => {
         const screenVideo = document.createElement("video");
         screenVideo.srcObject = displayStream;
         screenVideo.muted = true;
+        screenVideo.playsInline = true;
+        (screenVideo as any).disablePictureInPicture = true;
         await screenVideo.play();
 
         const camVideo = document.createElement("video");
         camVideo.srcObject = camStream;
         camVideo.muted = true;
+        camVideo.playsInline = true;
         await camVideo.play();
 
         // Base size from screen short edge
