@@ -333,7 +333,7 @@ async function callGateway(type: AnalysisType, query: string, results: ResultIn[
           functionDeclarations: [{
             name: schema.name,
             description: schema.description,
-            parameters: schema.parameters,
+            parameters: cleanParameters,
           }],
         }],
         toolConfig: {
