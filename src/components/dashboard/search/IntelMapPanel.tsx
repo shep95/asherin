@@ -332,11 +332,14 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
             <rect x="0" y="0" width="100%" height="100%" fill="url(#intel-bg-glow)" />
 
-            <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+            {/* Zoom spreads positions but keeps node sizes constant — so labels stop overlapping when zoomed in. */}
+            <g transform={`translate(${pan.x + size.w / 2 - (size.w / 2) * zoom}, ${pan.y + size.h / 2 - (size.h / 2) * zoom})`}>
               {/* Edges */}
               {edges.map((e, i) => {
                 const a = idMap.get(e.source); const b = idMap.get(e.target);
                 if (!a || !b) return null;
+                const ax = a.x! * zoom, ay = a.y! * zoom;
+                const bx = b.x! * zoom, by = b.y! * zoom;
                 const isHighlighted = !selectedId || (connectedIds.has(e.source) && connectedIds.has(e.target));
                 const isMention = e.label === "mentions";
                 const opacity = isHighlighted ? (isMention ? 0.25 : 0.55) : 0.08;
