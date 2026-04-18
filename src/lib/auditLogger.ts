@@ -42,7 +42,7 @@ export async function logAudit(params: {
       action_type: params.action,
       resource_type: params.resourceType ?? null,
       resource_id: params.resourceId ?? null,
-      payload: params.payload ?? {},
+      payload: (params.payload ?? {}) as any,
       payload_hash: payloadHash,
       prev_hash: lastHash,
       workspace_id: params.workspaceId ?? null,
