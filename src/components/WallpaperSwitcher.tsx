@@ -20,6 +20,7 @@ import wallpaperMane from "@/assets/wallpaper-mane.png";
 import wallpaperImpact from "@/assets/wallpaper-impact.png";
 import wallpaperOracle from "@/assets/wallpaper-oracle.png";
 import wallpaperAscend from "@/assets/wallpaper-ascend.png";
+import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
@@ -42,6 +43,7 @@ const WALLPAPERS = [
   { key: "impact", label: "Impact", src: wallpaperImpact },
   { key: "oracle", label: "Oracle", src: wallpaperOracle },
   { key: "ascend", label: "Ascend", src: wallpaperAscend },
+  { key: "cosmos", label: "Cosmos", src: wallpaperCosmos },
 ];
 
 const STORAGE_KEY = "aureon_landing_wallpaper";
