@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network } from "lucide-react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain } from "lucide-react";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
@@ -12,6 +12,7 @@ import FilterSidebar from "./search/FilterSidebar";
 import PagePreviewPanel from "./search/PagePreviewPanel";
 import DeepSearchPanel from "./search/DeepSearchPanel";
 import IntelMapPanel from "./search/IntelMapPanel";
+import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -41,6 +42,7 @@ const ZophielEngineView = () => {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
   const [intelMapOpen, setIntelMapOpen] = useState(false);
+  const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
 
