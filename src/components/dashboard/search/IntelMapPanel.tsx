@@ -66,6 +66,84 @@ const NODE_RADIUS: Record<IntelNode["type"], number> = {
   source: 32, person: 28, organization: 30, location: 26, topic: 24, event: 26,
 };
 
+/* Distinct shape per entity type. Each returns an SVG element centered at (0,0). */
+type ShapeKind = "rounded-square" | "circle" | "hexagon" | "diamond" | "pill" | "shield";
+const NODE_SHAPE: Record<IntelNode["type"], ShapeKind> = {
+  source: "rounded-square",
+  person: "circle",
+  organization: "hexagon",
+  location: "shield",
+  topic: "pill",
+  event: "diamond",
+};
+
+function renderShape(kind: ShapeKind, w: number, h: number, fill: string, stroke: string, strokeWidth: number) {
+  const hx = w / 2, hy = h / 2;
+  switch (kind) {
+    case "circle":
+      return <circle cx={0} cy={0} r={Math.min(hx, hy)} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+    case "hexagon": {
+      const r = Math.min(hx, hy);
+      const pts = Array.from({ length: 6 }, (_, i) => {
+        const a = (Math.PI / 3) * i - Math.PI / 6;
+        return `${(Math.cos(a) * r).toFixed(2)},${(Math.sin(a) * r).toFixed(2)}`;
+      }).join(" ");
+      return <polygon points={pts} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+    }
+    case "diamond": {
+      const r = Math.min(hx, hy);
+      return <polygon points={`0,${-r} ${r},0 0,${r} ${-r},0`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+    }
+    case "pill":
+      return <rect x={-hx} y={-hy * 0.7} width={w} height={h * 0.7} rx={hy * 0.7} ry={hy * 0.7} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+    case "shield": {
+      const r = Math.min(hx, hy);
+      // Rounded shield: top flat with rounded corners, bottom point.
+      const d = `M ${-r},${-r * 0.85} Q ${-r},${-r} ${-r * 0.7},${-r} L ${r * 0.7},${-r} Q ${r},${-r} ${r},${-r * 0.85} L ${r},${r * 0.2} Q ${r},${r * 0.7} 0,${r} Q ${-r},${r * 0.7} ${-r},${r * 0.2} Z`;
+      return <path d={d} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+    }
+    case "rounded-square":
+    default:
+      return <rect x={-hx} y={-hy} width={w} height={h} rx={14} ry={14} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+  }
+}
+
+/* Lightweight country / US-state detector. Scans label + context for known names
+ * and returns the matching flag emoji. Uses anchored regexes so 'Iran' doesn't
+ * match 'Iranian-American'. Order matters: longer/more specific names first. */
+const COUNTRY_FLAGS: Array<[RegExp, string]> = [
+  [/\b(united states|u\.s\.a?\.?|usa|america)\b/i, "🇺🇸"],
+  [/\b(united kingdom|u\.k\.|britain|england|scotland|wales)\b/i, "🇬🇧"],
+  [/\b(north korea|dprk)\b/i, "🇰🇵"], [/\b(south korea|korea)\b/i, "🇰🇷"],
+  [/\bsaudi arabia\b/i, "🇸🇦"], [/\bunited arab emirates|uae\b/i, "🇦🇪"],
+  [/\b(russia|russian federation)\b/i, "🇷🇺"], [/\bchina|prc\b/i, "🇨🇳"],
+  [/\biran\b/i, "🇮🇷"], [/\bisrael\b/i, "🇮🇱"], [/\bukraine\b/i, "🇺🇦"],
+  [/\bgermany\b/i, "🇩🇪"], [/\bfrance\b/i, "🇫🇷"], [/\bspain\b/i, "🇪🇸"],
+  [/\bitaly\b/i, "🇮🇹"], [/\bjapan\b/i, "🇯🇵"], [/\bindia\b/i, "🇮🇳"],
+  [/\bcanada\b/i, "🇨🇦"], [/\bmexico\b/i, "🇲🇽"], [/\bbrazil\b/i, "🇧🇷"],
+  [/\baustralia\b/i, "🇦🇺"], [/\bturkey|türkiye\b/i, "🇹🇷"],
+  [/\bsyria\b/i, "🇸🇾"], [/\biraq\b/i, "🇮🇶"], [/\byemen\b/i, "🇾🇪"],
+  [/\begypt\b/i, "🇪🇬"], [/\bvenezuela\b/i, "🇻🇪"], [/\bcuba\b/i, "🇨🇺"],
+  [/\bpakistan\b/i, "🇵🇰"], [/\btaiwan\b/i, "🇹🇼"], [/\bvietnam\b/i, "🇻🇳"],
+  [/\bafghanistan\b/i, "🇦🇫"], [/\blibya\b/i, "🇱🇾"], [/\bsudan\b/i, "🇸🇩"],
+  [/\bnigeria\b/i, "🇳🇬"], [/\bsouth africa\b/i, "🇿🇦"],
+];
+// US state → regional indicator emoji (state flags don't exist as single glyph; use 🏛 as fallback marker)
+const US_STATES: Array<[RegExp, string]> = [
+  [/\b(california|los angeles|san francisco|sacramento)\b/i, "🇺🇸"],
+  [/\b(new york|nyc|manhattan|brooklyn|albany)\b/i, "🇺🇸"],
+  [/\b(texas|austin|houston|dallas)\b/i, "🇺🇸"],
+  [/\b(florida|miami|tampa|orlando)\b/i, "🇺🇸"],
+  [/\b(washington d\.?c\.?|d\.c\.|district of columbia)\b/i, "🇺🇸"],
+];
+
+function detectFlag(node: IntelNode): string | null {
+  const hay = `${node.label} ${node.context || ""}`;
+  for (const [rx, flag] of COUNTRY_FLAGS) if (rx.test(hay)) return flag;
+  for (const [rx, flag] of US_STATES) if (rx.test(hay)) return flag;
+  return null;
+}
+
 /* Force-directed layout (lightweight) */
 function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, height: number, iterations = 220): IntelNode[] {
   const cx = width / 2, cy = height / 2;
@@ -276,7 +354,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
             counts[t] ? (
               <span key={t} className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-[3px]" style={{ background: NODE_PALETTE[t].accent }} />
+                <svg width="10" height="10" viewBox="-6 -6 12 12" className="shrink-0">
+                  {renderShape(NODE_SHAPE[t], 10, 10, NODE_PALETTE[t].accent, "transparent", 0)}
+                </svg>
                 {counts[t]} {t}
               </span>
             ) : null,
@@ -391,24 +471,25 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                       </rect>
                     )}
 
-                    {/* Card body — theme card with subtle border */}
-                    <rect
-                      x={-w / 2} y={-h / 2}
-                      width={w} height={h}
-                      rx={corner} ry={corner}
-                      fill="hsl(var(--card))"
-                      stroke={isSelected ? palette.accent : "hsl(var(--border))"}
-                      strokeWidth={isSelected ? 1.5 : 1}
-                    />
+                    {/* Body — distinct shape per type */}
+                    {renderShape(
+                      NODE_SHAPE[n.type],
+                      w, h,
+                      "hsl(var(--card))",
+                      isSelected ? palette.accent : "hsl(var(--border))",
+                      isSelected ? 1.5 : 1,
+                    )}
 
-                    {/* Top accent stripe — type indicator */}
-                    <rect
-                      x={-w / 2 + 8} y={-h / 2 + 6}
-                      width={w - 16} height={2}
-                      rx={1} ry={1}
-                      fill={palette.accent}
-                      opacity={isSelected ? 0.9 : 0.55}
-                    />
+                    {/* Top accent stripe — only on rectangular shapes (looks awkward on circles/diamonds) */}
+                    {(NODE_SHAPE[n.type] === "rounded-square" || NODE_SHAPE[n.type] === "pill") && (
+                      <rect
+                        x={-w / 2 + 8} y={-h / 2 + (NODE_SHAPE[n.type] === "pill" ? -h * 0.7 / 2 + 4 : 6)}
+                        width={w - 16} height={2}
+                        rx={1} ry={1}
+                        fill={palette.accent}
+                        opacity={isSelected ? 0.9 : 0.55}
+                      />
+                    )}
 
                     {/* Icon — centered */}
                     <foreignObject x={-10} y={-10} width="20" height="20" className="pointer-events-none">
@@ -416,6 +497,22 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                         <Icon className="h-[18px] w-[18px]" style={{ color: palette.accent, opacity: 0.85 }} strokeWidth={1.5} />
                       </div>
                     </foreignObject>
+
+                    {/* Country / state flag badge — bottom-left corner */}
+                    {(() => {
+                      const flag = detectFlag(n);
+                      if (!flag) return null;
+                      return (
+                        <g className="pointer-events-none">
+                          <circle cx={-w / 2 + 9} cy={h / 2 - 9} r={9} fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={0.75} />
+                          <foreignObject x={-w / 2 + 1} y={h / 2 - 17} width={16} height={16}>
+                            <div className="flex items-center justify-center w-full h-full" style={{ fontSize: "12px", lineHeight: 1 }}>
+                              {flag}
+                            </div>
+                          </foreignObject>
+                        </g>
+                      );
+                    })()}
 
                     {/* External link affordance — top-right corner, opens source */}
                     {n.url && (
@@ -497,8 +594,11 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="h-2.5 w-2.5 rounded-[3px] shrink-0 ring-1 ring-border/30" style={{ background: NODE_PALETTE[selected.type].accent }} />
+                      <svg width="12" height="12" viewBox="-7 -7 14 14" className="shrink-0">
+                        {renderShape(NODE_SHAPE[selected.type], 12, 12, NODE_PALETTE[selected.type].accent, "transparent", 0)}
+                      </svg>
                       <span className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">{selected.type}</span>
+                      {(() => { const f = detectFlag(selected); return f ? <span className="text-sm leading-none ml-1">{f}</span> : null; })()}
                     </div>
                     <button onClick={() => setSelectedId(null)} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors">
                       <X className="h-3.5 w-3.5" />
