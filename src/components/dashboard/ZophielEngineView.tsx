@@ -270,7 +270,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       )}
 
       <div
-        className={`flex flex-col min-w-0 transition-[width] duration-200 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:flex-none" : "flex-1"}`}
+        ref={leftPanelRef}
+        className={`flex flex-col min-w-0 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:flex-none" : "flex-1"}`}
         style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
       >
         {/* Search Header */}
