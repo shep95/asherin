@@ -594,8 +594,11 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="h-2.5 w-2.5 rounded-[3px] shrink-0 ring-1 ring-border/30" style={{ background: NODE_PALETTE[selected.type].accent }} />
+                      <svg width="12" height="12" viewBox="-7 -7 14 14" className="shrink-0">
+                        {renderShape(NODE_SHAPE[selected.type], 12, 12, NODE_PALETTE[selected.type].accent, "transparent", 0)}
+                      </svg>
                       <span className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">{selected.type}</span>
+                      {(() => { const f = detectFlag(selected); return f ? <span className="text-sm leading-none ml-1">{f}</span> : null; })()}
                     </div>
                     <button onClick={() => setSelectedId(null)} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors">
                       <X className="h-3.5 w-3.5" />
