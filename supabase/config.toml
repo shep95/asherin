@@ -155,3 +155,6 @@ verify_jwt = false
 
 [functions.zophiel-intel-analysis]
 verify_jwt = false
+
+[functions.zophiel-code-audit]
+verify_jwt = false
