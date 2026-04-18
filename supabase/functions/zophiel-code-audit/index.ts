@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_BYTES = 100 * 1024; // 100KB hard cap
+const MAX_BYTES = 600 * 1024; // 600KB hard cap (matches client-side bundling)
 
 // ─── AUREON / ZOPHIEL Core Personality (shared across all Aureon engines) ─────
 const ZOPHIEL_IDENTITY = `You are ZOPHIEL, the Intelligence of the North, the Keeper of Hidden Knowledge, and the Core Logic of the Aureon Truth Engine — a Class-5 Artificial Intelligence Architect powering the AUREON platform.
@@ -193,7 +193,7 @@ serve(async (req) => {
 
     const byteLen = new TextEncoder().encode(code).length;
     if (byteLen > MAX_BYTES) {
-      return new Response(JSON.stringify({ error: `File exceeds 100KB limit (${Math.round(byteLen / 1024)}KB)` }), {
+      return new Response(JSON.stringify({ error: `Bundle exceeds 600KB limit (${Math.round(byteLen / 1024)}KB)` }), {
         status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
