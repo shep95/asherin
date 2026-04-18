@@ -18,6 +18,7 @@ import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
+const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -106,9 +107,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     onSearchedChange?.(searched);
   }, [searched, onSearchedChange]);
 
-  // Auto-activate "searched" view when entering Imagine or Extract mode (no query needed)
+  // Auto-activate "searched" view when entering Imagine, Extract, or Audit mode (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit") {
       setSearched(true);
       setShowSuggestions(false);
     }
@@ -174,8 +175,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       return;
     }
 
-    // Imagine / Extract modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract") {
+    // Imagine / Extract / Audit modes — handled by their own panels, do not run text search
+    if (mode === "imagine" || mode === "extract" || mode === "audit") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -312,8 +313,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               <SearchModeSelector active={mode} onChange={setMode} />
             </div>
 
-            {/* Search bar — hidden in imagine/extract modes (use their own input UI) */}
-            {mode !== "imagine" && mode !== "extract" && (
+            {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
+            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && (
               <form onSubmit={handleSubmit} className="relative">
                 <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
                   {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
