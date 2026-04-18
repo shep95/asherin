@@ -152,3 +152,6 @@ verify_jwt = false
 
 [functions.axrlen-analyze]
 verify_jwt = false
+
+[functions.zophiel-intel-analysis]
+verify_jwt = false
