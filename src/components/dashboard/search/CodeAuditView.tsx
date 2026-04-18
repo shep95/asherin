@@ -142,6 +142,21 @@ const CodeAuditView = () => {
     setAuditing(true);
     setError(null);
     setBlueprint(null);
+    setProgress(5);
+    setProgressLabel("Dispatching to Aureon engine…");
+
+    // simulated progress while edge function runs
+    let pct = 5;
+    const tick = setInterval(() => {
+      pct = Math.min(pct + Math.max(1, Math.round((92 - pct) * 0.08)), 92);
+      setProgress(pct);
+      if (pct < 25) setProgressLabel("Parsing code structure…");
+      else if (pct < 50) setProgressLabel("Scanning for leaks & secrets…");
+      else if (pct < 70) setProgressLabel("Detecting logical flaws & race conditions…");
+      else if (pct < 85) setProgressLabel("Mapping workflow & UI logic…");
+      else setProgressLabel("Compiling forensic blueprint…");
+    }, 350);
+
     try {
       const { data, error: invokeError } = await supabase.functions.invoke(
         "zophiel-code-audit",
@@ -151,12 +166,16 @@ const CodeAuditView = () => {
       if (!data) throw new Error("No response from audit engine");
       if (data.error) throw new Error(data.error);
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
+      setProgress(100);
+      setProgressLabel("Complete");
       setBlueprint(data.blueprint as Blueprint);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Audit failed";
       setError(msg);
     } finally {
+      clearInterval(tick);
       setAuditing(false);
+      setTimeout(() => { setProgress(0); setProgressLabel(""); }, 600);
     }
   }, [code, filename]);
 
@@ -173,8 +192,11 @@ const CodeAuditView = () => {
     setByteSize(0);
     setBlueprint(null);
     setError(null);
+    setZipFileCount(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const isZipFile = filename.toLowerCase().endsWith(".zip");
 
   return (
     <div className="w-full animate-fade-in space-y-4">
