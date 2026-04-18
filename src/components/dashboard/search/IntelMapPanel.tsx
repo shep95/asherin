@@ -443,7 +443,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           <div className="absolute bottom-3 left-3 right-3 max-w-md rounded-xl border border-border/20 bg-card/80 backdrop-blur-xl p-3 shadow-xl">
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="h-2 w-2 rounded-full shrink-0" style={{ background: NODE_PALETTE[selected.type].stroke }} />
+                <span className="h-2 w-2 rounded-[3px] shrink-0" style={{ background: NODE_PALETTE[selected.type].accent }} />
                 <span className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">{selected.type}</span>
               </div>
               <button onClick={() => setSelectedId(null)} className="p-0.5 text-muted-foreground hover:text-foreground">
