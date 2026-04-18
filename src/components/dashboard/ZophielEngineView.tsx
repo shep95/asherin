@@ -447,6 +447,30 @@ const ZophielEngineView = () => {
         </div>
       )}
 
+      {/* Intelligence Suite split-screen panel */}
+      {intelSuiteOpen && searched && results.length > 0 && (
+        <div className="hidden lg:block lg:w-3/5 min-w-0 animate-fade-in">
+          <IntelligenceSuitePanel
+            query={query}
+            results={results}
+            onClose={() => setIntelSuiteOpen(false)}
+            onRunQuery={(q) => { setQuery(q); search(q); }}
+          />
+        </div>
+      )}
+
+      {/* Mobile: full-screen overlay for Intelligence Suite */}
+      {intelSuiteOpen && searched && results.length > 0 && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-background animate-fade-in">
+          <IntelligenceSuitePanel
+            query={query}
+            results={results}
+            onClose={() => setIntelSuiteOpen(false)}
+            onRunQuery={(q) => { setQuery(q); search(q); }}
+          />
+        </div>
+      )}
+
       {/* Page Preview Panel */}
       {preview && (
         <PagePreviewPanel preview={preview.data} url={preview.url} onClose={() => setPreview(null)} />
