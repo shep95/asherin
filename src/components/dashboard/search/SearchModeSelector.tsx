@@ -19,7 +19,7 @@ interface SearchModeSelectorProps {
 
 const SearchModeSelector = ({ active, onChange }: SearchModeSelectorProps) => {
   return (
-    <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+    <div className="overflow-x-auto -mx-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
       <div className="flex items-center gap-1 w-max">
         {modes.map((m) => (
           <button
