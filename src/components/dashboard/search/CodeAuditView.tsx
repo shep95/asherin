@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import {
   ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
   Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
-  Lock, Plug, Syringe, UploadCloud, X,
+  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
