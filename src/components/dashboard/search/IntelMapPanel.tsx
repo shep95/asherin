@@ -474,32 +474,92 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           </svg>
         )}
 
-        {/* Selected node detail */}
-        {selected && (
-          <div className="absolute bottom-3 left-3 right-3 max-w-md rounded-xl border border-border/20 bg-card/80 backdrop-blur-xl p-3 shadow-xl">
-            <div className="flex items-start justify-between gap-2 mb-1.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="h-2 w-2 rounded-[3px] shrink-0" style={{ background: NODE_PALETTE[selected.type].accent }} />
-                <span className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">{selected.type}</span>
+        {/* Selected node detail — split-screen, glassmorphic, theme-matched */}
+        {selected && (() => {
+          // Find sources connected to this entity (via "mentions" edges or any edge to a source node).
+          const linkedSources = (() => {
+            if (selected.type === "source") return selected.url ? [selected] : [];
+            const sourceIds = new Set<string>();
+            edges.forEach((e) => {
+              if (e.source === selected.id) sourceIds.add(e.target);
+              if (e.target === selected.id) sourceIds.add(e.source);
+            });
+            return laidOut.filter((n) => n.type === "source" && sourceIds.has(n.id) && n.url);
+          })();
+
+          return (
+            <div className="absolute bottom-3 left-3 right-3 md:right-auto md:max-w-2xl rounded-2xl border border-border/20 bg-card/40 backdrop-blur-2xl shadow-2xl overflow-hidden">
+              {/* Subtle accent glow */}
+              <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${NODE_PALETTE[selected.type].accent}, transparent)`, opacity: 0.5 }} />
+
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border/15">
+                {/* LEFT — Entity details */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="h-2.5 w-2.5 rounded-[3px] shrink-0 ring-1 ring-border/30" style={{ background: NODE_PALETTE[selected.type].accent }} />
+                      <span className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">{selected.type}</span>
+                    </div>
+                    <button onClick={() => setSelectedId(null)} className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="text-base font-light text-foreground mb-2 leading-snug">{selected.label}</div>
+                  {selected.context && (
+                    <blockquote className="relative pl-3 border-l-2 border-border/30 text-xs font-extralight text-muted-foreground/90 leading-relaxed italic">
+                      "{selected.context}"
+                    </blockquote>
+                  )}
+                  {selected.mentions !== undefined && selected.type !== "source" && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-light tracking-wider uppercase text-muted-foreground/60">
+                      <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                      Mentioned in {selected.mentions} source{selected.mentions === 1 ? "" : "s"}
+                    </div>
+                  )}
+                </div>
+
+                {/* RIGHT — Sources / linked references */}
+                <div className="p-4 bg-foreground/[0.02]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="h-3 w-3 text-accent" />
+                    <span className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground">
+                      {linkedSources.length > 0 ? `${linkedSources.length} source${linkedSources.length === 1 ? "" : "s"}` : "No source link"}
+                    </span>
+                  </div>
+                  {linkedSources.length === 0 ? (
+                    <p className="text-[11px] font-extralight text-muted-foreground/50 italic">No origin source extracted for this entity.</p>
+                  ) : (
+                    <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {linkedSources.map((src) => (
+                        <li key={src.id}>
+                          <a
+                            href={src.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex items-start gap-2 rounded-lg px-2.5 py-2 bg-foreground/[0.03] hover:bg-foreground/[0.06] border border-border/15 hover:border-border/30 transition-all"
+                          >
+                            <span className="mt-0.5 h-1.5 w-1.5 rounded-[2px] shrink-0" style={{ background: NODE_PALETTE.source.accent }} />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[11px] font-light text-foreground truncate group-hover:text-accent transition-colors">{src.label}</div>
+                              {src.domain && (
+                                <div className="text-[9px] font-extralight tracking-wider text-muted-foreground/60 truncate">{src.domain}{src.tierLabel ? ` · ${src.tierLabel}` : ""}</div>
+                              )}
+                            </div>
+                            <ExternalLink className="h-3 w-3 text-muted-foreground/50 group-hover:text-accent shrink-0 mt-0.5 transition-colors" />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
-              <button onClick={() => setSelectedId(null)} className="p-0.5 text-muted-foreground hover:text-foreground">
-                <X className="h-3 w-3" />
-              </button>
             </div>
-            <div className="text-sm font-light text-foreground mb-1">{selected.label}</div>
-            {selected.context && (
-              <p className="text-xs font-extralight text-muted-foreground leading-relaxed mb-2">{selected.context}</p>
-            )}
-            {selected.url && (
-              <a href={selected.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-accent hover:underline">
-                Open source <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-            {selected.mentions !== undefined && selected.type !== "source" && (
-              <div className="text-[10px] text-muted-foreground/60 mt-1">Mentioned in {selected.mentions} source{selected.mentions === 1 ? "" : "s"}</div>
-            )}
-          </div>
-        )}
+          );
+        })()}
+      </div>
+    </div>
+  );
+};
       </div>
     </div>
   );
