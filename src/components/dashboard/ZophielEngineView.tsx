@@ -49,8 +49,11 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
-  const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite)
-  const [resizing, setResizing] = useState(false);
+  const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
+  const splitPctRef = useRef(50);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const resizingRef = useRef(false);
 
   // Hide global header right-side controls while a side panel is open
   useEffect(() => {
@@ -59,27 +62,37 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     return () => { document.body.classList.remove("zophiel-panel-open"); };
   }, [intelMapOpen, intelSuiteOpen, searched, results.length]);
 
-  // Drag-to-resize handler
-  useEffect(() => {
-    if (!resizing) return;
+  // High-perf drag-to-resize: bypass React re-renders, write width directly via rAF
+  const startResize = useCallback(() => {
+    resizingRef.current = true;
+    let raf = 0;
+    let pendingPct = splitPctRef.current;
+    const apply = () => {
+      raf = 0;
+      if (leftPanelRef.current) leftPanelRef.current.style.width = `${100 - pendingPct}%`;
+      if (rightPanelRef.current) rightPanelRef.current.style.width = `${pendingPct}%`;
+    };
     const onMove = (e: MouseEvent) => {
       const vw = window.innerWidth;
       const rightPx = vw - e.clientX;
-      const pct = Math.min(80, Math.max(20, (rightPx / vw) * 100));
-      setSplitPct(pct);
+      pendingPct = Math.min(80, Math.max(20, (rightPx / vw) * 100));
+      if (!raf) raf = requestAnimationFrame(apply);
     };
-    const onUp = () => setResizing(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    return () => {
+    const onUp = () => {
+      resizingRef.current = false;
+      if (raf) cancelAnimationFrame(raf);
+      splitPctRef.current = pendingPct;
+      setSplitPct(pendingPct);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-  }, [resizing]);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("mouseup", onUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -257,7 +270,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       )}
 
       <div
-        className={`flex flex-col min-w-0 transition-[width] duration-200 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:flex-none" : "flex-1"}`}
+        ref={leftPanelRef}
+        className={`flex flex-col min-w-0 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:flex-none" : "flex-1"}`}
         style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
       >
         {/* Search Header */}
@@ -471,11 +485,11 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       {/* Resize divider — desktop only, when a side panel is open */}
       {(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 && (
         <div
-          onMouseDown={() => setResizing(true)}
+          onMouseDown={(e) => { e.preventDefault(); startResize(); }}
           className="hidden lg:flex items-center justify-center w-1.5 cursor-col-resize group relative z-30"
           title="Drag to resize"
         >
-          <div className={`h-full w-px bg-border/30 group-hover:bg-accent/60 transition-colors ${resizing ? "bg-accent/80" : ""}`} />
+          <div className="h-full w-px bg-border/30 group-hover:bg-accent/60 transition-colors" />
           <div className="absolute h-12 w-1 rounded-full bg-foreground/20 group-hover:bg-accent/70 transition-colors" />
         </div>
       )}
@@ -483,6 +497,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       {/* Intel Map split-screen panel */}
       {intelMapOpen && searched && results.length > 0 && (
         <div
+          ref={rightPanelRef}
           className="hidden lg:block min-w-0 animate-fade-in"
           style={{ width: `${splitPct}%` }}
         >
@@ -507,7 +522,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
       {/* Intelligence Suite split-screen panel */}
       {intelSuiteOpen && searched && results.length > 0 && (
-        <div className="hidden lg:block min-w-0 animate-fade-in" style={{ width: `${splitPct}%` }}>
+        <div ref={rightPanelRef} className="hidden lg:block min-w-0 animate-fade-in" style={{ width: `${splitPct}%` }}>
           <IntelligenceSuitePanel
             query={query}
             results={results}
