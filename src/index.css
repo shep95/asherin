@@ -89,3 +89,8 @@
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--border)) hsl(var(--background));
 }
+
+/* Hide global header right-side controls when a Zophiel side panel is open */
+body.zophiel-panel-open [data-header-right] {
+  display: none !important;
+}

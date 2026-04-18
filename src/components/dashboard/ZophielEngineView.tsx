@@ -49,6 +49,37 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
+  const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite)
+  const [resizing, setResizing] = useState(false);
+
+  // Hide global header right-side controls while a side panel is open
+  useEffect(() => {
+    const open = (intelMapOpen || intelSuiteOpen) && searched && results.length > 0;
+    document.body.classList.toggle("zophiel-panel-open", open);
+    return () => { document.body.classList.remove("zophiel-panel-open"); };
+  }, [intelMapOpen, intelSuiteOpen, searched, results.length]);
+
+  // Drag-to-resize handler
+  useEffect(() => {
+    if (!resizing) return;
+    const onMove = (e: MouseEvent) => {
+      const vw = window.innerWidth;
+      const rightPx = vw - e.clientX;
+      const pct = Math.min(80, Math.max(20, (rightPx / vw) * 100));
+      setSplitPct(pct);
+    };
+    const onUp = () => setResizing(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [resizing]);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -225,7 +256,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         />
       )}
 
-      <div className={`flex flex-col min-w-0 transition-all duration-300 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:w-1/2 lg:flex-none" : "flex-1"}`}>
+      <div
+        className={`flex flex-col min-w-0 transition-[width] duration-200 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:flex-none" : "flex-1"}`}
+        style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
+      >
         {/* Search Header */}
         <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
@@ -434,9 +468,24 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         )}
       </div>
 
+      {/* Resize divider — desktop only, when a side panel is open */}
+      {(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 && (
+        <div
+          onMouseDown={() => setResizing(true)}
+          className="hidden lg:flex items-center justify-center w-1.5 cursor-col-resize group relative z-30"
+          title="Drag to resize"
+        >
+          <div className={`h-full w-px bg-border/30 group-hover:bg-accent/60 transition-colors ${resizing ? "bg-accent/80" : ""}`} />
+          <div className="absolute h-12 w-1 rounded-full bg-foreground/20 group-hover:bg-accent/70 transition-colors" />
+        </div>
+      )}
+
       {/* Intel Map split-screen panel */}
       {intelMapOpen && searched && results.length > 0 && (
-        <div className="hidden lg:block lg:w-1/2 min-w-0 animate-fade-in">
+        <div
+          className="hidden lg:block min-w-0 animate-fade-in"
+          style={{ width: `${splitPct}%` }}
+        >
           <IntelMapPanel
             query={query}
             results={results}
@@ -458,7 +507,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
       {/* Intelligence Suite split-screen panel */}
       {intelSuiteOpen && searched && results.length > 0 && (
-        <div className="hidden lg:block lg:w-1/2 min-w-0 animate-fade-in">
+        <div className="hidden lg:block min-w-0 animate-fade-in" style={{ width: `${splitPct}%` }}>
           <IntelligenceSuitePanel
             query={query}
             results={results}
