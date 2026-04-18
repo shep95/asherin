@@ -402,11 +402,11 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                               className="w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-muted"
                             ><FileSpreadsheet className="h-3 w-3" /> CSV</button>
                             <button
-                              onClick={() => { exportJSON(`zophiel-${Date.now()}`, { query, mode, results }); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "json", count: results.length } }); }}
+                              onClick={() => { exportJSON(`zophiel-${Date.now()}`, results as any, { query, mode }); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "json", count: results.length } }); }}
                               className="w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-muted"
                             ><FileJson className="h-3 w-3" /> JSON</button>
                             <button
-                              onClick={() => { exportMarkdown(`zophiel-${Date.now()}`, `# ${query}\n\n${results.map((r:any)=>`- [${r.title}](${r.url})\n  ${r.snippet||""}`).join("\n")}`); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "md", count: results.length } }); }}
+                              onClick={() => { exportMarkdown(`zophiel-${Date.now()}`, results as any, { query, mode }); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "md", count: results.length } }); }}
                               className="w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-muted"
                             ><FileText className="h-3 w-3" /> Markdown</button>
                           </div>
