@@ -332,20 +332,23 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
             <rect x="0" y="0" width="100%" height="100%" fill="url(#intel-bg-glow)" />
 
-            <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+            {/* Zoom spreads positions but keeps node sizes constant — so labels stop overlapping when zoomed in. */}
+            <g transform={`translate(${pan.x + size.w / 2 - (size.w / 2) * zoom}, ${pan.y + size.h / 2 - (size.h / 2) * zoom})`}>
               {/* Edges */}
               {edges.map((e, i) => {
                 const a = idMap.get(e.source); const b = idMap.get(e.target);
                 if (!a || !b) return null;
+                const ax = a.x! * zoom, ay = a.y! * zoom;
+                const bx = b.x! * zoom, by = b.y! * zoom;
                 const isHighlighted = !selectedId || (connectedIds.has(e.source) && connectedIds.has(e.target));
                 const isMention = e.label === "mentions";
                 const opacity = isHighlighted ? (isMention ? 0.25 : 0.55) : 0.08;
                 const stroke = isMention ? "hsl(var(--muted-foreground))" : "hsl(var(--accent))";
                 const dash = isMention ? "3 4" : undefined;
-                const mx = (a.x! + b.x!) / 2; const my = (a.y! + b.y!) / 2;
+                const mx = (ax + bx) / 2; const my = (ay + by) / 2;
                 return (
                   <g key={i} opacity={opacity}>
-                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={stroke} strokeWidth={isMention ? 1 : 1.5} strokeDasharray={dash} markerEnd={isMention ? undefined : "url(#intel-arrow)"} />
+                    <line x1={ax} y1={ay} x2={bx} y2={by} stroke={stroke} strokeWidth={isMention ? 1 : 1.5} strokeDasharray={dash} markerEnd={isMention ? undefined : "url(#intel-arrow)"} />
                     {!isMention && isHighlighted && selectedId && connectedIds.has(e.source) && connectedIds.has(e.target) && (
                       <text x={mx} y={my - 4} textAnchor="middle" fontSize="9" fill="hsl(var(--muted-foreground))" fontWeight="300" className="pointer-events-none">
                         {e.label}
@@ -369,7 +372,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                   <g
                     key={n.id}
                     data-node
-                    transform={`translate(${n.x}, ${n.y})`}
+                    transform={`translate(${n.x! * zoom}, ${n.y! * zoom})`}
                     style={{ cursor: "pointer", opacity, transition: "opacity 200ms ease" }}
                     onClick={(e) => { e.stopPropagation(); setSelectedId(isSelected ? null : n.id); }}
                   >
@@ -414,18 +417,51 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                       </div>
                     </foreignObject>
 
-                    {/* Label — below the card */}
-                    <text
-                      x={0} y={h / 2 + 14}
-                      textAnchor="middle"
-                      fontSize="10.5"
-                      fontWeight="300"
-                      fill="hsl(var(--foreground))"
-                      className="pointer-events-none"
-                      style={{ letterSpacing: "0.02em" }}
-                    >
-                      {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
-                    </text>
+                    {/* External link affordance — top-right corner, opens source */}
+                    {n.url && (
+                      <a
+                        href={n.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Open ${n.label}`}
+                      >
+                        <rect x={w / 2 - 18} y={-h / 2 + 4} width={14} height={14} rx={4} fill="hsl(var(--muted) / 0.4)" stroke="hsl(var(--border))" strokeWidth={0.5} />
+                        <foreignObject x={w / 2 - 16} y={-h / 2 + 6} width="10" height="10" className="pointer-events-none">
+                          <div className="flex items-center justify-center w-full h-full">
+                            <ExternalLink className="h-[9px] w-[9px]" style={{ color: "hsl(var(--foreground))", opacity: 0.7 }} strokeWidth={2} />
+                          </div>
+                        </foreignObject>
+                      </a>
+                    )}
+
+                    {/* Label — below the card. If node has a URL, label is also a link. */}
+                    {n.url ? (
+                      <a href={n.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                        <text
+                          x={0} y={h / 2 + 14}
+                          textAnchor="middle"
+                          fontSize="10.5"
+                          fontWeight="300"
+                          fill="hsl(var(--foreground))"
+                          style={{ letterSpacing: "0.02em", textDecoration: "underline", textDecorationColor: "hsl(var(--border))", textUnderlineOffset: "2px" }}
+                        >
+                          {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
+                        </text>
+                      </a>
+                    ) : (
+                      <text
+                        x={0} y={h / 2 + 14}
+                        textAnchor="middle"
+                        fontSize="10.5"
+                        fontWeight="300"
+                        fill="hsl(var(--foreground))"
+                        className="pointer-events-none"
+                        style={{ letterSpacing: "0.02em" }}
+                      >
+                        {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
+                      </text>
+                    )}
                     {n.type === "source" && n.tierLabel && (
                       <text x={0} y={h / 2 + 26} textAnchor="middle" fontSize="8.5" fill="hsl(var(--muted-foreground))" opacity="0.6" className="pointer-events-none" style={{ letterSpacing: "0.1em", textTransform: "uppercase" }}>
                         {n.tierLabel}
