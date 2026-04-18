@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import {
   ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
   Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
-  Lock, Plug, Syringe, UploadCloud, X,
+  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,6 +24,7 @@ interface Blueprint {
 const ICONS: Record<string, typeof Shield> = {
   shield: Shield, bug: Bug, alert: AlertTriangle, syringe: Syringe,
   lock: Lock, plug: Plug, wrench: Wrench, file: FileCode,
+  brain: Brain, workflow: Workflow, eye: Eye,
 };
 
 const TONE_STYLES: Record<Tone, { ring: string; dot: string; text: string; glow: string }> = {
