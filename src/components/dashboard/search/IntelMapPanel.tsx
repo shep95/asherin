@@ -348,7 +348,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
       {/* Stats bar */}
       {!loading && !error && laidOut.length > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-border/10 bg-card/10 text-[10px] font-light tracking-wider uppercase text-muted-foreground/70 overflow-x-auto">
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-border/10 bg-card/5 backdrop-blur-xl text-[10px] font-light tracking-wider uppercase text-muted-foreground/70 overflow-x-auto">
           <span>{scrapedCount}/{totalSources} scraped</span>
           <span className="text-border/40">·</span>
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
