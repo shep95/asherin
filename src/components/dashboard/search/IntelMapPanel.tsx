@@ -559,10 +559,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       </div>
     </div>
   );
-};
-      </div>
-    </div>
-  );
-};
+
+export default IntelMapPanel;
 
 export default IntelMapPanel;
