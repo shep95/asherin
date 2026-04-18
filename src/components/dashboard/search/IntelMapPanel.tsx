@@ -367,7 +367,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       )}
 
       {/* Body */}
-      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-gradient-to-br from-background via-background to-card/20"
+      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-transparent"
         onWheel={handleWheel}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
