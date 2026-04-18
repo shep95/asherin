@@ -409,6 +409,28 @@ const ZophielEngineView = () => {
         )}
       </div>
 
+      {/* Intel Map split-screen panel */}
+      {intelMapOpen && searched && results.length > 0 && (
+        <div className="hidden lg:block flex-1 min-w-0 animate-fade-in">
+          <IntelMapPanel
+            query={query}
+            results={results}
+            onClose={() => setIntelMapOpen(false)}
+          />
+        </div>
+      )}
+
+      {/* Mobile: full-screen overlay for Intel Map */}
+      {intelMapOpen && searched && results.length > 0 && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-background animate-fade-in">
+          <IntelMapPanel
+            query={query}
+            results={results}
+            onClose={() => setIntelMapOpen(false)}
+          />
+        </div>
+      )}
+
       {/* Page Preview Panel */}
       {preview && (
         <PagePreviewPanel preview={preview.data} url={preview.url} onClose={() => setPreview(null)} />
