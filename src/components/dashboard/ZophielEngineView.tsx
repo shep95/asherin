@@ -40,6 +40,7 @@ const ZophielEngineView = () => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
+  const [intelMapOpen, setIntelMapOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
 
