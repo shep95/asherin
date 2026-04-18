@@ -35,9 +35,9 @@ const TONE_STYLES: Record<Tone, { ring: string; dot: string; text: string; glow:
   critical: { ring: "border-red-400/40",     dot: "bg-red-400", text: "text-red-300/80", glow: "shadow-[0_0_20px_-8px] shadow-red-400/40" },
 };
 
-const MAX_BYTES = 100 * 1024;
-const MAX_ZIP_BYTES = 10 * 1024 * 1024; // 10MB zip
-const MAX_COMBINED_CODE = 500 * 1024;   // 500KB of extracted text sent to engine
+const MAX_BYTES = 100 * 1024 * 1024;       // 100MB single file
+const MAX_ZIP_BYTES = 100 * 1024 * 1024;   // 100MB zip
+const MAX_COMBINED_CODE = 500 * 1024;      // 500KB of extracted text sent to engine
 const CODE_EXTS = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|kts|c|h|cc|cpp|hpp|cs|php|swift|m|mm|scala|lua|pl|r|sh|bash|zsh|sql|html?|css|scss|sass|less|vue|svelte|astro|json|ya?ml|toml|xml|env|config|ini|dockerfile|md|txt)$/i;
 const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|coverage|vendor|__pycache__|\.venv|venv|target)(\/|$)/i;
 
