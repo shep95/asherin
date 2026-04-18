@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff } from "lucide-react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network } from "lucide-react";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
@@ -11,6 +11,7 @@ import SearchResultCard from "./search/SearchResultCard";
 import FilterSidebar from "./search/FilterSidebar";
 import PagePreviewPanel from "./search/PagePreviewPanel";
 import DeepSearchPanel from "./search/DeepSearchPanel";
+import IntelMapPanel from "./search/IntelMapPanel";
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -39,6 +40,7 @@ const ZophielEngineView = () => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
+  const [intelMapOpen, setIntelMapOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
 
@@ -212,7 +214,7 @@ const ZophielEngineView = () => {
         />
       )}
 
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className={`flex flex-col min-w-0 transition-all duration-300 ${intelMapOpen && searched && results.length > 0 ? "flex-1 lg:w-1/2 lg:flex-none" : "flex-1"}`}>
         {/* Search Header */}
         <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
@@ -316,9 +318,23 @@ const ZophielEngineView = () => {
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
-                    <p className="text-[10px] font-light text-muted-foreground/40 mb-4">
-                      {results.length} results in {searchTime}ms • Mode: {mode}
-                    </p>
+                    <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                      <p className="text-[10px] font-light text-muted-foreground/40">
+                        {results.length} results in {searchTime}ms • Mode: {mode}
+                      </p>
+                      <button
+                        onClick={() => setIntelMapOpen((v) => !v)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
+                          intelMapOpen
+                            ? "border-accent/40 bg-accent/15 text-accent"
+                            : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
+                        }`}
+                        title="Build Palantir-style intelligence map from these results"
+                      >
+                        <Network className="h-3.5 w-3.5" />
+                        {intelMapOpen ? "Close Intel Map" : "Build Intel Map"}
+                      </button>
+                    </div>
                   )}
 
                   {/* Instant Answer */}
@@ -392,6 +408,28 @@ const ZophielEngineView = () => {
           </div>
         )}
       </div>
+
+      {/* Intel Map split-screen panel */}
+      {intelMapOpen && searched && results.length > 0 && (
+        <div className="hidden lg:block flex-1 min-w-0 animate-fade-in">
+          <IntelMapPanel
+            query={query}
+            results={results}
+            onClose={() => setIntelMapOpen(false)}
+          />
+        </div>
+      )}
+
+      {/* Mobile: full-screen overlay for Intel Map */}
+      {intelMapOpen && searched && results.length > 0 && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-background animate-fade-in">
+          <IntelMapPanel
+            query={query}
+            results={results}
+            onClose={() => setIntelMapOpen(false)}
+          />
+        </div>
+      )}
 
       {/* Page Preview Panel */}
       {preview && (
