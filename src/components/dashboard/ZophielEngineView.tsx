@@ -49,8 +49,11 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
-  const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite)
-  const [resizing, setResizing] = useState(false);
+  const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
+  const splitPctRef = useRef(50);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const resizingRef = useRef(false);
 
   // Hide global header right-side controls while a side panel is open
   useEffect(() => {
@@ -59,27 +62,37 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     return () => { document.body.classList.remove("zophiel-panel-open"); };
   }, [intelMapOpen, intelSuiteOpen, searched, results.length]);
 
-  // Drag-to-resize handler
-  useEffect(() => {
-    if (!resizing) return;
+  // High-perf drag-to-resize: bypass React re-renders, write width directly via rAF
+  const startResize = useCallback(() => {
+    resizingRef.current = true;
+    let raf = 0;
+    let pendingPct = splitPctRef.current;
+    const apply = () => {
+      raf = 0;
+      if (leftPanelRef.current) leftPanelRef.current.style.width = `${100 - pendingPct}%`;
+      if (rightPanelRef.current) rightPanelRef.current.style.width = `${pendingPct}%`;
+    };
     const onMove = (e: MouseEvent) => {
       const vw = window.innerWidth;
       const rightPx = vw - e.clientX;
-      const pct = Math.min(80, Math.max(20, (rightPx / vw) * 100));
-      setSplitPct(pct);
+      pendingPct = Math.min(80, Math.max(20, (rightPx / vw) * 100));
+      if (!raf) raf = requestAnimationFrame(apply);
     };
-    const onUp = () => setResizing(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    return () => {
+    const onUp = () => {
+      resizingRef.current = false;
+      if (raf) cancelAnimationFrame(raf);
+      splitPctRef.current = pendingPct;
+      setSplitPct(pendingPct);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-  }, [resizing]);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    window.addEventListener("mouseup", onUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
