@@ -232,9 +232,6 @@ const CodeAuditView = () => {
             </div>
           )}
 
-          {/* Web Diagram — central node radiating to branches */}
-          <WebDiagram blueprint={blueprint} />
-
           {/* Branches grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {blueprint.branches.map((b) => <BranchCard key={b.id} branch={b} />)}
