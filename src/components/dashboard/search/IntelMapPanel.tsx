@@ -355,37 +355,79 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                 );
               })}
 
-              {/* Nodes */}
+              {/* Nodes — modern rounded squares */}
               {laidOut.map((n) => {
                 const palette = NODE_PALETTE[n.type];
-                const r = NODE_RADIUS[n.type];
+                const { w, h } = NODE_SIZE[n.type];
+                const r = NODE_RADIUS[n.type]; // hit radius for layout/highlight
                 const Icon = TYPE_ICON[n.type];
                 const isSelected = selectedId === n.id;
                 const isDimmed = selectedId && !connectedIds.has(n.id);
-                const opacity = isDimmed ? 0.25 : 1;
+                const opacity = isDimmed ? 0.2 : 1;
+                const corner = 14; // rounded-square radius
                 return (
                   <g
                     key={n.id}
                     data-node
                     transform={`translate(${n.x}, ${n.y})`}
-                    style={{ cursor: "pointer", opacity }}
+                    style={{ cursor: "pointer", opacity, transition: "opacity 200ms ease" }}
                     onClick={(e) => { e.stopPropagation(); setSelectedId(isSelected ? null : n.id); }}
                   >
+                    {/* Selection halo — soft rounded square */}
                     {isSelected && (
-                      <circle r={r + 6} fill="none" stroke={palette.ring} strokeWidth="1.5" opacity="0.6">
-                        <animate attributeName="r" from={r + 4} to={r + 10} dur="1.6s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" from="0.6" to="0" dur="1.6s" repeatCount="indefinite" />
-                      </circle>
+                      <rect
+                        x={-w / 2 - 6} y={-h / 2 - 6}
+                        width={w + 12} height={h + 12}
+                        rx={corner + 4} ry={corner + 4}
+                        fill="none"
+                        stroke={palette.accent}
+                        strokeWidth="1.5"
+                        opacity="0.5"
+                      >
+                        <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
+                      </rect>
                     )}
-                    <circle r={r} fill={palette.fill} stroke={palette.stroke} strokeWidth={isSelected ? 2 : 1.2} />
-                    <foreignObject x={-8} y={-8} width="16" height="16" className="pointer-events-none">
-                      <Icon className="h-4 w-4" style={{ color: palette.text }} />
+
+                    {/* Card body — theme card with subtle border */}
+                    <rect
+                      x={-w / 2} y={-h / 2}
+                      width={w} height={h}
+                      rx={corner} ry={corner}
+                      fill="hsl(var(--card))"
+                      stroke={isSelected ? palette.accent : "hsl(var(--border))"}
+                      strokeWidth={isSelected ? 1.5 : 1}
+                    />
+
+                    {/* Top accent stripe — type indicator */}
+                    <rect
+                      x={-w / 2 + 8} y={-h / 2 + 6}
+                      width={w - 16} height={2}
+                      rx={1} ry={1}
+                      fill={palette.accent}
+                      opacity={isSelected ? 0.9 : 0.55}
+                    />
+
+                    {/* Icon — centered */}
+                    <foreignObject x={-10} y={-10} width="20" height="20" className="pointer-events-none">
+                      <div className="flex items-center justify-center w-full h-full">
+                        <Icon className="h-[18px] w-[18px]" style={{ color: palette.accent, opacity: 0.85 }} strokeWidth={1.5} />
+                      </div>
                     </foreignObject>
-                    <text x={0} y={r + 12} textAnchor="middle" fontSize="10" fontWeight="300" fill={palette.text} className="pointer-events-none">
-                      {n.label.length > 22 ? n.label.slice(0, 21) + "…" : n.label}
+
+                    {/* Label — below the card */}
+                    <text
+                      x={0} y={h / 2 + 14}
+                      textAnchor="middle"
+                      fontSize="10.5"
+                      fontWeight="300"
+                      fill="hsl(var(--foreground))"
+                      className="pointer-events-none"
+                      style={{ letterSpacing: "0.02em" }}
+                    >
+                      {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
                     </text>
                     {n.type === "source" && n.tierLabel && (
-                      <text x={0} y={r + 24} textAnchor="middle" fontSize="8" fill="hsl(var(--muted-foreground))" opacity="0.7" className="pointer-events-none">
+                      <text x={0} y={h / 2 + 26} textAnchor="middle" fontSize="8.5" fill="hsl(var(--muted-foreground))" opacity="0.6" className="pointer-events-none" style={{ letterSpacing: "0.1em", textTransform: "uppercase" }}>
                         {n.tierLabel}
                       </text>
                     )}
