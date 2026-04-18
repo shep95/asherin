@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network } from "lucide-react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain } from "lucide-react";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
@@ -12,6 +12,7 @@ import FilterSidebar from "./search/FilterSidebar";
 import PagePreviewPanel from "./search/PagePreviewPanel";
 import DeepSearchPanel from "./search/DeepSearchPanel";
 import IntelMapPanel from "./search/IntelMapPanel";
+import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -41,6 +42,7 @@ const ZophielEngineView = () => {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
   const [intelMapOpen, setIntelMapOpen] = useState(false);
+  const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
 
@@ -214,7 +216,7 @@ const ZophielEngineView = () => {
         />
       )}
 
-      <div className={`flex flex-col min-w-0 transition-all duration-300 ${intelMapOpen && searched && results.length > 0 ? "flex-1 lg:w-2/5 lg:flex-none" : "flex-1"}`}>
+      <div className={`flex flex-col min-w-0 transition-all duration-300 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:w-2/5 lg:flex-none" : "flex-1"}`}>
         {/* Search Header */}
         <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
@@ -322,18 +324,32 @@ const ZophielEngineView = () => {
                       <p className="text-[10px] font-light text-muted-foreground/40">
                         {results.length} results in {searchTime}ms • Mode: {mode}
                       </p>
-                      <button
-                        onClick={() => setIntelMapOpen((v) => !v)}
-                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
-                          intelMapOpen
-                            ? "border-accent/40 bg-accent/15 text-accent"
-                            : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
-                        }`}
-                        title="Build Palantir-style intelligence map from these results"
-                      >
-                        <Network className="h-3.5 w-3.5" />
-                        {intelMapOpen ? "Close Intel Map" : "Build Intel Map"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { setIntelMapOpen((v) => !v); if (!intelMapOpen) setIntelSuiteOpen(false); }}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
+                            intelMapOpen
+                              ? "border-accent/40 bg-accent/15 text-accent"
+                              : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
+                          }`}
+                          title="Build Palantir-style intelligence map from these results"
+                        >
+                          <Network className="h-3.5 w-3.5" />
+                          {intelMapOpen ? "Close Map" : "Intel Map"}
+                        </button>
+                        <button
+                          onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) setIntelMapOpen(false); }}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
+                            intelSuiteOpen
+                              ? "border-accent/40 bg-accent/15 text-accent"
+                              : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
+                          }`}
+                          title="Run forensic intelligence analysis: timeline, credibility, fact-check, narrative, gaps"
+                        >
+                          <Brain className="h-3.5 w-3.5" />
+                          {intelSuiteOpen ? "Close Intel" : "Intel Suite"}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -427,6 +443,30 @@ const ZophielEngineView = () => {
             query={query}
             results={results}
             onClose={() => setIntelMapOpen(false)}
+          />
+        </div>
+      )}
+
+      {/* Intelligence Suite split-screen panel */}
+      {intelSuiteOpen && searched && results.length > 0 && (
+        <div className="hidden lg:block lg:w-3/5 min-w-0 animate-fade-in">
+          <IntelligenceSuitePanel
+            query={query}
+            results={results}
+            onClose={() => setIntelSuiteOpen(false)}
+            onRunQuery={(q) => { setQuery(q); search(q); }}
+          />
+        </div>
+      )}
+
+      {/* Mobile: full-screen overlay for Intelligence Suite */}
+      {intelSuiteOpen && searched && results.length > 0 && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-background animate-fade-in">
+          <IntelligenceSuitePanel
+            query={query}
+            results={results}
+            onClose={() => setIntelSuiteOpen(false)}
+            onRunQuery={(q) => { setQuery(q); search(q); }}
           />
         </div>
       )}
