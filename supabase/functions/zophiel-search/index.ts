@@ -699,6 +699,9 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   addResults(mojeekResults, 0.8);
   addResults(metagerResults, 0.7);
   addResults(gigablastResults, 0.7);
+  addResults(wikiResults, 0.95);
+  addResults(braveResults, 0.85);
+  addResults(yandexResults, 0.65);
 
   return all;
 }
