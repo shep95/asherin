@@ -345,10 +345,10 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                 const opacity = isHighlighted ? (isMention ? 0.25 : 0.55) : 0.08;
                 const stroke = isMention ? "hsl(var(--muted-foreground))" : "hsl(var(--accent))";
                 const dash = isMention ? "3 4" : undefined;
-                const mx = (a.x! + b.x!) / 2; const my = (a.y! + b.y!) / 2;
+                const mx = (ax + bx) / 2; const my = (ay + by) / 2;
                 return (
                   <g key={i} opacity={opacity}>
-                    <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={stroke} strokeWidth={isMention ? 1 : 1.5} strokeDasharray={dash} markerEnd={isMention ? undefined : "url(#intel-arrow)"} />
+                    <line x1={ax} y1={ay} x2={bx} y2={by} stroke={stroke} strokeWidth={isMention ? 1 : 1.5} strokeDasharray={dash} markerEnd={isMention ? undefined : "url(#intel-arrow)"} />
                     {!isMention && isHighlighted && selectedId && connectedIds.has(e.source) && connectedIds.has(e.target) && (
                       <text x={mx} y={my - 4} textAnchor="middle" fontSize="9" fill="hsl(var(--muted-foreground))" fontWeight="300" className="pointer-events-none">
                         {e.label}
