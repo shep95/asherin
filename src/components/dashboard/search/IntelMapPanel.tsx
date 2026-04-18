@@ -320,9 +320,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   }, [laidOut]);
 
   return (
-    <div className="flex flex-col h-full bg-background border-l border-border/20">
+    <div className="flex flex-col h-full bg-transparent border-l border-border/20">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/15 bg-card/30 backdrop-blur-md">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/15 bg-card/20 backdrop-blur-2xl">
         <div className="flex items-center gap-2 min-w-0">
           <Network className="h-4 w-4 text-accent shrink-0" />
           <div className="min-w-0">
@@ -348,7 +348,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
       {/* Stats bar */}
       {!loading && !error && laidOut.length > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-border/10 bg-card/10 text-[10px] font-light tracking-wider uppercase text-muted-foreground/70 overflow-x-auto">
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-border/10 bg-card/5 backdrop-blur-xl text-[10px] font-light tracking-wider uppercase text-muted-foreground/70 overflow-x-auto">
           <span>{scrapedCount}/{totalSources} scraped</span>
           <span className="text-border/40">·</span>
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
@@ -367,7 +367,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       )}
 
       {/* Body */}
-      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-gradient-to-br from-background via-background to-card/20"
+      <div ref={containerRef} className="relative flex-1 overflow-hidden bg-transparent"
         onWheel={handleWheel}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}

@@ -447,7 +447,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
       {/* Mobile: full-screen overlay for Intel Map */}
       {intelMapOpen && searched && results.length > 0 && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-background animate-fade-in">
+        <div className="lg:hidden fixed inset-0 z-40 bg-background/40 backdrop-blur-2xl animate-fade-in">
           <IntelMapPanel
             query={query}
             results={results}
