@@ -485,11 +485,11 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       {/* Resize divider — desktop only, when a side panel is open */}
       {(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 && (
         <div
-          onMouseDown={() => setResizing(true)}
+          onMouseDown={(e) => { e.preventDefault(); startResize(); }}
           className="hidden lg:flex items-center justify-center w-1.5 cursor-col-resize group relative z-30"
           title="Drag to resize"
         >
-          <div className={`h-full w-px bg-border/30 group-hover:bg-accent/60 transition-colors ${resizing ? "bg-accent/80" : ""}`} />
+          <div className="h-full w-px bg-border/30 group-hover:bg-accent/60 transition-colors" />
           <div className="absolute h-12 w-1 rounded-full bg-foreground/20 group-hover:bg-accent/70 transition-colors" />
         </div>
       )}
@@ -497,6 +497,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       {/* Intel Map split-screen panel */}
       {intelMapOpen && searched && results.length > 0 && (
         <div
+          ref={rightPanelRef}
           className="hidden lg:block min-w-0 animate-fade-in"
           style={{ width: `${splitPct}%` }}
         >
