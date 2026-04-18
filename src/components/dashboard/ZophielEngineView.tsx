@@ -225,7 +225,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         />
       )}
 
-      <div className={`flex flex-col min-w-0 transition-all duration-300 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:w-2/5 lg:flex-none" : "flex-1"}`}>
+      <div className={`flex flex-col min-w-0 transition-all duration-300 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:w-1/2 lg:flex-none" : "flex-1"}`}>
         {/* Search Header */}
         <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
@@ -436,7 +436,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
       {/* Intel Map split-screen panel */}
       {intelMapOpen && searched && results.length > 0 && (
-        <div className="hidden lg:block lg:w-3/5 min-w-0 animate-fade-in">
+        <div className="hidden lg:block lg:w-1/2 min-w-0 animate-fade-in">
           <IntelMapPanel
             query={query}
             results={results}
@@ -458,7 +458,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
       {/* Intelligence Suite split-screen panel */}
       {intelSuiteOpen && searched && results.length > 0 && (
-        <div className="hidden lg:block lg:w-3/5 min-w-0 animate-fade-in">
+        <div className="hidden lg:block lg:w-1/2 min-w-0 animate-fade-in">
           <IntelligenceSuitePanel
             query={query}
             results={results}
