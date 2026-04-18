@@ -295,34 +295,45 @@ function buildUserPrompt(query: string, results: ResultIn[]): string {
 }
 
 async function callGateway(type: AnalysisType, query: string, results: ResultIn[]) {
-  const apiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!apiKey) throw new Error('LOVABLE_API_KEY not configured');
+  const apiKey = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('GEMINI_API_KEY_APP not configured');
 
   const schema = SCHEMAS[type];
   const systemPrompt = SYSTEM_PROMPTS[type];
 
-  const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: buildUserPrompt(query, results) },
-      ],
-      tools: [{ type: 'function', function: schema }],
-      tool_choice: { type: 'function', function: { name: schema.name } },
-    }),
-  });
+  // Convert OpenAI-style JSON Schema to Gemini function declaration
+  const r = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [
+          { role: 'user', parts: [{ text: buildUserPrompt(query, results) }] },
+        ],
+        tools: [{
+          functionDeclarations: [{
+            name: schema.name,
+            description: schema.description,
+            parameters: schema.parameters,
+          }],
+        }],
+        toolConfig: {
+          functionCallingConfig: { mode: 'ANY', allowedFunctionNames: [schema.name] },
+        },
+      }),
+    },
+  );
 
   if (!r.ok) {
     const t = await r.text();
-    throw new Error(`AI gateway ${r.status}: ${t.slice(0, 300)}`);
+    throw new Error(`Gemini API ${r.status}: ${t.slice(0, 300)}`);
   }
   const data = await r.json();
-  const args = data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  if (!args) throw new Error('No tool call returned');
-  return JSON.parse(args);
+  const fc = data?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
+  if (!fc?.args) throw new Error('No function call returned');
+  return fc.args;
 }
 
 Deno.serve(async (req) => {
