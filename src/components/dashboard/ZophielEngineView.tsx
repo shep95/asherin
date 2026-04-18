@@ -174,8 +174,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       return;
     }
 
-    // Imagine mode — handled by OracleLocusView, do not run text search
-    if (mode === "imagine") {
+    // Imagine / Extract modes — handled by their own panels, do not run text search
+    if (mode === "imagine" || mode === "extract") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -312,8 +312,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               <SearchModeSelector active={mode} onChange={setMode} />
             </div>
 
-            {/* Search bar — hidden in imagine mode (uses image upload UI instead) */}
-            {mode !== "imagine" && (
+            {/* Search bar — hidden in imagine/extract modes (use their own input UI) */}
+            {mode !== "imagine" && mode !== "extract" && (
               <form onSubmit={handleSubmit} className="relative">
                 <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
                   {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
