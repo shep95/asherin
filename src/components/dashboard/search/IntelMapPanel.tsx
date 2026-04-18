@@ -32,14 +32,16 @@ interface IntelMapPanelProps {
   onClose: () => void;
 }
 
-/* Theme palette — matches Azplen GraphViewPanel aesthetic */
-const NODE_PALETTE: Record<IntelNode["type"], { fill: string; stroke: string; text: string; ring: string }> = {
-  source:       { fill: "hsl(210, 30%, 14%)", stroke: "hsl(210, 50%, 55%)", text: "hsl(210, 50%, 85%)", ring: "hsl(210, 50%, 55%)" },
-  person:       { fill: "hsl(275, 30%, 16%)", stroke: "hsl(275, 55%, 60%)", text: "hsl(275, 50%, 88%)", ring: "hsl(275, 55%, 60%)" },
-  organization: { fill: "hsl(200, 30%, 14%)", stroke: "hsl(200, 55%, 55%)", text: "hsl(200, 55%, 85%)", ring: "hsl(200, 55%, 55%)" },
-  location:     { fill: "hsl(160, 30%, 13%)", stroke: "hsl(160, 50%, 50%)", text: "hsl(160, 45%, 85%)", ring: "hsl(160, 50%, 50%)" },
-  topic:        { fill: "hsl(45, 30%, 13%)",  stroke: "hsl(45, 65%, 55%)",  text: "hsl(45, 55%, 88%)",  ring: "hsl(45, 65%, 55%)"  },
-  event:        { fill: "hsl(0, 25%, 15%)",   stroke: "hsl(0, 55%, 55%)",   text: "hsl(0, 50%, 88%)",   ring: "hsl(0, 55%, 55%)"   },
+/* Theme-matched monochrome palette using semantic tokens.
+ * All nodes share the card/border aesthetic; type is differentiated by a subtle
+ * accent stripe and the icon, not by saturated color. Selected state lights up. */
+const NODE_PALETTE: Record<IntelNode["type"], { accent: string; label: string }> = {
+  source:       { accent: "hsl(var(--accent))",            label: "Source" },
+  person:       { accent: "hsl(265, 60%, 65%)",            label: "Person" },
+  organization: { accent: "hsl(200, 55%, 60%)",            label: "Org" },
+  location:     { accent: "hsl(160, 45%, 55%)",            label: "Place" },
+  topic:        { accent: "hsl(40, 70%, 60%)",             label: "Topic" },
+  event:        { accent: "hsl(0, 55%, 62%)",              label: "Event" },
 };
 
 const TYPE_ICON: Record<IntelNode["type"], typeof Globe> = {
@@ -51,8 +53,17 @@ const TYPE_ICON: Record<IntelNode["type"], typeof Globe> = {
   event: Calendar,
 };
 
+/* Rounded-square node sizing (width × height). Sources slightly larger. */
+const NODE_SIZE: Record<IntelNode["type"], { w: number; h: number }> = {
+  source:       { w: 64, h: 64 },
+  person:       { w: 56, h: 56 },
+  organization: { w: 60, h: 60 },
+  location:     { w: 52, h: 52 },
+  topic:        { w: 48, h: 48 },
+  event:        { w: 52, h: 52 },
+};
 const NODE_RADIUS: Record<IntelNode["type"], number> = {
-  source: 26, person: 22, organization: 24, location: 20, topic: 18, event: 20,
+  source: 32, person: 28, organization: 30, location: 26, topic: 24, event: 26,
 };
 
 /* Force-directed layout (lightweight) */
