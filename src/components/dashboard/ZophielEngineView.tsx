@@ -165,6 +165,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       return;
     }
 
+    // Imagine mode — handled by OracleLocusView, do not run text search
+    if (mode === "imagine") {
+      setSearched(true);
+      setShowSuggestions(false);
+      return;
+    }
+
     // If offline, queue the search
     if (!navigator.onLine) {
       setQueuedSearch(q);
