@@ -63,7 +63,9 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TrackPage = lazy(() => import("./pages/TrackPage"));
 const ProjAureon = lazy(() => import("./pages/ProjAureon"));
 const Whiteboard = lazy(() => import("./pages/Whiteboard"));
+const EliteSuite = lazy(() => import("./pages/EliteSuite"));
 import ProtectedRoute from "./components/ProtectedRoute";
+import CommandPalette from "./components/CommandPalette";
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -83,6 +85,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <CommandPalette />
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -139,6 +142,7 @@ const App = () => (
             <Route path="/ww3" element={<WW3 />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
             <Route path="/whiteboard" element={<Whiteboard />} />
+            <Route path="/elite" element={<ProtectedRoute><EliteSuite /></ProtectedRoute>} />
             <Route
               path="/dashboard"
               element={
