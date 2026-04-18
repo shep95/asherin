@@ -229,16 +229,21 @@ const CodeAuditView = () => {
               type="button"
             >
               <UploadCloud className="h-6 w-6" />
-              <span className="text-[11px] font-light">Drop a code file here, or click to upload</span>
-              <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">Max 100KB · text files only</span>
+              <span className="text-[11px] font-light">Drop a code file or ZIP archive here, or click to upload</span>
+              <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">
+                Single file ≤100KB · ZIP ≤10MB · auto-extracted
+              </span>
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <FileCode className="h-5 w-5 text-accent shrink-0" />
+              {isZipFile
+                ? <FileArchive className="h-5 w-5 text-accent shrink-0" />
+                : <FileCode className="h-5 w-5 text-accent shrink-0" />}
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-light text-foreground truncate">{filename}</p>
                 <p className="text-[9px] font-extralight text-muted-foreground/60">
                   {(byteSize / 1024).toFixed(1)}KB · {code.split("\n").length} lines
+                  {zipFileCount > 0 && ` · ${zipFileCount} files extracted`}
                 </p>
               </div>
               <button
@@ -258,11 +263,28 @@ const CodeAuditView = () => {
               </button>
             </div>
           )}
+
+          {/* Inline ZIP extract progress */}
+          {!auditing && progress > 0 && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-[9px] font-extralight tracking-[0.15em] uppercase text-muted-foreground/60">
+                <span>{progressLabel}</span>
+                <span className="text-accent/80 font-medium tabular-nums">{progress}%</span>
+              </div>
+              <div className="h-1 rounded-full bg-foreground/[0.05] overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-accent/60 to-accent transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <input
             ref={fileInputRef}
             type="file"
             className="hidden"
-            accept=".js,.ts,.tsx,.jsx,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.hpp,.cs,.php,.html,.css,.scss,.sql,.sh,.yaml,.yml,.json,.xml,.toml,.txt,.md,.env,.config,.ini,.dockerfile,.swift,.kt,.scala,.lua,.pl,.r,.m,.vue,.svelte"
+            accept=".zip,.js,.ts,.tsx,.jsx,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.hpp,.cs,.php,.html,.css,.scss,.sql,.sh,.yaml,.yml,.json,.xml,.toml,.txt,.md,.env,.config,.ini,.dockerfile,.swift,.kt,.scala,.lua,.pl,.r,.m,.vue,.svelte"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
         </div>
@@ -276,16 +298,16 @@ const CodeAuditView = () => {
           <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
           <span className="inline-flex items-center gap-1"><Wrench className="h-2.5 w-2.5" /> Fix paths</span>
           <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-          <span className="inline-flex items-center gap-1"><Zap className="h-2.5 w-2.5" /> Visual only</span>
+          <span className="inline-flex items-center gap-1"><FileArchive className="h-2.5 w-2.5" /> ZIP supported</span>
         </div>
       </div>
 
-      {/* Loading */}
+      {/* Loading — circular progress */}
       {auditing && (
-        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-12 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-accent" />
-          <p className="text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/60 uppercase">
-            Mapping security web for {filename || "target"}…
+        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-10 flex flex-col items-center justify-center gap-4">
+          <CircularProgress value={progress} />
+          <p className="text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/70 uppercase text-center">
+            {progressLabel || `Auditing ${filename || "target"}…`}
           </p>
         </div>
       )}
