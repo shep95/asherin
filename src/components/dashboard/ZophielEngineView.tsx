@@ -49,6 +49,37 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
+  const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite)
+  const [resizing, setResizing] = useState(false);
+
+  // Hide global header right-side controls while a side panel is open
+  useEffect(() => {
+    const open = (intelMapOpen || intelSuiteOpen) && searched && results.length > 0;
+    document.body.classList.toggle("zophiel-panel-open", open);
+    return () => { document.body.classList.remove("zophiel-panel-open"); };
+  }, [intelMapOpen, intelSuiteOpen, searched, results.length]);
+
+  // Drag-to-resize handler
+  useEffect(() => {
+    if (!resizing) return;
+    const onMove = (e: MouseEvent) => {
+      const vw = window.innerWidth;
+      const rightPx = vw - e.clientX;
+      const pct = Math.min(80, Math.max(20, (rightPx / vw) * 100));
+      setSplitPct(pct);
+    };
+    const onUp = () => setResizing(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [resizing]);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
