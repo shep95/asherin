@@ -534,4 +534,35 @@ const BranchCard = ({ branch }: { branch: Branch }) => {
   );
 };
 
+const CircularProgress = ({ value }: { value: number }) => {
+  const size = 88;
+  const stroke = 5;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, value));
+  const offset = circumference - (clamped / 100) * circumference;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke="hsl(var(--foreground) / 0.06)" strokeWidth={stroke} fill="none"
+        />
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke="hsl(var(--accent))" strokeWidth={stroke} fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-[stroke-dashoffset] duration-300 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-base font-light text-foreground tabular-nums">{Math.round(clamped)}</span>
+        <span className="text-[8px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">%</span>
+      </div>
+    </div>
+  );
+};
+
 export default CodeAuditView;
