@@ -256,7 +256,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         />
       )}
 
-      <div className={`flex flex-col min-w-0 transition-all duration-300 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:w-1/2 lg:flex-none" : "flex-1"}`}>
+      <div
+        className={`flex flex-col min-w-0 transition-[width] duration-200 ${(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? "flex-1 lg:flex-none" : "flex-1"}`}
+        style={(intelMapOpen || intelSuiteOpen) && searched && results.length > 0 ? { width: `${100 - splitPct}%` } : undefined}
+      >
         {/* Search Header */}
         <div className={`flex-shrink-0 transition-all duration-500 ${searched ? "pt-3 sm:pt-4 pb-2 sm:pb-3" : "pt-[12vh] sm:pt-[18vh] pb-4 sm:pb-6"}`}>
           <div className="max-w-2xl mx-auto px-3 sm:px-6">
