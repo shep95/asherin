@@ -57,6 +57,7 @@ const FeatureMemoryCenter = lazy(() => import("./pages/FeatureMemoryCenter"));
 const FeatureBrains = lazy(() => import("./pages/FeatureBrains"));
 const FeatureLibrary = lazy(() => import("./pages/FeatureLibrary"));
 const FeatureWhiteboardPage = lazy(() => import("./pages/FeatureWhiteboard"));
+const ZophielFree = lazy(() => import("./pages/ZophielFree"));
 const WW3 = lazy(() => import("./pages/WW3"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TrackPage = lazy(() => import("./pages/TrackPage"));
@@ -132,6 +133,8 @@ const App = () => (
             <Route path="/feature/brains" element={<FeatureBrains />} />
             <Route path="/feature/library" element={<FeatureLibrary />} />
             <Route path="/feature/whiteboard-info" element={<FeatureWhiteboardPage />} />
+            <Route path="/zophiel" element={<ZophielFree />} />
+            <Route path="/search" element={<ZophielFree />} />
             <Route path="/i" element={<TrackPage />} />
             <Route path="/ww3" element={<WW3 />} />
             <Route path="/proj-aureon" element={<ProjAureon />} />
