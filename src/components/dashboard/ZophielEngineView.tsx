@@ -522,7 +522,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
       {/* Intelligence Suite split-screen panel */}
       {intelSuiteOpen && searched && results.length > 0 && (
-        <div className="hidden lg:block min-w-0 animate-fade-in" style={{ width: `${splitPct}%` }}>
+        <div ref={rightPanelRef} className="hidden lg:block min-w-0 animate-fade-in" style={{ width: `${splitPct}%` }}>
           <IntelligenceSuitePanel
             query={query}
             results={results}
