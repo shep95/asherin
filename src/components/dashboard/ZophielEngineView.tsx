@@ -22,7 +22,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   general: "Results",
 };
 
-const ZophielEngineView = () => {
+interface ZophielEngineViewProps {
+  onSearchedChange?: (searched: boolean) => void;
+}
+
+const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [grouped, setGrouped] = useState<Record<string, SearchResult[]>>({});
@@ -47,6 +51,11 @@ const ZophielEngineView = () => {
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Notify parent of searched state changes
+  useEffect(() => {
+    onSearchedChange?.(searched);
+  }, [searched, onSearchedChange]);
 
   // Online/offline tracking
   useEffect(() => {
