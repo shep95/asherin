@@ -2,8 +2,9 @@ import { useState, useCallback, useRef } from "react";
 import {
   ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
   Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
-  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye,
+  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye, FileArchive,
 } from "lucide-react";
+import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
