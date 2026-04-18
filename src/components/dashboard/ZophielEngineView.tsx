@@ -411,7 +411,7 @@ const ZophielEngineView = () => {
 
       {/* Intel Map split-screen panel */}
       {intelMapOpen && searched && results.length > 0 && (
-        <div className="hidden lg:block flex-1 min-w-0 animate-fade-in">
+        <div className="hidden lg:block lg:w-3/5 min-w-0 animate-fade-in">
           <IntelMapPanel
             query={query}
             results={results}
