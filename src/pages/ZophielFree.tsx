@@ -9,29 +9,106 @@ const ZophielFree = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    document.title = "Zophiel Search — Free AI Intelligence Engine | Aureon";
-    const meta =
-      document.querySelector('meta[name="description"]') ||
-      (() => {
-        const m = document.createElement("meta");
-        m.setAttribute("name", "description");
-        document.head.appendChild(m);
-        return m;
-      })();
-    meta.setAttribute(
+    // Title — keyword-front, <60 chars
+    document.title = "Zophiel Search — Free Private AI Search Engine | Aureon";
+
+    const setMeta = (selector: string, attr: string, value: string, create: () => HTMLElement) => {
+      let el = document.querySelector(selector) as HTMLElement | null;
+      if (!el) { el = create(); document.head.appendChild(el); }
+      el.setAttribute(attr, value);
+    };
+
+    // Description — <160 chars
+    setMeta(
+      'meta[name="description"]',
       "content",
-      "Free AI-powered search with source-tier credibility, instant answers, deep research, and Palantir-style intel mapping. No tracking. No login.",
+      "Free private AI search with source-credibility tiers, instant answers, deep research, image geo-location, and Palantir-style intel mapping. No tracking.",
+      () => { const m = document.createElement("meta"); m.setAttribute("name", "description"); return m; },
     );
 
-    const linkRel =
-      document.querySelector('link[rel="canonical"]') ||
-      (() => {
-        const l = document.createElement("link");
-        l.setAttribute("rel", "canonical");
-        document.head.appendChild(l);
-        return l;
-      })();
-    linkRel.setAttribute("href", `${window.location.origin}/zophiel`);
+    // Canonical
+    setMeta(
+      'link[rel="canonical"]',
+      "href",
+      `${window.location.origin}/zophiel`,
+      () => { const l = document.createElement("link"); l.setAttribute("rel", "canonical"); return l; },
+    );
+
+    // Open Graph
+    const og: Array<[string, string]> = [
+      ["og:title", "Zophiel Search — Free Private AI Search Engine"],
+      ["og:description", "Source-tier credibility, instant answers, deep research, image OSINT, and intel mapping. No tracking. No login."],
+      ["og:type", "website"],
+      ["og:url", `${window.location.origin}/zophiel`],
+      ["og:site_name", "Aureon"],
+    ];
+    og.forEach(([property, content]) => {
+      setMeta(
+        `meta[property="${property}"]`,
+        "content",
+        content,
+        () => { const m = document.createElement("meta"); m.setAttribute("property", property); return m; },
+      );
+    });
+
+    // Twitter
+    const tw: Array<[string, string]> = [
+      ["twitter:card", "summary_large_image"],
+      ["twitter:title", "Zophiel Search — Free Private AI Search"],
+      ["twitter:description", "Credibility-ranked search, deep research, image geo-location, intel mapping. Zero tracking."],
+    ];
+    tw.forEach(([name, content]) => {
+      setMeta(
+        `meta[name="${name}"]`,
+        "content",
+        content,
+        () => { const m = document.createElement("meta"); m.setAttribute("name", name); return m; },
+      );
+    });
+
+    // JSON-LD: WebSite + SearchAction + SoftwareApplication
+    const ldId = "zophiel-jsonld";
+    document.getElementById(ldId)?.remove();
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = ldId;
+    ld.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          name: "Zophiel Search",
+          url: `${window.location.origin}/zophiel`,
+          potentialAction: {
+            "@type": "SearchAction",
+            target: `${window.location.origin}/zophiel?q={search_term_string}`,
+            "query-input": "required name=search_term_string",
+          },
+        },
+        {
+          "@type": "SoftwareApplication",
+          name: "Zophiel Search Engine",
+          applicationCategory: "SearchApplication",
+          operatingSystem: "Web",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          description:
+            "Free privacy-first AI search engine with source credibility tiers, deep research, image geo-location, and intelligence mapping.",
+          featureList: [
+            "Source credibility tiers",
+            "Instant answer cards",
+            "Deep research mode",
+            "Image geo-location (Imagine Intelligence)",
+            "Palantir-style intel mapping",
+            "Privacy-first, zero tracking",
+          ],
+        },
+      ],
+    });
+    document.head.appendChild(ld);
+
+    return () => {
+      document.getElementById(ldId)?.remove();
+    };
   }, []);
 
   // Detect when user has searched by watching the engine's DOM state via a mutation observer on body
@@ -60,6 +137,10 @@ const ZophielFree = () => {
 
       {/* Engine — full-bleed, no box, no border */}
       <main className="relative z-10 pt-16 min-h-screen">
+        {/* SEO: persistent semantic H1 (visually hidden) */}
+        <h1 className="sr-only">
+          Zophiel — Free Private AI Search Engine with Source Credibility, Deep Research, Image Geo-Location and Intel Mapping
+        </h1>
         <div className="h-[calc(100vh-4rem)]">
           <ZophielEngineView onSearchedChange={setHasSearched} />
         </div>

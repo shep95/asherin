@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet, Image as ImageIcon } from "lucide-react";
 import { exportPDF, exportCSV, exportJSON, exportMarkdown } from "@/lib/exportEngine";
 import { logAudit } from "@/lib/auditLogger";
 import MessageQueuePanel from "./MessageQueuePanel";
@@ -15,6 +15,8 @@ import PagePreviewPanel from "./search/PagePreviewPanel";
 import DeepSearchPanel from "./search/DeepSearchPanel";
 import IntelMapPanel from "./search/IntelMapPanel";
 import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
+
+const OracleLocusView = lazy(() => import("./OracleLocusView"));
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -103,6 +105,14 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     onSearchedChange?.(searched);
   }, [searched, onSearchedChange]);
 
+  // Auto-activate "searched" view when entering Imagine mode (no query needed)
+  useEffect(() => {
+    if (mode === "imagine") {
+      setSearched(true);
+      setShowSuggestions(false);
+    }
+  }, [mode]);
+
   // Online/offline tracking
   useEffect(() => {
     const on = () => setOnline(true);
@@ -160,6 +170,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       setShowSuggestions(false);
       saveRecent(q);
       setDeepSearchQuery(q);
+      return;
+    }
+
+    // Imagine mode — handled by OracleLocusView, do not run text search
+    if (mode === "imagine") {
+      setSearched(true);
+      setShowSuggestions(false);
       return;
     }
 
@@ -294,40 +311,52 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               <SearchModeSelector active={mode} onChange={setMode} />
             </div>
 
-            {/* Search bar */}
-            <form onSubmit={handleSubmit} className="relative">
-              <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
-                {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
-                <Search className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                <input
-                  ref={inputRef}
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
-                  onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder={online ? "Search the web…" : "Offline — search will queue…"}
-                  className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
-                />
-                {query && (
-                  <button type="button" onClick={() => { setQuery(""); setShowSuggestions(false); inputRef.current?.focus(); }} className="p-1 rounded-lg text-muted-foreground/50 hover:text-foreground transition-colors">
-                    <X className="h-4 w-4" />
+            {/* Search bar — hidden in imagine mode (uses image upload UI instead) */}
+            {mode !== "imagine" && (
+              <form onSubmit={handleSubmit} className="relative">
+                <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
+                  {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
+                  <Search className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                  <input
+                    ref={inputRef}
+                    value={query}
+                    onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
+                    onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    placeholder={online ? "Search the web…" : "Offline — search will queue…"}
+                    className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  {query && (
+                    <button type="button" onClick={() => { setQuery(""); setShowSuggestions(false); inputRef.current?.focus(); }} className="p-1 rounded-lg text-muted-foreground/50 hover:text-foreground transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                  <SearchOperatorsPanel filters={filters} onFiltersChange={setFilters} onOperatorString={setOperatorOverrides} />
+                  <button
+                    type="submit"
+                    disabled={loading || !query.trim()}
+                    className="rounded-xl bg-accent/20 px-4 py-1.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                   </button>
-                )}
-                <SearchOperatorsPanel filters={filters} onFiltersChange={setFilters} onOperatorString={setOperatorOverrides} />
-                <button
-                  type="submit"
-                  disabled={loading || !query.trim()}
-                  className="rounded-xl bg-accent/20 px-4 py-1.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                </button>
-              </div>
+                </div>
 
-              {/* Query suggestions dropdown */}
-              {showSuggestions && query.length > 1 && (
-                <QuerySuggestions query={query} onSelect={handleSuggestionSelect} />
-              )}
-            </form>
+                {showSuggestions && query.length > 1 && (
+                  <QuerySuggestions query={query} onSelect={handleSuggestionSelect} />
+                )}
+              </form>
+            )}
+
+            {/* Imagine mode banner */}
+            {mode === "imagine" && (
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
+                <ImageIcon className="h-5 w-5 text-accent shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-light text-foreground">Imagine Intelligence</p>
+                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any image — geo-locate, identify faces, extract biometric data, run forensic analysis. Connected to Zophiel's intel pipeline.</p>
+                </div>
+              </div>
+            )}
 
             {/* Recent searches */}
             {!searched && recentSearches.length > 0 && (
@@ -361,7 +390,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto px-3 sm:px-6 pb-8">
+            <div className={`${mode === "imagine" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
               {/* Queue Panel */}
               <MessageQueuePanel
                 items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
@@ -369,13 +398,20 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 onClear={() => setQueuedSearch(null)}
               />
 
+              {/* Imagine Intelligence — image OSINT, geo-location, biometrics */}
+              {mode === "imagine" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <OracleLocusView />
+                </Suspense>
+              )}
+
               {/* Deep Search Panel */}
-              {deepSearchQuery && (
+              {mode !== "imagine" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
               )}
 
               {/* Standard search results */}
-              {!deepSearchQuery && (
+              {mode !== "imagine" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
