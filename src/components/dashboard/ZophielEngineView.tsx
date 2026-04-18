@@ -17,6 +17,7 @@ import IntelMapPanel from "./search/IntelMapPanel";
 import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
+const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -105,9 +106,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     onSearchedChange?.(searched);
   }, [searched, onSearchedChange]);
 
-  // Auto-activate "searched" view when entering Imagine mode (no query needed)
+  // Auto-activate "searched" view when entering Imagine or Extract mode (no query needed)
   useEffect(() => {
-    if (mode === "imagine") {
+    if (mode === "imagine" || mode === "extract") {
       setSearched(true);
       setShowSuggestions(false);
     }
