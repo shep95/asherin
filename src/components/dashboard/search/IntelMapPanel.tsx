@@ -66,6 +66,84 @@ const NODE_RADIUS: Record<IntelNode["type"], number> = {
   source: 32, person: 28, organization: 30, location: 26, topic: 24, event: 26,
 };
 
+/* Distinct shape per entity type. Each returns an SVG element centered at (0,0). */
+type ShapeKind = "rounded-square" | "circle" | "hexagon" | "diamond" | "pill" | "shield";
+const NODE_SHAPE: Record<IntelNode["type"], ShapeKind> = {
+  source: "rounded-square",
+  person: "circle",
+  organization: "hexagon",
+  location: "shield",
+  topic: "pill",
+  event: "diamond",
+};
+
+function renderShape(kind: ShapeKind, w: number, h: number, fill: string, stroke: string, strokeWidth: number) {
+  const hx = w / 2, hy = h / 2;
+  switch (kind) {
+    case "circle":
+      return <circle cx={0} cy={0} r={Math.min(hx, hy)} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+    case "hexagon": {
+      const r = Math.min(hx, hy);
+      const pts = Array.from({ length: 6 }, (_, i) => {
+        const a = (Math.PI / 3) * i - Math.PI / 6;
+        return `${(Math.cos(a) * r).toFixed(2)},${(Math.sin(a) * r).toFixed(2)}`;
+      }).join(" ");
+      return <polygon points={pts} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+    }
+    case "diamond": {
+      const r = Math.min(hx, hy);
+      return <polygon points={`0,${-r} ${r},0 0,${r} ${-r},0`} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+    }
+    case "pill":
+      return <rect x={-hx} y={-hy * 0.7} width={w} height={h * 0.7} rx={hy * 0.7} ry={hy * 0.7} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+    case "shield": {
+      const r = Math.min(hx, hy);
+      // Rounded shield: top flat with rounded corners, bottom point.
+      const d = `M ${-r},${-r * 0.85} Q ${-r},${-r} ${-r * 0.7},${-r} L ${r * 0.7},${-r} Q ${r},${-r} ${r},${-r * 0.85} L ${r},${r * 0.2} Q ${r},${r * 0.7} 0,${r} Q ${-r},${r * 0.7} ${-r},${r * 0.2} Z`;
+      return <path d={d} fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinejoin="round" />;
+    }
+    case "rounded-square":
+    default:
+      return <rect x={-hx} y={-hy} width={w} height={h} rx={14} ry={14} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+  }
+}
+
+/* Lightweight country / US-state detector. Scans label + context for known names
+ * and returns the matching flag emoji. Uses anchored regexes so 'Iran' doesn't
+ * match 'Iranian-American'. Order matters: longer/more specific names first. */
+const COUNTRY_FLAGS: Array<[RegExp, string]> = [
+  [/\b(united states|u\.s\.a?\.?|usa|america)\b/i, "🇺🇸"],
+  [/\b(united kingdom|u\.k\.|britain|england|scotland|wales)\b/i, "🇬🇧"],
+  [/\b(north korea|dprk)\b/i, "🇰🇵"], [/\b(south korea|korea)\b/i, "🇰🇷"],
+  [/\bsaudi arabia\b/i, "🇸🇦"], [/\bunited arab emirates|uae\b/i, "🇦🇪"],
+  [/\b(russia|russian federation)\b/i, "🇷🇺"], [/\bchina|prc\b/i, "🇨🇳"],
+  [/\biran\b/i, "🇮🇷"], [/\bisrael\b/i, "🇮🇱"], [/\bukraine\b/i, "🇺🇦"],
+  [/\bgermany\b/i, "🇩🇪"], [/\bfrance\b/i, "🇫🇷"], [/\bspain\b/i, "🇪🇸"],
+  [/\bitaly\b/i, "🇮🇹"], [/\bjapan\b/i, "🇯🇵"], [/\bindia\b/i, "🇮🇳"],
+  [/\bcanada\b/i, "🇨🇦"], [/\bmexico\b/i, "🇲🇽"], [/\bbrazil\b/i, "🇧🇷"],
+  [/\baustralia\b/i, "🇦🇺"], [/\bturkey|türkiye\b/i, "🇹🇷"],
+  [/\bsyria\b/i, "🇸🇾"], [/\biraq\b/i, "🇮🇶"], [/\byemen\b/i, "🇾🇪"],
+  [/\begypt\b/i, "🇪🇬"], [/\bvenezuela\b/i, "🇻🇪"], [/\bcuba\b/i, "🇨🇺"],
+  [/\bpakistan\b/i, "🇵🇰"], [/\btaiwan\b/i, "🇹🇼"], [/\bvietnam\b/i, "🇻🇳"],
+  [/\bafghanistan\b/i, "🇦🇫"], [/\blibya\b/i, "🇱🇾"], [/\bsudan\b/i, "🇸🇩"],
+  [/\bnigeria\b/i, "🇳🇬"], [/\bsouth africa\b/i, "🇿🇦"],
+];
+// US state → regional indicator emoji (state flags don't exist as single glyph; use 🏛 as fallback marker)
+const US_STATES: Array<[RegExp, string]> = [
+  [/\b(california|los angeles|san francisco|sacramento)\b/i, "🇺🇸"],
+  [/\b(new york|nyc|manhattan|brooklyn|albany)\b/i, "🇺🇸"],
+  [/\b(texas|austin|houston|dallas)\b/i, "🇺🇸"],
+  [/\b(florida|miami|tampa|orlando)\b/i, "🇺🇸"],
+  [/\b(washington d\.?c\.?|d\.c\.|district of columbia)\b/i, "🇺🇸"],
+];
+
+function detectFlag(node: IntelNode): string | null {
+  const hay = `${node.label} ${node.context || ""}`;
+  for (const [rx, flag] of COUNTRY_FLAGS) if (rx.test(hay)) return flag;
+  for (const [rx, flag] of US_STATES) if (rx.test(hay)) return flag;
+  return null;
+}
+
 /* Force-directed layout (lightweight) */
 function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, height: number, iterations = 220): IntelNode[] {
   const cx = width / 2, cy = height / 2;
