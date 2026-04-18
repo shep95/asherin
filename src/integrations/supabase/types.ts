@@ -1767,6 +1767,42 @@ export type Database = {
           },
         ]
       }
+      custom_source_lists: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          domains: string[] | null
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          domains?: string[] | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          domains?: string[] | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       data_permissions: {
         Row: {
           created_at: string
@@ -1903,6 +1939,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      entity_watchlist: {
+        Row: {
+          alert_frequency: string | null
+          created_at: string | null
+          description: string | null
+          enabled: boolean | null
+          entity_type: string
+          entity_value: string
+          id: string
+          last_checked_at: string | null
+          mention_count: number | null
+          metadata: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_frequency?: string | null
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          entity_type: string
+          entity_value: string
+          id?: string
+          last_checked_at?: string | null
+          mention_count?: number | null
+          metadata?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_frequency?: string | null
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          entity_type?: string
+          entity_value?: string
+          id?: string
+          last_checked_at?: string | null
+          mention_count?: number | null
+          metadata?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       gift_purchases: {
         Row: {
@@ -2270,6 +2351,59 @@ export type Database = {
             columns: ["plugin_id"]
             isOneToOne: false
             referencedRelation: "plugins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intel_annotations: {
+        Row: {
+          color: string | null
+          confidence_score: number | null
+          created_at: string | null
+          flag: string | null
+          id: string
+          note: string | null
+          tags: string[] | null
+          target_id: string
+          target_type: string
+          updated_at: string | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          flag?: string | null
+          id?: string
+          note?: string | null
+          tags?: string[] | null
+          target_id: string
+          target_type: string
+          updated_at?: string | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          flag?: string | null
+          id?: string
+          note?: string | null
+          tags?: string[] | null
+          target_id?: string
+          target_type?: string
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intel_annotations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "research_workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -3455,6 +3589,142 @@ export type Database = {
         }
         Relationships: []
       }
+      research_audit_log: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          payload: Json | null
+          payload_hash: string
+          prev_hash: string | null
+          resource_id: string | null
+          resource_type: string | null
+          user_agent: string | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          payload?: Json | null
+          payload_hash: string
+          prev_hash?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          payload?: Json | null
+          payload_hash?: string
+          prev_hash?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "research_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_workspaces: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_archived: boolean | null
+          metadata: Json | null
+          name: string
+          pinned: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          metadata?: Json | null
+          name: string
+          pinned?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_archived?: boolean | null
+          metadata?: Json | null
+          name?: string
+          pinned?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      room_participants: {
+        Row: {
+          cursor_state: Json | null
+          display_name: string | null
+          id: string
+          joined_at: string | null
+          last_seen_at: string | null
+          role: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          cursor_state?: Json | null
+          display_name?: string | null
+          id?: string
+          joined_at?: string | null
+          last_seen_at?: string | null
+          role?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          cursor_state?: Json | null
+          display_name?: string | null
+          id?: string
+          joined_at?: string | null
+          last_seen_at?: string | null
+          role?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "shared_intel_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_prompts: {
         Row: {
           content: string
@@ -3487,6 +3757,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          enabled: boolean | null
+          filters: Json | null
+          frequency: string | null
+          id: string
+          last_result_count: number | null
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          query: string
+          total_runs: number | null
+          updated_at: string | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          filters?: Json | null
+          frequency?: string | null
+          id?: string
+          last_result_count?: number | null
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          query: string
+          total_runs?: number | null
+          updated_at?: string | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          filters?: Json | null
+          frequency?: string | null
+          id?: string
+          last_result_count?: number | null
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          query?: string
+          total_runs?: number | null
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_searches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "research_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scrapper_files: {
         Row: {
@@ -3570,6 +3902,97 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      search_alerts: {
+        Row: {
+          created_at: string | null
+          id: string
+          new_results: Json | null
+          read: boolean | null
+          result_count: number | null
+          saved_search_id: string | null
+          summary: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          new_results?: Json | null
+          read?: boolean | null
+          result_count?: number | null
+          saved_search_id?: string | null
+          summary?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          new_results?: Json | null
+          read?: boolean | null
+          result_count?: number | null
+          saved_search_id?: string | null
+          summary?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_alerts_saved_search_id_fkey"
+            columns: ["saved_search_id"]
+            isOneToOne: false
+            referencedRelation: "saved_searches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_history: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          duration_ms: number | null
+          filters: Json | null
+          id: string
+          query: string
+          result_count: number | null
+          results_snapshot: Json | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          filters?: Json | null
+          id?: string
+          query: string
+          result_count?: number | null
+          results_snapshot?: Json | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          filters?: Json | null
+          id?: string
+          query?: string
+          result_count?: number | null
+          results_snapshot?: Json | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "research_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_events: {
         Row: {
@@ -3958,6 +4381,56 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      shared_intel_rooms: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          owner_id: string
+          share_code: string
+          state: Json | null
+          updated_at: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          owner_id: string
+          share_code?: string
+          state?: Json | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          owner_id?: string
+          share_code?: string
+          state?: Json | null
+          updated_at?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_intel_rooms_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "research_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shared_personas: {
         Row: {
@@ -4867,6 +5340,56 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "vibe_video_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_items: {
+        Row: {
+          content: Json | null
+          created_at: string | null
+          id: string
+          item_type: string
+          position: number | null
+          source_url: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          item_type: string
+          position?: number | null
+          source_url?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          item_type?: string
+          position?: number | null
+          source_url?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "research_workspaces"
             referencedColumns: ["id"]
           },
         ]
