@@ -348,8 +348,9 @@ const OracleLocusView = () => {
     if (faceInputRef.current) faceInputRef.current.value = "";
   };
 
-  const coordsText = result ? `${result.estimated_location.latitude.toFixed(6)}, ${result.estimated_location.longitude.toFixed(6)}` : "";
-  const googleMapsUrl = result ? `https://www.google.com/maps?q=${result.estimated_location.latitude},${result.estimated_location.longitude}` : "";
+  const hasCoords = !!result?.estimated_location && typeof result.estimated_location.latitude === "number" && typeof result.estimated_location.longitude === "number";
+  const coordsText = hasCoords ? `${result!.estimated_location.latitude.toFixed(6)}, ${result!.estimated_location.longitude.toFixed(6)}` : "";
+  const googleMapsUrl = hasCoords ? `https://www.google.com/maps?q=${result!.estimated_location.latitude},${result!.estimated_location.longitude}` : "";
 
   return (
     <div className="flex flex-1 flex-col h-full" tabIndex={0}>
