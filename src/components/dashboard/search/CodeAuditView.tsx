@@ -36,19 +36,83 @@ const TONE_STYLES: Record<Tone, { ring: string; dot: string; text: string; glow:
 };
 
 const MAX_BYTES = 100 * 1024;
+const MAX_ZIP_BYTES = 10 * 1024 * 1024; // 10MB zip
+const MAX_COMBINED_CODE = 500 * 1024;   // 500KB of extracted text sent to engine
+const CODE_EXTS = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|kts|c|h|cc|cpp|hpp|cs|php|swift|m|mm|scala|lua|pl|r|sh|bash|zsh|sql|html?|css|scss|sass|less|vue|svelte|astro|json|ya?ml|toml|xml|env|config|ini|dockerfile|md|txt)$/i;
+const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|coverage|vendor|__pycache__|\.venv|venv|target)(\/|$)/i;
 
 const CodeAuditView = () => {
   const [filename, setFilename] = useState<string>("");
   const [code, setCode] = useState<string>("");
   const [byteSize, setByteSize] = useState(0);
   const [auditing, setAuditing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [zipFileCount, setZipFileCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isZip = (file: File) =>
+    file.name.toLowerCase().endsWith(".zip") ||
+    file.type === "application/zip" ||
+    file.type === "application/x-zip-compressed";
+
+  const handleZip = useCallback(async (file: File) => {
+    if (file.size > MAX_ZIP_BYTES) {
+      setError(`ZIP exceeds 10MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      return;
+    }
+    setProgress(2);
+    setProgressLabel("Reading archive…");
+    const buf = await file.arrayBuffer();
+    setProgress(10);
+    const zip = await JSZip.loadAsync(buf);
+    const entries = Object.values(zip.files).filter(
+      (f) => !f.dir && CODE_EXTS.test(f.name) && !SKIP_DIR.test(f.name),
+    );
+    if (entries.length === 0) {
+      setError("No code files found inside the ZIP");
+      setProgress(0);
+      setProgressLabel("");
+      return;
+    }
+    setProgressLabel(`Extracting ${entries.length} files…`);
+    let combined = "";
+    let included = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      try {
+        const text = await entry.async("string");
+        const block = `\n\n/* ───── FILE: ${entry.name} ───── */\n${text}`;
+        if (combined.length + block.length > MAX_COMBINED_CODE) break;
+        combined += block;
+        included++;
+      } catch { /* skip unreadable */ }
+      setProgress(10 + Math.round(((i + 1) / entries.length) * 50));
+    }
+    setCode(combined.trim());
+    setFilename(file.name);
+    setByteSize(file.size);
+    setZipFileCount(included);
+    setBlueprint(null);
+    setProgress(60);
+    setProgressLabel(`Ready · ${included} files extracted`);
+    setTimeout(() => { setProgress(0); setProgressLabel(""); }, 800);
+  }, []);
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
+    setZipFileCount(0);
+    if (isZip(file)) {
+      try { await handleZip(file); }
+      catch (e) {
+        setError(e instanceof Error ? e.message : "Could not read ZIP archive");
+        setProgress(0); setProgressLabel("");
+      }
+      return;
+    }
     if (file.size > MAX_BYTES) {
       setError(`File exceeds 100KB limit (${Math.round(file.size / 1024)}KB)`);
       return;
@@ -62,7 +126,7 @@ const CodeAuditView = () => {
     } catch {
       setError("Could not read file as text");
     }
-  }, []);
+  }, [handleZip]);
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
