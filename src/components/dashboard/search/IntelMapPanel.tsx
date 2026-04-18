@@ -275,8 +275,8 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           <span className="text-border/40">·</span>
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
             counts[t] ? (
-              <span key={t} className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: NODE_PALETTE[t].stroke }} />
+              <span key={t} className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-[3px]" style={{ background: NODE_PALETTE[t].accent }} />
                 {counts[t]} {t}
               </span>
             ) : null,
