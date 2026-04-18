@@ -60,6 +60,36 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
       ]
     },
     {
+      "id": "logic",
+      "label": "LOGICAL FLAWS",
+      "icon": "brain",
+      "tone": "critical",
+      "leaves": [
+        { "label": "Inverted condition", "value": "Line 67 — !isValid should be isValid", "confidence": "high" },
+        { "label": "Off-by-one", "value": "Line 89 — i <= arr.length overflows", "confidence": "high" }
+      ]
+    },
+    {
+      "id": "workflow",
+      "label": "WORKFLOW & FLOW",
+      "icon": "workflow",
+      "tone": "warn",
+      "leaves": [
+        { "label": "Missing await", "value": "Line 34 — fetch() not awaited", "confidence": "high" },
+        { "label": "Unhandled rejection", "value": "Promise chain has no .catch()", "confidence": "high" }
+      ]
+    },
+    {
+      "id": "visual",
+      "label": "VISUAL / UI LOGIC",
+      "icon": "eye",
+      "tone": "warn",
+      "leaves": [
+        { "label": "Stale closure", "value": "Line 102 — useEffect missing dep", "confidence": "high" },
+        { "label": "Missing key", "value": "Line 145 — list render lacks key prop", "confidence": "high" }
+      ]
+    },
+    {
       "id": "injection",
       "label": "INJECTION SURFACE",
       "icon": "syringe",
