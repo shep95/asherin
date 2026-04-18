@@ -303,40 +303,52 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               <SearchModeSelector active={mode} onChange={setMode} />
             </div>
 
-            {/* Search bar */}
-            <form onSubmit={handleSubmit} className="relative">
-              <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
-                {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
-                <Search className="h-5 w-5 text-muted-foreground/50 shrink-0" />
-                <input
-                  ref={inputRef}
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
-                  onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder={online ? "Search the web…" : "Offline — search will queue…"}
-                  className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
-                />
-                {query && (
-                  <button type="button" onClick={() => { setQuery(""); setShowSuggestions(false); inputRef.current?.focus(); }} className="p-1 rounded-lg text-muted-foreground/50 hover:text-foreground transition-colors">
-                    <X className="h-4 w-4" />
+            {/* Search bar — hidden in imagine mode (uses image upload UI instead) */}
+            {mode !== "imagine" && (
+              <form onSubmit={handleSubmit} className="relative">
+                <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
+                  {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
+                  <Search className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+                  <input
+                    ref={inputRef}
+                    value={query}
+                    onChange={(e) => { setQuery(e.target.value); setShowSuggestions(e.target.value.length > 1); }}
+                    onFocus={() => { if (query.length > 1) setShowSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    placeholder={online ? "Search the web…" : "Offline — search will queue…"}
+                    className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
+                  />
+                  {query && (
+                    <button type="button" onClick={() => { setQuery(""); setShowSuggestions(false); inputRef.current?.focus(); }} className="p-1 rounded-lg text-muted-foreground/50 hover:text-foreground transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                  <SearchOperatorsPanel filters={filters} onFiltersChange={setFilters} onOperatorString={setOperatorOverrides} />
+                  <button
+                    type="submit"
+                    disabled={loading || !query.trim()}
+                    className="rounded-xl bg-accent/20 px-4 py-1.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                   </button>
-                )}
-                <SearchOperatorsPanel filters={filters} onFiltersChange={setFilters} onOperatorString={setOperatorOverrides} />
-                <button
-                  type="submit"
-                  disabled={loading || !query.trim()}
-                  className="rounded-xl bg-accent/20 px-4 py-1.5 text-xs font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
-                >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                </button>
-              </div>
+                </div>
 
-              {/* Query suggestions dropdown */}
-              {showSuggestions && query.length > 1 && (
-                <QuerySuggestions query={query} onSelect={handleSuggestionSelect} />
-              )}
-            </form>
+                {showSuggestions && query.length > 1 && (
+                  <QuerySuggestions query={query} onSelect={handleSuggestionSelect} />
+                )}
+              </form>
+            )}
+
+            {/* Imagine mode banner */}
+            {mode === "imagine" && (
+              <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
+                <ImageIcon className="h-5 w-5 text-accent shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-light text-foreground">Imagine Intelligence</p>
+                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any image — geo-locate, identify faces, extract biometric data, run forensic analysis. Connected to Zophiel's intel pipeline.</p>
+                </div>
+              </div>
+            )}
 
             {/* Recent searches */}
             {!searched && recentSearches.length > 0 && (
