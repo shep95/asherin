@@ -353,33 +353,34 @@ const OracleLocusView = () => {
 
   return (
     <div className="flex flex-1 flex-col h-full" tabIndex={0}>
-      <div className="flex-shrink-0 p-6 border-b border-border/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
+      {/* Modern minimal header — matches Zophiel theme */}
+      <div className="flex-shrink-0 px-6 pt-5 pb-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="relative h-9 w-9 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/20 flex items-center justify-center">
               <Crosshair className="h-4 w-4 text-accent" />
-              <h1 className="text-lg font-extralight tracking-[0.2em] text-foreground">ORACLE-LOCUS</h1>
+              <div className="absolute inset-0 rounded-xl bg-accent/10 blur-md -z-10" />
             </div>
-            <p className="text-xs font-extralight text-muted-foreground mt-1">Geo-Intelligence & Facial Search System</p>
+            <div>
+              <h1 className="text-sm font-light tracking-[0.2em] text-foreground uppercase">Imagine Intelligence</h1>
+              <p className="text-[10px] font-extralight text-muted-foreground/70 tracking-wide mt-0.5">
+                Geo-locate · Extract metadata · Forensic visual analysis
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Shield className="h-3.5 w-3.5 text-emerald-500/70" />
-            <span className="text-[10px] text-emerald-500/70 tracking-wider">LEVEL 20 CLEARANCE</span>
+          <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-emerald-500/15 bg-emerald-500/5 px-2.5 py-1">
+            <Shield className="h-3 w-3 text-emerald-400/80" />
+            <span className="text-[9px] text-emerald-300/80 tracking-[0.15em] uppercase font-light">Secure</span>
           </div>
         </div>
       </div>
 
       <Tabs defaultValue="geo" className="flex flex-1 flex-col min-h-0">
-        <div className="px-6 pt-4">
-          <TabsList className="bg-card/20 border border-border/10 rounded-xl">
-            <TabsTrigger value="geo" className="rounded-lg text-xs tracking-wider data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
-              <MapPin className="h-3.5 w-3.5 mr-1.5" />GEO ANALYSIS
-            </TabsTrigger>
-            <TabsTrigger value="face" className="rounded-lg text-xs tracking-wider data-[state=active]:bg-accent data-[state=active]:text-accent-foreground">
-              <Users className="h-3.5 w-3.5 mr-1.5" />FACE INTEL
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        {/* Face Intel removed — geo is the only public mode */}
+        <TabsList className="hidden">
+          <TabsTrigger value="geo">Geo</TabsTrigger>
+          <TabsTrigger value="face">Face</TabsTrigger>
+        </TabsList>
 
         {/* ════════════════ GEO ANALYSIS TAB ════════════════ */}
         <TabsContent value="geo" className="flex-1 min-h-0 mt-0" onPaste={handlePaste}>
