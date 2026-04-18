@@ -123,11 +123,18 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
   "edges": [
     { "from": "leaks", "to": "injection", "label": "feeds" },
     { "from": "broken", "to": "fragile", "label": "cascades" },
+    { "from": "logic", "to": "broken", "label": "produces" },
+    { "from": "logic", "to": "workflow", "label": "corrupts" },
+    { "from": "workflow", "to": "fragile", "label": "destabilizes" },
+    { "from": "visual", "to": "logic", "label": "reflects" },
     { "from": "injection", "to": "auth", "label": "bypasses" },
     { "from": "deps", "to": "leaks", "label": "introduces" },
     { "from": "leaks", "to": "fix", "label": "resolved by" },
     { "from": "broken", "to": "fix", "label": "patched by" },
-    { "from": "fragile", "to": "fix", "label": "hardened by" }
+    { "from": "fragile", "to": "fix", "label": "hardened by" },
+    { "from": "logic", "to": "fix", "label": "corrected by" },
+    { "from": "workflow", "to": "fix", "label": "restructured by" },
+    { "from": "visual", "to": "fix", "label": "rewired by" }
   ],
   "criticals": [
     { "branch": "leaks", "finding": "Hardcoded credentials at line 23 — rotate immediately", "severity": "high|med|low" }
@@ -138,9 +145,10 @@ Rules:
 - Each branch MUST have 3-7 concrete leaves (cite line numbers when possible).
 - Use 'tone' to color-code: good (safe), neutral (standard), warn (risky), critical (broken/exposed).
 - Leaves must be FACTS with line refs ("Line 42 — eval(userInput)") not vague ("uses eval somewhere").
-- Always include all 7 branches even if some have empty leaves.
-- For each leak/bug/fragility, the "fix" branch MUST contain a corresponding remediation leaf with the WHY and HOW.
-- Always include the 7 standard edges above (add more if relevant).
+- Always include ALL 10 branches: leaks, broken, fragile, logic, workflow, visual, injection, auth, deps, fix (empty leaves OK if truly nothing found).
+- HUNT AGGRESSIVELY for logical flaws (inverted booleans, off-by-one, wrong math, faulty state), workflow defects (missing awaits, unhandled rejections, broken control flow), and visual/UI logic bugs (stale closures, missing keys, broken JSX conditions, dep array issues).
+- For each finding in leaks/broken/fragile/logic/workflow/visual, the "fix" branch MUST contain a corresponding remediation leaf with the WHY and HOW.
+- Include all 14 standard edges above (add more if relevant).
 - Output JSON only. No prose before or after.`;
 
 serve(async (req) => {
