@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff } from "lucide-react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network } from "lucide-react";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
@@ -11,6 +11,7 @@ import SearchResultCard from "./search/SearchResultCard";
 import FilterSidebar from "./search/FilterSidebar";
 import PagePreviewPanel from "./search/PagePreviewPanel";
 import DeepSearchPanel from "./search/DeepSearchPanel";
+import IntelMapPanel from "./search/IntelMapPanel";
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
