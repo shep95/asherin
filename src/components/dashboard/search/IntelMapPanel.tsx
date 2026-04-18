@@ -354,7 +354,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
             counts[t] ? (
               <span key={t} className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-[3px]" style={{ background: NODE_PALETTE[t].accent }} />
+                <svg width="10" height="10" viewBox="-6 -6 12 12" className="shrink-0">
+                  {renderShape(NODE_SHAPE[t], 10, 10, NODE_PALETTE[t].accent, "transparent", 0)}
+                </svg>
                 {counts[t]} {t}
               </span>
             ) : null,
