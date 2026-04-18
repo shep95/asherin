@@ -54,13 +54,14 @@ export const getStoredWallpaper = (): string => {
     const customUrl = localStorage.getItem("aureon_custom_wallpaper_url");
     if (customUrl) return customUrl;
   }
-  const wp = WALLPAPERS.find((w) => w.key === stored);
-  return wp ? wp.src : wallpaperDefault;
+  const key = stored ?? "stealth";
+  const wp = WALLPAPERS.find((w) => w.key === key);
+  return wp ? wp.src : wallpaperStealth;
 };
 
 const WallpaperSwitcher = () => {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "default");
+  const [active, setActive] = useState(() => localStorage.getItem(STORAGE_KEY) || "stealth");
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
