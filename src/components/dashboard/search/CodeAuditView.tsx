@@ -231,7 +231,7 @@ const CodeAuditView = () => {
               <UploadCloud className="h-6 w-6" />
               <span className="text-[11px] font-light">Drop a code file or ZIP archive here, or click to upload</span>
               <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">
-                Single file ≤100KB · ZIP ≤10MB · auto-extracted
+                Single file or ZIP up to 100MB · auto-extracted
               </span>
             </button>
           ) : (
