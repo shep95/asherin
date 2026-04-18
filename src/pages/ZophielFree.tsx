@@ -137,6 +137,10 @@ const ZophielFree = () => {
 
       {/* Engine — full-bleed, no box, no border */}
       <main className="relative z-10 pt-16 min-h-screen">
+        {/* SEO: persistent semantic H1 (visually hidden) */}
+        <h1 className="sr-only">
+          Zophiel — Free Private AI Search Engine with Source Credibility, Deep Research, Image Geo-Location and Intel Mapping
+        </h1>
         <div className="h-[calc(100vh-4rem)]">
           <ZophielEngineView onSearchedChange={setHasSearched} />
         </div>
