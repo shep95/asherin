@@ -95,10 +95,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: 'AI gateway not configured' }),
+        JSON.stringify({ success: false, error: 'GEMINI_API_KEY_APP not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -151,32 +151,33 @@ Return JSON with this exact shape:
   ]
 }`;
 
-    const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    const aiResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [
+            { role: 'user', parts: [{ text: userPrompt }] },
+          ],
+          generationConfig: {
+            responseMimeType: 'application/json',
+          },
+        }),
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-    });
+    );
 
     if (!aiResp.ok) {
       const txt = await aiResp.text();
       return new Response(
-        JSON.stringify({ success: false, error: `AI error ${aiResp.status}: ${txt.slice(0, 200)}` }),
+        JSON.stringify({ success: false, error: `Gemini error ${aiResp.status}: ${txt.slice(0, 200)}` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     const aiData = await aiResp.json();
-    const raw = aiData?.choices?.[0]?.message?.content || '{}';
+    const raw = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     let parsed: { entities?: any[]; relationships?: any[] } = {};
     try { parsed = JSON.parse(raw); } catch { parsed = {}; }
 
