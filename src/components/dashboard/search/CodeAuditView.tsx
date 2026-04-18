@@ -2,8 +2,9 @@ import { useState, useCallback, useRef } from "react";
 import {
   ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
   Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
-  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye,
+  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye, FileArchive,
 } from "lucide-react";
+import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -35,19 +36,83 @@ const TONE_STYLES: Record<Tone, { ring: string; dot: string; text: string; glow:
 };
 
 const MAX_BYTES = 100 * 1024;
+const MAX_ZIP_BYTES = 10 * 1024 * 1024; // 10MB zip
+const MAX_COMBINED_CODE = 500 * 1024;   // 500KB of extracted text sent to engine
+const CODE_EXTS = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|kts|c|h|cc|cpp|hpp|cs|php|swift|m|mm|scala|lua|pl|r|sh|bash|zsh|sql|html?|css|scss|sass|less|vue|svelte|astro|json|ya?ml|toml|xml|env|config|ini|dockerfile|md|txt)$/i;
+const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|coverage|vendor|__pycache__|\.venv|venv|target)(\/|$)/i;
 
 const CodeAuditView = () => {
   const [filename, setFilename] = useState<string>("");
   const [code, setCode] = useState<string>("");
   const [byteSize, setByteSize] = useState(0);
   const [auditing, setAuditing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [zipFileCount, setZipFileCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isZip = (file: File) =>
+    file.name.toLowerCase().endsWith(".zip") ||
+    file.type === "application/zip" ||
+    file.type === "application/x-zip-compressed";
+
+  const handleZip = useCallback(async (file: File) => {
+    if (file.size > MAX_ZIP_BYTES) {
+      setError(`ZIP exceeds 10MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      return;
+    }
+    setProgress(2);
+    setProgressLabel("Reading archive…");
+    const buf = await file.arrayBuffer();
+    setProgress(10);
+    const zip = await JSZip.loadAsync(buf);
+    const entries = Object.values(zip.files).filter(
+      (f) => !f.dir && CODE_EXTS.test(f.name) && !SKIP_DIR.test(f.name),
+    );
+    if (entries.length === 0) {
+      setError("No code files found inside the ZIP");
+      setProgress(0);
+      setProgressLabel("");
+      return;
+    }
+    setProgressLabel(`Extracting ${entries.length} files…`);
+    let combined = "";
+    let included = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      try {
+        const text = await entry.async("string");
+        const block = `\n\n/* ───── FILE: ${entry.name} ───── */\n${text}`;
+        if (combined.length + block.length > MAX_COMBINED_CODE) break;
+        combined += block;
+        included++;
+      } catch { /* skip unreadable */ }
+      setProgress(10 + Math.round(((i + 1) / entries.length) * 50));
+    }
+    setCode(combined.trim());
+    setFilename(file.name);
+    setByteSize(file.size);
+    setZipFileCount(included);
+    setBlueprint(null);
+    setProgress(60);
+    setProgressLabel(`Ready · ${included} files extracted`);
+    setTimeout(() => { setProgress(0); setProgressLabel(""); }, 800);
+  }, []);
 
   const handleFile = useCallback(async (file: File) => {
     setError(null);
+    setZipFileCount(0);
+    if (isZip(file)) {
+      try { await handleZip(file); }
+      catch (e) {
+        setError(e instanceof Error ? e.message : "Could not read ZIP archive");
+        setProgress(0); setProgressLabel("");
+      }
+      return;
+    }
     if (file.size > MAX_BYTES) {
       setError(`File exceeds 100KB limit (${Math.round(file.size / 1024)}KB)`);
       return;
@@ -61,7 +126,7 @@ const CodeAuditView = () => {
     } catch {
       setError("Could not read file as text");
     }
-  }, []);
+  }, [handleZip]);
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -77,6 +142,21 @@ const CodeAuditView = () => {
     setAuditing(true);
     setError(null);
     setBlueprint(null);
+    setProgress(5);
+    setProgressLabel("Dispatching to Aureon engine…");
+
+    // simulated progress while edge function runs
+    let pct = 5;
+    const tick = setInterval(() => {
+      pct = Math.min(pct + Math.max(1, Math.round((92 - pct) * 0.08)), 92);
+      setProgress(pct);
+      if (pct < 25) setProgressLabel("Parsing code structure…");
+      else if (pct < 50) setProgressLabel("Scanning for leaks & secrets…");
+      else if (pct < 70) setProgressLabel("Detecting logical flaws & race conditions…");
+      else if (pct < 85) setProgressLabel("Mapping workflow & UI logic…");
+      else setProgressLabel("Compiling forensic blueprint…");
+    }, 350);
+
     try {
       const { data, error: invokeError } = await supabase.functions.invoke(
         "zophiel-code-audit",
@@ -86,12 +166,16 @@ const CodeAuditView = () => {
       if (!data) throw new Error("No response from audit engine");
       if (data.error) throw new Error(data.error);
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
+      setProgress(100);
+      setProgressLabel("Complete");
       setBlueprint(data.blueprint as Blueprint);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Audit failed";
       setError(msg);
     } finally {
+      clearInterval(tick);
       setAuditing(false);
+      setTimeout(() => { setProgress(0); setProgressLabel(""); }, 600);
     }
   }, [code, filename]);
 
@@ -108,8 +192,11 @@ const CodeAuditView = () => {
     setByteSize(0);
     setBlueprint(null);
     setError(null);
+    setZipFileCount(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const isZipFile = filename.toLowerCase().endsWith(".zip");
 
   return (
     <div className="w-full animate-fade-in space-y-4">
@@ -142,16 +229,21 @@ const CodeAuditView = () => {
               type="button"
             >
               <UploadCloud className="h-6 w-6" />
-              <span className="text-[11px] font-light">Drop a code file here, or click to upload</span>
-              <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">Max 100KB · text files only</span>
+              <span className="text-[11px] font-light">Drop a code file or ZIP archive here, or click to upload</span>
+              <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">
+                Single file ≤100KB · ZIP ≤10MB · auto-extracted
+              </span>
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <FileCode className="h-5 w-5 text-accent shrink-0" />
+              {isZipFile
+                ? <FileArchive className="h-5 w-5 text-accent shrink-0" />
+                : <FileCode className="h-5 w-5 text-accent shrink-0" />}
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-light text-foreground truncate">{filename}</p>
                 <p className="text-[9px] font-extralight text-muted-foreground/60">
                   {(byteSize / 1024).toFixed(1)}KB · {code.split("\n").length} lines
+                  {zipFileCount > 0 && ` · ${zipFileCount} files extracted`}
                 </p>
               </div>
               <button
@@ -171,11 +263,28 @@ const CodeAuditView = () => {
               </button>
             </div>
           )}
+
+          {/* Inline ZIP extract progress */}
+          {!auditing && progress > 0 && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between text-[9px] font-extralight tracking-[0.15em] uppercase text-muted-foreground/60">
+                <span>{progressLabel}</span>
+                <span className="text-accent/80 font-medium tabular-nums">{progress}%</span>
+              </div>
+              <div className="h-1 rounded-full bg-foreground/[0.05] overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-accent/60 to-accent transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <input
             ref={fileInputRef}
             type="file"
             className="hidden"
-            accept=".js,.ts,.tsx,.jsx,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.hpp,.cs,.php,.html,.css,.scss,.sql,.sh,.yaml,.yml,.json,.xml,.toml,.txt,.md,.env,.config,.ini,.dockerfile,.swift,.kt,.scala,.lua,.pl,.r,.m,.vue,.svelte"
+            accept=".zip,.js,.ts,.tsx,.jsx,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.hpp,.cs,.php,.html,.css,.scss,.sql,.sh,.yaml,.yml,.json,.xml,.toml,.txt,.md,.env,.config,.ini,.dockerfile,.swift,.kt,.scala,.lua,.pl,.r,.m,.vue,.svelte"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
         </div>
@@ -189,16 +298,16 @@ const CodeAuditView = () => {
           <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
           <span className="inline-flex items-center gap-1"><Wrench className="h-2.5 w-2.5" /> Fix paths</span>
           <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-          <span className="inline-flex items-center gap-1"><Zap className="h-2.5 w-2.5" /> Visual only</span>
+          <span className="inline-flex items-center gap-1"><FileArchive className="h-2.5 w-2.5" /> ZIP supported</span>
         </div>
       </div>
 
-      {/* Loading */}
+      {/* Loading — circular progress */}
       {auditing && (
-        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-12 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-accent" />
-          <p className="text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/60 uppercase">
-            Mapping security web for {filename || "target"}…
+        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-10 flex flex-col items-center justify-center gap-4">
+          <CircularProgress value={progress} />
+          <p className="text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/70 uppercase text-center">
+            {progressLabel || `Auditing ${filename || "target"}…`}
           </p>
         </div>
       )}
@@ -421,6 +530,37 @@ const BranchCard = ({ branch }: { branch: Branch }) => {
           ))}
         </ul>
       )}
+    </div>
+  );
+};
+
+const CircularProgress = ({ value }: { value: number }) => {
+  const size = 88;
+  const stroke = 5;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, value));
+  const offset = circumference - (clamped / 100) * circumference;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke="hsl(var(--foreground) / 0.06)" strokeWidth={stroke} fill="none"
+        />
+        <circle
+          cx={size / 2} cy={size / 2} r={radius}
+          stroke="hsl(var(--accent))" strokeWidth={stroke} fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-[stroke-dashoffset] duration-300 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-base font-light text-foreground tabular-nums">{Math.round(clamped)}</span>
+        <span className="text-[8px] font-extralight tracking-[0.2em] text-muted-foreground/50 uppercase">%</span>
+      </div>
     </div>
   );
 };
