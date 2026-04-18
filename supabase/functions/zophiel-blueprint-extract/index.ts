@@ -133,7 +133,7 @@ serve(async (req) => {
           generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.3,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 16384,
           },
         }),
       },
@@ -149,15 +149,40 @@ serve(async (req) => {
     }
 
     const aiData = await aiResp.json();
-    const raw = aiData?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "{}";
+    const candidate = aiData?.candidates?.[0];
+    const finishReason = candidate?.finishReason;
+    const raw = candidate?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+
+    if (!raw.trim()) {
+      console.error("[blueprint] empty response", { finishReason, aiData });
+      return new Response(
+        JSON.stringify({ error: `Empty AI response (finish: ${finishReason || "unknown"})` }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (finishReason === "MAX_TOKENS") {
+      console.error("[blueprint] truncated", { length: raw.length });
+      return new Response(
+        JSON.stringify({ error: "AI response truncated — try a shorter target or retry" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Strip fences and salvage to last closing brace
+    let cleaned = raw.replace(/```json\n?|```/g, "").trim();
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (lastBrace !== -1) cleaned = cleaned.slice(0, lastBrace + 1);
 
     let blueprint: any;
     try {
-      blueprint = JSON.parse(raw);
-    } catch {
-      // Strip code fences if present
-      const cleaned = raw.replace(/```json\n?|```/g, "").trim();
       blueprint = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error("[blueprint] parse failed", parseErr, "raw:", raw.slice(0, 500));
+      return new Response(
+        JSON.stringify({ error: "AI returned malformed JSON — please retry" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     return new Response(
