@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet, Image as ImageIcon } from "lucide-react";
 import { exportPDF, exportCSV, exportJSON, exportMarkdown } from "@/lib/exportEngine";
 import { logAudit } from "@/lib/auditLogger";
 import MessageQueuePanel from "./MessageQueuePanel";
@@ -15,6 +15,8 @@ import PagePreviewPanel from "./search/PagePreviewPanel";
 import DeepSearchPanel from "./search/DeepSearchPanel";
 import IntelMapPanel from "./search/IntelMapPanel";
 import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
+
+const OracleLocusView = lazy(() => import("./OracleLocusView"));
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
