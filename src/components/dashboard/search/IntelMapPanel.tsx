@@ -32,14 +32,16 @@ interface IntelMapPanelProps {
   onClose: () => void;
 }
 
-/* Theme palette — matches Azplen GraphViewPanel aesthetic */
-const NODE_PALETTE: Record<IntelNode["type"], { fill: string; stroke: string; text: string; ring: string }> = {
-  source:       { fill: "hsl(210, 30%, 14%)", stroke: "hsl(210, 50%, 55%)", text: "hsl(210, 50%, 85%)", ring: "hsl(210, 50%, 55%)" },
-  person:       { fill: "hsl(275, 30%, 16%)", stroke: "hsl(275, 55%, 60%)", text: "hsl(275, 50%, 88%)", ring: "hsl(275, 55%, 60%)" },
-  organization: { fill: "hsl(200, 30%, 14%)", stroke: "hsl(200, 55%, 55%)", text: "hsl(200, 55%, 85%)", ring: "hsl(200, 55%, 55%)" },
-  location:     { fill: "hsl(160, 30%, 13%)", stroke: "hsl(160, 50%, 50%)", text: "hsl(160, 45%, 85%)", ring: "hsl(160, 50%, 50%)" },
-  topic:        { fill: "hsl(45, 30%, 13%)",  stroke: "hsl(45, 65%, 55%)",  text: "hsl(45, 55%, 88%)",  ring: "hsl(45, 65%, 55%)"  },
-  event:        { fill: "hsl(0, 25%, 15%)",   stroke: "hsl(0, 55%, 55%)",   text: "hsl(0, 50%, 88%)",   ring: "hsl(0, 55%, 55%)"   },
+/* Theme-matched monochrome palette using semantic tokens.
+ * All nodes share the card/border aesthetic; type is differentiated by a subtle
+ * accent stripe and the icon, not by saturated color. Selected state lights up. */
+const NODE_PALETTE: Record<IntelNode["type"], { accent: string; label: string }> = {
+  source:       { accent: "hsl(var(--accent))",            label: "Source" },
+  person:       { accent: "hsl(265, 60%, 65%)",            label: "Person" },
+  organization: { accent: "hsl(200, 55%, 60%)",            label: "Org" },
+  location:     { accent: "hsl(160, 45%, 55%)",            label: "Place" },
+  topic:        { accent: "hsl(40, 70%, 60%)",             label: "Topic" },
+  event:        { accent: "hsl(0, 55%, 62%)",              label: "Event" },
 };
 
 const TYPE_ICON: Record<IntelNode["type"], typeof Globe> = {
@@ -51,8 +53,17 @@ const TYPE_ICON: Record<IntelNode["type"], typeof Globe> = {
   event: Calendar,
 };
 
+/* Rounded-square node sizing (width × height). Sources slightly larger. */
+const NODE_SIZE: Record<IntelNode["type"], { w: number; h: number }> = {
+  source:       { w: 64, h: 64 },
+  person:       { w: 56, h: 56 },
+  organization: { w: 60, h: 60 },
+  location:     { w: 52, h: 52 },
+  topic:        { w: 48, h: 48 },
+  event:        { w: 52, h: 52 },
+};
 const NODE_RADIUS: Record<IntelNode["type"], number> = {
-  source: 26, person: 22, organization: 24, location: 20, topic: 18, event: 20,
+  source: 32, person: 28, organization: 30, location: 26, topic: 24, event: 26,
 };
 
 /* Force-directed layout (lightweight) */
@@ -264,8 +275,8 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           <span className="text-border/40">·</span>
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
             counts[t] ? (
-              <span key={t} className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: NODE_PALETTE[t].stroke }} />
+              <span key={t} className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-[3px]" style={{ background: NODE_PALETTE[t].accent }} />
                 {counts[t]} {t}
               </span>
             ) : null,
@@ -344,37 +355,79 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                 );
               })}
 
-              {/* Nodes */}
+              {/* Nodes — modern rounded squares */}
               {laidOut.map((n) => {
                 const palette = NODE_PALETTE[n.type];
-                const r = NODE_RADIUS[n.type];
+                const { w, h } = NODE_SIZE[n.type];
+                const r = NODE_RADIUS[n.type]; // hit radius for layout/highlight
                 const Icon = TYPE_ICON[n.type];
                 const isSelected = selectedId === n.id;
                 const isDimmed = selectedId && !connectedIds.has(n.id);
-                const opacity = isDimmed ? 0.25 : 1;
+                const opacity = isDimmed ? 0.2 : 1;
+                const corner = 14; // rounded-square radius
                 return (
                   <g
                     key={n.id}
                     data-node
                     transform={`translate(${n.x}, ${n.y})`}
-                    style={{ cursor: "pointer", opacity }}
+                    style={{ cursor: "pointer", opacity, transition: "opacity 200ms ease" }}
                     onClick={(e) => { e.stopPropagation(); setSelectedId(isSelected ? null : n.id); }}
                   >
+                    {/* Selection halo — soft rounded square */}
                     {isSelected && (
-                      <circle r={r + 6} fill="none" stroke={palette.ring} strokeWidth="1.5" opacity="0.6">
-                        <animate attributeName="r" from={r + 4} to={r + 10} dur="1.6s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" from="0.6" to="0" dur="1.6s" repeatCount="indefinite" />
-                      </circle>
+                      <rect
+                        x={-w / 2 - 6} y={-h / 2 - 6}
+                        width={w + 12} height={h + 12}
+                        rx={corner + 4} ry={corner + 4}
+                        fill="none"
+                        stroke={palette.accent}
+                        strokeWidth="1.5"
+                        opacity="0.5"
+                      >
+                        <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
+                      </rect>
                     )}
-                    <circle r={r} fill={palette.fill} stroke={palette.stroke} strokeWidth={isSelected ? 2 : 1.2} />
-                    <foreignObject x={-8} y={-8} width="16" height="16" className="pointer-events-none">
-                      <Icon className="h-4 w-4" style={{ color: palette.text }} />
+
+                    {/* Card body — theme card with subtle border */}
+                    <rect
+                      x={-w / 2} y={-h / 2}
+                      width={w} height={h}
+                      rx={corner} ry={corner}
+                      fill="hsl(var(--card))"
+                      stroke={isSelected ? palette.accent : "hsl(var(--border))"}
+                      strokeWidth={isSelected ? 1.5 : 1}
+                    />
+
+                    {/* Top accent stripe — type indicator */}
+                    <rect
+                      x={-w / 2 + 8} y={-h / 2 + 6}
+                      width={w - 16} height={2}
+                      rx={1} ry={1}
+                      fill={palette.accent}
+                      opacity={isSelected ? 0.9 : 0.55}
+                    />
+
+                    {/* Icon — centered */}
+                    <foreignObject x={-10} y={-10} width="20" height="20" className="pointer-events-none">
+                      <div className="flex items-center justify-center w-full h-full">
+                        <Icon className="h-[18px] w-[18px]" style={{ color: palette.accent, opacity: 0.85 }} strokeWidth={1.5} />
+                      </div>
                     </foreignObject>
-                    <text x={0} y={r + 12} textAnchor="middle" fontSize="10" fontWeight="300" fill={palette.text} className="pointer-events-none">
-                      {n.label.length > 22 ? n.label.slice(0, 21) + "…" : n.label}
+
+                    {/* Label — below the card */}
+                    <text
+                      x={0} y={h / 2 + 14}
+                      textAnchor="middle"
+                      fontSize="10.5"
+                      fontWeight="300"
+                      fill="hsl(var(--foreground))"
+                      className="pointer-events-none"
+                      style={{ letterSpacing: "0.02em" }}
+                    >
+                      {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
                     </text>
                     {n.type === "source" && n.tierLabel && (
-                      <text x={0} y={r + 24} textAnchor="middle" fontSize="8" fill="hsl(var(--muted-foreground))" opacity="0.7" className="pointer-events-none">
+                      <text x={0} y={h / 2 + 26} textAnchor="middle" fontSize="8.5" fill="hsl(var(--muted-foreground))" opacity="0.6" className="pointer-events-none" style={{ letterSpacing: "0.1em", textTransform: "uppercase" }}>
                         {n.tierLabel}
                       </text>
                     )}
@@ -390,7 +443,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           <div className="absolute bottom-3 left-3 right-3 max-w-md rounded-xl border border-border/20 bg-card/80 backdrop-blur-xl p-3 shadow-xl">
             <div className="flex items-start justify-between gap-2 mb-1.5">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="h-2 w-2 rounded-full shrink-0" style={{ background: NODE_PALETTE[selected.type].stroke }} />
+                <span className="h-2 w-2 rounded-[3px] shrink-0" style={{ background: NODE_PALETTE[selected.type].accent }} />
                 <span className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground">{selected.type}</span>
               </div>
               <button onClick={() => setSelectedId(null)} className="p-0.5 text-muted-foreground hover:text-foreground">
