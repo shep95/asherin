@@ -21,6 +21,13 @@ import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
 import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
 import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
 import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
+import wallpaperStealth from "@/assets/wallpaper-stealth.png";
+import wallpaperStatic from "@/assets/wallpaper-static.png";
+import wallpaperMane from "@/assets/wallpaper-mane.png";
+import wallpaperImpact from "@/assets/wallpaper-impact.png";
+import wallpaperOracle from "@/assets/wallpaper-oracle.png";
+import wallpaperAscend from "@/assets/wallpaper-ascend.png";
+import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
 
 const WALLPAPERS = [
   { key: "default", label: "Original", src: wallpaperDefault },
@@ -37,6 +44,13 @@ const WALLPAPERS = [
   { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
   { key: "phantom", label: "Phantom", src: wallpaperPhantom },
   { key: "abyss", label: "Abyss", src: wallpaperAbyss },
+  { key: "stealth", label: "Stealth", src: wallpaperStealth },
+  { key: "static", label: "Static", src: wallpaperStatic },
+  { key: "mane", label: "Mane", src: wallpaperMane },
+  { key: "impact", label: "Impact", src: wallpaperImpact },
+  { key: "oracle", label: "Oracle", src: wallpaperOracle },
+  { key: "ascend", label: "Ascend", src: wallpaperAscend },
+  { key: "cosmos", label: "Cosmos", src: wallpaperCosmos },
 ];
 
 const GitHubSettings = () => {

@@ -12,6 +12,13 @@ import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
 import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
 import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
 import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
+import wallpaperStealth from "@/assets/wallpaper-stealth.png";
+import wallpaperStatic from "@/assets/wallpaper-static.png";
+import wallpaperMane from "@/assets/wallpaper-mane.png";
+import wallpaperImpact from "@/assets/wallpaper-impact.png";
+import wallpaperOracle from "@/assets/wallpaper-oracle.png";
+import wallpaperAscend from "@/assets/wallpaper-ascend.png";
+import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
 
 const WALLPAPER_MAP: Record<string, string> = {
   default: heroBgDefault,
@@ -28,6 +35,13 @@ const WALLPAPER_MAP: Record<string, string> = {
   silhouette: wallpaperSilhouette,
   phantom: wallpaperPhantom,
   abyss: wallpaperAbyss,
+  stealth: wallpaperStealth,
+  static: wallpaperStatic,
+  mane: wallpaperMane,
+  impact: wallpaperImpact,
+  oracle: wallpaperOracle,
+  ascend: wallpaperAscend,
+  cosmos: wallpaperCosmos,
 };
 import React, { Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
