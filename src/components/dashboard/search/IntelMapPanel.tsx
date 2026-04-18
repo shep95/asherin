@@ -320,7 +320,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   }, [laidOut]);
 
   return (
-    <div className="flex flex-col h-full bg-transparent border-l border-border/20 pt-16">
+    <div className="flex flex-col h-full bg-transparent border-l border-border/20">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/15 bg-card/20 backdrop-blur-2xl">
         <div className="flex items-center gap-2 min-w-0">
