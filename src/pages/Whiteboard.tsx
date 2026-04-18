@@ -39,6 +39,13 @@ import wallpaperSorrow from "@/assets/wallpaper-sorrow.png";
 import wallpaperSilhouette from "@/assets/wallpaper-silhouette.png";
 import wallpaperPhantom from "@/assets/wallpaper-phantom.png";
 import wallpaperAbyss from "@/assets/wallpaper-abyss.png";
+import wallpaperStealth from "@/assets/wallpaper-stealth.png";
+import wallpaperStatic from "@/assets/wallpaper-static.png";
+import wallpaperMane from "@/assets/wallpaper-mane.png";
+import wallpaperImpact from "@/assets/wallpaper-impact.png";
+import wallpaperOracle from "@/assets/wallpaper-oracle.png";
+import wallpaperAscend from "@/assets/wallpaper-ascend.png";
+import wallpaperCosmos from "@/assets/wallpaper-cosmos.png";
 
 type Tool =
   | "select"
@@ -159,6 +166,13 @@ const WALLPAPERS = [
   { key: "silhouette", label: "Silhouette", src: wallpaperSilhouette },
   { key: "phantom", label: "Phantom", src: wallpaperPhantom },
   { key: "abyss", label: "Abyss", src: wallpaperAbyss },
+  { key: "stealth", label: "Stealth", src: wallpaperStealth },
+  { key: "static", label: "Static", src: wallpaperStatic },
+  { key: "mane", label: "Mane", src: wallpaperMane },
+  { key: "impact", label: "Impact", src: wallpaperImpact },
+  { key: "oracle", label: "Oracle", src: wallpaperOracle },
+  { key: "ascend", label: "Ascend", src: wallpaperAscend },
+  { key: "cosmos", label: "Cosmos", src: wallpaperCosmos },
 ];
 
 const COLORS = [
@@ -1677,29 +1691,41 @@ const Whiteboard = () => {
       </div>
 
       {backgroundPanelOpen && activeBoard && (
-        <div className="absolute top-[7.4rem] left-1/2 z-40 w-[min(92vw,720px)] -translate-x-1/2 rounded-[1.4rem] border border-border/30 bg-card/82 p-4 shadow-2xl backdrop-blur-2xl">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "dark" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "dark" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Dark board</button>
-            <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "current" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "current" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Current wallpaper</button>
-            <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "wallpaper" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "wallpaper" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Wallpaper library</button>
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">Blur</span>
-              <input type="range" min="0" max="24" value={activeBoard.wallpaperBlur} onChange={(event) => updateActiveBoard((board) => ({ ...board, wallpaperBlur: Number(event.target.value) }))} />
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setBackgroundPanelOpen(false)}
+          />
+          <div className="absolute top-[7.4rem] left-1/2 z-40 w-[min(92vw,720px)] -translate-x-1/2 rounded-[1.4rem] border border-border/30 bg-card/82 p-4 shadow-2xl backdrop-blur-2xl">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "dark" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "dark" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Dark board</button>
+              <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "current" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "current" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Current wallpaper</button>
+              <button onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "wallpaper" }))} className={`rounded-xl px-3 py-2 text-xs ${activeBoard.wallpaperMode === "wallpaper" ? "bg-foreground/10 text-foreground" : "bg-background/40 text-muted-foreground"}`}>Wallpaper library</button>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">Blur</span>
+                <input type="range" min="0" max="24" value={activeBoard.wallpaperBlur} onChange={(event) => updateActiveBoard((board) => ({ ...board, wallpaperBlur: Number(event.target.value) }))} />
+              </div>
+              <button
+                onClick={() => setBackgroundPanelOpen(false)}
+                className="rounded-xl border border-border/20 px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+              {WALLPAPERS.map((wallpaper) => (
+                <button
+                  key={wallpaper.key}
+                  onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "wallpaper", wallpaperKey: wallpaper.key }))}
+                  className={`overflow-hidden rounded-2xl border-2 ${activeBoard.wallpaperKey === wallpaper.key && activeBoard.wallpaperMode === "wallpaper" ? "border-foreground/60" : "border-border/20"}`}
+                >
+                  <img src={wallpaper.src} alt={`${wallpaper.label} whiteboard wallpaper`} className="h-20 w-full object-cover" loading="lazy" />
+                  <div className="bg-background/80 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{wallpaper.label}</div>
+                </button>
+              ))}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-            {WALLPAPERS.map((wallpaper) => (
-              <button
-                key={wallpaper.key}
-                onClick={() => updateActiveBoard((board) => ({ ...board, wallpaperMode: "wallpaper", wallpaperKey: wallpaper.key }))}
-                className={`overflow-hidden rounded-2xl border-2 ${activeBoard.wallpaperKey === wallpaper.key && activeBoard.wallpaperMode === "wallpaper" ? "border-foreground/60" : "border-border/20"}`}
-              >
-                <img src={wallpaper.src} alt={`${wallpaper.label} whiteboard wallpaper`} className="h-20 w-full object-cover" loading="lazy" />
-                <div className="bg-background/80 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{wallpaper.label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
+        </>
       )}
 
       {selectedElement && (

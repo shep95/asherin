@@ -61,25 +61,12 @@ const FRAGMENT_SHADER = `
       totalDisp += abs(wave);
     }
 
-    // Chromatic aberration at distortion edges
-    float aberration = totalDisp * 0.012;
+    // Neutral monochrome refraction — no color tint
+    float alpha = clamp(totalDisp * 1.0, 0.0, 0.35);
+    float shimmer = totalDisp * 0.6;
+    vec3 color = vec3(shimmer);
 
-    // Purple-tinted refraction for Aureon's accent
-    float r = totalOffset.x * 0.8;
-    float g = totalOffset.y * 0.6;
-    float b = totalDisp * 0.25;
-
-    // Output: displacement encoded as color, alpha = displacement strength
-    float alpha = clamp(totalDisp * 1.5, 0.0, 0.6);
-
-    // Subtle purple chromatic fringe
-    vec3 color = vec3(
-      0.25 + aberration * 3.0,
-      0.02,
-      0.35 + aberration * 5.0
-    );
-
-    gl_FragColor = vec4(color, alpha * 0.35);
+    gl_FragColor = vec4(color, alpha * 0.25);
   }
 `;
 
