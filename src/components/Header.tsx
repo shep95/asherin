@@ -155,7 +155,7 @@ const Header = () => {
         </Link>
 
         {/* Right: Auth buttons */}
-        <div className="hidden sm:block">
+        <div className="hidden sm:block" data-header-right>
           <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-card/60 backdrop-blur-md px-4 py-2">
             <Link
               to="/zophiel"
