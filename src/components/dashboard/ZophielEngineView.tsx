@@ -391,7 +391,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className={`${mode === "imagine" ? "max-w-6xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
+            <div className={`${mode === "imagine" || mode === "extract" ? "max-w-4xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
               {/* Queue Panel */}
               <MessageQueuePanel
                 items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
@@ -406,13 +406,20 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Link Extract — URL intelligence blueprint */}
+              {mode === "extract" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <LinkExtractView />
+                </Suspense>
+              )}
+
               {/* Deep Search Panel */}
-              {mode !== "imagine" && deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
               )}
 
               {/* Standard search results */}
-              {mode !== "imagine" && !deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
