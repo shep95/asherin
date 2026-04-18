@@ -37,7 +37,7 @@ export async function logAudit(params: {
     const payloadStr = JSON.stringify({ ...params.payload, ts });
     const payloadHash = await sha256(payloadStr + (lastHash ?? ""));
 
-    const { error } = await supabase.from("research_audit_log").insert({
+    const { error } = await supabase.from("research_audit_log").insert([{
       user_id: user.id,
       action_type: params.action,
       resource_type: params.resourceType ?? null,
@@ -47,7 +47,7 @@ export async function logAudit(params: {
       prev_hash: lastHash,
       workspace_id: params.workspaceId ?? null,
       user_agent: navigator.userAgent,
-    });
+    }]);
 
     if (!error) lastHash = payloadHash;
   } catch (e) {
