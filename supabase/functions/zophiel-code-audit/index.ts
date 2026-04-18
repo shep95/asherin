@@ -209,13 +209,40 @@ serve(async (req) => {
 
     const safeName = (typeof filename === "string" && filename.trim()) ? filename.trim().slice(0, 120) : "uploaded.code";
 
+    // Load active AUREON brains (shared global intelligence layer used by all engines)
+    let brainsContext = "";
+    try {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+        const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: brains } = await sb
+          .from("axrlen_brains")
+          .select("name, content")
+          .eq("is_active", true)
+          .order("created_at", { ascending: true });
+        if (brains && brains.length > 0) {
+          brainsContext = "\n\n## ACTIVE AUREON BRAINS (INHERITED INTELLIGENCE)\n" +
+            brains.map((b: { name: string; content: string }) =>
+              `[${b.name}]: ${(b.content || "").substring(0, 1500)}`
+            ).join("\n\n");
+          console.log("[code-audit] Loaded", brains.length, "active brains");
+        }
+      }
+    } catch (e) {
+      console.log("[code-audit] Brains load skipped:", e);
+    }
+
+    // Compose the full system prompt: identity → doctrine → brains → audit directive/schema
+    const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
+
     const aiResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          systemInstruction: { parts: [{ text: FULL_SYSTEM_PROMPT }] },
           contents: [
             {
               role: "user",
