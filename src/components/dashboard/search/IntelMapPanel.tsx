@@ -469,24 +469,25 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                       </rect>
                     )}
 
-                    {/* Card body — theme card with subtle border */}
-                    <rect
-                      x={-w / 2} y={-h / 2}
-                      width={w} height={h}
-                      rx={corner} ry={corner}
-                      fill="hsl(var(--card))"
-                      stroke={isSelected ? palette.accent : "hsl(var(--border))"}
-                      strokeWidth={isSelected ? 1.5 : 1}
-                    />
+                    {/* Body — distinct shape per type */}
+                    {renderShape(
+                      NODE_SHAPE[n.type],
+                      w, h,
+                      "hsl(var(--card))",
+                      isSelected ? palette.accent : "hsl(var(--border))",
+                      isSelected ? 1.5 : 1,
+                    )}
 
-                    {/* Top accent stripe — type indicator */}
-                    <rect
-                      x={-w / 2 + 8} y={-h / 2 + 6}
-                      width={w - 16} height={2}
-                      rx={1} ry={1}
-                      fill={palette.accent}
-                      opacity={isSelected ? 0.9 : 0.55}
-                    />
+                    {/* Top accent stripe — only on rectangular shapes (looks awkward on circles/diamonds) */}
+                    {(NODE_SHAPE[n.type] === "rounded-square" || NODE_SHAPE[n.type] === "pill") && (
+                      <rect
+                        x={-w / 2 + 8} y={-h / 2 + (NODE_SHAPE[n.type] === "pill" ? -h * 0.7 / 2 + 4 : 6)}
+                        width={w - 16} height={2}
+                        rx={1} ry={1}
+                        fill={palette.accent}
+                        opacity={isSelected ? 0.9 : 0.55}
+                      />
+                    )}
 
                     {/* Icon — centered */}
                     <foreignObject x={-10} y={-10} width="20" height="20" className="pointer-events-none">
@@ -494,6 +495,22 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                         <Icon className="h-[18px] w-[18px]" style={{ color: palette.accent, opacity: 0.85 }} strokeWidth={1.5} />
                       </div>
                     </foreignObject>
+
+                    {/* Country / state flag badge — bottom-left corner */}
+                    {(() => {
+                      const flag = detectFlag(n);
+                      if (!flag) return null;
+                      return (
+                        <g className="pointer-events-none">
+                          <circle cx={-w / 2 + 9} cy={h / 2 - 9} r={9} fill="hsl(var(--background))" stroke="hsl(var(--border))" strokeWidth={0.75} />
+                          <foreignObject x={-w / 2 + 1} y={h / 2 - 17} width={16} height={16}>
+                            <div className="flex items-center justify-center w-full h-full" style={{ fontSize: "12px", lineHeight: 1 }}>
+                              {flag}
+                            </div>
+                          </foreignObject>
+                        </g>
+                      );
+                    })()}
 
                     {/* External link affordance — top-right corner, opens source */}
                     {n.url && (
