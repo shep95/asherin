@@ -1,0 +1,427 @@
+import { useState, useCallback, useRef } from "react";
+import {
+  ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
+  Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
+  Lock, Plug, Syringe, UploadCloud, X,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+type Tone = "neutral" | "good" | "warn" | "critical";
+interface Leaf { label: string; value: string; confidence?: "high" | "med" | "low"; }
+interface Branch { id: string; label: string; icon: string; tone: Tone; leaves: Leaf[]; }
+interface Edge { from: string; to: string; label?: string; }
+interface Critical { branch: string; finding: string; severity: "high" | "med" | "low"; }
+interface Blueprint {
+  target: string;
+  summary: string;
+  score?: { security?: number; integrity?: number; complexity?: number };
+  branches: Branch[];
+  edges: Edge[];
+  criticals?: Critical[];
+}
+
+const ICONS: Record<string, typeof Shield> = {
+  shield: Shield, bug: Bug, alert: AlertTriangle, syringe: Syringe,
+  lock: Lock, plug: Plug, wrench: Wrench, file: FileCode,
+};
+
+const TONE_STYLES: Record<Tone, { ring: string; dot: string; text: string; glow: string }> = {
+  good:     { ring: "border-emerald-400/30", dot: "bg-emerald-400", text: "text-emerald-300/80", glow: "shadow-[0_0_20px_-8px] shadow-emerald-400/30" },
+  neutral:  { ring: "border-border/30",      dot: "bg-muted-foreground/60", text: "text-muted-foreground/70", glow: "" },
+  warn:     { ring: "border-amber-400/30",   dot: "bg-amber-400", text: "text-amber-300/80", glow: "shadow-[0_0_20px_-8px] shadow-amber-400/30" },
+  critical: { ring: "border-red-400/40",     dot: "bg-red-400", text: "text-red-300/80", glow: "shadow-[0_0_20px_-8px] shadow-red-400/40" },
+};
+
+const MAX_BYTES = 100 * 1024;
+
+const CodeAuditView = () => {
+  const [filename, setFilename] = useState<string>("");
+  const [code, setCode] = useState<string>("");
+  const [byteSize, setByteSize] = useState(0);
+  const [auditing, setAuditing] = useState(false);
+  const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = useCallback(async (file: File) => {
+    setError(null);
+    if (file.size > MAX_BYTES) {
+      setError(`File exceeds 100KB limit (${Math.round(file.size / 1024)}KB)`);
+      return;
+    }
+    try {
+      const text = await file.text();
+      setCode(text);
+      setFilename(file.name);
+      setByteSize(file.size);
+      setBlueprint(null);
+    } catch {
+      setError("Could not read file as text");
+    }
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
+  }, [handleFile]);
+
+  const handleAudit = useCallback(async () => {
+    if (!code.trim()) {
+      setError("Upload a code file first");
+      return;
+    }
+    setAuditing(true);
+    setError(null);
+    setBlueprint(null);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        "zophiel-code-audit",
+        { body: { code, filename } },
+      );
+      if (invokeError) throw new Error(invokeError.message || String(invokeError));
+      if (!data) throw new Error("No response from audit engine");
+      if (data.error) throw new Error(data.error);
+      if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
+      setBlueprint(data.blueprint as Blueprint);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Audit failed";
+      setError(msg);
+    } finally {
+      setAuditing(false);
+    }
+  }, [code, filename]);
+
+  const handleCopy = useCallback(() => {
+    if (!blueprint) return;
+    navigator.clipboard.writeText(JSON.stringify(blueprint, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [blueprint]);
+
+  const clearFile = () => {
+    setCode("");
+    setFilename("");
+    setByteSize(0);
+    setBlueprint(null);
+    setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  return (
+    <div className="w-full animate-fade-in space-y-4">
+      {/* Hero / Input */}
+      <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.04] via-card/30 to-card/10 backdrop-blur-xl px-5 py-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="h-9 w-9 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center shrink-0">
+            <ShieldAlert className="h-4 w-4 text-accent" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-light tracking-wide text-foreground">Aureon Security Audit</h2>
+            <p className="text-[10px] font-extralight text-muted-foreground/70">
+              Drop any code file (≤100KB). Get a visual blueprint web — leaks, broken code, latent failures, fixes.
+            </p>
+          </div>
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-emerald-200/70 uppercase shrink-0">
+            <Sparkles className="h-2.5 w-2.5" /> Free
+          </span>
+        </div>
+
+        <div
+          onDrop={onDrop}
+          onDragOver={(e) => e.preventDefault()}
+          className="mt-3 rounded-xl border border-dashed border-border/30 bg-background/30 hover:bg-background/40 transition-colors px-4 py-5"
+        >
+          {!filename ? (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-foreground transition-colors"
+              type="button"
+            >
+              <UploadCloud className="h-6 w-6" />
+              <span className="text-[11px] font-light">Drop a code file here, or click to upload</span>
+              <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">Max 100KB · text files only</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-3">
+              <FileCode className="h-5 w-5 text-accent shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-light text-foreground truncate">{filename}</p>
+                <p className="text-[9px] font-extralight text-muted-foreground/60">
+                  {(byteSize / 1024).toFixed(1)}KB · {code.split("\n").length} lines
+                </p>
+              </div>
+              <button
+                onClick={clearFile}
+                className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition"
+                type="button"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={handleAudit}
+                disabled={auditing}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent/20 hover:bg-accent/30 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-accent transition-colors"
+                type="button"
+              >
+                {auditing ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />AUDITING</>) : (<><ShieldAlert className="h-3.5 w-3.5" />AUDIT IT</>)}
+              </button>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".js,.ts,.tsx,.jsx,.py,.rb,.go,.rs,.java,.c,.cpp,.h,.hpp,.cs,.php,.html,.css,.scss,.sql,.sh,.yaml,.yml,.json,.xml,.toml,.txt,.md,.env,.config,.ini,.dockerfile,.swift,.kt,.scala,.lua,.pl,.r,.m,.vue,.svelte"
+            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+          />
+        </div>
+
+        {error && <p className="mt-2 text-[10px] font-light text-red-400/80">{error}</p>}
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-extralight tracking-[0.12em] text-muted-foreground/40 uppercase">
+          <span className="inline-flex items-center gap-1"><Shield className="h-2.5 w-2.5" /> Leak detection</span>
+          <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+          <span className="inline-flex items-center gap-1"><Bug className="h-2.5 w-2.5" /> Broken code</span>
+          <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+          <span className="inline-flex items-center gap-1"><Wrench className="h-2.5 w-2.5" /> Fix paths</span>
+          <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+          <span className="inline-flex items-center gap-1"><Zap className="h-2.5 w-2.5" /> Visual only</span>
+        </div>
+      </div>
+
+      {/* Loading */}
+      {auditing && (
+        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-12 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-accent" />
+          <p className="text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/60 uppercase">
+            Mapping security web for {filename || "target"}…
+          </p>
+        </div>
+      )}
+
+      {/* Visual Blueprint */}
+      {blueprint && !auditing && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Header bar */}
+          <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-3 flex items-center gap-3 flex-wrap">
+            <ShieldAlert className="h-3.5 w-3.5 text-accent shrink-0" />
+            <span className="text-[10px] font-semibold tracking-[0.2em] text-accent/80 uppercase">Audit Map</span>
+            <span className="text-[11px] font-light text-foreground/80 truncate">{blueprint.target}</span>
+            <div className="ml-auto flex items-center gap-3 text-[10px] font-light text-muted-foreground/60">
+              {blueprint.score && (
+                <>
+                  <ScorePip label="SEC" value={blueprint.score.security} />
+                  <ScorePip label="INTG" value={blueprint.score.integrity} />
+                  <ScorePip label="CPLX" value={blueprint.score.complexity} />
+                </>
+              )}
+              <button onClick={handleCopy} className="p-1.5 rounded-lg hover:bg-foreground/5 transition text-muted-foreground/50 hover:text-foreground/80" title="Copy JSON">
+                {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Summary visual line */}
+          {blueprint.summary && (
+            <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm px-5 py-3 text-[11px] font-extralight leading-relaxed text-muted-foreground/80">
+              {blueprint.summary}
+            </div>
+          )}
+
+          {/* Web Diagram — central node radiating to branches */}
+          <WebDiagram blueprint={blueprint} />
+
+          {/* Branches grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {blueprint.branches.map((b) => <BranchCard key={b.id} branch={b} />)}
+          </div>
+
+          {/* Criticals strip */}
+          {blueprint.criticals && blueprint.criticals.length > 0 && (
+            <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-3 w-3 text-red-400/80" />
+                <span className="text-[10px] font-semibold tracking-[0.2em] text-red-300/80 uppercase">Critical Findings</span>
+              </div>
+              <ul className="space-y-1.5">
+                {blueprint.criticals.map((c, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[11px] font-light text-foreground/80">
+                    <span className={`mt-1.5 h-1 w-1 rounded-full shrink-0 ${c.severity === "high" ? "bg-red-400" : c.severity === "med" ? "bg-amber-400" : "bg-muted-foreground"}`} />
+                    <span className="text-muted-foreground/50 uppercase tracking-wider text-[9px] mt-0.5">{c.branch}</span>
+                    <span className="flex-1">{c.finding}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!blueprint && !auditing && !error && !filename && (
+        <div className="rounded-2xl border border-dashed border-border/20 bg-card/10 px-5 py-10 text-center">
+          <p className="text-[11px] font-extralight tracking-wide text-muted-foreground/50">
+            Upload a code file above to map its security posture as a visual blueprint web.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ScorePip = ({ label, value }: { label: string; value?: number }) => {
+  if (typeof value !== "number") return null;
+  const color = value >= 75 ? "text-emerald-300/80 border-emerald-400/30" : value >= 45 ? "text-amber-300/80 border-amber-400/30" : "text-red-300/80 border-red-400/30";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border ${color} bg-background/30 px-2 py-0.5 text-[9px] tracking-wider`}>
+      {label} <strong className="font-semibold">{value}</strong>
+    </span>
+  );
+};
+
+const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
+  const branches = blueprint.branches;
+  const n = branches.length;
+  const cx = 400, cy = 220;
+  const rx = 320, ry = 170;
+
+  const positions: Record<string, { x: number; y: number }> = {};
+  branches.forEach((b, i) => {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    positions[b.id] = { x: cx + Math.cos(angle) * rx, y: cy + Math.sin(angle) * ry };
+  });
+
+  return (
+    <div className="rounded-2xl border border-border/15 bg-gradient-to-br from-card/20 via-card/10 to-background/0 backdrop-blur-sm p-2 overflow-hidden">
+      <svg viewBox="0 0 800 440" className="w-full h-auto" style={{ maxHeight: 480 }}>
+        <defs>
+          <radialGradient id="auditCenterGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+          </radialGradient>
+          <pattern id="auditGridP" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(var(--border))" strokeOpacity="0.08" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect x="0" y="0" width="800" height="440" fill="url(#auditGridP)" />
+        <circle cx={cx} cy={cy} r="120" fill="url(#auditCenterGlow)" />
+
+        {blueprint.edges?.map((e, i) => {
+          const from = positions[e.from];
+          const to = positions[e.to];
+          if (!from || !to) return null;
+          const mx = (from.x + to.x) / 2;
+          const my = (from.y + to.y) / 2 - 20;
+          return (
+            <g key={`e-${i}`}>
+              <path
+                d={`M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`}
+                fill="none"
+                stroke="hsl(var(--accent))"
+                strokeOpacity="0.18"
+                strokeWidth="1"
+                strokeDasharray="3 4"
+              />
+            </g>
+          );
+        })}
+
+        {branches.map((b) => {
+          const p = positions[b.id];
+          const stroke =
+            b.tone === "good" ? "rgb(52 211 153 / 0.4)" :
+            b.tone === "warn" ? "rgb(251 191 36 / 0.4)" :
+            b.tone === "critical" ? "rgb(248 113 113 / 0.5)" :
+            "hsl(var(--muted-foreground) / 0.25)";
+          return (
+            <line key={`s-${b.id}`} x1={cx} y1={cy} x2={p.x} y2={p.y}
+              stroke={stroke} strokeWidth="1.2" />
+          );
+        })}
+
+        <g>
+          <circle cx={cx} cy={cy} r="38" fill="hsl(var(--background))" stroke="hsl(var(--accent))" strokeOpacity="0.5" strokeWidth="1.2" />
+          <circle cx={cx} cy={cy} r="48" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="2 4" />
+          <text x={cx} y={cy - 4} textAnchor="middle" className="fill-foreground" fontSize="10" fontWeight="500" letterSpacing="2">FILE</text>
+          <text x={cx} y={cy + 10} textAnchor="middle" className="fill-muted-foreground" fontSize="9" fontWeight="300">
+            {blueprint.target.length > 22 ? blueprint.target.slice(0, 20) + "…" : blueprint.target}
+          </text>
+        </g>
+
+        {branches.map((b) => {
+          const p = positions[b.id];
+          const Icon = ICONS[b.icon] || Shield;
+          const fill =
+            b.tone === "good" ? "rgb(16 185 129 / 0.12)" :
+            b.tone === "warn" ? "rgb(245 158 11 / 0.12)" :
+            b.tone === "critical" ? "rgb(239 68 68 / 0.15)" :
+            "hsl(var(--card) / 0.6)";
+          const stroke =
+            b.tone === "good" ? "rgb(52 211 153 / 0.5)" :
+            b.tone === "warn" ? "rgb(251 191 36 / 0.5)" :
+            b.tone === "critical" ? "rgb(248 113 113 / 0.6)" :
+            "hsl(var(--border))";
+          return (
+            <g key={`n-${b.id}`}>
+              <circle cx={p.x} cy={p.y} r="28" fill={fill} stroke={stroke} strokeWidth="1.2" />
+              <foreignObject x={p.x - 9} y={p.y - 18} width="18" height="18">
+                <div className="w-full h-full flex items-center justify-center">
+                  <Icon className="h-3.5 w-3.5 text-foreground/80" />
+                </div>
+              </foreignObject>
+              <text x={p.x} y={p.y + 8} textAnchor="middle" className="fill-foreground" fontSize="8" fontWeight="500" letterSpacing="1.5">
+                {b.label.split(" ")[0]}
+              </text>
+              <text x={p.x} y={p.y + 44} textAnchor="middle" className="fill-muted-foreground" fontSize="8" fontWeight="300" letterSpacing="0.5">
+                {b.leaves.length} signals
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const BranchCard = ({ branch }: { branch: Branch }) => {
+  const Icon = ICONS[branch.icon] || Shield;
+  const tone = TONE_STYLES[branch.tone] || TONE_STYLES.neutral;
+  return (
+    <div className={`rounded-2xl border ${tone.ring} bg-card/30 backdrop-blur-sm p-4 ${tone.glow} transition-all hover:bg-card/40`}>
+      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/10">
+        <div className="h-7 w-7 rounded-lg bg-background/40 border border-border/20 flex items-center justify-center shrink-0">
+          <Icon className="h-3.5 w-3.5 text-foreground/70" />
+        </div>
+        <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 uppercase truncate flex-1">
+          {branch.label}
+        </span>
+        <span className={`h-1.5 w-1.5 rounded-full ${tone.dot} shrink-0`} />
+      </div>
+      {branch.leaves.length === 0 ? (
+        <p className="text-[10px] font-extralight text-muted-foreground/40 italic">No signals detected.</p>
+      ) : (
+        <ul className="space-y-2">
+          {branch.leaves.map((l, i) => (
+            <li key={i} className="flex items-start gap-2 text-[11px] font-light">
+              <span className="mt-1.5 h-1 w-1 rounded-full bg-muted-foreground/40 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground/60 text-[9px] uppercase tracking-wider">{l.label}</p>
+                <p className="text-foreground/80 break-words">{l.value}</p>
+              </div>
+              {l.confidence && (
+                <span className={`text-[8px] uppercase tracking-wider shrink-0 ${l.confidence === "high" ? "text-emerald-400/60" : l.confidence === "med" ? "text-amber-400/60" : "text-muted-foreground/40"}`}>
+                  {l.confidence}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+export default CodeAuditView;
