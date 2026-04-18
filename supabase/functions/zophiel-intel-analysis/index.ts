@@ -294,12 +294,29 @@ function buildUserPrompt(query: string, results: ResultIn[]): string {
   return `Query: "${query}"\n\nSources (${results.length}):\n\n${lines.join('\n\n')}\n\nProduce the structured analysis now.`;
 }
 
+// Gemini's function-declaration schema rejects `additionalProperties` and a few
+// other JSON-Schema keywords. Recursively strip them so the same OpenAI-style
+// schema can be reused.
+function sanitizeForGemini(node: any): any {
+  if (Array.isArray(node)) return node.map(sanitizeForGemini);
+  if (node && typeof node === 'object') {
+    const out: any = {};
+    for (const [k, v] of Object.entries(node)) {
+      if (k === 'additionalProperties' || k === '$schema' || k === 'definitions') continue;
+      out[k] = sanitizeForGemini(v);
+    }
+    return out;
+  }
+  return node;
+}
+
 async function callGateway(type: AnalysisType, query: string, results: ResultIn[]) {
   const apiKey = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
   if (!apiKey) throw new Error('GEMINI_API_KEY_APP not configured');
 
   const schema = SCHEMAS[type];
   const systemPrompt = SYSTEM_PROMPTS[type];
+  const cleanParameters = sanitizeForGemini(schema.parameters);
 
   // Convert OpenAI-style JSON Schema to Gemini function declaration
   const r = await fetch(
@@ -316,7 +333,7 @@ async function callGateway(type: AnalysisType, query: string, results: ResultIn[
           functionDeclarations: [{
             name: schema.name,
             description: schema.description,
-            parameters: schema.parameters,
+            parameters: cleanParameters,
           }],
         }],
         toolConfig: {
