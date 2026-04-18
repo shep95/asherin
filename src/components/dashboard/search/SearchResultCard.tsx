@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Globe, ExternalLink, Clock, Eye, Copy, Check, AlertTriangle, Info } from "lucide-react";
+import { Globe, ExternalLink, Clock, Eye, Copy, Check, AlertTriangle, Info, ShieldCheck, Shield, ShieldAlert } from "lucide-react";
 import type { SearchResult, FreshnessAlert, PagePreview } from "./types";
 import SourceTierBadge from "./SourceTierBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { scoreSource } from "@/lib/sourceTrust";
 
 interface SearchResultCardProps {
   result: SearchResult;

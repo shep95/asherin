@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain } from "lucide-react";
+import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet } from "lucide-react";
+import { exportPDF, exportCSV, exportJSON, exportMarkdown } from "@/lib/exportEngine";
+import { logAudit } from "@/lib/auditLogger";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
@@ -382,6 +384,33 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                         {results.length} results in {searchTime}ms • Mode: {mode}
                       </p>
                       <div className="flex items-center gap-2">
+                        <div className="relative group/export">
+                          <button
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border/30 bg-card/30 px-2.5 py-1 text-[11px] font-light tracking-wide text-muted-foreground hover:text-foreground hover:border-border/50 transition-colors"
+                            title="Export results"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            Export
+                          </button>
+                          <div className="absolute right-0 top-full mt-1 hidden group-hover/export:block bg-card border border-border rounded-lg shadow-2xl z-50 py-1 min-w-[140px]">
+                            <button
+                              onClick={() => { exportPDF(`Zophiel - ${query}`, results); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "pdf", count: results.length } }); }}
+                              className="w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-muted"
+                            ><FileText className="h-3 w-3" /> PDF Report</button>
+                            <button
+                              onClick={() => { exportCSV(`zophiel-${Date.now()}`, results); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "csv", count: results.length } }); }}
+                              className="w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-muted"
+                            ><FileSpreadsheet className="h-3 w-3" /> CSV</button>
+                            <button
+                              onClick={() => { exportJSON(`zophiel-${Date.now()}`, results as any, { query, mode }); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "json", count: results.length } }); }}
+                              className="w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-muted"
+                            ><FileJson className="h-3 w-3" /> JSON</button>
+                            <button
+                              onClick={() => { exportMarkdown(`zophiel-${Date.now()}`, results as any, { query, mode }); logAudit({ action: "export", resourceType: "search_results", payload: { query, format: "md", count: results.length } }); }}
+                              className="w-full text-left px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-muted"
+                            ><FileText className="h-3 w-3" /> Markdown</button>
+                          </div>
+                        </div>
                         <button
                           onClick={() => { setIntelMapOpen((v) => !v); if (!intelMapOpen) setIntelSuiteOpen(false); }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${

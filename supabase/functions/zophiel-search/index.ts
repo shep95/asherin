@@ -400,7 +400,7 @@ function parseDDGResults(html: string): SearchResult[] {
   const results: SearchResult[] = [];
   const resultBlocks = html.split(/class="result\s/);
 
-  for (let i = 1; i < resultBlocks.length && results.length < 20; i++) {
+  for (let i = 1; i < resultBlocks.length; i++) {
     const block = resultBlocks[i];
     const titleMatch = block.match(/class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/);
     if (!titleMatch) continue;
@@ -493,7 +493,7 @@ async function searchSearXNG(query: string): Promise<SearchResult[]> {
       const data = await resp.json();
       if (!data.results?.length) continue;
       const results: SearchResult[] = [];
-      for (const r of data.results.slice(0, 15)) {
+      for (const r of data.results) {
         const built = buildSearchResult(r.title || '', r.url || '', r.content || '');
         if (built) results.push(built);
       }
@@ -529,7 +529,7 @@ async function searchMojeek(query: string): Promise<SearchResult[]> {
       let m;
       while ((m = linkRegex.exec(html)) !== null) links.push({ url: m[1], title: m[2].replace(/<[^>]*>/g, '').trim() });
       while ((m = descRegex.exec(html)) !== null) descs.push(m[1].replace(/<[^>]*>/g, '').trim());
-      for (let i = 0; i < Math.min(links.length, 10); i++) {
+      for (let i = 0; i < links.length; i++) {
         const built = buildSearchResult(links[i].title, links[i].url, descs[i] || '');
         if (built) results.push(built);
       }
@@ -537,7 +537,7 @@ async function searchMojeek(query: string): Promise<SearchResult[]> {
     }
     const data = await resp.json();
     const results: SearchResult[] = [];
-    for (const r of (data.response?.results || []).slice(0, 15)) {
+    for (const r of (data.response?.results || [])) {
       const built = buildSearchResult(r.title || '', r.url || '', r.desc || '');
       if (built) results.push(built);
     }
@@ -558,7 +558,7 @@ async function searchMetaGer(query: string): Promise<SearchResult[]> {
     if (!resp.ok) return [];
     const data = await resp.json();
     const results: SearchResult[] = [];
-    for (const r of (data.results || []).slice(0, 12)) {
+    for (const r of (data.results || [])) {
       const built = buildSearchResult(r.title || '', r.link || r.url || '', r.description || r.snippet || '');
       if (built) results.push(built);
     }
@@ -569,7 +569,7 @@ async function searchMetaGer(query: string): Promise<SearchResult[]> {
 // ── Gigablast Search (independent crawler) ──
 async function searchGigablast(query: string): Promise<SearchResult[]> {
   try {
-    const resp = await fetch(`https://www.gigablast.com/search?q=${encodeURIComponent(query)}&format=json&n=15`, {
+    const resp = await fetch(`https://www.gigablast.com/search?q=${encodeURIComponent(query)}&format=json&n=50`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json',
@@ -579,8 +579,80 @@ async function searchGigablast(query: string): Promise<SearchResult[]> {
     if (!resp.ok) return [];
     const data = await resp.json();
     const results: SearchResult[] = [];
-    for (const r of (data.results || []).slice(0, 12)) {
+    for (const r of (data.results || [])) {
       const built = buildSearchResult(r.title || '', r.url || '', r.sum || r.snippet || '');
+      if (built) results.push(built);
+    }
+    return results;
+  } catch { return []; }
+}
+
+// ── Wikipedia API (encyclopedia primary source) ──
+async function searchWikipedia(query: string): Promise<SearchResult[]> {
+  try {
+    const resp = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=20&origin=*`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const results: SearchResult[] = [];
+    for (const r of (data.query?.search || [])) {
+      const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(r.title.replace(/ /g, '_'))}`;
+      const snippet = (r.snippet || '').replace(/<[^>]+>/g, '').trim();
+      const built = buildSearchResult(r.title, url, snippet);
+      if (built) results.push(built);
+    }
+    return results;
+  } catch { return []; }
+}
+
+// ── Brave Search (HTML scrape fallback) ──
+async function searchBrave(query: string): Promise<SearchResult[]> {
+  try {
+    const resp = await fetch(`https://search.brave.com/search?q=${encodeURIComponent(query)}&source=web`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    const results: SearchResult[] = [];
+    const blockRegex = /<a[^>]+class="[^"]*result-header[^"]*"[^>]+href="([^"]+)"[\s\S]*?<span[^>]*class="[^"]*title[^"]*"[^>]*>([\s\S]*?)<\/span>[\s\S]*?<div[^>]+class="[^"]*snippet-description[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+    let m;
+    while ((m = blockRegex.exec(html)) !== null) {
+      const url = m[1];
+      const title = m[2].replace(/<[^>]+>/g, '').trim();
+      const snippet = m[3].replace(/<[^>]+>/g, '').trim();
+      if (!url.startsWith('http')) continue;
+      const built = buildSearchResult(title, url, snippet);
+      if (built) results.push(built);
+    }
+    return results;
+  } catch { return []; }
+}
+
+// ── Yandex Search (Russian-indexed alternative results) ──
+async function searchYandex(query: string): Promise<SearchResult[]> {
+  try {
+    const resp = await fetch(`https://yandex.com/search/?text=${encodeURIComponent(query)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return [];
+    const html = await resp.text();
+    const results: SearchResult[] = [];
+    const linkRegex = /<a[^>]+class="[^"]*OrganicTitle-Link[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m;
+    while ((m = linkRegex.exec(html)) !== null) {
+      const url = m[1];
+      const title = m[2].replace(/<[^>]+>/g, '').trim();
+      if (!url.startsWith('http')) continue;
+      const built = buildSearchResult(title, url, '');
       if (built) results.push(built);
     }
     return results;
@@ -589,13 +661,16 @@ async function searchGigablast(query: string): Promise<SearchResult[]> {
 
 // ── Multi-Engine Aggregated Search ──────────────────────────────────────────
 async function multiEngineSearch(query: string, page: number, dateFilter?: string): Promise<SearchResult[]> {
-  // Run all engines in parallel — DDG is primary, others supplement
-  const [ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults] = await Promise.allSettled([
+  // Run ALL engines in parallel — no result caps, full breadth
+  const [ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults, wikiResults, braveResults, yandexResults] = await Promise.allSettled([
     searchDDG(query, page, dateFilter),
     searchSearXNG(query),
     searchMojeek(query),
     searchMetaGer(query),
     searchGigablast(query),
+    searchWikipedia(query),
+    searchBrave(query),
+    searchYandex(query),
   ]);
 
   const all: SearchResult[] = [];
@@ -624,6 +699,9 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   addResults(mojeekResults, 0.8);
   addResults(metagerResults, 0.7);
   addResults(gigablastResults, 0.7);
+  addResults(wikiResults, 0.95);
+  addResults(braveResults, 0.85);
+  addResults(yandexResults, 0.65);
 
   return all;
 }
