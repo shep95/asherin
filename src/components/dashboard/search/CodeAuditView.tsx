@@ -122,7 +122,7 @@ const CodeAuditView = () => {
           <div className="min-w-0">
             <h2 className="text-sm font-light tracking-wide text-foreground">Aureon Security Audit</h2>
             <p className="text-[10px] font-extralight text-muted-foreground/70">
-              Drop any code file (≤100KB). Get a visual blueprint web — leaks, broken code, latent failures, fixes.
+              Drop any code file (≤100KB). Detect leaks, broken code, latent failures, and remediation paths.
             </p>
           </div>
           <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-emerald-200/70 uppercase shrink-0">
@@ -265,7 +265,7 @@ const CodeAuditView = () => {
       {!blueprint && !auditing && !error && !filename && (
         <div className="rounded-2xl border border-dashed border-border/20 bg-card/10 px-5 py-10 text-center">
           <p className="text-[11px] font-extralight tracking-wide text-muted-foreground/50">
-            Upload a code file above to map its security posture as a visual blueprint web.
+            Upload a code file above to analyze its security posture.
           </p>
         </div>
       )}
