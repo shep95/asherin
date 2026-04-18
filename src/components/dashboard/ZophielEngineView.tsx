@@ -318,9 +318,23 @@ const ZophielEngineView = () => {
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
-                    <p className="text-[10px] font-light text-muted-foreground/40 mb-4">
-                      {results.length} results in {searchTime}ms • Mode: {mode}
-                    </p>
+                    <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                      <p className="text-[10px] font-light text-muted-foreground/40">
+                        {results.length} results in {searchTime}ms • Mode: {mode}
+                      </p>
+                      <button
+                        onClick={() => setIntelMapOpen((v) => !v)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
+                          intelMapOpen
+                            ? "border-accent/40 bg-accent/15 text-accent"
+                            : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
+                        }`}
+                        title="Build Palantir-style intelligence map from these results"
+                      >
+                        <Network className="h-3.5 w-3.5" />
+                        {intelMapOpen ? "Close Intel Map" : "Build Intel Map"}
+                      </button>
+                    </div>
                   )}
 
                   {/* Instant Answer */}
