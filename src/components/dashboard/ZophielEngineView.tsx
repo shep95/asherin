@@ -19,6 +19,7 @@ import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
 const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
+const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -107,9 +108,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     onSearchedChange?.(searched);
   }, [searched, onSearchedChange]);
 
-  // Auto-activate "searched" view when entering Imagine, Extract, or Audit mode (no query needed)
+  // Auto-activate "searched" view when entering Imagine, Extract, Audit, or Face mode (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract" || mode === "audit") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face") {
       setSearched(true);
       setShowSuggestions(false);
     }
@@ -175,8 +176,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       return;
     }
 
-    // Imagine / Extract / Audit modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract" || mode === "audit") {
+    // Imagine / Extract / Audit / Face modes — handled by their own panels, do not run text search
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -314,7 +315,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             </div>
 
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
-            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && (
+            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && (
               <form onSubmit={handleSubmit} className="relative">
                 <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
                   {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
@@ -371,6 +372,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               </div>
             )}
 
+            {/* Face Recognition mode — banner is rendered inside the view itself */}
+
             {/* Recent searches */}
             {!searched && recentSearches.length > 0 && (
               <div className="mt-4 animate-fade-in">
@@ -403,7 +406,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" ? "max-w-4xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
+            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" ? "max-w-4xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
               {/* Queue Panel */}
               <MessageQueuePanel
                 items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
@@ -432,13 +435,20 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Face Recognition — biometric identity matching across multi-source intelligence */}
+              {mode === "face" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <FaceRecognitionView />
+                </Suspense>
+              )}
+
               {/* Deep Search Panel */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
               )}
 
               {/* Standard search results */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && !deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
