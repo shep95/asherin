@@ -174,12 +174,6 @@ export default function FaceRecognitionView() {
       } finally {
         if (!cancelled) setModelsLoading(false);
       }
-        if (!cancelled) setModelsLoaded(true);
-      } catch {
-        if (!cancelled) setError("Failed to load face recognition models. Check network connection.");
-      } finally {
-        if (!cancelled) setModelsLoading(false);
-      }
     })();
     return () => { cancelled = true; };
   }, [modelsLoaded, modelsLoading]);
