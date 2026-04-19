@@ -10,6 +10,7 @@ import * as faceapi from "face-api.js";
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 const MODEL_URLS = [
+  "/face-api-models",
   "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model",
   "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights",
   "https://justadudewhohacks.github.io/face-api.js/models",
