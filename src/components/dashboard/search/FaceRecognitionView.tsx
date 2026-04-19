@@ -1064,9 +1064,9 @@ function CheckLine({ ok, children }: { ok: boolean; children: React.ReactNode })
       {ok ? (
         <CheckCircle2 className="h-3 w-3 text-accent shrink-0" />
       ) : (
-        <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" />
+        <AlertTriangle className="h-3 w-3 text-muted-foreground shrink-0" />
       )}
-      <span className={ok ? "text-foreground" : "text-amber-500"}>{children}</span>
+      <span className={ok ? "text-foreground" : "text-muted-foreground"}>{children}</span>
     </li>
   );
 }
