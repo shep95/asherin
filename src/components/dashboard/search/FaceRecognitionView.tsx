@@ -1161,19 +1161,43 @@ function BoundingBoxOverlay({ box, photoUrl }: { box: { x: number; y: number; wi
 }
 
 function SyntheticThumb({ seed, confidence, large }: { seed: string; confidence: number; large?: boolean }) {
-  // Generate a deterministic abstract gradient placeholder so no real photos are ever shown
+  // Deterministic photo-realistic face thumbnail seeded by match id.
+  // Uses pravatar (consistent face avatars) — never the user's actual uploaded photo.
+  const [errored, setErrored] = useState(false);
+  const idx = (hashToSeed(seed) % 70) + 1; // pravatar.cc has IDs 1..70
+  const size = large ? 400 : 160;
+  const url = `https://i.pravatar.cc/${size}?img=${idx}`;
+
   const h1 = (hashToSeed(seed) % 360);
   const h2 = (h1 + 60 + (hashToSeed(seed + "x") % 120)) % 360;
+
   return (
     <div
-      className="w-full h-full flex items-center justify-center"
+      className="relative w-full h-full overflow-hidden"
       style={{
         background: `linear-gradient(135deg, hsl(${h1}, 30%, 25%), hsl(${h2}, 25%, 15%))`,
       }}
     >
-      <Users className={`text-foreground/30 ${large ? "h-12 w-12" : "h-6 w-6"}`} />
-      <span className={`absolute font-mono text-foreground/40 ${large ? "text-xs" : "text-[8px]"}`}>
-        {confidence.toFixed(0)}
+      {!errored ? (
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          onError={() => setErrored(true)}
+          className="w-full h-full object-cover opacity-90"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <Users className={`text-foreground/30 ${large ? "h-12 w-12" : "h-6 w-6"}`} />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent pointer-events-none" />
+      <span
+        className={`absolute bottom-1 right-1 font-mono px-1 rounded bg-background/60 backdrop-blur-sm ${
+          confidence >= 90 ? "text-accent" : "text-foreground/80"
+        } ${large ? "text-xs" : "text-[8px]"}`}
+      >
+        {confidence.toFixed(0)}%
       </span>
     </div>
   );
