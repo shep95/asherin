@@ -534,9 +534,9 @@ function UploadStage({ onDrop, onSelect, inputRef, modelsLoaded }: any) {
       </label>
 
       {/* Privacy notice */}
-      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+      <div className="rounded-xl border border-muted/30 bg-muted/10 p-4">
         <div className="flex items-start gap-2 mb-2">
-          <Shield className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <Shield className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-xs font-medium text-foreground">Privacy Notice</p>
         </div>
         <ul className="text-[11px] font-light text-muted-foreground space-y-1 ml-6">
