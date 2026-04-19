@@ -167,13 +167,13 @@ export default function FaceRecognitionView() {
       if (modelsLoaded || modelsLoading) return;
       setModelsLoading(true);
       try {
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-          faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL),
-          faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
-        ]);
+        await loadModelsWithFallback();
+        if (!cancelled) setModelsLoaded(true);
+      } catch {
+        if (!cancelled) setError("Failed to load face recognition models. Check network connection.");
+      } finally {
+        if (!cancelled) setModelsLoading(false);
+      }
         if (!cancelled) setModelsLoaded(true);
       } catch {
         if (!cancelled) setError("Failed to load face recognition models. Check network connection.");
