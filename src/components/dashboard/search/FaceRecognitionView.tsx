@@ -159,24 +159,29 @@ export default function FaceRecognitionView() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const searchAbortRef = useRef<boolean>(false);
+  const modelsLoadedRef = useRef(false);
+  const modelLoadPromiseRef = useRef<Promise<void> | null>(null);
 
-  // Lazy-load face-api models
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (modelsLoaded || modelsLoading) return;
+  const ensureModelsLoaded = useCallback(async () => {
+    if (modelsLoadedRef.current) return;
+    if (!modelLoadPromiseRef.current) {
       setModelsLoading(true);
-      try {
-        await loadModelsWithFallback();
-        if (!cancelled) setModelsLoaded(true);
-      } catch {
-        if (!cancelled) setError("Failed to load face recognition models. Check network connection.");
-      } finally {
-        if (!cancelled) setModelsLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [modelsLoaded, modelsLoading]);
+      modelLoadPromiseRef.current = loadModelsWithFallback()
+        .then(() => {
+          modelsLoadedRef.current = true;
+          setModelsLoaded(true);
+        })
+        .catch((err) => {
+          modelLoadPromiseRef.current = null;
+          throw err;
+        })
+        .finally(() => {
+          setModelsLoading(false);
+        });
+    }
+
+    await modelLoadPromiseRef.current;
+  }, []);
 
   const handleFile = useCallback((file: File) => {
     setError(null);
@@ -189,12 +194,12 @@ export default function FaceRecognitionView() {
       setError(`Photo exceeds 10MB limit (${Math.round(file.size / 1024 / 1024)}MB).`);
       return;
     }
+
     setPhoto(file);
     const url = URL.createObjectURL(file);
     setPhotoUrl(url);
-    // Auto-run analysis once models are loaded
-    setTimeout(() => runAnalysisInternal(file, url), 50);
-  }, [modelsLoaded]);
+    void runAnalysisInternal(file, url);
+  }, []);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -224,13 +229,16 @@ export default function FaceRecognitionView() {
   };
 
   const runAnalysisInternal = async (file: File, url: string) => {
-    // Wait for models if still loading
-    let attempts = 0;
-    while (!modelsLoaded && attempts < 100) {
-      await new Promise((r) => setTimeout(r, 100));
-      attempts++;
-    }
-    if (!modelsLoaded) return;
+    setAnalyzing(true);
+    setError(null);
+    setProgress(0);
+    setStage("analysis");
+
+    try {
+      setPhase("Loading recognition models…");
+      setProgress(8);
+      await ensureModelsLoaded();
+
 
     setAnalyzing(true);
     setError(null);
