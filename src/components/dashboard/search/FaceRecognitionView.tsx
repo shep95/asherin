@@ -9,7 +9,30 @@ import * as faceapi from "face-api.js";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-const MODEL_URL = "https://justadudewhohacks.github.io/face-api.js/models";
+const MODEL_URLS = [
+  "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model",
+  "https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights",
+  "https://justadudewhohacks.github.io/face-api.js/models",
+];
+
+async function loadModelsWithFallback(): Promise<string> {
+  let lastErr: unknown = null;
+  for (const url of MODEL_URLS) {
+    try {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(url),
+        faceapi.nets.faceLandmark68Net.loadFromUri(url),
+        faceapi.nets.faceRecognitionNet.loadFromUri(url),
+        faceapi.nets.ageGenderNet.loadFromUri(url),
+        faceapi.nets.faceExpressionNet.loadFromUri(url),
+      ]);
+      return url;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error("All model CDNs failed");
+}
 
 type Stage = "upload" | "analysis" | "searching" | "results";
 type Quality = "good" | "adequate" | "poor";
