@@ -239,13 +239,6 @@ export default function FaceRecognitionView() {
       setProgress(8);
       await ensureModelsLoaded();
 
-
-    setAnalyzing(true);
-    setError(null);
-    setProgress(0);
-    setStage("analysis");
-
-    try {
       setPhase("Loading image…");
       setProgress(15);
       const img = await loadImage(url);
