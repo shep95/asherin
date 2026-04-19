@@ -22,6 +22,7 @@ async function loadModelsWithFallback(): Promise<string> {
     try {
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(url),
+        faceapi.nets.ssdMobilenetv1.loadFromUri(url),
         faceapi.nets.faceLandmark68Net.loadFromUri(url),
         faceapi.nets.faceRecognitionNet.loadFromUri(url),
         faceapi.nets.ageGenderNet.loadFromUri(url),
@@ -33,6 +34,40 @@ async function loadModelsWithFallback(): Promise<string> {
     }
   }
   throw lastErr ?? new Error("All model CDNs failed");
+}
+
+// Robust multi-pass face detection — tries multiple detectors and thresholds
+async function detectFaceRobust(img: HTMLImageElement) {
+  // Pass 1: TinyFaceDetector at high quality
+  const tinyConfigs = [
+    { inputSize: 512, scoreThreshold: 0.3 },
+    { inputSize: 416, scoreThreshold: 0.2 },
+    { inputSize: 320, scoreThreshold: 0.15 },
+  ];
+  for (const cfg of tinyConfigs) {
+    const result = await faceapi
+      .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions(cfg))
+      .withFaceLandmarks()
+      .withFaceDescriptor()
+      .withAgeAndGender()
+      .withFaceExpressions();
+    if (result) return result;
+  }
+  // Pass 2: SSD MobileNet (slower but far more accurate)
+  const ssdConfigs = [
+    new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }),
+    new faceapi.SsdMobilenetv1Options({ minConfidence: 0.15 }),
+  ];
+  for (const opt of ssdConfigs) {
+    const result = await faceapi
+      .detectSingleFace(img, opt)
+      .withFaceLandmarks()
+      .withFaceDescriptor()
+      .withAgeAndGender()
+      .withFaceExpressions();
+    if (result) return result;
+  }
+  return null;
 }
 
 type Stage = "upload" | "analysis" | "searching" | "results";
@@ -246,12 +281,7 @@ export default function FaceRecognitionView() {
 
       setPhase("Detecting face & 68-point landmarks…");
       setProgress(35);
-      const detection = await faceapi
-        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
-        .withFaceLandmarks()
-        .withFaceDescriptor()
-        .withAgeAndGender()
-        .withFaceExpressions();
+      const detection = await detectFaceRobust(img);
 
       if (!detection) {
         throw new Error("No face detected. Try a clearer, frontal photo with good lighting.");
