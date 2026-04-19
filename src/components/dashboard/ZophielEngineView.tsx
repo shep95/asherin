@@ -108,9 +108,9 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     onSearchedChange?.(searched);
   }, [searched, onSearchedChange]);
 
-  // Auto-activate "searched" view when entering Imagine, Extract, or Audit mode (no query needed)
+  // Auto-activate "searched" view when entering Imagine, Extract, Audit, or Face mode (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract" || mode === "audit") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face") {
       setSearched(true);
       setShowSuggestions(false);
     }
@@ -176,8 +176,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
       return;
     }
 
-    // Imagine / Extract / Audit modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract" || mode === "audit") {
+    // Imagine / Extract / Audit / Face modes — handled by their own panels, do not run text search
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -315,7 +315,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             </div>
 
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
-            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && (
+            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && (
               <form onSubmit={handleSubmit} className="relative">
                 <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
                   {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
