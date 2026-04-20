@@ -507,10 +507,12 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                               ? "border-foreground/40 bg-foreground/10 text-foreground"
                               : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
                           }`}
-                          title="Use your own AI key to skip the Intel Map queue"
+                          title={byokActive
+                            ? "Your AI key is active across all Zophiel tabs (Search, Deep Search, Intel Map, Intel Suite, Code Audit, Link Extract)"
+                            : "Use your own AI key across every Zophiel tab — skips the queue"}
                         >
                           <Zap className="h-3.5 w-3.5" />
-                          {byokActive ? "Skip Queue: ON" : "Skip the Queue"}
+                          {byokActive ? "My Key: ON" : "Use My Key"}
                         </button>
                         <button
                           onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) setIntelMapOpen(false); }}

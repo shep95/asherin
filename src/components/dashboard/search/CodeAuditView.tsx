@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -158,9 +159,10 @@ const CodeAuditView = () => {
     }, 350);
 
     try {
+      const byok = getActiveIntelMapByok();
       const { data, error: invokeError } = await supabase.functions.invoke(
         "zophiel-code-audit",
-        { body: { code, filename } },
+        { body: { code, filename, ...(byok ? { byok } : {}) } },
       );
       if (invokeError) throw new Error(invokeError.message || String(invokeError));
       if (!data) throw new Error("No response from audit engine");

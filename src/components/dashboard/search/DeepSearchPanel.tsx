@@ -116,6 +116,8 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
     setError(null);
 
     try {
+      const { getActiveIntelMapByok } = await import("@/lib/intelMapByok");
+      const byok = getActiveIntelMapByok();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zophiel-deep-search`,
         {
@@ -124,7 +126,7 @@ const DeepSearchPanel = ({ query, onClose }: DeepSearchPanelProps) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ query, answers: finalAnswers }),
+          body: JSON.stringify({ query, answers: finalAnswers, ...(byok ? { byok } : {}) }),
           signal: abortRef.current.signal,
         }
       );

@@ -5,6 +5,7 @@ import {
   Copy, Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -62,9 +63,10 @@ const LinkExtractView = () => {
     setBlueprint(null);
 
     try {
+      const byok = getActiveIntelMapByok();
       const { data, error: invokeError } = await supabase.functions.invoke(
         "zophiel-blueprint-extract",
-        { body: { url: target } },
+        { body: { url: target, ...(byok ? { byok } : {}) } },
       );
       if (invokeError) throw new Error(invokeError.message || String(invokeError));
       if (!data) throw new Error("No response from blueprint engine");
