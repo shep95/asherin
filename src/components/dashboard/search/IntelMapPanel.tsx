@@ -242,11 +242,34 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
     return () => obs.disconnect();
   }, []);
 
+  const [queueInfo, setQueueInfo] = useState<{ position: number; running: number } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
+    const ac = new AbortController();
+    let stopHeartbeat: (() => void) | null = null;
+    let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
+
     const run = async () => {
-      setLoading(true); setError(null);
+      setLoading(true); setError(null); setQueueInfo(null);
       try {
+        // Acquire a concurrency slot first (max 2 concurrent runs globally)
+        const { release, startHeartbeat } = await acquireIntelSlot({
+          jobType: "intelmap",
+          maxConcurrent: 2,
+          signal: ac.signal,
+          onProgress: (p) => {
+            if (cancelled) return;
+            if (p.status === "waiting") {
+              setQueueInfo({ position: p.position, running: p.runningCount });
+            } else {
+              setQueueInfo(null);
+            }
+          },
+        });
+        releaseSlot = release;
+        stopHeartbeat = startHeartbeat();
+
         const { data, error: err } = await supabase.functions.invoke("zophiel-intelmap", {
           body: {
             query,
@@ -263,14 +286,23 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         setEdges(data.edges || []);
         setScrapedCount(data.scrapedCount || 0);
         setTotalSources(data.totalSources || 0);
+        await release(true);
+        releaseSlot = null;
       } catch (e: any) {
         if (!cancelled) setError(e?.message || "Could not build intel map");
+        if (releaseSlot) { await releaseSlot(false); releaseSlot = null; }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (stopHeartbeat) stopHeartbeat();
+        if (!cancelled) { setLoading(false); setQueueInfo(null); }
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      ac.abort();
+      if (stopHeartbeat) stopHeartbeat();
+      if (releaseSlot) releaseSlot(false);
+    };
   }, [query, results]);
 
   // Run layout when nodes/size change
