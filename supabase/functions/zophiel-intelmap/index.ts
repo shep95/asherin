@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
 URL: ${s.url}
 DOMAIN: ${s.domain}
 SNIPPET: ${s.snippet || ''}
-EXCERPT: ${s.content.slice(0, 1800)}
+EXCERPT: ${(s.content || s.snippet || '').slice(0, 1400)}
 ---`,
     ).join('\n');
 
@@ -152,33 +152,70 @@ Return JSON with this exact shape:
   ]
 }`;
 
-    const aiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [
-            { role: 'user', parts: [{ text: userPrompt }] },
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json',
+    // Try Gemini first (with timeout), then fall back to Lovable AI Gateway
+    async function callGemini(): Promise<string> {
+      if (!GEMINI_API_KEY) throw new Error('no_gemini_key');
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 18000);
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: ctl.signal,
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 4096 },
+            }),
           },
-        }),
-      },
-    );
-
-    if (!aiResp.ok) {
-      const txt = await aiResp.text();
-      return new Response(
-        JSON.stringify({ success: false, error: `Gemini error ${aiResp.status}: ${txt.slice(0, 200)}` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+        );
+        if (!r.ok) throw new Error(`gemini_${r.status}`);
+        const d = await r.json();
+        return d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      } finally { clearTimeout(t); }
     }
 
-    const aiData = await aiResp.json();
-    const raw = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    async function callLovable(): Promise<string> {
+      if (!LOVABLE_API_KEY) throw new Error('no_lovable_key');
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 18000);
+      try {
+        const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+          signal: ctl.signal,
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt + '\n\nReturn ONLY the JSON object, no markdown.' },
+            ],
+          }),
+        });
+        if (!r.ok) throw new Error(`lovable_${r.status}`);
+        const d = await r.json();
+        return d?.choices?.[0]?.message?.content || '{}';
+      } finally { clearTimeout(t); }
+    }
+
+    let raw = '{}';
+    let aiError: string | null = null;
+    try {
+      raw = await callGemini();
+    } catch (e1) {
+      try {
+        raw = await callLovable();
+      } catch (e2) {
+        aiError = `${e1 instanceof Error ? e1.message : 'gemini_fail'} | ${e2 instanceof Error ? e2.message : 'lovable_fail'}`;
+      }
+    }
+
+    // Strip code fences if any
+    raw = raw.replace(/```json\n?|```/g, '').trim();
+    const lastBrace = raw.lastIndexOf('}');
+    if (lastBrace !== -1) raw = raw.slice(0, lastBrace + 1);
     let parsed: { entities?: any[]; relationships?: any[] } = {};
     try { parsed = JSON.parse(raw); } catch { parsed = {}; }
 
