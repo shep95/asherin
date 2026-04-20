@@ -83,14 +83,21 @@ function domainOf(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
 
+interface ByokConfig {
+  provider: 'google' | 'openai' | 'anthropic' | 'xai' | 'deepseek' | 'mistral' | 'perplexity';
+  model: string;
+  apiKey: string;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { query, results, offset = 0 } = await req.json() as {
+    const { query, results, offset = 0, byok = null } = await req.json() as {
       query: string;
       results: ResultIn[];
       offset?: number;
+      byok?: ByokConfig | null;
     };
     if (!Array.isArray(results) || results.length === 0) {
       return new Response(
@@ -99,8 +106,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
-    if (!GEMINI_API_KEY) {
+    // Validate BYOK if provided. When valid, we skip the platform Gemini key entirely
+    // and route the AI call through the user's own provider — bypassing the queue.
+    const useByok = !!(byok && byok.apiKey && byok.provider && byok.model);
+    const GEMINI_API_KEY = useByok ? '' : (Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY') || '');
+    if (!useByok && !GEMINI_API_KEY) {
       return new Response(
         JSON.stringify({ success: false, error: 'GEMINI_API_KEY_APP not configured' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
