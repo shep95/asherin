@@ -96,22 +96,21 @@ Deno.serve(async (req) => {
     }
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: 'No AI key configured (GEMINI_API_KEY_APP or LOVABLE_API_KEY)' }),
+        JSON.stringify({ success: false, error: 'GEMINI_API_KEY_APP not configured' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Limit to top 6 results for scraping budget (reduced from 8 to stay under Edge timeout)
-    const top = results.slice(0, 6);
+    // Top 8 results for scraping
+    const top = results.slice(0, 8);
 
     // Scrape pages in parallel — never fail the whole map if a page errors
     const scraped = await Promise.all(
       top.map(async (r) => {
         let content = '';
-        try { content = await fetchPage(r.url); } catch { content = ''; }
+        try { content = await fetchPage(r.url, 6000); } catch { content = ''; }
         return { ...r, domain: domainOf(r.url), content };
       }),
     );
@@ -122,7 +121,7 @@ Deno.serve(async (req) => {
 URL: ${s.url}
 DOMAIN: ${s.domain}
 SNIPPET: ${s.snippet || ''}
-EXCERPT: ${(s.content || s.snippet || '').slice(0, 1400)}
+EXCERPT: ${(s.content || s.snippet || '').slice(0, 2500)}
 ---`,
     ).join('\n');
 
