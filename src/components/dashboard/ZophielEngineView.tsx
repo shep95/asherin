@@ -56,6 +56,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
   const [intelMapOpen, setIntelMapOpen] = useState(false);
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
+  const [byokOpen, setByokOpen] = useState(false);
+  const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
