@@ -87,7 +87,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { query, results } = await req.json() as { query: string; results: ResultIn[] };
+    const { query, results, offset = 0 } = await req.json() as {
+      query: string;
+      results: ResultIn[];
+      offset?: number;
+    };
     if (!Array.isArray(results) || results.length === 0) {
       return new Response(
         JSON.stringify({ success: false, error: 'No results provided' }),
@@ -109,28 +113,34 @@ Deno.serve(async (req) => {
     // we only fetch the top SCRAPE_LIMIT, but ALL sources still appear as nodes in the graph.
     const SCRAPE_LIMIT = 12;
     const DELAY_MS = 10_000;
-    const top = results.slice(0, SCRAPE_LIMIT);
-    const extras = results.slice(SCRAPE_LIMIT); // included as graph nodes, not scraped
+    const startIdx = Math.max(0, Math.floor(Number(offset) || 0));
+    const endIdx = Math.min(results.length, startIdx + SCRAPE_LIMIT);
+    const top = results.slice(startIdx, endIdx);
+    const nextOffset = endIdx;
+    const hasMore = endIdx < results.length;
 
-    const scraped: Array<ResultIn & { domain: string; content: string }> = [];
+    if (top.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No more sources to scrape', nextOffset: startIdx, hasMore: false }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const scraped: Array<ResultIn & { domain: string; content: string; sourceIndex: number }> = [];
     for (let i = 0; i < top.length; i++) {
       const r = top[i];
       let content = '';
       try {
         content = await fetchPage(r.url, 8000);
-        console.log(`[intelmap] scraped ${i + 1}/${top.length}: ${domainOf(r.url)} (${content.length} chars)`);
+        console.log(`[intelmap] scraped ${i + 1}/${top.length} (offset ${startIdx}): ${domainOf(r.url)} (${content.length} chars)`);
       } catch (e) {
         console.warn(`[intelmap] scrape failed ${i + 1}/${top.length}: ${r.url}`, e);
         content = '';
       }
-      scraped.push({ ...r, domain: domainOf(r.url), content });
+      // Use a STABLE absolute index so node IDs don't collide across batches.
+      scraped.push({ ...r, domain: domainOf(r.url), content, sourceIndex: startIdx + i + 1 });
       // Wait 10s before next page (skip after last)
       if (i < top.length - 1) await new Promise((res) => setTimeout(res, DELAY_MS));
-    }
-
-    // Append non-scraped extras so the graph still shows every source the user requested
-    for (const r of extras) {
-      scraped.push({ ...r, domain: domainOf(r.url), content: '' });
     }
 
     // Build a compact corpus for the AI
@@ -254,10 +264,11 @@ Return JSON with this exact shape:
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
 
-    // Source nodes (one per scraped page)
-    scraped.forEach((s, idx) => {
+    // Source nodes (one per scraped page) — use STABLE absolute index so additional
+    // batches append cleanly without colliding with prior IDs.
+    scraped.forEach((s) => {
       nodes.push({
-        id: `src-${idx + 1}`,
+        id: `src-${s.sourceIndex}`,
         label: s.domain,
         type: 'source',
         tier: s.tier,
@@ -268,13 +279,15 @@ Return JSON with this exact shape:
       });
     });
 
-    // Entity nodes
+    // Entity nodes — prefix entity IDs with the batch offset so the same generic
+    // label (e.g. "twitter") from a later batch doesn't merge into an old node.
+    const batchPrefix = `b${startIdx}`;
     const entityIds = new Set<string>();
     entities.forEach((e: any) => {
       if (!e?.id || !e?.label || !e?.type) return;
       const allowed = ['person', 'organization', 'location', 'topic', 'event'];
       if (!allowed.includes(e.type)) return;
-      const id = `ent-${String(e.id).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
+      const id = `ent-${batchPrefix}-${String(e.id).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
       if (entityIds.has(id)) return;
       entityIds.add(id);
       nodes.push({
@@ -285,12 +298,13 @@ Return JSON with this exact shape:
         context: e.context ? String(e.context).slice(0, 200) : undefined,
       });
 
-      // mention edges from sources
+      // mention edges from sources — map AI's 1..N indices back to absolute source IDs
       if (Array.isArray(e.sourceIndices)) {
         e.sourceIndices.forEach((si: number) => {
           if (si >= 1 && si <= scraped.length) {
+            const absoluteIdx = scraped[si - 1].sourceIndex;
             edges.push({
-              source: `src-${si}`,
+              source: `src-${absoluteIdx}`,
               target: id,
               label: 'mentions',
               weight: 1,
@@ -303,8 +317,8 @@ Return JSON with this exact shape:
     // Relationship edges
     relationships.forEach((r: any) => {
       if (!r?.from || !r?.to || !r?.label) return;
-      const from = `ent-${String(r.from).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
-      const to = `ent-${String(r.to).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
+      const from = `ent-${batchPrefix}-${String(r.from).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
+      const to = `ent-${batchPrefix}-${String(r.to).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
       if (entityIds.has(from) && entityIds.has(to)) {
         edges.push({
           source: from,
@@ -323,8 +337,12 @@ Return JSON with this exact shape:
         edges,
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
-        aiError, // null on success, string when AI step failed (graph still has source nodes)
-        usedModel, // which Gemini model produced the entity graph (null if all failed)
+        offset: startIdx,
+        nextOffset,
+        hasMore,
+        totalAvailable: results.length,
+        aiError,
+        usedModel,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

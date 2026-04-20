@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { acquireIntelSlot } from "@/lib/intelJobQueue";
 import type { SearchResult } from "./types";
@@ -216,11 +216,15 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
 
 const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nodes, setNodes] = useState<IntelNode[]>([]);
   const [edges, setEdges] = useState<IntelEdge[]>([]);
   const [scrapedCount, setScrapedCount] = useState(0);
   const [totalSources, setTotalSources] = useState(0);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalAvailable, setTotalAvailable] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -245,66 +249,97 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
   const [queueInfo, setQueueInfo] = useState<{ position: number; running: number } | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const ac = new AbortController();
-    let stopHeartbeat: (() => void) | null = null;
-    let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
+  // Send the FULL list of results — server slices [offset, offset+12). This way
+  // subsequent "Scrape More" calls have the URL list to continue from.
+  const allResultsPayload = useMemo(
+    () =>
+      results.map((r) => ({
+        title: r.title, url: r.url, snippet: r.snippet,
+        source: r.source, tier: r.tier, tierLabel: r.tierLabel,
+      })),
+    [results],
+  );
 
-    const run = async () => {
-      setLoading(true); setError(null); setQueueInfo(null);
+  // Shared runner used by both initial load and "Scrape More".
+  const runBatch = useCallback(
+    async (offset: number, append: boolean) => {
+      const ac = new AbortController();
+      let stopHeartbeat: (() => void) | null = null;
+      let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
       try {
-        // Acquire a concurrency slot first (max 2 concurrent runs globally)
+        if (append) setLoadingMore(true); else { setLoading(true); setError(null); setQueueInfo(null); }
         const { release, startHeartbeat } = await acquireIntelSlot({
           jobType: "intelmap",
           maxConcurrent: 2,
           signal: ac.signal,
           onProgress: (p) => {
-            if (cancelled) return;
-            if (p.status === "waiting") {
-              setQueueInfo({ position: p.position, running: p.runningCount });
-            } else {
-              setQueueInfo(null);
-            }
+            if (p.status === "waiting") setQueueInfo({ position: p.position, running: p.runningCount });
+            else setQueueInfo(null);
           },
         });
         releaseSlot = release;
         stopHeartbeat = startHeartbeat();
 
         const { data, error: err } = await supabase.functions.invoke("zophiel-intelmap", {
-          body: {
-            query,
-            results: results.slice(0, 8).map((r) => ({
-              title: r.title, url: r.url, snippet: r.snippet,
-              source: r.source, tier: r.tier, tierLabel: r.tierLabel,
-            })),
-          },
+          body: { query, results: allResultsPayload, offset },
         });
-        if (cancelled) return;
         if (err) throw err;
         if (!data?.success) throw new Error(data?.error || "Failed to build intel map");
-        setNodes(data.nodes || []);
-        setEdges(data.edges || []);
-        setScrapedCount(data.scrapedCount || 0);
-        setTotalSources(data.totalSources || 0);
+
+        const newNodes: IntelNode[] = data.nodes || [];
+        const newEdges: IntelEdge[] = data.edges || [];
+
+        if (append) {
+          // Merge: dedupe nodes by id, then add edges (server prefixes batch IDs so collisions are rare).
+          setNodes((prev) => {
+            const seen = new Set(prev.map((n) => n.id));
+            return [...prev, ...newNodes.filter((n) => !seen.has(n.id))];
+          });
+          setEdges((prev) => [...prev, ...newEdges]);
+          setScrapedCount((c) => c + (data.scrapedCount || 0));
+          setTotalSources((c) => c + (data.totalSources || 0));
+        } else {
+          setNodes(newNodes);
+          setEdges(newEdges);
+          setScrapedCount(data.scrapedCount || 0);
+          setTotalSources(data.totalSources || 0);
+        }
+        setNextOffset(Number(data.nextOffset || 0));
+        setHasMore(!!data.hasMore);
+        setTotalAvailable(Number(data.totalAvailable || results.length));
         await release(true);
         releaseSlot = null;
       } catch (e: any) {
-        if (!cancelled) setError(e?.message || "Could not build intel map");
+        const msg = e?.message || "Could not build intel map";
+        if (append) {
+          // Don't blow away the existing graph on a failed "scrape more" — surface inline.
+          setError(msg);
+        } else {
+          setError(msg);
+        }
         if (releaseSlot) { await releaseSlot(false); releaseSlot = null; }
       } finally {
         if (stopHeartbeat) stopHeartbeat();
-        if (!cancelled) { setLoading(false); setQueueInfo(null); }
+        setLoading(false);
+        setLoadingMore(false);
+        setQueueInfo(null);
       }
-    };
-    run();
-    return () => {
-      cancelled = true;
-      ac.abort();
-      if (stopHeartbeat) stopHeartbeat();
-      if (releaseSlot) releaseSlot(false);
-    };
-  }, [query, results]);
+    },
+    [query, allResultsPayload, results.length],
+  );
+
+  // Initial load
+  useEffect(() => {
+    let cancelled = false;
+    (async () => { if (!cancelled) await runBatch(0, false); })();
+    return () => { cancelled = true; };
+  }, [runBatch]);
+
+  const onScrapeMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setError(null);
+    void runBatch(nextOffset, true);
+  }, [loadingMore, hasMore, nextOffset, runBatch]);
 
   // Run layout when nodes/size change
   const laidOut = useMemo(() => {
@@ -380,9 +415,16 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       </div>
 
       {/* Stats bar */}
-      {!loading && !error && laidOut.length > 0 && (
+      {!loading && laidOut.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-2 border-b border-border/10 bg-card/5 backdrop-blur-xl text-[10px] font-light tracking-wider uppercase text-muted-foreground/70 overflow-x-auto">
-          <span>{scrapedCount}/{totalSources} scraped</span>
+          <span>
+            {scrapedCount}/{totalAvailable || totalSources} scraped
+            {hasMore && totalAvailable > 0 && (
+              <span className="ml-1 normal-case tracking-normal text-muted-foreground/50">
+                ({totalAvailable - nextOffset} remaining)
+              </span>
+            )}
+          </span>
           <span className="text-border/40">·</span>
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
             counts[t] ? (
@@ -396,6 +438,38 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           )}
           <span className="text-border/40">·</span>
           <span>{edges.length} links</span>
+
+          {/* Scrape More button — pushed to the right */}
+          {hasMore && (
+            <button
+              onClick={onScrapeMore}
+              disabled={loadingMore}
+              className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/30 bg-foreground/[0.03] hover:bg-foreground/[0.07] hover:border-border/50 text-foreground/80 hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-wait normal-case tracking-normal"
+              title={`Scrape next batch (${Math.min(12, totalAvailable - nextOffset)} more pages, ~${Math.min(12, totalAvailable - nextOffset) * 10}s)`}
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-[10px]">Scraping +{Math.min(12, totalAvailable - nextOffset)}…</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3" />
+                  <span className="text-[10px]">Scrape +{Math.min(12, totalAvailable - nextOffset)} more</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Inline error banner — shown when "scrape more" fails but we still have a graph */}
+      {error && !loading && laidOut.length > 0 && (
+        <div className="px-4 py-2 border-b border-destructive/30 bg-destructive/5 text-[11px] font-light text-destructive flex items-center justify-between gap-2">
+          <span className="truncate">{error}</span>
+          <button onClick={() => setError(null)} className="p-0.5 rounded hover:bg-destructive/10 shrink-0" aria-label="Dismiss">
+            <X className="h-3 w-3" />
+          </button>
         </div>
       )}
 
