@@ -103,17 +103,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Top 8 results for scraping
-    const top = results.slice(0, 8);
+    // Sequential scrape with 10s delay between pages (per user request).
+    // Edge functions cap around 150s wall-clock — at 10s/page we cap input at 12 pages
+    // (≈120s scraping + ~15-25s for Gemini = safe). The client may send up to 30 results;
+    // we only fetch the top SCRAPE_LIMIT, but ALL sources still appear as nodes in the graph.
+    const SCRAPE_LIMIT = 12;
+    const DELAY_MS = 10_000;
+    const top = results.slice(0, SCRAPE_LIMIT);
+    const extras = results.slice(SCRAPE_LIMIT); // included as graph nodes, not scraped
 
-    // Scrape pages in parallel — never fail the whole map if a page errors
-    const scraped = await Promise.all(
-      top.map(async (r) => {
-        let content = '';
-        try { content = await fetchPage(r.url, 6000); } catch { content = ''; }
-        return { ...r, domain: domainOf(r.url), content };
-      }),
-    );
+    const scraped: Array<ResultIn & { domain: string; content: string }> = [];
+    for (let i = 0; i < top.length; i++) {
+      const r = top[i];
+      let content = '';
+      try {
+        content = await fetchPage(r.url, 8000);
+        console.log(`[intelmap] scraped ${i + 1}/${top.length}: ${domainOf(r.url)} (${content.length} chars)`);
+      } catch (e) {
+        console.warn(`[intelmap] scrape failed ${i + 1}/${top.length}: ${r.url}`, e);
+        content = '';
+      }
+      scraped.push({ ...r, domain: domainOf(r.url), content });
+      // Wait 10s before next page (skip after last)
+      if (i < top.length - 1) await new Promise((res) => setTimeout(res, DELAY_MS));
+    }
+
+    // Append non-scraped extras so the graph still shows every source the user requested
+    for (const r of extras) {
+      scraped.push({ ...r, domain: domainOf(r.url), content: '' });
+    }
 
     // Build a compact corpus for the AI
     const corpus = scraped.map((s, i) =>
