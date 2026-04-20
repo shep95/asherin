@@ -103,25 +103,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Top 8 results for scraping
-    const top = results.slice(0, 8);
+    // Scrape up to 30 results — concurrency pool keeps us inside Edge Function budget
+    const totalFound = results.length;
+    const top = results.slice(0, 30);
 
-    // Scrape pages in parallel — never fail the whole map if a page errors
-    const scraped = await Promise.all(
-      top.map(async (r) => {
+    const CONCURRENCY = 8;
+    const PER_PAGE_TIMEOUT_MS = 4500;
+    const scraped: Array<ResultIn & { domain: string; content: string }> = new Array(top.length);
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(CONCURRENCY, top.length) }, async () => {
+      while (true) {
+        const i = cursor++;
+        if (i >= top.length) return;
+        const r = top[i];
         let content = '';
-        try { content = await fetchPage(r.url, 6000); } catch { content = ''; }
-        return { ...r, domain: domainOf(r.url), content };
-      }),
-    );
+        try { content = await fetchPage(r.url, PER_PAGE_TIMEOUT_MS); } catch { content = ''; }
+        scraped[i] = { ...r, domain: domainOf(r.url), content };
+      }
+    });
+    await Promise.all(workers);
 
-    // Build a compact corpus for the AI
+    // Build a compact corpus for the AI — adapt excerpt length to source count to stay within token budget
+    const excerptLen = scraped.length > 20 ? 900 : scraped.length > 12 ? 1500 : 2500;
     const corpus = scraped.map((s, i) =>
       `[SOURCE ${i + 1}] (${s.tierLabel || 'Source'}) ${s.title}
 URL: ${s.url}
 DOMAIN: ${s.domain}
 SNIPPET: ${s.snippet || ''}
-EXCERPT: ${(s.content || s.snippet || '').slice(0, 2500)}
+EXCERPT: ${(s.content || s.snippet || '').slice(0, excerptLen)}
 ---`,
     ).join('\n');
 
@@ -267,7 +276,8 @@ Return JSON with this exact shape:
         edges,
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
-        aiError, // null on success, string when AI step failed (graph still has source nodes)
+        totalFound,
+        aiError,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

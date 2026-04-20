@@ -274,7 +274,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         const { data, error: err } = await supabase.functions.invoke("zophiel-intelmap", {
           body: {
             query,
-            results: results.slice(0, 8).map((r) => ({
+            results: results.slice(0, 30).map((r) => ({
               title: r.title, url: r.url, snippet: r.snippet,
               source: r.source, tier: r.tier, tierLabel: r.tierLabel,
             })),
@@ -286,7 +286,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         setNodes(data.nodes || []);
         setEdges(data.edges || []);
         setScrapedCount(data.scrapedCount || 0);
-        setTotalSources(data.totalSources || 0);
+        setTotalSources(data.totalFound || data.totalSources || 0);
         await release(true);
         releaseSlot = null;
       } catch (e: any) {
