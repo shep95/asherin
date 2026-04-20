@@ -103,34 +103,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Scrape up to 30 results — concurrency pool keeps us inside Edge Function budget
-    const totalFound = results.length;
-    const top = results.slice(0, 30);
+    // Top 8 results for scraping
+    const top = results.slice(0, 8);
 
-    const CONCURRENCY = 8;
-    const PER_PAGE_TIMEOUT_MS = 4500;
-    const scraped: Array<ResultIn & { domain: string; content: string }> = new Array(top.length);
-    let cursor = 0;
-    const workers = Array.from({ length: Math.min(CONCURRENCY, top.length) }, async () => {
-      while (true) {
-        const i = cursor++;
-        if (i >= top.length) return;
-        const r = top[i];
+    // Scrape pages in parallel — never fail the whole map if a page errors
+    const scraped = await Promise.all(
+      top.map(async (r) => {
         let content = '';
-        try { content = await fetchPage(r.url, PER_PAGE_TIMEOUT_MS); } catch { content = ''; }
-        scraped[i] = { ...r, domain: domainOf(r.url), content };
-      }
-    });
-    await Promise.all(workers);
+        try { content = await fetchPage(r.url, 6000); } catch { content = ''; }
+        return { ...r, domain: domainOf(r.url), content };
+      }),
+    );
 
-    // Build a compact corpus for the AI — adapt excerpt length to source count to stay within token budget
-    const excerptLen = scraped.length > 20 ? 900 : scraped.length > 12 ? 1500 : 2500;
+    // Build a compact corpus for the AI
     const corpus = scraped.map((s, i) =>
       `[SOURCE ${i + 1}] (${s.tierLabel || 'Source'}) ${s.title}
 URL: ${s.url}
 DOMAIN: ${s.domain}
 SNIPPET: ${s.snippet || ''}
-EXCERPT: ${(s.content || s.snippet || '').slice(0, excerptLen)}
+EXCERPT: ${(s.content || s.snippet || '').slice(0, 2500)}
 ---`,
     ).join('\n');
 
@@ -160,15 +151,16 @@ Return JSON with this exact shape:
   ]
 }`;
 
-    // Call Gemini directly (no Lovable AI fallback per user request)
-    let raw = '{}';
-    let aiError: string | null = null;
-    try {
+    // Call Gemini with retry + model fallback chain (NO Lovable AI — user explicitly opted out)
+    // Strategy: try gemini-2.5-flash first; on 503/429/overload, retry with backoff,
+    // then fall back to gemini-2.5-flash-lite, then gemini-2.5-pro.
+    const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+    const callGemini = async (model: string, timeoutMs: number) => {
       const ctl = new AbortController();
-      const t = setTimeout(() => ctl.abort(), 25000);
+      const t = setTimeout(() => ctl.abort(), timeoutMs);
       try {
         const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -182,15 +174,52 @@ Return JSON with this exact shape:
         );
         if (!r.ok) {
           const txt = await r.text();
-          console.error('[intelmap] gemini error', r.status, txt.slice(0, 300));
-          throw new Error(`gemini_${r.status}`);
+          console.error(`[intelmap] ${model} error ${r.status}`, txt.slice(0, 200));
+          const retryable = r.status === 503 || r.status === 429 || r.status === 500 || r.status === 502 || r.status === 504;
+          const err: any = new Error(`${model}_${r.status}`);
+          err.retryable = retryable;
+          err.status = r.status;
+          throw err;
         }
         const d = await r.json();
-        raw = d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        return d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       } finally { clearTimeout(t); }
-    } catch (e) {
-      aiError = e instanceof Error ? e.message : 'gemini_fail';
-      console.error('[intelmap] AI call failed:', aiError);
+    };
+
+    let raw = '{}';
+    let aiError: string | null = null;
+    let usedModel: string | null = null;
+
+    outer: for (let mi = 0; mi < MODEL_CHAIN.length; mi++) {
+      const model = MODEL_CHAIN[mi];
+      // Retry budget per model: 3 attempts with backoff (only for retryable errors)
+      const attempts = mi === 0 ? 3 : 2;
+      for (let a = 0; a < attempts; a++) {
+        try {
+          raw = await callGemini(model, 22000);
+          usedModel = model;
+          aiError = null;
+          break outer;
+        } catch (e: any) {
+          aiError = e?.message || 'gemini_fail';
+          console.warn(`[intelmap] attempt ${a + 1}/${attempts} on ${model} failed:`, aiError);
+          // Non-retryable (e.g., 400 bad request, 401/403) → don't retry, jump to next model
+          if (!e?.retryable) break;
+          // Backoff before retrying same model: 800ms, 2000ms
+          if (a < attempts - 1) {
+            const wait = 800 * Math.pow(2.2, a) + Math.random() * 400;
+            await new Promise((r) => setTimeout(r, wait));
+          }
+        }
+      }
+      // Small pause before falling back to next model
+      if (mi < MODEL_CHAIN.length - 1) await new Promise((r) => setTimeout(r, 500));
+    }
+
+    if (usedModel) {
+      console.log(`[intelmap] AI succeeded with model=${usedModel}`);
+    } else {
+      console.error('[intelmap] All Gemini models failed:', aiError);
     }
 
     // Strip code fences if any
@@ -276,8 +305,8 @@ Return JSON with this exact shape:
         edges,
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
-        totalFound,
-        aiError,
+        aiError, // null on success, string when AI step failed (graph still has source nodes)
+        usedModel, // which Gemini model produced the entity graph (null if all failed)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
