@@ -415,9 +415,16 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       </div>
 
       {/* Stats bar */}
-      {!loading && !error && laidOut.length > 0 && (
+      {!loading && laidOut.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-2 border-b border-border/10 bg-card/5 backdrop-blur-xl text-[10px] font-light tracking-wider uppercase text-muted-foreground/70 overflow-x-auto">
-          <span>{scrapedCount}/{totalSources} scraped</span>
+          <span>
+            {scrapedCount}/{totalAvailable || totalSources} scraped
+            {hasMore && totalAvailable > 0 && (
+              <span className="ml-1 normal-case tracking-normal text-muted-foreground/50">
+                ({totalAvailable - nextOffset} remaining)
+              </span>
+            )}
+          </span>
           <span className="text-border/40">·</span>
           {(["source", "person", "organization", "location", "topic", "event"] as const).map((t) =>
             counts[t] ? (
@@ -431,6 +438,38 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           )}
           <span className="text-border/40">·</span>
           <span>{edges.length} links</span>
+
+          {/* Scrape More button — pushed to the right */}
+          {hasMore && (
+            <button
+              onClick={onScrapeMore}
+              disabled={loadingMore}
+              className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/30 bg-foreground/[0.03] hover:bg-foreground/[0.07] hover:border-border/50 text-foreground/80 hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-wait normal-case tracking-normal"
+              title={`Scrape next batch (${Math.min(12, totalAvailable - nextOffset)} more pages, ~${Math.min(12, totalAvailable - nextOffset) * 10}s)`}
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-[10px]">Scraping +{Math.min(12, totalAvailable - nextOffset)}…</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3" />
+                  <span className="text-[10px]">Scrape +{Math.min(12, totalAvailable - nextOffset)} more</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Inline error banner — shown when "scrape more" fails but we still have a graph */}
+      {error && !loading && laidOut.length > 0 && (
+        <div className="px-4 py-2 border-b border-destructive/30 bg-destructive/5 text-[11px] font-light text-destructive flex items-center justify-between gap-2">
+          <span className="truncate">{error}</span>
+          <button onClick={() => setError(null)} className="p-0.5 rounded hover:bg-destructive/10 shrink-0" aria-label="Dismiss">
+            <X className="h-3 w-3" />
+          </button>
         </div>
       )}
 
