@@ -411,8 +411,21 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin text-accent" />
-            <p className="text-xs font-light tracking-wide">Scraping sources & extracting entities…</p>
-            <p className="text-[10px] font-light text-muted-foreground/50">Reading {results.length} pages, mapping connections</p>
+            {queueInfo ? (
+              <>
+                <p className="text-xs font-light tracking-wide">
+                  Engine busy — you are #{queueInfo.position} in line
+                </p>
+                <p className="text-[10px] font-light text-muted-foreground/50">
+                  {queueInfo.running} active session{queueInfo.running === 1 ? "" : "s"} · holding your slot
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-light tracking-wide">Scraping sources & extracting entities…</p>
+                <p className="text-[10px] font-light text-muted-foreground/50">Reading {results.length} pages, mapping connections</p>
+              </>
+            )}
           </div>
         )}
 
