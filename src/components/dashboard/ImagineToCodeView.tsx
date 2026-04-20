@@ -73,28 +73,105 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
   return out;
 }
 
-function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
-  try {
-    const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[1]);
-    if (!parsed.pixels || !Array.isArray(parsed.pixels)) return null;
-    const pixelMap = new Map<string, PixelRect>();
-    for (const r of currentRects) pixelMap.set(`${r.x},${r.y}`, { ...r });
-    for (const edit of parsed.pixels) {
-      if (typeof edit.x !== "number" || typeof edit.y !== "number" || !edit.color) continue;
-      if (edit.x < 0 || edit.y < 0 || edit.x >= currentW || edit.y >= currentH) continue;
-      const key = `${edit.x},${edit.y}`;
-      if (edit.color === "transparent" || edit.color === "erase") {
-        pixelMap.delete(key);
-      } else {
-        pixelMap.set(key, { id: uid(), x: edit.x, y: edit.y, color: edit.color });
-      }
+// Normalize a color token: hex (#rgb/#rrggbb), shorthand "erase"/"transparent",
+// or named color via canvas. Returns canonical "#RRGGBB" or null.
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+function normalizeColor(c: unknown): string | "ERASE" | null {
+  if (typeof c !== "string") return null;
+  const s = c.trim();
+  if (!s) return null;
+  const lo = s.toLowerCase();
+  if (lo === "erase" || lo === "transparent" || lo === "none" || lo === "null") return "ERASE";
+  if (HEX_RE.test(s)) {
+    if (s.length === 4) {
+      // #rgb -> #RRGGBB
+      return ("#" + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]).toUpperCase();
     }
-    return Array.from(pixelMap.values());
-  } catch {
-    return null;
+    return s.toUpperCase();
   }
+  return null;
+}
+
+// Expand a shape primitive to individual pixels.
+// Supported: {type:"rect",x,y,w,h,color}, {type:"line",x1,y1,x2,y2,color},
+// {type:"fill",x,y,color} (single pixel), {type:"hline"|"vline",x,y,len,color}
+function expandShape(shape: any): { x: number; y: number; color: string }[] {
+  const out: { x: number; y: number; color: string }[] = [];
+  const col = normalizeColor(shape?.color);
+  if (!col) return out;
+  const colStr = col === "ERASE" ? "erase" : col;
+  const t = String(shape?.type ?? "").toLowerCase();
+  if (t === "rect" || t === "filled-rect") {
+    const x = +shape.x, y = +shape.y, w = +shape.w || +shape.width, h = +shape.h || +shape.height;
+    if (![x, y, w, h].every(Number.isFinite)) return out;
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) out.push({ x: x + dx, y: y + dy, color: colStr });
+  } else if (t === "line") {
+    let x1 = +shape.x1, y1 = +shape.y1, x2 = +shape.x2, y2 = +shape.y2;
+    if (![x1, y1, x2, y2].every(Number.isFinite)) return out;
+    // Bresenham
+    const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+    const sx = x1 < x2 ? 1 : -1, sy = y1 < y2 ? 1 : -1;
+    let err = dx - dy;
+    while (true) {
+      out.push({ x: x1, y: y1, color: colStr });
+      if (x1 === x2 && y1 === y2) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x1 += sx; }
+      if (e2 < dx) { err += dx; y1 += sy; }
+    }
+  } else if (t === "hline") {
+    const x = +shape.x, y = +shape.y, len = +shape.len || +shape.length || 1;
+    for (let i = 0; i < len; i++) out.push({ x: x + i, y, color: colStr });
+  } else if (t === "vline") {
+    const x = +shape.x, y = +shape.y, len = +shape.len || +shape.length || 1;
+    for (let i = 0; i < len; i++) out.push({ x, y: y + i, color: colStr });
+  }
+  return out;
+}
+
+function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
+  // Collect every ```json block (model may emit several across a long edit)
+  const blocks: string[] = [];
+  const blockRe = /```(?:json)?\s*([\s\S]*?)```/g;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(response)) !== null) blocks.push(m[1]);
+  // Fallback: try to extract a bare {...} object if no fenced block
+  if (blocks.length === 0) {
+    const bare = response.match(/\{[\s\S]*"pixels"[\s\S]*\}/);
+    if (bare) blocks.push(bare[0]);
+  }
+  if (blocks.length === 0) return null;
+
+  const pixelMap = new Map<string, PixelRect>();
+  for (const r of currentRects) pixelMap.set(`${r.x},${r.y}`, { ...r });
+
+  let touched = false;
+  for (const raw of blocks) {
+    let parsed: any;
+    try { parsed = JSON.parse(raw); } catch {
+      // tolerate trailing commas / comments
+      try { parsed = JSON.parse(raw.replace(/,(\s*[}\]])/g, "$1").replace(/\/\/[^\n]*/g, "")); }
+      catch { continue; }
+    }
+    const edits: any[] = Array.isArray(parsed?.pixels) ? parsed.pixels : [];
+    const shapes: any[] = Array.isArray(parsed?.shapes) ? parsed.shapes : [];
+
+    const apply = (x: number, y: number, color: string) => {
+      if (!Number.isInteger(x) || !Number.isInteger(y)) return;
+      if (x < 0 || y < 0 || x >= currentW || y >= currentH) return;
+      const key = `${x},${y}`;
+      const norm = normalizeColor(color);
+      if (norm === "ERASE") { pixelMap.delete(key); touched = true; return; }
+      if (!norm) return;
+      pixelMap.set(key, { id: uid(), x, y, color: norm });
+      touched = true;
+    };
+
+    for (const e of edits) apply(+e.x, +e.y, e.color);
+    for (const s of shapes) for (const p of expandShape(s)) apply(p.x, p.y, p.color);
+  }
+
+  return touched ? Array.from(pixelMap.values()) : null;
 }
 
 // Constants
