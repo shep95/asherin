@@ -501,6 +501,18 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           {intelMapOpen ? "Close Map" : "Intel Map"}
                         </button>
                         <button
+                          onClick={() => setByokOpen(true)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
+                            byokActive
+                              ? "border-foreground/40 bg-foreground/10 text-foreground"
+                              : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
+                          }`}
+                          title="Use your own AI key to skip the Intel Map queue"
+                        >
+                          <Zap className="h-3.5 w-3.5" />
+                          {byokActive ? "Skip Queue: ON" : "Skip the Queue"}
+                        </button>
+                        <button
                           onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) setIntelMapOpen(false); }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
                             intelSuiteOpen
