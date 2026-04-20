@@ -60,41 +60,219 @@ function exportCssGrid(rects: PixelRect[], w: number, h: number): string {
 function imageDataToRects(imageData: ImageData): PixelRect[] {
   const { width, height, data } = imageData;
   const out: PixelRect[] = [];
+  // Quantize each channel to 6 levels (~216 web-safe-ish palette) to merge near-duplicate
+  // colors that explode pixel count without visual gain. Drop very transparent or near-white
+  // pixels (treated as background) using perceptual luminance instead of a flat RGB cutoff.
+  const QUANT = 51; // 256/5 -> 0,51,102,153,204,255
+  const snap = (v: number) => Math.round(v / QUANT) * QUANT;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const alpha = data[i + 3];
-      if (alpha < 20) continue;
+      const a = data[i + 3];
+      if (a < 32) continue;
       const r = data[i], g = data[i + 1], b = data[i + 2];
-      if (r > 220 && g > 220 && b > 220) continue;
-      out.push({ id: uid(), x, y, color: rgbaToHex(r, g, b) });
+      // Perceptual luminance — drop near-white background only when also low saturation
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      const sat = max === 0 ? 0 : (max - min) / max;
+      if (lum > 240 && sat < 0.05) continue;
+      out.push({ id: uid(), x, y, color: rgbaToHex(snap(r), snap(g), snap(b)) });
     }
   }
   return out;
 }
 
-function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
-  try {
-    const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[1]);
-    if (!parsed.pixels || !Array.isArray(parsed.pixels)) return null;
-    const pixelMap = new Map<string, PixelRect>();
-    for (const r of currentRects) pixelMap.set(`${r.x},${r.y}`, { ...r });
-    for (const edit of parsed.pixels) {
-      if (typeof edit.x !== "number" || typeof edit.y !== "number" || !edit.color) continue;
-      if (edit.x < 0 || edit.y < 0 || edit.x >= currentW || edit.y >= currentH) continue;
-      const key = `${edit.x},${edit.y}`;
-      if (edit.color === "transparent" || edit.color === "erase") {
-        pixelMap.delete(key);
-      } else {
-        pixelMap.set(key, { id: uid(), x: edit.x, y: edit.y, color: edit.color });
-      }
-    }
-    return Array.from(pixelMap.values());
-  } catch {
-    return null;
+// ─── Pixel-Perfect Normalization (DPI · Palette · Scale snapping) ─────────────
+// Applied on import + surfaced to AUREON so it reasons in clean design-system
+// units instead of arbitrary screenshot artifacts.
+
+// Detect Retina / HiDPI screenshots. We can't read EXIF reliably from a File via
+// FileReader, so we infer from raw dimensions: anything wider than a 1440px laptop
+// and dimensionally a clean multiple of a common device class is treated as 2x/3x.
+function detectSourceScale(w: number, h: number): 1 | 2 | 3 {
+  const longSide = Math.max(w, h);
+  // 3x: iPhone Pro / Android XXXHDPI screenshots (≥1170w typical short side, ≥2532 long)
+  if (longSide >= 2400 && (w % 3 === 0 || h % 3 === 0)) return 3;
+  // 2x: Retina MBP / iPad Pro / standard mobile screenshots
+  if (longSide >= 1600) return 2;
+  return 1;
+}
+
+// Hex helpers ------------------------------------------------------------------
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+// Perceptual distance — cheap weighted-Euclidean approximation of CIE ΔE.
+// Source: https://www.compuphase.com/cmetric.htm — good enough for clustering UI palettes.
+function colorDistance(a: string, b: string): number {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  const rmean = (r1 + r2) / 2;
+  const dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
+  return Math.sqrt(
+    (((512 + rmean) * dr * dr) >> 8) + 4 * dg * dg + (((767 - rmean) * db * db) >> 8)
+  );
+}
+// Pick the "cleanest" hex in a cluster — channels closest to multiples of 0x11
+// (so #4080FF beats #437DFE). Used as the canonical color for that cluster.
+function cleanestHex(cluster: string[]): string {
+  let best = cluster[0], bestScore = Infinity;
+  for (const c of cluster) {
+    const [r, g, b] = hexToRgb(c);
+    const score = (r % 17) + (g % 17) + (b % 17);
+    if (score < bestScore) { bestScore = score; best = c; }
   }
+  return best;
+}
+// Cluster similar colors (greedy, threshold ≈ JND for sRGB UI work).
+function unifyPalette(rects: PixelRect[], threshold = 28): { rects: PixelRect[]; palette: string[]; mapping: Record<string, string> } {
+  const colors = Array.from(new Set(rects.map(r => r.color)));
+  // Sort by frequency so the most-used hue anchors its cluster
+  const freq = new Map<string, number>();
+  for (const r of rects) freq.set(r.color, (freq.get(r.color) ?? 0) + 1);
+  colors.sort((a, b) => (freq.get(b)! - freq.get(a)!));
+
+  const clusters: string[][] = [];
+  for (const c of colors) {
+    let placed = false;
+    for (const cl of clusters) {
+      if (colorDistance(cl[0], c) < threshold) { cl.push(c); placed = true; break; }
+    }
+    if (!placed) clusters.push([c]);
+  }
+
+  const mapping: Record<string, string> = {};
+  const palette: string[] = [];
+  for (const cl of clusters) {
+    const canonical = cleanestHex(cl);
+    palette.push(canonical);
+    for (const c of cl) mapping[c] = canonical;
+  }
+  const remapped = rects.map(r => mapping[r.color] === r.color ? r : { ...r, color: mapping[r.color] });
+  return { rects: remapped, palette, mapping };
+}
+
+// Spacing / size snapping — Tailwind-style scale wins by default.
+const TAILWIND_SCALE = [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 80, 96, 128, 160, 192, 224, 256];
+const ICON_SIZES = [12, 16, 20, 24, 28, 32, 40, 48, 64, 96, 128];
+function snapToScale(value: number, scale: number[] = TAILWIND_SCALE): number {
+  if (value <= 0) return 0;
+  let nearest = scale[0], minDiff = Math.abs(value - nearest);
+  for (const s of scale) {
+    const d = Math.abs(value - s);
+    if (d < minDiff) { minDiff = d; nearest = s; }
+  }
+  return nearest;
+}
+function snapIconSize(value: number): number { return snapToScale(value, ICON_SIZES); }
+// Snap a font-size measurement onto a major-third (1.25) scale anchored at 16.
+function snapFontSize(value: number, base = 16, ratio = 1.25): number {
+  if (value <= 0) return base;
+  const steps = [-2, -1, 0, 1, 2, 3, 4, 5];
+  const scale = steps.map(s => Math.round(base * Math.pow(ratio, s)));
+  return snapToScale(value, scale);
+}
+
+// Normalize a color token: hex (#rgb/#rrggbb), shorthand "erase"/"transparent",
+// or named color via canvas. Returns canonical "#RRGGBB" or null.
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+function normalizeColor(c: unknown): string | "ERASE" | null {
+  if (typeof c !== "string") return null;
+  const s = c.trim();
+  if (!s) return null;
+  const lo = s.toLowerCase();
+  if (lo === "erase" || lo === "transparent" || lo === "none" || lo === "null") return "ERASE";
+  if (HEX_RE.test(s)) {
+    if (s.length === 4) {
+      // #rgb -> #RRGGBB
+      return ("#" + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]).toUpperCase();
+    }
+    return s.toUpperCase();
+  }
+  return null;
+}
+
+// Expand a shape primitive to individual pixels.
+// Supported: {type:"rect",x,y,w,h,color}, {type:"line",x1,y1,x2,y2,color},
+// {type:"fill",x,y,color} (single pixel), {type:"hline"|"vline",x,y,len,color}
+function expandShape(shape: any): { x: number; y: number; color: string }[] {
+  const out: { x: number; y: number; color: string }[] = [];
+  const col = normalizeColor(shape?.color);
+  if (!col) return out;
+  const colStr = col === "ERASE" ? "erase" : col;
+  const t = String(shape?.type ?? "").toLowerCase();
+  if (t === "rect" || t === "filled-rect") {
+    const x = +shape.x, y = +shape.y, w = +shape.w || +shape.width, h = +shape.h || +shape.height;
+    if (![x, y, w, h].every(Number.isFinite)) return out;
+    for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) out.push({ x: x + dx, y: y + dy, color: colStr });
+  } else if (t === "line") {
+    let x1 = +shape.x1, y1 = +shape.y1, x2 = +shape.x2, y2 = +shape.y2;
+    if (![x1, y1, x2, y2].every(Number.isFinite)) return out;
+    // Bresenham
+    const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+    const sx = x1 < x2 ? 1 : -1, sy = y1 < y2 ? 1 : -1;
+    let err = dx - dy;
+    while (true) {
+      out.push({ x: x1, y: y1, color: colStr });
+      if (x1 === x2 && y1 === y2) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x1 += sx; }
+      if (e2 < dx) { err += dx; y1 += sy; }
+    }
+  } else if (t === "hline") {
+    const x = +shape.x, y = +shape.y, len = +shape.len || +shape.length || 1;
+    for (let i = 0; i < len; i++) out.push({ x: x + i, y, color: colStr });
+  } else if (t === "vline") {
+    const x = +shape.x, y = +shape.y, len = +shape.len || +shape.length || 1;
+    for (let i = 0; i < len; i++) out.push({ x, y: y + i, color: colStr });
+  }
+  return out;
+}
+
+function parseAureonPixelEdit(response: string, currentRects: PixelRect[], currentW: number, currentH: number): PixelRect[] | null {
+  // Collect every ```json block (model may emit several across a long edit)
+  const blocks: string[] = [];
+  const blockRe = /```(?:json)?\s*([\s\S]*?)```/g;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(response)) !== null) blocks.push(m[1]);
+  // Fallback: try to extract a bare {...} object if no fenced block
+  if (blocks.length === 0) {
+    const bare = response.match(/\{[\s\S]*"pixels"[\s\S]*\}/);
+    if (bare) blocks.push(bare[0]);
+  }
+  if (blocks.length === 0) return null;
+
+  const pixelMap = new Map<string, PixelRect>();
+  for (const r of currentRects) pixelMap.set(`${r.x},${r.y}`, { ...r });
+
+  let touched = false;
+  for (const raw of blocks) {
+    let parsed: any;
+    try { parsed = JSON.parse(raw); } catch {
+      // tolerate trailing commas / comments
+      try { parsed = JSON.parse(raw.replace(/,(\s*[}\]])/g, "$1").replace(/\/\/[^\n]*/g, "")); }
+      catch { continue; }
+    }
+    const edits: any[] = Array.isArray(parsed?.pixels) ? parsed.pixels : [];
+    const shapes: any[] = Array.isArray(parsed?.shapes) ? parsed.shapes : [];
+
+    const apply = (x: number, y: number, color: string) => {
+      if (!Number.isInteger(x) || !Number.isInteger(y)) return;
+      if (x < 0 || y < 0 || x >= currentW || y >= currentH) return;
+      const key = `${x},${y}`;
+      const norm = normalizeColor(color);
+      if (norm === "ERASE") { pixelMap.delete(key); touched = true; return; }
+      if (!norm) return;
+      pixelMap.set(key, { id: uid(), x, y, color: norm });
+      touched = true;
+    };
+
+    for (const e of edits) apply(+e.x, +e.y, e.color);
+    for (const s of shapes) for (const p of expandShape(s)) apply(p.x, p.y, p.color);
+  }
+
+  return touched ? Array.from(pixelMap.values()) : null;
 }
 
 // Constants
@@ -758,6 +936,15 @@ const ImagineToCodeView = () => {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
+        // ─ DPI / Retina downscale ─ a 2880×1864 Retina screenshot is logically
+        // 1440×932; treating each physical pixel as a canvas cell wastes the
+        // pixel budget on doubled detail with no visual gain. Fold the source
+        // scale factor in BEFORE the budget calculation.
+        const sourceScale = detectSourceScale(width, height);
+        if (sourceScale > 1) {
+          width = Math.round(width / sourceScale);
+          height = Math.round(height / sourceScale);
+        }
         const aspect = width / height;
         const imageArea = width * height;
         const scaledBudget = PIXEL_BUDGET_BASE * Math.sqrt(imageArea / (512 * 512));
@@ -775,7 +962,17 @@ const ImagineToCodeView = () => {
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, width, height);
-        const newRects = imageDataToRects(ctx.getImageData(0, 0, width, height));
+        const rawRects = imageDataToRects(ctx.getImageData(0, 0, width, height));
+        // ─ Palette unification ─ cluster the quantized colors so AUREON sees a
+        // tight design palette (≤ 8-16 hues) rather than 100s of near-duplicate
+        // shades introduced by JPEG compression / antialiasing.
+        const { rects: newRects, palette } = unifyPalette(rawRects);
+        if (sourceScale > 1 || palette.length < new Set(rawRects.map(r => r.color)).size) {
+          toast({
+            title: "Image normalized",
+            description: `${sourceScale > 1 ? `Downscaled ${sourceScale}x · ` : ""}${palette.length} unified colors · ${width}×${height}`,
+          });
+        }
         setGridW(width); setGridH(height);
         gridWRef.current = width; gridHRef.current = height;
         setViewBox({ x: 0, y: 0, w: width, h: height });
@@ -877,43 +1074,111 @@ const ImagineToCodeView = () => {
 
   // ── AUREON ─────────────────────────────────────────────────────────────────
   const buildSystemPrompt = (currentRects: PixelRect[], currentW: number, currentH: number, forLoop = false) => {
-    const canvasContext = currentRects.length > 0
-      ? `[Canvas: ${currentW}×${currentH} grid, ${currentRects.length} pixels. Dominant colors: ${[...new Set(currentRects.map(r => r.color))].slice(0, 6).join(", ")}. Sample pixels: ${currentRects.slice(0, 12).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${currentRects.length > 12 ? `...+${currentRects.length - 12} more` : ""}]`
-      : `[Canvas: Empty ${currentW}×${currentH} grid]`;
+    // Build a richer canvas digest: dimensions, palette, bounding box, density,
+    // and a coarse occupancy map so the model can reason spatially without
+    // receiving every pixel.
+    const palette = [...new Set(currentRects.map(r => r.color))];
+    let digest: string;
+    if (currentRects.length === 0) {
+      digest = `Empty ${currentW}×${currentH} grid (origin top-left, +x right, +y down).`;
+    } else {
+      let minX = currentW, minY = currentH, maxX = 0, maxY = 0;
+      for (const r of currentRects) {
+        if (r.x < minX) minX = r.x; if (r.y < minY) minY = r.y;
+        if (r.x > maxX) maxX = r.x; if (r.y > maxY) maxY = r.y;
+      }
+      const density = ((currentRects.length / (currentW * currentH)) * 100).toFixed(1);
+      // 8x8 occupancy ASCII map — gives the model spatial awareness cheaply
+      const cols = 8, rows = 8;
+      const grid: number[][] = Array.from({ length: rows }, () => Array(cols).fill(0));
+      const cellW = currentW / cols, cellH = currentH / rows;
+      for (const r of currentRects) {
+        const cx = Math.min(cols - 1, Math.floor(r.x / cellW));
+        const cy = Math.min(rows - 1, Math.floor(r.y / cellH));
+        grid[cy][cx]++;
+      }
+      const maxCell = Math.max(1, ...grid.flat());
+      const ramp = " .:-=+*#%@";
+      const ascii = grid.map(row =>
+        row.map(v => ramp[Math.min(ramp.length - 1, Math.floor((v / maxCell) * (ramp.length - 1)))]).join("")
+      ).join("\n");
+      digest =
+        `${currentW}×${currentH} grid · ${currentRects.length} pixels · density ${density}%\n` +
+        `Bounding box: (${minX},${minY}) → (${maxX},${maxY})  ·  size ≈ ${snapToScale(maxX - minX + 1)}×${snapToScale(maxY - minY + 1)} (snapped to 4/8 scale)\n` +
+        `Palette (${palette.length} hues, sorted by use): ${palette.slice(0, 12).join(", ")}${palette.length > 12 ? "…" : ""}\n` +
+        `Occupancy (8×8 heatmap, top-left = (0,0)):\n${ascii}`;
+    }
 
     const loopInstructions = forLoop ? `
-AUTONOMOUS LOOP MODE: You are operating in a self-correcting autonomous loop.
-- After editing, you MUST critically "imagine" the result in your mind and score your confidence: DONE (90%+ satisfied) or ITERATE (needs more work).
-- End your response with one of these two tags on its own line:
-  <LOOP_STATUS: DONE> — you are satisfied with the result
-  <LOOP_STATUS: ITERATE reason="what still needs fixing"> — you will continue improving
-- Always include a pixel edit JSON block to apply changes. Never just describe — always edit.
-- Be systematic: each iteration should address one specific improvement.
+═══ AUTONOMOUS LOOP MODE ═══
+You are inside a self-correcting Edit→Imagine→Critique loop. Each turn:
+1. <plan> tag: One sentence — what specifically you will fix THIS iteration.
+2. Apply the edit via a json block.
+3. <critique> tag: Imagine the result. List 1-3 remaining defects (or "none").
+4. End with EXACTLY ONE tag on its own line:
+   <LOOP_STATUS: DONE>                                 // result matches goal ≥90%
+   <LOOP_STATUS: ITERATE reason="specific defect">     // continue refining
+
+Rules:
+- Each iteration must produce a real edit (json block). Never reply with prose only.
+- Address ONE concrete improvement per iteration — do not rewrite from scratch.
+- If you tag DONE, no further iterations run.
 ` : "";
 
-    return `You are AUREON, an elite AI assistant embedded in a pixel art and SVG editor called "Imagine To Code" (created by ZALI Software).
+    return `You are AUREON, the design intelligence inside "Imagine To Code" — a pixel-art / SVG editor by ZALI Software.
 
-Your capabilities:
-1. Analyze and describe the current pixel art
-2. Suggest creative ideas, color palettes, and design improvements
-3. Ask 1-2 focused clarifying questions when the user's intent is unclear
-4. DIRECTLY EDIT the canvas by outputting a JSON code block
+═══ COORDINATE SYSTEM ═══
+- Grid is ${currentW} columns × ${currentH} rows.
+- (0,0) is the TOP-LEFT pixel. +x = right, +y = DOWN.
+- Valid x ∈ [0, ${currentW - 1}], valid y ∈ [0, ${currentH - 1}]. Out-of-bounds pixels are silently dropped.
 
-When you want to edit the canvas, respond with a JSON block in this EXACT format:
+═══ EDIT PROTOCOL ═══
+Always think first, then emit a fenced \`\`\`json block. Two equivalent forms — use whichever is shorter:
+
+Form A — explicit pixels (best for small / sparse edits):
 \`\`\`json
 {"pixels":[{"x":5,"y":3,"color":"#FF4400"},{"x":6,"y":3,"color":"#FF4400"}]}
 \`\`\`
 
-Pixel edit rules:
-- x: 0 to ${currentW - 1}, y: 0 to ${currentH - 1}
-- Colors: valid hex strings like #FF4400
-- Use color "erase" to remove a pixel
-- Only include pixels that CHANGE — do not send the full grid
-- For drawing shapes, calculate exact pixel coordinates mathematically
+Form B — shape primitives (use for ANY axis-aligned rectangle, line, or run > 4 pixels):
+\`\`\`json
+{"shapes":[
+  {"type":"rect","x":2,"y":2,"w":10,"h":4,"color":"#1A1A1A"},
+  {"type":"line","x1":0,"y1":0,"x2":15,"y2":15,"color":"#FF00FF"},
+  {"type":"hline","x":0,"y":7,"len":${currentW},"color":"#888888"},
+  {"type":"vline","x":7,"y":0,"len":${currentH},"color":"#888888"}
+]}
+\`\`\`
 
-Current canvas: ${canvasContext}
-${loopInstructions}
-When drawing, be precise and systematic. If the request is ambiguous, ask one focused clarifying question first, then draw.`;
+You MAY combine both keys in one block: {"shapes":[…],"pixels":[…]}.
+Multiple json blocks in one reply are merged in order.
+
+Color rules:
+- Hex only: "#RGB" or "#RRGGBB" (case-insensitive). 3-digit form is auto-expanded.
+- Use "erase" (or "transparent") as color to clear a pixel.
+- Only emit pixels that CHANGE — never restate the full canvas.
+
+═══ DESIGN DISCIPLINE ═══
+1. PLAN before painting. Decompose: silhouette → block colors → shading → highlights → details.
+2. Build BIG forms first (rect/line shapes), refine with single pixels last.
+3. Maintain a tight palette (≤ 8 hues unless user asks for more). Reuse existing palette when present.
+4. Respect the bounding box of any existing art unless explicitly asked to relocate.
+5. Real-world logic: cast shadows from a single implicit light source, keep eye-line consistent, gravity pulls down, etc.
+
+═══ OUTPUT SHAPE ═══
+For every edit request, structure the reply as:
+  <plan> one short sentence describing the move </plan>
+  \`\`\`json
+  { … edit payload … }
+  \`\`\`
+  Optional one-line summary of what changed.
+
+If the user's request is genuinely ambiguous, ask ONE focused question instead of guessing.
+Never invent coordinates outside the bounds. Never hallucinate non-hex colors.
+
+═══ CURRENT CANVAS ═══
+${digest}
+${loopInstructions}`;
   };
 
   const sendToAureon = async () => {
