@@ -52,7 +52,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-async function fetchPage(url: string, timeoutMs = 8000): Promise<string> {
+async function fetchPage(url: string, timeoutMs = 4500): Promise<string> {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -96,23 +96,24 @@ Deno.serve(async (req) => {
     }
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
-    if (!GEMINI_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: 'GEMINI_API_KEY_APP not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({ success: false, error: 'No AI key configured (GEMINI_API_KEY_APP or LOVABLE_API_KEY)' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Limit to top 8 results for scraping budget
-    const top = results.slice(0, 8);
+    // Limit to top 6 results for scraping budget (reduced from 8 to stay under Edge timeout)
+    const top = results.slice(0, 6);
 
-    // Scrape pages in parallel
+    // Scrape pages in parallel — never fail the whole map if a page errors
     const scraped = await Promise.all(
-      top.map(async (r) => ({
-        ...r,
-        domain: domainOf(r.url),
-        content: await fetchPage(r.url),
-      })),
+      top.map(async (r) => {
+        let content = '';
+        try { content = await fetchPage(r.url); } catch { content = ''; }
+        return { ...r, domain: domainOf(r.url), content };
+      }),
     );
 
     // Build a compact corpus for the AI
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
 URL: ${s.url}
 DOMAIN: ${s.domain}
 SNIPPET: ${s.snippet || ''}
-EXCERPT: ${s.content.slice(0, 1800)}
+EXCERPT: ${(s.content || s.snippet || '').slice(0, 1400)}
 ---`,
     ).join('\n');
 
@@ -151,33 +152,70 @@ Return JSON with this exact shape:
   ]
 }`;
 
-    const aiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [
-            { role: 'user', parts: [{ text: userPrompt }] },
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json',
+    // Try Gemini first (with timeout), then fall back to Lovable AI Gateway
+    async function callGemini(): Promise<string> {
+      if (!GEMINI_API_KEY) throw new Error('no_gemini_key');
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 18000);
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: ctl.signal,
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 4096 },
+            }),
           },
-        }),
-      },
-    );
-
-    if (!aiResp.ok) {
-      const txt = await aiResp.text();
-      return new Response(
-        JSON.stringify({ success: false, error: `Gemini error ${aiResp.status}: ${txt.slice(0, 200)}` }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+        );
+        if (!r.ok) throw new Error(`gemini_${r.status}`);
+        const d = await r.json();
+        return d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      } finally { clearTimeout(t); }
     }
 
-    const aiData = await aiResp.json();
-    const raw = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+    async function callLovable(): Promise<string> {
+      if (!LOVABLE_API_KEY) throw new Error('no_lovable_key');
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 18000);
+      try {
+        const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+          signal: ctl.signal,
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt + '\n\nReturn ONLY the JSON object, no markdown.' },
+            ],
+          }),
+        });
+        if (!r.ok) throw new Error(`lovable_${r.status}`);
+        const d = await r.json();
+        return d?.choices?.[0]?.message?.content || '{}';
+      } finally { clearTimeout(t); }
+    }
+
+    let raw = '{}';
+    let aiError: string | null = null;
+    try {
+      raw = await callGemini();
+    } catch (e1) {
+      try {
+        raw = await callLovable();
+      } catch (e2) {
+        aiError = `${e1 instanceof Error ? e1.message : 'gemini_fail'} | ${e2 instanceof Error ? e2.message : 'lovable_fail'}`;
+      }
+    }
+
+    // Strip code fences if any
+    raw = raw.replace(/```json\n?|```/g, '').trim();
+    const lastBrace = raw.lastIndexOf('}');
+    if (lastBrace !== -1) raw = raw.slice(0, lastBrace + 1);
     let parsed: { entities?: any[]; relationships?: any[] } = {};
     try { parsed = JSON.parse(raw); } catch { parsed = {}; }
 
@@ -257,14 +295,16 @@ Return JSON with this exact shape:
         edges,
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
+        aiError, // null on success, string when AI step failed (graph still has source nodes)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to build intel map';
+    // Return 200 with success:false so the client's invoke() doesn't throw a generic non-2xx error
     return new Response(
       JSON.stringify({ success: false, error: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
