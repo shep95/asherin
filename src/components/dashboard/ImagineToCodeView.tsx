@@ -1424,133 +1424,146 @@ ${loopInstructions}`;
         <div className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/30">Imagine to Code</div>
       </div>
 
-      {/* ── Main Layout ── */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* ── Main Layout — fully resizable panels ── */}
+      <ResizablePanelGroup direction="horizontal" className="flex-1 overflow-hidden">
 
         {/* ── Sessions Sidebar ── */}
-        <div className="flex-shrink-0 w-44 border-r border-border/20 bg-card/10 flex flex-col overflow-hidden">
-          {sessionsLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-4 h-4 rounded-full border border-accent/30 border-t-accent animate-spin" />
-            </div>
-          ) : (
-            <SessionsPanel
-              sessions={sessions}
-              activeId={activeSessionId}
-              onSelect={loadSessionIntoEditor}
-              onCreate={createSession}
-              onDelete={deleteSession}
-              onRename={renameSession}
-              saving={saving}
-            />
-          )}
-        </div>
+        <ResizablePanel defaultSize={14} minSize={8} maxSize={30} className="bg-card/10">
+          <div className="h-full border-r border-border/20 flex flex-col overflow-hidden">
+            {sessionsLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-4 h-4 rounded-full border border-accent/30 border-t-accent animate-spin" />
+              </div>
+            ) : (
+              <SessionsPanel
+                sessions={sessions}
+                activeId={activeSessionId}
+                onSelect={loadSessionIntoEditor}
+                onCreate={createSession}
+                onDelete={deleteSession}
+                onRename={renameSession}
+                saving={saving}
+              />
+            )}
+          </div>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle className="bg-border/20 hover:bg-accent/40 transition-colors" />
 
         {/* ── Left Toolbar ── */}
-        <aside className={`flex-shrink-0 w-48 flex flex-col gap-3 p-3 border-r border-border/20 overflow-y-auto bg-card/10 transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
-          <div className="space-y-1.5">
-            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Canvas</p>
-            <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-accent/10 hover:border-accent/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-accent transition-all">
-              <Upload className="h-3.5 w-3.5" /> Upload Image
-            </button>
-            <button onClick={clearCanvas} disabled={rects.length === 0} className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-destructive transition-all disabled:opacity-30 disabled:cursor-not-allowed">
-              <RefreshCw className="h-3.5 w-3.5" /> Clear Canvas
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-          </div>
-
-          <div className="space-y-1.5">
-            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Tools</p>
-            <div className="grid grid-cols-3 gap-1">
-              {toolBtn("pan", <Hand className="h-3.5 w-3.5" />, "Pan")}
-              {toolBtn("zoom-in", <ZoomIn className="h-3.5 w-3.5" />, "Zoom In")}
-              {toolBtn("zoom-out", <ZoomOut className="h-3.5 w-3.5" />, "Zoom Out")}
-              {toolBtn("select-box", <Square className="h-3.5 w-3.5" />, "Select Box")}
-              {toolBtn("color-paint", <Paintbrush className="h-3.5 w-3.5" />, "Paint")}
-              {toolBtn("erase", <Eraser className="h-3.5 w-3.5" />, "Erase")}
-            </div>
-            <button onClick={() => setViewBox({ x: 0, y: 0, w: gridW, h: gridH })} className="w-full flex items-center gap-2 rounded-xl border border-border/20 px-3 py-2 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
-              <Maximize2 className="h-3 w-3" /> Fit to View
-            </button>
-          </div>
-
-          <div className="space-y-1.5">
-            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Paint Color</p>
-            <div className="flex items-center gap-2">
-              <input type="color" value={activeColor} onChange={e => setActiveColor(e.target.value)} className="w-9 h-9 rounded-xl border border-border/20 bg-transparent cursor-pointer p-0.5" />
-              <span className="text-[10px] font-mono text-muted-foreground/70">{activeColor.toUpperCase()}</span>
-            </div>
-            <div className="grid grid-cols-6 gap-1 mt-1">
-              {["#EF4444","#F97316","#EAB308","#22C55E","#3B82F6","#8B5CF6","#EC4899","#000000","#FFFFFF","#6B7280","#7C3AED","#06B6D4"].map(c => (
-                <button key={c} title={c} onClick={() => setActiveColor(c)} className={`w-5 h-5 rounded-lg border-2 transition-all ${activeColor === c ? "border-foreground scale-110" : "border-transparent hover:scale-105"}`} style={{ background: c }} />
-              ))}
-            </div>
-          </div>
-
-          {selectedIds.size > 0 && (
+        <ResizablePanel defaultSize={15} minSize={10} maxSize={30} className="bg-card/10">
+          <aside className={`h-full flex flex-col gap-3 p-3 border-r border-border/20 overflow-y-auto transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
             <div className="space-y-1.5">
-              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Selection ({selectedIds.size}px)</p>
-              <button onClick={fillSelection} className="w-full rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/20 px-3 py-2 text-xs font-light text-accent transition-all">Fill with color</button>
-              <button onClick={deleteSelection} className="w-full rounded-xl bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 px-3 py-2 text-xs font-light text-destructive transition-all">Delete selection</button>
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">History</p>
-            <div className="flex gap-1">
-              <button onClick={undo} disabled={!canUndo} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
-                <Undo2 className="h-3 w-3" /> Undo
+              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Canvas</p>
+              <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-accent/10 hover:border-accent/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-accent transition-all">
+                <Upload className="h-3.5 w-3.5" /> Upload Image
               </button>
-              <button onClick={redo} disabled={!canRedo} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
-                <Undo2 className="h-3 w-3 scale-x-[-1]" /> Redo
+              <button onClick={clearCanvas} disabled={rects.length === 0} className="w-full flex items-center gap-2 rounded-xl border border-border/20 bg-card/20 hover:bg-destructive/10 hover:border-destructive/30 px-3 py-2.5 text-xs font-light text-muted-foreground hover:text-destructive transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                <RefreshCw className="h-3.5 w-3.5" /> Clear Canvas
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Tools</p>
+              <div className="grid grid-cols-3 gap-1">
+                {toolBtn("pan", <Hand className="h-3.5 w-3.5" />, "Pan")}
+                {toolBtn("zoom-in", <ZoomIn className="h-3.5 w-3.5" />, "Zoom In")}
+                {toolBtn("zoom-out", <ZoomOut className="h-3.5 w-3.5" />, "Zoom Out")}
+                {toolBtn("select-box", <Square className="h-3.5 w-3.5" />, "Select Box")}
+                {toolBtn("color-paint", <Paintbrush className="h-3.5 w-3.5" />, "Paint")}
+                {toolBtn("erase", <Eraser className="h-3.5 w-3.5" />, "Erase")}
+              </div>
+              <button onClick={() => setViewBox({ x: 0, y: 0, w: gridW, h: gridH })} className="w-full flex items-center gap-2 rounded-xl border border-border/20 px-3 py-2 text-[10px] text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-all">
+                <Maximize2 className="h-3 w-3" /> Fit to View
               </button>
             </div>
-          </div>
 
-          <div className="mt-auto text-[9px] text-muted-foreground/30 font-mono space-y-0.5 border-t border-border/10 pt-3">
-            <p>Grid: {gridW} × {gridH}</p>
-            <p>Pixels: {pixelCount.toLocaleString()}</p>
-            <p>Zoom: {zoomPct}%</p>
-          </div>
-        </aside>
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Paint Color</p>
+              <div className="flex items-center gap-2">
+                <input type="color" value={activeColor} onChange={e => setActiveColor(e.target.value)} className="w-9 h-9 rounded-xl border border-border/20 bg-transparent cursor-pointer p-0.5" />
+                <span className="text-[10px] font-mono text-muted-foreground/70">{activeColor.toUpperCase()}</span>
+              </div>
+              <div className="grid grid-cols-6 gap-1 mt-1">
+                {["#EF4444","#F97316","#EAB308","#22C55E","#3B82F6","#8B5CF6","#EC4899","#000000","#FFFFFF","#6B7280","#7C3AED","#06B6D4"].map(c => (
+                  <button key={c} title={c} onClick={() => setActiveColor(c)} className={`w-5 h-5 rounded-lg border-2 transition-all ${activeColor === c ? "border-foreground scale-110" : "border-transparent hover:scale-105"}`} style={{ background: c }} />
+                ))}
+              </div>
+            </div>
+
+            {selectedIds.size > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">Selection ({selectedIds.size}px)</p>
+                <button onClick={fillSelection} className="w-full rounded-xl bg-accent/10 hover:bg-accent/20 border border-accent/20 px-3 py-2 text-xs font-light text-accent transition-all">Fill with color</button>
+                <button onClick={deleteSelection} className="w-full rounded-xl bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 px-3 py-2 text-xs font-light text-destructive transition-all">Delete selection</button>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50">History</p>
+              <div className="flex gap-1">
+                <button onClick={undo} disabled={!canUndo} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
+                  <Undo2 className="h-3 w-3" /> Undo
+                </button>
+                <button onClick={redo} disabled={!canRedo} className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-border/20 px-2 py-2 text-[10px] text-muted-foreground disabled:opacity-30 hover:bg-foreground/5 hover:text-foreground transition-all disabled:cursor-not-allowed">
+                  <Undo2 className="h-3 w-3 scale-x-[-1]" /> Redo
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-auto text-[9px] text-muted-foreground/30 font-mono space-y-0.5 border-t border-border/10 pt-3">
+              <p>Grid: {gridW} × {gridH}</p>
+              <p>Pixels: {pixelCount.toLocaleString()}</p>
+              <p>Zoom: {zoomPct}%</p>
+            </div>
+          </aside>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle className="bg-border/20 hover:bg-accent/40 transition-colors" />
 
         {/* ── Canvas — HTML Canvas renderer for performance ── */}
-        <main className="flex-1 flex items-center justify-center overflow-hidden bg-card/5 relative">
-          {canvasLocked ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none z-10">
-              <div className="h-16 w-16 rounded-full border border-border/20 flex items-center justify-center bg-card/20">
-                <FolderOpen className="h-7 w-7 text-muted-foreground/25" />
+        <ResizablePanel defaultSize={46} minSize={20}>
+          <main className="h-full flex items-center justify-center overflow-hidden bg-card/5 relative">
+            {canvasLocked ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none z-10">
+                <div className="h-16 w-16 rounded-full border border-border/20 flex items-center justify-center bg-card/20">
+                  <FolderOpen className="h-7 w-7 text-muted-foreground/25" />
+                </div>
+                <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Select or create a session to begin</p>
               </div>
-              <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Select or create a session to begin</p>
-            </div>
-          ) : rects.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
-              <div className="h-16 w-16 rounded-full border border-accent/20 flex items-center justify-center bg-accent/5">
-                <Paintbrush className="h-7 w-7 text-accent/30 animate-pulse" />
+            ) : rects.length === 0 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
+                <div className="h-16 w-16 rounded-full border border-accent/20 flex items-center justify-center bg-accent/5">
+                  <Paintbrush className="h-7 w-7 text-accent/30 animate-pulse" />
+                </div>
+                <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image or paint pixels</p>
+                <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
               </div>
-              <p className="text-xs font-light text-muted-foreground/40 tracking-wide">Upload an image or paint pixels</p>
-              <p className="text-[10px] font-light text-muted-foreground/25 tracking-widest uppercase">Or ask AUREON to create something →</p>
-            </div>
-          ) : null}
-          {/* Canvas-based renderer replaces SVG <rect> loop — handles 1M pixels smoothly */}
-          <CanvasRenderer
-            rects={rects}
-            gridW={gridW}
-            gridH={gridH}
-            viewBox={viewBox}
-            selectedIds={selectedIds}
-            selRect={selRect}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-            onWheel={onWheel}
-            cursorStyle={cursorStyle}
-            canvasLocked={canvasLocked}
-          />
-        </main>
+            ) : null}
+            {/* Canvas-based renderer replaces SVG <rect> loop — handles 1M pixels smoothly */}
+            <CanvasRenderer
+              rects={rects}
+              gridW={gridW}
+              gridH={gridH}
+              viewBox={viewBox}
+              selectedIds={selectedIds}
+              selRect={selRect}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onWheel={onWheel}
+              cursorStyle={cursorStyle}
+              canvasLocked={canvasLocked}
+            />
+          </main>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle className="bg-border/20 hover:bg-accent/40 transition-colors" />
 
         {/* ── Right Panel ── */}
-        <aside className={`flex-shrink-0 w-80 flex flex-col border-l border-border/20 bg-card/10 transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
+        <ResizablePanel defaultSize={25} minSize={15} maxSize={50} className="bg-card/10">
+          <aside className={`h-full flex flex-col border-l border-border/20 transition-opacity ${canvasLocked ? "opacity-40 pointer-events-none" : ""}`}>
           {/* Code Output */}
           <div className="flex-shrink-0 px-4 py-3 border-b border-border/20">
             <p className="text-[9px] font-light tracking-[0.15em] uppercase text-muted-foreground/50 mb-2">Code Output</p>
