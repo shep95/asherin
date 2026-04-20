@@ -936,6 +936,15 @@ const ImagineToCodeView = () => {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
+        // ─ DPI / Retina downscale ─ a 2880×1864 Retina screenshot is logically
+        // 1440×932; treating each physical pixel as a canvas cell wastes the
+        // pixel budget on doubled detail with no visual gain. Fold the source
+        // scale factor in BEFORE the budget calculation.
+        const sourceScale = detectSourceScale(width, height);
+        if (sourceScale > 1) {
+          width = Math.round(width / sourceScale);
+          height = Math.round(height / sourceScale);
+        }
         const aspect = width / height;
         const imageArea = width * height;
         const scaledBudget = PIXEL_BUDGET_BASE * Math.sqrt(imageArea / (512 * 512));
@@ -953,7 +962,17 @@ const ImagineToCodeView = () => {
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, width, height);
-        const newRects = imageDataToRects(ctx.getImageData(0, 0, width, height));
+        const rawRects = imageDataToRects(ctx.getImageData(0, 0, width, height));
+        // ─ Palette unification ─ cluster the quantized colors so AUREON sees a
+        // tight design palette (≤ 8-16 hues) rather than 100s of near-duplicate
+        // shades introduced by JPEG compression / antialiasing.
+        const { rects: newRects, palette } = unifyPalette(rawRects);
+        if (sourceScale > 1 || palette.length < new Set(rawRects.map(r => r.color)).size) {
+          toast({
+            title: "Image normalized",
+            description: `${sourceScale > 1 ? `Downscaled ${sourceScale}x · ` : ""}${palette.length} unified colors · ${width}×${height}`,
+          });
+        }
         setGridW(width); setGridH(height);
         gridWRef.current = width; gridHRef.current = height;
         setViewBox({ x: 0, y: 0, w: width, h: height });
@@ -1085,8 +1104,8 @@ const ImagineToCodeView = () => {
       ).join("\n");
       digest =
         `${currentW}×${currentH} grid · ${currentRects.length} pixels · density ${density}%\n` +
-        `Bounding box: (${minX},${minY}) → (${maxX},${maxY})\n` +
-        `Palette (${palette.length}): ${palette.slice(0, 8).join(", ")}${palette.length > 8 ? "…" : ""}\n` +
+        `Bounding box: (${minX},${minY}) → (${maxX},${maxY})  ·  size ≈ ${snapToScale(maxX - minX + 1)}×${snapToScale(maxY - minY + 1)} (snapped to 4/8 scale)\n` +
+        `Palette (${palette.length} hues, sorted by use): ${palette.slice(0, 12).join(", ")}${palette.length > 12 ? "…" : ""}\n` +
         `Occupancy (8×8 heatmap, top-left = (0,0)):\n${ascii}`;
     }
 
