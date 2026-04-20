@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } fro
 import { Search, Zap, ArrowRight, Clock, X, Loader2, Keyboard, WifiOff, Network, Brain, Download, FileText, FileJson, FileSpreadsheet, Image as ImageIcon } from "lucide-react";
 import { exportPDF, exportCSV, exportJSON, exportMarkdown } from "@/lib/exportEngine";
 import { logAudit } from "@/lib/auditLogger";
+import IntelMapByokPanel from "./search/IntelMapByokPanel";
+import { isIntelMapByokEnabled } from "@/lib/intelMapByok";
 import MessageQueuePanel from "./MessageQueuePanel";
 import { supabase } from "@/integrations/supabase/client";
 import type { SearchMode, SearchFilters, SearchResponse, SearchResult, PagePreview, FreshnessAlert, InstantAnswer } from "./search/types";
@@ -54,6 +56,8 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [deepSearchQuery, setDeepSearchQuery] = useState<string | null>(null);
   const [intelMapOpen, setIntelMapOpen] = useState(false);
   const [intelSuiteOpen, setIntelSuiteOpen] = useState(false);
+  const [byokOpen, setByokOpen] = useState(false);
+  const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
@@ -497,6 +501,18 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                           {intelMapOpen ? "Close Map" : "Intel Map"}
                         </button>
                         <button
+                          onClick={() => setByokOpen(true)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
+                            byokActive
+                              ? "border-foreground/40 bg-foreground/10 text-foreground"
+                              : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
+                          }`}
+                          title="Use your own AI key to skip the Intel Map queue"
+                        >
+                          <Zap className="h-3.5 w-3.5" />
+                          {byokActive ? "Skip Queue: ON" : "Skip the Queue"}
+                        </button>
+                        <button
                           onClick={() => { setIntelSuiteOpen((v) => !v); if (!intelSuiteOpen) setIntelMapOpen(false); }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-light tracking-wide transition-colors ${
                             intelSuiteOpen
@@ -676,6 +692,12 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
           </div>
         </div>
       )}
+
+      <IntelMapByokPanel
+        open={byokOpen}
+        onClose={() => setByokOpen(false)}
+        onChange={() => setByokActive(isIntelMapByokEnabled())}
+      />
     </div>
   );
 };
