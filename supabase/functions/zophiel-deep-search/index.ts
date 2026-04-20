@@ -1,10 +1,20 @@
+import { isValidByok } from '../_shared/zophielByokRouter.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse';
-const GEMINI_NON_STREAM = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+// Default platform models (used when no BYOK provided). When the user supplies
+// a Google BYOK key, we substitute their model id into these URLs.
+const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
+const geminiStreamUrlFor = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+const geminiNonStreamUrlFor = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+const GEMINI_URL = geminiStreamUrlFor(GEMINI_DEFAULT_MODEL);
+const GEMINI_NON_STREAM = geminiNonStreamUrlFor(GEMINI_DEFAULT_MODEL);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Integrity Validation
