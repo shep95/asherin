@@ -34,7 +34,7 @@ export async function acquireIntelSlot(opts: AcquireOptions): Promise<{
     jobType,
     maxConcurrent = 2,
     pollMs = 2500,
-    timeoutMs = 4 * 60 * 1000,
+    timeoutMs = 8 * 60 * 1000,
     onProgress,
     signal,
   } = opts;
