@@ -123,13 +123,14 @@ Deno.serve(async (req) => {
     });
     await Promise.all(workers);
 
-    // Build a compact corpus for the AI
+    // Build a compact corpus for the AI — adapt excerpt length to source count to stay within token budget
+    const excerptLen = scraped.length > 20 ? 900 : scraped.length > 12 ? 1500 : 2500;
     const corpus = scraped.map((s, i) =>
       `[SOURCE ${i + 1}] (${s.tierLabel || 'Source'}) ${s.title}
 URL: ${s.url}
 DOMAIN: ${s.domain}
 SNIPPET: ${s.snippet || ''}
-EXCERPT: ${(s.content || s.snippet || '').slice(0, 2500)}
+EXCERPT: ${(s.content || s.snippet || '').slice(0, excerptLen)}
 ---`,
     ).join('\n');
 
@@ -275,7 +276,8 @@ Return JSON with this exact shape:
         edges,
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
-        aiError, // null on success, string when AI step failed (graph still has source nodes)
+        totalFound,
+        aiError,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
