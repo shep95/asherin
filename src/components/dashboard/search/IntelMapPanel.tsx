@@ -710,11 +710,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                         {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
                       </text>
                     )}
-                    {n.type === "source" && n.tierLabel && (
-                      <text x={0} y={h / 2 + 26} textAnchor="middle" fontSize="8.5" fill="hsl(var(--muted-foreground))" opacity="0.6" className="pointer-events-none" style={{ letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                        {n.tierLabel}
-                      </text>
-                    )}
+                    {/* Tier label removed from canvas to avoid overlapping neighbours; still shown in the detail panel. */}
                   </g>
                 );
               })}
