@@ -167,9 +167,11 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
   });
 
   const idMap = new Map(nodes.map((n) => [n.id, n]));
-  const k = 90;          // ideal edge length
-  const repulsion = 4200;
+  // Increased spacing so node bodies + their labels (which sit ~26px below) don't overlap.
+  const k = 160;         // ideal edge length
+  const repulsion = 9500;
   const damping = 0.85;
+  const minSeparation = 110; // hard floor between any two node centers
 
   for (let iter = 0; iter < iterations; iter++) {
     // Repulsion
