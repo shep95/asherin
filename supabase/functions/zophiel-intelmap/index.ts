@@ -264,10 +264,11 @@ Return JSON with this exact shape:
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
 
-    // Source nodes (one per scraped page)
-    scraped.forEach((s, idx) => {
+    // Source nodes (one per scraped page) — use STABLE absolute index so additional
+    // batches append cleanly without colliding with prior IDs.
+    scraped.forEach((s) => {
       nodes.push({
-        id: `src-${idx + 1}`,
+        id: `src-${s.sourceIndex}`,
         label: s.domain,
         type: 'source',
         tier: s.tier,
@@ -278,13 +279,15 @@ Return JSON with this exact shape:
       });
     });
 
-    // Entity nodes
+    // Entity nodes — prefix entity IDs with the batch offset so the same generic
+    // label (e.g. "twitter") from a later batch doesn't merge into an old node.
+    const batchPrefix = `b${startIdx}`;
     const entityIds = new Set<string>();
     entities.forEach((e: any) => {
       if (!e?.id || !e?.label || !e?.type) return;
       const allowed = ['person', 'organization', 'location', 'topic', 'event'];
       if (!allowed.includes(e.type)) return;
-      const id = `ent-${String(e.id).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
+      const id = `ent-${batchPrefix}-${String(e.id).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
       if (entityIds.has(id)) return;
       entityIds.add(id);
       nodes.push({
@@ -295,12 +298,13 @@ Return JSON with this exact shape:
         context: e.context ? String(e.context).slice(0, 200) : undefined,
       });
 
-      // mention edges from sources
+      // mention edges from sources — map AI's 1..N indices back to absolute source IDs
       if (Array.isArray(e.sourceIndices)) {
         e.sourceIndices.forEach((si: number) => {
           if (si >= 1 && si <= scraped.length) {
+            const absoluteIdx = scraped[si - 1].sourceIndex;
             edges.push({
-              source: `src-${si}`,
+              source: `src-${absoluteIdx}`,
               target: id,
               label: 'mentions',
               weight: 1,
@@ -313,8 +317,8 @@ Return JSON with this exact shape:
     // Relationship edges
     relationships.forEach((r: any) => {
       if (!r?.from || !r?.to || !r?.label) return;
-      const from = `ent-${String(r.from).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
-      const to = `ent-${String(r.to).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
+      const from = `ent-${batchPrefix}-${String(r.from).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
+      const to = `ent-${batchPrefix}-${String(r.to).replace(/[^a-z0-9_-]/gi, '_').slice(0, 40)}`;
       if (entityIds.has(from) && entityIds.has(to)) {
         edges.push({
           source: from,
@@ -333,8 +337,12 @@ Return JSON with this exact shape:
         edges,
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
-        aiError, // null on success, string when AI step failed (graph still has source nodes)
-        usedModel, // which Gemini model produced the entity graph (null if all failed)
+        offset: startIdx,
+        nextOffset,
+        hasMore,
+        totalAvailable: results.length,
+        aiError,
+        usedModel,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
