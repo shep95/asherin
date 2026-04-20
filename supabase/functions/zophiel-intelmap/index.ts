@@ -87,7 +87,11 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { query, results } = await req.json() as { query: string; results: ResultIn[] };
+    const { query, results, offset = 0 } = await req.json() as {
+      query: string;
+      results: ResultIn[];
+      offset?: number;
+    };
     if (!Array.isArray(results) || results.length === 0) {
       return new Response(
         JSON.stringify({ success: false, error: 'No results provided' }),
