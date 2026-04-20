@@ -189,16 +189,16 @@ Return JSON with this exact shape:
   ]
 }`;
 
-    // Call Gemini with retry + model fallback chain (NO Lovable AI — user explicitly opted out)
-    // Strategy: try gemini-2.5-flash first; on 503/429/overload, retry with backoff,
-    // then fall back to gemini-2.5-flash-lite, then gemini-2.5-pro.
-    const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
-    const callGemini = async (model: string, timeoutMs: number) => {
+    // ---- AI CALL ROUTER ----
+    // If `useByok`, route to the user's chosen provider. Otherwise use the platform
+    // Gemini key with our standard retry/fallback chain.
+
+    const callGemini = async (apiKey: string, model: string, timeoutMs: number) => {
       const ctl = new AbortController();
       const t = setTimeout(() => ctl.abort(), timeoutMs);
       try {
         const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -212,9 +212,9 @@ Return JSON with this exact shape:
         );
         if (!r.ok) {
           const txt = await r.text();
-          console.error(`[intelmap] ${model} error ${r.status}`, txt.slice(0, 200));
-          const retryable = r.status === 503 || r.status === 429 || r.status === 500 || r.status === 502 || r.status === 504;
-          const err: any = new Error(`${model}_${r.status}`);
+          console.error(`[intelmap] gemini ${model} error ${r.status}`, txt.slice(0, 200));
+          const retryable = r.status === 503 || r.status === 429 || r.status >= 500;
+          const err: any = new Error(`gemini_${model}_${r.status}: ${txt.slice(0, 120)}`);
           err.retryable = retryable;
           err.status = r.status;
           throw err;
@@ -224,40 +224,147 @@ Return JSON with this exact shape:
       } finally { clearTimeout(t); }
     };
 
+    // OpenAI-compatible (works for OpenAI, DeepSeek, xAI, Perplexity, Mistral)
+    const callOpenAICompat = async (
+      baseUrl: string, apiKey: string, model: string, timeoutMs: number,
+      extraHeaders: Record<string, string> = {},
+    ) => {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), timeoutMs);
+      try {
+        const r = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            ...extraHeaders,
+          },
+          signal: ctl.signal,
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt + '\n\nReturn ONLY valid JSON. No prose, no markdown, no code fences.' },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.3,
+            response_format: { type: 'json_object' },
+          }),
+        });
+        if (!r.ok) {
+          const txt = await r.text();
+          console.error(`[intelmap] ${baseUrl} ${model} error ${r.status}`, txt.slice(0, 200));
+          const retryable = r.status === 503 || r.status === 429 || r.status >= 500;
+          const err: any = new Error(`byok_${r.status}: ${txt.slice(0, 160)}`);
+          err.retryable = retryable;
+          err.status = r.status;
+          throw err;
+        }
+        const d = await r.json();
+        return d?.choices?.[0]?.message?.content || '{}';
+      } finally { clearTimeout(t); }
+    };
+
+    const callAnthropic = async (apiKey: string, model: string, timeoutMs: number) => {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), timeoutMs);
+      try {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          signal: ctl.signal,
+          body: JSON.stringify({
+            model,
+            max_tokens: 8192,
+            system: systemPrompt + '\n\nReturn ONLY valid JSON with no prose, markdown, or code fences.',
+            messages: [{ role: 'user', content: userPrompt }],
+          }),
+        });
+        if (!r.ok) {
+          const txt = await r.text();
+          console.error(`[intelmap] anthropic ${model} error ${r.status}`, txt.slice(0, 200));
+          const retryable = r.status === 503 || r.status === 429 || r.status >= 500;
+          const err: any = new Error(`anthropic_${r.status}: ${txt.slice(0, 160)}`);
+          err.retryable = retryable;
+          err.status = r.status;
+          throw err;
+        }
+        const d = await r.json();
+        const parts = Array.isArray(d?.content) ? d.content : [];
+        const text = parts.filter((p: any) => p?.type === 'text').map((p: any) => p.text).join('') || '{}';
+        return text;
+      } finally { clearTimeout(t); }
+    };
+
+    const callByok = async (cfg: ByokConfig, timeoutMs: number) => {
+      switch (cfg.provider) {
+        case 'google':     return callGemini(cfg.apiKey, cfg.model, timeoutMs);
+        case 'openai':     return callOpenAICompat('https://api.openai.com/v1', cfg.apiKey, cfg.model, timeoutMs);
+        case 'anthropic':  return callAnthropic(cfg.apiKey, cfg.model, timeoutMs);
+        case 'xai':        return callOpenAICompat('https://api.x.ai/v1', cfg.apiKey, cfg.model, timeoutMs);
+        case 'deepseek':   return callOpenAICompat('https://api.deepseek.com/v1', cfg.apiKey, cfg.model, timeoutMs);
+        case 'mistral':    return callOpenAICompat('https://api.mistral.ai/v1', cfg.apiKey, cfg.model, timeoutMs);
+        case 'perplexity': return callOpenAICompat('https://api.perplexity.ai', cfg.apiKey, cfg.model, timeoutMs);
+        default: throw new Error(`unsupported_provider_${(cfg as any).provider}`);
+      }
+    };
+
     let raw = '{}';
     let aiError: string | null = null;
     let usedModel: string | null = null;
 
-    outer: for (let mi = 0; mi < MODEL_CHAIN.length; mi++) {
-      const model = MODEL_CHAIN[mi];
-      // Retry budget per model: 3 attempts with backoff (only for retryable errors)
-      const attempts = mi === 0 ? 3 : 2;
+    if (useByok) {
+      // Single-model flow — user picked their model, we respect it. 3 attempts on transient errors.
+      const attempts = 3;
       for (let a = 0; a < attempts; a++) {
         try {
-          raw = await callGemini(model, 22000);
-          usedModel = model;
+          raw = await callByok(byok!, 60_000);
+          usedModel = `byok:${byok!.provider}/${byok!.model}`;
           aiError = null;
-          break outer;
+          break;
         } catch (e: any) {
-          aiError = e?.message || 'gemini_fail';
-          console.warn(`[intelmap] attempt ${a + 1}/${attempts} on ${model} failed:`, aiError);
-          // Non-retryable (e.g., 400 bad request, 401/403) → don't retry, jump to next model
+          aiError = e?.message || 'byok_fail';
+          console.warn(`[intelmap] BYOK attempt ${a + 1}/${attempts} failed:`, aiError);
           if (!e?.retryable) break;
-          // Backoff before retrying same model: 800ms, 2000ms
           if (a < attempts - 1) {
             const wait = 800 * Math.pow(2.2, a) + Math.random() * 400;
             await new Promise((r) => setTimeout(r, wait));
           }
         }
       }
-      // Small pause before falling back to next model
-      if (mi < MODEL_CHAIN.length - 1) await new Promise((r) => setTimeout(r, 500));
+    } else {
+      // Platform Gemini: try fast → lite → pro with backoff
+      const MODEL_CHAIN = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro'];
+      outer: for (let mi = 0; mi < MODEL_CHAIN.length; mi++) {
+        const model = MODEL_CHAIN[mi];
+        const attempts = mi === 0 ? 3 : 2;
+        for (let a = 0; a < attempts; a++) {
+          try {
+            raw = await callGemini(GEMINI_API_KEY, model, 22000);
+            usedModel = model;
+            aiError = null;
+            break outer;
+          } catch (e: any) {
+            aiError = e?.message || 'gemini_fail';
+            console.warn(`[intelmap] attempt ${a + 1}/${attempts} on ${model} failed:`, aiError);
+            if (!e?.retryable) break;
+            if (a < attempts - 1) {
+              const wait = 800 * Math.pow(2.2, a) + Math.random() * 400;
+              await new Promise((r) => setTimeout(r, wait));
+            }
+          }
+        }
+        if (mi < MODEL_CHAIN.length - 1) await new Promise((r) => setTimeout(r, 500));
+      }
     }
 
     if (usedModel) {
       console.log(`[intelmap] AI succeeded with model=${usedModel}`);
     } else {
-      console.error('[intelmap] All Gemini models failed:', aiError);
+      console.error('[intelmap] AI failed:', aiError);
     }
 
     // Strip code fences if any
