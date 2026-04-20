@@ -852,6 +852,12 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           );
         })()}
       </div>
+
+      <IntelMapByokPanel
+        open={byokOpen}
+        onClose={() => setByokOpen(false)}
+        onChange={refreshByok}
+      />
     </div>
   );
 };
