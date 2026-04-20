@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe, Plus } from "lucide-react";
+import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe, Plus, Zap, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { acquireIntelSlot } from "@/lib/intelJobQueue";
+import { getActiveIntelMapByok, isIntelMapByokEnabled, getProviderSpec } from "@/lib/intelMapByok";
+import IntelMapByokPanel from "./IntelMapByokPanel";
 import type { SearchResult } from "./types";
 
 interface IntelNode {
@@ -279,6 +281,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   }, []);
 
   const [queueInfo, setQueueInfo] = useState<{ position: number; running: number } | null>(null);
+  const [byokOpen, setByokOpen] = useState(false);
+  const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
+  const refreshByok = useCallback(() => setByokActive(isIntelMapByokEnabled()), []);
 
   // Send the FULL list of results — server slices [offset, offset+12). This way
   // subsequent "Scrape More" calls have the URL list to continue from.
@@ -297,22 +302,35 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
       const ac = new AbortController();
       let stopHeartbeat: (() => void) | null = null;
       let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
+
+      // Read BYOK fresh on each run so toggling the panel mid-session takes effect.
+      const byok = getActiveIntelMapByok();
+      const skipQueue = !!byok;
+
       try {
         if (append) setLoadingMore(true); else { setLoading(true); setError(null); setQueueInfo(null); }
-        const { release, startHeartbeat } = await acquireIntelSlot({
-          jobType: "intelmap",
-          maxConcurrent: 2,
-          signal: ac.signal,
-          onProgress: (p) => {
-            if (p.status === "waiting") setQueueInfo({ position: p.position, running: p.runningCount });
-            else setQueueInfo(null);
-          },
-        });
-        releaseSlot = release;
-        stopHeartbeat = startHeartbeat();
+
+        if (!skipQueue) {
+          const { release, startHeartbeat } = await acquireIntelSlot({
+            jobType: "intelmap",
+            maxConcurrent: 2,
+            signal: ac.signal,
+            onProgress: (p) => {
+              if (p.status === "waiting") setQueueInfo({ position: p.position, running: p.runningCount });
+              else setQueueInfo(null);
+            },
+          });
+          releaseSlot = release;
+          stopHeartbeat = startHeartbeat();
+        }
 
         const { data, error: err } = await supabase.functions.invoke("zophiel-intelmap", {
-          body: { query, results: allResultsPayload, offset },
+          body: {
+            query,
+            results: allResultsPayload,
+            offset,
+            ...(byok ? { byok } : {}),
+          },
         });
         if (err) throw err;
         if (!data?.success) throw new Error(data?.error || "Failed to build intel map");
@@ -338,16 +356,10 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         setNextOffset(Number(data.nextOffset || 0));
         setHasMore(!!data.hasMore);
         setTotalAvailable(Number(data.totalAvailable || results.length));
-        await release(true);
-        releaseSlot = null;
+        if (releaseSlot) { await releaseSlot(true); releaseSlot = null; }
       } catch (e: any) {
         const msg = e?.message || "Could not build intel map";
-        if (append) {
-          // Don't blow away the existing graph on a failed "scrape more" — surface inline.
-          setError(msg);
-        } else {
-          setError(msg);
-        }
+        setError(msg);
         if (releaseSlot) { await releaseSlot(false); releaseSlot = null; }
       } finally {
         if (stopHeartbeat) stopHeartbeat();
@@ -430,6 +442,20 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {/* Skip-the-Queue / BYOK */}
+          <button
+            onClick={() => setByokOpen(true)}
+            className={`group inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-light tracking-wider uppercase transition-colors ${
+              byokActive
+                ? "border-foreground/40 bg-foreground/[0.06] text-foreground hover:bg-foreground/[0.1]"
+                : "border-border/30 bg-foreground/[0.02] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05]"
+            }`}
+            title={byokActive ? "Using your own API key — queue bypassed" : "Bring your own API key to skip the queue"}
+          >
+            {byokActive ? <Zap className="h-3 w-3" /> : <KeyRound className="h-3 w-3" />}
+            <span className="hidden sm:inline">{byokActive ? "Skipping queue" : "Skip queue"}</span>
+          </button>
+          <span className="mx-1 h-4 w-px bg-border/30" />
           <button onClick={() => setZoom((z) => Math.min(3, z * 1.2))} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors" title="Zoom in">
             <ZoomIn className="h-4 w-4" />
           </button>
@@ -444,6 +470,28 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           </button>
         </div>
       </div>
+
+      {/* BYOK active banner */}
+      {byokActive && (() => {
+        const cfg = getActiveIntelMapByok();
+        const spec = cfg ? getProviderSpec(cfg.provider) : null;
+        return (
+          <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border/10 bg-foreground/[0.03] text-[10px] font-light tracking-wider text-foreground/70">
+            <Zap className="h-3 w-3 text-foreground/80" />
+            <span className="uppercase tracking-[0.18em] text-muted-foreground">Engine via your key</span>
+            <span className="text-border/40">·</span>
+            <span className="normal-case tracking-normal">
+              {spec?.name || cfg?.provider} → <span className="text-foreground/85">{cfg?.model}</span>
+            </span>
+            <button
+              onClick={() => setByokOpen(true)}
+              className="ml-auto normal-case tracking-normal text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              Manage
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Stats bar */}
       {!loading && laidOut.length > 0 && (
@@ -804,6 +852,12 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           );
         })()}
       </div>
+
+      <IntelMapByokPanel
+        open={byokOpen}
+        onClose={() => setByokOpen(false)}
+        onChange={refreshByok}
+      />
     </div>
   );
 };
