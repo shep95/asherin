@@ -60,14 +60,23 @@ function exportCssGrid(rects: PixelRect[], w: number, h: number): string {
 function imageDataToRects(imageData: ImageData): PixelRect[] {
   const { width, height, data } = imageData;
   const out: PixelRect[] = [];
+  // Quantize each channel to 6 levels (~216 web-safe-ish palette) to merge near-duplicate
+  // colors that explode pixel count without visual gain. Drop very transparent or near-white
+  // pixels (treated as background) using perceptual luminance instead of a flat RGB cutoff.
+  const QUANT = 51; // 256/5 -> 0,51,102,153,204,255
+  const snap = (v: number) => Math.round(v / QUANT) * QUANT;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const alpha = data[i + 3];
-      if (alpha < 20) continue;
+      const a = data[i + 3];
+      if (a < 32) continue;
       const r = data[i], g = data[i + 1], b = data[i + 2];
-      if (r > 220 && g > 220 && b > 220) continue;
-      out.push({ id: uid(), x, y, color: rgbaToHex(r, g, b) });
+      // Perceptual luminance — drop near-white background only when also low saturation
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      const sat = max === 0 ? 0 : (max - min) / max;
+      if (lum > 240 && sat < 0.05) continue;
+      out.push({ id: uid(), x, y, color: rgbaToHex(snap(r), snap(g), snap(b)) });
     }
   }
   return out;
