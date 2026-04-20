@@ -216,11 +216,15 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
 
 const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nodes, setNodes] = useState<IntelNode[]>([]);
   const [edges, setEdges] = useState<IntelEdge[]>([]);
   const [scrapedCount, setScrapedCount] = useState(0);
   const [totalSources, setTotalSources] = useState(0);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalAvailable, setTotalAvailable] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -245,66 +249,97 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
   const [queueInfo, setQueueInfo] = useState<{ position: number; running: number } | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const ac = new AbortController();
-    let stopHeartbeat: (() => void) | null = null;
-    let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
+  // Send the FULL list of results — server slices [offset, offset+12). This way
+  // subsequent "Scrape More" calls have the URL list to continue from.
+  const allResultsPayload = useMemo(
+    () =>
+      results.map((r) => ({
+        title: r.title, url: r.url, snippet: r.snippet,
+        source: r.source, tier: r.tier, tierLabel: r.tierLabel,
+      })),
+    [results],
+  );
 
-    const run = async () => {
-      setLoading(true); setError(null); setQueueInfo(null);
+  // Shared runner used by both initial load and "Scrape More".
+  const runBatch = useCallback(
+    async (offset: number, append: boolean) => {
+      const ac = new AbortController();
+      let stopHeartbeat: (() => void) | null = null;
+      let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
       try {
-        // Acquire a concurrency slot first (max 2 concurrent runs globally)
+        if (append) setLoadingMore(true); else { setLoading(true); setError(null); setQueueInfo(null); }
         const { release, startHeartbeat } = await acquireIntelSlot({
           jobType: "intelmap",
           maxConcurrent: 2,
           signal: ac.signal,
           onProgress: (p) => {
-            if (cancelled) return;
-            if (p.status === "waiting") {
-              setQueueInfo({ position: p.position, running: p.runningCount });
-            } else {
-              setQueueInfo(null);
-            }
+            if (p.status === "waiting") setQueueInfo({ position: p.position, running: p.runningCount });
+            else setQueueInfo(null);
           },
         });
         releaseSlot = release;
         stopHeartbeat = startHeartbeat();
 
         const { data, error: err } = await supabase.functions.invoke("zophiel-intelmap", {
-          body: {
-            query,
-            results: results.slice(0, 8).map((r) => ({
-              title: r.title, url: r.url, snippet: r.snippet,
-              source: r.source, tier: r.tier, tierLabel: r.tierLabel,
-            })),
-          },
+          body: { query, results: allResultsPayload, offset },
         });
-        if (cancelled) return;
         if (err) throw err;
         if (!data?.success) throw new Error(data?.error || "Failed to build intel map");
-        setNodes(data.nodes || []);
-        setEdges(data.edges || []);
-        setScrapedCount(data.scrapedCount || 0);
-        setTotalSources(data.totalSources || 0);
+
+        const newNodes: IntelNode[] = data.nodes || [];
+        const newEdges: IntelEdge[] = data.edges || [];
+
+        if (append) {
+          // Merge: dedupe nodes by id, then add edges (server prefixes batch IDs so collisions are rare).
+          setNodes((prev) => {
+            const seen = new Set(prev.map((n) => n.id));
+            return [...prev, ...newNodes.filter((n) => !seen.has(n.id))];
+          });
+          setEdges((prev) => [...prev, ...newEdges]);
+          setScrapedCount((c) => c + (data.scrapedCount || 0));
+          setTotalSources((c) => c + (data.totalSources || 0));
+        } else {
+          setNodes(newNodes);
+          setEdges(newEdges);
+          setScrapedCount(data.scrapedCount || 0);
+          setTotalSources(data.totalSources || 0);
+        }
+        setNextOffset(Number(data.nextOffset || 0));
+        setHasMore(!!data.hasMore);
+        setTotalAvailable(Number(data.totalAvailable || results.length));
         await release(true);
         releaseSlot = null;
       } catch (e: any) {
-        if (!cancelled) setError(e?.message || "Could not build intel map");
+        const msg = e?.message || "Could not build intel map";
+        if (append) {
+          // Don't blow away the existing graph on a failed "scrape more" — surface inline.
+          setError(msg);
+        } else {
+          setError(msg);
+        }
         if (releaseSlot) { await releaseSlot(false); releaseSlot = null; }
       } finally {
         if (stopHeartbeat) stopHeartbeat();
-        if (!cancelled) { setLoading(false); setQueueInfo(null); }
+        setLoading(false);
+        setLoadingMore(false);
+        setQueueInfo(null);
       }
-    };
-    run();
-    return () => {
-      cancelled = true;
-      ac.abort();
-      if (stopHeartbeat) stopHeartbeat();
-      if (releaseSlot) releaseSlot(false);
-    };
-  }, [query, results]);
+    },
+    [query, allResultsPayload, results.length],
+  );
+
+  // Initial load
+  useEffect(() => {
+    let cancelled = false;
+    (async () => { if (!cancelled) await runBatch(0, false); })();
+    return () => { cancelled = true; };
+  }, [runBatch]);
+
+  const onScrapeMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+    setError(null);
+    void runBatch(nextOffset, true);
+  }, [loadingMore, hasMore, nextOffset, runBatch]);
 
   // Run layout when nodes/size change
   const laidOut = useMemo(() => {
