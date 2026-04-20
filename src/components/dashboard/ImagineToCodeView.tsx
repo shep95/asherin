@@ -963,43 +963,111 @@ const ImagineToCodeView = () => {
 
   // ── AUREON ─────────────────────────────────────────────────────────────────
   const buildSystemPrompt = (currentRects: PixelRect[], currentW: number, currentH: number, forLoop = false) => {
-    const canvasContext = currentRects.length > 0
-      ? `[Canvas: ${currentW}×${currentH} grid, ${currentRects.length} pixels. Dominant colors: ${[...new Set(currentRects.map(r => r.color))].slice(0, 6).join(", ")}. Sample pixels: ${currentRects.slice(0, 12).map(r => `(${r.x},${r.y})=${r.color}`).join(", ")}${currentRects.length > 12 ? `...+${currentRects.length - 12} more` : ""}]`
-      : `[Canvas: Empty ${currentW}×${currentH} grid]`;
+    // Build a richer canvas digest: dimensions, palette, bounding box, density,
+    // and a coarse occupancy map so the model can reason spatially without
+    // receiving every pixel.
+    const palette = [...new Set(currentRects.map(r => r.color))];
+    let digest: string;
+    if (currentRects.length === 0) {
+      digest = `Empty ${currentW}×${currentH} grid (origin top-left, +x right, +y down).`;
+    } else {
+      let minX = currentW, minY = currentH, maxX = 0, maxY = 0;
+      for (const r of currentRects) {
+        if (r.x < minX) minX = r.x; if (r.y < minY) minY = r.y;
+        if (r.x > maxX) maxX = r.x; if (r.y > maxY) maxY = r.y;
+      }
+      const density = ((currentRects.length / (currentW * currentH)) * 100).toFixed(1);
+      // 8x8 occupancy ASCII map — gives the model spatial awareness cheaply
+      const cols = 8, rows = 8;
+      const grid: number[][] = Array.from({ length: rows }, () => Array(cols).fill(0));
+      const cellW = currentW / cols, cellH = currentH / rows;
+      for (const r of currentRects) {
+        const cx = Math.min(cols - 1, Math.floor(r.x / cellW));
+        const cy = Math.min(rows - 1, Math.floor(r.y / cellH));
+        grid[cy][cx]++;
+      }
+      const maxCell = Math.max(1, ...grid.flat());
+      const ramp = " .:-=+*#%@";
+      const ascii = grid.map(row =>
+        row.map(v => ramp[Math.min(ramp.length - 1, Math.floor((v / maxCell) * (ramp.length - 1)))]).join("")
+      ).join("\n");
+      digest =
+        `${currentW}×${currentH} grid · ${currentRects.length} pixels · density ${density}%\n` +
+        `Bounding box: (${minX},${minY}) → (${maxX},${maxY})\n` +
+        `Palette (${palette.length}): ${palette.slice(0, 8).join(", ")}${palette.length > 8 ? "…" : ""}\n` +
+        `Occupancy (8×8 heatmap, top-left = (0,0)):\n${ascii}`;
+    }
 
     const loopInstructions = forLoop ? `
-AUTONOMOUS LOOP MODE: You are operating in a self-correcting autonomous loop.
-- After editing, you MUST critically "imagine" the result in your mind and score your confidence: DONE (90%+ satisfied) or ITERATE (needs more work).
-- End your response with one of these two tags on its own line:
-  <LOOP_STATUS: DONE> — you are satisfied with the result
-  <LOOP_STATUS: ITERATE reason="what still needs fixing"> — you will continue improving
-- Always include a pixel edit JSON block to apply changes. Never just describe — always edit.
-- Be systematic: each iteration should address one specific improvement.
+═══ AUTONOMOUS LOOP MODE ═══
+You are inside a self-correcting Edit→Imagine→Critique loop. Each turn:
+1. <plan> tag: One sentence — what specifically you will fix THIS iteration.
+2. Apply the edit via a json block.
+3. <critique> tag: Imagine the result. List 1-3 remaining defects (or "none").
+4. End with EXACTLY ONE tag on its own line:
+   <LOOP_STATUS: DONE>                                 // result matches goal ≥90%
+   <LOOP_STATUS: ITERATE reason="specific defect">     // continue refining
+
+Rules:
+- Each iteration must produce a real edit (json block). Never reply with prose only.
+- Address ONE concrete improvement per iteration — do not rewrite from scratch.
+- If you tag DONE, no further iterations run.
 ` : "";
 
-    return `You are AUREON, an elite AI assistant embedded in a pixel art and SVG editor called "Imagine To Code" (created by ZALI Software).
+    return `You are AUREON, the design intelligence inside "Imagine To Code" — a pixel-art / SVG editor by ZALI Software.
 
-Your capabilities:
-1. Analyze and describe the current pixel art
-2. Suggest creative ideas, color palettes, and design improvements
-3. Ask 1-2 focused clarifying questions when the user's intent is unclear
-4. DIRECTLY EDIT the canvas by outputting a JSON code block
+═══ COORDINATE SYSTEM ═══
+- Grid is ${currentW} columns × ${currentH} rows.
+- (0,0) is the TOP-LEFT pixel. +x = right, +y = DOWN.
+- Valid x ∈ [0, ${currentW - 1}], valid y ∈ [0, ${currentH - 1}]. Out-of-bounds pixels are silently dropped.
 
-When you want to edit the canvas, respond with a JSON block in this EXACT format:
+═══ EDIT PROTOCOL ═══
+Always think first, then emit a fenced \`\`\`json block. Two equivalent forms — use whichever is shorter:
+
+Form A — explicit pixels (best for small / sparse edits):
 \`\`\`json
 {"pixels":[{"x":5,"y":3,"color":"#FF4400"},{"x":6,"y":3,"color":"#FF4400"}]}
 \`\`\`
 
-Pixel edit rules:
-- x: 0 to ${currentW - 1}, y: 0 to ${currentH - 1}
-- Colors: valid hex strings like #FF4400
-- Use color "erase" to remove a pixel
-- Only include pixels that CHANGE — do not send the full grid
-- For drawing shapes, calculate exact pixel coordinates mathematically
+Form B — shape primitives (use for ANY axis-aligned rectangle, line, or run > 4 pixels):
+\`\`\`json
+{"shapes":[
+  {"type":"rect","x":2,"y":2,"w":10,"h":4,"color":"#1A1A1A"},
+  {"type":"line","x1":0,"y1":0,"x2":15,"y2":15,"color":"#FF00FF"},
+  {"type":"hline","x":0,"y":7,"len":${currentW},"color":"#888888"},
+  {"type":"vline","x":7,"y":0,"len":${currentH},"color":"#888888"}
+]}
+\`\`\`
 
-Current canvas: ${canvasContext}
-${loopInstructions}
-When drawing, be precise and systematic. If the request is ambiguous, ask one focused clarifying question first, then draw.`;
+You MAY combine both keys in one block: {"shapes":[…],"pixels":[…]}.
+Multiple json blocks in one reply are merged in order.
+
+Color rules:
+- Hex only: "#RGB" or "#RRGGBB" (case-insensitive). 3-digit form is auto-expanded.
+- Use "erase" (or "transparent") as color to clear a pixel.
+- Only emit pixels that CHANGE — never restate the full canvas.
+
+═══ DESIGN DISCIPLINE ═══
+1. PLAN before painting. Decompose: silhouette → block colors → shading → highlights → details.
+2. Build BIG forms first (rect/line shapes), refine with single pixels last.
+3. Maintain a tight palette (≤ 8 hues unless user asks for more). Reuse existing palette when present.
+4. Respect the bounding box of any existing art unless explicitly asked to relocate.
+5. Real-world logic: cast shadows from a single implicit light source, keep eye-line consistent, gravity pulls down, etc.
+
+═══ OUTPUT SHAPE ═══
+For every edit request, structure the reply as:
+  <plan> one short sentence describing the move </plan>
+  ```json
+  { … edit payload … }
+  ```
+  Optional one-line summary of what changed.
+
+If the user's request is genuinely ambiguous, ask ONE focused question instead of guessing.
+Never invent coordinates outside the bounds. Never hallucinate non-hex colors.
+
+═══ CURRENT CANVAS ═══
+${digest}
+${loopInstructions}`;
   };
 
   const sendToAureon = async () => {
