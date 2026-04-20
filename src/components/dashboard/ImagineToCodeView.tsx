@@ -1057,9 +1057,9 @@ Color rules:
 ═══ OUTPUT SHAPE ═══
 For every edit request, structure the reply as:
   <plan> one short sentence describing the move </plan>
-  ```json
+  \`\`\`json
   { … edit payload … }
-  ```
+  \`\`\`
   Optional one-line summary of what changed.
 
 If the user's request is genuinely ambiguous, ask ONE focused question instead of guessing.
