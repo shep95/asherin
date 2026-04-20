@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Loader2, Network, ZoomIn, ZoomOut, RotateCcw, ExternalLink, Users, Building2, MapPin, Tag, Calendar, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { acquireIntelSlot } from "@/lib/intelJobQueue";
 import type { SearchResult } from "./types";
 
 interface IntelNode {
@@ -242,11 +243,34 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
     return () => obs.disconnect();
   }, []);
 
+  const [queueInfo, setQueueInfo] = useState<{ position: number; running: number } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
+    const ac = new AbortController();
+    let stopHeartbeat: (() => void) | null = null;
+    let releaseSlot: ((s?: boolean) => Promise<void>) | null = null;
+
     const run = async () => {
-      setLoading(true); setError(null);
+      setLoading(true); setError(null); setQueueInfo(null);
       try {
+        // Acquire a concurrency slot first (max 2 concurrent runs globally)
+        const { release, startHeartbeat } = await acquireIntelSlot({
+          jobType: "intelmap",
+          maxConcurrent: 2,
+          signal: ac.signal,
+          onProgress: (p) => {
+            if (cancelled) return;
+            if (p.status === "waiting") {
+              setQueueInfo({ position: p.position, running: p.runningCount });
+            } else {
+              setQueueInfo(null);
+            }
+          },
+        });
+        releaseSlot = release;
+        stopHeartbeat = startHeartbeat();
+
         const { data, error: err } = await supabase.functions.invoke("zophiel-intelmap", {
           body: {
             query,
@@ -263,14 +287,23 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         setEdges(data.edges || []);
         setScrapedCount(data.scrapedCount || 0);
         setTotalSources(data.totalSources || 0);
+        await release(true);
+        releaseSlot = null;
       } catch (e: any) {
         if (!cancelled) setError(e?.message || "Could not build intel map");
+        if (releaseSlot) { await releaseSlot(false); releaseSlot = null; }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (stopHeartbeat) stopHeartbeat();
+        if (!cancelled) { setLoading(false); setQueueInfo(null); }
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      ac.abort();
+      if (stopHeartbeat) stopHeartbeat();
+      if (releaseSlot) releaseSlot(false);
+    };
   }, [query, results]);
 
   // Run layout when nodes/size change
@@ -378,8 +411,21 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin text-accent" />
-            <p className="text-xs font-light tracking-wide">Scraping sources & extracting entities…</p>
-            <p className="text-[10px] font-light text-muted-foreground/50">Reading {results.length} pages, mapping connections</p>
+            {queueInfo ? (
+              <>
+                <p className="text-xs font-light tracking-wide">
+                  Engine busy — you are #{queueInfo.position} in line
+                </p>
+                <p className="text-[10px] font-light text-muted-foreground/50">
+                  {queueInfo.running} active session{queueInfo.running === 1 ? "" : "s"} · holding your slot
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-light tracking-wide">Scraping sources & extracting entities…</p>
+                <p className="text-[10px] font-light text-muted-foreground/50">Reading {results.length} pages, mapping connections</p>
+              </>
+            )}
           </div>
         )}
 

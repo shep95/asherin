@@ -2408,6 +2408,42 @@ export type Database = {
           },
         ]
       }
+      intel_job_queue: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          heartbeat_at: string
+          id: string
+          job_type: string
+          queue_position: number | null
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          heartbeat_at?: string
+          id?: string
+          job_type?: string
+          queue_position?: number | null
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          heartbeat_at?: string
+          id?: string
+          job_type?: string
+          queue_position?: number | null
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       investigation_annotations: {
         Row: {
           added_sources: string[] | null
@@ -6134,6 +6170,7 @@ export type Database = {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
       }
+      heartbeat_intel_slot: { Args: { _job_id: string }; Returns: undefined }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_notebook_owner: {
         Args: { _notebook_id: string; _user_id: string }
@@ -6144,6 +6181,18 @@ export type Database = {
         Returns: boolean
       }
       notebook_team_id: { Args: { _notebook_id: string }; Returns: string }
+      release_intel_slot: {
+        Args: { _job_id: string; _success?: boolean }
+        Returns: undefined
+      }
+      try_acquire_intel_slot: {
+        Args: { _job_id: string; _job_type: string; _max_concurrent?: number }
+        Returns: {
+          acquired: boolean
+          queue_pos: number
+          running_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
