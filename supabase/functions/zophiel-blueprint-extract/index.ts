@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -101,7 +102,7 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const { url, byok } = await req.json();
     if (!url || typeof url !== "string") {
       return new Response(JSON.stringify({ error: "url required" }), {
         status: 400,
@@ -109,49 +110,67 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
-    if (!GEMINI_API_KEY) {
+    const useByok = isValidByok(byok);
+    const GEMINI_API_KEY = useByok ? "" : (Deno.env.get("GEMINI_API_KEY_APP") || "");
+    if (!useByok && !GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY_APP missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const aiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: `Target URL: ${url}\n\nReturn the JSON blueprint now.` }],
+    const userPrompt = `Target URL: ${url}\n\nReturn the JSON blueprint now.`;
+
+    let raw = "";
+    let finishReason: string | undefined;
+    if (useByok) {
+      try {
+        raw = await callByokJsonWithRetry(byok as ZophielByokConfig, SYSTEM_PROMPT, userPrompt, {
+          timeoutMs: 60_000,
+          temperature: 0.3,
+          maxOutputTokens: 16384,
+          attempts: 2,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "BYOK call failed";
+        console.error("[blueprint] BYOK error", msg);
+        return new Response(
+          JSON.stringify({ error: `Your AI key call failed: ${msg}` }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    } else {
+      const aiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [
+              { role: "user", parts: [{ text: userPrompt }] },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.3,
+              maxOutputTokens: 16384,
             },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.3,
-            maxOutputTokens: 16384,
-          },
-        }),
-      },
-    );
-
-    if (!aiResp.ok) {
-      const errText = await aiResp.text();
-      console.error("[blueprint] AI error", aiResp.status, errText);
-      return new Response(
-        JSON.stringify({ error: `Gemini: ${aiResp.status}` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          }),
+        },
       );
+      if (!aiResp.ok) {
+        const errText = await aiResp.text();
+        console.error("[blueprint] AI error", aiResp.status, errText);
+        return new Response(
+          JSON.stringify({ error: `Gemini: ${aiResp.status}` }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const aiData = await aiResp.json();
+      const candidate = aiData?.candidates?.[0];
+      finishReason = candidate?.finishReason;
+      raw = candidate?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
     }
-
-    const aiData = await aiResp.json();
-    const candidate = aiData?.candidates?.[0];
-    const finishReason = candidate?.finishReason;
-    const raw = candidate?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
 
     if (!raw.trim()) {
       console.error("[blueprint] empty response", { finishReason, aiData });

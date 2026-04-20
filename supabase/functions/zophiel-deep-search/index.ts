@@ -1,10 +1,20 @@
+import { isValidByok } from '../_shared/zophielByokRouter.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse';
-const GEMINI_NON_STREAM = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+// Default platform models (used when no BYOK provided). When the user supplies
+// a Google BYOK key, we substitute their model id into these URLs.
+const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
+const geminiStreamUrlFor = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+const geminiNonStreamUrlFor = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+const GEMINI_URL = geminiStreamUrlFor(GEMINI_DEFAULT_MODEL);
+const GEMINI_NON_STREAM = geminiNonStreamUrlFor(GEMINI_DEFAULT_MODEL);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IMMUTABLE TRUTH GRAPH — Source Integrity Validation
@@ -220,8 +230,8 @@ async function scrapePage(url: string, timeoutMs = 8000): Promise<string | null>
 }
 
 // ── Clarifying Questions Generator ───────────────────────────────────────────
-async function generateClarifyingQuestions(query: string, apiKey: string): Promise<{ questions: { id: string; question: string; options: string[] }[] }> {
-  const resp = await fetch(`${GEMINI_NON_STREAM}?key=${apiKey}`, {
+async function generateClarifyingQuestions(query: string, apiKey: string, nonStreamUrl: string = GEMINI_NON_STREAM): Promise<{ questions: { id: string; question: string; options: string[] }[] }> {
+  const resp = await fetch(`${nonStreamUrl}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -300,7 +310,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { query, action, answers } = body;
+    const { query, action, answers, byok } = body;
 
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return new Response(
@@ -309,12 +319,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY_APP');
+    // BYOK: when the user supplies a Google (Gemini) key, swap it in directly
+    // and bypass the platform key + queue. Other providers fall back to the
+    // platform Gemini key (deep-search streams Gemini-specific SSE format).
+    const useGoogleByok = isValidByok(byok) && byok.provider === 'google';
+    const PLATFORM_GEMINI_KEY = Deno.env.get('GEMINI_API_KEY_APP');
+    const GEMINI_KEY = useGoogleByok ? byok.apiKey : (PLATFORM_GEMINI_KEY || '');
+    const ACTIVE_MODEL = useGoogleByok ? byok.model : GEMINI_DEFAULT_MODEL;
+    const ACTIVE_STREAM_URL = geminiStreamUrlFor(ACTIVE_MODEL);
+    const ACTIVE_NON_STREAM_URL = geminiNonStreamUrlFor(ACTIVE_MODEL);
     if (!GEMINI_KEY) {
       return new Response(
         JSON.stringify({ error: 'GEMINI_API_KEY_APP not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    if (isValidByok(byok) && byok.provider !== 'google') {
+      console.warn('[ZOPHIEL] BYOK provider', byok.provider, 'not supported in deep-search streaming — using platform Gemini.');
     }
 
     const trimmed = query.trim();
@@ -323,7 +344,7 @@ Deno.serve(async (req) => {
     if (action === 'refine') {
       console.log('[ZOPHIEL] Generating semantic clarification for:', trimmed);
       try {
-        const result = await generateClarifyingQuestions(trimmed, GEMINI_KEY);
+        const result = await generateClarifyingQuestions(trimmed, GEMINI_KEY, ACTIVE_NON_STREAM_URL);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -785,7 +806,7 @@ ${sourceBlocks || 'No sources could be scraped. Provide the best answer from tra
 Construct the Immutable Truth Graph intelligence report now. Execute the Causal Chain of Knowledge protocol.`;
 
     // ── Step 5: Stream Gemini response ──
-    const geminiUrl = `${GEMINI_URL}&key=${GEMINI_KEY}`;
+    const geminiUrl = `${ACTIVE_STREAM_URL}&key=${GEMINI_KEY}`;
     const geminiResp = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

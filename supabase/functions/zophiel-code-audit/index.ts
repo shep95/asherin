@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -183,7 +184,7 @@ serve(async (req) => {
   }
 
   try {
-    const { code, filename } = await req.json();
+    const { code, filename, byok } = await req.json();
     if (!code || typeof code !== "string") {
       return new Response(JSON.stringify({ error: "code required" }), {
         status: 400,
@@ -199,8 +200,9 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
-    if (!GEMINI_API_KEY) {
+    const useByok = isValidByok(byok);
+    const GEMINI_API_KEY = useByok ? "" : (Deno.env.get("GEMINI_API_KEY_APP") || "");
+    if (!useByok && !GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY_APP missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -236,43 +238,63 @@ serve(async (req) => {
     // Compose the full system prompt: identity → doctrine → brains → audit directive/schema
     const FULL_SYSTEM_PROMPT = `${ZOPHIEL_IDENTITY}\n\n${AUREON_CODE_PERSONALITY}${brainsContext}\n\n${AUDIT_DIRECTIVE}`;
 
-    const aiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: FULL_SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: "user",
-              parts: [{
-                text: `Filename: ${safeName}\n\n--- BEGIN CODE ---\n${code}\n--- END CODE ---\n\nReturn the JSON security blueprint now.`,
-              }],
+    const userPrompt = `Filename: ${safeName}\n\n--- BEGIN CODE ---\n${code}\n--- END CODE ---\n\nReturn the JSON security blueprint now.`;
+
+    let raw = "";
+    let finishReason: string | undefined;
+    if (useByok) {
+      try {
+        raw = await callByokJsonWithRetry(byok as ZophielByokConfig, FULL_SYSTEM_PROMPT, userPrompt, {
+          timeoutMs: 90_000,
+          temperature: 0.2,
+          maxOutputTokens: 16384,
+          attempts: 2,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "BYOK call failed";
+        console.error("[code-audit] BYOK error", msg);
+        return new Response(
+          JSON.stringify({ error: `Your AI key call failed: ${msg}` }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    } else {
+      const aiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: FULL_SYSTEM_PROMPT }] },
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: userPrompt }],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.2,
+              maxOutputTokens: 16384,
             },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.2,
-            maxOutputTokens: 16384,
-          },
-        }),
-      },
-    );
-
-    if (!aiResp.ok) {
-      const errText = await aiResp.text();
-      console.error("[code-audit] AI error", aiResp.status, errText);
-      return new Response(
-        JSON.stringify({ error: `Gemini: ${aiResp.status}` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          }),
+        },
       );
-    }
 
-    const aiData = await aiResp.json();
-    const candidate = aiData?.candidates?.[0];
-    const finishReason = candidate?.finishReason;
-    const raw = candidate?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+      if (!aiResp.ok) {
+        const errText = await aiResp.text();
+        console.error("[code-audit] AI error", aiResp.status, errText);
+        return new Response(
+          JSON.stringify({ error: `Gemini: ${aiResp.status}` }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const aiData = await aiResp.json();
+      const candidate = aiData?.candidates?.[0];
+      finishReason = candidate?.finishReason;
+      raw = candidate?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+    }
 
     if (!raw.trim()) {
       console.error("[code-audit] empty response", { finishReason });

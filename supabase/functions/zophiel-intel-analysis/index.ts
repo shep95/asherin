@@ -1,6 +1,9 @@
 // Zophiel Intel Analysis - runs forensic analysis on search results across multiple
 // intelligence dimensions: temporal, credibility, fact-check, narrative, investigative.
-// Uses Lovable AI Gateway with structured tool-call output.
+// Uses Lovable AI Gateway with structured tool-call output, OR the user's own
+// BYOK provider when supplied (skips queue, no DB storage of the key).
+
+import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from '../_shared/zophielByokRouter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -357,7 +360,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { query, results, type } = await req.json();
+    const { query, results, type, byok } = await req.json();
 
     if (!query || !Array.isArray(results) || results.length === 0) {
       return new Response(
@@ -372,7 +375,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    const analysis = await callGateway(type as AnalysisType, query, results as ResultIn[]);
+    let analysis: unknown;
+    if (isValidByok(byok)) {
+      // BYOK: emit a JSON-mode prompt with the schema baked in, then route through the user's provider.
+      const t = type as AnalysisType;
+      const schema = SCHEMAS[t];
+      const sys = SYSTEM_PROMPTS[t] +
+        `\n\nReturn ONLY a single valid JSON object that matches this schema (no extra prose, no markdown):\n` +
+        JSON.stringify({ name: schema.name, parameters: schema.parameters });
+      try {
+        const raw = await callByokJsonWithRetry(byok as ZophielByokConfig, sys, buildUserPrompt(query, results as ResultIn[]), {
+          timeoutMs: 60_000,
+          temperature: 0.25,
+          maxOutputTokens: 8192,
+          attempts: 2,
+        });
+        let cleaned = (raw || '').replace(/```json\n?|```/g, '').trim();
+        const lastBrace = cleaned.lastIndexOf('}');
+        if (lastBrace !== -1) cleaned = cleaned.slice(0, lastBrace + 1);
+        analysis = JSON.parse(cleaned);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'BYOK call failed';
+        console.error('[intel-analysis] BYOK error', msg);
+        return new Response(JSON.stringify({ success: false, error: `Your AI key call failed: ${msg}` }), {
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      analysis = await callGateway(type as AnalysisType, query, results as ResultIn[]);
+    }
 
     return new Response(
       JSON.stringify({ success: true, type, query, analysis, generatedAt: new Date().toISOString() }),
