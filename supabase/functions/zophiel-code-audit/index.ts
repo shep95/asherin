@@ -183,7 +183,7 @@ serve(async (req) => {
   }
 
   try {
-    const { code, filename } = await req.json();
+    const { code, filename, byok } = await req.json();
     if (!code || typeof code !== "string") {
       return new Response(JSON.stringify({ error: "code required" }), {
         status: 400,
@@ -199,8 +199,9 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_APP");
-    if (!GEMINI_API_KEY) {
+    const useByok = isValidByok(byok);
+    const GEMINI_API_KEY = useByok ? "" : (Deno.env.get("GEMINI_API_KEY_APP") || "");
+    if (!useByok && !GEMINI_API_KEY) {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY_APP missing" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
