@@ -167,9 +167,11 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
   });
 
   const idMap = new Map(nodes.map((n) => [n.id, n]));
-  const k = 90;          // ideal edge length
-  const repulsion = 4200;
+  // Increased spacing so node bodies + their labels (which sit ~26px below) don't overlap.
+  const k = 160;         // ideal edge length
+  const repulsion = 9500;
   const damping = 0.85;
+  const minSeparation = 110; // hard floor between any two node centers
 
   for (let iter = 0; iter < iterations; iter++) {
     // Repulsion
@@ -209,6 +211,35 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
       n.x = Math.max(r, Math.min(width - r, n.x!));
       n.y = Math.max(r, Math.min(height - r, n.y!));
     });
+  }
+
+  // Final hard collision pass — guarantees node centers are at least minSeparation apart
+  // so labels (which sit below each node) cannot stack on top of neighboring nodes.
+  for (let pass = 0; pass < 12; pass++) {
+    let moved = false;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = (b.x! - a.x!) || 0.01;
+        const dy = (b.y! - a.y!) || 0.01;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const need = Math.max(minSeparation, NODE_RADIUS[a.type] + NODE_RADIUS[b.type] + 50);
+        if (dist < need) {
+          const push = (need - dist) / 2;
+          const ux = dx / dist, uy = dy / dist;
+          a.x! -= ux * push; a.y! -= uy * push;
+          b.x! += ux * push; b.y! += uy * push;
+          moved = true;
+        }
+      }
+    }
+    // Reapply bounds
+    nodes.forEach((n) => {
+      const r = NODE_RADIUS[n.type] + 4;
+      n.x = Math.max(r, Math.min(width - r, n.x!));
+      n.y = Math.max(r, Math.min(height - r, n.y!));
+    });
+    if (!moved) break;
   }
 
   return nodes;
@@ -679,11 +710,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                         {n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label}
                       </text>
                     )}
-                    {n.type === "source" && n.tierLabel && (
-                      <text x={0} y={h / 2 + 26} textAnchor="middle" fontSize="8.5" fill="hsl(var(--muted-foreground))" opacity="0.6" className="pointer-events-none" style={{ letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                        {n.tierLabel}
-                      </text>
-                    )}
+                    {/* Tier label removed from canvas to avoid overlapping neighbours; still shown in the detail panel. */}
                   </g>
                 );
               })}
