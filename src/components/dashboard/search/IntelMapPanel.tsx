@@ -213,6 +213,35 @@ function layoutNodes(nodes: IntelNode[], edges: IntelEdge[], width: number, heig
     });
   }
 
+  // Final hard collision pass — guarantees node centers are at least minSeparation apart
+  // so labels (which sit below each node) cannot stack on top of neighboring nodes.
+  for (let pass = 0; pass < 12; pass++) {
+    let moved = false;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = (b.x! - a.x!) || 0.01;
+        const dy = (b.y! - a.y!) || 0.01;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const need = Math.max(minSeparation, NODE_RADIUS[a.type] + NODE_RADIUS[b.type] + 50);
+        if (dist < need) {
+          const push = (need - dist) / 2;
+          const ux = dx / dist, uy = dy / dist;
+          a.x! -= ux * push; a.y! -= uy * push;
+          b.x! += ux * push; b.y! += uy * push;
+          moved = true;
+        }
+      }
+    }
+    // Reapply bounds
+    nodes.forEach((n) => {
+      const r = NODE_RADIUS[n.type] + 4;
+      n.x = Math.max(r, Math.min(width - r, n.x!));
+      n.y = Math.max(r, Math.min(height - r, n.y!));
+    });
+    if (!moved) break;
+  }
+
   return nodes;
 }
 
