@@ -96,22 +96,21 @@ Deno.serve(async (req) => {
     }
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY_APP') || Deno.env.get('GEMINI_API_KEY');
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: 'No AI key configured (GEMINI_API_KEY_APP or LOVABLE_API_KEY)' }),
+        JSON.stringify({ success: false, error: 'GEMINI_API_KEY_APP not configured' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Limit to top 6 results for scraping budget (reduced from 8 to stay under Edge timeout)
-    const top = results.slice(0, 6);
+    // Top 8 results for scraping
+    const top = results.slice(0, 8);
 
     // Scrape pages in parallel — never fail the whole map if a page errors
     const scraped = await Promise.all(
       top.map(async (r) => {
         let content = '';
-        try { content = await fetchPage(r.url); } catch { content = ''; }
+        try { content = await fetchPage(r.url, 6000); } catch { content = ''; }
         return { ...r, domain: domainOf(r.url), content };
       }),
     );
@@ -122,7 +121,7 @@ Deno.serve(async (req) => {
 URL: ${s.url}
 DOMAIN: ${s.domain}
 SNIPPET: ${s.snippet || ''}
-EXCERPT: ${(s.content || s.snippet || '').slice(0, 1400)}
+EXCERPT: ${(s.content || s.snippet || '').slice(0, 2500)}
 ---`,
     ).join('\n');
 
@@ -152,11 +151,12 @@ Return JSON with this exact shape:
   ]
 }`;
 
-    // Try Gemini first (with timeout), then fall back to Lovable AI Gateway
-    async function callGemini(): Promise<string> {
-      if (!GEMINI_API_KEY) throw new Error('no_gemini_key');
+    // Call Gemini directly (no Lovable AI fallback per user request)
+    let raw = '{}';
+    let aiError: string | null = null;
+    try {
       const ctl = new AbortController();
-      const t = setTimeout(() => ctl.abort(), 18000);
+      const t = setTimeout(() => ctl.abort(), 25000);
       try {
         const r = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -167,49 +167,21 @@ Return JSON with this exact shape:
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: systemPrompt }] },
               contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 4096 },
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 8192 },
             }),
           },
         );
-        if (!r.ok) throw new Error(`gemini_${r.status}`);
+        if (!r.ok) {
+          const txt = await r.text();
+          console.error('[intelmap] gemini error', r.status, txt.slice(0, 300));
+          throw new Error(`gemini_${r.status}`);
+        }
         const d = await r.json();
-        return d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        raw = d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       } finally { clearTimeout(t); }
-    }
-
-    async function callLovable(): Promise<string> {
-      if (!LOVABLE_API_KEY) throw new Error('no_lovable_key');
-      const ctl = new AbortController();
-      const t = setTimeout(() => ctl.abort(), 18000);
-      try {
-        const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
-          signal: ctl.signal,
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt + '\n\nReturn ONLY the JSON object, no markdown.' },
-            ],
-          }),
-        });
-        if (!r.ok) throw new Error(`lovable_${r.status}`);
-        const d = await r.json();
-        return d?.choices?.[0]?.message?.content || '{}';
-      } finally { clearTimeout(t); }
-    }
-
-    let raw = '{}';
-    let aiError: string | null = null;
-    try {
-      raw = await callGemini();
-    } catch (e1) {
-      try {
-        raw = await callLovable();
-      } catch (e2) {
-        aiError = `${e1 instanceof Error ? e1.message : 'gemini_fail'} | ${e2 instanceof Error ? e2.message : 'lovable_fail'}`;
-      }
+    } catch (e) {
+      aiError = e instanceof Error ? e.message : 'gemini_fail';
+      console.error('[intelmap] AI call failed:', aiError);
     }
 
     // Strip code fences if any
