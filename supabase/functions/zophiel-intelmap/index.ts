@@ -107,12 +107,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Sequential scrape with 10s delay between pages (per user request).
-    // Edge functions cap around 150s wall-clock — at 10s/page we cap input at 12 pages
-    // (≈120s scraping + ~15-25s for Gemini = safe). The client may send up to 30 results;
+    // Sequential scrape with 8s delay between pages.
+    // Edge functions cap at 150s wall-clock — at 8s/page we cap input at 8 pages
+    // (≈64s scraping + ~20-30s for Gemini = safe margin). The client may send up to 30 results;
     // we only fetch the top SCRAPE_LIMIT, but ALL sources still appear as nodes in the graph.
-    const SCRAPE_LIMIT = 12;
-    const DELAY_MS = 10_000;
+    const SCRAPE_LIMIT = 8;
+    const DELAY_MS = 8_000;
     const startIdx = Math.max(0, Math.floor(Number(offset) || 0));
     const endIdx = Math.min(results.length, startIdx + SCRAPE_LIMIT);
     const top = results.slice(startIdx, endIdx);
