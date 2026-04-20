@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import type { SearchResult } from "../types";
 
 export type IntelAnalysisType =
@@ -19,6 +20,7 @@ export function useIntelAnalysis<T = any>(type: IntelAnalysisType) {
       setLoading(true);
       setError(null);
       try {
+        const byok = getActiveIntelMapByok();
         const { data: res, error: invErr } = await supabase.functions.invoke(
           "zophiel-intel-analysis",
           {
@@ -33,6 +35,7 @@ export function useIntelAnalysis<T = any>(type: IntelAnalysisType) {
                 tier: r.tier,
                 publishDate: r.publishDate,
               })),
+              ...(byok ? { byok } : {}),
             },
           },
         );
