@@ -62,7 +62,7 @@ export async function acquireIntelSlot(opts: AcquireOptions): Promise<{
 
   const startHeartbeat = () => {
     const iv = setInterval(() => {
-      supabase.rpc("heartbeat_intel_slot", { _job_id: jobId }).catch(() => {});
+      void supabase.rpc("heartbeat_intel_slot", { _job_id: jobId }).then(() => {}, () => {});
     }, 20_000);
     return () => clearInterval(iv);
   };
