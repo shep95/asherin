@@ -151,11 +151,12 @@ Return JSON with this exact shape:
   ]
 }`;
 
-    // Try Gemini first (with timeout), then fall back to Lovable AI Gateway
-    async function callGemini(): Promise<string> {
-      if (!GEMINI_API_KEY) throw new Error('no_gemini_key');
+    // Call Gemini directly (no Lovable AI fallback per user request)
+    let raw = '{}';
+    let aiError: string | null = null;
+    try {
       const ctl = new AbortController();
-      const t = setTimeout(() => ctl.abort(), 18000);
+      const t = setTimeout(() => ctl.abort(), 25000);
       try {
         const r = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -166,49 +167,21 @@ Return JSON with this exact shape:
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: systemPrompt }] },
               contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 4096 },
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 8192 },
             }),
           },
         );
-        if (!r.ok) throw new Error(`gemini_${r.status}`);
+        if (!r.ok) {
+          const txt = await r.text();
+          console.error('[intelmap] gemini error', r.status, txt.slice(0, 300));
+          throw new Error(`gemini_${r.status}`);
+        }
         const d = await r.json();
-        return d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        raw = d?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       } finally { clearTimeout(t); }
-    }
-
-    async function callLovable(): Promise<string> {
-      if (!LOVABLE_API_KEY) throw new Error('no_lovable_key');
-      const ctl = new AbortController();
-      const t = setTimeout(() => ctl.abort(), 18000);
-      try {
-        const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
-          signal: ctl.signal,
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt + '\n\nReturn ONLY the JSON object, no markdown.' },
-            ],
-          }),
-        });
-        if (!r.ok) throw new Error(`lovable_${r.status}`);
-        const d = await r.json();
-        return d?.choices?.[0]?.message?.content || '{}';
-      } finally { clearTimeout(t); }
-    }
-
-    let raw = '{}';
-    let aiError: string | null = null;
-    try {
-      raw = await callGemini();
-    } catch (e1) {
-      try {
-        raw = await callLovable();
-      } catch (e2) {
-        aiError = `${e1 instanceof Error ? e1.message : 'gemini_fail'} | ${e2 instanceof Error ? e2.message : 'lovable_fail'}`;
-      }
+    } catch (e) {
+      aiError = e instanceof Error ? e.message : 'gemini_fail';
+      console.error('[intelmap] AI call failed:', aiError);
     }
 
     // Strip code fences if any
