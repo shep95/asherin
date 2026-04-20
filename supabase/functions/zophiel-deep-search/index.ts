@@ -806,7 +806,7 @@ ${sourceBlocks || 'No sources could be scraped. Provide the best answer from tra
 Construct the Immutable Truth Graph intelligence report now. Execute the Causal Chain of Knowledge protocol.`;
 
     // ── Step 5: Stream Gemini response ──
-    const geminiUrl = `${GEMINI_URL}&key=${GEMINI_KEY}`;
+    const geminiUrl = `${ACTIVE_STREAM_URL}&key=${GEMINI_KEY}`;
     const geminiResp = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
