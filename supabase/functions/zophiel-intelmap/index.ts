@@ -306,6 +306,7 @@ Return JSON with this exact shape:
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
         aiError, // null on success, string when AI step failed (graph still has source nodes)
+        usedModel, // which Gemini model produced the entity graph (null if all failed)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
