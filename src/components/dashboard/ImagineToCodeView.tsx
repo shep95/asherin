@@ -82,6 +82,98 @@ function imageDataToRects(imageData: ImageData): PixelRect[] {
   return out;
 }
 
+// ─── Pixel-Perfect Normalization (DPI · Palette · Scale snapping) ─────────────
+// Applied on import + surfaced to AUREON so it reasons in clean design-system
+// units instead of arbitrary screenshot artifacts.
+
+// Detect Retina / HiDPI screenshots. We can't read EXIF reliably from a File via
+// FileReader, so we infer from raw dimensions: anything wider than a 1440px laptop
+// and dimensionally a clean multiple of a common device class is treated as 2x/3x.
+function detectSourceScale(w: number, h: number): 1 | 2 | 3 {
+  const longSide = Math.max(w, h);
+  // 3x: iPhone Pro / Android XXXHDPI screenshots (≥1170w typical short side, ≥2532 long)
+  if (longSide >= 2400 && (w % 3 === 0 || h % 3 === 0)) return 3;
+  // 2x: Retina MBP / iPad Pro / standard mobile screenshots
+  if (longSide >= 1600) return 2;
+  return 1;
+}
+
+// Hex helpers ------------------------------------------------------------------
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+// Perceptual distance — cheap weighted-Euclidean approximation of CIE ΔE.
+// Source: https://www.compuphase.com/cmetric.htm — good enough for clustering UI palettes.
+function colorDistance(a: string, b: string): number {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  const rmean = (r1 + r2) / 2;
+  const dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
+  return Math.sqrt(
+    (((512 + rmean) * dr * dr) >> 8) + 4 * dg * dg + (((767 - rmean) * db * db) >> 8)
+  );
+}
+// Pick the "cleanest" hex in a cluster — channels closest to multiples of 0x11
+// (so #4080FF beats #437DFE). Used as the canonical color for that cluster.
+function cleanestHex(cluster: string[]): string {
+  let best = cluster[0], bestScore = Infinity;
+  for (const c of cluster) {
+    const [r, g, b] = hexToRgb(c);
+    const score = (r % 17) + (g % 17) + (b % 17);
+    if (score < bestScore) { bestScore = score; best = c; }
+  }
+  return best;
+}
+// Cluster similar colors (greedy, threshold ≈ JND for sRGB UI work).
+function unifyPalette(rects: PixelRect[], threshold = 28): { rects: PixelRect[]; palette: string[]; mapping: Record<string, string> } {
+  const colors = Array.from(new Set(rects.map(r => r.color)));
+  // Sort by frequency so the most-used hue anchors its cluster
+  const freq = new Map<string, number>();
+  for (const r of rects) freq.set(r.color, (freq.get(r.color) ?? 0) + 1);
+  colors.sort((a, b) => (freq.get(b)! - freq.get(a)!));
+
+  const clusters: string[][] = [];
+  for (const c of colors) {
+    let placed = false;
+    for (const cl of clusters) {
+      if (colorDistance(cl[0], c) < threshold) { cl.push(c); placed = true; break; }
+    }
+    if (!placed) clusters.push([c]);
+  }
+
+  const mapping: Record<string, string> = {};
+  const palette: string[] = [];
+  for (const cl of clusters) {
+    const canonical = cleanestHex(cl);
+    palette.push(canonical);
+    for (const c of cl) mapping[c] = canonical;
+  }
+  const remapped = rects.map(r => mapping[r.color] === r.color ? r : { ...r, color: mapping[r.color] });
+  return { rects: remapped, palette, mapping };
+}
+
+// Spacing / size snapping — Tailwind-style scale wins by default.
+const TAILWIND_SCALE = [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 56, 64, 80, 96, 128, 160, 192, 224, 256];
+const ICON_SIZES = [12, 16, 20, 24, 28, 32, 40, 48, 64, 96, 128];
+function snapToScale(value: number, scale: number[] = TAILWIND_SCALE): number {
+  if (value <= 0) return 0;
+  let nearest = scale[0], minDiff = Math.abs(value - nearest);
+  for (const s of scale) {
+    const d = Math.abs(value - s);
+    if (d < minDiff) { minDiff = d; nearest = s; }
+  }
+  return nearest;
+}
+function snapIconSize(value: number): number { return snapToScale(value, ICON_SIZES); }
+// Snap a font-size measurement onto a major-third (1.25) scale anchored at 16.
+function snapFontSize(value: number, base = 16, ratio = 1.25): number {
+  if (value <= 0) return base;
+  const steps = [-2, -1, 0, 1, 2, 3, 4, 5];
+  const scale = steps.map(s => Math.round(base * Math.pow(ratio, s)));
+  return snapToScale(value, scale);
+}
+
 // Normalize a color token: hex (#rgb/#rrggbb), shorthand "erase"/"transparent",
 // or named color via canvas. Returns canonical "#RRGGBB" or null.
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
