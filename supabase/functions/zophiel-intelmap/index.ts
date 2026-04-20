@@ -295,14 +295,16 @@ Return JSON with this exact shape:
         edges,
         scrapedCount: scraped.filter((s) => s.content.length > 0).length,
         totalSources: scraped.length,
+        aiError, // null on success, string when AI step failed (graph still has source nodes)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to build intel map';
+    // Return 200 with success:false so the client's invoke() doesn't throw a generic non-2xx error
     return new Response(
       JSON.stringify({ success: false, error: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
