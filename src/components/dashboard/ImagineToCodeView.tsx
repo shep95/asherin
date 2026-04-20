@@ -1732,8 +1732,9 @@ ${loopInstructions}`;
               </p>
             </div>
           </div>
-        </aside>
-      </div>
+          </aside>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };
