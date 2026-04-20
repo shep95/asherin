@@ -113,28 +113,34 @@ Deno.serve(async (req) => {
     // we only fetch the top SCRAPE_LIMIT, but ALL sources still appear as nodes in the graph.
     const SCRAPE_LIMIT = 12;
     const DELAY_MS = 10_000;
-    const top = results.slice(0, SCRAPE_LIMIT);
-    const extras = results.slice(SCRAPE_LIMIT); // included as graph nodes, not scraped
+    const startIdx = Math.max(0, Math.floor(Number(offset) || 0));
+    const endIdx = Math.min(results.length, startIdx + SCRAPE_LIMIT);
+    const top = results.slice(startIdx, endIdx);
+    const nextOffset = endIdx;
+    const hasMore = endIdx < results.length;
 
-    const scraped: Array<ResultIn & { domain: string; content: string }> = [];
+    if (top.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'No more sources to scrape', nextOffset: startIdx, hasMore: false }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const scraped: Array<ResultIn & { domain: string; content: string; sourceIndex: number }> = [];
     for (let i = 0; i < top.length; i++) {
       const r = top[i];
       let content = '';
       try {
         content = await fetchPage(r.url, 8000);
-        console.log(`[intelmap] scraped ${i + 1}/${top.length}: ${domainOf(r.url)} (${content.length} chars)`);
+        console.log(`[intelmap] scraped ${i + 1}/${top.length} (offset ${startIdx}): ${domainOf(r.url)} (${content.length} chars)`);
       } catch (e) {
         console.warn(`[intelmap] scrape failed ${i + 1}/${top.length}: ${r.url}`, e);
         content = '';
       }
-      scraped.push({ ...r, domain: domainOf(r.url), content });
+      // Use a STABLE absolute index so node IDs don't collide across batches.
+      scraped.push({ ...r, domain: domainOf(r.url), content, sourceIndex: startIdx + i + 1 });
       // Wait 10s before next page (skip after last)
       if (i < top.length - 1) await new Promise((res) => setTimeout(res, DELAY_MS));
-    }
-
-    // Append non-scraped extras so the graph still shows every source the user requested
-    for (const r of extras) {
-      scraped.push({ ...r, domain: domainOf(r.url), content: '' });
     }
 
     // Build a compact corpus for the AI
