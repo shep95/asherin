@@ -27,6 +27,7 @@ export async function streamChat({
   depth,
   userProfile,
   brainContext,
+  conversationId,
   signal,
   onDelta,
   onDone,
@@ -38,6 +39,7 @@ export async function streamChat({
   depth?: ResponseDepth;
   userProfile?: UserProfile | null;
   brainContext?: BrainContext | null;
+  conversationId?: string | null;
   signal?: AbortSignal;
   onDelta: (text: string) => void;
   onDone: () => void;
@@ -71,6 +73,25 @@ export async function streamChat({
       }
     }
   } catch { /* ignore */ }
+
+  // Per-conversation API toggle: only use BYOK if explicitly enabled for THIS conversation.
+  // The toggle is OFF by default — users must opt in per-conversation in ConversationApiToggles.
+  // Without this gate, a globally-active BYOK key (e.g. low-credit OpenAI) would be used even when
+  // the user disabled it for the chat, causing avoidable AI gateway errors.
+  if (conversationId && byokProvider) {
+    try {
+      const all = JSON.parse(localStorage.getItem("aureon_conv_api_toggles") || "{}");
+      const convToggles = all[conversationId] || {};
+      if (convToggles[byokProvider] !== true) {
+        byokProvider = undefined;
+        byokModel = undefined;
+      }
+    } catch {
+      // If toggles can't be read, fall back to default Aureon (safer than using BYOK)
+      byokProvider = undefined;
+      byokModel = undefined;
+    }
+  }
 
   // Get auth token for BYOK key lookup
   let authToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
