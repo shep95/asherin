@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { acquireIntelSlot } from "@/lib/intelJobQueue";
 import { getActiveIntelMapByok, isIntelMapByokEnabled, getProviderSpec } from "@/lib/intelMapByok";
 import IntelMapByokPanel from "./IntelMapByokPanel";
+import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
+import LocationMapPanel from "./LocationMapPanel";
+import { decodeHtmlEntities } from "@/lib/htmlDecode";
 import type { SearchResult } from "./types";
 
 interface IntelNode {
