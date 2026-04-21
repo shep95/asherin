@@ -1520,6 +1520,8 @@ ${zophielCodingBrainContent}
     let response: Response | null = null;
     let lastError = "";
     let byokFailed = false;
+    let byokFailStatus = 0;
+    let byokFailReason = "";
 
     if (useByok && userApiKey && byokProvider && byokModel) {
       console.log(`BYOK: Using ${byokProvider}/${byokModel}`);
@@ -1543,11 +1545,24 @@ ${zophielCodingBrainContent}
           const errText = await response.text();
           console.error(`BYOK ${byokProvider} error (${response.status}):`, errText.slice(0, 500));
           byokFailed = true;
+          byokFailStatus = response.status;
+          if (response.status === 429 && /insufficient_quota|exceeded.*quota/i.test(errText)) {
+            byokFailReason = `Your ${byokProvider} API key is out of credits/quota.`;
+          } else if (response.status === 401 || response.status === 403) {
+            byokFailReason = `Your ${byokProvider} API key is invalid or revoked.`;
+          } else if (response.status === 429) {
+            byokFailReason = `Your ${byokProvider} API key is rate-limited.`;
+          } else if (response.status === 503) {
+            byokFailReason = `${byokProvider}'s servers are temporarily overloaded.`;
+          } else {
+            byokFailReason = `${byokProvider} returned ${response.status}.`;
+          }
           response = null;
         }
       } catch (e) {
         console.error("BYOK call failed:", e);
         byokFailed = true;
+        byokFailReason = `Could not reach ${byokProvider}.`;
       }
     }
 
@@ -1570,50 +1585,87 @@ ${zophielCodingBrainContent}
           return pref?.fallback_to_default !== false;
         } catch { return true; }
       })())) {
-        return new Response(JSON.stringify({ error: `Your ${byokProvider} API key returned an error. Check your key in Settings → AI Model Keys.` }), {
+        return new Response(JSON.stringify({
+          error: `${byokFailReason || `Your ${byokProvider} API key returned an error.`} Update it in Settings → AI Model Keys, or enable "Fallback to default model" to auto-route around this.`
+        }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (byokFailed) {
+        console.log(`[chat] BYOK failed (${byokFailStatus}: ${byokFailReason}) — falling back to default Gemini cascade`);
+      }
 
-      // Use default Gemini
+      // Use default Gemini — with model-cascade fallback when a model is overloaded (503)
       isGeminiResponse = true;
       isAnthropicResponse = false;
 
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: geminiMessages,
-              generationConfig: { temperature: 0.7, maxOutputTokens: 65536 },
-            }),
-          },
-        );
+      // Cascade order: primary → fast preview → pro fallback. Each entry retries with backoff.
+      const GEMINI_CASCADE = [
+        "gemini-2.5-flash",
+        "gemini-3-flash-preview",
+        "gemini-2.5-pro",
+      ];
 
-        if (response.ok) break;
+      let cascadeSucceeded = false;
+      let lastStatus = 0;
 
-        if (response.status === 429 && attempt < MAX_RETRIES) {
-          const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 16000);
-          console.log(`Rate limited (429), retry ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delay)}ms`);
-          await new Promise((r) => setTimeout(r, delay));
-          continue;
+      cascade: for (const modelId of GEMINI_CASCADE) {
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: geminiMessages,
+                generationConfig: { temperature: 0.7, maxOutputTokens: 65536 },
+              }),
+            },
+          );
+
+          if (response.ok) {
+            cascadeSucceeded = true;
+            if (modelId !== GEMINI_CASCADE[0]) {
+              console.log(`[chat] Primary model overloaded, succeeded with fallback: ${modelId}`);
+            }
+            break cascade;
+          }
+
+          lastStatus = response.status;
+
+          // 429 (rate limit) and 503 (overloaded) → retry with backoff, then cascade to next model
+          if ((response.status === 429 || response.status === 503) && attempt < MAX_RETRIES) {
+            const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 16000);
+            console.log(`[chat] ${modelId} returned ${response.status}, retry ${attempt + 1}/${MAX_RETRIES} in ${Math.round(delay)}ms`);
+            await new Promise((r) => setTimeout(r, delay));
+            continue;
+          }
+
+          // Hard error or retries exhausted on this model → try next model in cascade
+          lastError = await response.text();
+          console.error(`[chat] ${modelId} failed (${response.status}), cascading to next model:`, lastError.slice(0, 200));
+          break; // exit attempt loop, go to next model
         }
+      }
 
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait a moment and try again." }), {
+      if (!cascadeSucceeded) {
+        if (lastStatus === 429) {
+          return new Response(JSON.stringify({ error: "All AI models are rate-limited right now. Please wait 30 seconds and try again." }), {
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "Usage credits exhausted. Please add credits." }), {
+        if (lastStatus === 402) {
+          return new Response(JSON.stringify({ error: "Usage credits exhausted. Please add credits in Settings → Workspace → Usage." }), {
             status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        lastError = await response.text();
-        console.error("Gemini API error:", response.status, lastError);
-        return new Response(JSON.stringify({ error: "AI gateway error" }), {
+        if (lastStatus === 503) {
+          return new Response(JSON.stringify({ error: "All AI models are temporarily overloaded by high demand. This usually clears in 30-60 seconds — please try again." }), {
+            status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        console.error("[chat] All Gemini cascade models failed. Last status:", lastStatus, "body:", lastError);
+        return new Response(JSON.stringify({ error: `AI gateway error (${lastStatus || 500}). Please try again in a moment.` }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
