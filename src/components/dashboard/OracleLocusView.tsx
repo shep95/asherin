@@ -179,6 +179,8 @@ const OracleLocusView = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [history, setHistory] = useState<{ image: string; result: AnalysisResult }[]>([]);
+  // Slide-out dark-theme map (with directions) — opened from the coordinates block.
+  const [mapDestination, setMapDestination] = useState<string | null>(null);
 
   // ── FACE SEARCH STATE ──
   const faceInputRef = useRef<HTMLInputElement>(null);
