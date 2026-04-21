@@ -370,6 +370,7 @@ const Dashboard = () => {
                 personaSystemPrompt: activePersona?.systemPrompt || null,
                 depth,
                 userProfile,
+                conversationId: msg.conversationId,
                 onDelta: (chunk) => {
                   assistantContent += chunk;
                   const current = assistantContent;
