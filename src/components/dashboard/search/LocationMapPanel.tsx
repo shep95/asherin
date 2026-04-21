@@ -195,22 +195,56 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
       layer.clearLayers();
       results.forEach((r) => {
         const isActive = active && r.lat === active.lat && r.lon === active.lon;
+        // Golden destination pin for the active location ("on-target" marker),
+        // muted monochrome teardrop for the alternates so the eye locks on the gold.
+        const gold = "#f5b942";        // warm signal-amber
+        const goldGlow = "#ffd166";
+        const size = isActive ? 34 : 24;
+        const inner = isActive ? 10 : 7;
+        const html = isActive
+          ? `<div style="
+                position:relative;width:${size}px;height:${size}px;
+                filter:drop-shadow(0 6px 14px rgba(245,185,66,0.35));
+              ">
+                <div style="
+                  position:absolute;inset:0;border-radius:50% 50% 50% 0;
+                  background:linear-gradient(135deg, ${goldGlow}, ${gold});
+                  transform:rotate(-45deg);
+                  border:2px solid hsl(var(--background));
+                  box-shadow:0 0 0 3px rgba(245,185,66,0.18), 0 6px 16px rgba(0,0,0,0.55);
+                  display:flex;align-items:center;justify-content:center;
+                ">
+                  <div style="
+                    width:${inner}px;height:${inner}px;border-radius:50%;
+                    background:hsl(var(--background));transform:rotate(45deg);
+                  "></div>
+                </div>
+                <div style="
+                  position:absolute;left:50%;top:50%;width:${size + 18}px;height:${size + 18}px;
+                  margin-left:-${(size + 18) / 2}px;margin-top:-${(size + 18) / 2}px;
+                  border-radius:50%;border:1px solid rgba(245,185,66,0.45);
+                  animation:aureonPulse 2s ease-out infinite;pointer-events:none;
+                "></div>
+              </div>`
+          : `<div style="
+                width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;
+                background:hsl(var(--foreground));
+                transform:rotate(-45deg);
+                border:2px solid hsl(var(--background));
+                box-shadow:0 4px 14px rgba(0,0,0,0.6);
+                display:flex;align-items:center;justify-content:center;
+                opacity:0.55;
+              ">
+                <div style="width:${inner}px;height:${inner}px;border-radius:50%;background:hsl(var(--background));transform:rotate(45deg);"></div>
+              </div>`;
         const icon = L.divIcon({
           className: "",
-          html: `<div style="
-            width:${isActive ? 30 : 24}px;height:${isActive ? 30 : 24}px;border-radius:50% 50% 50% 0;
-            background:hsl(var(--foreground));
-            transform:rotate(-45deg);
-            border:2px solid hsl(var(--background));
-            box-shadow:0 4px 14px rgba(0,0,0,0.6);
-            display:flex;align-items:center;justify-content:center;
-            opacity:${isActive ? 1 : 0.55};
-          "><div style="width:${isActive ? 9 : 7}px;height:${isActive ? 9 : 7}px;border-radius:50%;background:hsl(var(--background));transform:rotate(45deg);"></div></div>`,
-          iconSize: [isActive ? 30 : 24, isActive ? 30 : 24],
-          iconAnchor: [isActive ? 15 : 12, isActive ? 30 : 24],
+          html,
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size],
         });
         const m = L.marker([r.lat, r.lon], { icon }).addTo(layer);
-        m.bindTooltip(r.display_name, { direction: "top", offset: [0, -24], className: "leaflet-dark-tooltip" });
+        m.bindTooltip(r.display_name, { direction: "top", offset: [0, -size], className: "leaflet-dark-tooltip" });
         m.on("click", () => setActive(r));
       });
     })();
