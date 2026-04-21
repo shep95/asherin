@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, MapPin, ExternalLink, Copy, Check, Loader2, Navigation, Globe } from "lucide-react";
+import {
+  X, MapPin, ExternalLink, Copy, Check, Loader2, Navigation, Globe,
+  Car, Bike, Footprints, LocateFixed, Search, Route as RouteIcon, Clock,
+} from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 interface LocationMapPanelProps {
@@ -16,30 +19,117 @@ interface GeocodeResult {
   address?: Record<string, string>;
 }
 
+type TravelMode = "driving" | "cycling" | "walking";
+
+interface RouteInfo {
+  distanceMeters: number;
+  durationSeconds: number;
+  geometry: [number, number][]; // [lat, lon][]
+}
+
+const OSRM_PROFILE: Record<TravelMode, string> = {
+  driving: "car",
+  cycling: "bike",
+  walking: "foot",
+};
+
+const TRAVEL_LABEL: Record<TravelMode, string> = {
+  driving: "Drive",
+  cycling: "Bike",
+  walking: "Walk",
+};
+
+const formatDistance = (m: number) => {
+  if (m < 1000) return `${Math.round(m)} m`;
+  const km = m / 1000;
+  if (km < 100) return `${km.toFixed(1)} km`;
+  return `${Math.round(km)} km`;
+};
+
+const formatDuration = (s: number) => {
+  if (s < 60) return `${Math.round(s)} s`;
+  const totalMin = Math.round(s / 60);
+  if (totalMin < 60) return `${totalMin} min`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
+};
+
+async function geocode(q: string, limit = 5): Promise<GeocodeResult[]> {
+  const resp = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=${limit}&addressdetails=1`,
+    { headers: { Accept: "application/json" } }
+  );
+  if (!resp.ok) throw new Error(`Geocoder ${resp.status}`);
+  const raw: GeocodeResult[] = await resp.json();
+  return raw.map((d) => ({ ...d, lat: parseFloat(String(d.lat)), lon: parseFloat(String(d.lon)) }));
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<GeocodeResult | null> {
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+      { headers: { Accept: "application/json" } }
+    );
+    if (!resp.ok) return null;
+    const d = await resp.json();
+    if (!d || !d.lat) return null;
+    return { ...d, lat: parseFloat(String(d.lat)), lon: parseFloat(String(d.lon)) };
+  } catch { return null; }
+}
+
+async function fetchRoute(from: { lat: number; lon: number }, to: { lat: number; lon: number }, mode: TravelMode): Promise<RouteInfo | null> {
+  try {
+    const profile = OSRM_PROFILE[mode];
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (!data?.routes?.[0]) return null;
+    const r = data.routes[0];
+    const coords: [number, number][] = (r.geometry?.coordinates ?? []).map(
+      (c: [number, number]) => [c[1], c[0]] as [number, number],
+    );
+    return {
+      distanceMeters: r.distance,
+      durationSeconds: r.duration,
+      geometry: coords,
+    };
+  } catch { return null; }
+}
+
 const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<unknown>(null);
+  const routeLayerRef = useRef<unknown>(null);
+  const originMarkerRef = useRef<unknown>(null);
+  const destMarkersRef = useRef<unknown>(null);
+
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [active, setActive] = useState<GeocodeResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Geocode via Nominatim (OpenStreetMap) — live, no API key
+  // Routing state
+  const [origin, setOrigin] = useState<GeocodeResult | null>(null);
+  const [originInput, setOriginInput] = useState("");
+  const [originLoading, setOriginLoading] = useState(false);
+  const [originError, setOriginError] = useState<string | null>(null);
+  const [travelMode, setTravelMode] = useState<TravelMode>("driving");
+  const [route, setRoute] = useState<RouteInfo | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
+
+  // Geocode the query (destination) — live, no API key
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
     (async () => {
       try {
-        const resp = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`,
-          { headers: { Accept: "application/json" } }
-        );
-        if (!resp.ok) throw new Error(`Nominatim ${resp.status}`);
-        const data: GeocodeResult[] = await resp.json();
+        const parsed = await geocode(query, 5);
         if (cancelled) return;
-        const parsed = data.map((d) => ({ ...d, lat: parseFloat(String(d.lat)), lon: parseFloat(String(d.lon)) }));
         setResults(parsed);
         setActive(parsed[0] ?? null);
         if (parsed.length === 0) setError("No location matches found.");
@@ -55,30 +145,16 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
   // Initialize Leaflet map (dark theme via CartoDB Dark Matter tiles)
   useEffect(() => {
     if (!active || !mapContainerRef.current) return;
-    let map: any;
-    let markerLayer: any;
+    let cancelled = false;
     (async () => {
       const L = await import("leaflet");
-      // Fix Leaflet default icon paths (use inline SVG via divIcon)
-      const customIcon = L.divIcon({
-        className: "",
-        html: `<div style="
-          width:28px;height:28px;border-radius:50% 50% 50% 0;
-          background:hsl(var(--foreground));
-          transform:rotate(-45deg);
-          border:2px solid hsl(var(--background));
-          box-shadow:0 4px 14px rgba(0,0,0,0.6);
-          display:flex;align-items:center;justify-content:center;
-        "><div style="width:8px;height:8px;border-radius:50%;background:hsl(var(--background));transform:rotate(45deg);"></div></div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 28],
-      });
+      if (cancelled) return;
 
       if (mapRef.current) {
-        (mapRef.current as any).remove();
+        try { (mapRef.current as any).remove(); } catch { /* ignore */ }
         mapRef.current = null;
       }
-      map = L.map(mapContainerRef.current!, {
+      const map = L.map(mapContainerRef.current!, {
         center: [active.lat, active.lon],
         zoom: 14,
         zoomControl: false,
@@ -93,31 +169,145 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
       L.control.attribution({ position: "bottomleft", prefix: false })
-        .addAttribution('© <a href="https://openstreetmap.org">OSM</a> · © <a href="https://carto.com/attributions">CARTO</a>')
+        .addAttribution('© <a href="https://openstreetmap.org">OSM</a> · © <a href="https://carto.com/attributions">CARTO</a> · routing © <a href="https://project-osrm.org">OSRM</a>')
         .addTo(map);
 
-      markerLayer = L.layerGroup().addTo(map);
-      results.forEach((r) => {
-        const m = L.marker([r.lat, r.lon], { icon: customIcon }).addTo(markerLayer);
-        m.bindTooltip(r.display_name, { direction: "top", offset: [0, -24], className: "leaflet-dark-tooltip" });
-        m.on("click", () => setActive(r));
-      });
+      destMarkersRef.current = L.layerGroup().addTo(map);
     })();
 
     return () => {
+      cancelled = true;
       if (mapRef.current) {
         try { (mapRef.current as any).remove(); } catch { /* ignore */ }
         mapRef.current = null;
       }
     };
-  }, [active, results]);
+    // intentionally only on first active to construct map; updates handled below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!active && !mapRef.current]);
+
+  // Render destination markers when results / active change
+  useEffect(() => {
+    if (!mapRef.current || !destMarkersRef.current) return;
+    (async () => {
+      const L = await import("leaflet");
+      const layer: any = destMarkersRef.current;
+      layer.clearLayers();
+      results.forEach((r) => {
+        const isActive = active && r.lat === active.lat && r.lon === active.lon;
+        const icon = L.divIcon({
+          className: "",
+          html: `<div style="
+            width:${isActive ? 30 : 24}px;height:${isActive ? 30 : 24}px;border-radius:50% 50% 50% 0;
+            background:hsl(var(--foreground));
+            transform:rotate(-45deg);
+            border:2px solid hsl(var(--background));
+            box-shadow:0 4px 14px rgba(0,0,0,0.6);
+            display:flex;align-items:center;justify-content:center;
+            opacity:${isActive ? 1 : 0.55};
+          "><div style="width:${isActive ? 9 : 7}px;height:${isActive ? 9 : 7}px;border-radius:50%;background:hsl(var(--background));transform:rotate(45deg);"></div></div>`,
+          iconSize: [isActive ? 30 : 24, isActive ? 30 : 24],
+          iconAnchor: [isActive ? 15 : 12, isActive ? 30 : 24],
+        });
+        const m = L.marker([r.lat, r.lon], { icon }).addTo(layer);
+        m.bindTooltip(r.display_name, { direction: "top", offset: [0, -24], className: "leaflet-dark-tooltip" });
+        m.on("click", () => setActive(r));
+      });
+    })();
+  }, [results, active]);
 
   // Re-center on active change
   useEffect(() => {
-    if (mapRef.current && active) {
-      try { (mapRef.current as any).flyTo([active.lat, active.lon], 15, { duration: 0.8 }); } catch { /* ignore */ }
+    if (mapRef.current && active && !route) {
+      try { (mapRef.current as any).flyTo([active.lat, active.lon], 15, { duration: 0.7 }); } catch { /* ignore */ }
     }
-  }, [active]);
+  }, [active, route]);
+
+  // Render origin marker + route polyline whenever they change
+  useEffect(() => {
+    if (!mapRef.current) return;
+    (async () => {
+      const L = await import("leaflet");
+      const map: any = mapRef.current;
+
+      // Origin marker
+      if (originMarkerRef.current) {
+        try { map.removeLayer(originMarkerRef.current as any); } catch { /* ignore */ }
+        originMarkerRef.current = null;
+      }
+      if (origin) {
+        const icon = L.divIcon({
+          className: "",
+          html: `<div style="
+            width:22px;height:22px;border-radius:50%;
+            background:hsl(var(--accent));
+            border:3px solid hsl(var(--background));
+            box-shadow:0 0 0 2px hsl(var(--accent) / 0.4), 0 4px 12px rgba(0,0,0,0.6);
+          "></div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        });
+        const m = L.marker([origin.lat, origin.lon], { icon }).addTo(map);
+        m.bindTooltip("Your location · " + origin.display_name, {
+          direction: "top", offset: [0, -10], className: "leaflet-dark-tooltip",
+        });
+        originMarkerRef.current = m;
+      }
+
+      // Route polyline
+      if (routeLayerRef.current) {
+        try { map.removeLayer(routeLayerRef.current as any); } catch { /* ignore */ }
+        routeLayerRef.current = null;
+      }
+      if (route && route.geometry.length > 1) {
+        // Glow underline + sharp top line for premium look
+        const glow = L.polyline(route.geometry, {
+          color: "hsl(var(--foreground))",
+          weight: 8,
+          opacity: 0.18,
+          lineCap: "round",
+        });
+        const line = L.polyline(route.geometry, {
+          color: "hsl(var(--foreground))",
+          weight: 3,
+          opacity: 0.95,
+          lineCap: "round",
+        });
+        const group = L.layerGroup([glow, line]).addTo(map);
+        routeLayerRef.current = group;
+
+        // Fit bounds to encompass route
+        try {
+          const bounds = L.latLngBounds(route.geometry.map((c) => L.latLng(c[0], c[1])));
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+        } catch { /* ignore */ }
+      }
+    })();
+  }, [origin, route]);
+
+  // When origin + active + travelMode change → fetch route
+  useEffect(() => {
+    if (!origin || !active) { setRoute(null); return; }
+    let cancelled = false;
+    setRouteLoading(true);
+    setRouteError(null);
+    (async () => {
+      const r = await fetchRoute(
+        { lat: origin.lat, lon: origin.lon },
+        { lat: active.lat, lon: active.lon },
+        travelMode,
+      );
+      if (cancelled) return;
+      if (!r) {
+        setRoute(null);
+        setRouteError("Could not compute route between these points.");
+      } else {
+        setRoute(r);
+      }
+      setRouteLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [origin, active, travelMode]);
 
   const coords = useMemo(() => active ? `${active.lat.toFixed(5)}, ${active.lon.toFixed(5)}` : "", [active]);
 
@@ -126,6 +316,64 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
     await navigator.clipboard.writeText(coords);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setOriginError("Geolocation not supported by this browser.");
+      return;
+    }
+    setOriginError(null);
+    setOriginLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const reverse = await reverseGeocode(latitude, longitude);
+        const fallback: GeocodeResult = {
+          lat: latitude, lon: longitude,
+          display_name: reverse?.display_name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+        };
+        setOrigin(reverse ?? fallback);
+        setOriginInput(reverse?.display_name ?? fallback.display_name);
+        setOriginLoading(false);
+      },
+      (err) => {
+        setOriginLoading(false);
+        setOriginError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied. Type an address instead."
+            : "Could not get your location."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
+    );
+  };
+
+  const submitOrigin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!originInput.trim()) return;
+    setOriginLoading(true);
+    setOriginError(null);
+    try {
+      const matches = await geocode(originInput, 1);
+      if (matches.length === 0) {
+        setOriginError("No match for that address.");
+      } else {
+        setOrigin(matches[0]);
+      }
+    } catch (e) {
+      setOriginError(e instanceof Error ? e.message : "Lookup failed.");
+    } finally {
+      setOriginLoading(false);
+    }
+  };
+
+  const clearRoute = () => {
+    setOrigin(null);
+    setOriginInput("");
+    setRoute(null);
+    setRouteError(null);
+    setOriginError(null);
   };
 
   return (
@@ -163,6 +411,95 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
           </div>
         </div>
 
+        {/* Routing controls */}
+        {active && (
+          <div className="border-b border-border/15 bg-foreground/[0.02] px-4 py-3 shrink-0 space-y-2">
+            <form onSubmit={submitOrigin} className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
+                <input
+                  type="text"
+                  value={originInput}
+                  onChange={(e) => setOriginInput(e.target.value)}
+                  placeholder="Your starting location…"
+                  className="w-full pl-7 pr-2 py-1.5 rounded-lg bg-card/50 border border-border/25 text-[11px] font-light text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-border/50 focus:bg-card/80 transition-colors"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={originLoading}
+                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-border/25 bg-card/50 hover:bg-foreground/[0.06] hover:border-border/40 text-[10px] font-light text-foreground/80 transition-colors disabled:opacity-50"
+                title="Use my current location"
+              >
+                {originLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <LocateFixed className="h-3 w-3" />}
+                <span className="hidden sm:inline">Me</span>
+              </button>
+              <button
+                type="submit"
+                disabled={!originInput.trim() || originLoading}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-foreground/30 bg-foreground/[0.08] hover:bg-foreground/[0.14] text-[10px] font-light text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <RouteIcon className="h-3 w-3" />
+                Route
+              </button>
+            </form>
+
+            {/* Travel mode + meta */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex rounded-lg border border-border/25 bg-card/40 p-0.5">
+                {(["driving", "cycling", "walking"] as const).map((m) => {
+                  const Icon = m === "driving" ? Car : m === "cycling" ? Bike : Footprints;
+                  const active = travelMode === m;
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => setTravelMode(m)}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-light transition-colors ${
+                        active
+                          ? "bg-foreground/[0.1] text-foreground"
+                          : "text-muted-foreground/70 hover:text-foreground"
+                      }`}
+                      title={TRAVEL_LABEL[m]}
+                    >
+                      <Icon className="h-3 w-3" />
+                      <span className="hidden sm:inline">{TRAVEL_LABEL[m]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {routeLoading && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-light text-muted-foreground/70">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Calculating route…
+                </span>
+              )}
+              {!routeLoading && route && (
+                <span className="inline-flex items-center gap-2 text-[10px] font-light">
+                  <span className="inline-flex items-center gap-1 text-foreground">
+                    <Clock className="h-3 w-3 text-foreground/70" />
+                    {formatDuration(route.durationSeconds)}
+                  </span>
+                  <span className="text-border/40">·</span>
+                  <span className="text-muted-foreground/80">{formatDistance(route.distanceMeters)}</span>
+                </span>
+              )}
+              {origin && (
+                <button
+                  onClick={clearRoute}
+                  className="ml-auto text-[10px] font-light text-muted-foreground/60 hover:text-foreground transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {(originError || routeError) && (
+              <p className="text-[10px] font-light text-destructive/90">{originError || routeError}</p>
+            )}
+          </div>
+        )}
+
         {/* Map */}
         <div className="relative flex-1 bg-black min-h-[260px]">
           {loading && (
@@ -181,11 +518,11 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
 
         {/* Active result details + alternates */}
         {active && (
-          <div className="border-t border-border/15 bg-card/95 max-h-[40vh] overflow-y-auto shrink-0">
+          <div className="border-t border-border/15 bg-card/95 max-h-[34vh] overflow-y-auto shrink-0">
             <div className="px-4 py-3 border-b border-border/10">
               <p className="text-[10px] font-light text-muted-foreground/50 uppercase tracking-wider mb-1">Selected location</p>
               <p className="text-xs font-light text-foreground/90 break-words">{active.display_name}</p>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <button
                   onClick={copyCoords}
                   className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-light text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors"
@@ -194,12 +531,12 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
                   {copied ? "Copied" : coords}
                 </button>
                 <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${active.lat},${active.lon}`}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${active.lat},${active.lon}${origin ? `&origin=${origin.lat},${origin.lon}` : ""}&travelmode=${travelMode}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-light text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors"
                 >
-                  <Navigation className="h-3 w-3" /> Directions
+                  <Navigation className="h-3 w-3" /> Open in Google Maps
                 </a>
               </div>
             </div>

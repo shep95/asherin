@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { acquireIntelSlot } from "@/lib/intelJobQueue";
 import { getActiveIntelMapByok, isIntelMapByokEnabled, getProviderSpec } from "@/lib/intelMapByok";
 import IntelMapByokPanel from "./IntelMapByokPanel";
+import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
+import LocationMapPanel from "./LocationMapPanel";
+import { decodeHtmlEntities } from "@/lib/htmlDecode";
 import type { SearchResult } from "./types";
 
 interface IntelNode {
@@ -284,6 +287,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   const [byokOpen, setByokOpen] = useState(false);
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const refreshByok = useCallback(() => setByokActive(isIntelMapByokEnabled()), []);
+
+  // Slide-out map / social embed state — triggered from selected entity actions.
+  const [mapQuery, setMapQuery] = useState<string | null>(null);
 
   // Send the FULL list of results — server slices [offset, offset+12). This way
   // subsequent "Scrape More" calls have the URL list to continue from.
@@ -779,6 +785,11 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
             return laidOut.filter((n) => n.type === "source" && sourceIds.has(n.id) && n.url);
           })();
 
+          const selectedLabel = decodeHtmlEntities(selected.label);
+          const selectedContext = decodeHtmlEntities(selected.context);
+          const selectedIsSocial = selected.url ? isSocialUrl(selected.url) : false;
+          const selectedIsLocation = selected.type === "location";
+
           return (
             <div className="absolute bottom-3 left-3 right-3 md:right-auto md:max-w-2xl rounded-2xl border border-border/20 bg-card/40 backdrop-blur-2xl shadow-2xl overflow-hidden">
               {/* Subtle accent glow */}
@@ -799,16 +810,36 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <div className="text-base font-light text-foreground mb-2 leading-snug">{selected.label}</div>
-                  {selected.context && (
+                  <div className="text-base font-light text-foreground mb-2 leading-snug">{selectedLabel}</div>
+                  {selectedContext && (
                     <blockquote className="relative pl-3 border-l-2 border-border/30 text-xs font-extralight text-muted-foreground/90 leading-relaxed italic">
-                      "{selected.context}"
+                      "{selectedContext}"
                     </blockquote>
                   )}
-                  {selected.mentions !== undefined && selected.type !== "source" && (
-                    <div className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-light tracking-wider uppercase text-muted-foreground/60">
-                      <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-                      Mentioned in {selected.mentions} source{selected.mentions === 1 ? "" : "s"}
+
+                  {/* Action chips: Map (locations) + Social embed (when applicable) */}
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    {selectedIsLocation && (
+                      <button
+                        onClick={() => setMapQuery(selectedLabel)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/30 bg-foreground/[0.05] hover:bg-foreground/[0.1] hover:border-border/50 px-2.5 py-1 text-[10px] font-light text-foreground/85 transition-colors"
+                        title="Open in map with directions"
+                      >
+                        <MapPin className="h-3 w-3" /> View on map · Directions
+                      </button>
+                    )}
+                    {selected.mentions !== undefined && selected.type !== "source" && (
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-light tracking-wider uppercase text-muted-foreground/60">
+                        <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                        Mentioned in {selected.mentions} source{selected.mentions === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Inline social embed if the selected source is a social post */}
+                  {selectedIsSocial && selected.url && (
+                    <div className="mt-3">
+                      <SocialPostEmbed url={selected.url} />
                     </div>
                   )}
                 </div>
@@ -858,6 +889,8 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         onClose={() => setByokOpen(false)}
         onChange={refreshByok}
       />
+
+      {mapQuery && <LocationMapPanel query={mapQuery} onClose={() => setMapQuery(null)} />}
     </div>
   );
 };
