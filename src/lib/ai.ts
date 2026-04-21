@@ -27,6 +27,7 @@ export async function streamChat({
   depth,
   userProfile,
   brainContext,
+  conversationId,
   signal,
   onDelta,
   onDone,
@@ -38,6 +39,7 @@ export async function streamChat({
   depth?: ResponseDepth;
   userProfile?: UserProfile | null;
   brainContext?: BrainContext | null;
+  conversationId?: string | null;
   signal?: AbortSignal;
   onDelta: (text: string) => void;
   onDone: () => void;
