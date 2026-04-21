@@ -191,10 +191,12 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
         </a>
       </div>
       {/* Themed iframe shell — bg matches card so any iframe chrome blends, no white flash.
-          We also overlay a same-color gradient at the bottom to mask any stray white
-          padding some providers leave (notably Twitter's classic embed). */}
+          The iframe is intentionally widened ~16px past the right edge and clipped by
+          `overflow-hidden` on the parent, so the cross-origin scrollbar (which we cannot
+          style with CSS) is hidden off-canvas. A bottom + right gradient mask further
+          hides any stray white padding from the provider (Twitter's classic embed). */}
       <div
-        className={`relative w-full ${aspectClass}`}
+        className={`relative w-full overflow-hidden ${aspectClass}`}
         style={{ background: "hsl(var(--card))", colorScheme: "dark" }}
       >
         <iframe
@@ -203,10 +205,17 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
           loading="lazy"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
+          scrolling="no"
           referrerPolicy="strict-origin-when-cross-origin"
           sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms"
-          className="absolute inset-0 w-full h-full border-0"
-          style={{ colorScheme: "dark", background: "hsl(var(--card))" }}
+          className="absolute inset-y-0 left-0 border-0"
+          style={{
+            colorScheme: "dark",
+            background: "hsl(var(--card))",
+            // Widen past the container so the native iframe scrollbar is clipped off-canvas
+            width: "calc(100% + 18px)",
+            height: "100%",
+          }}
         />
         {/* Bottom mask — hides iframe whitespace seen on Twitter's classic embed */}
         <div
