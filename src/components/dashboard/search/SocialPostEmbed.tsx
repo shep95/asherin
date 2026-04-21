@@ -164,17 +164,18 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
 
   // Aspect ratio per platform — sized to crop tightly around the actual post chrome
   // so we never expose blank iframe whitespace or a bright provider background.
+  // Twitter is intentionally tall to fit the post + action row without trailing white.
   const aspectClass =
     platform.kind === "youtube" || platform.kind === "vimeo" ? "aspect-video"
     : platform.kind === "tiktok" ? "aspect-[9/14]"
-    : platform.kind === "instagram" ? "h-[560px]"
-    : platform.kind === "twitter" ? "h-[420px]"
+    : platform.kind === "instagram" ? "h-[640px]"
+    : platform.kind === "twitter" ? "h-[560px]"
     : platform.kind === "spotify" ? "h-[152px]"
-    : platform.kind === "reddit" ? "h-[420px]"
+    : platform.kind === "reddit" ? "h-[480px]"
     : "h-[480px]";
 
   return (
-    <div className="mt-3 rounded-xl overflow-hidden border border-border/20 bg-card/40 backdrop-blur-sm">
+    <div className="mt-3 rounded-xl overflow-hidden border border-border/20 bg-card/60 backdrop-blur-sm">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/15 bg-foreground/[0.04]">
         <div className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/70 uppercase tracking-[0.15em]">
           <PlatformIcon kind={platform.kind} />
@@ -189,7 +190,9 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
           Open <ExternalLink className="h-3 w-3" />
         </a>
       </div>
-      {/* Themed iframe shell — bg matches card so any iframe chrome blends, no white flash */}
+      {/* Themed iframe shell — bg matches card so any iframe chrome blends, no white flash.
+          We also overlay a same-color gradient at the bottom to mask any stray white
+          padding some providers leave (notably Twitter's classic embed). */}
       <div
         className={`relative w-full ${aspectClass}`}
         style={{ background: "hsl(var(--card))", colorScheme: "dark" }}
@@ -204,6 +207,13 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
           sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms"
           className="absolute inset-0 w-full h-full border-0"
           style={{ colorScheme: "dark", background: "hsl(var(--card))" }}
+        />
+        {/* Bottom mask — hides iframe whitespace seen on Twitter's classic embed */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-16"
+          style={{
+            background: "linear-gradient(to bottom, transparent, hsl(var(--card)) 70%)",
+          }}
         />
       </div>
     </div>

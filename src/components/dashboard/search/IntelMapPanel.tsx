@@ -418,7 +418,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   };
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("[data-node]")) return;
+    if ((e.target as HTMLElement).closest("[data-node]") || (e.target as HTMLElement).closest("[data-detail-panel]")) return;
+    // Click on empty canvas → deselect any open detail card
+    if (selectedId) setSelectedId(null);
     setDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY, px: pan.x, py: pan.y });
   };
@@ -429,6 +431,17 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   const onMouseUp = () => setDragging(false);
 
   const reset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedId(null); };
+
+  // Escape to close the open detail card (or the map overlay if open)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (mapQuery) { setMapQuery(null); return; }
+      if (selectedId) { setSelectedId(null); return; }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mapQuery, selectedId]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -791,7 +804,7 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
           const selectedIsLocation = selected.type === "location";
 
           return (
-            <div className="absolute bottom-3 left-3 right-3 md:right-auto md:max-w-2xl rounded-2xl border border-border/20 bg-card/40 backdrop-blur-2xl shadow-2xl overflow-hidden">
+            <div data-detail-panel className="absolute bottom-3 left-3 right-3 md:right-auto md:max-w-2xl rounded-2xl border border-border/20 bg-card/40 backdrop-blur-2xl shadow-2xl overflow-hidden">
               {/* Subtle accent glow */}
               <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${NODE_PALETTE[selected.type].accent}, transparent)`, opacity: 0.5 }} />
 
@@ -840,6 +853,40 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
                   {selectedIsSocial && selected.url && (
                     <div className="mt-3">
                       <SocialPostEmbed url={selected.url} />
+                    </div>
+                  )}
+
+                  {/* Inline page preview iframe for any non-social source URL.
+                      Many sites set X-Frame-Options:DENY which will silently fail to render —
+                      we wrap the iframe with a fallback "Open page" affordance so the user
+                      always has a working path even when the embed is blocked. */}
+                  {!selectedIsSocial && selected.type === "source" && selected.url && (
+                    <div className="mt-3 rounded-xl overflow-hidden border border-border/20 bg-card/60">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-border/15 bg-foreground/[0.04]">
+                        <div className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/70 uppercase tracking-[0.15em]">
+                          <Globe className="h-3 w-3" />
+                          <span className="truncate max-w-[180px]">{selected.domain || "Page preview"}</span>
+                        </div>
+                        <a
+                          href={selected.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[10px] font-light text-muted-foreground/60 hover:text-foreground transition-colors"
+                        >
+                          Open <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                      <div className="relative w-full h-[360px]" style={{ background: "hsl(var(--card))", colorScheme: "dark" }}>
+                        <iframe
+                          src={selected.url}
+                          title={`Preview · ${selected.label}`}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                          className="absolute inset-0 w-full h-full border-0"
+                          style={{ colorScheme: "dark", background: "hsl(var(--card))" }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

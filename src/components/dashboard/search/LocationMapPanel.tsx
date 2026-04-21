@@ -376,12 +376,26 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
     setOriginError(null);
   };
 
+  // Close on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
     <>
-      {/* Backdrop on mobile */}
-      <div className="fixed inset-0 z-40 bg-background/60 sm:hidden" onClick={onClose} />
+      {/* Click-outside backdrop on all viewports — closes the panel */}
+      <div
+        className="fixed inset-0 z-[60] bg-background/70 backdrop-blur-sm animate-fade-in"
+        onClick={onClose}
+        aria-label="Close map"
+      />
 
-      <div className="fixed inset-y-0 right-0 w-full sm:max-w-xl z-50 bg-card/95 backdrop-blur-xl border-l border-border/20 shadow-2xl flex flex-col animate-slide-up">
+      <div
+        className="fixed inset-y-0 right-0 w-full sm:max-w-xl z-[61] bg-card/95 backdrop-blur-xl border-l border-border/20 shadow-2xl flex flex-col animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/15 shrink-0">
           <div className="min-w-0 flex-1 mr-3">
@@ -405,7 +419,12 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
-            <button onClick={onClose} className="p-2 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="p-2 rounded-lg text-muted-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-colors"
+              aria-label="Close map"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -501,7 +520,7 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
         )}
 
         {/* Map */}
-        <div className="relative flex-1 bg-black min-h-[260px]">
+        <div className="relative flex-1 bg-background min-h-[260px]">
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
               <Loader2 className="h-5 w-5 text-foreground/60 animate-spin" />
