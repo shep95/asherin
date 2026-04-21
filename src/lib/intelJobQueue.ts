@@ -49,7 +49,13 @@ export async function acquireIntelSlot(opts: AcquireOptions): Promise<{
     .insert({ user_id: user.id, job_type: jobType, status: "waiting" })
     .select("id")
     .single();
-  if (insErr || !inserted) throw new Error(insErr?.message || "Failed to enqueue job");
+  if (insErr || !inserted) {
+    const msg = insErr?.message || "Failed to enqueue job";
+    if (msg.includes("INTEL_JOB_USER_CAP")) {
+      throw new Error("You already have several Intel Map jobs in progress. Please wait for them to finish before starting a new one.");
+    }
+    throw new Error(msg);
+  }
   const jobId = inserted.id as string;
 
   const release = async (success = true) => {
