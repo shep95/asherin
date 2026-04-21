@@ -162,17 +162,21 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
     );
   }
 
-  // Aspect ratio per platform
+  // Aspect ratio per platform — sized to crop tightly around the actual post chrome
+  // so we never expose blank iframe whitespace or a bright provider background.
   const aspectClass =
     platform.kind === "youtube" || platform.kind === "vimeo" ? "aspect-video"
-    : platform.kind === "tiktok" || platform.kind === "instagram" ? "aspect-[9/14]"
+    : platform.kind === "tiktok" ? "aspect-[9/14]"
+    : platform.kind === "instagram" ? "h-[560px]"
+    : platform.kind === "twitter" ? "h-[420px]"
     : platform.kind === "spotify" ? "h-[152px]"
+    : platform.kind === "reddit" ? "h-[420px]"
     : "h-[480px]";
 
   return (
-    <div className="mt-3 rounded-xl overflow-hidden border border-border/20 bg-foreground/[0.02]">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/15 bg-foreground/[0.03]">
-        <div className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/70 uppercase tracking-wider">
+    <div className="mt-3 rounded-xl overflow-hidden border border-border/20 bg-card/40 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border/15 bg-foreground/[0.04]">
+        <div className="flex items-center gap-2 text-[10px] font-light text-muted-foreground/70 uppercase tracking-[0.15em]">
           <PlatformIcon kind={platform.kind} />
           <span>{PLATFORM_LABEL[platform.kind]}</span>
         </div>
@@ -185,7 +189,11 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
           Open <ExternalLink className="h-3 w-3" />
         </a>
       </div>
-      <div className={`relative w-full ${aspectClass} bg-black`}>
+      {/* Themed iframe shell — bg matches card so any iframe chrome blends, no white flash */}
+      <div
+        className={`relative w-full ${aspectClass}`}
+        style={{ background: "hsl(var(--card))", colorScheme: "dark" }}
+      >
         <iframe
           src={platform.embed}
           title={`${PLATFORM_LABEL[platform.kind]} embed`}
@@ -195,7 +203,7 @@ const SocialPostEmbed = ({ url }: SocialPostEmbedProps) => {
           referrerPolicy="strict-origin-when-cross-origin"
           sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms"
           className="absolute inset-0 w-full h-full border-0"
-          style={{ colorScheme: "dark" }}
+          style={{ colorScheme: "dark", background: "hsl(var(--card))" }}
         />
       </div>
     </div>
