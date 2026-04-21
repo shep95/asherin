@@ -1298,6 +1298,11 @@ const OracleLocusView = () => {
           </ScrollArea>
         </TabsContent>
       </Tabs>
+
+      {/* Slide-out dark-theme map with directions (geolocation + travel modes) */}
+      {mapDestination && (
+        <LocationMapPanel query={mapDestination} onClose={() => setMapDestination(null)} />
+      )}
     </div>
   );
 };
