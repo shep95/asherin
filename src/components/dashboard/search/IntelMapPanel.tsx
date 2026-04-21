@@ -288,6 +288,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const refreshByok = useCallback(() => setByokActive(isIntelMapByokEnabled()), []);
 
+  // Slide-out map / social embed state — triggered from selected entity actions.
+  const [mapQuery, setMapQuery] = useState<string | null>(null);
+
   // Send the FULL list of results — server slices [offset, offset+12). This way
   // subsequent "Scrape More" calls have the URL list to continue from.
   const allResultsPayload = useMemo(
