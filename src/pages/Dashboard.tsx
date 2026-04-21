@@ -987,6 +987,7 @@ const Dashboard = () => {
         depth,
         userProfile,
         brainContext,
+        conversationId: convId,
         signal: controller.signal,
         onDelta: (chunk) => {
           assistantContent += chunk;
