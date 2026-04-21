@@ -51,9 +51,12 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
   };
 
   const social = useMemo(() => isSocialUrl(result.url), [result.url]);
+  // Decode HTML entities (&gt; &amp; &#039; etc.) that some search providers leave intact.
+  const cleanTitle = useMemo(() => decodeHtmlEntities(result.title), [result.title]);
+  const cleanSnippet = useMemo(() => decodeHtmlEntities(result.snippet), [result.snippet]);
   const detectedLocation = useMemo(
-    () => detectLocation(`${result.title} ${result.snippet ?? ""}`),
-    [result.title, result.snippet]
+    () => detectLocation(`${cleanTitle} ${cleanSnippet}`),
+    [cleanTitle, cleanSnippet]
   );
 
   const copyLink = async () => {
@@ -97,17 +100,17 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
           </a>
         </div>
 
-        {/* Title */}
+        {/* Title — monochrome theme: subtle foreground, accent only on hover */}
         <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="block">
-          <h3 className="text-sm font-normal text-accent hover:underline underline-offset-2 mb-1 line-clamp-2 break-words">{result.title}</h3>
+          <h3 className="text-sm font-normal text-foreground/90 hover:text-foreground hover:underline underline-offset-2 mb-1 line-clamp-2 break-words">{cleanTitle}</h3>
         </a>
 
         {/* URL */}
         <p className="text-[10px] font-mono text-muted-foreground/30 truncate mb-1.5">{cleanUrl(result.url)}</p>
 
         {/* Snippet */}
-        {result.snippet && (
-          <p className="text-xs font-extralight text-muted-foreground leading-relaxed line-clamp-3 mb-2 break-words">{result.snippet}</p>
+        {cleanSnippet && (
+          <p className="text-xs font-extralight text-muted-foreground leading-relaxed line-clamp-3 mb-2 break-words">{cleanSnippet}</p>
         )}
 
         {/* Inline social embed (YouTube, X, Reddit, IG, TikTok, FB, Vimeo, Spotify) */}
