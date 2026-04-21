@@ -1520,6 +1520,8 @@ ${zophielCodingBrainContent}
     let response: Response | null = null;
     let lastError = "";
     let byokFailed = false;
+    let byokFailStatus = 0;
+    let byokFailReason = "";
 
     if (useByok && userApiKey && byokProvider && byokModel) {
       console.log(`BYOK: Using ${byokProvider}/${byokModel}`);
@@ -1543,11 +1545,24 @@ ${zophielCodingBrainContent}
           const errText = await response.text();
           console.error(`BYOK ${byokProvider} error (${response.status}):`, errText.slice(0, 500));
           byokFailed = true;
+          byokFailStatus = response.status;
+          if (response.status === 429 && /insufficient_quota|exceeded.*quota/i.test(errText)) {
+            byokFailReason = `Your ${byokProvider} API key is out of credits/quota.`;
+          } else if (response.status === 401 || response.status === 403) {
+            byokFailReason = `Your ${byokProvider} API key is invalid or revoked.`;
+          } else if (response.status === 429) {
+            byokFailReason = `Your ${byokProvider} API key is rate-limited.`;
+          } else if (response.status === 503) {
+            byokFailReason = `${byokProvider}'s servers are temporarily overloaded.`;
+          } else {
+            byokFailReason = `${byokProvider} returned ${response.status}.`;
+          }
           response = null;
         }
       } catch (e) {
         console.error("BYOK call failed:", e);
         byokFailed = true;
+        byokFailReason = `Could not reach ${byokProvider}.`;
       }
     }
 
@@ -1570,9 +1585,14 @@ ${zophielCodingBrainContent}
           return pref?.fallback_to_default !== false;
         } catch { return true; }
       })())) {
-        return new Response(JSON.stringify({ error: `Your ${byokProvider} API key returned an error. Check your key in Settings → AI Model Keys.` }), {
+        return new Response(JSON.stringify({
+          error: `${byokFailReason || `Your ${byokProvider} API key returned an error.`} Update it in Settings → AI Model Keys, or enable "Fallback to default model" to auto-route around this.`
+        }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+      if (byokFailed) {
+        console.log(`[chat] BYOK failed (${byokFailStatus}: ${byokFailReason}) — falling back to default Gemini cascade`);
       }
 
       // Use default Gemini — with model-cascade fallback when a model is overloaded (503)
