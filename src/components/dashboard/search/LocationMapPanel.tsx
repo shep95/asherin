@@ -520,7 +520,7 @@ const LocationMapPanel = ({ query, onClose }: LocationMapPanelProps) => {
         )}
 
         {/* Map */}
-        <div className="relative flex-1 bg-black min-h-[260px]">
+        <div className="relative flex-1 bg-background min-h-[260px]">
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center z-10">
               <Loader2 className="h-5 w-5 text-foreground/60 animate-spin" />
