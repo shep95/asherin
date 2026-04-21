@@ -432,6 +432,17 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
   const reset = () => { setZoom(1); setPan({ x: 0, y: 0 }); setSelectedId(null); };
 
+  // Escape to close the open detail card (or the map overlay if open)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (mapQuery) { setMapQuery(null); return; }
+      if (selectedId) { setSelectedId(null); return; }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mapQuery, selectedId]);
+
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     laidOut.forEach((n) => { c[n.type] = (c[n.type] || 0) + 1; });
