@@ -377,18 +377,22 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
     [query, allResultsPayload, results.length],
   );
 
-  // Initial load
+  // Initial load — guarded against React re-render storms.
+  // Uses a ref so re-creating `runBatch` (e.g. from results identity changes)
+  // never enqueues a second job for the same query.
+  const initialLoadRef = useRef<string | null>(null);
   useEffect(() => {
-    let cancelled = false;
-    (async () => { if (!cancelled) await runBatch(0, false); })();
-    return () => { cancelled = true; };
-  }, [runBatch]);
+    if (initialLoadRef.current === query) return;
+    initialLoadRef.current = query;
+    void runBatch(0, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   const onScrapeMore = useCallback(() => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || loading || !hasMore) return;
     setError(null);
     void runBatch(nextOffset, true);
-  }, [loadingMore, hasMore, nextOffset, runBatch]);
+  }, [loadingMore, loading, hasMore, nextOffset, runBatch]);
 
   // Run layout when nodes/size change
   const laidOut = useMemo(() => {
