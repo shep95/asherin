@@ -889,6 +889,8 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
         onClose={() => setByokOpen(false)}
         onChange={refreshByok}
       />
+
+      {mapQuery && <LocationMapPanel query={mapQuery} onClose={() => setMapQuery(null)} />}
     </div>
   );
 };
