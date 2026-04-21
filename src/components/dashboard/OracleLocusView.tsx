@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
-import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink, Globe } from "lucide-react";
+import { Upload, MapPin, Target, Shield, Eye, Loader2, Copy, Check, AlertTriangle, X, Crosshair, Clock, Compass, User, Search, Users, GitBranch, ChevronRight, CheckCircle2, Info, ExternalLink, Globe, Navigation } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import LocationMapPanel from "./search/LocationMapPanel";
 
 // ─── GEO ANALYSIS TYPES ───
 interface PersonAnalysis {
@@ -178,6 +179,8 @@ const OracleLocusView = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [history, setHistory] = useState<{ image: string; result: AnalysisResult }[]>([]);
+  // Slide-out dark-theme map (with directions) — opened from the coordinates block.
+  const [mapDestination, setMapDestination] = useState<string | null>(null);
 
   // ── FACE SEARCH STATE ──
   const faceInputRef = useRef<HTMLInputElement>(null);
@@ -491,9 +494,23 @@ const OracleLocusView = () => {
                           </div>
                           <p className="text-lg font-mono font-extralight text-foreground tracking-wider">{coordsText}</p>
                           {result.address_estimate && <p className="text-xs text-muted-foreground">{result.address_estimate}</p>}
-                          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[10px] text-accent hover:underline mt-1">
-                            <MapPin className="h-3 w-3" /> Open in Google Maps
-                          </a>
+                          <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <button
+                              onClick={() => setMapDestination(result.address_estimate || coordsText)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-foreground/25 bg-foreground/[0.08] hover:bg-foreground/[0.14] hover:border-foreground/40 px-2.5 py-1 text-[10px] font-light text-foreground transition-colors"
+                              title="View on dark-theme map · Get directions from your location"
+                            >
+                              <Navigation className="h-3 w-3" /> View map · Directions
+                            </button>
+                            <a
+                              href={googleMapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-card/40 hover:bg-foreground/[0.06] hover:border-border/40 px-2.5 py-1 text-[10px] font-light text-muted-foreground/80 hover:text-foreground transition-colors"
+                            >
+                              <ExternalLink className="h-3 w-3" /> Google Maps
+                            </a>
+                          </div>
                         </div>
                       </div>
 
@@ -1281,6 +1298,11 @@ const OracleLocusView = () => {
           </ScrollArea>
         </TabsContent>
       </Tabs>
+
+      {/* Slide-out dark-theme map with directions (geolocation + travel modes) */}
+      {mapDestination && (
+        <LocationMapPanel query={mapDestination} onClose={() => setMapDestination(null)} />
+      )}
     </div>
   );
 };
