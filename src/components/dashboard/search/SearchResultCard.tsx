@@ -5,6 +5,7 @@ import SourceTierBadge from "./SourceTierBadge";
 import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
 import LocationMapPanel from "./LocationMapPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { decodeHtmlEntities } from "@/lib/htmlDecode";
 
 interface SearchResultCardProps {
   result: SearchResult;
