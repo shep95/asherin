@@ -418,7 +418,9 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
   };
 
   const onMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("[data-node]")) return;
+    if ((e.target as HTMLElement).closest("[data-node]") || (e.target as HTMLElement).closest("[data-detail-panel]")) return;
+    // Click on empty canvas → deselect any open detail card
+    if (selectedId) setSelectedId(null);
     setDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY, px: pan.x, py: pan.y });
   };
