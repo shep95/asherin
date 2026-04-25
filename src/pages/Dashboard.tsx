@@ -78,7 +78,7 @@ const PredictiveIntelligenceView = React.lazy(() => import("@/components/dashboa
 const ElionView = React.lazy(() => import("@/components/dashboard/ElionView"));
 const SecurityDashboardView = React.lazy(() => import("@/components/dashboard/SecurityDashboardView"));
 const ImagineToCodeView = React.lazy(() => import("@/components/dashboard/ImagineToCodeView"));
-const TrackerView = React.lazy(() => import("@/components/dashboard/TrackerView"));
+
 const PersonaStoreView = React.lazy(() => import("@/components/dashboard/PersonaStoreView"));
 const GoogleIntelligenceView = React.lazy(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
 const AureonIdeView = React.lazy(() => import("@/components/dashboard/ide/AureonIdeView"));
