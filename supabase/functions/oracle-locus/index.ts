@@ -147,45 +147,102 @@ IMPORTANT: If the image lacks sufficient visual cues for geographic analysis (e.
 
 Analyze EVERY visual cue with forensic precision. Cross-reference cultural patterns at every geographic scale. The more corroborating indicators you find, the higher your confidence should be. Contradictory indicators should lower confidence and expand error radius.`;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: systemPrompt },
-                { inlineData: { mimeType, data: image_base64 } },
+    // Cascade through Gemini models — if one is overloaded/rate-limited, try the next.
+    const MODEL_CASCADE = ["gemini-2.5-flash", "gemini-3-flash-preview", "gemini-2.5-pro"];
+    let text = "";
+    let lastErr = "";
+    let modelUsed = "";
+
+    for (const model of MODEL_CASCADE) {
+      let attemptOk = false;
+      // Up to 2 attempts per model with backoff on transient errors.
+      for (let attempt = 0; attempt < 2 && !attemptOk; attempt++) {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: systemPrompt },
+                    { inlineData: { mimeType, data: image_base64 } },
+                  ],
+                },
               ],
-            },
-          ],
-          generationConfig: { temperature: 0.15, maxOutputTokens: 8192 },
-        }),
+              generationConfig: {
+                temperature: 0.15,
+                maxOutputTokens: 16384,
+                responseMimeType: "application/json",
+              },
+            }),
+          }
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") || "";
+          if (text.trim().length > 0) {
+            attemptOk = true;
+            modelUsed = model;
+            break;
+          }
+          lastErr = `${model}: empty response`;
+        } else {
+          const errText = await res.text();
+          lastErr = `${model} ${res.status}: ${errText.slice(0, 200)}`;
+          console.error("Gemini error:", lastErr);
+          // Only retry/cascade on rate-limit or overload; otherwise break to next model.
+          if (res.status !== 429 && res.status !== 503 && res.status < 500) break;
+          if (attempt === 0) await new Promise((r) => setTimeout(r, 800 + Math.random() * 400));
+        }
       }
-    );
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Gemini error:", res.status, errText);
-      throw new Error(`Gemini API error: ${res.status}`);
+      if (attemptOk) break;
     }
 
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return new Response(JSON.stringify({ error: "No valid analysis returned", raw: text }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!text) {
+      return new Response(
+        JSON.stringify({
+          status: "FAILURE",
+          insufficient_data: true,
+          insufficient_data_reason:
+            "The intelligence engine is temporarily overloaded. All fallback models failed. Please try again in a few seconds.",
+          confidence_score: 0,
+          _engine_error: lastErr || "all_models_failed",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    // Extract JSON — JSON mode usually returns clean JSON, but strip fences just in case.
+    const cleaned = text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+    let analysis: Record<string, unknown> | null = null;
+    try {
+      analysis = JSON.parse(cleaned);
+    } catch {
+      const m = cleaned.match(/\{[\s\S]*\}/);
+      if (m) {
+        try { analysis = JSON.parse(m[0]); } catch { /* ignore */ }
+      }
+    }
 
+    if (!analysis) {
+      return new Response(
+        JSON.stringify({
+          status: "FAILURE",
+          insufficient_data: true,
+          insufficient_data_reason:
+            "The engine returned a malformed response. This usually means the image lacks identifiable geographic features. Try a wider outdoor shot with visible signage, architecture, or terrain.",
+          confidence_score: 0,
+          _engine_error: "malformed_json",
+          _model: modelUsed,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    (analysis as Record<string, unknown>)._model = modelUsed;
     return new Response(JSON.stringify(analysis), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

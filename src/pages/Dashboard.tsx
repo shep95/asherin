@@ -78,7 +78,7 @@ const PredictiveIntelligenceView = React.lazy(() => import("@/components/dashboa
 const ElionView = React.lazy(() => import("@/components/dashboard/ElionView"));
 const SecurityDashboardView = React.lazy(() => import("@/components/dashboard/SecurityDashboardView"));
 const ImagineToCodeView = React.lazy(() => import("@/components/dashboard/ImagineToCodeView"));
-const TrackerView = React.lazy(() => import("@/components/dashboard/TrackerView"));
+
 const PersonaStoreView = React.lazy(() => import("@/components/dashboard/PersonaStoreView"));
 const GoogleIntelligenceView = React.lazy(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
 const AureonIdeView = React.lazy(() => import("@/components/dashboard/ide/AureonIdeView"));
@@ -1282,7 +1282,7 @@ const Dashboard = () => {
       case "predictive": return gatedView("predictive", PredictiveIntelligenceView, "Predictive Intelligence", "AI-powered event forecasting — detect signals and predict regulatory actions, earnings surprises, and more. Available on Pro plans.");
       case "security": return gatedView("security", SecurityDashboardView, "Security Command Center", "8-system defense suite — WAF, IDS, automated incident response, honeypots, and threat intelligence. Available on Pro plans.");
       case "imagine-to-code": return gatedView("imagine-to-code", ImagineToCodeView, "Imagine To Code", "AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Available on Pro plans.");
-      case "tracker": return gatedView("tracker", TrackerView, "Location Tracker", "Real-time geolocation tracking with reverse geocoding and interactive maps. Available on Pro plans.");
+      
       case "google": return gatedView("google", GoogleIntelligenceView, "Google Intelligence", "Unified intelligence hub — full-spectrum Google account analysis. Available on Pro plans.");
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "lavba": return gatedView("lavba", LavbaView, "Lavba Strategy Discovery", "Autonomous strategy discovery engine — Aureon scans historical chart data for repeating fractal patterns. Available on Pro plans.");

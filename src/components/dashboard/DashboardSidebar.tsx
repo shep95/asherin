@@ -5,7 +5,7 @@ import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, MapPin, Sparkles, Lock as LockIcon, Shield,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -67,7 +67,7 @@ const navGroups: NavGroup[] = [
       { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
       { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
-      { id: "tracker", icon: MapPin, label: "Location Tracker", access: "pro" },
+      
       { id: "imagine-intelligence", icon: Crosshair, label: "Imagine Intelligence" },
       { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
       { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
