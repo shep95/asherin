@@ -67,7 +67,7 @@ const navGroups: NavGroup[] = [
       { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
       { id: "nomad", icon: Crosshair, label: "NOMAD Agent", access: "pro" },
-      { id: "tracker", icon: MapPin, label: "Location Tracker", access: "pro" },
+      
       { id: "imagine-intelligence", icon: Crosshair, label: "Imagine Intelligence" },
       { id: "video-intelligence", icon: Crosshair, label: "Video Intelligence", access: "pro" },
       { id: "reverse-engineer" as DashboardView, icon: Search, label: "Reverse Engineer", access: "search" },
