@@ -784,6 +784,9 @@ async function searchAhmiaOnion(query: string, limit = 8): Promise<SearchResult[
   }
   return out;
 }
+
+// ── Instant Answer from DDG API ──────────────────────────────────────────────
+async function fetchInstantAnswer(query: string): Promise<InstantAnswer | null> {
   try {
     const iaResp = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
     if (!iaResp.ok) return null;
