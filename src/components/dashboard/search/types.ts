@@ -1,4 +1,4 @@
-export type SourceTier = 1 | 2 | 3 | 4;
+export type SourceTier = 1 | 2 | 3 | 4 | 5;
 export type SearchMode = 'web' | 'news' | 'academic' | 'code' | 'data' | 'docs' | 'deep' | 'imagine' | 'extract' | 'audit' | 'face';
 
 export interface SearchResult {
@@ -11,6 +11,8 @@ export interface SearchResult {
   publishDate?: string;
   readingTimeMin?: number;
   category: 'primary' | 'breaking' | 'analysis' | 'background' | 'community' | 'multimedia' | 'general';
+  /** Tier-5 onion result. URL is a .onion address — UI must NOT render a clickable anchor. */
+  onion?: boolean;
 }
 
 export interface InstantAnswer {
