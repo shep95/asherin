@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Globe, ExternalLink, Clock, Eye, Copy, Check, AlertTriangle, Info, MapPin } from "lucide-react";
+import { Globe, ExternalLink, Clock, Eye, Copy, Check, AlertTriangle, Info, MapPin, ShieldAlert } from "lucide-react";
 import type { SearchResult, FreshnessAlert, PagePreview } from "./types";
 import SourceTierBadge from "./SourceTierBadge";
 import SocialPostEmbed, { isSocialUrl } from "./SocialPostEmbed";
@@ -77,14 +77,26 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
     setLoadingPreview(false);
   };
 
+  const isOnion = !!result.onion;
+
   return (
     <>
-      <div className="group rounded-xl border border-border/15 bg-card/20 backdrop-blur-sm p-3 sm:p-4 hover:bg-foreground/5 hover:border-border/30 transition-all animate-slide-up" style={{ animationDelay: `${index * 40}ms` }}>
+      <div className={`group rounded-xl border p-3 sm:p-4 backdrop-blur-sm transition-all animate-slide-up ${isOnion ? "border-orange-500/25 bg-orange-500/[0.04] hover:bg-orange-500/[0.07] hover:border-orange-500/40" : "border-border/15 bg-card/20 hover:bg-foreground/5 hover:border-border/30"}`} style={{ animationDelay: `${index * 40}ms` }}>
         {/* Freshness Alert */}
         {freshnessAlert && (
           <div className={`flex items-start gap-2 rounded-lg px-3 py-1.5 mb-3 text-[11px] font-light ${freshnessAlert.severity === 'warning' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
             {freshnessAlert.severity === 'warning' ? <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> : <Info className="h-3 w-3 shrink-0 mt-0.5" />}
             <span className="break-words">{freshnessAlert.message}</span>
+          </div>
+        )}
+
+        {/* Onion warning banner */}
+        {isOnion && (
+          <div className="flex items-start gap-2 rounded-lg px-3 py-1.5 mb-3 text-[11px] font-light bg-orange-500/10 text-orange-300 border border-orange-500/20">
+            <ShieldAlert className="h-3 w-3 shrink-0 mt-0.5" />
+            <span className="break-words">
+              <strong className="font-medium">Tor required.</strong> This is a hidden-service (.onion) result indexed via Ahmia. It is unverified, may contain illegal or hostile content, and only opens in <a href="https://www.torproject.org/download/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">Tor Browser</a>.
+            </span>
           </div>
         )}
 
@@ -95,26 +107,34 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
             <Globe className="h-3 w-3 text-muted-foreground/40 shrink-0" />
             <span className="text-[11px] font-light text-muted-foreground/50 truncate">{result.source || domain(result.url)}</span>
           </div>
-          <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1">
-            <ExternalLink className="h-3 w-3 text-muted-foreground/30" />
-          </a>
+          {!isOnion && (
+            <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1">
+              <ExternalLink className="h-3 w-3 text-muted-foreground/30" />
+            </a>
+          )}
         </div>
 
-        {/* Title — monochrome theme: subtle foreground, accent only on hover */}
-        <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="block">
-          <h3 className="text-sm font-normal text-foreground/90 hover:text-foreground hover:underline underline-offset-2 mb-1 line-clamp-2 break-words">{cleanTitle}</h3>
-        </a>
+        {/* Title — clickable on clearnet, plain text on .onion */}
+        {isOnion ? (
+          <h3 className="text-sm font-normal text-foreground/90 mb-1 line-clamp-2 break-words">{cleanTitle}</h3>
+        ) : (
+          <a href={cleanUrl(result.url)} target="_blank" rel="noopener noreferrer" className="block">
+            <h3 className="text-sm font-normal text-foreground/90 hover:text-foreground hover:underline underline-offset-2 mb-1 line-clamp-2 break-words">{cleanTitle}</h3>
+          </a>
+        )}
 
         {/* URL */}
-        <p className="text-[10px] font-mono text-muted-foreground/30 truncate mb-1.5">{cleanUrl(result.url)}</p>
+        <p className={`text-[10px] font-mono truncate mb-1.5 ${isOnion ? "text-orange-300/70" : "text-muted-foreground/30"}`}>
+          {isOnion ? result.url : cleanUrl(result.url)}
+        </p>
 
         {/* Snippet */}
         {cleanSnippet && (
           <p className="text-xs font-extralight text-muted-foreground leading-relaxed line-clamp-3 mb-2 break-words">{cleanSnippet}</p>
         )}
 
-        {/* Inline social embed (YouTube, X, Reddit, IG, TikTok, FB, Vimeo, Spotify) */}
-        {social && <SocialPostEmbed url={result.url} />}
+        {/* Inline social embed (clearnet only) */}
+        {!isOnion && social && <SocialPostEmbed url={result.url} />}
 
         {/* Location chip — opens dark-theme map side panel */}
         {detectedLocation && (
@@ -142,20 +162,23 @@ const SearchResultCard = ({ result, freshnessAlert, onPreview, index }: SearchRe
           )}
 
           <div className="flex items-center gap-1 sm:ml-auto sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={loadPreview}
-              disabled={loadingPreview}
-              className="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-foreground/5 transition-colors text-muted-foreground/50 hover:text-foreground"
-            >
-              <Eye className="h-3 w-3" />
-              {loadingPreview ? "…" : "Preview"}
-            </button>
+            {!isOnion && (
+              <button
+                onClick={loadPreview}
+                disabled={loadingPreview}
+                className="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-foreground/5 transition-colors text-muted-foreground/50 hover:text-foreground"
+              >
+                <Eye className="h-3 w-3" />
+                {loadingPreview ? "…" : "Preview"}
+              </button>
+            )}
             <button
               onClick={copyLink}
               className="flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-foreground/5 transition-colors text-muted-foreground/50 hover:text-foreground"
+              title={isOnion ? "Copy .onion address — paste in Tor Browser" : "Copy link"}
             >
               {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? "Copied" : isOnion ? "Copy .onion" : "Copy"}
             </button>
           </div>
         </div>

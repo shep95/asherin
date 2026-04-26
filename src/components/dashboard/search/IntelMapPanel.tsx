@@ -662,7 +662,13 @@ const IntelMapPanel = ({ query, results, onClose }: IntelMapPanelProps) => {
 
               {/* Nodes — modern rounded squares */}
               {laidOut.map((n) => {
-                const palette = NODE_PALETTE[n.type];
+                const basePalette = NODE_PALETTE[n.type];
+                // Tier-5 (.onion) source nodes get the orange "onion" accent so they're
+                // visually distinct from clearnet sources in the graph.
+                const isOnionSource = n.type === "source" && n.tier === 5;
+                const palette = isOnionSource
+                  ? { ...basePalette, accent: "hsl(25, 90%, 60%)" }
+                  : basePalette;
                 const { w, h } = NODE_SIZE[n.type];
                 const r = NODE_RADIUS[n.type]; // hit radius for layout/highlight
                 const Icon = TYPE_ICON[n.type];

@@ -36,7 +36,7 @@ const HOSTILE_INDICATORS = new Set([
   'zerohedge.com', 'breitbart.com', 'dailycaller.com',
 ]);
 
-type SourceTier = 1 | 2 | 3 | 4;
+type SourceTier = 1 | 2 | 3 | 4 | 5;
 
 interface TruthGraphNode {
   tier: SourceTier;
@@ -49,6 +49,7 @@ interface TruthGraphNode {
 
 function getSourceTier(domain: string): SourceTier {
   const clean = domain.replace(/^www\./, '');
+  if (/\.onion$/i.test(clean)) return 5;
   if (TIER_1_DOMAINS.has(clean)) return 1;
   if (TIER_2_DOMAINS.has(clean)) return 2;
   for (const pat of TIER_3_PATTERNS) {
@@ -63,6 +64,7 @@ function getTierLabel(tier: SourceTier): string {
     case 2: return 'Established';
     case 3: return 'Institutional';
     case 4: return 'General';
+    case 5: return 'Onion (Unverified)';
   }
 }
 
@@ -234,6 +236,8 @@ interface SearchResult {
   // Truth Graph fields
   truthGraph: TruthGraphNode;
   veracity: number; // composite truth score 0-100
+  /** True for tier-5 .onion results — UI must NOT render a clickable anchor. */
+  onion?: boolean;
 }
 
 interface SearchFilters {
@@ -706,6 +710,81 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   return all;
 }
 
+// ── Onion / Dark-Web (Ahmia clearnet index of .onion sites) ─────────────────
+// Always-on companion source. Tier-5 results are merged into the main stream
+// but never promoted above clearnet primary/established sources at sort time.
+async function searchAhmiaOnion(query: string, limit = 8): Promise<SearchResult[]> {
+  function cleanText(s: string): string {
+    return s.replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+  }
+  function onionHost(u: string): string {
+    try { return new URL(u).hostname; } catch { const m = u.match(/([a-z2-7]{16,56}\.onion)/i); return m ? m[1] : u; }
+  }
+  let html = '';
+  try {
+    const r = await fetch(`https://ahmia.fi/search/?q=${encodeURIComponent(query)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!r.ok) return [];
+    html = await r.text();
+  } catch { return []; }
+
+  const out: SearchResult[] = [];
+  const blockRe = /<li[^>]*class="[^"]*result[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(html)) !== null && out.length < limit) {
+    const block = m[1];
+    const titleMatch = block.match(/<h4>\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/h4>/i)
+      || block.match(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    if (!titleMatch) continue;
+
+    let onionUrl = '';
+    const cite = block.match(/<cite>([\s\S]*?)<\/cite>/i);
+    if (cite) onionUrl = cleanText(cite[1]);
+    if (!onionUrl) {
+      const redir = titleMatch[1].match(/redirect_url=([^&]+)/);
+      if (redir) onionUrl = decodeURIComponent(redir[1]);
+    }
+    if (!onionUrl || !/\.onion(?:\/|$|:)/i.test(onionUrl)) continue;
+
+    const title = cleanText(titleMatch[2]) || onionHost(onionUrl);
+    const snipMatch = block.match(/<p>([\s\S]*?)<\/p>/i);
+    const snippet = snipMatch ? cleanText(snipMatch[1]) : '';
+    const dateMatch = block.match(/<span[^>]*class="[^"]*lastSeen[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+    const publishDate = dateMatch ? cleanText(dateMatch[1]) : undefined;
+
+    out.push({
+      title,
+      url: onionUrl,
+      snippet,
+      source: onionHost(onionUrl),
+      tier: 5,
+      tierLabel: 'Onion (Unverified)',
+      publishDate,
+      category: 'general',
+      truthGraph: {
+        tier: 5,
+        tierLabel: 'Onion (Unverified)',
+        provenanceScore: 0.15,
+        freshnessScore: publishDate ? 0.5 : 0.3,
+        hostileFlag: false,
+        consensusWeight: 0,
+      },
+      veracity: Math.min(45, 25 + (snippet ? 5 : 0) + (publishDate ? 5 : 0)),
+      onion: true,
+    });
+  }
+  return out;
+}
+
 // ── Instant Answer from DDG API ──────────────────────────────────────────────
 async function fetchInstantAnswer(query: string): Promise<InstantAnswer | null> {
   try {
@@ -784,14 +863,28 @@ Deno.serve(async (req) => {
     const builtQuery = buildSearchQuery(trimmed, mode, semanticIntent, filters, operatorOverrides);
     const instantAnswerType = detectInstantAnswerType(trimmed);
 
-    // Run multi-engine search + instant answer in parallel
-    const [searchResults, instantAnswer] = await Promise.all([
+    // Run multi-engine search + instant answer + always-on onion search in parallel.
+    // Onion is gated to text/research modes — never runs for code/docs/data lookups
+    // where it would only add noise.
+    const onionEligible = mode === 'web' || mode === 'news' || mode === 'academic';
+    const [searchResults, instantAnswer, onionResults] = await Promise.all([
       multiEngineSearch(builtQuery, page, filters?.dateRange),
       fetchInstantAnswer(trimmed),
+      onionEligible ? searchAhmiaOnion(trimmed, 8).catch(() => []) : Promise.resolve([] as SearchResult[]),
     ]);
 
-    // Apply credibility filter
-    let filtered = searchResults;
+    // Merge clearnet + onion. Dedupe by URL just in case Ahmia returned a clearnet mirror.
+    const seenUrls = new Set(searchResults.map(r => r.url));
+    const mergedResults = [...searchResults];
+    for (const r of onionResults) {
+      if (!seenUrls.has(r.url)) {
+        mergedResults.push(r);
+        seenUrls.add(r.url);
+      }
+    }
+
+    // Apply credibility filter (onion = tier 5, so credibilityMin <=4 will hide them)
+    let filtered = mergedResults;
     if (filters?.credibilityMin) {
       filtered = filtered.filter(r => r.tier <= filters.credibilityMin!);
     }
