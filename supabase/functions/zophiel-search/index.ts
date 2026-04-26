@@ -863,14 +863,28 @@ Deno.serve(async (req) => {
     const builtQuery = buildSearchQuery(trimmed, mode, semanticIntent, filters, operatorOverrides);
     const instantAnswerType = detectInstantAnswerType(trimmed);
 
-    // Run multi-engine search + instant answer in parallel
-    const [searchResults, instantAnswer] = await Promise.all([
+    // Run multi-engine search + instant answer + always-on onion search in parallel.
+    // Onion is gated to text/research modes — never runs for code/docs/data lookups
+    // where it would only add noise.
+    const onionEligible = mode === 'web' || mode === 'news' || mode === 'academic';
+    const [searchResults, instantAnswer, onionResults] = await Promise.all([
       multiEngineSearch(builtQuery, page, filters?.dateRange),
       fetchInstantAnswer(trimmed),
+      onionEligible ? searchAhmiaOnion(trimmed, 8).catch(() => []) : Promise.resolve([] as SearchResult[]),
     ]);
 
-    // Apply credibility filter
-    let filtered = searchResults;
+    // Merge clearnet + onion. Dedupe by URL just in case Ahmia returned a clearnet mirror.
+    const seenUrls = new Set(searchResults.map(r => r.url));
+    const mergedResults = [...searchResults];
+    for (const r of onionResults) {
+      if (!seenUrls.has(r.url)) {
+        mergedResults.push(r);
+        seenUrls.add(r.url);
+      }
+    }
+
+    // Apply credibility filter (onion = tier 5, so credibilityMin <=4 will hide them)
+    let filtered = mergedResults;
     if (filters?.credibilityMin) {
       filtered = filtered.filter(r => r.tier <= filters.credibilityMin!);
     }
