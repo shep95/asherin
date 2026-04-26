@@ -120,7 +120,7 @@ const EquityOwnership = () => {
             <ul className="space-y-3 text-sm font-extralight text-muted-foreground leading-relaxed">
               <li>Equity may be condensed for additional equity ownership at the discretion of existing shareholders.</li>
               <li>Royalty structures and distributions <span className="text-foreground font-light">will not be disclosed</span>.</li>
-              <li>All investment figures are cumulative since inception (March 2024).</li>
+              <li>All investment figures are cumulative since inception (Nov 18, 2025 · 8:38 AM · Cape Coral, FL).</li>
             </ul>
           </div>
         </div>
