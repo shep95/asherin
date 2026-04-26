@@ -710,8 +710,80 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
   return all;
 }
 
-// ── Instant Answer from DDG API ──────────────────────────────────────────────
-async function fetchInstantAnswer(query: string): Promise<InstantAnswer | null> {
+// ── Onion / Dark-Web (Ahmia clearnet index of .onion sites) ─────────────────
+// Always-on companion source. Tier-5 results are merged into the main stream
+// but never promoted above clearnet primary/established sources at sort time.
+async function searchAhmiaOnion(query: string, limit = 8): Promise<SearchResult[]> {
+  function cleanText(s: string): string {
+    return s.replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+  }
+  function onionHost(u: string): string {
+    try { return new URL(u).hostname; } catch { const m = u.match(/([a-z2-7]{16,56}\.onion)/i); return m ? m[1] : u; }
+  }
+  let html = '';
+  try {
+    const r = await fetch(`https://ahmia.fi/search/?q=${encodeURIComponent(query)}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!r.ok) return [];
+    html = await r.text();
+  } catch { return []; }
+
+  const out: SearchResult[] = [];
+  const blockRe = /<li[^>]*class="[^"]*result[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(html)) !== null && out.length < limit) {
+    const block = m[1];
+    const titleMatch = block.match(/<h4>\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/h4>/i)
+      || block.match(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    if (!titleMatch) continue;
+
+    let onionUrl = '';
+    const cite = block.match(/<cite>([\s\S]*?)<\/cite>/i);
+    if (cite) onionUrl = cleanText(cite[1]);
+    if (!onionUrl) {
+      const redir = titleMatch[1].match(/redirect_url=([^&]+)/);
+      if (redir) onionUrl = decodeURIComponent(redir[1]);
+    }
+    if (!onionUrl || !/\.onion(?:\/|$|:)/i.test(onionUrl)) continue;
+
+    const title = cleanText(titleMatch[2]) || onionHost(onionUrl);
+    const snipMatch = block.match(/<p>([\s\S]*?)<\/p>/i);
+    const snippet = snipMatch ? cleanText(snipMatch[1]) : '';
+    const dateMatch = block.match(/<span[^>]*class="[^"]*lastSeen[^"]*"[^>]*>([\s\S]*?)<\/span>/i);
+    const publishDate = dateMatch ? cleanText(dateMatch[1]) : undefined;
+
+    out.push({
+      title,
+      url: onionUrl,
+      snippet,
+      source: onionHost(onionUrl),
+      tier: 5,
+      tierLabel: 'Onion (Unverified)',
+      publishDate,
+      category: 'general',
+      truthGraph: {
+        tier: 5,
+        tierLabel: 'Onion (Unverified)',
+        provenanceScore: 0.15,
+        freshnessScore: publishDate ? 0.5 : 0.3,
+        hostileFlag: false,
+        consensusWeight: 0,
+      },
+      veracity: Math.min(45, 25 + (snippet ? 5 : 0) + (publishDate ? 5 : 0)),
+      onion: true,
+    });
+  }
+  return out;
+}
   try {
     const iaResp = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
     if (!iaResp.ok) return null;
