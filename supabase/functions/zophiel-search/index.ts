@@ -36,7 +36,7 @@ const HOSTILE_INDICATORS = new Set([
   'zerohedge.com', 'breitbart.com', 'dailycaller.com',
 ]);
 
-type SourceTier = 1 | 2 | 3 | 4;
+type SourceTier = 1 | 2 | 3 | 4 | 5;
 
 interface TruthGraphNode {
   tier: SourceTier;
@@ -49,6 +49,7 @@ interface TruthGraphNode {
 
 function getSourceTier(domain: string): SourceTier {
   const clean = domain.replace(/^www\./, '');
+  if (/\.onion$/i.test(clean)) return 5;
   if (TIER_1_DOMAINS.has(clean)) return 1;
   if (TIER_2_DOMAINS.has(clean)) return 2;
   for (const pat of TIER_3_PATTERNS) {
@@ -63,6 +64,7 @@ function getTierLabel(tier: SourceTier): string {
     case 2: return 'Established';
     case 3: return 'Institutional';
     case 4: return 'General';
+    case 5: return 'Onion (Unverified)';
   }
 }
 
@@ -234,6 +236,8 @@ interface SearchResult {
   // Truth Graph fields
   truthGraph: TruthGraphNode;
   veracity: number; // composite truth score 0-100
+  /** True for tier-5 .onion results — UI must NOT render a clickable anchor. */
+  onion?: boolean;
 }
 
 interface SearchFilters {
