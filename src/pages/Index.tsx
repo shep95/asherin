@@ -687,14 +687,12 @@ const Index = () => {
                   { feature: "Aureon IDE", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Zophiel Search", lifetime: false, chat: false, aureon: true, pro: true },
                   { feature: "Code Snippets Vault", lifetime: false, chat: false, aureon: true, pro: true },
-                  { feature: "Google Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Azplen Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "NOMAD OSINT", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Elion / Zohar Toolkit", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "ZALI Design Lab", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Predictive Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Daily Briefings", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "Security Dashboard", lifetime: false, chat: false, aureon: false, pro: true },
                 ].map((row, i) => (
                   <tr key={row.feature} className={`border-b border-border/10 ${i % 2 === 0 ? "bg-card/5" : ""}`}>
                     <td className="py-3 px-4 text-xs font-extralight text-foreground/90">{row.feature}</td>
@@ -937,7 +935,7 @@ const Index = () => {
               <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-6 mt-6 sm:mt-0">
                 <div className="flex flex-col gap-2">
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Intelligence</p>
-                  <Link to="/feature/google-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Google Intelligence</Link>
+                  <Link to="/llm-models" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">LLM Models</Link>
                   <Link to="/feature/zophiel" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Zophiel Search</Link>
                   <Link to="/feature/nomad" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">NOMAD OSINT</Link>
                   <Link to="/feature/azplen" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Azplen Intelligence</Link>
@@ -945,7 +943,6 @@ const Index = () => {
                   <Link to="/feature/imagine-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine Intelligence</Link>
                   <Link to="/feature/oracle-locus" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Oracle Locus</Link>
                   <Link to="/feature/video-intelligence" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Video Intelligence</Link>
-                  <Link to="/feature/security" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Security Dashboard</Link>
                   <Link to="/ww3" className="text-xs font-extralight tracking-wide text-destructive/70 hover:text-destructive transition-colors">WW3 Trajectory</Link>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -953,7 +950,6 @@ const Index = () => {
                   <Link to="/feature/personas" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">AI Personas</Link>
                   <Link to="/feature/briefings" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Daily Briefings</Link>
                   <Link to="/feature/elion" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Elion / Zohar</Link>
-                  <Link to="/feature/tracker" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Location Tracker</Link>
                   <Link to="/feature/notebooks" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Notebooks</Link>
                 </div>
                 <div className="flex flex-col gap-2">

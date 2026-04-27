@@ -62,7 +62,6 @@ const navGroups: NavGroup[] = [
     label: "Intelligence",
     items: [
       { id: "search", icon: Zap, label: "Zophiel Engine", access: "search" },
-      { id: "google", icon: Globe, label: "Google Intel", access: "pro" },
       { id: "elion", icon: Terminal, label: "Elion / Zohar", access: "pro" },
       { id: "predictive", icon: Brain, label: "Predictive Intel", access: "pro" },
       { id: "briefing", icon: Newspaper, label: "Intel Briefings", access: "pro" },
