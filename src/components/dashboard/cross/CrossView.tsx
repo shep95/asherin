@@ -7,12 +7,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LocalIntelligenceEngine } from "./localIntelligence";
 import { VoiceAlertEngine } from "./voiceEngine";
 import CrossSettingsPanel from "./CrossSettings";
 import CrossAlertFeed from "./CrossAlertFeed";
-import CrossLocalSignals from "./CrossLocalSignals";
-import CrossPriceTracker from "./CrossPriceTracker";
 import CrossModeSelector from "./CrossModeSelector";
 import CrossActivityFeed from "./CrossActivityFeed";
 import CrossAnalyticsSummary from "./CrossAnalyticsSummary";
@@ -39,19 +36,16 @@ const safeStr = (v: unknown): string => {
 };
 
 import {
-  CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
+  CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay,
   VerdictAction, DEFAULT_SETTINGS, AnalysisMode, ActivityEntry, SessionAnalytics, MODE_CONFIG,
   SalesIntelligence, EmotionState, EngagementMetrics, SpeakerInfo,
 } from "./types";
 
-let localEngine: LocalIntelligenceEngine;
 let voiceEngine: VoiceAlertEngine;
 try {
-  localEngine = new LocalIntelligenceEngine();
   voiceEngine = new VoiceAlertEngine();
 } catch (e) {
   console.error("Failed to initialize Cross engines:", e);
-  localEngine = new LocalIntelligenceEngine();
   voiceEngine = new VoiceAlertEngine();
 }
 
@@ -106,8 +100,7 @@ const CrossView: React.FC = () => {
   const [quickVerdict, setQuickVerdict] = useState<QuickVerdict | null>(null);
   const [overlays, setOverlays] = useState<ScreenOverlay[]>([]);
   const [verdictVisible, setVerdictVisible] = useState(true);
-  const [localSignals, setLocalSignals] = useState<LocalSignal[]>([]);
-  const [priceStats, setPriceStats] = useState<ReturnType<LocalIntelligenceEngine["getStats"]>>(null);
+  const [frameExplanations, setFrameExplanationsTmp] = useState<string[]>([]);
   const [frameExplanations, setFrameExplanations] = useState<string[]>([]);
 
   // ── Activity & analytics ──
