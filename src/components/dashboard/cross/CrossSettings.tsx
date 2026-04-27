@@ -11,7 +11,7 @@ interface Props {
 }
 
 const ALL_MODES = Object.keys(MODE_CONFIG) as AnalysisMode[];
-const AV_MODES: AnalysisMode[] = ["sales", "hr", "legal", "support", "negotiation", "healthcare", "education"];
+const AV_MODES: AnalysisMode[] = ["hr", "legal", "support", "negotiation", "healthcare", "education"];
 
 const CrossSettingsPanel: React.FC<Props> = ({ settings, setSettings, isSharing, estimatedCost, onClose }) => {
   const showAVSection = AV_MODES.includes(settings.mode);

@@ -1,26 +1,23 @@
-export type AlertType = "BUY" | "SELL" | "WARNING" | "MONITOR" | "INFO" | "BUG" | "VULNERABILITY" | "DESIGN_ISSUE" | "OPTIMIZATION" | "COMPLIANCE" | "DEADLINE" | "SUGGESTION" | "OBJECTION" | "BUYING_SIGNAL" | "COACHING" | "RISK" | "BIAS" | "CREDIBILITY" | "ENGAGEMENT" | "EMOTION";
-export type AnalysisMode = "trading" | "coding" | "design" | "finance" | "writing" | "research" | "healthcare" | "education" | "music" | "gaming" | "email" | "general" | "sales" | "hr" | "legal" | "support" | "negotiation";
+export type AlertType = "WARNING" | "MONITOR" | "INFO" | "BUG" | "VULNERABILITY" | "DESIGN_ISSUE" | "OPTIMIZATION" | "COMPLIANCE" | "DEADLINE" | "SUGGESTION" | "OBJECTION" | "COACHING" | "RISK" | "BIAS" | "CREDIBILITY" | "ENGAGEMENT" | "EMOTION";
+export type AnalysisMode = "coding" | "design" | "writing" | "research" | "healthcare" | "education" | "music" | "gaming" | "email" | "general" | "hr" | "legal" | "support" | "negotiation";
 export type Sensitivity = "low" | "medium" | "high";
-export type VerdictAction = "BUY_NOW" | "SELL_NOW" | "HOLD" | "EXIT_NOW" | "WAIT" | "NONE" | "FIX_NOW" | "OPTIMIZE" | "REFACTOR" | "APPROVE" | "FLAG" | "IMPROVE" | "CLOSE_NOW" | "PROBE" | "PIVOT" | "COACH" | "ESCALATE" | "DE_ESCALATE";
+export type VerdictAction = "HOLD" | "WAIT" | "NONE" | "FIX_NOW" | "OPTIMIZE" | "REFACTOR" | "APPROVE" | "FLAG" | "IMPROVE" | "PROBE" | "PIVOT" | "COACH" | "ESCALATE" | "DE_ESCALATE";
 
 export const MODE_CONFIG: Record<AnalysisMode, { label: string; icon: string; description: string; color: string; category: string }> = {
-  trading:      { label: "Trading",      icon: "TrendingUp",    description: "Nestal Fractal meme coin analysis",            color: "text-emerald-400",         category: "Finance" },
-  coding:       { label: "Coding",       icon: "Code",          description: "Bug detection, code review, refactoring",      color: "text-blue-400",            category: "Engineering" },
-  design:       { label: "Design",       icon: "Palette",       description: "UI/UX critique, accessibility, layout",        color: "text-purple-400",          category: "Creative" },
-  finance:      { label: "Finance",      icon: "Calculator",    description: "Formula errors, anomalies, validation",        color: "text-amber-400",           category: "Finance" },
-  writing:      { label: "Writing",      icon: "PenTool",       description: "Grammar, style, tone, clarity analysis",       color: "text-cyan-400",            category: "Creative" },
-  research:     { label: "Research",     icon: "Search",        description: "Source analysis, fact checking, gaps",          color: "text-indigo-400",          category: "Analysis" },
-  healthcare:   { label: "Healthcare",   icon: "Heart",         description: "Clinical notes, compliance, dosage",           color: "text-red-400",             category: "Professional" },
-  education:    { label: "Education",    icon: "GraduationCap", description: "Tutoring, grading, curriculum help",           color: "text-orange-400",          category: "Professional" },
-  music:        { label: "Music",        icon: "Music",         description: "DAW analysis, mixing, arrangement",            color: "text-pink-400",            category: "Creative" },
-  gaming:       { label: "Gaming",       icon: "Gamepad2",      description: "Game dev, QA, balance analysis",               color: "text-lime-400",            category: "Engineering" },
-  email:        { label: "Email",        icon: "Mail",          description: "Inbox triage, drafting, scheduling",           color: "text-sky-400",             category: "Productivity" },
+  coding:       { label: "Coding",       icon: "Code",          description: "Bug detection, code review, refactoring",      color: "text-foreground",          category: "Engineering" },
+  design:       { label: "Design",       icon: "Palette",       description: "UI/UX critique, accessibility, layout",        color: "text-foreground",          category: "Creative" },
+  writing:      { label: "Writing",      icon: "PenTool",       description: "Grammar, style, tone, clarity analysis",       color: "text-foreground",          category: "Creative" },
+  research:     { label: "Research",     icon: "Search",        description: "Source analysis, fact checking, gaps",          color: "text-foreground",          category: "Analysis" },
+  healthcare:   { label: "Healthcare",   icon: "Heart",         description: "Clinical notes, compliance, dosage",           color: "text-foreground",          category: "Professional" },
+  education:    { label: "Education",    icon: "GraduationCap", description: "Tutoring, grading, curriculum help",           color: "text-foreground",          category: "Professional" },
+  music:        { label: "Music",        icon: "Music",         description: "DAW analysis, mixing, arrangement",            color: "text-foreground",          category: "Creative" },
+  gaming:       { label: "Gaming",       icon: "Gamepad2",      description: "Game dev, QA, balance analysis",               color: "text-foreground",          category: "Engineering" },
+  email:        { label: "Email",        icon: "Mail",          description: "Inbox triage, drafting, scheduling",           color: "text-foreground",          category: "Productivity" },
   general:      { label: "General",      icon: "Monitor",       description: "Universal screen intelligence",                color: "text-muted-foreground",    category: "General" },
-  sales:        { label: "Sales",        icon: "Target",        description: "Real-time coaching, objection & buying signals", color: "text-emerald-300",       category: "Business" },
-  hr:           { label: "HR",           icon: "Users",         description: "Interview analysis, bias detection, scoring",  color: "text-violet-400",          category: "Business" },
-  legal:        { label: "Legal",        icon: "Scale",         description: "Deposition analysis, credibility scoring",     color: "text-slate-400",           category: "Professional" },
-  support:      { label: "Support",      icon: "Headphones",    description: "Agent QA, satisfaction prediction, coaching",  color: "text-teal-400",            category: "Business" },
-  negotiation:  { label: "Negotiation",  icon: "Handshake",     description: "Power dynamics, concession tracking, leverage", color: "text-rose-400",           category: "Business" },
+  hr:           { label: "HR",           icon: "Users",         description: "Interview analysis, bias detection, scoring",  color: "text-foreground",          category: "Professional" },
+  legal:        { label: "Legal",        icon: "Scale",         description: "Deposition analysis, credibility scoring",     color: "text-foreground",          category: "Professional" },
+  support:      { label: "Support",      icon: "Headphones",    description: "Agent QA, satisfaction prediction, coaching",  color: "text-foreground",          category: "Professional" },
+  negotiation:  { label: "Negotiation",  icon: "Handshake",     description: "Power dynamics, concession tracking, leverage", color: "text-foreground",         category: "Professional" },
 };
 
 export interface QuickVerdict {
@@ -143,7 +140,7 @@ export interface CrossSettings {
 }
 
 export const DEFAULT_SETTINGS: CrossSettings = {
-  mode: "trading",
+  mode: "general",
   sensitivity: "medium",
   frameRate: 2,
   quality: "medium",

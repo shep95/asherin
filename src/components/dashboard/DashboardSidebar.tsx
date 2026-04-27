@@ -77,9 +77,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: "azplen", icon: Database, label: "Azplen Intelligence", access: "pro" },
       { id: "pattern-analysis", icon: Activity, label: "Pattern Engine", access: "pro" },
-      { id: "lavba" as DashboardView, icon: Zap, label: "Lavba", access: "pro" },
       { id: "cross" as DashboardView, icon: Crosshair, label: "Cross", access: "pro" },
-      { id: "zaplen" as DashboardView, icon: Zap, label: "Zaplen", access: "pro" },
       { id: "zeeion" as DashboardView, icon: Database, label: "Zeeion FI", access: "pro" },
       { id: "axrlen" as DashboardView, icon: Brain, label: "Axrlen", access: "pro" },
       { id: "zerlal" as DashboardView, icon: Shield, label: "Zerlal", access: "pro" },
@@ -200,7 +198,7 @@ const DashboardSidebar = ({
       if (item.id === "security") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "self-access") return user?.email === "ashernewtonx@gmail.com";
       if (item.id === "ebook") return user?.email === "ashernewtonx@gmail.com";
-      if (item.id === "zaplen") return user?.email === "ashernewtonx@gmail.com";
+      
 
       // Use centralized feature map for tier-gated views
       const featureId = VIEW_FEATURE_MAP[item.id];

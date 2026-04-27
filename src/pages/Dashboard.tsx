@@ -93,10 +93,8 @@ const AgentsView = React.lazy(() => import("@/components/dashboard/agents/Agents
 const BugReportsView = React.lazy(() => import("@/components/dashboard/BugReportsView"));
 const EBookGeneratorView = React.lazy(() => import("@/components/dashboard/ebook/EBookGeneratorView"));
 const ReverseEngineerView = React.lazy(() => import("@/components/dashboard/ReverseEngineerView"));
-const LavbaView = React.lazy(() => import("@/components/dashboard/lavba/LavbaView"));
 const CrossView = React.lazy(() => import("@/components/dashboard/cross/CrossView"));
 const GuardianVaultView = React.lazy(() => import("@/components/dashboard/GuardianVaultView"));
-const ZaplenView = React.lazy(() => import("@/components/dashboard/zaplen/ZaplenView"));
 const ZeeionView = React.lazy(() => import("@/components/dashboard/zeeion/ZeeionView"));
 const AxrlenView = React.lazy(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZerlalView = React.lazy(() => import("@/components/dashboard/zerlal/ZerlalView"));
@@ -1281,9 +1279,7 @@ const Dashboard = () => {
       case "imagine-to-code": return gatedView("imagine-to-code", ImagineToCodeView, "Imagine To Code", "AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Available on Pro plans.");
       
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
-      case "lavba": return gatedView("lavba", LavbaView, "Lavba Strategy Discovery", "Autonomous strategy discovery engine — Aureon scans historical chart data for repeating fractal patterns. Available on Pro plans.");
       case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
-      case "zaplen": return gatedView("zaplen", ZaplenView, "Zaplen — War Scenarios", "Strategic war simulations — play chess against Aureon AI or bring your own AI opponent. Admin only.");
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "Zerlal — Cyber Security", "AI-powered cyber security intelligence — threat analysis, vulnerability detection, and defense strategies powered by AUREON. Available on Pro plans.");

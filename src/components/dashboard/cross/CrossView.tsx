@@ -7,12 +7,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { LocalIntelligenceEngine } from "./localIntelligence";
 import { VoiceAlertEngine } from "./voiceEngine";
 import CrossSettingsPanel from "./CrossSettings";
 import CrossAlertFeed from "./CrossAlertFeed";
-import CrossLocalSignals from "./CrossLocalSignals";
-import CrossPriceTracker from "./CrossPriceTracker";
 import CrossModeSelector from "./CrossModeSelector";
 import CrossActivityFeed from "./CrossActivityFeed";
 import CrossAnalyticsSummary from "./CrossAnalyticsSummary";
@@ -39,19 +36,16 @@ const safeStr = (v: unknown): string => {
 };
 
 import {
-  CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay, LocalSignal,
+  CrossAlert, CrossContext, CrossSettings, QuickVerdict, ScreenOverlay,
   VerdictAction, DEFAULT_SETTINGS, AnalysisMode, ActivityEntry, SessionAnalytics, MODE_CONFIG,
   SalesIntelligence, EmotionState, EngagementMetrics, SpeakerInfo,
 } from "./types";
 
-let localEngine: LocalIntelligenceEngine;
 let voiceEngine: VoiceAlertEngine;
 try {
-  localEngine = new LocalIntelligenceEngine();
   voiceEngine = new VoiceAlertEngine();
 } catch (e) {
   console.error("Failed to initialize Cross engines:", e);
-  localEngine = new LocalIntelligenceEngine();
   voiceEngine = new VoiceAlertEngine();
 }
 
@@ -106,8 +100,6 @@ const CrossView: React.FC = () => {
   const [quickVerdict, setQuickVerdict] = useState<QuickVerdict | null>(null);
   const [overlays, setOverlays] = useState<ScreenOverlay[]>([]);
   const [verdictVisible, setVerdictVisible] = useState(true);
-  const [localSignals, setLocalSignals] = useState<LocalSignal[]>([]);
-  const [priceStats, setPriceStats] = useState<ReturnType<LocalIntelligenceEngine["getStats"]>>(null);
   const [frameExplanations, setFrameExplanations] = useState<string[]>([]);
 
   // ── Activity & analytics ──
@@ -214,14 +206,8 @@ const CrossView: React.FC = () => {
     const frame = captureFrame();
     if (!frame) return;
 
-    if (settings.pauseOnNoChange && !localEngine.hasFrameChanged(frame)) {
+    if (settings.pauseOnNoChange) {
       setSkippedFrames(prev => prev + 1);
-      if (context && settings.mode === "trading") {
-        const signals = localEngine.detectLocalPatterns(context);
-        setLocalSignals(signals);
-        const urgent = signals.find(s => s.urgency === "immediate" && s.confidence >= 75);
-        if (urgent && settings.voiceEnabled) voiceEngine.speakLocalSignal(urgent);
-      }
       return;
     }
 
@@ -254,10 +240,6 @@ const CrossView: React.FC = () => {
 
       if (analysis.context) {
         setContext({ ...analysis.context, mode: settings.mode });
-        if (settings.mode === "trading") {
-          localEngine.recordPrice(analysis.context);
-          setPriceStats(localEngine.getStats());
-        }
       }
 
       if (analysis.salesIntel) setSalesIntel(analysis.salesIntel);
@@ -266,13 +248,6 @@ const CrossView: React.FC = () => {
       if (analysis.speakers) setSpeakers(analysis.speakers);
       if (analysis.psychProfile?.humansDetected) setPsychProfile(analysis.psychProfile);
       else if (analysis.psychProfile?.humansDetected === false) setPsychProfile(null);
-
-      if (analysis.context && settings.mode === "trading") {
-        const signals = localEngine.detectLocalPatterns(analysis.context);
-        setLocalSignals(signals);
-        const urgent = signals.find(s => s.urgency === "immediate" && s.confidence >= 75);
-        if (urgent && settings.voiceEnabled) voiceEngine.speakLocalSignal(urgent);
-      }
 
       if (analysis.observations?.length) {
         // Normalize observations: AI may return strings OR {type, title, description} objects
@@ -304,7 +279,7 @@ const CrossView: React.FC = () => {
 
         if (v.urgency !== "immediate") setTimeout(() => setVerdictVisible(false), 15000);
 
-        if (["BUY_NOW", "SELL_NOW", "EXIT_NOW", "FIX_NOW"].includes(v.action)) {
+        if (["FIX_NOW"].includes(v.action)) {
           if (settings.soundEnabled) {
             try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
           }
@@ -388,7 +363,6 @@ const CrossView: React.FC = () => {
       setSkippedFrames(0);
       setAlerts([]);
       setContext(null);
-      setLocalSignals([]);
       setActivities([]);
       setAlertsAccepted(0);
       setAlertsDismissed(0);
@@ -397,7 +371,7 @@ const CrossView: React.FC = () => {
       setFrameExplanations([]);
       setNotifications([]);
       setLiveToasts([]);
-      localEngine.reset();
+      
 
       // Create session in database
       if (user) {
@@ -594,7 +568,7 @@ const CrossView: React.FC = () => {
   const handleModeChange = useCallback((mode: AnalysisMode) => {
     setSettings(s => ({ ...s, mode }));
     if (!isSharing) {
-      setLocalSignals([]);
+      
       setAlerts([]);
       setObservations([]);
       setContext(null);
@@ -1088,7 +1062,7 @@ const CrossView: React.FC = () => {
             <CrossAnalyticsSummary analytics={sessionAnalytics} sessionDuration={sessionDuration} />
           )}
 
-          {isSharing && settings.mode === "trading" && <CrossPriceTracker stats={priceStats} pair={context?.pair} />}
+          
 
           {context && isSharing && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/10 border border-border/20 text-xs font-extralight text-muted-foreground flex-wrap">
@@ -1106,9 +1080,8 @@ const CrossView: React.FC = () => {
             </div>
           )}
 
-          {isSharing && settings.mode === "trading" && <CrossLocalSignals signals={localSignals} />}
-          {isSharing && <CrossSalesIntelligence intel={salesIntel} isActive={["sales", "negotiation"].includes(settings.mode)} />}
-          {isSharing && <CrossAudioVisualPanel settings={settings} emotions={emotions} engagement={engagement} speakers={speakers} isActive={["sales", "hr", "legal", "support", "negotiation", "healthcare", "education"].includes(settings.mode)} />}
+          {isSharing && <CrossSalesIntelligence intel={salesIntel} isActive={["negotiation"].includes(settings.mode)} />}
+          {isSharing && <CrossAudioVisualPanel settings={settings} emotions={emotions} engagement={engagement} speakers={speakers} isActive={["hr", "legal", "support", "negotiation", "healthcare", "education"].includes(settings.mode)} />}
 
           <CrossConsentBanner
             settings={settings}
