@@ -48,7 +48,7 @@ const Header = () => {
               {/* Intelligence Branch */}
               <p className="px-2 pt-1 pb-1.5 text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase">Intelligence</p>
               <DropdownMenuItem asChild>
-                <Link to="/feature/google-intelligence" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Google Intelligence</Link>
+                <Link to="/llm-models" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">LLM Models</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/feature/zophiel" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Zophiel Search</Link>
@@ -66,9 +66,6 @@ const Header = () => {
                 <Link to="/feature/oracle-locus" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Oracle Locus</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/feature/security" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Security Dashboard</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <Link to="/ww3" className="cursor-pointer text-sm font-light tracking-wide rounded-lg text-destructive">WW3 Trajectory</Link>
               </DropdownMenuItem>
 
@@ -84,9 +81,6 @@ const Header = () => {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/feature/elion" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Elion / Zohar Toolkit</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/feature/tracker" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Location Tracker</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/feature/notebooks" className="cursor-pointer text-sm font-light tracking-wide rounded-lg">Notebooks</Link>
@@ -189,17 +183,15 @@ const Header = () => {
                 <Link to="/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-light tracking-wide text-emerald-300 transition-colors hover:bg-emerald-400/20 text-center">Free AI Search</Link>
                 <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">All Features</Link>
                 <div className="my-1 border-t border-border/20 mx-4" />
-                <Link to="/feature/google-intelligence" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Google Intelligence</Link>
+                <Link to="/llm-models" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">LLM Models</Link>
                 <Link to="/feature/zophiel" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Zophiel Search</Link>
                 <Link to="/feature/nomad" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">NOMAD OSINT</Link>
                 <Link to="/feature/asha" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Azplen Intelligence</Link>
                 <Link to="/feature/oracle-locus" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Oracle Locus</Link>
                 <Link to="/feature/predictive" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Predictive Intelligence</Link>
-                <Link to="/feature/security" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Security Dashboard</Link>
                 <Link to="/feature/briefings" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Daily Briefings</Link>
                 <Link to="/feature/personas" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">AI Personas</Link>
                 <Link to="/feature/elion" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Elion / Zohar Toolkit</Link>
-                <Link to="/feature/tracker" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Location Tracker</Link>
                 <Link to="/feature/notebooks" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Notebooks</Link>
                 <Link to="/feature/zali" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">ZALI Design Lab</Link>
                 <Link to="/feature/imagine-to-code" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-light tracking-wide text-foreground transition-colors hover:bg-foreground/10 text-left">Imagine To Code</Link>

@@ -76,11 +76,9 @@ const TimeSeriesView = React.lazy(() => import("@/components/dashboard/TimeSerie
 const AuditLogView = React.lazy(() => import("@/components/dashboard/AuditLogView"));
 const PredictiveIntelligenceView = React.lazy(() => import("@/components/dashboard/PredictiveIntelligenceView"));
 const ElionView = React.lazy(() => import("@/components/dashboard/ElionView"));
-const SecurityDashboardView = React.lazy(() => import("@/components/dashboard/SecurityDashboardView"));
 const ImagineToCodeView = React.lazy(() => import("@/components/dashboard/ImagineToCodeView"));
 
 const PersonaStoreView = React.lazy(() => import("@/components/dashboard/PersonaStoreView"));
-const GoogleIntelligenceView = React.lazy(() => import("@/components/dashboard/google/GoogleIntelligenceView"));
 const AureonIdeView = React.lazy(() => import("@/components/dashboard/ide/AureonIdeView"));
 const PdfGeneratorView = React.lazy(() => import("@/components/dashboard/PdfGeneratorView"));
 const PatternAnalysisView = React.lazy(() => import("@/components/dashboard/PatternAnalysisView"));
@@ -1280,10 +1278,8 @@ const Dashboard = () => {
       case "timeseries": return gatedView("timeseries", TimeSeriesView, "Time-Series Intelligence", "Automated temporal analysis with forecasting, anomaly detection, and correlation. Available on Pro plans.");
       case "audit": return gatedView("audit", AuditLogView, "Audit Trail", "Complete access and activity logging for compliance and security. Available on Pro plans.");
       case "predictive": return gatedView("predictive", PredictiveIntelligenceView, "Predictive Intelligence", "AI-powered event forecasting — detect signals and predict regulatory actions, earnings surprises, and more. Available on Pro plans.");
-      case "security": return gatedView("security", SecurityDashboardView, "Security Command Center", "8-system defense suite — WAF, IDS, automated incident response, honeypots, and threat intelligence. Available on Pro plans.");
       case "imagine-to-code": return gatedView("imagine-to-code", ImagineToCodeView, "Imagine To Code", "AI-powered pixel art editor — paint, upload images, and ask AUREON to design directly on the canvas. Available on Pro plans.");
       
-      case "google": return gatedView("google", GoogleIntelligenceView, "Google Intelligence", "Unified intelligence hub — full-spectrum Google account analysis. Available on Pro plans.");
       case "pattern-analysis": return gatedView("pattern-analysis", PatternAnalysisView, "Pattern Analysis Engine", "Azplen + Aureon powered data pattern recognition with visual graph forecasting. Available on Pro plans.");
       case "lavba": return gatedView("lavba", LavbaView, "Lavba Strategy Discovery", "Autonomous strategy discovery engine — Aureon scans historical chart data for repeating fractal patterns. Available on Pro plans.");
       case "cross": return gatedView("cross", CrossView, "Cross — Live Screen Intelligence", "Real-time screen analysis — share your screen with Aureon for instant pattern detection, alerts, and recommendations. Admin only.");
