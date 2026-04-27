@@ -100,7 +100,6 @@ const CrossView: React.FC = () => {
   const [quickVerdict, setQuickVerdict] = useState<QuickVerdict | null>(null);
   const [overlays, setOverlays] = useState<ScreenOverlay[]>([]);
   const [verdictVisible, setVerdictVisible] = useState(true);
-  const [frameExplanations, setFrameExplanationsTmp] = useState<string[]>([]);
   const [frameExplanations, setFrameExplanations] = useState<string[]>([]);
 
   // ── Activity & analytics ──
@@ -207,14 +206,8 @@ const CrossView: React.FC = () => {
     const frame = captureFrame();
     if (!frame) return;
 
-    if (settings.pauseOnNoChange && !localEngine.hasFrameChanged(frame)) {
+    if (settings.pauseOnNoChange) {
       setSkippedFrames(prev => prev + 1);
-      if (context && settings.mode === "trading") {
-        const signals = localEngine.detectLocalPatterns(context);
-        setLocalSignals(signals);
-        const urgent = signals.find(s => s.urgency === "immediate" && s.confidence >= 75);
-        if (urgent && settings.voiceEnabled) voiceEngine.speakLocalSignal(urgent);
-      }
       return;
     }
 
@@ -247,10 +240,6 @@ const CrossView: React.FC = () => {
 
       if (analysis.context) {
         setContext({ ...analysis.context, mode: settings.mode });
-        if (settings.mode === "trading") {
-          localEngine.recordPrice(analysis.context);
-          setPriceStats(localEngine.getStats());
-        }
       }
 
       if (analysis.salesIntel) setSalesIntel(analysis.salesIntel);
@@ -259,13 +248,6 @@ const CrossView: React.FC = () => {
       if (analysis.speakers) setSpeakers(analysis.speakers);
       if (analysis.psychProfile?.humansDetected) setPsychProfile(analysis.psychProfile);
       else if (analysis.psychProfile?.humansDetected === false) setPsychProfile(null);
-
-      if (analysis.context && settings.mode === "trading") {
-        const signals = localEngine.detectLocalPatterns(analysis.context);
-        setLocalSignals(signals);
-        const urgent = signals.find(s => s.urgency === "immediate" && s.confidence >= 75);
-        if (urgent && settings.voiceEnabled) voiceEngine.speakLocalSignal(urgent);
-      }
 
       if (analysis.observations?.length) {
         // Normalize observations: AI may return strings OR {type, title, description} objects
@@ -297,7 +279,7 @@ const CrossView: React.FC = () => {
 
         if (v.urgency !== "immediate") setTimeout(() => setVerdictVisible(false), 15000);
 
-        if (["BUY_NOW", "SELL_NOW", "EXIT_NOW", "FIX_NOW"].includes(v.action)) {
+        if (["FIX_NOW"].includes(v.action)) {
           if (settings.soundEnabled) {
             try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==").play(); } catch {}
           }
