@@ -363,7 +363,6 @@ const CrossView: React.FC = () => {
       setSkippedFrames(0);
       setAlerts([]);
       setContext(null);
-      setLocalSignals([]);
       setActivities([]);
       setAlertsAccepted(0);
       setAlertsDismissed(0);
@@ -372,7 +371,7 @@ const CrossView: React.FC = () => {
       setFrameExplanations([]);
       setNotifications([]);
       setLiveToasts([]);
-      localEngine.reset();
+      
 
       // Create session in database
       if (user) {
@@ -569,7 +568,7 @@ const CrossView: React.FC = () => {
   const handleModeChange = useCallback((mode: AnalysisMode) => {
     setSettings(s => ({ ...s, mode }));
     if (!isSharing) {
-      setLocalSignals([]);
+      
       setAlerts([]);
       setObservations([]);
       setContext(null);
@@ -1063,7 +1062,7 @@ const CrossView: React.FC = () => {
             <CrossAnalyticsSummary analytics={sessionAnalytics} sessionDuration={sessionDuration} />
           )}
 
-          {isSharing && settings.mode === "trading" && <CrossPriceTracker stats={priceStats} pair={context?.pair} />}
+          
 
           {context && isSharing && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/10 border border-border/20 text-xs font-extralight text-muted-foreground flex-wrap">
@@ -1081,9 +1080,8 @@ const CrossView: React.FC = () => {
             </div>
           )}
 
-          {isSharing && settings.mode === "trading" && <CrossLocalSignals signals={localSignals} />}
-          {isSharing && <CrossSalesIntelligence intel={salesIntel} isActive={["sales", "negotiation"].includes(settings.mode)} />}
-          {isSharing && <CrossAudioVisualPanel settings={settings} emotions={emotions} engagement={engagement} speakers={speakers} isActive={["sales", "hr", "legal", "support", "negotiation", "healthcare", "education"].includes(settings.mode)} />}
+          {isSharing && <CrossSalesIntelligence intel={salesIntel} isActive={["negotiation"].includes(settings.mode)} />}
+          {isSharing && <CrossAudioVisualPanel settings={settings} emotions={emotions} engagement={engagement} speakers={speakers} isActive={["hr", "legal", "support", "negotiation", "healthcare", "education"].includes(settings.mode)} />}
 
           <CrossConsentBanner
             settings={settings}
