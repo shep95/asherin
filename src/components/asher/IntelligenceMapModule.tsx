@@ -765,6 +765,41 @@ const IntelligenceMapModule = () => {
           ))}
         </MapContainer>
 
+        {/* LIVE FEEDS TOGGLE */}
+        {entity && (
+          <button
+            onClick={() => setShowLiveFeeds((v) => !v)}
+            className={`absolute bottom-3 left-3 z-[1001] flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-light tracking-[0.2em] uppercase backdrop-blur-md transition-colors ${
+              showLiveFeeds
+                ? "border-foreground/40 bg-foreground/10 text-foreground"
+                : "border-border/30 bg-card/85 text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+            }`}
+            style={showLiveFeeds ? { display: "none" } : undefined}
+            title="Show live video feeds for this location"
+          >
+            <Video className="h-3 w-3" strokeWidth={1.5} />
+            Live Feeds
+          </button>
+        )}
+
+        {/* LIVE FEEDS PANEL */}
+        {entity && showLiveFeeds && (
+          <LiveFeedsPanel
+            label={
+              entity.hit?.address?.city ||
+              entity.hit?.address?.town ||
+              entity.hit?.address?.village ||
+              entity.hit?.address?.state ||
+              entity.country?.name?.common ||
+              entity.hit?.display_name?.split(",")[0] ||
+              null
+            }
+            lat={entity.lat}
+            lng={entity.lng}
+            onClose={() => setShowLiveFeeds(false)}
+          />
+        )}
+
         {/* COORD WIDGET */}
         <div className="absolute bottom-3 right-3 z-[1000] rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-wide text-muted-foreground space-y-0.5">
           <p><span className="text-muted-foreground/50">LAT/LNG:</span> {fmtCoord(coord.lat, coord.lng)}</p>
