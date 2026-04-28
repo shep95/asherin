@@ -115,7 +115,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile";
+  | "audit" | "settings" | "profile" | "orgs";
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
 interface NavBranch { id: string; label: string; items: NavItem[] }
