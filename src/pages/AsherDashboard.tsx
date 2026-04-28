@@ -4,6 +4,7 @@ import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,9 @@ import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
 import AsherZophielModule from "@/components/asher/AsherZophielModule";
 import AsherCommsModule from "@/components/asher/AsherCommsModule";
+import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModule";
+import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
+import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
@@ -111,12 +115,15 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile";
+  | "audit" | "settings" | "profile" | "orgs";
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
 interface NavBranch { id: string; label: string; items: NavItem[] }
 
-const BRANCHES: NavBranch[] = [
+const buildBranches = (superOwner: boolean): NavBranch[] => [
+  ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
+    { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
+  ]}] : []),
   { id: "ops", label: "Operations", items: [
     { id: "map",     label: "Intelligence Map", icon: MapIcon,  sub: "Primary" },
     { id: "targets", label: "Saved Targets",    icon: Bookmark, sub: "Live" },
@@ -145,12 +152,15 @@ const BRANCHES: NavBranch[] = [
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false, governance: true });
+  const [superOwner, setSuperOwner] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
 
@@ -190,7 +200,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {BRANCHES.map((branch) => {
+          {buildBranches(superOwner).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
@@ -242,22 +252,25 @@ const AsherDashboard = () => {
         </div>
       </aside>
 
-      <main className="relative flex-1 overflow-hidden">
-        {active === "map"       && <IntelligenceMapModule />}
-        {active === "command"   && <AsherCommandCenter />}
-        {active === "zophiel"   && <AsherZophielModule />}
-        
-        {active === "azplen"    && <AsherAzplenModule />}
-        {active === "targets"   && <AsherSavedTargets />}
-        {active === "comms"     && <AsherCommsModule />}
-        {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
-        {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
-        {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
-        {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
-        {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
-        {active === "audit"     && <AsherAuditVault />}
-        {active === "settings"  && <AsherSettingsModule />}
-        {active === "profile"   && <AsherProfile />}
+      <main className="relative flex-1 overflow-hidden flex flex-col">
+        <AsherInvitationsBanner />
+        <div className="flex-1 overflow-hidden relative">
+          {active === "orgs"      && <AsherOrganizationsModule />}
+          {active === "map"       && <IntelligenceMapModule />}
+          {active === "command"   && <AsherCommandCenter />}
+          {active === "zophiel"   && <AsherZophielModule />}
+          {active === "azplen"    && <AsherAzplenModule />}
+          {active === "targets"   && <AsherSavedTargets />}
+          {active === "comms"     && <AsherCommsModule />}
+          {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
+          {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
+          {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
+          {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
+          {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
+          {active === "audit"     && <AsherAuditVault />}
+          {active === "settings"  && <AsherSettingsModule />}
+          {active === "profile"   && <AsherProfile />}
+        </div>
       </main>
     </div>
   );
