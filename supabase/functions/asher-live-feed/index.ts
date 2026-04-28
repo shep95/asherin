@@ -123,9 +123,35 @@ Prefer official news channels (Sky News, Al Jazeera English, France 24, DW, NHK,
     if (!videoId && candidates[0]) videoId = candidates[0];
 
     if (!videoId) {
+      // Hard fallback: well-known 24/7 streams so the panel always shows something live
+      const fallbackByKind: Record<string, { id: string; title: string; channel: string }[]> = {
+        news: [
+          { id: "9Auq9mYxFEE", title: "Sky News Live", channel: "Sky News" },
+          { id: "gCNeDWCI0vo", title: "DW News Livestream", channel: "DW News" },
+          { id: "F-TyVQUKVNA", title: "Al Jazeera English Live", channel: "Al Jazeera" },
+          { id: "Y-IAEsgGu_o", title: "France 24 English Live", channel: "France 24" },
+        ],
+        cams: [
+          { id: "rnXIjl_Rzy4", title: "Times Square Live Cam", channel: "EarthCam" },
+          { id: "1-iS7LArMPA", title: "Tokyo Shibuya Live Cam", channel: "ANNnewsCH" },
+        ],
+        live: [
+          { id: "9Auq9mYxFEE", title: "Sky News Live", channel: "Sky News" },
+          { id: "rnXIjl_Rzy4", title: "Times Square Live Cam", channel: "EarthCam" },
+        ],
+      };
+      const fb = fallbackByKind[kind] || fallbackByKind.live;
       return new Response(
-        JSON.stringify({ error: "No live video resolved", raw: text.slice(0, 400) }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          videoId: fb[0].id,
+          title: fb[0].title,
+          channel: fb[0].channel,
+          url: `https://www.youtube.com/watch?v=${fb[0].id}`,
+          source: "fallback",
+          candidates: fb.map((f) => f.id),
+          notice: "No location-specific live stream resolved — showing global fallback.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
