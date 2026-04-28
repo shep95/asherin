@@ -307,6 +307,89 @@ const AsherCommsModule = () => {
           </>
         )}
       </div>
+
+      {/* New Group Modal */}
+      {showNewGroup && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] tracking-[0.3em] uppercase text-foreground/80">New Group Chat</p>
+              <button onClick={() => setShowNewGroup(false)} className="p-1 hover:bg-foreground/10 rounded">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Group name (e.g. Field Team Alpha)"
+              className="w-full px-3 py-2 rounded-lg bg-background/60 border border-border/30 text-sm text-foreground mb-3"
+            />
+            <p className="text-[10px] tracking-[0.2em] uppercase text-foreground/60 mb-2">Invite Operators</p>
+            <div className="max-h-60 overflow-y-auto space-y-1 mb-3 border border-border/15 rounded-lg p-2">
+              {ops.filter(o => o.user_id !== userId).map((o) => (
+                <label key={o.id} className="flex items-center gap-2 px-2 py-1 rounded text-[12px] hover:bg-foreground/5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={groupSelected.has(o.user_id)}
+                    onChange={() => toggleSet(groupSelected, o.user_id, setGroupSelected)}
+                  />
+                  <span className={`h-1.5 w-1.5 rounded-full ${o.status === "online" ? "bg-emerald-400" : "bg-foreground/20"}`} />
+                  <span className="text-foreground/90">{o.callsign}</span>
+                  <span className="ml-auto text-[9px] text-muted-foreground">{o.clearance}</span>
+                </label>
+              ))}
+              {ops.filter(o => o.user_id !== userId).length === 0 && (
+                <p className="text-[10px] text-muted-foreground p-2">No other operators available.</p>
+              )}
+            </div>
+            <button
+              onClick={submitNewGroup}
+              disabled={busy}
+              className="w-full py-2 rounded-lg bg-foreground/10 hover:bg-foreground/20 text-foreground text-xs tracking-[0.2em] uppercase border border-border/30"
+            >
+              Create Group & Send Invites
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Members Modal */}
+      {showAddMembers && activeConv && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] tracking-[0.3em] uppercase text-foreground/80">Invite to Group</p>
+              <button onClick={() => setShowAddMembers(false)} className="p-1 hover:bg-foreground/10 rounded">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="max-h-72 overflow-y-auto space-y-1 mb-3 border border-border/15 rounded-lg p-2">
+              {ops.filter(o => o.user_id !== userId && !activeMembers.includes(o.user_id)).map((o) => (
+                <label key={o.id} className="flex items-center gap-2 px-2 py-1 rounded text-[12px] hover:bg-foreground/5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={addSelected.has(o.user_id)}
+                    onChange={() => toggleSet(addSelected, o.user_id, setAddSelected)}
+                  />
+                  <span className={`h-1.5 w-1.5 rounded-full ${o.status === "online" ? "bg-emerald-400" : "bg-foreground/20"}`} />
+                  <span className="text-foreground/90">{o.callsign}</span>
+                  <span className="ml-auto text-[9px] text-muted-foreground">{o.clearance}</span>
+                </label>
+              ))}
+              {ops.filter(o => o.user_id !== userId && !activeMembers.includes(o.user_id)).length === 0 && (
+                <p className="text-[10px] text-muted-foreground p-2">All operators are already members.</p>
+              )}
+            </div>
+            <button
+              onClick={submitAddMembers}
+              disabled={busy || addSelected.size === 0}
+              className="w-full py-2 rounded-lg bg-foreground/10 hover:bg-foreground/20 text-foreground text-xs tracking-[0.2em] uppercase border border-border/30 disabled:opacity-40"
+            >
+              Send {addSelected.size || ""} Invite{addSelected.size === 1 ? "" : "s"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
