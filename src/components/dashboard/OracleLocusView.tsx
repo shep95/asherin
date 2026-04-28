@@ -182,6 +182,8 @@ const OracleLocusView = () => {
   const [history, setHistory] = useState<{ image: string; result: AnalysisResult }[]>([]);
   // Slide-out dark-theme map (with directions) — opened from the coordinates block.
   const [mapDestination, setMapDestination] = useState<string | null>(null);
+  // Persistent multi-image data points plotted on the Linked Imagery mini-map.
+  const [dataPoints, setDataPoints] = useState<ImageryDataPoint[]>([]);
 
   // ── FACE SEARCH STATE ──
   const faceInputRef = useRef<HTMLInputElement>(null);
