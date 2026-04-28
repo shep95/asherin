@@ -728,12 +728,13 @@ const IntelligenceMapModule = () => {
           ref={(m) => { if (m) mapRef.current = m; }}
           className="h-full w-full"
           zoomControl={false}
+          attributionControl={false}
           worldCopyJump
         >
           <TileLayer
             key={activeBase}
             url={tile.url}
-            attribution={tile.attribution}
+            attribution=""
             maxZoom={tile.max ?? 19}
           />
           <MapClick onClick={loadEntity} />
