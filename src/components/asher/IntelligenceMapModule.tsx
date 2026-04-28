@@ -225,6 +225,63 @@ async function fetchNearbyFeatures(lat: number, lon: number) {
   } catch { return null; }
 }
 
+/* ─────────────── Threat overlay fetchers (live) ─────────────── */
+interface ThreatPoint { lat: number; lng: number; label: string; meta?: string; severity?: number }
+
+async function fetchEarthquakes(): Promise<ThreatPoint[]> {
+  try {
+    // USGS — past 24h, magnitude 2.5+
+    const r = await fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson");
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.features || []).map((f: any) => ({
+      lat: f.geometry.coordinates[1],
+      lng: f.geometry.coordinates[0],
+      label: f.properties.title || `M${f.properties.mag}`,
+      meta: `Depth ${f.geometry.coordinates[2]}km · ${new Date(f.properties.time).toUTCString()}`,
+      severity: f.properties.mag,
+    }));
+  } catch { return []; }
+}
+
+async function fetchAircraft(bounds: L.LatLngBounds): Promise<ThreatPoint[]> {
+  try {
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    const url = `https://opensky-network.org/api/states/all?lamin=${sw.lat}&lomin=${sw.lng}&lamax=${ne.lat}&lomax=${ne.lng}`;
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.states || []).filter((s: any[]) => s[5] != null && s[6] != null).slice(0, 200).map((s: any[]) => ({
+      lat: s[6], lng: s[5],
+      label: (s[1] || s[0] || "Aircraft").trim(),
+      meta: `Origin ${s[2] || "?"} · Alt ${s[7] ? Math.round(s[7]) + "m" : "?"} · Vel ${s[9] ? Math.round(s[9]) + "m/s" : "?"}`,
+    }));
+  } catch { return []; }
+}
+
+async function fetchWildfires(bounds: L.LatLngBounds): Promise<ThreatPoint[]> {
+  try {
+    // NASA FIRMS public CSV (VIIRS_SNPP_NRT, last 24h, global). Filter by bounds client-side.
+    const r = await fetch("https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv");
+    if (!r.ok) return [];
+    const text = await r.text();
+    const lines = text.split("\n").slice(1, 8000);
+    const sw = bounds.getSouthWest(); const ne = bounds.getNorthEast();
+    const out: ThreatPoint[] = [];
+    for (const ln of lines) {
+      const cols = ln.split(",");
+      if (cols.length < 4) continue;
+      const lat = parseFloat(cols[0]); const lng = parseFloat(cols[1]);
+      if (isNaN(lat) || isNaN(lng)) continue;
+      if (lat < sw.lat || lat > ne.lat || lng < sw.lng || lng > ne.lng) continue;
+      out.push({ lat, lng, label: `Hotspot · ${cols[2]}K`, meta: `${cols[5]} ${cols[6]} UTC · conf ${cols[8]}`, severity: parseFloat(cols[2]) });
+      if (out.length >= 300) break;
+    }
+    return out;
+  } catch { return []; }
+}
+
 /* ─────────────── Map click handler ─────────────── */
 
 const MapClick = ({ onClick }: { onClick: (lat: number, lng: number) => void }) => {
