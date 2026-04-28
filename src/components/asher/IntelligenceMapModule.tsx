@@ -177,6 +177,48 @@ async function fetchWeather(lat: number, lon: number) {
   } catch { return null; }
 }
 
+/* ─────────────── Open-Meteo Elevation API (live) ─────────────── */
+async function fetchElevation(lat: number, lon: number): Promise<number | null> {
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return Array.isArray(j?.elevation) ? j.elevation[0] : null;
+  } catch { return null; }
+}
+
+/* ─────────────── Sunrise-Sunset.org (live celestial) ─────────────── */
+async function fetchCelestial(lat: number, lon: number) {
+  try {
+    const r = await fetch(`https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&formatted=0`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j?.results || null;
+  } catch { return null; }
+}
+
+/* ─────────────── Overpass API (live OSM building / facility query) ─────────────── */
+async function fetchNearbyFeatures(lat: number, lon: number) {
+  try {
+    const radius = 150;
+    const q = `[out:json][timeout:10];(
+      node(around:${radius},${lat},${lon})[amenity];
+      way(around:${radius},${lat},${lon})[building];
+      node(around:${radius},${lat},${lon})[man_made];
+      node(around:${radius},${lat},${lon})[military];
+      way(around:${radius},${lat},${lon})[military];
+    );out tags 30;`;
+    const r = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "data=" + encodeURIComponent(q),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return Array.isArray(j?.elements) ? j.elements.slice(0, 25) : [];
+  } catch { return null; }
+}
+
 /* ─────────────── Map click handler ─────────────── */
 
 const MapClick = ({ onClick }: { onClick: (lat: number, lng: number) => void }) => {
@@ -216,11 +258,15 @@ const fmtCoord = (lat: number, lng: number) => {
 };
 
 /* ─────────────── Profile drawer types ─────────────── */
+interface OsmFeature { id: number; type: string; tags?: Record<string, string> }
 interface SelectedEntity {
   lat: number; lng: number;
   hit: SearchHit | null;
   country: CountryData | null;
   weather: any | null;
+  elevation: number | null;
+  celestial: any | null;
+  features: OsmFeature[] | null;
   loading: boolean;
 }
 
@@ -264,12 +310,18 @@ const IntelligenceMapModule = () => {
   };
 
   const loadEntity = async (lat: number, lng: number) => {
-    setEntity({ lat, lng, hit: null, country: null, weather: null, loading: true });
-    const [hit, weather] = await Promise.all([reverseGeocode(lat, lng), fetchWeather(lat, lng)]);
+    setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, loading: true });
+    const [hit, weather, elevation, celestial, features] = await Promise.all([
+      reverseGeocode(lat, lng),
+      fetchWeather(lat, lng),
+      fetchElevation(lat, lng),
+      fetchCelestial(lat, lng),
+      fetchNearbyFeatures(lat, lng),
+    ]);
     let country: CountryData | null = null;
     const cc = hit?.address?.country_code?.toUpperCase();
     if (cc) country = await fetchCountryByCode(cc);
-    setEntity({ lat, lng, hit, country, weather, loading: false });
+    setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, loading: false });
   };
 
   const handleSearchPick = (h: SearchHit) => {
@@ -358,7 +410,7 @@ const IntelligenceMapModule = () => {
             )}
           </div>
           <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">
-            Live · OSM · Nominatim · REST Countries · Open-Meteo
+            Live · OSM · Nominatim · REST Countries · Open-Meteo · Overpass · Sunrise-Sunset
           </div>
         </div>
 
@@ -506,6 +558,54 @@ const IntelligenceMapModule = () => {
                           <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mb-1">Precip</p>
                           <p className="text-foreground">{entity.weather.current.precipitation} mm</p>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Terrain */}
+                  {entity.elevation != null && (
+                    <div>
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Terrain (Live)</p>
+                      <div className="rounded-lg border border-border/15 bg-background/40 p-3 text-[11px] font-light">
+                        <p><span className="text-muted-foreground/60">Elevation:</span> {entity.elevation.toFixed(1)} m ({(entity.elevation * 3.281).toFixed(0)} ft)</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Celestial */}
+                  {entity.celestial && (
+                    <div>
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Celestial (Live UTC)</p>
+                      <div className="rounded-lg border border-border/15 bg-background/40 p-3 text-[11px] font-light space-y-1">
+                        {entity.celestial.sunrise && <p><span className="text-muted-foreground/60">Sunrise:</span> {new Date(entity.celestial.sunrise).toUTCString().slice(17, 25)}</p>}
+                        {entity.celestial.sunset && <p><span className="text-muted-foreground/60">Sunset:</span> {new Date(entity.celestial.sunset).toUTCString().slice(17, 25)}</p>}
+                        {entity.celestial.solar_noon && <p><span className="text-muted-foreground/60">Solar Noon:</span> {new Date(entity.celestial.solar_noon).toUTCString().slice(17, 25)}</p>}
+                        {entity.celestial.day_length && <p><span className="text-muted-foreground/60">Day Length:</span> {Math.floor(entity.celestial.day_length / 3600)}h {Math.floor((entity.celestial.day_length % 3600) / 60)}m</p>}
+                        {entity.celestial.civil_twilight_begin && <p><span className="text-muted-foreground/60">Civil Twilight:</span> {new Date(entity.celestial.civil_twilight_begin).toUTCString().slice(17, 25)} → {new Date(entity.celestial.civil_twilight_end).toUTCString().slice(17, 25)}</p>}
+                        {entity.celestial.nautical_twilight_begin && <p><span className="text-muted-foreground/60">Nautical Twilight:</span> {new Date(entity.celestial.nautical_twilight_begin).toUTCString().slice(17, 25)} → {new Date(entity.celestial.nautical_twilight_end).toUTCString().slice(17, 25)}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nearby OSM Features */}
+                  {entity.features && entity.features.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Nearby Features (Overpass · 150m radius)</p>
+                      <div className="rounded-lg border border-border/15 bg-background/40 p-3 max-h-48 overflow-y-auto space-y-1.5">
+                        {entity.features.map((f) => {
+                          const t = f.tags || {};
+                          const name = t.name || t["name:en"] || t.amenity || t.building || t.man_made || t.military || `${f.type} #${f.id}`;
+                          const kind = t.amenity || t.building || t.man_made || t.military || t.shop || "feature";
+                          return (
+                            <div key={`${f.type}-${f.id}`} className="text-[11px] font-light flex items-start gap-2">
+                              <span className="h-1 w-1 mt-1.5 rounded-full bg-emerald-400/70 flex-shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-foreground/85 truncate">{name}</p>
+                                <p className="text-[9px] tracking-[0.2em] text-muted-foreground/50 uppercase">{kind}{t.operator ? ` · ${t.operator}` : ""}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

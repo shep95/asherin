@@ -3,11 +3,15 @@ import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
+  Brain, Database,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import IntelligenceMapModule from "@/components/asher/IntelligenceMapModule";
 import ComingSoonModule from "@/components/asher/ComingSoonModule";
+import AsherCommandCenter from "@/components/asher/AsherCommandCenter";
+import AsherAzplenModule from "@/components/asher/AsherAzplenModule";
+import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
 
 const ASHER_ACCESS_CODE = "Asher092625";
 const ASHER_GATE_KEY = "asher_dashboard_unlocked";
@@ -95,11 +99,13 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "theater" | "targeting" | "sigint"
+  | "map" | "command" | "azplen" | "theater" | "targeting" | "sigint"
   | "geoint" | "doctrine" | "audit" | "settings" | "profile";
 
 const NAV: { id: AsherTab; label: string; icon: any; sub?: string }[] = [
   { id: "map",       label: "Intelligence Map", icon: MapIcon,    sub: "Primary" },
+  { id: "command",   label: "ASHER AI",         icon: Brain,      sub: "Live" },
+  { id: "azplen",    label: "Azplen Intel",     icon: Database,   sub: "Live" },
   { id: "theater",   label: "Theater Brief",    icon: FileText },
   { id: "targeting", label: "Targeting Aid",    icon: Crosshair },
   { id: "sigint",    label: "SIGINT Fusion",    icon: Radio },
@@ -177,20 +183,26 @@ const AsherDashboard = () => {
           <button onClick={() => navigate("/asher")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-light tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors uppercase">
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} /> Back to Asher
           </button>
-          {user && <p className="px-3 pt-2 text-[9px] tracking-wide text-muted-foreground/40 truncate">{user.email}</p>}
+          {user && (
+            <p className="px-3 pt-2 text-[9px] tracking-[0.2em] text-muted-foreground/40 uppercase">
+              Operator · Authenticated
+            </p>
+          )}
         </div>
       </aside>
 
       {/* MAIN */}
       <main className="relative flex-1 overflow-hidden">
         {active === "map"       && <IntelligenceMapModule />}
+        {active === "command"   && <AsherCommandCenter />}
+        {active === "azplen"    && <AsherAzplenModule />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
         {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
         {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
         {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
         {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
         {active === "audit"     && <ComingSoonModule title="Audit Vault"     sub="Immutable chain-of-custody logs" />}
-        {active === "settings"  && <ComingSoonModule title="Settings"        sub="Operator preferences and runtime config" />}
+        {active === "settings"  && <AsherSettingsModule />}
         {active === "profile"   && <ComingSoonModule title="Profile"         sub="Operator credentials and clearances" />}
       </main>
     </div>
