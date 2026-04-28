@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import LocationMapPanel from "./search/LocationMapPanel";
+import LinkedImageryMap, { type ImageryDataPoint } from "./search/LinkedImageryMap";
 
 // ─── GEO ANALYSIS TYPES ───
 interface PersonAnalysis {
