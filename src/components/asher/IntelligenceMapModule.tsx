@@ -999,28 +999,130 @@ const IntelligenceMapModule = () => {
                     </div>
                   )}
 
-                  {/* Nearby OSM Features */}
-                  {entity.features && entity.features.length > 0 && (
-                    <div>
-                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Nearby Features (Overpass · 150m radius)</p>
-                      <div className="rounded-lg border border-border/15 bg-background/40 p-3 max-h-48 overflow-y-auto space-y-1.5">
-                        {entity.features.map((f) => {
-                          const t = f.tags || {};
-                          const name = t.name || t["name:en"] || t.amenity || t.building || t.man_made || t.military || `${f.type} #${f.id}`;
-                          const kind = t.amenity || t.building || t.man_made || t.military || t.shop || "feature";
-                          return (
-                            <div key={`${f.type}-${f.id}`} className="text-[11px] font-light flex items-start gap-2">
-                              <span className="h-1 w-1 mt-1.5 rounded-full bg-emerald-400/70 flex-shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-foreground/85 truncate">{name}</p>
-                                <p className="text-[9px] tracking-[0.2em] text-muted-foreground/50 uppercase">{kind}{t.operator ? ` · ${t.operator}` : ""}</p>
+                  {/* Nearby OSM Features — categorized */}
+                  {entity.features && entity.features.length > 0 && (() => {
+                    const cats: Record<string, OsmFeature[]> = {};
+                    for (const f of entity.features) {
+                      const t = f.tags || {};
+                      const cat = t.military ? "Military"
+                        : t.amenity ? "Amenities"
+                        : t.shop ? "Commerce"
+                        : t.building ? "Buildings"
+                        : t.power ? "Power Grid"
+                        : t.man_made ? "Man-Made"
+                        : t.landuse ? "Land Use"
+                        : t.highway ? "Roads"
+                        : t.railway ? "Rail"
+                        : t.waterway ? "Water"
+                        : t.natural ? "Natural"
+                        : t.leisure ? "Leisure"
+                        : "Other";
+                      (cats[cat] ||= []).push(f);
+                    }
+                    return (
+                      <div>
+                        <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">
+                          Nearby Features (Overpass · 250m · {entity.features.length})
+                        </p>
+                        <div className="rounded-lg border border-border/15 bg-background/40 p-3 max-h-64 overflow-y-auto space-y-3">
+                          {Object.entries(cats).map(([cat, items]) => (
+                            <div key={cat}>
+                              <p className="text-[9px] font-light tracking-[0.2em] text-emerald-400/70 uppercase mb-1">{cat} · {items.length}</p>
+                              <div className="space-y-0.5 pl-2 border-l border-border/15">
+                                {items.slice(0, 12).map((f) => {
+                                  const t = f.tags || {};
+                                  const name = t.name || t["name:en"] || t.amenity || t.building || t.man_made || t.military || t.landuse || t.shop || `${f.type} #${f.id}`;
+                                  const kind = t.amenity || t.building || t.man_made || t.military || t.shop || t.landuse || t.power || t.highway || t.railway || "feature";
+                                  return (
+                                    <div key={`${f.type}-${f.id}`} className="text-[11px] font-light flex items-start gap-2">
+                                      <div className="min-w-0">
+                                        <p className="text-foreground/85 truncate">{name}</p>
+                                        <p className="text-[9px] tracking-[0.15em] text-muted-foreground/50 uppercase">{kind}{t.operator ? ` · ${t.operator}` : ""}</p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
-                          );
-                        })}
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Wikipedia Geo-Search (Live) */}
+                  {entity.wiki && entity.wiki.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Open-Source Knowledge (Wikipedia · 2km)</p>
+                      <div className="rounded-lg border border-border/15 bg-background/40 p-3 max-h-48 overflow-y-auto space-y-1.5">
+                        {entity.wiki.map((w) => (
+                          <a
+                            key={w.pageid}
+                            href={`https://en.wikipedia.org/?curid=${w.pageid}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="block text-[11px] font-light hover:text-emerald-400 transition-colors"
+                          >
+                            <p className="text-foreground/85 truncate">{w.title}</p>
+                            <p className="text-[9px] tracking-[0.15em] text-muted-foreground/50 uppercase">{Math.round(w.dist)}m away</p>
+                          </a>
+                        ))}
                       </div>
                     </div>
                   )}
+
+                  {/* Live Threat Proximity */}
+                  {(threatData["h-quake"].length + threatData["h-fire"].length + threatData["h-air"].length) > 0 && (() => {
+                    const within = (arr: ThreatPoint[], km: number) => arr.filter((p) => {
+                      const dx = (p.lat - entity.lat) * 111;
+                      const dy = (p.lng - entity.lng) * 111 * Math.cos((entity.lat * Math.PI) / 180);
+                      return Math.sqrt(dx * dx + dy * dy) <= km;
+                    });
+                    const eq = within(threatData["h-quake"], 500);
+                    const fi = within(threatData["h-fire"], 100);
+                    const ai = within(threatData["h-air"], 200);
+                    if (eq.length + fi.length + ai.length === 0) return null;
+                    return (
+                      <div>
+                        <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Threat Proximity (Live Overlays)</p>
+                        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-1 text-[11px] font-light">
+                          {eq.length > 0 && <p>● {eq.length} earthquake(s) within 500 km</p>}
+                          {fi.length > 0 && <p>● {fi.length} active wildfire(s) within 100 km</p>}
+                          {ai.length > 0 && <p>● {ai.length} aircraft tracked within 200 km</p>}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Intelligence Assessment (derived from real data only) */}
+                  <div>
+                    <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Intelligence Assessment</p>
+                    <div className="rounded-lg border border-border/15 bg-background/40 p-3 space-y-1 text-[11px] font-light">
+                      {(() => {
+                        const { cls } = classifyClick(entity.features);
+                        const milCount = entity.features?.filter((f) => f.tags?.military).length || 0;
+                        const govCount = entity.features?.filter((f) => f.tags?.amenity === "embassy" || f.tags?.amenity === "townhall" || f.tags?.amenity === "courthouse" || f.tags?.amenity === "police").length || 0;
+                        const infraCount = entity.features?.filter((f) => f.tags?.power || f.tags?.man_made === "tower" || f.tags?.man_made === "communications_tower").length || 0;
+                        const popDensity = entity.features?.filter((f) => f.tags?.building === "residential" || f.tags?.building === "apartments" || f.tags?.building === "house").length || 0;
+                        let threat = "MINIMAL";
+                        if (milCount > 0) threat = "ELEVATED — military presence";
+                        else if (govCount > 0) threat = "MODERATE — government infrastructure";
+                        else if (infraCount > 2) threat = "MODERATE — critical infrastructure cluster";
+                        return (
+                          <>
+                            <p><span className="text-muted-foreground/60">Classification:</span> {cls.toUpperCase()}</p>
+                            <p><span className="text-muted-foreground/60">Threat Level:</span> {threat}</p>
+                            <p><span className="text-muted-foreground/60">Military Footprint:</span> {milCount} entities (250m)</p>
+                            <p><span className="text-muted-foreground/60">Government Footprint:</span> {govCount} entities</p>
+                            <p><span className="text-muted-foreground/60">Critical Infrastructure:</span> {infraCount} entities</p>
+                            <p><span className="text-muted-foreground/60">Residential Density:</span> {popDensity} structures</p>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <p className="text-[8px] mt-1.5 tracking-[0.2em] text-muted-foreground/40 uppercase">
+                      Note: Owner / occupant / financial / pattern-of-life data is not available via open public APIs and is intentionally not fabricated.
+                    </p>
+                  </div>
 
                   {/* Raw place name */}
                   {entity.hit && (
@@ -1029,6 +1131,46 @@ const IntelligenceMapModule = () => {
                       <p className="text-[11px] font-light text-muted-foreground/80 leading-relaxed">{entity.hit.display_name}</p>
                     </div>
                   )}
+
+                  {/* Action buttons */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${entity.lat}&mlon=${entity.lng}#map=18/${entity.lat}/${entity.lng}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="rounded-lg border border-border/30 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 uppercase text-center"
+                    >View on OSM</a>
+                    <a
+                      href={`https://www.google.com/maps/@?api=1&map_action=map&center=${entity.lat},${entity.lng}&zoom=18&basemap=satellite`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="rounded-lg border border-border/30 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 uppercase text-center"
+                    >Satellite View</a>
+                    <a
+                      href={`https://www.google.com/maps?q=&layer=c&cbll=${entity.lat},${entity.lng}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="rounded-lg border border-border/30 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 uppercase text-center"
+                    >Street View</a>
+                    <button
+                      onClick={() => {
+                        const txt = JSON.stringify({
+                          coordinates: { lat: entity.lat, lng: entity.lng, mgrs: toMGRS(entity.lat, entity.lng) },
+                          address: entity.hit?.display_name,
+                          country: entity.country?.name?.common,
+                          weather: entity.weather?.current,
+                          elevation: entity.elevation,
+                          celestial: entity.celestial,
+                          features: entity.features?.map((f) => ({ id: f.id, type: f.type, tags: f.tags })),
+                          wiki: entity.wiki,
+                          generated: new Date().toISOString(),
+                        }, null, 2);
+                        const blob = new Blob([txt], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url; a.download = `asher-dossier-${entity.lat.toFixed(4)}_${entity.lng.toFixed(4)}.json`;
+                        a.click(); URL.revokeObjectURL(url);
+                      }}
+                      className="rounded-lg border border-border/30 bg-background/40 px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 uppercase"
+                    >Export JSON</button>
+                  </div>
 
                   <p className="pt-2 text-[9px] font-light tracking-[0.2em] text-muted-foreground/50 uppercase border-t border-border/10">
                     Classification: Open Source · All data fetched live from public sources
