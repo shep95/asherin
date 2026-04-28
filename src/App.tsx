@@ -62,6 +62,8 @@ const TrackPage = lazy(() => import("./pages/TrackPage"));
 const ProjAureon = lazy(() => import("./pages/ProjAureon"));
 const Whiteboard = lazy(() => import("./pages/Whiteboard"));
 const EliteSuite = lazy(() => import("./pages/EliteSuite"));
+const Asher = lazy(() => import("./pages/Asher"));
+const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 
@@ -139,6 +141,8 @@ const App = () => (
             <Route path="/proj-aureon" element={<ProjAureon />} />
             <Route path="/whiteboard" element={<Whiteboard />} />
             <Route path="/elite" element={<ProtectedRoute><EliteSuite /></ProtectedRoute>} />
+            <Route path="/asher" element={<Asher />} />
+            <Route path="/asher-dashboard" element={<ProtectedRoute><AsherDashboard /></ProtectedRoute>} />
             <Route
               path="/dashboard"
               element={
