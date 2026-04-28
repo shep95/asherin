@@ -109,7 +109,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "zophiel" | "azplen" | "targets"
+  | "map" | "command" | "zophiel" | "azplen" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
   | "audit" | "settings" | "profile";
 
