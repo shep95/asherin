@@ -123,7 +123,6 @@ const BRANCHES: NavBranch[] = [
   { id: "ai", label: "AI & Reasoning", items: [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
-    { id: "imagine", label: "Imagine Intel",  icon: Sparkles, sub: "Live" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
