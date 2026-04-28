@@ -100,9 +100,12 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "d-idp",   label: "Internally Displaced Persons", status: "soon" },
   ]},
   { id: "threats", label: "Threats & Hazards", layers: [
-    { id: "h-ied",   label: "IED Locations",       status: "soon" },
-    { id: "h-mine",  label: "Minefields",          status: "soon" },
-    { id: "h-env",   label: "Environmental",       status: "soon" },
+    { id: "h-quake",  label: "Live Earthquakes (USGS)", status: "live" },
+    { id: "h-fire",   label: "Active Wildfires (NASA FIRMS)", status: "live" },
+    { id: "h-air",    label: "Aircraft Traffic (OpenSky)", status: "live" },
+    { id: "h-ied",    label: "IED Locations",       status: "soon" },
+    { id: "h-mine",   label: "Minefields",          status: "soon" },
+    { id: "h-env",    label: "Environmental",       status: "soon" },
   ]},
   { id: "targeting", label: "Targeting", layers: [
     { id: "tg-hvt",   label: "High Value Targets", status: "soon" },
