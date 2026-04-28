@@ -220,12 +220,13 @@ const AsherDashboard = () => {
         {active === "map"       && <IntelligenceMapModule />}
         {active === "command"   && <AsherCommandCenter />}
         {active === "azplen"    && <AsherAzplenModule />}
+        {active === "targets"   && <AsherSavedTargets />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
         {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
         {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
         {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
         {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
-        {active === "audit"     && <ComingSoonModule title="Audit Vault"     sub="Immutable chain-of-custody logs" />}
+        {active === "audit"     && <AsherAuditVault />}
         {active === "settings"  && <AsherSettingsModule />}
         {active === "profile"   && <ComingSoonModule title="Profile"         sub="Operator credentials and clearances" />}
       </main>
