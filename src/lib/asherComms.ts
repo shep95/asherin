@@ -202,6 +202,29 @@ export async function createDM(otherUserId: string): Promise<string> {
   return conv.id;
 }
 
+export async function addMembers(conversationId: string, userIds: string[]) {
+  if (userIds.length === 0) return;
+  const rows = userIds.map((uid) => ({
+    conversation_id: conversationId,
+    user_id: uid,
+    role: "member" as const,
+  }));
+  const { error } = await supabase
+    .from("asher_conversation_members")
+    .upsert(rows, { onConflict: "conversation_id,user_id" });
+  if (error) throw error;
+  await audit("members_added", { conversation_id: conversationId, count: userIds.length });
+}
+
+export async function createGroup(input: {
+  name: string;
+  topic?: string;
+  classification?: string;
+  member_ids: string[];
+}): Promise<string> {
+  return createChannel({ ...input });
+}
+
 export async function createChannel(input: {
   name: string;
   topic?: string;
