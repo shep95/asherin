@@ -2,12 +2,97 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
-  BookOpen, Lock, Settings, User, LogOut, ArrowLeft,
+  BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import IntelligenceMapModule from "@/components/asher/IntelligenceMapModule";
 import ComingSoonModule from "@/components/asher/ComingSoonModule";
+
+const ASHER_ACCESS_CODE = "Asher092625";
+const ASHER_GATE_KEY = "asher_dashboard_unlocked";
+
+const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (code === ASHER_ACCESS_CODE) {
+      try { sessionStorage.setItem(ASHER_GATE_KEY, "1"); } catch {}
+      onUnlock();
+    } else {
+      setError("ACCESS DENIED — Invalid clearance code.");
+      setCode("");
+    }
+  };
+
+  return (
+    <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground px-6">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-xl p-8">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+            </span>
+            <p className="text-xs font-light tracking-[0.3em] text-muted-foreground/70 uppercase">
+              Restricted Access
+            </p>
+          </div>
+
+          <h1 className="text-2xl font-extralight tracking-[0.2em] text-foreground mb-2">ASHER</h1>
+          <p className="text-xs font-light tracking-[0.15em] text-muted-foreground/60 uppercase mb-8">
+            Defense Intelligence — Clearance Required
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase mb-2">
+                Access Code
+              </label>
+              <input
+                type="password"
+                autoFocus
+                value={code}
+                onChange={(e) => { setCode(e.target.value); setError(""); }}
+                className="w-full rounded-lg border border-border/30 bg-background/40 px-4 py-3 text-sm font-light tracking-wider text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none transition-colors"
+                placeholder="Enter clearance code"
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2">
+                <ShieldAlert className="h-3.5 w-3.5 text-red-400" strokeWidth={1.5} />
+                <p className="text-[11px] font-light tracking-wide text-red-300">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-foreground/90 px-4 py-3 text-xs font-light tracking-[0.2em] text-background hover:bg-foreground transition-colors uppercase"
+            >
+              Authenticate
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/asher")}
+              className="w-full text-[10px] font-light tracking-[0.2em] text-muted-foreground/60 hover:text-foreground transition-colors uppercase"
+            >
+              ← Return to Asher
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-6 text-center text-[9px] font-light tracking-[0.25em] text-muted-foreground/30 uppercase">
+          Unauthorized access is monitored and logged
+        </p>
+      </div>
+    </div>
+  );
+};
 
 type AsherTab =
   | "map" | "theater" | "targeting" | "sigint"
