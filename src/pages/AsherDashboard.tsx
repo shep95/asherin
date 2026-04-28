@@ -4,6 +4,7 @@ import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
+  Building2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,9 @@ import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
 import AsherZophielModule from "@/components/asher/AsherZophielModule";
 import AsherCommsModule from "@/components/asher/AsherCommsModule";
+import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModule";
+import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
+import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
