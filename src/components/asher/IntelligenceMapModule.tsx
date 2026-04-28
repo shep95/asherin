@@ -484,12 +484,17 @@ const IntelligenceMapModule = () => {
                   <div className="ml-5 mt-0.5 space-y-0.5">
                     {cat.layers.map((l) => {
                       const isBase = cat.id === "base";
-                      const isActive = isBase ? l.id === activeBase : false;
+                      const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
+                      const isActive = isBase
+                        ? l.id === activeBase
+                        : isThreat ? !!activeThreats[l.id as ThreatId] : false;
                       return (
                         <button
                           key={l.id}
                           onClick={() => {
-                            if (isBase && l.status === "live") setActiveBase(l.id);
+                            if (l.status !== "live") return;
+                            if (isBase) setActiveBase(l.id);
+                            else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                           }}
                           disabled={l.status !== "live"}
                           className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors ${
@@ -504,6 +509,9 @@ const IntelligenceMapModule = () => {
                           <span className="text-[11px] font-light flex-1 truncate">{l.label}</span>
                           {l.status === "soon" && (
                             <span className="text-[8px] tracking-[0.2em] text-muted-foreground/40 uppercase">Soon</span>
+                          )}
+                          {isThreat && isActive && (
+                            <span className="text-[8px] tracking-[0.2em] text-emerald-400/80 uppercase">{threatData[l.id as ThreatId]?.length ?? 0}</span>
                           )}
                         </button>
                       );
