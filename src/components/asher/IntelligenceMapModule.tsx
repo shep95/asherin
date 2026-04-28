@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, CircleMarker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   ChevronDown, ChevronRight, X, Search, Loader2, Pin,
-  Layers as LayersIcon, Crosshair as CrosshairIcon,
+  Layers as LayersIcon, Crosshair as CrosshairIcon, Save,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { logAsherEvent } from "@/lib/asherAudit";
+import { toast } from "sonner";
 
 /* ─────────────────────────────────────────────────────────────
    ASHER — Real-time Intelligence Map
@@ -97,9 +100,12 @@ const LAYER_TREE: LayerCategory[] = [
     { id: "d-idp",   label: "Internally Displaced Persons", status: "soon" },
   ]},
   { id: "threats", label: "Threats & Hazards", layers: [
-    { id: "h-ied",   label: "IED Locations",       status: "soon" },
-    { id: "h-mine",  label: "Minefields",          status: "soon" },
-    { id: "h-env",   label: "Environmental",       status: "soon" },
+    { id: "h-quake",  label: "Live Earthquakes (USGS)", status: "live" },
+    { id: "h-fire",   label: "Active Wildfires (NASA FIRMS)", status: "live" },
+    { id: "h-air",    label: "Aircraft Traffic (OpenSky)", status: "live" },
+    { id: "h-ied",    label: "IED Locations",       status: "soon" },
+    { id: "h-mine",   label: "Minefields",          status: "soon" },
+    { id: "h-env",    label: "Environmental",       status: "soon" },
   ]},
   { id: "targeting", label: "Targeting", layers: [
     { id: "tg-hvt",   label: "High Value Targets", status: "soon" },
@@ -219,6 +225,63 @@ async function fetchNearbyFeatures(lat: number, lon: number) {
   } catch { return null; }
 }
 
+/* ─────────────── Threat overlay fetchers (live) ─────────────── */
+interface ThreatPoint { lat: number; lng: number; label: string; meta?: string; severity?: number }
+
+async function fetchEarthquakes(): Promise<ThreatPoint[]> {
+  try {
+    // USGS — past 24h, magnitude 2.5+
+    const r = await fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson");
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.features || []).map((f: any) => ({
+      lat: f.geometry.coordinates[1],
+      lng: f.geometry.coordinates[0],
+      label: f.properties.title || `M${f.properties.mag}`,
+      meta: `Depth ${f.geometry.coordinates[2]}km · ${new Date(f.properties.time).toUTCString()}`,
+      severity: f.properties.mag,
+    }));
+  } catch { return []; }
+}
+
+async function fetchAircraft(bounds: L.LatLngBounds): Promise<ThreatPoint[]> {
+  try {
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    const url = `https://opensky-network.org/api/states/all?lamin=${sw.lat}&lomin=${sw.lng}&lamax=${ne.lat}&lomax=${ne.lng}`;
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.states || []).filter((s: any[]) => s[5] != null && s[6] != null).slice(0, 200).map((s: any[]) => ({
+      lat: s[6], lng: s[5],
+      label: (s[1] || s[0] || "Aircraft").trim(),
+      meta: `Origin ${s[2] || "?"} · Alt ${s[7] ? Math.round(s[7]) + "m" : "?"} · Vel ${s[9] ? Math.round(s[9]) + "m/s" : "?"}`,
+    }));
+  } catch { return []; }
+}
+
+async function fetchWildfires(bounds: L.LatLngBounds): Promise<ThreatPoint[]> {
+  try {
+    // NASA FIRMS public CSV (VIIRS_SNPP_NRT, last 24h, global). Filter by bounds client-side.
+    const r = await fetch("https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv");
+    if (!r.ok) return [];
+    const text = await r.text();
+    const lines = text.split("\n").slice(1, 8000);
+    const sw = bounds.getSouthWest(); const ne = bounds.getNorthEast();
+    const out: ThreatPoint[] = [];
+    for (const ln of lines) {
+      const cols = ln.split(",");
+      if (cols.length < 4) continue;
+      const lat = parseFloat(cols[0]); const lng = parseFloat(cols[1]);
+      if (isNaN(lat) || isNaN(lng)) continue;
+      if (lat < sw.lat || lat > ne.lat || lng < sw.lng || lng > ne.lng) continue;
+      out.push({ lat, lng, label: `Hotspot · ${cols[2]}K`, meta: `${cols[5]} ${cols[6]} UTC · conf ${cols[8]}`, severity: parseFloat(cols[2]) });
+      if (out.length >= 300) break;
+    }
+    return out;
+  } catch { return []; }
+}
+
 /* ─────────────── Map click handler ─────────────── */
 
 const MapClick = ({ onClick }: { onClick: (lat: number, lng: number) => void }) => {
@@ -270,15 +333,21 @@ interface SelectedEntity {
   loading: boolean;
 }
 
+const THREAT_IDS = ["h-quake", "h-fire", "h-air"] as const;
+type ThreatId = typeof THREAT_IDS[number];
+
 const IntelligenceMapModule = () => {
   const [activeBase, setActiveBase] = useState<string>("carto-dark");
-  const [openCats, setOpenCats] = useState<Record<string, boolean>>({ base: true, weather: true });
+  const [openCats, setOpenCats] = useState<Record<string, boolean>>({ base: true, weather: true, threats: true });
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [coord, setCoord] = useState({ lat: 38.9072, lng: -77.0369, zoom: 4 });
   const [entity, setEntity] = useState<SelectedEntity | null>(null);
   const [pinned, setPinned] = useState(false);
+  const [savingTarget, setSavingTarget] = useState(false);
+  const [activeThreats, setActiveThreats] = useState<Record<ThreatId, boolean>>({ "h-quake": false, "h-fire": false, "h-air": false });
+  const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
@@ -289,6 +358,30 @@ const IntelligenceMapModule = () => {
     window.addEventListener("asher:mapmove", handler);
     return () => window.removeEventListener("asher:mapmove", handler);
   }, []);
+
+  // Refresh threat overlays when toggled or map moves
+  useEffect(() => {
+    const refresh = async () => {
+      const map = mapRef.current;
+      if (!map) return;
+      const bounds = map.getBounds();
+      const tasks: Promise<void>[] = [];
+      if (activeThreats["h-quake"]) {
+        tasks.push(fetchEarthquakes().then((d) => setThreatData((p) => ({ ...p, "h-quake": d }))));
+      }
+      if (activeThreats["h-fire"]) {
+        tasks.push(fetchWildfires(bounds).then((d) => setThreatData((p) => ({ ...p, "h-fire": d }))));
+      }
+      if (activeThreats["h-air"]) {
+        tasks.push(fetchAircraft(bounds).then((d) => setThreatData((p) => ({ ...p, "h-air": d }))));
+      }
+      await Promise.all(tasks);
+    };
+    refresh();
+    const id = window.setInterval(refresh, 60000);
+    return () => window.clearInterval(id);
+  }, [activeThreats, coord.lat, coord.lng, coord.zoom]);
+
 
   const tile = TILE_SOURCES[activeBase] ?? TILE_SOURCES["carto-dark"];
 
@@ -311,6 +404,7 @@ const IntelligenceMapModule = () => {
 
   const loadEntity = async (lat: number, lng: number) => {
     setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, loading: true });
+    logAsherEvent("map_query", { lat: +lat.toFixed(4), lng: +lng.toFixed(4) });
     const [hit, weather, elevation, celestial, features] = await Promise.all([
       reverseGeocode(lat, lng),
       fetchWeather(lat, lng),
@@ -323,6 +417,39 @@ const IntelligenceMapModule = () => {
     if (cc) country = await fetchCountryByCode(cc);
     setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, loading: false });
   };
+
+  const saveCurrentTarget = async () => {
+    if (!entity) return;
+    setSavingTarget(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u?.user?.id) { toast.error("Not authenticated"); return; }
+      const label =
+        entity.hit?.address?.city || entity.hit?.address?.town ||
+        entity.hit?.address?.village || entity.hit?.address?.state ||
+        entity.country?.name.common ||
+        `${entity.lat.toFixed(3)}, ${entity.lng.toFixed(3)}`;
+      const payload = {
+        country: entity.country?.name?.common,
+        weather: entity.weather?.current,
+        elevation: entity.elevation,
+        celestial: entity.celestial ? {
+          sunrise: entity.celestial.sunrise, sunset: entity.celestial.sunset,
+        } : null,
+        feature_count: entity.features?.length ?? 0,
+        address: entity.hit?.display_name,
+      };
+      const { error } = await supabase.from("asher_saved_targets").insert({
+        user_id: u.user.id, label, lat: entity.lat, lng: entity.lng, payload,
+      });
+      if (error) { toast.error("Save failed"); return; }
+      logAsherEvent("target_saved", { label, lat: entity.lat, lng: entity.lng });
+      toast.success("Target saved to dossier vault");
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
 
   const handleSearchPick = (h: SearchHit) => {
     const lat = parseFloat(h.lat); const lng = parseFloat(h.lon);
@@ -357,12 +484,17 @@ const IntelligenceMapModule = () => {
                   <div className="ml-5 mt-0.5 space-y-0.5">
                     {cat.layers.map((l) => {
                       const isBase = cat.id === "base";
-                      const isActive = isBase ? l.id === activeBase : false;
+                      const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
+                      const isActive = isBase
+                        ? l.id === activeBase
+                        : isThreat ? !!activeThreats[l.id as ThreatId] : false;
                       return (
                         <button
                           key={l.id}
                           onClick={() => {
-                            if (isBase && l.status === "live") setActiveBase(l.id);
+                            if (l.status !== "live") return;
+                            if (isBase) setActiveBase(l.id);
+                            else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
                           }}
                           disabled={l.status !== "live"}
                           className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors ${
@@ -377,6 +509,9 @@ const IntelligenceMapModule = () => {
                           <span className="text-[11px] font-light flex-1 truncate">{l.label}</span>
                           {l.status === "soon" && (
                             <span className="text-[8px] tracking-[0.2em] text-muted-foreground/40 uppercase">Soon</span>
+                          )}
+                          {isThreat && isActive && (
+                            <span className="text-[8px] tracking-[0.2em] text-emerald-400/80 uppercase">{threatData[l.id as ThreatId]?.length ?? 0}</span>
                           )}
                         </button>
                       );
@@ -452,6 +587,27 @@ const IntelligenceMapModule = () => {
           />
           <MapClick onClick={loadEntity} />
           <CoordDisplay onMove={() => {}} />
+
+          {/* Threat overlays — live data */}
+          {activeThreats["h-quake"] && threatData["h-quake"].map((p, i) => (
+            <CircleMarker key={`q-${i}`} center={[p.lat, p.lng]}
+              radius={Math.max(4, Math.min(14, (p.severity || 3) * 2))}
+              pathOptions={{ color: "#f59e0b", weight: 1, fillColor: "#f59e0b", fillOpacity: 0.45 }}>
+              <Popup><div className="text-xs"><b>{p.label}</b><br/>{p.meta}</div></Popup>
+            </CircleMarker>
+          ))}
+          {activeThreats["h-fire"] && threatData["h-fire"].map((p, i) => (
+            <CircleMarker key={`f-${i}`} center={[p.lat, p.lng]} radius={4}
+              pathOptions={{ color: "#ef4444", weight: 1, fillColor: "#ef4444", fillOpacity: 0.6 }}>
+              <Popup><div className="text-xs"><b>{p.label}</b><br/>{p.meta}</div></Popup>
+            </CircleMarker>
+          ))}
+          {activeThreats["h-air"] && threatData["h-air"].map((p, i) => (
+            <CircleMarker key={`a-${i}`} center={[p.lat, p.lng]} radius={3}
+              pathOptions={{ color: "#22d3ee", weight: 1, fillColor: "#22d3ee", fillOpacity: 0.7 }}>
+              <Popup><div className="text-xs"><b>{p.label}</b><br/>{p.meta}</div></Popup>
+            </CircleMarker>
+          ))}
         </MapContainer>
 
         {/* COORD WIDGET */}
@@ -467,6 +623,15 @@ const IntelligenceMapModule = () => {
             <div className="flex items-center justify-between border-b border-border/15 px-4 py-3">
               <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase">Entity Profile</p>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={saveCurrentTarget}
+                  disabled={savingTarget || entity.loading}
+                  className="flex items-center gap-1.5 rounded-md border border-border/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 uppercase disabled:opacity-40"
+                  title="Save target to dossier vault"
+                >
+                  {savingTarget ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" strokeWidth={1.5} />}
+                  Save
+                </button>
                 <button onClick={() => setPinned(!pinned)} className={`p-1 rounded ${pinned ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                   <Pin className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </button>

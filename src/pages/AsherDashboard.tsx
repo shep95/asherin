@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
-  Brain, Database,
+  Brain, Database, Bookmark,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,10 @@ import ComingSoonModule from "@/components/asher/ComingSoonModule";
 import AsherCommandCenter from "@/components/asher/AsherCommandCenter";
 import AsherAzplenModule from "@/components/asher/AsherAzplenModule";
 import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
+import AsherAuditVault from "@/components/asher/AsherAuditVault";
+import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
+import { logAsherEvent } from "@/lib/asherAudit";
+import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
 
 const ASHER_ACCESS_CODE = "Asher092625";
 const ASHER_GATE_KEY = "asher_dashboard_unlocked";
@@ -25,8 +29,10 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
     e.preventDefault();
     if (code === ASHER_ACCESS_CODE) {
       try { sessionStorage.setItem(ASHER_GATE_KEY, "1"); } catch {}
+      logAsherEvent("passcode_success", {});
       onUnlock();
     } else {
+      logAsherEvent("passcode_failure", { attempted_length: code.length });
       setError("ACCESS DENIED — Invalid clearance code.");
       setCode("");
     }
@@ -99,19 +105,20 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "azplen" | "theater" | "targeting" | "sigint"
+  | "map" | "command" | "azplen" | "targets" | "theater" | "targeting" | "sigint"
   | "geoint" | "doctrine" | "audit" | "settings" | "profile";
 
 const NAV: { id: AsherTab; label: string; icon: any; sub?: string }[] = [
   { id: "map",       label: "Intelligence Map", icon: MapIcon,    sub: "Primary" },
   { id: "command",   label: "ASHER AI",         icon: Brain,      sub: "Live" },
   { id: "azplen",    label: "Azplen Intel",     icon: Database,   sub: "Live" },
+  { id: "targets",   label: "Saved Targets",    icon: Bookmark,   sub: "Live" },
   { id: "theater",   label: "Theater Brief",    icon: FileText },
   { id: "targeting", label: "Targeting Aid",    icon: Crosshair },
   { id: "sigint",    label: "SIGINT Fusion",    icon: Radio },
   { id: "geoint",    label: "GEOINT Layer",     icon: Satellite },
   { id: "doctrine",  label: "Doctrine Recall",  icon: BookOpen },
-  { id: "audit",     label: "Audit Vault",      icon: Lock },
+  { id: "audit",     label: "Audit Vault",      icon: Lock,       sub: "Live" },
 ];
 
 const AsherDashboard = () => {
@@ -124,11 +131,28 @@ const AsherDashboard = () => {
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
 
+  // Auto-lock after 15 min of inactivity (only when unlocked)
+  useAsherAutoLock(() => {
+    try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
+    setUnlocked(false);
+  });
+
+  // Log unlock + tab navigation
+  useEffect(() => {
+    if (unlocked) logAsherEvent("session_unlocked", {});
+  }, [unlocked]);
+
+  useEffect(() => {
+    if (unlocked) logAsherEvent("module_open", { module: active });
+  }, [active, unlocked]);
+
   if (!unlocked) {
     return <AsherPasscodeGate onUnlock={() => setUnlocked(true)} />;
   }
 
   const handleLogout = async () => {
+    await logAsherEvent("logout", {});
+    try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
     await supabase.auth.signOut();
     navigate("/asher");
   };
@@ -196,12 +220,13 @@ const AsherDashboard = () => {
         {active === "map"       && <IntelligenceMapModule />}
         {active === "command"   && <AsherCommandCenter />}
         {active === "azplen"    && <AsherAzplenModule />}
+        {active === "targets"   && <AsherSavedTargets />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
         {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
         {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
         {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
         {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
-        {active === "audit"     && <ComingSoonModule title="Audit Vault"     sub="Immutable chain-of-custody logs" />}
+        {active === "audit"     && <AsherAuditVault />}
         {active === "settings"  && <AsherSettingsModule />}
         {active === "profile"   && <ComingSoonModule title="Profile"         sub="Operator credentials and clearances" />}
       </main>
