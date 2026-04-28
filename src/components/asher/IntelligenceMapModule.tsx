@@ -333,15 +333,21 @@ interface SelectedEntity {
   loading: boolean;
 }
 
+const THREAT_IDS = ["h-quake", "h-fire", "h-air"] as const;
+type ThreatId = typeof THREAT_IDS[number];
+
 const IntelligenceMapModule = () => {
   const [activeBase, setActiveBase] = useState<string>("carto-dark");
-  const [openCats, setOpenCats] = useState<Record<string, boolean>>({ base: true, weather: true });
+  const [openCats, setOpenCats] = useState<Record<string, boolean>>({ base: true, weather: true, threats: true });
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [coord, setCoord] = useState({ lat: 38.9072, lng: -77.0369, zoom: 4 });
   const [entity, setEntity] = useState<SelectedEntity | null>(null);
   const [pinned, setPinned] = useState(false);
+  const [savingTarget, setSavingTarget] = useState(false);
+  const [activeThreats, setActiveThreats] = useState<Record<ThreatId, boolean>>({ "h-quake": false, "h-fire": false, "h-air": false });
+  const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
@@ -352,6 +358,30 @@ const IntelligenceMapModule = () => {
     window.addEventListener("asher:mapmove", handler);
     return () => window.removeEventListener("asher:mapmove", handler);
   }, []);
+
+  // Refresh threat overlays when toggled or map moves
+  useEffect(() => {
+    const refresh = async () => {
+      const map = mapRef.current;
+      if (!map) return;
+      const bounds = map.getBounds();
+      const tasks: Promise<void>[] = [];
+      if (activeThreats["h-quake"]) {
+        tasks.push(fetchEarthquakes().then((d) => setThreatData((p) => ({ ...p, "h-quake": d }))));
+      }
+      if (activeThreats["h-fire"]) {
+        tasks.push(fetchWildfires(bounds).then((d) => setThreatData((p) => ({ ...p, "h-fire": d }))));
+      }
+      if (activeThreats["h-air"]) {
+        tasks.push(fetchAircraft(bounds).then((d) => setThreatData((p) => ({ ...p, "h-air": d }))));
+      }
+      await Promise.all(tasks);
+    };
+    refresh();
+    const id = window.setInterval(refresh, 60000);
+    return () => window.clearInterval(id);
+  }, [activeThreats, coord.lat, coord.lng, coord.zoom]);
+
 
   const tile = TILE_SOURCES[activeBase] ?? TILE_SOURCES["carto-dark"];
 
