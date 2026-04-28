@@ -457,6 +457,35 @@ const OracleLocusView = () => {
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
               </div>
 
+              {/* ─── LINKED IMAGERY MINI-MAP ─────────────────────────────
+                  Every analyzed image is plotted as a numbered data point with
+                  thumbnail + city / region / country. Points are connected in
+                  chronological order so the operator can see the link pattern. */}
+              <LinkedImageryMap points={dataPoints} height={300} />
+
+              {/* Quick controls — add another image to the link chain, or reset */}
+              {dataPoints.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => { clearImage(); fileInputRef.current?.click(); }}
+                    className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-[11px] font-light tracking-[0.18em] uppercase text-accent hover:bg-accent/20 transition-colors flex items-center gap-2"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Add Another Image
+                  </button>
+                  <button
+                    onClick={() => setDataPoints([])}
+                    className="rounded-xl border border-border/30 bg-card/10 px-4 py-2 text-[11px] font-light tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Clear Map
+                  </button>
+                  <span className="text-[10px] text-muted-foreground/60 ml-auto">
+                    {dataPoints.length} linked data point{dataPoints.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+              )}
+
               {/* Results */}
               {result && (
                 <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
