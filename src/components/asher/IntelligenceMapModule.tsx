@@ -410,7 +410,7 @@ const IntelligenceMapModule = () => {
             )}
           </div>
           <div className="rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">
-            Live · OSM · Nominatim · REST Countries · Open-Meteo
+            Live · OSM · Nominatim · REST Countries · Open-Meteo · Overpass · Sunrise-Sunset
           </div>
         </div>
 
