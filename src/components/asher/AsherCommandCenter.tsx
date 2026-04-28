@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Brain, ExternalLink, RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 
 /**
- * Aureon Command Center embedded inside Asher.
- * Loads the full Aureon Dashboard (chat, brains, conversations, models,
- * everything) inside an iframe so the Asher operator has access to the
- * complete Aureon AI brain — rebranded ASHER AI in this surface — without
- * leaving the Asher workspace.
+ * ASHER AI · Command Center.
+ * Surfaces ONLY the Aureon Chat conversation experience inside Asher —
+ * no other Aureon dashboard modules (library, projects, brains, agents,
+ * notebooks, etc.). Locked via the ?asherEmbed=1 flag the Dashboard reads.
  *
- * 100% live: this is the same /dashboard route end users use; no mocked layer.
+ * 100% live: same chat engine, conversations, models, BYOK, personas — but
+ * scoped strictly to chat. No other Aureon software is exposed here.
  */
 const AsherCommandCenter = () => {
   const [key, setKey] = useState(0);
@@ -44,7 +44,7 @@ const AsherCommandCenter = () => {
             {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
           <a
-            href="/dashboard"
+            href="/dashboard?asherEmbed=1"
             target="_blank"
             rel="noreferrer"
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5"
@@ -59,8 +59,8 @@ const AsherCommandCenter = () => {
         <iframe
           ref={ref}
           key={key}
-          src="/dashboard"
-          title="Aureon Command Center"
+          src="/dashboard?asherEmbed=1"
+          title="ASHER AI · Chat"
           className="h-full w-full border-0"
           allow="clipboard-read; clipboard-write; microphone; camera; geolocation"
         />
