@@ -15,6 +15,7 @@ import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
 import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
 import AsherZophielModule from "@/components/asher/AsherZophielModule";
+import AsherCommsModule from "@/components/asher/AsherCommsModule";
 
 import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
