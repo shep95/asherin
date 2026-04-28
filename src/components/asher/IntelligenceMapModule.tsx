@@ -425,7 +425,8 @@ const fmtCoord = (lat: number, lng: number) => {
 };
 
 /* ─────────────── Profile drawer types ─────────────── */
-interface OsmFeature { id: number; type: string; tags?: Record<string, string> }
+interface OsmFeature { id: number; type: string; tags?: Record<string, string>; center?: { lat: number; lon: number } }
+interface WikiHit { pageid: number; title: string; lat: number; lon: number; dist: number }
 interface SelectedEntity {
   lat: number; lng: number;
   hit: SearchHit | null;
@@ -434,6 +435,7 @@ interface SelectedEntity {
   elevation: number | null;
   celestial: any | null;
   features: OsmFeature[] | null;
+  wiki: WikiHit[] | null;
   loading: boolean;
 }
 
