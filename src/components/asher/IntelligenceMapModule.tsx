@@ -404,6 +404,7 @@ const IntelligenceMapModule = () => {
 
   const loadEntity = async (lat: number, lng: number) => {
     setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, loading: true });
+    logAsherEvent("map_query", { lat: +lat.toFixed(4), lng: +lng.toFixed(4) });
     const [hit, weather, elevation, celestial, features] = await Promise.all([
       reverseGeocode(lat, lng),
       fetchWeather(lat, lng),
@@ -416,6 +417,39 @@ const IntelligenceMapModule = () => {
     if (cc) country = await fetchCountryByCode(cc);
     setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, loading: false });
   };
+
+  const saveCurrentTarget = async () => {
+    if (!entity) return;
+    setSavingTarget(true);
+    try {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u?.user?.id) { toast.error("Not authenticated"); return; }
+      const label =
+        entity.hit?.address?.city || entity.hit?.address?.town ||
+        entity.hit?.address?.village || entity.hit?.address?.state ||
+        entity.country?.name.common ||
+        `${entity.lat.toFixed(3)}, ${entity.lng.toFixed(3)}`;
+      const payload = {
+        country: entity.country?.name?.common,
+        weather: entity.weather?.current,
+        elevation: entity.elevation,
+        celestial: entity.celestial ? {
+          sunrise: entity.celestial.sunrise, sunset: entity.celestial.sunset,
+        } : null,
+        feature_count: entity.features?.length ?? 0,
+        address: entity.hit?.display_name,
+      };
+      const { error } = await supabase.from("asher_saved_targets").insert({
+        user_id: u.user.id, label, lat: entity.lat, lng: entity.lng, payload,
+      });
+      if (error) { toast.error("Save failed"); return; }
+      logAsherEvent("target_saved", { label, lat: entity.lat, lng: entity.lng });
+      toast.success("Target saved to dossier vault");
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
 
   const handleSearchPick = (h: SearchHit) => {
     const lat = parseFloat(h.lat); const lng = parseFloat(h.lon);
