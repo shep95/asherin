@@ -133,6 +133,9 @@ const BRANCHES: NavBranch[] = [
     { id: "geoint",    label: "GEOINT Layer",    icon: Satellite },
     { id: "doctrine",  label: "Doctrine Recall", icon: BookOpen },
   ]},
+  { id: "comms", label: "Secure Comms", items: [
+    { id: "comms", label: "Operator Comms", icon: MessageSquare, sub: "E2EE" },
+  ]},
   { id: "vault", label: "Vault & System", items: [
     { id: "audit",    label: "Audit Vault", icon: Lock,     sub: "Live" },
     { id: "profile",  label: "Profile",     icon: User,     sub: "Live" },
