@@ -819,12 +819,108 @@ const IntelligenceMapModule = () => {
                     </div>
                   </div>
 
-                  {/* Coords */}
+                  {/* Live Satellite Preview (ESRI World Imagery composite) */}
+                  {(() => {
+                    const z = 17;
+                    const tileX = Math.floor(((entity.lng + 180) / 360) * Math.pow(2, z));
+                    const tileY = Math.floor(
+                      ((1 - Math.log(Math.tan((entity.lat * Math.PI) / 180) + 1 / Math.cos((entity.lat * Math.PI) / 180)) / Math.PI) / 2) *
+                        Math.pow(2, z)
+                    );
+                    const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${tileY}/${tileX}`;
+                    return (
+                      <div className="relative overflow-hidden rounded-lg border border-border/20">
+                        <img src={url} alt="Live satellite imagery" className="w-full h-40 object-cover" loading="lazy" />
+                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-background/70 backdrop-blur text-[8px] tracking-[0.2em] uppercase text-emerald-400">● Live · ESRI World Imagery</div>
+                        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-background/70 backdrop-blur text-[8px] tracking-[0.2em] uppercase text-muted-foreground">Z{z}</div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Click classification */}
+                  {(() => {
+                    const { primary, cls } = classifyClick(entity.features);
+                    const t = primary?.tags || {};
+                    const labelMap: Record<string, string> = {
+                      residential: "Residential Property",
+                      commercial: "Commercial Property",
+                      industrial: "Industrial Site",
+                      military: "Military Facility",
+                      agricultural: "Agricultural Land",
+                      vacant: "Vacant / Undeveloped Land",
+                      infrastructure: "Critical Infrastructure",
+                      transport: "Transportation Asset",
+                      building: "Building",
+                      natural: "Natural Feature",
+                      water: "Hydrographic Feature",
+                      unknown: "Geographic Point",
+                    };
+                    return (
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-1.5">
+                        <p className="text-[9px] font-light tracking-[0.3em] text-emerald-400/80 uppercase">Click Classification</p>
+                        <p className="text-sm font-light text-foreground">{labelMap[cls]}</p>
+                        {primary && (
+                          <p className="text-[10px] tracking-wide text-muted-foreground">
+                            {t.name || t["name:en"] || t.operator || "Unnamed"} · OSM {primary.type}#{primary.id}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Coords + Grids */}
                   <div className="rounded-lg bg-background/40 border border-border/15 p-3 text-[11px] font-light tracking-wide space-y-1">
-                    <p><span className="text-muted-foreground/60">📍 Location:</span> {fmtCoord(entity.lat, entity.lng)}</p>
-                    <p><span className="text-muted-foreground/60">🕐 Resolved:</span> {new Date().toLocaleTimeString()}</p>
-                    <p><span className="text-muted-foreground/60">📡 Source:</span> Nominatim · REST Countries · Open-Meteo</p>
+                    <p><span className="text-muted-foreground/60">📍 LAT/LNG:</span> {fmtCoord(entity.lat, entity.lng)}</p>
+                    {(() => { const u = toUTM(entity.lat, entity.lng);
+                      return <p><span className="text-muted-foreground/60">UTM:</span> {u.zone}{u.band} {u.easting}E {u.northing}N</p>; })()}
+                    <p><span className="text-muted-foreground/60">MGRS:</span> {toMGRS(entity.lat, entity.lng)}</p>
+                    <p><span className="text-muted-foreground/60">🕐 Resolved:</span> {new Date().toUTCString().slice(17, 25)} UTC</p>
+                    <p><span className="text-muted-foreground/60">📡 Source:</span> Nominatim · REST Countries · Open-Meteo · Overpass · Wikipedia · ESRI</p>
                   </div>
+
+                  {/* PRIMARY ENTITY DETAILS — pulled from Overpass tags (live, real OSM data) */}
+                  {(() => {
+                    const { primary } = classifyClick(entity.features);
+                    if (!primary) return null;
+                    const t = primary.tags || {};
+                    const fields: [string, string | undefined][] = [
+                      ["Name", t.name || t["name:en"]],
+                      ["Operator", t.operator],
+                      ["Owner", t.owner],
+                      ["Building Type", t.building],
+                      ["Use", t["building:use"] || t.amenity || t.shop],
+                      ["Levels", t["building:levels"]],
+                      ["Height", t.height],
+                      ["Year Built", t["start_date"] || t["construction:start_date"]],
+                      ["Material", t["building:material"]],
+                      ["Roof", t["roof:shape"]],
+                      ["Land Use", t.landuse],
+                      ["Crop", t.crop || t.produce],
+                      ["Surface", t.surface],
+                      ["Power", t.power],
+                      ["Voltage", t.voltage],
+                      ["Capacity", t.capacity],
+                      ["Military Type", t.military],
+                      ["Branch", t["military:branch"]],
+                      ["Wikipedia", t.wikipedia],
+                      ["Wikidata", t.wikidata],
+                      ["Phone", t.phone || t["contact:phone"]],
+                      ["Website", t.website || t["contact:website"]],
+                      ["Opening Hours", t.opening_hours],
+                    ].filter(([, v]) => !!v);
+                    if (fields.length === 0) return null;
+                    return (
+                      <div>
+                        <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase mb-2">Primary Entity (OSM · Live)</p>
+                        <div className="rounded-lg border border-border/15 bg-background/40 p-3 space-y-1 text-[11px] font-light">
+                          {fields.map(([k, v]) => (
+                            <p key={k}><span className="text-muted-foreground/60">{k}:</span> {v}</p>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
 
                   {/* Country profile */}
                   {entity.country && (
