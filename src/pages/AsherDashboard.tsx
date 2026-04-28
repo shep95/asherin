@@ -242,7 +242,7 @@ const AsherDashboard = () => {
         {active === "map"       && <IntelligenceMapModule />}
         {active === "command"   && <AsherCommandCenter />}
         {active === "zophiel"   && <AsherZophielModule />}
-        {active === "imagine"   && <AsherImagineModule />}
+        
         {active === "azplen"    && <AsherAzplenModule />}
         {active === "targets"   && <AsherSavedTargets />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
