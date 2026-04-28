@@ -52,27 +52,43 @@ Deno.serve(async (req) => {
         ? `24/7 live webcam stream from ${loc} (street, skyline, harbor, traffic)`
         : `live stream from ${loc} right now`;
 
-    const prompt = `Find a currently-live YouTube stream URL for: ${intent}.
-Return ONLY a JSON object:
-{"video_url":"https://www.youtube.com/watch?v=XXXXXXXXXXX","title":"...","channel":"..."}
-Pick a stream that is actively broadcasting. Prefer official news channels (Sky, Al Jazeera, France 24, NHK, local stations) or well-known 24/7 city/webcam streams. Do not invent a URL.`;
+    const prompt = `Find currently-live YouTube stream URLs for: ${intent}.
+Return ONLY a JSON object with up to 5 candidates:
+{"streams":[{"video_url":"https://www.youtube.com/watch?v=XXXXXXXXXXX","title":"...","channel":"..."}]}
+Prefer official news channels (Sky News, Al Jazeera English, France 24, DW, NHK, ABC News, local stations) and well-known 24/7 city/webcam streams. Only include streams that are actively broadcasting right now. Do not invent URLs.`;
 
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
-          generationConfig: { temperature: 0.2 },
-        }),
-      },
-    );
+    // Try multiple models with retry — Gemini 2.5 frequently returns 503 under load
+    const models = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-1.5-flash",
+    ];
+    let resp: Response | null = null;
+    let lastErr = "";
+    outer: for (const model of models) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ role: "user", parts: [{ text: prompt }] }],
+              tools: [{ google_search: {} }],
+              generationConfig: { temperature: 0.3 },
+            }),
+          },
+        );
+        if (r.ok) { resp = r; break outer; }
+        lastErr = `${model} ${r.status}: ${(await r.text()).slice(0, 200)}`;
+        if (r.status !== 503 && r.status !== 429) break; // only retry on overload
+        await new Promise((res) => setTimeout(res, 400 * (attempt + 1)));
+      }
+    }
 
-    if (!resp.ok) {
-      const t = await resp.text();
-      return new Response(JSON.stringify({ error: `Gemini ${resp.status}`, detail: t.slice(0, 500) }), {
+    if (!resp) {
+      return new Response(JSON.stringify({ error: "Gemini unavailable", detail: lastErr }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -107,9 +123,35 @@ Pick a stream that is actively broadcasting. Prefer official news channels (Sky,
     if (!videoId && candidates[0]) videoId = candidates[0];
 
     if (!videoId) {
+      // Hard fallback: well-known 24/7 streams so the panel always shows something live
+      const fallbackByKind: Record<string, { id: string; title: string; channel: string }[]> = {
+        news: [
+          { id: "9Auq9mYxFEE", title: "Sky News Live", channel: "Sky News" },
+          { id: "gCNeDWCI0vo", title: "DW News Livestream", channel: "DW News" },
+          { id: "F-TyVQUKVNA", title: "Al Jazeera English Live", channel: "Al Jazeera" },
+          { id: "Y-IAEsgGu_o", title: "France 24 English Live", channel: "France 24" },
+        ],
+        cams: [
+          { id: "rnXIjl_Rzy4", title: "Times Square Live Cam", channel: "EarthCam" },
+          { id: "1-iS7LArMPA", title: "Tokyo Shibuya Live Cam", channel: "ANNnewsCH" },
+        ],
+        live: [
+          { id: "9Auq9mYxFEE", title: "Sky News Live", channel: "Sky News" },
+          { id: "rnXIjl_Rzy4", title: "Times Square Live Cam", channel: "EarthCam" },
+        ],
+      };
+      const fb = fallbackByKind[kind] || fallbackByKind.live;
       return new Response(
-        JSON.stringify({ error: "No live video resolved", raw: text.slice(0, 400) }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          videoId: fb[0].id,
+          title: fb[0].title,
+          channel: fb[0].channel,
+          url: `https://www.youtube.com/watch?v=${fb[0].id}`,
+          source: "fallback",
+          candidates: fb.map((f) => f.id),
+          notice: "No location-specific live stream resolved — showing global fallback.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
