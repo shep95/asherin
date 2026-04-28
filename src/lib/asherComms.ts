@@ -202,6 +202,52 @@ export async function createDM(otherUserId: string): Promise<string> {
   return conv.id;
 }
 
+export async function addMembers(conversationId: string, userIds: string[]) {
+  if (userIds.length === 0) return;
+  const rows = userIds.map((uid) => ({
+    conversation_id: conversationId,
+    user_id: uid,
+    role: "member" as const,
+  }));
+  const { error } = await supabase
+    .from("asher_conversation_members")
+    .upsert(rows, { onConflict: "conversation_id,user_id" });
+  if (error) throw error;
+  await audit("members_added", { conversation_id: conversationId, count: userIds.length });
+}
+
+export async function createGroup(input: {
+  name: string;
+  topic?: string;
+  classification?: string;
+  member_ids: string[];
+}): Promise<string> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Not authenticated");
+  const me = auth.user.id;
+  const { data: conv, error } = await supabase
+    .from("asher_conversations")
+    .insert({
+      kind: "group",
+      name: input.name,
+      topic: input.topic ?? null,
+      classification: input.classification ?? "UNCLASSIFIED",
+      created_by: me,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  const members = Array.from(new Set([me, ...input.member_ids])).map((uid) => ({
+    conversation_id: conv.id,
+    user_id: uid,
+    role: uid === me ? "owner" : "member",
+  }));
+  const { error: memErr } = await supabase.from("asher_conversation_members").insert(members);
+  if (memErr) throw memErr;
+  await audit("group_created", { conversation_id: conv.id, name: input.name, members: members.length });
+  return conv.id;
+}
+
 export async function createChannel(input: {
   name: string;
   topic?: string;

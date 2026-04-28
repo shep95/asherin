@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { Lock, Send, Plus, Shield, Users } from "lucide-react";
+import { Lock, Send, Plus, Shield, Users, UserPlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   generateIdentity, hasIdentity, unlockIdentity, getLocalPublicKey, fingerprintPubkey,
 } from "@/lib/asherCrypto";
 import {
   uploadPublicKey, listOperators, listConversations, fetchMessages, decryptInbox,
-  sendMessage, createDM, updateOwnPresence,
+  sendMessage, createDM, createGroup, addMembers, listMembers, updateOwnPresence,
   type Operator, type Conversation, type DecryptedMessage,
 } from "@/lib/asherComms";
 import { toast } from "sonner";
@@ -22,7 +22,16 @@ const AsherCommsModule = () => {
   const [msgs, setMsgs] = useState<DecryptedMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupSelected, setGroupSelected] = useState<Set<string>>(new Set());
+  const [addSelected, setAddSelected] = useState<Set<string>>(new Set());
+  const [activeMembers, setActiveMembers] = useState<string[]>([]);
   const passRef = useRef<string>("");
+
+  const activeConvObj = convs.find(c => c.id === activeConv) ?? null;
+  const isOwner = !!activeConvObj && activeConvObj.created_by === userId;
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -98,6 +107,55 @@ const AsherCommsModule = () => {
     } catch (e) { toast.error(e instanceof Error ? e.message : "DM failed"); }
   };
 
+  // Load members of active conversation
+  useEffect(() => {
+    if (!activeConv) { setActiveMembers([]); return; }
+    listMembers(activeConv).then(setActiveMembers).catch(() => setActiveMembers([]));
+  }, [activeConv]);
+
+  const toggleSet = (set: Set<string>, id: string, setter: (s: Set<string>) => void) => {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setter(next);
+  };
+
+  const submitNewGroup = async () => {
+    if (!groupName.trim()) { toast.error("Group name required"); return; }
+    if (groupSelected.size === 0) { toast.error("Select at least one operator"); return; }
+    setBusy(true);
+    try {
+      const id = await createGroup({
+        name: groupName.trim(),
+        member_ids: Array.from(groupSelected),
+      });
+      const cs = await listConversations();
+      setConvs(cs);
+      setActiveConv(id);
+      setShowNewGroup(false);
+      setGroupName("");
+      setGroupSelected(new Set());
+      toast.success("Group created — invites sent");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Group failed");
+    } finally { setBusy(false); }
+  };
+
+  const submitAddMembers = async () => {
+    if (!activeConv || addSelected.size === 0) return;
+    setBusy(true);
+    try {
+      await addMembers(activeConv, Array.from(addSelected));
+      const m = await listMembers(activeConv);
+      setActiveMembers(m);
+      setShowAddMembers(false);
+      setAddSelected(new Set());
+      toast.success(`Added ${addSelected.size} operator(s)`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Add failed");
+    } finally { setBusy(false); }
+  };
+
+
   if (!unlocked) {
     return (
       <div className="flex h-full items-center justify-center bg-background">
@@ -135,8 +193,15 @@ const AsherCommsModule = () => {
     <div className="flex h-full bg-background">
       {/* Sidebar */}
       <div className="w-72 border-r border-border/15 flex flex-col">
-        <div className="p-3 border-b border-border/15">
+        <div className="p-3 border-b border-border/15 flex items-center justify-between">
           <p className="text-[10px] tracking-[0.3em] uppercase text-foreground/70">Conversations</p>
+          <button
+            onClick={() => setShowNewGroup(true)}
+            title="New group chat"
+            className="p-1 rounded hover:bg-foreground/10 text-foreground/70"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {convs.length === 0 && (
@@ -192,7 +257,21 @@ const AsherCommsModule = () => {
           <>
             <div className="px-4 py-2 border-b border-border/15 flex items-center gap-2 bg-card/20">
               <Lock className="h-3 w-3 text-emerald-400/70" />
-              <span className="text-[10px] tracking-[0.25em] uppercase text-foreground/70">End-to-End Encrypted</span>
+              <span className="text-[11px] text-foreground/90">
+                {activeConvObj?.name ?? (activeConvObj?.kind === "dm" ? "Direct Message" : "Conversation")}
+              </span>
+              <span className="text-[9px] text-muted-foreground tracking-[0.2em] uppercase">
+                · E2E · {activeMembers.length} member{activeMembers.length === 1 ? "" : "s"}
+              </span>
+              {activeConvObj && activeConvObj.kind !== "dm" && isOwner && (
+                <button
+                  onClick={() => { setAddSelected(new Set()); setShowAddMembers(true); }}
+                  className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-[10px] uppercase tracking-[0.15em] text-foreground/80 hover:bg-foreground/10 border border-border/20"
+                  title="Invite users to this group"
+                >
+                  <UserPlus className="h-3 w-3" /> Invite
+                </button>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {msgs.map((m) => (
@@ -228,6 +307,89 @@ const AsherCommsModule = () => {
           </>
         )}
       </div>
+
+      {/* New Group Modal */}
+      {showNewGroup && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] tracking-[0.3em] uppercase text-foreground/80">New Group Chat</p>
+              <button onClick={() => setShowNewGroup(false)} className="p-1 hover:bg-foreground/10 rounded">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <input
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Group name (e.g. Field Team Alpha)"
+              className="w-full px-3 py-2 rounded-lg bg-background/60 border border-border/30 text-sm text-foreground mb-3"
+            />
+            <p className="text-[10px] tracking-[0.2em] uppercase text-foreground/60 mb-2">Invite Operators</p>
+            <div className="max-h-60 overflow-y-auto space-y-1 mb-3 border border-border/15 rounded-lg p-2">
+              {ops.filter(o => o.user_id !== userId).map((o) => (
+                <label key={o.id} className="flex items-center gap-2 px-2 py-1 rounded text-[12px] hover:bg-foreground/5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={groupSelected.has(o.user_id)}
+                    onChange={() => toggleSet(groupSelected, o.user_id, setGroupSelected)}
+                  />
+                  <span className={`h-1.5 w-1.5 rounded-full ${o.status === "online" ? "bg-emerald-400" : "bg-foreground/20"}`} />
+                  <span className="text-foreground/90">{o.callsign}</span>
+                  <span className="ml-auto text-[9px] text-muted-foreground">{o.clearance}</span>
+                </label>
+              ))}
+              {ops.filter(o => o.user_id !== userId).length === 0 && (
+                <p className="text-[10px] text-muted-foreground p-2">No other operators available.</p>
+              )}
+            </div>
+            <button
+              onClick={submitNewGroup}
+              disabled={busy}
+              className="w-full py-2 rounded-lg bg-foreground/10 hover:bg-foreground/20 text-foreground text-xs tracking-[0.2em] uppercase border border-border/30"
+            >
+              Create Group & Send Invites
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Members Modal */}
+      {showAddMembers && activeConv && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/90 backdrop-blur-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] tracking-[0.3em] uppercase text-foreground/80">Invite to Group</p>
+              <button onClick={() => setShowAddMembers(false)} className="p-1 hover:bg-foreground/10 rounded">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="max-h-72 overflow-y-auto space-y-1 mb-3 border border-border/15 rounded-lg p-2">
+              {ops.filter(o => o.user_id !== userId && !activeMembers.includes(o.user_id)).map((o) => (
+                <label key={o.id} className="flex items-center gap-2 px-2 py-1 rounded text-[12px] hover:bg-foreground/5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={addSelected.has(o.user_id)}
+                    onChange={() => toggleSet(addSelected, o.user_id, setAddSelected)}
+                  />
+                  <span className={`h-1.5 w-1.5 rounded-full ${o.status === "online" ? "bg-emerald-400" : "bg-foreground/20"}`} />
+                  <span className="text-foreground/90">{o.callsign}</span>
+                  <span className="ml-auto text-[9px] text-muted-foreground">{o.clearance}</span>
+                </label>
+              ))}
+              {ops.filter(o => o.user_id !== userId && !activeMembers.includes(o.user_id)).length === 0 && (
+                <p className="text-[10px] text-muted-foreground p-2">All operators are already members.</p>
+              )}
+            </div>
+            <button
+              onClick={submitAddMembers}
+              disabled={busy || addSelected.size === 0}
+              className="w-full py-2 rounded-lg bg-foreground/10 hover:bg-foreground/20 text-foreground text-xs tracking-[0.2em] uppercase border border-border/30 disabled:opacity-40"
+            >
+              Send {addSelected.size || ""} Invite{addSelected.size === 1 ? "" : "s"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
