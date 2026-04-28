@@ -177,6 +177,48 @@ async function fetchWeather(lat: number, lon: number) {
   } catch { return null; }
 }
 
+/* ─────────────── Open-Meteo Elevation API (live) ─────────────── */
+async function fetchElevation(lat: number, lon: number): Promise<number | null> {
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return Array.isArray(j?.elevation) ? j.elevation[0] : null;
+  } catch { return null; }
+}
+
+/* ─────────────── Sunrise-Sunset.org (live celestial) ─────────────── */
+async function fetchCelestial(lat: number, lon: number) {
+  try {
+    const r = await fetch(`https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&formatted=0`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j?.results || null;
+  } catch { return null; }
+}
+
+/* ─────────────── Overpass API (live OSM building / facility query) ─────────────── */
+async function fetchNearbyFeatures(lat: number, lon: number) {
+  try {
+    const radius = 150;
+    const q = `[out:json][timeout:10];(
+      node(around:${radius},${lat},${lon})[amenity];
+      way(around:${radius},${lat},${lon})[building];
+      node(around:${radius},${lat},${lon})[man_made];
+      node(around:${radius},${lat},${lon})[military];
+      way(around:${radius},${lat},${lon})[military];
+    );out tags 30;`;
+    const r = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "data=" + encodeURIComponent(q),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return Array.isArray(j?.elements) ? j.elements.slice(0, 25) : [];
+  } catch { return null; }
+}
+
 /* ─────────────── Map click handler ─────────────── */
 
 const MapClick = ({ onClick }: { onClick: (lat: number, lng: number) => void }) => {
