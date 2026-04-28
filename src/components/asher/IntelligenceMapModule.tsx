@@ -587,6 +587,27 @@ const IntelligenceMapModule = () => {
           />
           <MapClick onClick={loadEntity} />
           <CoordDisplay onMove={() => {}} />
+
+          {/* Threat overlays — live data */}
+          {activeThreats["h-quake"] && threatData["h-quake"].map((p, i) => (
+            <CircleMarker key={`q-${i}`} center={[p.lat, p.lng]}
+              radius={Math.max(4, Math.min(14, (p.severity || 3) * 2))}
+              pathOptions={{ color: "#f59e0b", weight: 1, fillColor: "#f59e0b", fillOpacity: 0.45 }}>
+              <Popup><div className="text-xs"><b>{p.label}</b><br/>{p.meta}</div></Popup>
+            </CircleMarker>
+          ))}
+          {activeThreats["h-fire"] && threatData["h-fire"].map((p, i) => (
+            <CircleMarker key={`f-${i}`} center={[p.lat, p.lng]} radius={4}
+              pathOptions={{ color: "#ef4444", weight: 1, fillColor: "#ef4444", fillOpacity: 0.6 }}>
+              <Popup><div className="text-xs"><b>{p.label}</b><br/>{p.meta}</div></Popup>
+            </CircleMarker>
+          ))}
+          {activeThreats["h-air"] && threatData["h-air"].map((p, i) => (
+            <CircleMarker key={`a-${i}`} center={[p.lat, p.lng]} radius={3}
+              pathOptions={{ color: "#22d3ee", weight: 1, fillColor: "#22d3ee", fillOpacity: 0.7 }}>
+              <Popup><div className="text-xs"><b>{p.label}</b><br/>{p.meta}</div></Popup>
+            </CircleMarker>
+          ))}
         </MapContainer>
 
         {/* COORD WIDGET */}
