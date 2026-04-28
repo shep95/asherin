@@ -258,11 +258,15 @@ const fmtCoord = (lat: number, lng: number) => {
 };
 
 /* ─────────────── Profile drawer types ─────────────── */
+interface OsmFeature { id: number; type: string; tags?: Record<string, string> }
 interface SelectedEntity {
   lat: number; lng: number;
   hit: SearchHit | null;
   country: CountryData | null;
   weather: any | null;
+  elevation: number | null;
+  celestial: any | null;
+  features: OsmFeature[] | null;
   loading: boolean;
 }
 
@@ -306,12 +310,18 @@ const IntelligenceMapModule = () => {
   };
 
   const loadEntity = async (lat: number, lng: number) => {
-    setEntity({ lat, lng, hit: null, country: null, weather: null, loading: true });
-    const [hit, weather] = await Promise.all([reverseGeocode(lat, lng), fetchWeather(lat, lng)]);
+    setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, loading: true });
+    const [hit, weather, elevation, celestial, features] = await Promise.all([
+      reverseGeocode(lat, lng),
+      fetchWeather(lat, lng),
+      fetchElevation(lat, lng),
+      fetchCelestial(lat, lng),
+      fetchNearbyFeatures(lat, lng),
+    ]);
     let country: CountryData | null = null;
     const cc = hit?.address?.country_code?.toUpperCase();
     if (cc) country = await fetchCountryByCode(cc);
-    setEntity({ lat, lng, hit, country, weather, loading: false });
+    setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, loading: false });
   };
 
   const handleSearchPick = (h: SearchHit) => {
