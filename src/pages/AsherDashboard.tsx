@@ -200,7 +200,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {BRANCHES.map((branch) => {
+          {buildBranches(superOwner).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
