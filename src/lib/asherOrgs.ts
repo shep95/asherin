@@ -227,7 +227,7 @@ export async function listAudit(orgId: string, limit = 100) {
 async function audit(orgId: string, action: string, target_type: string, target_id: string, metadata: Record<string, unknown>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  await supabase.from("asher_org_audit_log").insert({
-    org_id: orgId, actor_id: user.id, action, target_type, target_id, metadata,
-  });
+  await supabase.from("asher_org_audit_log").insert([{
+    org_id: orgId, actor_id: user.id, action, target_type, target_id, metadata: metadata as never,
+  }]);
 }
