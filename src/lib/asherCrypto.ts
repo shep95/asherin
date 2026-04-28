@@ -153,7 +153,7 @@ export async function unlockIdentity(userId: string, passphrase: string): Promis
   const privBuf = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: toBuf(b64decode(r.iv)) },
     sealKey,
-    b64decode(r.sealedPriv).buffer
+    toBuf(b64decode(r.sealedPriv))
   );
   const privJwk = JSON.parse(dec.decode(privBuf)) as JsonWebKey;
   const privKey = await crypto.subtle.importKey(
