@@ -460,6 +460,50 @@ const IntelligenceMapModule = () => {
     setSearchQ(h.display_name);
   };
 
+  // Map context exposed to Asher AI
+  const mapContext = {
+    center: { lat: coord.lat, lng: coord.lng, zoom: coord.zoom },
+    activeBase,
+    activeThreats,
+    selectedEntity: entity ? {
+      lat: entity.lat, lng: entity.lng,
+      address: entity.hit?.display_name,
+      country: entity.country?.name?.common,
+      weather: entity.weather?.current,
+      elevation: entity.elevation,
+    } : null,
+  };
+
+  // Asher AI dispatcher — drives the map from the right-side panel
+  const handleAIAction = async (a: MapAction): Promise<string | void> => {
+    if (a.type === "search") {
+      const hits = await nominatimSearch(a.query);
+      if (!hits.length) { toast.error(`No results for ${a.query}`); return "No results."; }
+      const h = hits[0];
+      const lat = parseFloat(h.lat); const lng = parseFloat(h.lon);
+      flyTo(lat, lng, 10);
+      await loadEntity(lat, lng);
+      return `Centered on ${h.display_name}`;
+    }
+    if (a.type === "toggle_threat") {
+      const map: Record<string, ThreatId> = { earthquakes: "h-quake", wildfires: "h-fire", aircraft: "h-air" };
+      const id = map[a.layer]; if (!id) return;
+      setActiveThreats((p) => ({ ...p, [id]: a.enabled }));
+    }
+    if (a.type === "set_base") {
+      const map: Record<string, string> = { street: "osm-standard", satellite: "esri-sat", topo: "osm-topo", dark: "carto-dark" };
+      if (map[a.layer]) setActiveBase(map[a.layer]);
+    }
+    if (a.type === "save_target") {
+      if (!entity) { toast.error("No entity selected"); return "Select a location first."; }
+      await saveCurrentTarget();
+    }
+    if (a.type === "analyze_entity") {
+      if (!entity) return "No entity selected.";
+      return `Selected: ${entity.hit?.display_name || `${entity.lat.toFixed(3)}, ${entity.lng.toFixed(3)}`}. Country=${entity.country?.name?.common ?? "unknown"}. Weather=${entity.weather?.current?.temperature_2m ?? "?"}°C, wind ${entity.weather?.current?.wind_speed_10m ?? "?"} km/h. Elevation=${entity.elevation ?? "?"}m. Nearby features=${entity.features?.length ?? 0}.`;
+    }
+  };
+
   return (
     <div className="relative flex h-full w-full bg-background">
       {/* LEFT LAYER PANEL */}
