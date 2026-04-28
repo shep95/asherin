@@ -1,0 +1,322 @@
+// AsherAIPanel — right-side AI co-pilot inside the Intelligence Map.
+// Streams from supabase/functions/asher-ai with tool-calls that drive the map.
+
+import { useEffect, useRef, useState } from "react";
+import { Brain, Send, Loader2, ChevronRight, ChevronLeft, Sparkles, Image as ImageIcon, Crosshair, MapPin, Zap } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
+import { logAsherEvent } from "@/lib/asherAudit";
+import { toast } from "sonner";
+
+export type MapAction =
+  | { type: "search"; query: string }
+  | { type: "toggle_threat"; layer: "earthquakes" | "wildfires" | "aircraft"; enabled: boolean }
+  | { type: "save_target"; label?: string }
+  | { type: "analyze_entity" }
+  | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" };
+
+export interface AsherAIPanelHandle {
+  appendSystemNote: (text: string) => void;
+}
+
+interface Props {
+  mapContext: Record<string, any>;
+  onAction: (a: MapAction) => Promise<string | void>;
+  onClose?: () => void;
+}
+
+interface Msg {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  image?: string;
+  actions?: { label: string; status: "ok" | "fail" | "info" }[];
+}
+
+const AsherAIPanel = ({ mapContext, onAction }: Props) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [messages, setMessages] = useState<Msg[]>([
+    {
+      id: "welcome",
+      role: "assistant",
+      content:
+        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Fly to Kyiv*\n- *Show live earthquakes*\n- *Switch to satellite*\n- *Save this target*\n- *Analyze the selected entity*\n- *Imagine a topographic sketch of this terrain*",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [imagineBusy, setImagineBusy] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, busy]);
+
+  const runImagine = async (prompt: string) => {
+    setImagineBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("asher-imagine", { body: { prompt } });
+      if (error) throw error;
+      if (data?.image) {
+        setMessages((p) => [...p, { id: crypto.randomUUID(), role: "assistant", content: `**Imagine** — ${prompt}`, image: data.image }]);
+        logAsherEvent("module_open", { module: "imagine_render", prompt: prompt.slice(0, 80) });
+      } else {
+        toast.error("No image returned");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Imagine failed");
+    } finally {
+      setImagineBusy(false);
+    }
+  };
+
+  const dispatchToolCall = async (name: string, args: any): Promise<string> => {
+    try {
+      switch (name) {
+        case "map_search": {
+          await onAction({ type: "search", query: String(args?.query ?? "") });
+          return `Flew to "${args?.query}".`;
+        }
+        case "toggle_threat_layer": {
+          await onAction({ type: "toggle_threat", layer: args?.layer, enabled: !!args?.enabled });
+          return `${args?.enabled ? "Enabled" : "Disabled"} ${args?.layer} overlay.`;
+        }
+        case "save_current_target": {
+          await onAction({ type: "save_target", label: args?.label });
+          return "Target saved to dossier vault.";
+        }
+        case "analyze_entity": {
+          const summary = await onAction({ type: "analyze_entity" });
+          return typeof summary === "string" ? summary : "Entity context loaded.";
+        }
+        case "set_base_layer": {
+          await onAction({ type: "set_base", layer: args?.layer });
+          return `Base layer → ${args?.layer}.`;
+        }
+        case "generate_image": {
+          await runImagine(String(args?.prompt ?? "tactical sketch"));
+          return `Imagine dispatched: ${args?.prompt}`;
+        }
+      }
+    } catch (e: any) {
+      return `Tool failed: ${e?.message || e}`;
+    }
+    return "";
+  };
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || busy) return;
+    setInput("");
+    const userMsg: Msg = { id: crypto.randomUUID(), role: "user", content: text };
+    setMessages((p) => [...p, userMsg]);
+    setBusy(true);
+
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          mapContext,
+          messages: [...messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })), { role: "user", content: text }],
+        }),
+      });
+
+      if (resp.status === 429) { toast.error("Rate limit — slow down"); setBusy(false); return; }
+      if (resp.status === 402) { toast.error("AI credits exhausted"); setBusy(false); return; }
+      if (!resp.ok || !resp.body) throw new Error("stream failed");
+
+      const assistantId = crypto.randomUUID();
+      let assistantText = "";
+      const actionsList: { label: string; status: "ok" | "fail" | "info" }[] = [];
+      setMessages((p) => [...p, { id: assistantId, role: "assistant", content: "" }]);
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let done = false;
+
+      // Aggregate tool calls across deltas
+      const toolBuf: Record<number, { name: string; args: string }> = {};
+
+      while (!done) {
+        const { value, done: d } = await reader.read();
+        if (d) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buf.indexOf("\n")) !== -1) {
+          let line = buf.slice(0, idx); buf = buf.slice(idx + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6).trim();
+          if (json === "[DONE]") { done = true; break; }
+          try {
+            const parsed = JSON.parse(json);
+            const delta = parsed.choices?.[0]?.delta;
+            if (delta?.content) {
+              assistantText += delta.content;
+              setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, content: assistantText } : m));
+            }
+            if (delta?.tool_calls) {
+              for (const tc of delta.tool_calls) {
+                const i = tc.index ?? 0;
+                if (!toolBuf[i]) toolBuf[i] = { name: "", args: "" };
+                if (tc.function?.name) toolBuf[i].name = tc.function.name;
+                if (tc.function?.arguments) toolBuf[i].args += tc.function.arguments;
+              }
+            }
+          } catch {
+            buf = line + "\n" + buf; break;
+          }
+        }
+      }
+
+      // Execute tool calls after stream
+      const toolCalls = Object.values(toolBuf);
+      for (const tc of toolCalls) {
+        if (!tc.name) continue;
+        let args: any = {};
+        try { args = JSON.parse(tc.args || "{}"); } catch {}
+        const result = await dispatchToolCall(tc.name, args);
+        actionsList.push({ label: result || tc.name, status: result.startsWith("Tool failed") ? "fail" : "ok" });
+      }
+      if (actionsList.length) {
+        setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, actions: actionsList } : m));
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Asher AI failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={() => setCollapsed(false)}
+        className="absolute top-16 right-3 z-[1100] flex items-center gap-2 rounded-xl border border-border/30 bg-card/85 backdrop-blur-md px-3 py-2 text-xs text-foreground hover:bg-foreground/5"
+      >
+        <Brain className="h-3.5 w-3.5" strokeWidth={1.5} />
+        <span className="tracking-[0.2em] uppercase text-[10px]">Asher AI</span>
+        <ChevronLeft className="h-3 w-3" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="absolute top-3 right-3 bottom-3 z-[1100] flex w-[380px] flex-col rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border/15 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          <p className="text-[10px] font-light tracking-[0.3em] text-foreground uppercase">Asher AI</p>
+          <p className="text-[9px] font-light tracking-[0.2em] text-muted-foreground/60 uppercase">Map Co-Pilot</p>
+        </div>
+        <button onClick={() => setCollapsed(true)} className="p-1 text-muted-foreground hover:text-foreground">
+          <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+      </div>
+
+      {/* Quick actions */}
+      <div className="border-b border-border/15 px-3 py-2 flex flex-wrap gap-1.5">
+        <QuickChip icon={Zap} label="Earthquakes" onClick={() => onAction({ type: "toggle_threat", layer: "earthquakes", enabled: true })} />
+        <QuickChip icon={Zap} label="Wildfires"   onClick={() => onAction({ type: "toggle_threat", layer: "wildfires",   enabled: true })} />
+        <QuickChip icon={Zap} label="Aircraft"    onClick={() => onAction({ type: "toggle_threat", layer: "aircraft",    enabled: true })} />
+        <QuickChip icon={MapPin}    label="Satellite" onClick={() => onAction({ type: "set_base", layer: "satellite" })} />
+        <QuickChip icon={Crosshair} label="Save Target" onClick={() => onAction({ type: "save_target" })} />
+      </div>
+
+      {/* Stream */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+        {messages.map((m) => (
+          <div key={m.id} className={`text-xs font-light leading-relaxed ${m.role === "user" ? "text-foreground" : "text-foreground/85"}`}>
+            <div className="text-[9px] tracking-[0.25em] text-muted-foreground/60 uppercase mb-1">
+              {m.role === "user" ? "Operator" : "Asher AI"}
+            </div>
+            <div className="prose prose-invert prose-xs max-w-none [&_*]:text-foreground/85 [&_strong]:text-foreground">
+              <ReactMarkdown>{m.content || "…"}</ReactMarkdown>
+            </div>
+            {m.image && (
+              <img src={m.image} alt="Imagine result" className="mt-2 rounded-lg border border-border/20 max-w-full" />
+            )}
+            {m.actions && m.actions.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {m.actions.map((a, i) => (
+                  <div key={i} className={`flex items-center gap-2 rounded-md border px-2 py-1 text-[10px] ${
+                    a.status === "ok" ? "border-emerald-400/30 text-emerald-300" :
+                    a.status === "fail" ? "border-red-400/30 text-red-300" :
+                    "border-border/30 text-muted-foreground"
+                  }`}>
+                    <Sparkles className="h-3 w-3" strokeWidth={1.5} />
+                    <span>{a.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        {busy && (
+          <div className="flex items-center gap-2 text-[10px] tracking-wide text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> Reasoning…
+          </div>
+        )}
+        {imagineBusy && (
+          <div className="flex items-center gap-2 text-[10px] tracking-wide text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> Imagine rendering…
+          </div>
+        )}
+      </div>
+
+      {/* Composer */}
+      <div className="border-t border-border/15 p-3 space-y-2">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder="Ask Asher AI to drive the map…"
+            rows={2}
+            className="flex-1 resize-none rounded-lg border border-border/30 bg-background/40 px-3 py-2 text-xs font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none"
+          />
+          <button
+            onClick={send}
+            disabled={busy || !input.trim()}
+            className="rounded-lg bg-foreground/90 px-3 py-2 text-background hover:bg-foreground disabled:opacity-40"
+            title="Send"
+          >
+            <Send className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => input.trim() && runImagine(input.trim())}
+            disabled={imagineBusy || !input.trim()}
+            className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] text-muted-foreground hover:text-foreground uppercase disabled:opacity-30"
+          >
+            <ImageIcon className="h-3 w-3" strokeWidth={1.5} /> Imagine
+          </button>
+          <p className="text-[9px] tracking-[0.2em] text-muted-foreground/40 uppercase">Enter to send · Shift+Enter newline</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const QuickChip = ({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-1 rounded-md border border-border/25 bg-background/30 px-2 py-1 text-[10px] tracking-wide text-muted-foreground hover:text-foreground hover:border-border/40"
+  >
+    <Icon className="h-3 w-3" strokeWidth={1.5} />
+    {label}
+  </button>
+);
+
+export default AsherAIPanel;

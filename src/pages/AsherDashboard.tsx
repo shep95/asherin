@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
-  Brain, Database, Bookmark,
+  Brain, Database, Bookmark, Search, Sparkles, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,9 @@ import AsherAzplenModule from "@/components/asher/AsherAzplenModule";
 import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
 import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
+import AsherZophielModule from "@/components/asher/AsherZophielModule";
+import AsherImagineModule from "@/components/asher/AsherImagineModule";
+import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
 
@@ -105,24 +108,41 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "azplen" | "targets" | "theater" | "targeting" | "sigint"
-  | "geoint" | "doctrine" | "audit" | "settings" | "profile";
+  | "map" | "command" | "zophiel" | "imagine" | "azplen" | "targets"
+  | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
+  | "audit" | "settings" | "profile";
 
-const NAV: { id: AsherTab; label: string; icon: any; sub?: string }[] = [
-  { id: "map",       label: "Intelligence Map", icon: MapIcon,    sub: "Primary" },
-  { id: "command",   label: "ASHER AI",         icon: Brain,      sub: "Live" },
-  { id: "azplen",    label: "Azplen Intel",     icon: Database,   sub: "Live" },
-  { id: "targets",   label: "Saved Targets",    icon: Bookmark,   sub: "Live" },
-  { id: "theater",   label: "Theater Brief",    icon: FileText },
-  { id: "targeting", label: "Targeting Aid",    icon: Crosshair },
-  { id: "sigint",    label: "SIGINT Fusion",    icon: Radio },
-  { id: "geoint",    label: "GEOINT Layer",     icon: Satellite },
-  { id: "doctrine",  label: "Doctrine Recall",  icon: BookOpen },
-  { id: "audit",     label: "Audit Vault",      icon: Lock,       sub: "Live" },
+interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
+interface NavBranch { id: string; label: string; items: NavItem[] }
+
+const BRANCHES: NavBranch[] = [
+  { id: "ops", label: "Operations", items: [
+    { id: "map",     label: "Intelligence Map", icon: MapIcon,  sub: "Primary" },
+    { id: "targets", label: "Saved Targets",    icon: Bookmark, sub: "Live" },
+  ]},
+  { id: "ai", label: "AI & Reasoning", items: [
+    { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
+    { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
+    { id: "imagine", label: "Imagine Intel",  icon: Sparkles, sub: "Live" },
+  ]},
+  { id: "intel", label: "Intelligence", items: [
+    { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
+    { id: "theater",   label: "Theater Brief",   icon: FileText },
+    { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
+    { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
+    { id: "geoint",    label: "GEOINT Layer",    icon: Satellite },
+    { id: "doctrine",  label: "Doctrine Recall", icon: BookOpen },
+  ]},
+  { id: "vault", label: "Vault & System", items: [
+    { id: "audit",    label: "Audit Vault", icon: Lock,     sub: "Live" },
+    { id: "profile",  label: "Profile",     icon: User,     sub: "Live" },
+    { id: "settings", label: "Settings",    icon: Settings },
+  ]},
 ];
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, vault: false });
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
@@ -131,20 +151,13 @@ const AsherDashboard = () => {
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
 
-  // Auto-lock after 15 min of inactivity (only when unlocked)
   useAsherAutoLock(() => {
     try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
     setUnlocked(false);
   });
 
-  // Log unlock + tab navigation
-  useEffect(() => {
-    if (unlocked) logAsherEvent("session_unlocked", {});
-  }, [unlocked]);
-
-  useEffect(() => {
-    if (unlocked) logAsherEvent("module_open", { module: active });
-  }, [active, unlocked]);
+  useEffect(() => { if (unlocked) logAsherEvent("session_unlocked", {}); }, [unlocked]);
+  useEffect(() => { if (unlocked) logAsherEvent("module_open", { module: active }); }, [active, unlocked]);
 
   if (!unlocked) {
     return <AsherPasscodeGate onUnlock={() => setUnlocked(true)} />;
@@ -157,9 +170,10 @@ const AsherDashboard = () => {
     navigate("/asher");
   };
 
+  const toggleBranch = (id: string) => setOpenBranches((p) => ({ ...p, [id]: !p[id] }));
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-      {/* SIDEBAR */}
       <aside className="flex h-full w-64 flex-col border-r border-border/20 bg-sidebar/80 backdrop-blur-xl">
         <div className="px-5 pt-5 pb-4 border-b border-border/15">
           <div className="flex items-center gap-2">
@@ -172,40 +186,50 @@ const AsherDashboard = () => {
           <p className="mt-1 text-[9px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">Defense</p>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-          {NAV.map((n) => {
-            const isActive = active === n.id;
-            const Icon = n.icon;
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+          {BRANCHES.map((branch) => {
+            const open = !!openBranches[branch.id];
             return (
-              <button
-                key={n.id}
-                onClick={() => setActive(n.id)}
-                className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
-                  isActive
-                    ? "bg-foreground/10 text-foreground"
-                    : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-                <span className="flex-1 text-sm font-light tracking-wide">{n.label}</span>
-                {n.sub && <span className="text-[8px] font-light tracking-[0.2em] text-red-400/70 uppercase">{n.sub}</span>}
-              </button>
+              <div key={branch.id}>
+                <button
+                  onClick={() => toggleBranch(branch.id)}
+                  className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left hover:bg-foreground/5 rounded-md"
+                >
+                  {open ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                  <span className="text-[10px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">{branch.label}</span>
+                </button>
+                {open && (
+                  <div className="mt-0.5 ml-2 border-l border-border/15 pl-2 space-y-0.5">
+                    {branch.items.map((n) => {
+                      const isActive = active === n.id;
+                      const Icon = n.icon;
+                      return (
+                        <button
+                          key={n.id}
+                          onClick={() => setActive(n.id)}
+                          className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${
+                            isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                          <span className="flex-1 text-xs font-light tracking-wide">{n.label}</span>
+                          {n.sub && <span className="text-[8px] font-light tracking-[0.2em] text-red-400/70 uppercase">{n.sub}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
 
         <div className="border-t border-border/15 px-3 py-3 space-y-0.5">
-          <button onClick={() => setActive("settings")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-light tracking-wide text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors">
-            <Settings className="h-4 w-4" strokeWidth={1.5} /> Settings
+          <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-light tracking-wide text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors">
+            <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} /> Logout
           </button>
-          <button onClick={() => setActive("profile")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-light tracking-wide text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors">
-            <User className="h-4 w-4" strokeWidth={1.5} /> Profile
-          </button>
-          <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-light tracking-wide text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors">
-            <LogOut className="h-4 w-4" strokeWidth={1.5} /> Logout
-          </button>
-          <button onClick={() => navigate("/asher")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-light tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors uppercase">
-            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} /> Back to Asher
+          <button onClick={() => navigate("/asher")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[10px] font-light tracking-[0.15em] text-muted-foreground/60 hover:text-foreground transition-colors uppercase">
+            <ArrowLeft className="h-3 w-3" strokeWidth={1.5} /> Back to Asher
           </button>
           {user && (
             <p className="px-3 pt-2 text-[9px] tracking-[0.2em] text-muted-foreground/40 uppercase">
@@ -215,10 +239,11 @@ const AsherDashboard = () => {
         </div>
       </aside>
 
-      {/* MAIN */}
       <main className="relative flex-1 overflow-hidden">
         {active === "map"       && <IntelligenceMapModule />}
         {active === "command"   && <AsherCommandCenter />}
+        {active === "zophiel"   && <AsherZophielModule />}
+        {active === "imagine"   && <AsherImagineModule />}
         {active === "azplen"    && <AsherAzplenModule />}
         {active === "targets"   && <AsherSavedTargets />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
@@ -228,7 +253,7 @@ const AsherDashboard = () => {
         {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
         {active === "audit"     && <AsherAuditVault />}
         {active === "settings"  && <AsherSettingsModule />}
-        {active === "profile"   && <ComingSoonModule title="Profile"         sub="Operator credentials and clearances" />}
+        {active === "profile"   && <AsherProfile />}
       </main>
     </div>
   );
