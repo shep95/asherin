@@ -29,8 +29,10 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
     e.preventDefault();
     if (code === ASHER_ACCESS_CODE) {
       try { sessionStorage.setItem(ASHER_GATE_KEY, "1"); } catch {}
+      logAsherEvent("passcode_success", {});
       onUnlock();
     } else {
+      logAsherEvent("passcode_failure", { attempted_length: code.length });
       setError("ACCESS DENIED — Invalid clearance code.");
       setCode("");
     }
