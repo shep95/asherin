@@ -193,8 +193,15 @@ const AsherCommsModule = () => {
     <div className="flex h-full bg-background">
       {/* Sidebar */}
       <div className="w-72 border-r border-border/15 flex flex-col">
-        <div className="p-3 border-b border-border/15">
+        <div className="p-3 border-b border-border/15 flex items-center justify-between">
           <p className="text-[10px] tracking-[0.3em] uppercase text-foreground/70">Conversations</p>
+          <button
+            onClick={() => setShowNewGroup(true)}
+            title="New group chat"
+            className="p-1 rounded hover:bg-foreground/10 text-foreground/70"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {convs.length === 0 && (
