@@ -44,7 +44,7 @@ const AsherCommandCenter = () => {
             {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
           <a
-            href="/dashboard"
+            href="/dashboard?asherEmbed=1"
             target="_blank"
             rel="noreferrer"
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/5"
@@ -59,8 +59,8 @@ const AsherCommandCenter = () => {
         <iframe
           ref={ref}
           key={key}
-          src="/dashboard"
-          title="Aureon Command Center"
+          src="/dashboard?asherEmbed=1"
+          title="ASHER AI · Chat"
           className="h-full w-full border-0"
           allow="clipboard-read; clipboard-write; microphone; camera; geolocation"
         />
