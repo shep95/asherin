@@ -63,6 +63,13 @@ export function b64decode(s: string): Uint8Array {
 }
 
 // ---------- Key derivation from passphrase ----------
+/** Copy Uint8Array into a fresh ArrayBuffer (TS-strict-friendly for Web Crypto). */
+function toBuf(u: Uint8Array): ArrayBuffer {
+  const out = new ArrayBuffer(u.byteLength);
+  new Uint8Array(out).set(u);
+  return out;
+}
+
 async function deriveSealKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
   const baseKey = await crypto.subtle.importKey(
     "raw",
