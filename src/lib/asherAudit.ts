@@ -9,6 +9,8 @@ export type AsherAuditEvent =
   | "map_query"
   | "target_saved"
   | "target_deleted"
+  | "imagine_generated"
+  | "imagine_chat"
   | "logout";
 
 export async function logAsherEvent(event_type: AsherAuditEvent, detail: Record<string, any> = {}) {
