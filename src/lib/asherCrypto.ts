@@ -151,7 +151,7 @@ export async function unlockIdentity(userId: string, passphrase: string): Promis
 
   const sealKey = await deriveSealKey(passphrase, b64decode(r.salt));
   const privBuf = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: b64decode(r.iv) },
+    { name: "AES-GCM", iv: toBuf(b64decode(r.iv)) },
     sealKey,
     b64decode(r.sealedPriv).buffer
   );
