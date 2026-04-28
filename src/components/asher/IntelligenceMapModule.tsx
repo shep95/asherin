@@ -207,14 +207,25 @@ async function fetchCelestial(lat: number, lon: number) {
 /* ─────────────── Overpass API (live OSM building / facility query) ─────────────── */
 async function fetchNearbyFeatures(lat: number, lon: number) {
   try {
-    const radius = 150;
-    const q = `[out:json][timeout:10];(
+    const radius = 250;
+    const q = `[out:json][timeout:15];(
       node(around:${radius},${lat},${lon})[amenity];
+      way(around:${radius},${lat},${lon})[amenity];
       way(around:${radius},${lat},${lon})[building];
+      way(around:${radius},${lat},${lon})[landuse];
+      way(around:${radius},${lat},${lon})[natural];
+      way(around:${radius},${lat},${lon})[leisure];
       node(around:${radius},${lat},${lon})[man_made];
+      way(around:${radius},${lat},${lon})[man_made];
       node(around:${radius},${lat},${lon})[military];
       way(around:${radius},${lat},${lon})[military];
-    );out tags 30;`;
+      way(around:${radius},${lat},${lon})[power];
+      node(around:${radius},${lat},${lon})[power];
+      way(around:${radius},${lat},${lon})[highway];
+      way(around:${radius},${lat},${lon})[railway];
+      node(around:${radius},${lat},${lon})[shop];
+      way(around:${radius},${lat},${lon})[waterway];
+    );out tags center 80;`;
     const r = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -222,8 +233,100 @@ async function fetchNearbyFeatures(lat: number, lon: number) {
     });
     if (!r.ok) return null;
     const j = await r.json();
-    return Array.isArray(j?.elements) ? j.elements.slice(0, 25) : [];
+    return Array.isArray(j?.elements) ? j.elements.slice(0, 80) : [];
   } catch { return null; }
+}
+
+/* ─────────────── Wikipedia GeoSearch (live nearby articles) ─────────────── */
+async function fetchWikipediaNearby(lat: number, lon: number) {
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=2000&gslimit=10&format=json&origin=*`;
+    const r = await fetch(url);
+    if (!r.ok) return [];
+    const j = await r.json();
+    return j?.query?.geosearch || [];
+  } catch { return []; }
+}
+
+/* ─────────────── MGRS-ish & UTM derivation (no external dep) ─────────────── */
+function toUTM(lat: number, lon: number): { zone: number; band: string; easting: number; northing: number } {
+  const a = 6378137, f = 1 / 298.257223563;
+  const k0 = 0.9996, e = Math.sqrt(f * (2 - f)), e2 = e * e;
+  const zone = Math.floor((lon + 180) / 6) + 1;
+  const lonOrigin = (zone - 1) * 6 - 180 + 3;
+  const latRad = (lat * Math.PI) / 180;
+  const lonRad = (lon * Math.PI) / 180;
+  const lonOriginRad = (lonOrigin * Math.PI) / 180;
+  const N = a / Math.sqrt(1 - e2 * Math.sin(latRad) ** 2);
+  const T = Math.tan(latRad) ** 2;
+  const C = (e2 / (1 - e2)) * Math.cos(latRad) ** 2;
+  const A = Math.cos(latRad) * (lonRad - lonOriginRad);
+  const M = a * ((1 - e2 / 4 - (3 * e2 ** 2) / 64) * latRad
+    - ((3 * e2) / 8 + (3 * e2 ** 2) / 32) * Math.sin(2 * latRad)
+    + ((15 * e2 ** 2) / 256) * Math.sin(4 * latRad));
+  const easting = k0 * N * (A + ((1 - T + C) * A ** 3) / 6
+    + ((5 - 18 * T + T ** 2 + 72 * C - 58 * (e2 / (1 - e2))) * A ** 5) / 120) + 500000;
+  let northing = k0 * (M + N * Math.tan(latRad) * (A ** 2 / 2
+    + ((5 - T + 9 * C + 4 * C ** 2) * A ** 4) / 24
+    + ((61 - 58 * T + T ** 2 + 600 * C - 330 * (e2 / (1 - e2))) * A ** 6) / 720));
+  if (lat < 0) northing += 10000000;
+  const bands = "CDEFGHJKLMNPQRSTUVWX";
+  const bIdx = Math.max(0, Math.min(19, Math.floor((lat + 80) / 8)));
+  return { zone, band: bands[bIdx], easting: Math.round(easting), northing: Math.round(northing) };
+}
+function toMGRS(lat: number, lon: number): string {
+  const u = toUTM(lat, lon);
+  const e100k = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const n100k = "ABCDEFGHJKLMNPQRSTUV";
+  const setIdx = (u.zone - 1) % 6;
+  const eCol = Math.floor(u.easting / 100000);
+  const nRow = Math.floor(u.northing / 100000) % 20;
+  const eLetters = ["ABCDEFGH", "JKLMNPQR", "STUVWXYZ", "ABCDEFGH", "JKLMNPQR", "STUVWXYZ"];
+  const nLetters = ["ABCDEFGHJKLMNPQRSTUV", "FGHJKLMNPQRSTUVABCDE"];
+  const eL = eLetters[setIdx][(eCol - 1 + 8) % 8] || "A";
+  const nL = nLetters[setIdx % 2][nRow] || "A";
+  const e5 = String(u.easting % 100000).padStart(5, "0");
+  const n5 = String(u.northing % 100000).padStart(5, "0");
+  return `${u.zone}${u.band} ${eL}${nL} ${e5} ${n5}`;
+  void e100k; void n100k;
+}
+
+/* ─────────────── Land-use classifier (from Overpass tags) ─────────────── */
+type ClickClass = "building" | "residential" | "commercial" | "industrial" | "military" | "agricultural" | "vacant" | "infrastructure" | "transport" | "natural" | "water" | "unknown";
+function classifyClick(features: any[] | null): { primary: any | null; cls: ClickClass } {
+  if (!features?.length) return { primary: null, cls: "unknown" };
+  const ranked = [...features].sort((a, b) => {
+    const score = (f: any) => {
+      const t = f.tags || {};
+      if (t.military) return 100;
+      if (t.building) return 80;
+      if (t.amenity) return 70;
+      if (t.man_made) return 60;
+      if (t.power) return 55;
+      if (t.landuse) return 40;
+      if (t.shop) return 35;
+      if (t.leisure) return 25;
+      if (t.natural) return 20;
+      if (t.highway || t.railway || t.waterway) return 15;
+      return 5;
+    };
+    return score(b) - score(a);
+  });
+  const p = ranked[0];
+  const t = p?.tags || {};
+  let cls: ClickClass = "unknown";
+  if (t.military) cls = "military";
+  else if (t.building === "residential" || t.building === "house" || t.building === "apartments" || t.landuse === "residential") cls = "residential";
+  else if (t.building === "commercial" || t.building === "retail" || t.building === "office" || t.amenity || t.shop || t.landuse === "commercial" || t.landuse === "retail") cls = "commercial";
+  else if (t.building === "industrial" || t.landuse === "industrial" || t.man_made) cls = "industrial";
+  else if (t.landuse === "farmland" || t.landuse === "farm" || t.landuse === "orchard" || t.landuse === "vineyard" || t.landuse === "meadow") cls = "agricultural";
+  else if (t.landuse === "brownfield" || t.landuse === "greenfield" || t.landuse === "construction") cls = "vacant";
+  else if (t.power) cls = "infrastructure";
+  else if (t.highway || t.railway) cls = "transport";
+  else if (t.natural) cls = "natural";
+  else if (t.waterway || t.natural === "water") cls = "water";
+  else if (t.building) cls = "building";
+  return { primary: p, cls };
 }
 
 /* ─────────────── Threat overlay fetchers (live) ─────────────── */
