@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
-  Brain, Database, Bookmark,
+  Brain, Database, Bookmark, Search, Sparkles, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,9 @@ import AsherAzplenModule from "@/components/asher/AsherAzplenModule";
 import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
 import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
+import AsherZophielModule from "@/components/asher/AsherZophielModule";
+import AsherImagineModule from "@/components/asher/AsherImagineModule";
+import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
 
