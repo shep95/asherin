@@ -457,6 +457,7 @@ const IntelligenceMapModule = () => {
   const [activeThreats, setActiveThreats] = useState<Record<ThreatId, boolean>>({ "h-quake": false, "h-fire": false, "h-air": false });
   const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const mapRef = useRef<L.Map | null>(null);
+  const [showLiveFeeds, setShowLiveFeeds] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
