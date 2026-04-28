@@ -160,7 +160,13 @@ const Dashboard = () => {
   const [activeConvId, setActiveConvId] = useState<string | null>(() => {
     try { return localStorage.getItem("aureon_active_conv_id") || null; } catch { return null; }
   });
-  const [activeView, setActiveView] = useState<DashboardView>("chat");
+  const asherEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("asherEmbed") === "1";
+  const [activeViewRaw, setActiveViewRaw] = useState<DashboardView>("chat");
+  const activeView: DashboardView = asherEmbed ? "chat" : activeViewRaw;
+  const setActiveView = (v: DashboardView) => {
+    if (asherEmbed && v !== "chat") return;
+    setActiveViewRaw(v);
+  };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("chat");
   const [depth, setDepth] = useState<ResponseDepth>("standard");
