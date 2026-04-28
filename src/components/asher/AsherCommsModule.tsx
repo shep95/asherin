@@ -1,0 +1,235 @@
+import { useEffect, useState, useRef } from "react";
+import { Lock, Send, Plus, Shield, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  generateIdentity, hasIdentity, unlockIdentity, getLocalPublicKey, fingerprintPubkey,
+} from "@/lib/asherCrypto";
+import {
+  uploadPublicKey, listOperators, listConversations, fetchMessages, decryptInbox,
+  sendMessage, createDM, updateOwnPresence,
+  type Operator, type Conversation, type DecryptedMessage,
+} from "@/lib/asherComms";
+import { toast } from "sonner";
+
+const AsherCommsModule = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const [passphrase, setPassphrase] = useState("");
+  const [needsBootstrap, setNeedsBootstrap] = useState(false);
+  const [ops, setOps] = useState<Operator[]>([]);
+  const [convs, setConvs] = useState<Conversation[]>([]);
+  const [activeConv, setActiveConv] = useState<string | null>(null);
+  const [msgs, setMsgs] = useState<DecryptedMessage[]>([]);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const passRef = useRef<string>("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      setUserId(data.user.id);
+      setNeedsBootstrap(!(await hasIdentity(data.user.id)));
+    });
+  }, []);
+
+  const bootstrap = async () => {
+    if (!userId || passphrase.length < 8) { toast.error("Passphrase ≥ 8 chars"); return; }
+    setBusy(true);
+    try {
+      let pubJwk: JsonWebKey | null;
+      let fp: string;
+      if (needsBootstrap) {
+        const id = await generateIdentity(userId, passphrase);
+        pubJwk = id.publicKeyJwk; fp = id.fingerprint;
+        await uploadPublicKey(pubJwk, fp);
+      } else {
+        await unlockIdentity(userId, passphrase);
+        pubJwk = await getLocalPublicKey(userId);
+        fp = pubJwk ? await fingerprintPubkey(pubJwk) : "";
+        if (pubJwk) await uploadPublicKey(pubJwk, fp);
+      }
+      passRef.current = passphrase;
+      setUnlocked(true);
+      setNeedsBootstrap(false);
+      await updateOwnPresence("online");
+      const [o, c] = await Promise.all([listOperators(), listConversations()]);
+      setOps(o); setConvs(c);
+      toast.success("Comms unlocked");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to unlock");
+    } finally { setBusy(false); }
+  };
+
+  // Load messages on conv change + realtime subscribe
+  useEffect(() => {
+    if (!activeConv || !userId) return;
+    let mounted = true;
+    const load = async () => {
+      const raw = await fetchMessages(activeConv);
+      const dec = await decryptInbox(userId, passRef.current, raw);
+      if (mounted) setMsgs(dec);
+    };
+    load();
+    const ch = supabase.channel(`asher-msgs-${activeConv}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "asher_messages", filter: `conversation_id=eq.${activeConv}` },
+        () => load())
+      .subscribe();
+    return () => { mounted = false; supabase.removeChannel(ch); };
+  }, [activeConv, userId]);
+
+  const send = async () => {
+    if (!activeConv || !draft.trim()) return;
+    setBusy(true);
+    try {
+      await sendMessage({ conversation_id: activeConv, plaintext: draft.trim() });
+      setDraft("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Send failed");
+    } finally { setBusy(false); }
+  };
+
+  const startDM = async (other: Operator) => {
+    if (!userId || other.user_id === userId) return;
+    try {
+      const id = await createDM(other.user_id);
+      const cs = await listConversations();
+      setConvs(cs);
+      setActiveConv(id);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "DM failed"); }
+  };
+
+  if (!unlocked) {
+    return (
+      <div className="flex h-full items-center justify-center bg-background">
+        <div className="w-full max-w-md p-8 rounded-2xl border border-border/20 bg-card/30 backdrop-blur-md">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-4 w-4 text-foreground/70" strokeWidth={1.5} />
+            <p className="text-[10px] tracking-[0.3em] uppercase text-foreground/80">ASHER Secure Comms</p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+            {needsBootstrap
+              ? "Generate your end-to-end encryption identity. This passphrase seals your private key on this device — server never sees it."
+              : "Enter your passphrase to unlock your encryption identity."}
+          </p>
+          <input
+            type="password"
+            value={passphrase}
+            onChange={(e) => setPassphrase(e.target.value)}
+            placeholder="Passphrase (min 8 chars)"
+            className="w-full px-3 py-2 rounded-lg bg-background/60 border border-border/30 text-sm text-foreground"
+            onKeyDown={(e) => { if (e.key === "Enter") bootstrap(); }}
+          />
+          <button
+            onClick={bootstrap}
+            disabled={busy}
+            className="mt-3 w-full py-2 rounded-lg bg-foreground/10 hover:bg-foreground/20 text-foreground text-xs tracking-[0.2em] uppercase border border-border/30 transition-colors"
+          >
+            {needsBootstrap ? "Generate Identity" : "Unlock"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full bg-background">
+      {/* Sidebar */}
+      <div className="w-72 border-r border-border/15 flex flex-col">
+        <div className="p-3 border-b border-border/15">
+          <p className="text-[10px] tracking-[0.3em] uppercase text-foreground/70">Conversations</p>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {convs.length === 0 && (
+            <p className="p-4 text-[10px] text-muted-foreground">No conversations. Start a DM below.</p>
+          )}
+          {convs.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveConv(c.id)}
+              className={`w-full text-left px-3 py-2 text-xs border-b border-border/10 hover:bg-foreground/5 ${activeConv === c.id ? "bg-foreground/10" : ""}`}
+            >
+              <div className="flex items-center gap-2">
+                <Lock className="h-3 w-3 text-foreground/50" />
+                <span className="text-foreground">{c.name ?? (c.kind === "dm" ? "Direct Message" : "Channel")}</span>
+              </div>
+              <div className="text-[9px] text-muted-foreground mt-0.5 tracking-[0.15em] uppercase">{c.classification}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="p-3 border-t border-border/15">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-3 w-3 text-foreground/60" />
+            <p className="text-[10px] tracking-[0.3em] uppercase text-foreground/60">Operators</p>
+          </div>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {ops.filter(o => o.user_id !== userId).map((o) => (
+              <button
+                key={o.id}
+                onClick={() => startDM(o)}
+                className="w-full flex items-center gap-2 px-2 py-1 rounded text-[11px] text-foreground/80 hover:bg-foreground/5"
+                title="Open DM"
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${o.status === "online" ? "bg-emerald-400" : "bg-foreground/20"}`} />
+                <span>{o.callsign}</span>
+                <span className="ml-auto text-[9px] text-muted-foreground">{o.clearance}</span>
+              </button>
+            ))}
+            {ops.filter(o => o.user_id !== userId).length === 0 && (
+              <p className="text-[10px] text-muted-foreground px-2">No other operators yet. Admin must invite users.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main pane */}
+      <div className="flex-1 flex flex-col">
+        {!activeConv ? (
+          <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
+            Select a conversation or start a DM with an operator.
+          </div>
+        ) : (
+          <>
+            <div className="px-4 py-2 border-b border-border/15 flex items-center gap-2 bg-card/20">
+              <Lock className="h-3 w-3 text-emerald-400/70" />
+              <span className="text-[10px] tracking-[0.25em] uppercase text-foreground/70">End-to-End Encrypted</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {msgs.map((m) => (
+                <div key={m.id} className={`max-w-xl ${m.sender_id === userId ? "ml-auto" : ""}`}>
+                  <div className={`px-3 py-2 rounded-xl text-sm ${m.sender_id === userId ? "bg-foreground/10 text-foreground" : "bg-card/40 border border-border/15 text-foreground/90"}`}>
+                    {m.body}
+                  </div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5 tracking-[0.1em] uppercase">
+                    {new Date(m.created_at).toLocaleTimeString()} · {m.classification}
+                  </div>
+                </div>
+              ))}
+              {msgs.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center mt-8">No messages yet — encrypted channel ready.</p>
+              )}
+            </div>
+            <div className="p-3 border-t border-border/15 flex items-center gap-2">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                placeholder="Type encrypted message…"
+                className="flex-1 px-3 py-2 rounded-lg bg-background/60 border border-border/30 text-sm text-foreground"
+              />
+              <button
+                onClick={send}
+                disabled={busy || !draft.trim()}
+                className="p-2 rounded-lg bg-foreground/10 hover:bg-foreground/20 border border-border/30 text-foreground"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AsherCommsModule;
