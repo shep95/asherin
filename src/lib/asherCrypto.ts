@@ -286,9 +286,9 @@ export async function decryptMessage(
     ["decrypt"]
   );
   const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: b64decode(ivB64) },
+    { name: "AES-GCM", iv: toBuf(b64decode(ivB64)) },
     contentKey,
-    b64decode(ciphertextB64).buffer
+    toBuf(b64decode(ciphertextB64))
   );
   return dec.decode(pt);
 }
