@@ -22,7 +22,16 @@ const AsherCommsModule = () => {
   const [msgs, setMsgs] = useState<DecryptedMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupSelected, setGroupSelected] = useState<Set<string>>(new Set());
+  const [addSelected, setAddSelected] = useState<Set<string>>(new Set());
+  const [activeMembers, setActiveMembers] = useState<string[]>([]);
   const passRef = useRef<string>("");
+
+  const activeConvObj = convs.find(c => c.id === activeConv) ?? null;
+  const isOwner = !!activeConvObj && activeConvObj.created_by === userId;
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
