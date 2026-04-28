@@ -272,6 +272,31 @@ const OracleLocusView = () => {
       setResult(data);
       if (imagePreview) {
         setHistory(prev => [{ image: imagePreview, result: data }, ...prev].slice(0, 20));
+        // Plot this analysis on the Linked Imagery mini-map (if coords are present)
+        const lat = data?.estimated_location?.latitude;
+        const lon = data?.estimated_location?.longitude;
+        if (typeof lat === "number" && typeof lon === "number" && !data.insufficient_data) {
+          // Try to extract city/region/country from address_estimate ("City, Region, Country")
+          const parts = (data.address_estimate || data.most_probable_macro_region || "")
+            .split(",").map((s: string) => s.trim()).filter(Boolean);
+          const country = parts[parts.length - 1];
+          const region  = parts.length >= 2 ? parts[parts.length - 2] : undefined;
+          const city    = parts.length >= 3 ? parts[parts.length - 3] : (parts.length === 2 ? parts[0] : undefined);
+          setDataPoints(prev => {
+            const next: ImageryDataPoint = {
+              id: `pt-${Date.now()}`,
+              imageDataUrl: imagePreview,
+              latitude: lat,
+              longitude: lon,
+              city, region, country,
+              address: data.address_estimate ?? null,
+              confidence: data.confidence_score,
+              timestamp: Date.now(),
+              label: `Image ${prev.length + 1}`,
+            };
+            return [...prev, next];
+          });
+        }
       }
     } catch (err) {
       toast({ title: "Analysis failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
