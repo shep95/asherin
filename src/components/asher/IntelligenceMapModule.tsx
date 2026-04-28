@@ -907,7 +907,7 @@ const IntelligenceMapModule = () => {
                       ["Phone", t.phone || t["contact:phone"]],
                       ["Website", t.website || t["contact:website"]],
                       ["Opening Hours", t.opening_hours],
-                    ].filter(([, v]) => !!v);
+                    ].filter((p): p is [string, string] => !!p[1]);
                     if (fields.length === 0) return null;
                     return (
                       <div>
