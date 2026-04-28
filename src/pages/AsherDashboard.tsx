@@ -105,19 +105,20 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "azplen" | "theater" | "targeting" | "sigint"
+  | "map" | "command" | "azplen" | "targets" | "theater" | "targeting" | "sigint"
   | "geoint" | "doctrine" | "audit" | "settings" | "profile";
 
 const NAV: { id: AsherTab; label: string; icon: any; sub?: string }[] = [
   { id: "map",       label: "Intelligence Map", icon: MapIcon,    sub: "Primary" },
   { id: "command",   label: "ASHER AI",         icon: Brain,      sub: "Live" },
   { id: "azplen",    label: "Azplen Intel",     icon: Database,   sub: "Live" },
+  { id: "targets",   label: "Saved Targets",    icon: Bookmark,   sub: "Live" },
   { id: "theater",   label: "Theater Brief",    icon: FileText },
   { id: "targeting", label: "Targeting Aid",    icon: Crosshair },
   { id: "sigint",    label: "SIGINT Fusion",    icon: Radio },
   { id: "geoint",    label: "GEOINT Layer",     icon: Satellite },
   { id: "doctrine",  label: "Doctrine Recall",  icon: BookOpen },
-  { id: "audit",     label: "Audit Vault",      icon: Lock },
+  { id: "audit",     label: "Audit Vault",      icon: Lock,       sub: "Live" },
 ];
 
 const AsherDashboard = () => {
@@ -129,6 +130,21 @@ const AsherDashboard = () => {
   const { user } = useAuth();
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
+
+  // Auto-lock after 15 min of inactivity (only when unlocked)
+  useAsherAutoLock(() => {
+    try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
+    setUnlocked(false);
+  });
+
+  // Log unlock + tab navigation
+  useEffect(() => {
+    if (unlocked) logAsherEvent("session_unlocked", {});
+  }, [unlocked]);
+
+  useEffect(() => {
+    if (unlocked) logAsherEvent("module_open", { module: active });
+  }, [active, unlocked]);
 
   if (!unlocked) {
     return <AsherPasscodeGate onUnlock={() => setUnlocked(true)} />;
