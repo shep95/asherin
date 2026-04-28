@@ -836,6 +836,9 @@ const IntelligenceMapModule = () => {
             </div>
           </div>
         )}
+
+        {/* ASHER AI right-side panel */}
+        <AsherAIPanel mapContext={mapContext} onAction={handleAIAction} />
       </div>
     </div>
   );
