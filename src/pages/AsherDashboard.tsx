@@ -120,7 +120,10 @@ type AsherTab =
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
 interface NavBranch { id: string; label: string; items: NavItem[] }
 
-const BRANCHES: NavBranch[] = [
+const buildBranches = (superOwner: boolean): NavBranch[] => [
+  ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
+    { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
+  ]}] : []),
   { id: "ops", label: "Operations", items: [
     { id: "map",     label: "Intelligence Map", icon: MapIcon,  sub: "Primary" },
     { id: "targets", label: "Saved Targets",    icon: Bookmark, sub: "Live" },
