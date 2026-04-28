@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { toast } from "sonner";
+import AsherAIPanel, { type MapAction } from "@/components/asher/AsherAIPanel";
 
 /* ─────────────────────────────────────────────────────────────
    ASHER — Real-time Intelligence Map
