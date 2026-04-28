@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, useMap, CircleMarker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   ChevronDown, ChevronRight, X, Search, Loader2, Pin,
-  Layers as LayersIcon, Crosshair as CrosshairIcon,
+  Layers as LayersIcon, Crosshair as CrosshairIcon, Save,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { logAsherEvent } from "@/lib/asherAudit";
+import { toast } from "sonner";
 
 /* ─────────────────────────────────────────────────────────────
    ASHER — Real-time Intelligence Map
