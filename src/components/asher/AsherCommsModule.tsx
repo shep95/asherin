@@ -107,6 +107,55 @@ const AsherCommsModule = () => {
     } catch (e) { toast.error(e instanceof Error ? e.message : "DM failed"); }
   };
 
+  // Load members of active conversation
+  useEffect(() => {
+    if (!activeConv) { setActiveMembers([]); return; }
+    listMembers(activeConv).then(setActiveMembers).catch(() => setActiveMembers([]));
+  }, [activeConv]);
+
+  const toggleSet = (set: Set<string>, id: string, setter: (s: Set<string>) => void) => {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setter(next);
+  };
+
+  const submitNewGroup = async () => {
+    if (!groupName.trim()) { toast.error("Group name required"); return; }
+    if (groupSelected.size === 0) { toast.error("Select at least one operator"); return; }
+    setBusy(true);
+    try {
+      const id = await createGroup({
+        name: groupName.trim(),
+        member_ids: Array.from(groupSelected),
+      });
+      const cs = await listConversations();
+      setConvs(cs);
+      setActiveConv(id);
+      setShowNewGroup(false);
+      setGroupName("");
+      setGroupSelected(new Set());
+      toast.success("Group created — invites sent");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Group failed");
+    } finally { setBusy(false); }
+  };
+
+  const submitAddMembers = async () => {
+    if (!activeConv || addSelected.size === 0) return;
+    setBusy(true);
+    try {
+      await addMembers(activeConv, Array.from(addSelected));
+      const m = await listMembers(activeConv);
+      setActiveMembers(m);
+      setShowAddMembers(false);
+      setAddSelected(new Set());
+      toast.success(`Added ${addSelected.size} operator(s)`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Add failed");
+    } finally { setBusy(false); }
+  };
+
+
   if (!unlocked) {
     return (
       <div className="flex h-full items-center justify-center bg-background">
