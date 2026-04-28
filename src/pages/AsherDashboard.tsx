@@ -149,12 +149,15 @@ const BRANCHES: NavBranch[] = [
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false, governance: true });
+  const [superOwner, setSuperOwner] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
 
