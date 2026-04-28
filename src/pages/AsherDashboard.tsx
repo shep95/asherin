@@ -110,10 +110,17 @@ const NAV: { id: AsherTab; label: string; icon: any; sub?: string }[] = [
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
+  const [unlocked, setUnlocked] = useState<boolean>(() => {
+    try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
+  });
   const navigate = useNavigate();
   const { user } = useAuth();
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
+
+  if (!unlocked) {
+    return <AsherPasscodeGate onUnlock={() => setUnlocked(true)} />;
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
