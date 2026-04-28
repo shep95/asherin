@@ -145,7 +145,7 @@ const BRANCHES: NavBranch[] = [
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, vault: false });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false });
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
