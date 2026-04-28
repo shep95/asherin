@@ -623,6 +623,15 @@ const IntelligenceMapModule = () => {
             <div className="flex items-center justify-between border-b border-border/15 px-4 py-3">
               <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase">Entity Profile</p>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={saveCurrentTarget}
+                  disabled={savingTarget || entity.loading}
+                  className="flex items-center gap-1.5 rounded-md border border-border/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground hover:text-foreground hover:bg-foreground/5 uppercase disabled:opacity-40"
+                  title="Save target to dossier vault"
+                >
+                  {savingTarget ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" strokeWidth={1.5} />}
+                  Save
+                </button>
                 <button onClick={() => setPinned(!pinned)} className={`p-1 rounded ${pinned ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                   <Pin className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </button>
