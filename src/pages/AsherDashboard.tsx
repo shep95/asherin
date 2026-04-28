@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
-  Brain, Database, Bookmark, Search, Sparkles, ChevronDown, ChevronRight,
+  Brain, Database, Bookmark, Search, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,7 @@ import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
 import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
 import AsherZophielModule from "@/components/asher/AsherZophielModule";
-import AsherImagineModule from "@/components/asher/AsherImagineModule";
+
 import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
@@ -108,7 +108,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "zophiel" | "imagine" | "azplen" | "targets"
+  | "map" | "command" | "zophiel" | "azplen" | "targets"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
   | "audit" | "settings" | "profile";
 
@@ -123,7 +123,6 @@ const BRANCHES: NavBranch[] = [
   { id: "ai", label: "AI & Reasoning", items: [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
-    { id: "imagine", label: "Imagine Intel",  icon: Sparkles, sub: "Live" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
@@ -243,7 +242,7 @@ const AsherDashboard = () => {
         {active === "map"       && <IntelligenceMapModule />}
         {active === "command"   && <AsherCommandCenter />}
         {active === "zophiel"   && <AsherZophielModule />}
-        {active === "imagine"   && <AsherImagineModule />}
+        
         {active === "azplen"    && <AsherAzplenModule />}
         {active === "targets"   && <AsherSavedTargets />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}

@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import LocationMapPanel from "./search/LocationMapPanel";
+import LinkedImageryMap, { type ImageryDataPoint } from "./search/LinkedImageryMap";
 
 // ─── GEO ANALYSIS TYPES ───
 interface PersonAnalysis {
@@ -181,6 +182,8 @@ const OracleLocusView = () => {
   const [history, setHistory] = useState<{ image: string; result: AnalysisResult }[]>([]);
   // Slide-out dark-theme map (with directions) — opened from the coordinates block.
   const [mapDestination, setMapDestination] = useState<string | null>(null);
+  // Persistent multi-image data points plotted on the Linked Imagery mini-map.
+  const [dataPoints, setDataPoints] = useState<ImageryDataPoint[]>([]);
 
   // ── FACE SEARCH STATE ──
   const faceInputRef = useRef<HTMLInputElement>(null);
@@ -269,6 +272,31 @@ const OracleLocusView = () => {
       setResult(data);
       if (imagePreview) {
         setHistory(prev => [{ image: imagePreview, result: data }, ...prev].slice(0, 20));
+        // Plot this analysis on the Linked Imagery mini-map (if coords are present)
+        const lat = data?.estimated_location?.latitude;
+        const lon = data?.estimated_location?.longitude;
+        if (typeof lat === "number" && typeof lon === "number" && !data.insufficient_data) {
+          // Try to extract city/region/country from address_estimate ("City, Region, Country")
+          const parts = (data.address_estimate || data.most_probable_macro_region || "")
+            .split(",").map((s: string) => s.trim()).filter(Boolean);
+          const country = parts[parts.length - 1];
+          const region  = parts.length >= 2 ? parts[parts.length - 2] : undefined;
+          const city    = parts.length >= 3 ? parts[parts.length - 3] : (parts.length === 2 ? parts[0] : undefined);
+          setDataPoints(prev => {
+            const next: ImageryDataPoint = {
+              id: `pt-${Date.now()}`,
+              imageDataUrl: imagePreview,
+              latitude: lat,
+              longitude: lon,
+              city, region, country,
+              address: data.address_estimate ?? null,
+              confidence: data.confidence_score,
+              timestamp: Date.now(),
+              label: `Image ${prev.length + 1}`,
+            };
+            return [...prev, next];
+          });
+        }
       }
     } catch (err) {
       toast({ title: "Analysis failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
@@ -428,6 +456,35 @@ const OracleLocusView = () => {
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
               </div>
+
+              {/* ─── LINKED IMAGERY MINI-MAP ─────────────────────────────
+                  Every analyzed image is plotted as a numbered data point with
+                  thumbnail + city / region / country. Points are connected in
+                  chronological order so the operator can see the link pattern. */}
+              <LinkedImageryMap points={dataPoints} height={300} />
+
+              {/* Quick controls — add another image to the link chain, or reset */}
+              {dataPoints.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => { clearImage(); fileInputRef.current?.click(); }}
+                    className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-2 text-[11px] font-light tracking-[0.18em] uppercase text-accent hover:bg-accent/20 transition-colors flex items-center gap-2"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Add Another Image
+                  </button>
+                  <button
+                    onClick={() => setDataPoints([])}
+                    className="rounded-xl border border-border/30 bg-card/10 px-4 py-2 text-[11px] font-light tracking-[0.18em] uppercase text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Clear Map
+                  </button>
+                  <span className="text-[10px] text-muted-foreground/60 ml-auto">
+                    {dataPoints.length} linked data point{dataPoints.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+              )}
 
               {/* Results */}
               {result && (
