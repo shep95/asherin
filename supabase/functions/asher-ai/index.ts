@@ -1,13 +1,14 @@
-// Asher AI — backend for the right-side AI panel on the Intelligence Map.
-// Uses Lovable AI Gateway with tool calling so the AI can perform map actions
-// (search/fly-to, save target, toggle threat layers, analyze entity, generate image).
+// Asher AI — Gemini-only co-pilot for the Intelligence Map.
+// Per ASHER DASHBOARD AI policy: uses admin GEMINI_API_KEY or user BYOK ONLY.
+// Never routes through Lovable AI Gateway. Streams OpenAI-compatible SSE so the
+// existing AsherAIPanel parser (delta.content / delta.tool_calls) works unchanged.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-byok-gemini-key",
 };
 
 const SYSTEM_PROMPT = `You are ASHER AI — the operator's tactical co-pilot embedded inside the Asher Intelligence Map.
@@ -35,43 +36,55 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mapContext } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const { messages, mapContext, byokGeminiKey } = await req.json();
+
+    // Resolve key: user BYOK (header or body) > admin GEMINI_API_KEY
+    const headerKey = req.headers.get("x-byok-gemini-key");
+    const adminKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
+    const apiKey = (headerKey || byokGeminiKey || adminKey || "").trim();
+
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "No Gemini API key configured. Add a BYOK key in Settings or contact admin." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const ctxBlock = mapContext
       ? `\n\nCURRENT MAP CONTEXT:\n${JSON.stringify(mapContext, null, 2)}`
       : "";
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+    // Gemini OpenAI-compatible endpoint — keeps client SSE parser unchanged.
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gemini-2.5-flash",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT + ctxBlock },
+            ...messages,
+          ],
+          tools: TOOLS,
+          stream: true,
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT + ctxBlock },
-          ...messages,
-        ],
-        tools: TOOLS,
-        stream: true,
-      }),
-    });
+    );
 
     if (response.status === 429) {
-      return new Response(JSON.stringify({ error: "Rate limit exceeded — try again shortly." }),
+      return new Response(JSON.stringify({ error: "Gemini rate limit — try again shortly." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (response.status === 402) {
-      return new Response(JSON.stringify({ error: "AI credits exhausted." }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (response.status === 401 || response.status === 403) {
+      return new Response(JSON.stringify({ error: "Gemini API key invalid or unauthorized." }),
+        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!response.ok) {
       const t = await response.text();
-      console.error("asher-ai gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }),
+      console.error("asher-ai gemini error:", response.status, t);
+      return new Response(JSON.stringify({ error: `Gemini error ${response.status}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
