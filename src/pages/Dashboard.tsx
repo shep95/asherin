@@ -1414,6 +1414,16 @@ const Dashboard = () => {
 
       <FocusMode active={focusMode} onExit={() => setFocusMode(false)} />
 
+      {asherEmbed && (
+        <style>{`
+          /* Asher embed: lock dashboard to chat conversations only */
+          [data-dashboard-sidebar-nav] { display: none !important; }
+          [data-dashboard-mode-switcher] { display: none !important; }
+          [data-dashboard-view-switcher] { display: none !important; }
+          [data-dashboard-app-launcher] { display: none !important; }
+        `}</style>
+      )}
+
       <div className="relative z-10 flex h-screen">
         {!focusMode && (
           <DashboardSidebar
