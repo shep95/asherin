@@ -664,7 +664,7 @@ const IntelligenceMapModule = () => {
 
         {/* ENTITY DRAWER */}
         {entity && (
-          <div className={`absolute right-3 top-16 z-[1000] w-[420px] max-h-[calc(100%-5rem)] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl ${pinned ? "" : ""}`}>
+          <div className={`absolute right-[404px] top-3 z-[1000] w-[400px] max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl shadow-2xl ${pinned ? "" : ""}`}>
             <div className="flex items-center justify-between border-b border-border/15 px-4 py-3">
               <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase">Entity Profile</p>
               <div className="flex items-center gap-1">
