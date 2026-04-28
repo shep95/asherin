@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
-  Brain, Database, Bookmark, Search, ChevronDown, ChevronRight,
+  Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
 import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
 import AsherZophielModule from "@/components/asher/AsherZophielModule";
+import AsherCommsModule from "@/components/asher/AsherCommsModule";
 
 import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
@@ -108,7 +109,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "zophiel" | "azplen" | "targets"
+  | "map" | "command" | "zophiel" | "azplen" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
   | "audit" | "settings" | "profile";
 
@@ -132,6 +133,9 @@ const BRANCHES: NavBranch[] = [
     { id: "geoint",    label: "GEOINT Layer",    icon: Satellite },
     { id: "doctrine",  label: "Doctrine Recall", icon: BookOpen },
   ]},
+  { id: "comms", label: "Secure Comms", items: [
+    { id: "comms", label: "Operator Comms", icon: MessageSquare, sub: "E2EE" },
+  ]},
   { id: "vault", label: "Vault & System", items: [
     { id: "audit",    label: "Audit Vault", icon: Lock,     sub: "Live" },
     { id: "profile",  label: "Profile",     icon: User,     sub: "Live" },
@@ -141,7 +145,7 @@ const BRANCHES: NavBranch[] = [
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, vault: false });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false });
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
@@ -245,6 +249,7 @@ const AsherDashboard = () => {
         
         {active === "azplen"    && <AsherAzplenModule />}
         {active === "targets"   && <AsherSavedTargets />}
+        {active === "comms"     && <AsherCommsModule />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
         {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
         {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
