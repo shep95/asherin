@@ -772,6 +772,317 @@ export type Database = {
         }
         Relationships: []
       }
+      asher_comms_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          message_id: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      asher_conversation_members: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "asher_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_conversations: {
+        Row: {
+          archived_at: string | null
+          classification: string
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          name: string | null
+          topic: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          classification?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          kind: string
+          name?: string | null
+          topic?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          classification?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          name?: string | null
+          topic?: string | null
+        }
+        Relationships: []
+      }
+      asher_identity_keys: {
+        Row: {
+          algorithm: string
+          created_at: string
+          key_fingerprint: string
+          public_key: Json
+          rotated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          algorithm?: string
+          created_at?: string
+          key_fingerprint: string
+          public_key: Json
+          rotated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          algorithm?: string
+          created_at?: string
+          key_fingerprint?: string
+          public_key?: Json
+          rotated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      asher_message_keys: {
+        Row: {
+          ephemeral_pubkey: Json
+          message_id: string
+          recipient_id: string
+          wrapped_key: string
+        }
+        Insert: {
+          ephemeral_pubkey: Json
+          message_id: string
+          recipient_id: string
+          wrapped_key: string
+        }
+        Update: {
+          ephemeral_pubkey?: Json
+          message_id?: string
+          recipient_id?: string
+          wrapped_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_message_keys_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "asher_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "asher_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_message_reads: {
+        Row: {
+          message_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          message_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          message_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_message_reads_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "asher_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_messages: {
+        Row: {
+          attachment_meta: Json | null
+          ciphertext: string
+          classification: string
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          expires_at: string | null
+          hash: string
+          id: string
+          iv: string
+          message_type: string
+          reply_to: string | null
+          sender_id: string
+        }
+        Insert: {
+          attachment_meta?: Json | null
+          ciphertext: string
+          classification?: string
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          expires_at?: string | null
+          hash: string
+          id?: string
+          iv: string
+          message_type?: string
+          reply_to?: string | null
+          sender_id: string
+        }
+        Update: {
+          attachment_meta?: Json | null
+          ciphertext?: string
+          classification?: string
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          expires_at?: string | null
+          hash?: string
+          id?: string
+          iv?: string
+          message_type?: string
+          reply_to?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "asher_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "asher_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_operators: {
+        Row: {
+          callsign: string
+          clearance: string
+          created_at: string
+          id: string
+          invited_by: string | null
+          last_seen_at: string | null
+          rank: string | null
+          status: string
+          status_message: string | null
+          user_id: string
+        }
+        Insert: {
+          callsign: string
+          clearance?: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          last_seen_at?: string | null
+          rank?: string | null
+          status?: string
+          status_message?: string | null
+          user_id: string
+        }
+        Update: {
+          callsign?: string
+          clearance?: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          last_seen_at?: string | null
+          rank?: string | null
+          status?: string
+          status_message?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       asher_saved_targets: {
         Row: {
           created_at: string
@@ -6235,6 +6546,11 @@ export type Database = {
       }
       heartbeat_intel_slot: { Args: { _job_id: string }; Returns: undefined }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
+      is_asher_conv_member: {
+        Args: { _conv_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_asher_operator: { Args: { _user_id: string }; Returns: boolean }
       is_notebook_owner: {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
