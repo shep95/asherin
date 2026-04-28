@@ -509,19 +509,20 @@ const IntelligenceMapModule = () => {
   };
 
   const loadEntity = async (lat: number, lng: number) => {
-    setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, loading: true });
+    setEntity({ lat, lng, hit: null, country: null, weather: null, elevation: null, celestial: null, features: null, wiki: null, loading: true });
     logAsherEvent("map_query", { lat: +lat.toFixed(4), lng: +lng.toFixed(4) });
-    const [hit, weather, elevation, celestial, features] = await Promise.all([
+    const [hit, weather, elevation, celestial, features, wiki] = await Promise.all([
       reverseGeocode(lat, lng),
       fetchWeather(lat, lng),
       fetchElevation(lat, lng),
       fetchCelestial(lat, lng),
       fetchNearbyFeatures(lat, lng),
+      fetchWikipediaNearby(lat, lng),
     ]);
     let country: CountryData | null = null;
     const cc = hit?.address?.country_code?.toUpperCase();
     if (cc) country = await fetchCountryByCode(cc);
-    setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, loading: false });
+    setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, wiki, loading: false });
   };
 
   const saveCurrentTarget = async () => {
