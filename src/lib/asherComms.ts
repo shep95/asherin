@@ -222,7 +222,30 @@ export async function createGroup(input: {
   classification?: string;
   member_ids: string[];
 }): Promise<string> {
-  return createChannel({ ...input });
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Not authenticated");
+  const me = auth.user.id;
+  const { data: conv, error } = await supabase
+    .from("asher_conversations")
+    .insert({
+      kind: "group",
+      name: input.name,
+      topic: input.topic ?? null,
+      classification: input.classification ?? "UNCLASSIFIED",
+      created_by: me,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  const members = Array.from(new Set([me, ...input.member_ids])).map((uid) => ({
+    conversation_id: conv.id,
+    user_id: uid,
+    role: uid === me ? "owner" : "member",
+  }));
+  const { error: memErr } = await supabase.from("asher_conversation_members").insert(members);
+  if (memErr) throw memErr;
+  await audit("group_created", { conversation_id: conv.id, name: input.name, members: members.length });
+  return conv.id;
 }
 
 export async function createChannel(input: {
