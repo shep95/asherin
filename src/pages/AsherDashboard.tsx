@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
-  Brain, Database, Bookmark, Search, Sparkles, ChevronDown, ChevronRight,
+  Brain, Database, Bookmark, Search, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
