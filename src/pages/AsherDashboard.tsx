@@ -151,6 +151,8 @@ const AsherDashboard = () => {
   }
 
   const handleLogout = async () => {
+    await logAsherEvent("logout", {});
+    try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
     await supabase.auth.signOut();
     navigate("/asher");
   };
