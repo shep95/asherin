@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, ChevronDown } from "lucide-react";
 import aureonLogo from "@/assets/aureon-logo.png";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,8 @@ import ScreenRecorderDropdown from "@/components/screen-recorder/ScreenRecorderD
 
 const Header = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  const isAsherRoute = location.pathname.startsWith("/asher");
   const [showAuth, setShowAuth] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
