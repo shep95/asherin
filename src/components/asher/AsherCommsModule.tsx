@@ -257,7 +257,21 @@ const AsherCommsModule = () => {
           <>
             <div className="px-4 py-2 border-b border-border/15 flex items-center gap-2 bg-card/20">
               <Lock className="h-3 w-3 text-emerald-400/70" />
-              <span className="text-[10px] tracking-[0.25em] uppercase text-foreground/70">End-to-End Encrypted</span>
+              <span className="text-[11px] text-foreground/90">
+                {activeConvObj?.name ?? (activeConvObj?.kind === "dm" ? "Direct Message" : "Conversation")}
+              </span>
+              <span className="text-[9px] text-muted-foreground tracking-[0.2em] uppercase">
+                · E2E · {activeMembers.length} member{activeMembers.length === 1 ? "" : "s"}
+              </span>
+              {activeConvObj && activeConvObj.kind !== "dm" && isOwner && (
+                <button
+                  onClick={() => { setAddSelected(new Set()); setShowAddMembers(true); }}
+                  className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-[10px] uppercase tracking-[0.15em] text-foreground/80 hover:bg-foreground/10 border border-border/20"
+                  title="Invite users to this group"
+                >
+                  <UserPlus className="h-3 w-3" /> Invite
+                </button>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {msgs.map((m) => (
