@@ -252,22 +252,25 @@ const AsherDashboard = () => {
         </div>
       </aside>
 
-      <main className="relative flex-1 overflow-hidden">
-        {active === "map"       && <IntelligenceMapModule />}
-        {active === "command"   && <AsherCommandCenter />}
-        {active === "zophiel"   && <AsherZophielModule />}
-        
-        {active === "azplen"    && <AsherAzplenModule />}
-        {active === "targets"   && <AsherSavedTargets />}
-        {active === "comms"     && <AsherCommsModule />}
-        {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
-        {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
-        {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
-        {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
-        {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
-        {active === "audit"     && <AsherAuditVault />}
-        {active === "settings"  && <AsherSettingsModule />}
-        {active === "profile"   && <AsherProfile />}
+      <main className="relative flex-1 overflow-hidden flex flex-col">
+        <AsherInvitationsBanner />
+        <div className="flex-1 overflow-hidden relative">
+          {active === "orgs"      && <AsherOrganizationsModule />}
+          {active === "map"       && <IntelligenceMapModule />}
+          {active === "command"   && <AsherCommandCenter />}
+          {active === "zophiel"   && <AsherZophielModule />}
+          {active === "azplen"    && <AsherAzplenModule />}
+          {active === "targets"   && <AsherSavedTargets />}
+          {active === "comms"     && <AsherCommsModule />}
+          {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
+          {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
+          {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
+          {active === "geoint"    && <ComingSoonModule title="GEOINT Layer"    sub="Imagery + geospatial intelligence overlays" />}
+          {active === "doctrine"  && <ComingSoonModule title="Doctrine Recall" sub="Searchable doctrine + reference corpus" />}
+          {active === "audit"     && <AsherAuditVault />}
+          {active === "settings"  && <AsherSettingsModule />}
+          {active === "profile"   && <AsherProfile />}
+        </div>
       </main>
     </div>
   );
