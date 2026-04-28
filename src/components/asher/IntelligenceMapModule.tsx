@@ -883,7 +883,7 @@ const IntelligenceMapModule = () => {
                     const { primary } = classifyClick(entity.features);
                     if (!primary) return null;
                     const t = primary.tags || {};
-                    const fields: [string, string | undefined][] = [
+                    const fields: Array<[string, string | undefined]> = [
                       ["Name", t.name || t["name:en"]],
                       ["Operator", t.operator],
                       ["Owner", t.owner],
