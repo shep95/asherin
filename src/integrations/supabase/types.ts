@@ -772,6 +772,103 @@ export type Database = {
         }
         Relationships: []
       }
+      asher_channel_members: {
+        Row: {
+          added_at: string
+          can_post: boolean
+          channel_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          can_post?: boolean
+          channel_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          can_post?: boolean
+          channel_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "asher_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_channels: {
+        Row: {
+          classification: Database["public"]["Enums"]["asher_classification"]
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          kind: Database["public"]["Enums"]["asher_channel_kind"]
+          org_id: string | null
+          section_id: string | null
+          slug: string
+          team_id: string | null
+        }
+        Insert: {
+          classification?: Database["public"]["Enums"]["asher_classification"]
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["asher_channel_kind"]
+          org_id?: string | null
+          section_id?: string | null
+          slug: string
+          team_id?: string | null
+        }
+        Update: {
+          classification?: Database["public"]["Enums"]["asher_classification"]
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["asher_channel_kind"]
+          org_id?: string | null
+          section_id?: string | null
+          slug?: string
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_channels_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "asher_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_channels_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "asher_orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_channels_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "asher_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_channels_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "asher_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asher_comms_audit: {
         Row: {
           action: string
@@ -867,6 +964,47 @@ export type Database = {
         }
         Relationships: []
       }
+      asher_departments: {
+        Row: {
+          code: string | null
+          created_at: string
+          default_classification: Database["public"]["Enums"]["asher_classification"]
+          description: string | null
+          id: string
+          name: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          default_classification?: Database["public"]["Enums"]["asher_classification"]
+          description?: string | null
+          id?: string
+          name: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          default_classification?: Database["public"]["Enums"]["asher_classification"]
+          description?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_departments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "asher_orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asher_identity_keys: {
         Row: {
           algorithm: string
@@ -893,6 +1031,101 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      asher_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          clearance: Database["public"]["Enums"]["asher_classification"] | null
+          created_at: string
+          department_id: string | null
+          email: string
+          expires_at: string
+          full_name: string | null
+          id: string
+          invited_by: string
+          message: string | null
+          org_id: string
+          position: string | null
+          rank: string | null
+          role: Database["public"]["Enums"]["asher_role"]
+          section_id: string | null
+          status: Database["public"]["Enums"]["asher_invite_status"]
+          team_id: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          clearance?: Database["public"]["Enums"]["asher_classification"] | null
+          created_at?: string
+          department_id?: string | null
+          email: string
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          invited_by: string
+          message?: string | null
+          org_id: string
+          position?: string | null
+          rank?: string | null
+          role: Database["public"]["Enums"]["asher_role"]
+          section_id?: string | null
+          status?: Database["public"]["Enums"]["asher_invite_status"]
+          team_id?: string | null
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          clearance?: Database["public"]["Enums"]["asher_classification"] | null
+          created_at?: string
+          department_id?: string | null
+          email?: string
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          invited_by?: string
+          message?: string | null
+          org_id?: string
+          position?: string | null
+          rank?: string | null
+          role?: Database["public"]["Enums"]["asher_role"]
+          section_id?: string | null
+          status?: Database["public"]["Enums"]["asher_invite_status"]
+          team_id?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_invitations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "asher_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_invitations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "asher_orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_invitations_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "asher_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_invitations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "asher_teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       asher_message_keys: {
         Row: {
@@ -1083,6 +1316,220 @@ export type Database = {
         }
         Relationships: []
       }
+      asher_org_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["asher_role"] | null
+          created_at: string
+          id: string
+          metadata: Json
+          org_id: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["asher_role"] | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          org_id?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["asher_role"] | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          org_id?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_org_audit_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "asher_orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_org_connections: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          id: string
+          org_a: string
+          org_b: string
+          requested_by: string | null
+          status: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          org_a: string
+          org_b: string
+          requested_by?: string | null
+          status?: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          org_a?: string
+          org_b?: string
+          requested_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_org_connections_org_a_fkey"
+            columns: ["org_a"]
+            isOneToOne: false
+            referencedRelation: "asher_orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_org_connections_org_b_fkey"
+            columns: ["org_b"]
+            isOneToOne: false
+            referencedRelation: "asher_orgs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_org_memberships: {
+        Row: {
+          clearance: Database["public"]["Enums"]["asher_classification"] | null
+          created_at: string
+          department_id: string | null
+          full_name: string | null
+          id: string
+          invited_by: string | null
+          org_id: string
+          position: string | null
+          rank: string | null
+          role: Database["public"]["Enums"]["asher_role"]
+          section_id: string | null
+          status: string
+          team_id: string | null
+          user_id: string
+        }
+        Insert: {
+          clearance?: Database["public"]["Enums"]["asher_classification"] | null
+          created_at?: string
+          department_id?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          org_id: string
+          position?: string | null
+          rank?: string | null
+          role: Database["public"]["Enums"]["asher_role"]
+          section_id?: string | null
+          status?: string
+          team_id?: string | null
+          user_id: string
+        }
+        Update: {
+          clearance?: Database["public"]["Enums"]["asher_classification"] | null
+          created_at?: string
+          department_id?: string | null
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          org_id?: string
+          position?: string | null
+          rank?: string | null
+          role?: Database["public"]["Enums"]["asher_role"]
+          section_id?: string | null
+          status?: string
+          team_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_org_memberships_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "asher_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_org_memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "asher_orgs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_org_memberships_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "asher_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_org_memberships_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "asher_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_orgs: {
+        Row: {
+          code: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          data_residency: string | null
+          id: string
+          max_classification: Database["public"]["Enums"]["asher_classification"]
+          name: string
+          org_type: string | null
+          plan: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_residency?: string | null
+          id?: string
+          max_classification?: Database["public"]["Enums"]["asher_classification"]
+          name: string
+          org_type?: string | null
+          plan?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_residency?: string | null
+          id?: string
+          max_classification?: Database["public"]["Enums"]["asher_classification"]
+          name?: string
+          org_type?: string | null
+          plan?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       asher_saved_targets: {
         Row: {
           created_at: string
@@ -1118,6 +1565,73 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      asher_sections: {
+        Row: {
+          created_at: string
+          department_id: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_sections_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "asher_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_teams: {
+        Row: {
+          created_at: string
+          focus: string | null
+          id: string
+          lead_user_id: string | null
+          name: string
+          section_id: string
+        }
+        Insert: {
+          created_at?: string
+          focus?: string | null
+          id?: string
+          lead_user_id?: string | null
+          name: string
+          section_id: string
+        }
+        Update: {
+          created_at?: string
+          focus?: string | null
+          id?: string
+          lead_user_id?: string | null
+          name?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_teams_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "asher_sections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_log: {
         Row: {
@@ -6536,6 +7050,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      asher_accept_invitation: { Args: { _token: string }; Returns: string }
+      asher_has_role_in_org: {
+        Args: {
+          _org: string
+          _roles: Database["public"]["Enums"]["asher_role"][]
+          _uid: string
+        }
+        Returns: boolean
+      }
+      asher_is_dept_admin: {
+        Args: { _dept: string; _uid: string }
+        Returns: boolean
+      }
+      asher_is_org_admin: {
+        Args: { _org: string; _uid: string }
+        Returns: boolean
+      }
+      asher_is_org_member: {
+        Args: { _org: string; _uid: string }
+        Returns: boolean
+      }
+      asher_is_section_officer: {
+        Args: { _section: string; _uid: string }
+        Returns: boolean
+      }
       get_team_role: {
         Args: { _team_id: string; _user_id: string }
         Returns: string
@@ -6551,6 +7090,7 @@ export type Database = {
         Returns: boolean
       }
       is_asher_operator: { Args: { _user_id: string }; Returns: boolean }
+      is_asher_super_owner: { Args: { _uid: string }; Returns: boolean }
       is_notebook_owner: {
         Args: { _notebook_id: string; _user_id: string }
         Returns: boolean
@@ -6574,7 +7114,22 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      asher_channel_kind: "org" | "department" | "section" | "team" | "shared"
+      asher_classification:
+        | "UNCLASSIFIED"
+        | "CUI"
+        | "CONFIDENTIAL"
+        | "SECRET"
+        | "TOP_SECRET"
+        | "TS_SCI"
+      asher_invite_status: "pending" | "accepted" | "revoked" | "expired"
+      asher_role:
+        | "super_owner"
+        | "primary_admin"
+        | "secondary_admin"
+        | "dept_admin"
+        | "officer"
+        | "analyst"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6701,6 +7256,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      asher_channel_kind: ["org", "department", "section", "team", "shared"],
+      asher_classification: [
+        "UNCLASSIFIED",
+        "CUI",
+        "CONFIDENTIAL",
+        "SECRET",
+        "TOP_SECRET",
+        "TS_SCI",
+      ],
+      asher_invite_status: ["pending", "accepted", "revoked", "expired"],
+      asher_role: [
+        "super_owner",
+        "primary_admin",
+        "secondary_admin",
+        "dept_admin",
+        "officer",
+        "analyst",
+      ],
+    },
   },
 } as const
