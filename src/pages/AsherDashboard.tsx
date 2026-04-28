@@ -249,6 +249,7 @@ const AsherDashboard = () => {
         
         {active === "azplen"    && <AsherAzplenModule />}
         {active === "targets"   && <AsherSavedTargets />}
+        {active === "comms"     && <AsherCommsModule />}
         {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
         {active === "targeting" && <ComingSoonModule title="Targeting Aid"   sub="Decision support for target packages" />}
         {active === "sigint"    && <ComingSoonModule title="SIGINT Fusion"   sub="Signal priority + intercept correlation" />}
