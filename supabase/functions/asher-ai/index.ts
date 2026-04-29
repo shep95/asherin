@@ -63,6 +63,23 @@ serve(async (req) => {
       ? `\n\nCURRENT MAP CONTEXT:\n${JSON.stringify(mapContext, null, 2)}`
       : "";
 
+    // Sanitize: Gemini's OpenAI-compat endpoint returns an empty stream when any
+    // message has empty content. Drop empty assistant/user turns and collapse
+    // consecutive duplicates from retry loops.
+    const cleaned: any[] = [];
+    for (const m of (messages || [])) {
+      if (!m || typeof m !== "object") continue;
+      const hasContent = typeof m.content === "string" ? m.content.trim().length > 0 : !!m.content;
+      const hasToolCalls = Array.isArray(m.tool_calls) && m.tool_calls.length > 0;
+      if (!hasContent && !hasToolCalls) continue;
+      const last = cleaned[cleaned.length - 1];
+      if (last && last.role === m.role && last.content === m.content) continue;
+      cleaned.push(m);
+    }
+    if (cleaned.length === 0) {
+      cleaned.push({ role: "user", content: "Hello" });
+    }
+
     // Gemini OpenAI-compatible endpoint — keeps client SSE parser unchanged.
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
