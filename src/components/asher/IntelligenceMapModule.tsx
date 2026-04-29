@@ -654,6 +654,13 @@ const IntelligenceMapModule = () => {
       if (!entity) return "No entity selected.";
       return `Selected: ${entity.hit?.display_name || `${entity.lat.toFixed(3)}, ${entity.lng.toFixed(3)}`}. Country=${entity.country?.name?.common ?? "unknown"}. Weather=${entity.weather?.current?.temperature_2m ?? "?"}°C, wind ${entity.weather?.current?.wind_speed_10m ?? "?"} km/h. Elevation=${entity.elevation ?? "?"}m. Nearby features=${entity.features?.length ?? 0}.`;
     }
+    if (a.type === "property_intel") {
+      // If args provided, run on those; otherwise re-fetch on current entity to refresh the side panel.
+      if (entity) {
+        fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features);
+      }
+      return "Property intel scrape dispatched.";
+    }
   };
 
   return (
