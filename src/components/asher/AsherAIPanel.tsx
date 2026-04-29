@@ -57,7 +57,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
       id: "welcome",
       role: "assistant",
       content:
-        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
+        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Look up phone +44 7700 900123* (country / carrier / line type / public OSINT — not live GPS)\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
     },
   ]);
   const [input, setInput] = useState("");
@@ -408,6 +408,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         <QuickChip icon={MapPin}    label="Satellite" onClick={() => onAction({ type: "set_base", layer: "satellite" })} />
         <QuickChip icon={Crosshair} label="Save Target" onClick={() => onAction({ type: "save_target" })} />
         <QuickChip icon={Sparkles} label="Property Intel" onClick={() => { setInput("Run property_intel on the selected location"); setTimeout(() => send(), 0); }} />
+        <QuickChip icon={Sparkles} label="Phone Intel" onClick={() => { setInput("Run phone_intel on +"); }} />
       </div>
 
       {/* Stream */}
