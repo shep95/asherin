@@ -9,12 +9,18 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { toast } from "sonner";
 
+export type ReconDetection = {
+  lat: number; lng: number;
+  label: string; color?: string; confidence: number; reason?: string;
+};
+
 export type MapAction =
   | { type: "search"; query: string }
   | { type: "toggle_threat"; layer: "earthquakes" | "wildfires" | "aircraft"; enabled: boolean }
   | { type: "save_target"; label?: string }
   | { type: "analyze_entity" }
   | { type: "property_intel"; address?: string; entityName?: string }
+  | { type: "visual_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; detections: ReconDetection[]; summary?: string; area?: string; landmark?: string }
   | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" };
 
 export interface AsherAIPanelHandle {
