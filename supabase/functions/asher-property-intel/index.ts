@@ -207,6 +207,7 @@ serve(async (req) => {
       }
       if (merged.length >= 8) break;
     }
+    console.log(`[asher-property-intel] queries=${queries.length} hits=${merged.length} for "${address ?? entityName}"`);
 
     // Scrape top 4 in parallel
     const top = merged.slice(0, 4);
