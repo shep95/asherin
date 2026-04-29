@@ -459,6 +459,12 @@ const IntelligenceMapModule = () => {
   const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
+  const [propertyIntel, setPropertyIntel] = useState<{
+    loading: boolean;
+    intel: any | null;
+    sources: Array<{ title: string; url: string; snippet: string }>;
+    error: string | null;
+  }>({ loading: false, intel: null, sources: [], error: null });
 
   useEffect(() => {
     const handler = (e: Event) => {
