@@ -191,9 +191,49 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           }
           return lines.join("\n");
         }
+        case "temporal_recon": {
+          const area = String(args?.area ?? "").trim();
+          const criteria = String(args?.criteria ?? "").trim();
+          const landmark = args?.landmark ? String(args.landmark) : undefined;
+          const radiusKm = typeof args?.radiusKm === "number" ? args.radiusKm : undefined;
+          const startYear = typeof args?.startYear === "number" ? args.startYear : undefined;
+          const endYear = typeof args?.endYear === "number" ? args.endYear : undefined;
+          const stride = typeof args?.stride === "number" ? args.stride : undefined;
+          if (!area || !criteria) return "Temporal recon: need area and criteria.";
+          const byok = getActiveIntelMapByok();
+          const { data, error } = await supabase.functions.invoke("asher-temporal-recon", {
+            body: { area, criteria, landmark, radiusKm, startYear, endYear, stride, ...(byok ? { byok: byok.apiKey } : {}) },
+          });
+          if (error) return `Temporal recon failed: ${error.message}`;
+          if (!data?.success) return `Temporal recon failed: ${data?.error || "unknown"}`;
+          const tracks: TemporalTrack[] = data.tracks || [];
+          const frames: Array<{ year: number; source: string; detection_count: number; summary: string }> = data.frames || [];
+          try {
+            await onAction({
+              type: "temporal_recon",
+              center: data.center, bbox: data.bbox,
+              tracks, years: data.years || [], frames,
+              area: data.area, landmark: data.landmark,
+            });
+          } catch {}
+          const lines: string[] = [];
+          lines.push(`**Temporal Recon · ${tracks.length} track${tracks.length === 1 ? "" : "s"} across ${frames.length} year frame${frames.length === 1 ? "" : "s"}**`);
+          if (data.area) lines.push(`Area: ${data.area}`);
+          if (data.landmark) lines.push(`Landmark: ${data.landmark}`);
+          lines.push("");
+          lines.push("| Year | Source | Detections |");
+          lines.push("|---|---|---|");
+          frames.forEach((f) => lines.push(`| ${f.year} | ${f.source} | ${f.detection_count} |`));
+          if (tracks.length) {
+            lines.push("\n**Persistent features (with first-seen):**");
+            tracks.slice(0, 10).forEach((t, i) => {
+              const span = t.first_seen === t.last_seen ? `${t.first_seen} only` : `${t.first_seen} → ${t.last_seen}`;
+              lines.push(`${i + 1}. **${t.label}** — ${t.lat.toFixed(5)}, ${t.lng.toFixed(5)} · since **${t.first_seen}** (${span}, ${t.years_present.length} frames)${t.reason ? ` — ${t.reason}` : ""}`);
+            });
+          }
+          return lines.join("\n");
+        }
       }
-    } catch (e: any) {
-      return `Tool failed: ${e?.message || e}`;
     }
     return "";
   };
