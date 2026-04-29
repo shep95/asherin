@@ -465,6 +465,12 @@ const IntelligenceMapModule = () => {
     sources: Array<{ title: string; url: string; snippet: string }>;
     error: string | null;
   }>({ loading: false, intel: null, sources: [], error: null });
+  const [reconLayer, setReconLayer] = useState<{
+    detections: Array<{ lat: number; lng: number; label: string; color?: string; confidence: number; reason?: string }>;
+    bbox: [number, number, number, number] | null;
+    summary?: string;
+    label?: string;
+  }>({ detections: [], bbox: null });
 
   useEffect(() => {
     const handler = (e: Event) => {
