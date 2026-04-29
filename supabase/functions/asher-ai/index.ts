@@ -45,6 +45,44 @@ const TOOLS = [
   { type: "function", function: { name: "set_base_layer", description: "Switch base cartography.", parameters: { type: "object", properties: { layer: { type: "string", enum: ["street", "satellite", "topo", "dark"] } }, required: ["layer"] } } },
 ];
 
+function sse(data: unknown): string {
+  return `data: ${typeof data === "string" ? data : JSON.stringify(data)}\n\n`;
+}
+
+function toolCallResponse(name: string, args: Record<string, unknown>): Response {
+  const payload = {
+    choices: [{
+      delta: {
+        tool_calls: [{
+          index: 0,
+          id: `call_${name}_${Date.now()}`,
+          type: "function",
+          function: { name, arguments: JSON.stringify(args) },
+        }],
+      },
+      finish_reason: null,
+      index: 0,
+    }],
+  };
+  return new Response(sse(payload) + sse("[DONE]"), {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}
+
+function latestUserText(messages: any[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.role === "user" && typeof m.content === "string") return m.content;
+  }
+  return "";
+}
+
+function extractPhoneLookup(text: string): string | null {
+  if (!/(phone|number|call|caller|lookup|look up|located|location|trace|identify|intel)/i.test(text)) return null;
+  const match = text.match(/(?:\+|00)\d[\d\s().-]{6,}\d|\b\d[\d\s().-]{7,}\d\b/);
+  return match ? match[0].replace(/^(00)/, "+").trim() : null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -80,6 +118,11 @@ serve(async (req) => {
     }
     if (cleaned.length === 0) {
       cleaned.push({ role: "user", content: "Hello" });
+    }
+
+    const phone = extractPhoneLookup(latestUserText(cleaned));
+    if (phone) {
+      return toolCallResponse("phone_intel", { phone });
     }
 
     // Gemini OpenAI-compatible endpoint — keeps client SSE parser unchanged.
