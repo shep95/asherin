@@ -533,7 +533,43 @@ const IntelligenceMapModule = () => {
     const cc = hit?.address?.country_code?.toUpperCase();
     if (cc) country = await fetchCountryByCode(cc);
     setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, wiki, loading: false });
+    // Reset & trigger Zophiel property intel pull (fire-and-forget)
+    setPropertyIntel({ loading: false, intel: null, sources: [], error: null });
+    fetchPropertyIntel(lat, lng, hit, features);
   };
+
+  const fetchPropertyIntel = async (
+    lat: number,
+    lng: number,
+    hit: ReverseHit | null,
+    features: OsmFeature[] | null,
+  ) => {
+    const address = hit?.display_name;
+    const primary = features ? classifyClick(features).primary : null;
+    const entityName =
+      primary?.tags?.name ||
+      primary?.tags?.["name:en"] ||
+      primary?.tags?.operator ||
+      undefined;
+    if (!address && !entityName) return;
+    setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
+    try {
+      const byok = getActiveIntelMapByok();
+      const { data, error } = await supabase.functions.invoke("asher-property-intel", {
+        body: {
+          lat, lng, address, entityName,
+          ...(byok ? { byok: byok.apiKey } : {}),
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Property intel failed");
+      setPropertyIntel({ loading: false, intel: data.intel, sources: data.sources || [], error: null });
+      logAsherEvent("module_open", { module: "property_intel", lat: +lat.toFixed(3), lng: +lng.toFixed(3) });
+    } catch (e: any) {
+      setPropertyIntel({ loading: false, intel: null, sources: [], error: e?.message || "Failed" });
+    }
+  };
+
 
   const saveCurrentTarget = async () => {
     if (!entity) return;
