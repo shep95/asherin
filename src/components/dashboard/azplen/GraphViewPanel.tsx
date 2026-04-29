@@ -26,52 +26,55 @@ interface GraphEdge {
   source: string;
   target: string;
   label: string;
-  edgeType: "confirmed" | "probable" | "inferred";
+  edgeType: "confirmed" | "probable" | "inferred" | "adversarial";
   confidence?: number;
 }
 
-/* ─── Theme-matched color palette (dark mode HSL-based) ─── */
-const NODE_PALETTE: Record<string, { fill: string; stroke: string; text: string; textSub: string }> = {
-  document:       { fill: "hsl(220, 30%, 15%)", stroke: "hsl(220, 50%, 50%)", text: "hsl(220, 50%, 80%)", textSub: "hsl(220, 40%, 60%)" },
-  dataset:        { fill: "hsl(220, 30%, 15%)", stroke: "hsl(220, 50%, 50%)", text: "hsl(220, 50%, 80%)", textSub: "hsl(220, 40%, 60%)" },
-  person:         { fill: "hsl(275, 30%, 18%)", stroke: "hsl(275, 50%, 55%)", text: "hsl(275, 40%, 85%)", textSub: "hsl(275, 40%, 65%)" },
-  organization:   { fill: "hsl(200, 30%, 15%)", stroke: "hsl(200, 50%, 50%)", text: "hsl(200, 50%, 80%)", textSub: "hsl(200, 40%, 60%)" },
-  party:          { fill: "hsl(200, 30%, 15%)", stroke: "hsl(200, 50%, 50%)", text: "hsl(200, 50%, 80%)", textSub: "hsl(200, 40%, 60%)" },
-  location:       { fill: "hsl(160, 25%, 14%)", stroke: "hsl(160, 45%, 45%)", text: "hsl(160, 40%, 80%)", textSub: "hsl(160, 35%, 55%)" },
-  amount:         { fill: "hsl(45, 30%, 14%)",  stroke: "hsl(45, 60%, 50%)",  text: "hsl(45, 50%, 85%)",  textSub: "hsl(45, 45%, 60%)"  },
-  date:           { fill: "hsl(140, 25%, 14%)", stroke: "hsl(140, 40%, 45%)", text: "hsl(140, 35%, 80%)", textSub: "hsl(140, 30%, 55%)" },
-  obligation:     { fill: "hsl(0, 25%, 16%)",   stroke: "hsl(0, 50%, 50%)",   text: "hsl(0, 40%, 85%)",   textSub: "hsl(0, 40%, 60%)"   },
-  clause:         { fill: "hsl(280, 25%, 16%)", stroke: "hsl(280, 40%, 50%)", text: "hsl(280, 35%, 80%)", textSub: "hsl(280, 30%, 60%)" },
-  email:          { fill: "hsl(50, 25%, 14%)",  stroke: "hsl(50, 50%, 50%)",  text: "hsl(50, 45%, 80%)",  textSub: "hsl(50, 40%, 60%)"  },
-  phone:          { fill: "hsl(90, 20%, 14%)",  stroke: "hsl(90, 40%, 45%)",  text: "hsl(90, 35%, 80%)",  textSub: "hsl(90, 30%, 55%)"  },
-  url:            { fill: "hsl(210, 25%, 15%)", stroke: "hsl(210, 45%, 50%)", text: "hsl(210, 40%, 80%)", textSub: "hsl(210, 35%, 60%)" },
-  product:        { fill: "hsl(160, 25%, 14%)", stroke: "hsl(160, 50%, 45%)", text: "hsl(160, 40%, 80%)", textSub: "hsl(160, 35%, 55%)" },
-  regulation:     { fill: "hsl(15, 30%, 15%)",  stroke: "hsl(15, 55%, 50%)",  text: "hsl(15, 45%, 80%)",  textSub: "hsl(15, 40%, 60%)"  },
-  case_reference: { fill: "hsl(260, 25%, 16%)", stroke: "hsl(260, 40%, 55%)", text: "hsl(260, 35%, 80%)", textSub: "hsl(260, 30%, 60%)" },
-  job_title:      { fill: "hsl(310, 25%, 16%)", stroke: "hsl(310, 40%, 50%)", text: "hsl(310, 35%, 80%)", textSub: "hsl(310, 30%, 60%)" },
-  contract_term:  { fill: "hsl(180, 20%, 14%)", stroke: "hsl(180, 40%, 45%)", text: "hsl(180, 35%, 80%)", textSub: "hsl(180, 30%, 55%)" },
-  column:         { fill: "hsl(45, 25%, 14%)",  stroke: "hsl(45, 50%, 50%)",  text: "hsl(45, 45%, 80%)",  textSub: "hsl(45, 40%, 60%)"  },
-  type:           { fill: "hsl(140, 20%, 14%)", stroke: "hsl(140, 40%, 45%)", text: "hsl(140, 35%, 80%)", textSub: "hsl(140, 30%, 55%)" },
-  tag:            { fill: "hsl(280, 20%, 16%)", stroke: "hsl(280, 35%, 50%)", text: "hsl(280, 30%, 80%)", textSub: "hsl(280, 25%, 60%)" },
+/* ─── Modern color palette (Zophiel/Nomad parity) ─── */
+const NODE_COLORS: Record<string, { fill: string; stroke: string; text: string; textDark: string }> = {
+  document:       { fill: "#FAEEDA", stroke: "#BA7517", text: "#633806", textDark: "#854F0B" },
+  dataset:        { fill: "#FAEEDA", stroke: "#BA7517", text: "#633806", textDark: "#854F0B" },
+  person:         { fill: "#EEEDFE", stroke: "#7F77DD", text: "#3C3489", textDark: "#534AB7" },
+  person_alt:     { fill: "#FBEAF0", stroke: "#D4537E", text: "#4B1528", textDark: "#993556" },
+  party:          { fill: "#EEEDFE", stroke: "#7F77DD", text: "#3C3489", textDark: "#534AB7" },
+  organization:   { fill: "#E6F1FB", stroke: "#378ADD", text: "#0C447C", textDark: "#185FA5" },
+  organization_alt:{ fill: "#EAF3DE", stroke: "#639922", text: "#173404", textDark: "#3B6D11" },
+  location:       { fill: "#E1F5EE", stroke: "#1D9E75", text: "#085041", textDark: "#0F6E56" },
+  amount:         { fill: "#FDF3D6", stroke: "#C8911A", text: "#5A3F03", textDark: "#8A6510" },
+  date:           { fill: "#E5F2DA", stroke: "#5C9A2C", text: "#1F3D08", textDark: "#3F6D14" },
+  obligation:     { fill: "#FCEBEB", stroke: "#E24B4A", text: "#501313", textDark: "#A32D2D" },
+  clause:         { fill: "#F2EAFB", stroke: "#9159C6", text: "#321454", textDark: "#5A2A8A" },
+  email:          { fill: "#FDF3D6", stroke: "#C8911A", text: "#5A3F03", textDark: "#8A6510" },
+  phone:          { fill: "#EAF3DE", stroke: "#639922", text: "#173404", textDark: "#3B6D11" },
+  url:            { fill: "#E6F1FB", stroke: "#378ADD", text: "#0C447C", textDark: "#185FA5" },
+  product:        { fill: "#E1F5EE", stroke: "#1D9E75", text: "#085041", textDark: "#0F6E56" },
+  regulation:     { fill: "#FCEBEB", stroke: "#E24B4A", text: "#501313", textDark: "#A32D2D" },
+  case_reference: { fill: "#F2EAFB", stroke: "#9159C6", text: "#321454", textDark: "#5A2A8A" },
+  job_title:      { fill: "#FBEAF0", stroke: "#D4537E", text: "#4B1528", textDark: "#993556" },
+  contract_term:  { fill: "#E1F5EE", stroke: "#1D9E75", text: "#085041", textDark: "#0F6E56" },
+  column:         { fill: "#FDF3D6", stroke: "#C8911A", text: "#5A3F03", textDark: "#8A6510" },
+  type:           { fill: "#E5F2DA", stroke: "#5C9A2C", text: "#1F3D08", textDark: "#3F6D14" },
+  tag:            { fill: "#F2EAFB", stroke: "#9159C6", text: "#321454", textDark: "#5A2A8A" },
 };
 
-const DEFAULT_PALETTE = { fill: "hsl(0, 0%, 12%)", stroke: "hsl(0, 0%, 40%)", text: "hsl(0, 0%, 80%)", textSub: "hsl(0, 0%, 55%)" };
+const DEFAULT_COLORS = { fill: "#EEEDFE", stroke: "#7F77DD", text: "#3C3489", textDark: "#534AB7" };
 
-function getPalette(type: string) {
-  return NODE_PALETTE[type] || DEFAULT_PALETTE;
+function getColors(type: string, idx?: number) {
+  if (type === "person" || type === "party") {
+    return (idx !== undefined && idx % 2 === 1) ? NODE_COLORS.person_alt : NODE_COLORS.person;
+  }
+  if (type === "organization") {
+    return (idx !== undefined && idx % 3 === 1) ? NODE_COLORS.organization_alt : NODE_COLORS.organization;
+  }
+  return NODE_COLORS[type] || DEFAULT_COLORS;
 }
 
-/* ─── Cluster config ─── */
+/* ─── Cluster config (matches Zophiel/Nomad style) ─── */
 const CLUSTER_CONFIG: Record<string, { fill: string; stroke: string; labelColor: string; label: string }> = {
-  data:         { fill: "hsl(220, 50%, 50%)", stroke: "hsl(220, 50%, 50%)", labelColor: "hsl(220, 40%, 60%)", label: "Documents & Data" },
-  entity:       { fill: "hsl(275, 50%, 55%)", stroke: "hsl(275, 50%, 55%)", labelColor: "hsl(275, 40%, 60%)", label: "Extracted Entities" },
-  relationship: { fill: "hsl(160, 45%, 45%)", stroke: "hsl(160, 45%, 45%)", labelColor: "hsl(160, 35%, 55%)", label: "Cross-References" },
+  data:         { fill: "#BA7517", stroke: "#BA7517", labelColor: "#854F0B", label: "Documents & Data" },
+  entity:       { fill: "#7F77DD", stroke: "#7F77DD", labelColor: "#534AB7", label: "Extracted Entities" },
+  relationship: { fill: "#1D9E75", stroke: "#1D9E75", labelColor: "#0F6E56", label: "Cross-References" },
 };
-
-function assignCluster(type: string): GraphNode["cluster"] {
-  if (type === "document" || type === "dataset") return "data";
-  return "entity";
-}
 
 function isDocType(type: string): boolean {
   return type === "document" || type === "dataset";
@@ -81,11 +84,15 @@ function isPersonType(type: string): boolean {
   return type === "person" || type === "party";
 }
 
+function isOrgType(type: string): boolean {
+  return type === "organization";
+}
+
 /* ─── Force-directed layout ─── */
 function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], w: number, h: number): GraphNode[] {
   const clusterCenters: Record<string, { x: number; y: number }> = {
-    data:   { x: w * 0.5, y: h * 0.28 },
-    entity: { x: w * 0.5, y: h * 0.72 },
+    data:   { x: w * 0.5, y: h * 0.26 },
+    entity: { x: w * 0.5, y: h * 0.74 },
   };
 
   const pos = nodes.map((n, i) => {
@@ -93,29 +100,27 @@ function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], w: number, h: numbe
     const count = nodes.filter(nn => nn.cluster === n.cluster).length;
     const idx = nodes.filter((nn, ni) => nn.cluster === n.cluster && ni < i).length;
     const angle = (idx / Math.max(1, count)) * Math.PI * 2;
-    const spread = Math.min(w, h) * 0.18;
+    const spread = Math.min(w, h) * 0.2;
     return {
       ...n,
-      x: center.x + Math.cos(angle) * spread + (Math.random() - 0.5) * 25,
-      y: center.y + Math.sin(angle) * spread + (Math.random() - 0.5) * 25,
+      x: center.x + Math.cos(angle) * spread + (Math.random() - 0.5) * 30,
+      y: center.y + Math.sin(angle) * spread + (Math.random() - 0.5) * 30,
     };
   });
 
-  for (let iter = 0; iter < 45; iter++) {
-    // Repulsion
+  for (let iter = 0; iter < 50; iter++) {
     for (let i = 0; i < pos.length; i++) {
       for (let j = i + 1; j < pos.length; j++) {
         const dx = pos[j].x - pos[i].x;
         const dy = pos[j].y - pos[i].y;
         const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-        const force = 4500 / (dist * dist);
+        const force = 5000 / (dist * dist);
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         pos[i].x -= fx; pos[i].y -= fy;
         pos[j].x += fx; pos[j].y += fy;
       }
     }
-    // Edge attraction
     for (const edge of edges) {
       const src = pos.find(n => n.id === edge.source);
       const tgt = pos.find(n => n.id === edge.target);
@@ -123,19 +128,18 @@ function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], w: number, h: numbe
       const dx = tgt.x - src.x;
       const dy = tgt.y - src.y;
       const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-      const force = (dist - 120) * 0.01;
+      const force = (dist - 130) * 0.01;
       const fx = (dx / dist) * force;
       const fy = (dy / dist) * force;
       src.x += fx; src.y += fy;
       tgt.x -= fx; tgt.y -= fy;
     }
-    // Cluster gravity
     for (const node of pos) {
       const target = clusterCenters[node.cluster || "entity"];
       node.x += (target.x - node.x) * 0.006;
       node.y += (target.y - node.y) * 0.006;
       node.x = Math.max(70, Math.min(w - 70, node.x));
-      node.y = Math.max(40, Math.min(h - 40, node.y));
+      node.y = Math.max(50, Math.min(h - 50, node.y));
     }
   }
 
@@ -159,7 +163,6 @@ const GraphViewPanel = () => {
   const { user } = useAuth();
   const { activeSession } = useAzplenSession();
 
-  // Resize observer
   useEffect(() => {
     if (!containerRef.current) return;
     const obs = new ResizeObserver(entries => {
@@ -175,34 +178,6 @@ const GraphViewPanel = () => {
   }, []);
 
   /* ── Data loading ── */
-  const loadGraph = useCallback(async () => {
-    if (!user || !activeSession) return;
-    setLoading(true);
-    if (viewMode === "entities") {
-      await loadEntityGraph();
-    } else {
-      await loadDatasetGraph();
-    }
-    setLoading(false);
-  }, [user, activeSession, viewMode]);
-
-  useEffect(() => { loadGraph(); }, [loadGraph]);
-
-  // Realtime
-  useEffect(() => {
-    if (!activeSession) return;
-    const channel = supabase
-      .channel(`graph-rt-${activeSession.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_document_entities' }, () => {
-        if (viewMode === "entities") loadGraph();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_datasets', filter: `session_id=eq.${activeSession.id}` }, () => {
-        if (viewMode === "datasets") loadGraph();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [activeSession, viewMode, loadGraph]);
-
   const loadEntityGraph = async () => {
     const { data: docs } = await supabase
       .from("asha_documents")
@@ -228,19 +203,18 @@ const GraphViewPanel = () => {
     const gEdges: GraphEdge[] = [];
     const nodeMap = new Map<string, string>();
 
-    // Document nodes
     docs.forEach((doc: any) => {
       const nodeId = `doc_${doc.id}`;
       nodeMap.set(doc.id, nodeId);
       gNodes.push({
-        id: nodeId, label: doc.file_name.length > 22 ? doc.file_name.slice(0, 20) + "…" : doc.file_name,
+        id: nodeId,
+        label: doc.file_name.length > 22 ? doc.file_name.slice(0, 20) + "…" : doc.file_name,
         type: "document", cluster: "data", x: 0, y: 0,
         confidence: 1, tier: 1, tierLabel: "T1 (Uploaded)", sourceCount: 1,
         tags: ["Source document"],
       });
     });
 
-    // Deduplicate entities
     const uniqueEntities = new Map<string, { entity: any; docIds: string[] }>();
     entities.forEach((e: any) => {
       const key = `${e.entity_type}:${e.entity_value.toLowerCase().trim()}`;
@@ -273,14 +247,16 @@ const GraphViewPanel = () => {
         docIds: entityDocIds,
       });
 
-      // Edge to each document
       entityDocIds.forEach((docId: string) => {
         const docNodeId = nodeMap.get(docId);
         if (docNodeId) {
+          const isAdverse = entity.entity_type === "obligation" || entity.entity_type === "regulation";
           gEdges.push({
             source: docNodeId, target: nodeId,
             label: entity.entity_type,
-            edgeType: (entity.confidence || 0) >= 0.8 ? "confirmed" : "probable",
+            edgeType: isAdverse
+              ? "adversarial"
+              : (entity.confidence || 0) >= 0.8 ? "confirmed" : "probable",
             confidence: entity.confidence ? Math.round(entity.confidence * 100) : undefined,
           });
         }
@@ -334,7 +310,6 @@ const GraphViewPanel = () => {
       });
     });
 
-    // Shared columns
     const colDatasets = new Map<string, string[]>();
     datasets.forEach((ds: any) => {
       (ds.schema || []).forEach((col: any) => {
@@ -357,6 +332,34 @@ const GraphViewPanel = () => {
     setRawEdges(gEdges);
   };
 
+  const loadGraph = useCallback(async () => {
+    if (!user || !activeSession) return;
+    setLoading(true);
+    if (viewMode === "entities") {
+      await loadEntityGraph();
+    } else {
+      await loadDatasetGraph();
+    }
+    setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeSession, viewMode]);
+
+  useEffect(() => { loadGraph(); }, [loadGraph]);
+
+  useEffect(() => {
+    if (!activeSession) return;
+    const channel = supabase
+      .channel(`graph-rt-${activeSession.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_document_entities' }, () => {
+        if (viewMode === "entities") loadGraph();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asha_datasets', filter: `session_id=eq.${activeSession.id}` }, () => {
+        if (viewMode === "datasets") loadGraph();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeSession, viewMode, loadGraph]);
+
   /* ── Layout ── */
   const { graphNodes, graphEdges, clusterBounds } = useMemo(() => {
     if (rawNodes.length === 0) return { graphNodes: [], graphEdges: [], clusterBounds: {} as Record<string, { x: number; y: number; w: number; h: number }> };
@@ -366,11 +369,11 @@ const GraphViewPanel = () => {
     for (const key of ["data", "entity"] as const) {
       const cn = positioned.filter(n => n.cluster === key);
       if (cn.length === 0) continue;
-      const pad = 35;
+      const pad = 40;
       const minX = Math.min(...cn.map(n => n.x)) - pad - 55;
       const minY = Math.min(...cn.map(n => n.y)) - pad - 10;
       const maxX = Math.max(...cn.map(n => n.x)) + pad + 55;
-      const maxY = Math.max(...cn.map(n => n.y)) + pad + 25;
+      const maxY = Math.max(...cn.map(n => n.y)) + pad + 30;
       bounds[key] = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
     }
 
@@ -382,8 +385,8 @@ const GraphViewPanel = () => {
     if (filter === "all") return true;
     if (filter === "docs") return isDocType(node.type);
     if (filter === "people") return isPersonType(node.type);
-    if (filter === "orgs") return node.type === "organization";
-    return !isDocType(node.type) && !isPersonType(node.type) && node.type !== "organization";
+    if (filter === "orgs") return isOrgType(node.type);
+    return !isDocType(node.type) && !isPersonType(node.type) && !isOrgType(node.type);
   }, [filter]);
 
   /* ── Pan/zoom ── */
@@ -403,12 +406,6 @@ const GraphViewPanel = () => {
   };
 
   const resetView = () => { setFilter("all"); setSelectedNode(null); setZoom(1); setPan({ x: 0, y: 0 }); };
-
-  /* ── Active legend types ── */
-  const activeTypes = useMemo(() => {
-    const types = new Set(graphNodes.map(n => n.type));
-    return Array.from(types).slice(0, 8);
-  }, [graphNodes]);
 
   /* ── Connections for selected node ── */
   const selectedConnections = useMemo(() => {
@@ -459,7 +456,7 @@ const GraphViewPanel = () => {
   }
 
   const FILTERS: { id: typeof filter; label: string }[] = [
-    { id: "all", label: "All" }, { id: "docs", label: "Documents" },
+    { id: "all", label: "All" }, { id: "docs", label: "Docs" },
     { id: "people", label: "People" }, { id: "orgs", label: "Orgs" },
     { id: "other", label: "Other" },
   ];
@@ -478,16 +475,15 @@ const GraphViewPanel = () => {
             <line x1="1" y1="7" x2="4" y2="7" stroke="currentColor" strokeWidth="1" />
             <line x1="10" y1="7" x2="13" y2="7" stroke="currentColor" strokeWidth="1" />
           </svg>
-          Entity graph
+          Intelligence graph
           {activeSession && (
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
               {activeSession.name}
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* View mode toggle */}
           <div className="flex rounded-md border border-border/20 overflow-hidden mr-2">
             <button onClick={() => setViewMode("entities")}
               className={`px-2 py-1 text-[10px] transition-colors cursor-pointer flex items-center gap-1 ${
@@ -503,19 +499,18 @@ const GraphViewPanel = () => {
             </button>
           </div>
 
-          {/* Filters */}
           {FILTERS.map(f => (
             <button key={f.id} onClick={() => setFilter(f.id)}
               className={`px-2.5 py-1 rounded-md text-[11px] border transition-all duration-150 cursor-pointer ${
                 filter === f.id
-                  ? "bg-accent/10 text-accent border-accent/20"
-                  : "text-muted-foreground/50 border-border/20 hover:bg-secondary/50 hover:text-foreground"
+                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                  : "text-muted-foreground/60 border-border/20 hover:bg-secondary/50 hover:text-foreground"
               }`}>
               {f.label}
             </button>
           ))}
           <button onClick={resetView}
-            className="px-2.5 py-1 rounded-md text-[11px] text-muted-foreground/30 border border-border/20 hover:bg-secondary/50 hover:text-foreground transition-all cursor-pointer">
+            className="px-2.5 py-1 rounded-md text-[11px] text-muted-foreground/40 border border-border/20 hover:bg-secondary/50 hover:text-foreground transition-all cursor-pointer">
             Reset
           </button>
         </div>
@@ -534,17 +529,20 @@ const GraphViewPanel = () => {
           onWheel={handleWheel}
         >
           <defs>
-            <marker id="asha-arr-conf" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="hsl(0, 0%, 45%)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <marker id="azp-arr-conf" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="#888780" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </marker>
-            <marker id="asha-arr-prob" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="hsl(0, 0%, 35%)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <marker id="azp-arr-prob" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="#B4B2A9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </marker>
-            <marker id="asha-arr-inf" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="hsl(275, 50%, 55%)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <marker id="azp-arr-adv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="#E24B4A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </marker>
-            <filter id="asha-shadow">
-              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.15" />
+            <marker id="azp-arr-inf" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="#9159C6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </marker>
+            <filter id="azp-soft-shadow">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.08" />
             </filter>
           </defs>
 
@@ -558,11 +556,11 @@ const GraphViewPanel = () => {
                 <g key={`cluster-${key}`}>
                   <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={10}
                     fill={cfg.fill} fillOpacity={0.04}
-                    stroke={cfg.stroke} strokeWidth={0.5} strokeOpacity={0.15}
+                    stroke={cfg.stroke} strokeWidth={0.5} strokeOpacity={0.2}
                     strokeDasharray="4 3" />
                   <text x={b.x + 10} y={b.y + 16} fontSize={10}
-                    fill={cfg.labelColor} fillOpacity={0.6}
-                    fontWeight={500} style={{ fontFamily: "Inter, sans-serif" }}>
+                    fill={cfg.labelColor} fillOpacity={0.7}
+                    fontWeight={500} style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                     {cfg.label}
                   </text>
                 </g>
@@ -575,26 +573,51 @@ const GraphViewPanel = () => {
               const tgt = graphNodes.find(n => n.id === edge.target);
               if (!src || !tgt) return null;
               if (!isVisible(src) && !isVisible(tgt)) return null;
-              const opacity = (!isVisible(src) || !isVisible(tgt)) ? 0.1 : 0.8;
+              const opacity = (!isVisible(src) || !isVisible(tgt)) ? 0.15 : 1;
 
               const midX = (src.x + tgt.x) / 2;
               const midY = (src.y + tgt.y) / 2;
 
-              let strokeColor = "hsl(0, 0%, 30%)";
+              let strokeColor = "#5F5E5A";
               let strokeWidth = 1.2;
               let dash = "none";
-              let markerEnd = "url(#asha-arr-conf)";
+              let markerEnd = "url(#azp-arr-conf)";
+              let labelColor = "#888780";
 
               if (edge.edgeType === "probable") {
-                strokeColor = "hsl(0, 0%, 22%)";
+                strokeColor = "#B4B2A9";
                 strokeWidth = 1;
                 dash = "5 3";
-                markerEnd = "url(#asha-arr-prob)";
+                markerEnd = "url(#azp-arr-prob)";
+                labelColor = "#B4B2A9";
+              } else if (edge.edgeType === "adversarial") {
+                strokeColor = "#E24B4A";
+                strokeWidth = 1.2;
+                dash = "4 2";
+                markerEnd = "url(#azp-arr-adv)";
+                labelColor = "#E24B4A";
               } else if (edge.edgeType === "inferred") {
-                strokeColor = "hsl(275, 30%, 35%)";
-                strokeWidth = 0.8;
+                strokeColor = "#9159C6";
+                strokeWidth = 0.9;
                 dash = "3 3";
-                markerEnd = "url(#asha-arr-inf)";
+                markerEnd = "url(#azp-arr-inf)";
+                labelColor = "#9159C6";
+              }
+
+              if (edge.edgeType === "adversarial") {
+                const cx = midX + (tgt.y - src.y) * 0.3;
+                const cy = midY - (tgt.x - src.x) * 0.15;
+                return (
+                  <g key={`edge-${idx}`} style={{ opacity, transition: "opacity 0.2s" }}>
+                    <path d={`M${src.x} ${src.y} Q${cx} ${cy} ${tgt.x} ${tgt.y}`}
+                      stroke={strokeColor} strokeWidth={strokeWidth}
+                      strokeDasharray={dash} markerEnd={markerEnd} fill="none" />
+                    <text x={cx} y={cy - 6} fontSize={9} fill={labelColor}
+                      textAnchor="middle" style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                      {edge.label}
+                    </text>
+                  </g>
+                );
               }
 
               return (
@@ -602,9 +625,9 @@ const GraphViewPanel = () => {
                   <line x1={src.x} y1={src.y} x2={tgt.x} y2={tgt.y}
                     stroke={strokeColor} strokeWidth={strokeWidth}
                     strokeDasharray={dash} markerEnd={markerEnd} />
-                  <text x={midX} y={midY - 5} fontSize={8}
-                    fill="hsl(0, 0%, 40%)" fillOpacity={0.6}
-                    textAnchor="middle" style={{ fontFamily: "Inter, sans-serif" }}>
+                  <text x={midX} y={midY - 6} fontSize={9}
+                    fill={labelColor}
+                    textAnchor="middle" style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                     {edge.label}
                     {edge.edgeType === "probable" && edge.confidence ? ` · ${edge.confidence}%` : ""}
                   </text>
@@ -613,100 +636,118 @@ const GraphViewPanel = () => {
             })}
 
             {/* ── Nodes ── */}
-            {graphNodes.map((node) => {
-              const pal = getPalette(node.type);
+            {graphNodes.map((node, nodeIdx) => {
+              const colors = getColors(node.type, nodeIdx);
               const vis = isVisible(node);
-              const nodeOpacity = vis ? 1 : 0.12;
+              const nodeOpacity = vis ? 1 : 0.15;
               const isDoc = isDocType(node.type);
               const isPerson_ = isPersonType(node.type);
+              const isOrg = isOrgType(node.type);
 
               return (
                 <g key={node.id} className="node-group"
                   style={{ cursor: "pointer", opacity: nodeOpacity, transition: "opacity 0.2s" }}
                   onClick={() => setSelectedNode(node)}>
 
-                  {/* ── Document / Dataset node (rounded rect, larger) ── */}
+                  {/* ── DOCUMENT / DATASET (rounded rect with diamond accent) ── */}
                   {isDoc && (
                     <>
-                      <rect x={node.x - 54} y={node.y - 25} width={108} height={50} rx={6}
-                        fill={pal.fill} stroke={pal.stroke} strokeWidth={1.2}
-                        filter="url(#asha-shadow)" />
-                      <text x={node.x} y={node.y - 4} fontSize={10} fontWeight={500}
-                        textAnchor="middle" fill={pal.text}
-                        style={{ fontFamily: "Inter, sans-serif" }}>
+                      <rect x={node.x - 54} y={node.y - 26} width={108} height={52} rx={6}
+                        fill={colors.fill} stroke={colors.stroke} strokeWidth={1.2}
+                        filter="url(#azp-soft-shadow)" />
+                      <rect x={node.x - 49} y={node.y - 20} width={10} height={10} rx={1}
+                        transform={`rotate(45 ${node.x - 44} ${node.y - 15})`}
+                        fill={colors.stroke} fillOpacity={0.4} />
+                      <text x={node.x + 5} y={node.y - 4} fontSize={10} fontWeight={500}
+                        textAnchor="middle" fill={colors.text}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                         {node.label}
                       </text>
-                      <text x={node.x} y={node.y + 11} fontSize={8}
-                        textAnchor="middle" fill={pal.textSub}
-                        style={{ fontFamily: "Inter, sans-serif" }}>
+                      <text x={node.x + 5} y={node.y + 11} fontSize={9}
+                        textAnchor="middle" fill={colors.textDark}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                         Source · T1
                       </text>
                     </>
                   )}
 
-                  {/* ── Person node (circle) ── */}
+                  {/* ── PERSON (circle) ── */}
                   {isPerson_ && (
                     <>
                       <circle cx={node.x} cy={node.y} r={22}
-                        fill={pal.fill} stroke={pal.stroke} strokeWidth={0.8} />
+                        fill={colors.fill} stroke={colors.stroke} strokeWidth={0.8}
+                        filter="url(#azp-soft-shadow)" />
                       {node.label.includes(" ") ? (
                         <>
                           <text x={node.x} y={node.y - 3} fontSize={10} fontWeight={500}
-                            textAnchor="middle" fill={pal.text}
-                            style={{ fontFamily: "Inter, sans-serif" }}>
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                             {node.label.split(" ")[0]}
                           </text>
                           <text x={node.x} y={node.y + 10} fontSize={10} fontWeight={500}
-                            textAnchor="middle" fill={pal.text}
-                            style={{ fontFamily: "Inter, sans-serif" }}>
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                             {node.label.split(" ").slice(1).join(" ")}
                           </text>
                         </>
                       ) : (
                         <text x={node.x} y={node.y + 4} fontSize={10} fontWeight={500}
-                          textAnchor="middle" fill={pal.text}
-                          style={{ fontFamily: "Inter, sans-serif" }}>
+                          textAnchor="middle" fill={colors.text}
+                          style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                           {node.label}
                         </text>
                       )}
                     </>
                   )}
 
-                  {/* ── Organization node (rounded rect, blue-ish) ── */}
-                  {node.type === "organization" && (
+                  {/* ── ORGANIZATION (rounded rect) ── */}
+                  {isOrg && (
                     <>
-                      <rect x={node.x - 54} y={node.y - 22} width={108} height={44} rx={6}
-                        fill={pal.fill} stroke={pal.stroke} strokeWidth={0.8} />
-                      <text x={node.x} y={node.y - 2} fontSize={10} fontWeight={500}
-                        textAnchor="middle" fill={pal.text}
-                        style={{ fontFamily: "Inter, sans-serif" }}>
+                      <rect x={node.x - 54} y={node.y - 25} width={108} height={50} rx={6}
+                        fill={colors.fill} stroke={colors.stroke} strokeWidth={0.8}
+                        filter="url(#azp-soft-shadow)" />
+                      <text x={node.x} y={node.y - 4} fontSize={11} fontWeight={500}
+                        textAnchor="middle" fill={colors.text}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                         {node.label}
                       </text>
-                      <text x={node.x} y={node.y + 12} fontSize={8}
-                        textAnchor="middle" fill={pal.textSub}
-                        style={{ fontFamily: "Inter, sans-serif" }}>
-                        {node.tags?.[0] || "Organization"}
+                      <text x={node.x} y={node.y + 11} fontSize={9}
+                        textAnchor="middle" fill={colors.textDark}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                        {node.tags?.[0] ? `${node.tags[0].slice(0, 18)} · T${node.tier ?? 2}` : `Organization · T${node.tier ?? 2}`}
                       </text>
+                      {node.singleSource && !node.bridge && (
+                        <>
+                          <rect x={node.x - 37} y={node.y + 22} width={74} height={11} rx={5}
+                            fill={colors.stroke} fillOpacity={0.15}
+                            stroke={colors.stroke} strokeWidth={0.4} />
+                          <text x={node.x} y={node.y + 30} fontSize={7.5}
+                            textAnchor="middle" fill={colors.text}
+                            style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                            SINGLE SOURCE
+                          </text>
+                        </>
+                      )}
                     </>
                   )}
 
-                  {/* ── All other entity types (small rounded rect with left dot) ── */}
-                  {!isDoc && !isPerson_ && node.type !== "organization" && (
+                  {/* ── OTHER ENTITY (small rounded rect) ── */}
+                  {!isDoc && !isPerson_ && !isOrg && (
                     <>
-                      <rect x={node.x - 48} y={node.y - 18} width={96} height={36} rx={4}
-                        fill={pal.fill} stroke={pal.stroke} strokeWidth={0.6} />
-                      {/* Type dot */}
-                      <circle cx={node.x - 40} cy={node.y} r={3}
-                        fill={pal.stroke} fillOpacity={0.6} />
-                      <text x={node.x + 2} y={node.y - 2} fontSize={9} fontWeight={500}
-                        textAnchor="middle" fill={pal.text}
-                        style={{ fontFamily: "Inter, sans-serif" }}>
+                      <rect x={node.x - 50} y={node.y - 20} width={100} height={40} rx={5}
+                        fill={colors.fill} stroke={colors.stroke} strokeWidth={0.7}
+                        filter="url(#azp-soft-shadow)" />
+                      <circle cx={node.x - 42} cy={node.y} r={3.2}
+                        fill={colors.stroke} fillOpacity={0.7} />
+                      <text x={node.x + 4} y={node.y - 2} fontSize={10} fontWeight={500}
+                        textAnchor="middle" fill={colors.text}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
                         {node.label}
                       </text>
-                      <text x={node.x + 2} y={node.y + 10} fontSize={7}
-                        textAnchor="middle" fill={pal.textSub}
-                        style={{ fontFamily: "Inter, sans-serif" }}>
-                        {node.type}
+                      <text x={node.x + 4} y={node.y + 10} fontSize={8}
+                        textAnchor="middle" fill={colors.textDark}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                        {node.type.replace(/_/g, " ")}
                       </text>
                     </>
                   )}
@@ -714,27 +755,27 @@ const GraphViewPanel = () => {
                   {/* ── BRIDGE badge ── */}
                   {node.bridge && (
                     <>
-                      <rect x={node.x - 22} y={node.y + (isPerson_ ? 24 : isDoc ? 28 : 20)} width={44} height={12} rx={6}
-                        fill="hsl(275, 50%, 55%)" fillOpacity={0.15}
-                        stroke="hsl(275, 50%, 55%)" strokeWidth={0.5} strokeOpacity={0.3} />
-                      <text x={node.x} y={node.y + (isPerson_ ? 33 : isDoc ? 37 : 29)} fontSize={7} fontWeight={500}
-                        textAnchor="middle" fill="hsl(275, 40%, 65%)"
-                        style={{ fontFamily: "Inter, sans-serif", letterSpacing: "0.06em" }}>
+                      <rect x={node.x - 28} y={node.y + (isPerson_ ? 26 : isDoc ? 30 : 22)} width={56} height={13} rx={6}
+                        fill={colors.stroke} fillOpacity={0.18}
+                        stroke={colors.stroke} strokeWidth={0.5} />
+                      <text x={node.x} y={node.y + (isPerson_ ? 36 : isDoc ? 40 : 32)} fontSize={8} fontWeight={500}
+                        textAnchor="middle" fill={colors.textDark}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)", letterSpacing: "0.06em" }}>
                         BRIDGE
                       </text>
                     </>
                   )}
 
-                  {/* ── Confidence badge ── */}
+                  {/* ── Confidence pill (top-right) ── */}
                   {node.confidence !== undefined && node.confidence < 1 && !isDoc && (
-                    <g transform={`translate(${node.x + (isPerson_ ? 16 : 40)}, ${node.y - (isPerson_ ? 28 : 24)})`}>
-                      <rect x={0} y={0} width={40} height={16} rx={8}
-                        fill={pal.stroke} fillOpacity={0.12}
-                        stroke={pal.stroke} strokeWidth={0.4} />
-                      <text x={20} y={12} fontSize={8} fontWeight={500}
-                        textAnchor="middle" fill={pal.textSub}
-                        style={{ fontFamily: "Inter, sans-serif" }}>
-                        {Math.round(node.confidence * 100)}%
+                    <g transform={`translate(${node.x + (isPerson_ ? 18 : 38)}, ${node.y - (isPerson_ ? 28 : 26)})`}>
+                      <rect x={0} y={0} width={52} height={18} rx={9}
+                        fill={colors.stroke} fillOpacity={0.12}
+                        stroke={colors.stroke} strokeWidth={0.5} />
+                      <text x={26} y={13} fontSize={9} fontWeight={500}
+                        textAnchor="middle" fill={colors.textDark}
+                        style={{ fontFamily: "var(--font-sans, sans-serif)" }}>
+                        conf {Math.round(node.confidence * 100)}%
                       </text>
                     </g>
                   )}
@@ -750,7 +791,7 @@ const GraphViewPanel = () => {
           selectedNode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`} style={{ fontSize: "12px" }}>
           {selectedNode && (() => {
-            const pal = getPalette(selectedNode.type);
+            const colors = getColors(selectedNode.type);
             const confPct = Math.round((selectedNode.confidence || 0) * 100);
             return (
               <div className="p-3.5 space-y-2.5 relative">
@@ -767,10 +808,9 @@ const GraphViewPanel = () => {
                   {selectedNode.label}
                 </div>
 
-                {/* Confidence bar */}
-                <div className="h-1 rounded-full overflow-hidden" style={{ background: "hsl(0, 0%, 14%)" }}>
+                <div className="h-1 rounded-full bg-border/30 overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${confPct}%`, backgroundColor: pal.stroke }} />
+                    style={{ width: `${confPct}%`, backgroundColor: colors.stroke }} />
                 </div>
 
                 <div className="space-y-1.5">
@@ -790,7 +830,6 @@ const GraphViewPanel = () => {
                   </div>
                 </div>
 
-                {/* Tags */}
                 {selectedNode.tags && selectedNode.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {selectedNode.tags.map((t, i) => (
@@ -799,21 +838,25 @@ const GraphViewPanel = () => {
                       </span>
                     ))}
                     {selectedNode.bridge && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
-                        BRIDGE
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                        BRIDGE NODE
+                      </span>
+                    )}
+                    {selectedNode.singleSource && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                        SINGLE SOURCE
                       </span>
                     )}
                   </div>
                 )}
 
-                {/* Connections */}
                 {selectedConnections.length > 0 && (
                   <div className="space-y-1 pt-1 border-t border-border/15">
                     <span className="text-[9px] uppercase tracking-wider text-muted-foreground/40">Connections</span>
                     {selectedConnections.map((c, i) => (
                       <button key={i} onClick={() => c.other && setSelectedNode(c.other)}
                         className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1 text-[10px] hover:bg-secondary/50 transition-colors cursor-pointer">
-                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: getPalette(c.other!.type).stroke }} />
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: getColors(c.other!.type).stroke }} />
                         <span className="text-foreground truncate">{c.other!.label}</span>
                         <span className="text-muted-foreground/40 ml-auto text-[8px]">{c.edge.label}</span>
                       </button>
@@ -828,34 +871,40 @@ const GraphViewPanel = () => {
 
       {/* ── Legend ── */}
       <div className="flex items-center flex-wrap gap-4 px-4 py-2.5 border-t border-border/20 bg-secondary/30">
-        {activeTypes.map(type => {
-          const pal = getPalette(type);
-          const isCircle = isPersonType(type);
-          return (
-            <div key={type} className="flex items-center gap-1.5">
-              {isCircle ? (
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: pal.fill, border: `1px solid ${pal.stroke}` }} />
-              ) : (
-                <div className="w-3 h-2 rounded-sm" style={{ background: pal.fill, border: `1px solid ${pal.stroke}` }} />
-              )}
-              <span className="text-[11px] text-muted-foreground/60 capitalize">{type.replace(/_/g, " ")}</span>
-            </div>
-          );
-        })}
-
-        <div className="w-px h-3 bg-border/15" />
-
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-0" style={{ borderTop: "1.5px solid hsl(0, 0%, 30%)" }} />
-          <span className="text-[11px] text-muted-foreground/60">Confirmed</span>
+          <div className="w-3 h-2" style={{ background: "#FAEEDA", border: "1px solid #BA7517", borderRadius: "2px" }} />
+          <span className="text-[11px] text-muted-foreground/70">Document</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-0" style={{ borderTop: "2px dashed hsl(0, 0%, 22%)", opacity: 0.7 }} />
-          <span className="text-[11px] text-muted-foreground/60">Probable</span>
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#EEEDFE", border: "1px solid #7F77DD" }} />
+          <span className="text-[11px] text-muted-foreground/70">Person</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-4 h-0" style={{ borderTop: "1.5px dashed hsl(275, 30%, 35%)", opacity: 0.6 }} />
-          <span className="text-[11px] text-muted-foreground/60">Inferred</span>
+          <div className="w-3 h-2" style={{ background: "#E6F1FB", border: "1px solid #378ADD", borderRadius: "2px" }} />
+          <span className="text-[11px] text-muted-foreground/70">Organization</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-2" style={{ background: "#E1F5EE", border: "1px solid #1D9E75", borderRadius: "2px" }} />
+          <span className="text-[11px] text-muted-foreground/70">Entity</span>
+        </div>
+
+        <div className="w-px h-3 bg-border/20" />
+
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0" style={{ borderTop: "1.5px solid #5F5E5A" }} />
+          <span className="text-[11px] text-muted-foreground/70">Confirmed</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0" style={{ borderTop: "2px dashed #B4B2A9", opacity: 0.7 }} />
+          <span className="text-[11px] text-muted-foreground/70">Probable</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0" style={{ borderTop: "1.5px solid #E24B4A" }} />
+          <span className="text-[11px] text-muted-foreground/70">Adversarial</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-0" style={{ borderTop: "1.5px dashed #9159C6", opacity: 0.7 }} />
+          <span className="text-[11px] text-muted-foreground/70">Inferred</span>
         </div>
       </div>
     </div>
