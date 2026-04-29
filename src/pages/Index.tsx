@@ -10,6 +10,7 @@ import { usePwaInstall } from "@/hooks/use-pwa-install";
 import ReactMarkdown from "react-markdown";
 import MessageDiagramPanel from "@/components/dashboard/MessageDiagramPanel";
 import NeuralThinkingModal from "@/components/dashboard/NeuralThinkingModal";
+import houseOfAsherLogo from "@/assets/HouseOfAsher_Flag.png";
 
 const StatusIcon = ({ type }: { type: string }) => {
   if (type === "check") return <Check className="h-4 w-4 text-emerald-400 inline" />;
@@ -66,6 +67,7 @@ const Index = () => {
   const [lastDemoQuery, setLastDemoQuery] = useState("");
   const [showAuth, setShowAuth] = useState(false);
   const [authIsLogin, setAuthIsLogin] = useState(false);
+  const [showHouseLogo, setShowHouseLogo] = useState(false);
   const maxDemos = 3;
 
   const handleDemo = async (e: React.FormEvent) => {
@@ -976,9 +978,23 @@ const Index = () => {
 
               {/* Bottom — Copyright */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-border/15">
-                <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">
-                  © {new Date().getFullYear()} Zorak Corp
-                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowHouseLogo(true)}
+                    className="group relative h-7 w-7 overflow-hidden rounded-lg border border-border/30 bg-black transition-all hover:border-foreground/40 hover:scale-105"
+                    aria-label="View House of Asher emblem"
+                  >
+                    <img
+                      src={houseOfAsherLogo}
+                      alt="House of Asher emblem"
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                  <p className="text-xs font-extralight tracking-wide text-muted-foreground/50">
+                    © {new Date().getFullYear()} #HouseOfAsher
+                  </p>
+                </div>
                 <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/30">
                   AUREON — Founded Nov 18, 2025 · 8:38 AM · Cape Coral, FL
                 </p>
@@ -1002,6 +1018,30 @@ const Index = () => {
           setIsLogin={setAuthIsLogin}
           onClose={() => setShowAuth(false)}
         />
+      )}
+      {showHouseLogo && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-6 cursor-zoom-out animate-in fade-in"
+          onClick={() => setShowHouseLogo(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setShowHouseLogo(false)}
+            className="absolute top-6 right-6 rounded-full border border-border/30 bg-background/40 p-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <img
+            src={houseOfAsherLogo}
+            alt="House of Asher emblem"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[85vh] max-w-[90vw] rounded-2xl border border-border/20 shadow-2xl object-contain cursor-default"
+          />
+          <p className="absolute bottom-8 left-0 right-0 text-center text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">
+            #HouseOfAsher
+          </p>
+        </div>
       )}
     </LandingBackground>
   );
