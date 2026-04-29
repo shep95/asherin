@@ -143,6 +143,45 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           await runImagine(String(args?.prompt ?? "tactical sketch"));
           return `Imagine dispatched: ${args?.prompt}`;
         }
+        case "visual_recon": {
+          const area = String(args?.area ?? "").trim();
+          const criteria = String(args?.criteria ?? "").trim();
+          const landmark = args?.landmark ? String(args.landmark) : undefined;
+          const radiusKm = typeof args?.radiusKm === "number" ? args.radiusKm : undefined;
+          if (!area || !criteria) return "Visual recon: need area and criteria.";
+          const byok = getActiveIntelMapByok();
+          const { data, error } = await supabase.functions.invoke("asher-visual-recon", {
+            body: { area, criteria, landmark, radiusKm, ...(byok ? { byok: byok.apiKey } : {}) },
+          });
+          if (error) return `Visual recon failed: ${error.message}`;
+          if (!data?.success) return `Visual recon failed: ${data?.error || "unknown"}`;
+          const dets: ReconDetection[] = data.detections || [];
+          try {
+            await onAction({
+              type: "visual_recon",
+              center: data.center,
+              bbox: data.bbox,
+              detections: dets,
+              summary: data.summary,
+              area: data.area,
+              landmark: data.landmark,
+            });
+          } catch {}
+          const lines: string[] = [];
+          lines.push(`**Visual Recon · ${dets.length} match${dets.length === 1 ? "" : "es"}**`);
+          if (data.area) lines.push(`Area: ${data.area}`);
+          if (data.landmark) lines.push(`Landmark: ${data.landmark}`);
+          if (data.summary) lines.push(`\n${data.summary}`);
+          if (dets.length) {
+            lines.push("\n**Top detections:**");
+            dets.slice(0, 8).forEach((d, i) => {
+              lines.push(`${i + 1}. **${d.label}** — ${d.lat.toFixed(5)}, ${d.lng.toFixed(5)} · ${(d.confidence * 100).toFixed(0)}%${d.reason ? ` — ${d.reason}` : ""}`);
+            });
+          } else {
+            lines.push("\nNo matches in the imaged tile. Try widening the radius or refining the criteria.");
+          }
+          return lines.join("\n");
+        }
       }
     } catch (e: any) {
       return `Tool failed: ${e?.message || e}`;
