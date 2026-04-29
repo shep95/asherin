@@ -125,6 +125,11 @@ const TILE_SOURCES: Record<string, { url: string; attribution: string; max?: num
   "carto-dark":   { url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", attribution: "© OpenStreetMap, © CARTO" },
 };
 
+const TACTICAL_BORDER_OVERLAY = {
+  url: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png",
+  attribution: "© OpenStreetMap, © CARTO",
+};
+
 /* ─────────────── Search via Nominatim ─────────────── */
 
 interface SearchHit {
