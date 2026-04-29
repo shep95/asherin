@@ -223,6 +223,19 @@ const MODE_QUERY_PREFIX: Record<SearchMode, string> = {
 };
 
 // ── Result types ─────────────────────────────────────────────────────────────
+// PANTHEON layer taxonomy — which corner of the internet a result came from.
+type PantheonLayer =
+  | 'surface'      // Standard indexed web (DDG, Brave, SearXNG, Mojeek, Yandex, Wikipedia)
+  | 'deep'         // DBs, paywalled, archive (Common Crawl, Wayback, SEC EDGAR, CrossRef, OpenAlex, Google Books)
+  | 'dark'         // .onion / Tor (Ahmia)
+  | 'code'         // Source repositories (GitHub Code Search)
+  | 'academic'     // Scholarly preprints (arXiv, CrossRef, OpenAlex)
+  | 'social'       // Social/community (Reddit, Hacker News)
+  | 'blockchain'   // On-chain data (Blockchair address/tx)
+  | 'breach'       // Breach intelligence (HIBP, k-anon password hash)
+  | 'iot'          // Exposed devices (Shodan — admin key gated)
+  | 'vuln';        // CVE / NVD vulnerability intel
+
 interface SearchResult {
   title: string;
   url: string;
@@ -238,6 +251,10 @@ interface SearchResult {
   veracity: number; // composite truth score 0-100
   /** True for tier-5 .onion results — UI must NOT render a clickable anchor. */
   onion?: boolean;
+  /** PANTHEON layer this result was harvested from. Defaults to 'surface'. */
+  layer?: PantheonLayer;
+  /** Engine that produced this result (e.g. 'ddg', 'github', 'arxiv'). */
+  engine?: string;
 }
 
 interface SearchFilters {
