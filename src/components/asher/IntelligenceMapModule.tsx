@@ -11,7 +11,8 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { toast } from "sonner";
 import AsherAIPanel, { type MapAction } from "@/components/asher/AsherAIPanel";
 import LiveFeedsPanel from "@/components/asher/LiveFeedsPanel";
-import { Video } from "lucide-react";
+import { Video, Globe2, ExternalLink, RefreshCw } from "lucide-react";
+import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 
 /* ─────────────────────────────────────────────────────────────
    ASHER — Real-time Intelligence Map
@@ -458,6 +459,12 @@ const IntelligenceMapModule = () => {
   const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
+  const [propertyIntel, setPropertyIntel] = useState<{
+    loading: boolean;
+    intel: any | null;
+    sources: Array<{ title: string; url: string; snippet: string }>;
+    error: string | null;
+  }>({ loading: false, intel: null, sources: [], error: null });
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -526,7 +533,43 @@ const IntelligenceMapModule = () => {
     const cc = hit?.address?.country_code?.toUpperCase();
     if (cc) country = await fetchCountryByCode(cc);
     setEntity({ lat, lng, hit, country, weather, elevation, celestial, features, wiki, loading: false });
+    // Reset & trigger Zophiel property intel pull (fire-and-forget)
+    setPropertyIntel({ loading: false, intel: null, sources: [], error: null });
+    fetchPropertyIntel(lat, lng, hit, features);
   };
+
+  const fetchPropertyIntel = async (
+    lat: number,
+    lng: number,
+    hit: SearchHit | null,
+    features: OsmFeature[] | null,
+  ) => {
+    const address = hit?.display_name;
+    const primary = features ? classifyClick(features).primary : null;
+    const entityName =
+      primary?.tags?.name ||
+      primary?.tags?.["name:en"] ||
+      primary?.tags?.operator ||
+      undefined;
+    if (!address && !entityName) return;
+    setPropertyIntel({ loading: true, intel: null, sources: [], error: null });
+    try {
+      const byok = getActiveIntelMapByok();
+      const { data, error } = await supabase.functions.invoke("asher-property-intel", {
+        body: {
+          lat, lng, address, entityName,
+          ...(byok ? { byok: byok.apiKey } : {}),
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Property intel failed");
+      setPropertyIntel({ loading: false, intel: data.intel, sources: data.sources || [], error: null });
+      logAsherEvent("module_open", { module: "property_intel", lat: +lat.toFixed(3), lng: +lng.toFixed(3) });
+    } catch (e: any) {
+      setPropertyIntel({ loading: false, intel: null, sources: [], error: e?.message || "Failed" });
+    }
+  };
+
 
   const saveCurrentTarget = async () => {
     if (!entity) return;
@@ -960,6 +1003,101 @@ const IntelligenceMapModule = () => {
                     );
                   })()}
 
+
+                  {/* Property Intelligence (Zophiel · Live Web Scrape) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase flex items-center gap-1.5">
+                        <Globe2 className="h-3 w-3" strokeWidth={1.5} />
+                        Property Intel · Zophiel Web
+                      </p>
+                      <button
+                        onClick={() => fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features)}
+                        disabled={propertyIntel.loading}
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
+                        title="Re-scrape property intelligence"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${propertyIntel.loading ? "animate-spin" : ""}`} strokeWidth={1.5} />
+                      </button>
+                    </div>
+                    <div className="rounded-lg border border-border/15 bg-background/40 p-3 space-y-2 text-[11px] font-light">
+                      {propertyIntel.loading && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>Scraping live web sources via Zophiel…</span>
+                        </div>
+                      )}
+                      {propertyIntel.error && !propertyIntel.loading && (
+                        <p className="text-amber-400/80 text-[10px]">{propertyIntel.error}</p>
+                      )}
+                      {!propertyIntel.loading && !propertyIntel.error && !propertyIntel.intel && (
+                        <p className="text-muted-foreground/60 text-[10px]">No property intelligence yet.</p>
+                      )}
+                      {propertyIntel.intel && (
+                        <>
+                          {propertyIntel.intel.summary && (
+                            <p className="text-foreground/90 leading-relaxed">{propertyIntel.intel.summary}</p>
+                          )}
+                          {([
+                            ["Owner", propertyIntel.intel.owner],
+                            ["Operator", propertyIntel.intel.operator],
+                            ["Type", propertyIntel.intel.property_type],
+                            ["Year Built", propertyIntel.intel.year_built],
+                            ["Size", propertyIntel.intel.size],
+                            ["Est. Value", propertyIntel.intel.value_estimate],
+                          ].filter(([, v]) => !!v) as Array<[string, string]>).map(([k, v]) => (
+                            <p key={k}><span className="text-muted-foreground/60">{k}:</span> {v}</p>
+                          ))}
+                          {Array.isArray(propertyIntel.intel.tenants_or_occupants) && propertyIntel.intel.tenants_or_occupants.length > 0 && (
+                            <div>
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Tenants / Occupants</p>
+                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
+                                {propertyIntel.intel.tenants_or_occupants.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(propertyIntel.intel.history) && propertyIntel.intel.history.length > 0 && (
+                            <div>
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">History</p>
+                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
+                                {propertyIntel.intel.history.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(propertyIntel.intel.notable_events) && propertyIntel.intel.notable_events.length > 0 && (
+                            <div>
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Notable Events</p>
+                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
+                                {propertyIntel.intel.notable_events.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(propertyIntel.intel.risks) && propertyIntel.intel.risks.length > 0 && (
+                            <div>
+                              <p className="text-amber-400/70 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Risks</p>
+                              <ul className="list-disc list-inside text-amber-200/80 space-y-0.5">
+                                {propertyIntel.intel.risks.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {propertyIntel.sources.length > 0 && (
+                            <div className="pt-1.5 mt-1.5 border-t border-border/10">
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mb-1">Sources Scraped</p>
+                              <div className="space-y-0.5">
+                                {propertyIntel.sources.map((s, i) => (
+                                  <a key={i} href={s.url} target="_blank" rel="noreferrer"
+                                    className="flex items-start gap-1 text-muted-foreground hover:text-foreground truncate">
+                                    <ExternalLink className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+                                    <span className="truncate text-[10px]">{s.title || s.url}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Country profile */}
                   {entity.country && (
