@@ -24,37 +24,77 @@ const corsHeaders = {
 
 const UA = "AsherVisualRecon/1.0 (intel-map)";
 
-type GeoHit = { lat: number; lng: number; display_name: string; bbox?: [number, number, number, number] };
+type Bbox = [number, number, number, number];
+type GeoHit = { lat: number; lng: number; display_name: string; bbox?: Bbox; category?: string; type?: string };
+
+function normalizeGeocodeQueries(q: string): string[] {
+  const lower = q.toLowerCase();
+  const variants: string[] = [];
+  if (/north(ern)?\s+new\s+delhi|north\s+delhi/.test(lower)) variants.push("North Delhi, Delhi, India");
+  if (/south(ern)?\s+new\s+delhi|south\s+delhi/.test(lower)) variants.push("South Delhi, Delhi, India");
+  if (/east(ern)?\s+new\s+delhi|east\s+delhi/.test(lower)) variants.push("East Delhi, Delhi, India");
+  if (/west(ern)?\s+new\s+delhi|west\s+delhi/.test(lower)) variants.push("West Delhi, Delhi, India");
+  variants.push(q);
+  return Array.from(new Set(variants.map((v) => v.trim()).filter(Boolean)));
+}
+
+function parseHit(h: any): GeoHit | null {
+  const lat = parseFloat(h?.lat);
+  const lng = parseFloat(h?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const bbox = h.boundingbox
+    ? ([parseFloat(h.boundingbox[2]), parseFloat(h.boundingbox[0]), parseFloat(h.boundingbox[3]), parseFloat(h.boundingbox[1])] as Bbox)
+    : undefined;
+  return { lat, lng, display_name: h.display_name, bbox, category: h.class, type: h.type };
+}
+
+function geocodeScore(h: GeoHit, originalQuery: string): number {
+  const cls = (h.category || "").toLowerCase();
+  const typ = (h.type || "").toLowerCase();
+  const name = (h.display_name || "").toLowerCase();
+  const q = originalQuery.toLowerCase();
+  let score = 0;
+  if (cls === "boundary") score += 160;
+  if (cls === "place") score += 120;
+  if (typ === "administrative") score += 90;
+  if (["city", "town", "suburb", "neighbourhood", "county", "district"].includes(typ)) score += 55;
+  if (["shop", "amenity", "tourism", "office", "building", "leisure"].includes(cls)) score -= 240;
+  if (name.includes("delhi")) score += 25;
+  if ((q.includes("north new delhi") || q.includes("north delhi")) && name.includes("north delhi")) score += 110;
+  if (h.bbox) {
+    const [w, s, e, n] = h.bbox;
+    const area = Math.abs((e - w) * (n - s));
+    if (area < 0.000001) score -= 120;
+    else score += Math.min(80, Math.log10(area * 1_000_000 + 1) * 18);
+  }
+  return score;
+}
 
 async function geocode(q: string): Promise<GeoHit | null> {
   try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`,
-      { headers: { "User-Agent": UA, "Accept-Language": "en" } },
-    );
-    if (!r.ok) return null;
-    const arr = await r.json();
-    if (!Array.isArray(arr) || !arr.length) return null;
-    const h = arr[0];
-    const bbox = h.boundingbox
-      ? ([
-          parseFloat(h.boundingbox[2]), // west  (minLng)
-          parseFloat(h.boundingbox[0]), // south (minLat)
-          parseFloat(h.boundingbox[3]), // east  (maxLng)
-          parseFloat(h.boundingbox[1]), // north (maxLat)
-        ] as [number, number, number, number])
-      : undefined;
-    return { lat: parseFloat(h.lat), lng: parseFloat(h.lon), display_name: h.display_name, bbox };
+    const candidates: GeoHit[] = [];
+    for (const query of normalizeGeocodeQueries(q)) {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&q=${encodeURIComponent(query)}`,
+        { headers: { "User-Agent": UA, "Accept-Language": "en" } },
+      );
+      if (!r.ok) continue;
+      const arr = await r.json();
+      if (Array.isArray(arr)) candidates.push(...arr.map(parseHit).filter(Boolean) as GeoHit[]);
+    }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => geocodeScore(b, q) - geocodeScore(a, q));
+    return candidates[0];
   } catch { return null; }
 }
 
-function bboxAround(lat: number, lng: number, radiusKm: number): [number, number, number, number] {
+function bboxAround(lat: number, lng: number, radiusKm: number): Bbox {
   const dLat = radiusKm / 111;
   const dLng = radiusKm / (111 * Math.cos((lat * Math.PI) / 180));
   return [lng - dLng, lat - dLat, lng + dLng, lat + dLat];
 }
 
-function clampBbox(b: [number, number, number, number], maxKm = 8): [number, number, number, number] {
+function clampBbox(b: Bbox, maxKm = 8): Bbox {
   const [w, s, e, n] = b;
   const cLat = (s + n) / 2, cLng = (w + e) / 2;
   const widthKm = Math.max(0.1, (e - w) * 111 * Math.cos((cLat * Math.PI) / 180));
@@ -73,6 +113,7 @@ function bufToB64(buf: Uint8Array): string {
 }
 
 type ImagePayload = { b64: string; mime: string; width: number; height: number; bbox: [number, number, number, number]; source: string };
+type ReconFrame = ImagePayload & { index: number };
 
 function inferMime(buf: Uint8Array, contentType: string | null): string | null {
   const ct = (contentType || "").split(";")[0].trim().toLowerCase();
@@ -124,6 +165,34 @@ async function fetchEsriTile(z: number, x: number, y: number): Promise<ImagePayl
     if (img) return { ...img, width: 256, height: 256, bbox: tileXYToBbox(z, x, y) };
   }
   return null;
+}
+
+function bboxCenter(bbox: Bbox) {
+  const [w, s, e, n] = bbox;
+  return { lat: (s + n) / 2, lng: (w + e) / 2 };
+}
+
+function subBboxAround(center: { lat: number; lng: number }, radiusKm: number, dxKm: number, dyKm: number): Bbox {
+  const lat = center.lat + dyKm / 111;
+  const lng = center.lng + dxKm / (111 * Math.cos((center.lat * Math.PI) / 180));
+  return bboxAround(lat, lng, radiusKm);
+}
+
+function buildScanBboxes(bbox: Bbox, radiusKm: number, requestedArea: string, hasLandmark: boolean): Bbox[] {
+  if (hasLandmark) return [bbox];
+  const center = bboxCenter(bbox);
+  const q = requestedArea.toLowerCase();
+  const broadArea = /north\s+new\s+delhi|north\s+delhi|new\s+delhi|delhi/.test(q);
+  if (!broadArea) return [bbox];
+  const r = Math.max(1.2, Math.min(2.5, radiusKm / 2));
+  const step = Math.max(2.2, r * 1.45);
+  return [
+    subBboxAround(center, r, 0, 0),
+    subBboxAround(center, r, -step, step),
+    subBboxAround(center, r, step, step),
+    subBboxAround(center, r, -step, -step),
+    subBboxAround(center, r, step, -step),
+  ];
 }
 
 // Pull satellite imagery covering the bbox. Tries ESRI export (single image)
@@ -206,6 +275,60 @@ function pixelToGeo(d: PixelDetection, bbox: [number, number, number, number]): 
   return { ...d, lat, lng };
 }
 
+async function visionDetect(apiKey: string, criteria: string, area: string, landmark: string | undefined, img: ReconFrame): Promise<{ detections: GeoDetection[]; summary: string; error?: string }> {
+  const prompt = `You are a satellite image recon analyst. Examine the provided high-resolution overhead satellite image and locate every feature that matches the user criteria. Be precise, but do not be overly conservative for roof-color searches: include visible red, terracotta, rust, clay-tile, maroon, or orange-red roof surfaces when the user asks for red roofs. If nothing matches, return an empty array.
+
+USER CRITERIA: ${criteria}
+${landmark ? `LANDMARK CONTEXT (image is centred on this): ${landmark}` : ""}
+AREA CONTEXT: ${area || "(unspecified)"}
+SCAN FRAME: ${img.index + 1}
+
+For every match, return:
+- x, y: pixel position normalised to [0..1] from the TOP-LEFT of the image (x = column / width, y = row / height). Aim for the centre of the feature.
+- label: short human label (e.g. "Red metal roof", "Terracotta roof", "Blue tarp roof")
+- color: dominant color word ("red", "terracotta", "rust", "blue", "navy", etc.)
+- confidence: 0..1
+- reason: one short sentence explaining why it matches.
+
+Return STRICT JSON only:
+{"detections":[{"x":0.42,"y":0.31,"label":"...","color":"red","confidence":0.86,"reason":"..."}],"summary":"2 sentence overview of what was found"}`;
+
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  let resp: Response | null = null;
+  let lastErr = "";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    resp = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: img.mime, data: img.b64 } }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 3072, responseMimeType: "application/json" },
+      }),
+    });
+    if (resp.ok) break;
+    lastErr = await resp.text();
+    if (resp.status === 429 || resp.status === 503) {
+      await new Promise((r) => setTimeout(r, 1500 * attempt));
+      continue;
+    }
+    break;
+  }
+  if (!resp || !resp.ok) return { detections: [], summary: "", error: `Vision analysis unavailable: ${resp?.status || "no_response"} ${lastErr.slice(0, 200)}` };
+
+  const data = await resp.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+  let parsed: any = {};
+  try { parsed = JSON.parse(raw); } catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) { try { parsed = JSON.parse(m[0]); } catch {} }
+  }
+  const rawDet: PixelDetection[] = Array.isArray(parsed?.detections) ? parsed.detections : [];
+  const detections = rawDet
+    .filter((d) => typeof d.x === "number" && typeof d.y === "number" && d.x >= 0 && d.x <= 1 && d.y >= 0 && d.y <= 1)
+    .map((d) => pixelToGeo(d, img.bbox));
+  return { detections, summary: parsed?.summary || "" };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -275,9 +398,14 @@ serve(async (req) => {
       center = { lat: areaHit!.lat, lng: areaHit!.lng };
     }
 
-    // 3) Pull satellite image
-    const img = await fetchSatelliteImage(bbox, 1024);
-    if (!img) {
+    // 3) Pull satellite images. Broad regional queries scan multiple live ESRI frames
+    // instead of one arbitrary tile, preventing false zero-results from a bad POI hit.
+    const scanBboxes = buildScanBboxes(bbox, radiusKm, area, !!landmarkHit);
+    const frames = (await Promise.all(scanBboxes.map(async (b, index) => {
+      const img = await fetchSatelliteImage(b, 1024);
+      return img ? ({ ...img, index } as ReconFrame) : null;
+    }))).filter(Boolean) as ReconFrame[];
+    if (!frames.length) {
       console.warn(`[asher-visual-recon] all imagery providers failed area="${area}" landmark="${landmark || ""}" bbox=${bbox.join(",")}`);
       return new Response(JSON.stringify({
         success: false,
@@ -291,97 +419,44 @@ serve(async (req) => {
         landmark: landmarkHit?.display_name || null,
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    console.log(`[asher-visual-recon] imagery source=${img.source} mime=${img.mime} bbox=${img.bbox.join(",")}`);
+    console.log(`[asher-visual-recon] frames=${frames.length} sources=${frames.map((f) => f.source).join("|")}`);
 
     // 4) Gemini Vision — strict JSON output via responseMimeType
-    const prompt = `You are a satellite image recon analyst. Examine the provided high-resolution overhead satellite image and locate every feature that matches the user criteria. Be precise. Do not invent results — if nothing matches, return an empty array.
-
-USER CRITERIA: ${criteria}
-${landmark ? `LANDMARK CONTEXT (image is centred on this): ${landmark}` : ""}
-AREA CONTEXT: ${area || "(unspecified)"}
-
-For every match, return:
-- x, y: pixel position normalised to [0..1] from the TOP-LEFT of the image (x = column / width, y = row / height). Aim for the centre of the feature.
-- label: short human label (e.g. "Red metal roof", "Blue tarp roof")
-- color: dominant color word ("red", "blue", "rust", "navy", etc.)
-- confidence: 0..1
-- reason: one short sentence explaining why it matches.
-
-Return STRICT JSON only:
-{
-  "detections": [
-    {"x":0.42,"y":0.31,"label":"...","color":"red","confidence":0.86,"reason":"..."}
-  ],
-  "summary": "2 sentence overview of what was found"
-}`;
-
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    let resp: Response | null = null;
-    let lastErr = "";
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      resp = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType: img.mime, data: img.b64 } },
-            ],
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 4096,
-            responseMimeType: "application/json",
-          },
-        }),
-      });
-      if (resp.ok) break;
-      lastErr = await resp.text();
-      if (resp.status === 429 || resp.status === 503) {
-        await new Promise((r) => setTimeout(r, 1500 * attempt));
-        continue;
-      }
-      break;
-    }
-    if (!resp || !resp.ok) {
+    const analyses = await Promise.all(frames.map((frame) => visionDetect(apiKey, criteria, area, landmark, frame)));
+    if (analyses.every((x) => x.error)) {
       return new Response(JSON.stringify({
         success: false,
-        error: `Vision analysis unavailable: ${resp?.status || "no_response"} ${lastErr.slice(0, 200)}`,
+        error: analyses.find((x) => x.error)?.error || "Vision analysis unavailable",
         code: "VISION_UNAVAILABLE",
         center,
-        bbox: img.bbox,
+        bbox,
         radiusKm,
         detections: [],
         area: areaHit?.display_name || null,
         landmark: landmarkHit?.display_name || null,
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    // Use the actual bbox returned by the imagery fetch (may differ from
-    // requested bbox when we fall back to a single tile).
-    const imgBbox = img.bbox;
 
-    const data = await resp.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    let parsed: any = {};
-    try { parsed = JSON.parse(raw); } catch {
-      const m = raw.match(/\{[\s\S]*\}/);
-      if (m) { try { parsed = JSON.parse(m[0]); } catch {} }
-    }
-
-    const rawDet: PixelDetection[] = Array.isArray(parsed?.detections) ? parsed.detections : [];
-    const detections: GeoDetection[] = rawDet
-      .filter((d) => typeof d.x === "number" && typeof d.y === "number" && d.x >= 0 && d.x <= 1 && d.y >= 0 && d.y <= 1)
-      .map((d) => pixelToGeo(d, imgBbox))
-      .slice(0, 60);
+    const detections: GeoDetection[] = analyses.flatMap((a) => a.detections).slice(0, 80);
+    const frameBboxes = frames.map((f) => f.bbox);
+    const resultBbox: Bbox = [
+      Math.min(...frameBboxes.map((b) => b[0])),
+      Math.min(...frameBboxes.map((b) => b[1])),
+      Math.max(...frameBboxes.map((b) => b[2])),
+      Math.max(...frameBboxes.map((b) => b[3])),
+    ];
+    const summaries = analyses.map((a) => a.summary).filter(Boolean);
+    const summary = detections.length
+      ? `Scanned ${frames.length} ESRI satellite frames across the requested area and found ${detections.length} candidate match${detections.length === 1 ? "" : "es"}. ${summaries[0] || ""}`.trim()
+      : `Scanned ${frames.length} ESRI satellite frames across the requested area. ${summaries[0] || "No matching features were confirmed in the sampled frames."}`.trim();
 
     console.log(`[asher-visual-recon] area="${area}" landmark="${landmark || ""}" criteria="${criteria.slice(0,80)}" detections=${detections.length}`);
 
     return new Response(JSON.stringify({
       success: true,
-      summary: parsed?.summary || "",
+      summary,
       center,
-      bbox: imgBbox,
+      bbox: resultBbox,
       radiusKm,
       detections,
       area: areaHit?.display_name || null,
