@@ -1400,6 +1400,15 @@ Deno.serve(async (req) => {
       if (alert) freshnessAlerts[r.url] = alert;
     }
 
+    // PANTHEON layer + engine breakdown — additive metadata for UI badges.
+    const layerCounts: Record<string, number> = {};
+    const engineCounts: Record<string, number> = {};
+    for (const r of filtered) {
+      const l = r.layer || 'surface';
+      layerCounts[l] = (layerCounts[l] || 0) + 1;
+      if (r.engine) engineCounts[r.engine] = (engineCounts[r.engine] || 0) + 1;
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -1413,9 +1422,13 @@ Deno.serve(async (req) => {
         freshnessAlerts,
         page,
         totalResults: filtered.length,
-        // New Truth Graph metadata
+        // Truth Graph metadata
         semanticIntent,
         consensus,
+        // PANTHEON v3 metadata
+        layerCounts,
+        engineCounts,
+        pantheonVersion: 3,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
