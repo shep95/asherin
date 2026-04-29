@@ -1409,6 +1409,85 @@ Deno.serve(async (req) => {
       if (r.engine) engineCounts[r.engine] = (engineCounts[r.engine] || 0) + 1;
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // PANTHEON v4 — ENTITY FUSION LAYER
+    // Extract entities across all results, build co-occurrence graph,
+    // rank by frequency × source tier (poor man's Neo4j).
+    // ═══════════════════════════════════════════════════════════════════════
+    const ENTITY_PATTERNS: Record<string, RegExp> = {
+      email:    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+      ipv4:     /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g,
+      btc:      /\b(?:bc1[a-z0-9]{25,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\b/g,
+      eth:      /\b0x[a-fA-F0-9]{40}\b/g,
+      cve:      /\bCVE-\d{4}-\d{4,7}\b/gi,
+      sha256:   /\b[a-f0-9]{64}\b/gi,
+      domain:   /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|ai|gov|edu|mil|co|uk|de|fr|jp|cn|ru|br|in|onion)\b/gi,
+      phone:    /\b\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}\b/g,
+    };
+
+    type EntityHit = { value: string; type: string; count: number; tierSum: number; sources: string[] };
+    const entityMap = new Map<string, EntityHit>();
+
+    for (const r of filtered) {
+      const text = `${r.title} ${r.snippet}`;
+      const tier = (r as any).tier || 4;
+      for (const [type, pattern] of Object.entries(ENTITY_PATTERNS)) {
+        const matches = text.match(pattern);
+        if (!matches) continue;
+        for (const raw of matches) {
+          const val = raw.toLowerCase();
+          // skip the query domain itself to avoid noise
+          if (type === 'domain' && trimmed.toLowerCase().includes(val)) continue;
+          const key = `${type}::${val}`;
+          const hit = entityMap.get(key);
+          if (hit) {
+            hit.count++;
+            hit.tierSum += (6 - tier);
+            if (!hit.sources.includes(r.url) && hit.sources.length < 5) hit.sources.push(r.url);
+          } else {
+            entityMap.set(key, { value: val, type, count: 1, tierSum: 6 - tier, sources: [r.url] });
+          }
+        }
+      }
+    }
+
+    // Rank: entities mentioned in 2+ results OR by tier-1/2 sources
+    const entities = Array.from(entityMap.values())
+      .filter(e => e.count >= 2 || e.tierSum >= 4)
+      .sort((a, b) => (b.count * b.tierSum) - (a.count * a.tierSum))
+      .slice(0, 50)
+      .map(e => ({
+        value: e.value,
+        type: e.type,
+        mentions: e.count,
+        weight: e.count * e.tierSum,
+        corroborated: e.count >= 2,
+        sources: e.sources,
+      }));
+
+    // Build co-occurrence edges: entities appearing in same result
+    const edges: Array<{ from: string; to: string; weight: number }> = [];
+    const edgeMap = new Map<string, number>();
+    for (const r of filtered) {
+      const text = `${r.title} ${r.snippet}`.toLowerCase();
+      const present = entities.filter(e => text.includes(e.value));
+      for (let i = 0; i < present.length; i++) {
+        for (let j = i + 1; j < present.length; j++) {
+          const k = `${present[i].type}::${present[i].value}__${present[j].type}::${present[j].value}`;
+          edgeMap.set(k, (edgeMap.get(k) || 0) + 1);
+        }
+      }
+    }
+    for (const [k, w] of edgeMap.entries()) {
+      if (w < 2) continue;
+      const [from, to] = k.split('__');
+      edges.push({ from, to, weight: w });
+    }
+    edges.sort((a, b) => b.weight - a.weight);
+
+    const entityCounts: Record<string, number> = {};
+    for (const e of entities) entityCounts[e.type] = (entityCounts[e.type] || 0) + 1;
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -1428,7 +1507,11 @@ Deno.serve(async (req) => {
         // PANTHEON v3 metadata
         layerCounts,
         engineCounts,
-        pantheonVersion: 3,
+        // PANTHEON v4 — Entity Fusion Graph
+        entities,
+        entityCounts,
+        entityEdges: edges.slice(0, 100),
+        pantheonVersion: 4,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
