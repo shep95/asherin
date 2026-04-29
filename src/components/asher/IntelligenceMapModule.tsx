@@ -541,7 +541,7 @@ const IntelligenceMapModule = () => {
   const fetchPropertyIntel = async (
     lat: number,
     lng: number,
-    hit: ReverseHit | null,
+    hit: SearchHit | null,
     features: OsmFeature[] | null,
   ) => {
     const address = hit?.display_name;
