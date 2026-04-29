@@ -113,6 +113,7 @@ function bufToB64(buf: Uint8Array): string {
 }
 
 type ImagePayload = { b64: string; mime: string; width: number; height: number; bbox: [number, number, number, number]; source: string };
+type ReconFrame = ImagePayload & { index: number };
 
 function inferMime(buf: Uint8Array, contentType: string | null): string | null {
   const ct = (contentType || "").split(";")[0].trim().toLowerCase();
@@ -164,6 +165,34 @@ async function fetchEsriTile(z: number, x: number, y: number): Promise<ImagePayl
     if (img) return { ...img, width: 256, height: 256, bbox: tileXYToBbox(z, x, y) };
   }
   return null;
+}
+
+function bboxCenter(bbox: Bbox) {
+  const [w, s, e, n] = bbox;
+  return { lat: (s + n) / 2, lng: (w + e) / 2 };
+}
+
+function subBboxAround(center: { lat: number; lng: number }, radiusKm: number, dxKm: number, dyKm: number): Bbox {
+  const lat = center.lat + dyKm / 111;
+  const lng = center.lng + dxKm / (111 * Math.cos((center.lat * Math.PI) / 180));
+  return bboxAround(lat, lng, radiusKm);
+}
+
+function buildScanBboxes(bbox: Bbox, radiusKm: number, requestedArea: string, hasLandmark: boolean): Bbox[] {
+  if (hasLandmark) return [bbox];
+  const center = bboxCenter(bbox);
+  const q = requestedArea.toLowerCase();
+  const broadArea = /north\s+new\s+delhi|north\s+delhi|new\s+delhi|delhi/.test(q);
+  if (!broadArea) return [bbox];
+  const r = Math.max(1.2, Math.min(2.5, radiusKm / 2));
+  const step = Math.max(2.2, r * 1.45);
+  return [
+    subBboxAround(center, r, 0, 0),
+    subBboxAround(center, r, -step, step),
+    subBboxAround(center, r, step, step),
+    subBboxAround(center, r, -step, -step),
+    subBboxAround(center, r, step, -step),
+  ];
 }
 
 // Pull satellite imagery covering the bbox. Tries ESRI export (single image)
