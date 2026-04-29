@@ -20,6 +20,7 @@ CAPABILITIES (call tools — do not describe them as text):
 - save_current_target(label?): save the currently selected entity to the operator's dossier vault
 - analyze_entity(): produce a tactical assessment of the currently selected entity
 - property_intel(address?, entityName?): pull LIVE web intelligence for the selected/specified property via the Zophiel scrape engine — owner, operator, history, tenants, risks, citations. Defaults to the currently selected map entity if no args given.
+- visual_recon(area, criteria, landmark?, radiusKm?): pull a live high-res satellite image of the area (optionally centred on a landmark) and run Gemini vision to locate every feature matching the criteria (e.g. "red or blue roofs", "blue tarps", "construction cranes", "solar panels"). Returns geocoded detections that auto-drop as map markers. Use this whenever the operator asks to FIND, LOCATE, COUNT, IDENTIFY or SPOT visual features in/near a place.
 - generate_image(prompt): render a tactical visualization or sketch
 - set_base_layer(layer): switch base map ("street" | "satellite" | "topo" | "dark")
 
