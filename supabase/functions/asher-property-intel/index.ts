@@ -189,14 +189,16 @@ serve(async (req) => {
     }
 
     const queries: string[] = [];
-    if (entityName) queries.push(`"${entityName}" ${address ?? ""}`.trim());
-    if (address) queries.push(`${address} property owner records`);
-    if (address) queries.push(`${address} site:wikipedia.org OR site:wikimapia.org OR site:loopnet.com OR site:zillow.com`);
+    if (entityName && address) queries.push(`"${entityName}" ${address}`);
+    if (entityName) queries.push(`"${entityName}" owner operator history`);
+    if (address) queries.push(`"${address}" property owner`);
+    if (address) queries.push(`${address} site:wikipedia.org OR site:loopnet.com OR site:zillow.com OR site:realtor.com`);
+    if (!queries.length && entityName) queries.push(entityName);
 
     const seen = new Set<string>();
-    const merged: Array<{ title: string; url: string; snippet: string }> = [];
+    const merged: Hit[] = [];
     for (const q of queries) {
-      const r = await ddgSearch(q, 5);
+      const r = await multiSearch(q, 6);
       for (const hit of r) {
         if (seen.has(hit.url)) continue;
         seen.add(hit.url);
