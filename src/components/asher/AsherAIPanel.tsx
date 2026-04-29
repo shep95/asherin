@@ -9,12 +9,18 @@ import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { toast } from "sonner";
 
+export type ReconDetection = {
+  lat: number; lng: number;
+  label: string; color?: string; confidence: number; reason?: string;
+};
+
 export type MapAction =
   | { type: "search"; query: string }
   | { type: "toggle_threat"; layer: "earthquakes" | "wildfires" | "aircraft"; enabled: boolean }
   | { type: "save_target"; label?: string }
   | { type: "analyze_entity" }
   | { type: "property_intel"; address?: string; entityName?: string }
+  | { type: "visual_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; detections: ReconDetection[]; summary?: string; area?: string; landmark?: string }
   | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" };
 
 export interface AsherAIPanelHandle {
@@ -42,7 +48,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
       id: "welcome",
       role: "assistant",
       content:
-        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Fly to Kyiv*\n- *Show live earthquakes*\n- *Switch to satellite*\n- *Save this target*\n- *Analyze the selected entity*\n- *Imagine a topographic sketch of this terrain*",
+        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
     },
   ]);
   const [input, setInput] = useState("");
@@ -136,6 +142,45 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         case "generate_image": {
           await runImagine(String(args?.prompt ?? "tactical sketch"));
           return `Imagine dispatched: ${args?.prompt}`;
+        }
+        case "visual_recon": {
+          const area = String(args?.area ?? "").trim();
+          const criteria = String(args?.criteria ?? "").trim();
+          const landmark = args?.landmark ? String(args.landmark) : undefined;
+          const radiusKm = typeof args?.radiusKm === "number" ? args.radiusKm : undefined;
+          if (!area || !criteria) return "Visual recon: need area and criteria.";
+          const byok = getActiveIntelMapByok();
+          const { data, error } = await supabase.functions.invoke("asher-visual-recon", {
+            body: { area, criteria, landmark, radiusKm, ...(byok ? { byok: byok.apiKey } : {}) },
+          });
+          if (error) return `Visual recon failed: ${error.message}`;
+          if (!data?.success) return `Visual recon failed: ${data?.error || "unknown"}`;
+          const dets: ReconDetection[] = data.detections || [];
+          try {
+            await onAction({
+              type: "visual_recon",
+              center: data.center,
+              bbox: data.bbox,
+              detections: dets,
+              summary: data.summary,
+              area: data.area,
+              landmark: data.landmark,
+            });
+          } catch {}
+          const lines: string[] = [];
+          lines.push(`**Visual Recon · ${dets.length} match${dets.length === 1 ? "" : "es"}**`);
+          if (data.area) lines.push(`Area: ${data.area}`);
+          if (data.landmark) lines.push(`Landmark: ${data.landmark}`);
+          if (data.summary) lines.push(`\n${data.summary}`);
+          if (dets.length) {
+            lines.push("\n**Top detections:**");
+            dets.slice(0, 8).forEach((d, i) => {
+              lines.push(`${i + 1}. **${d.label}** — ${d.lat.toFixed(5)}, ${d.lng.toFixed(5)} · ${(d.confidence * 100).toFixed(0)}%${d.reason ? ` — ${d.reason}` : ""}`);
+            });
+          } else {
+            lines.push("\nNo matches in the imaged tile. Try widening the radius or refining the criteria.");
+          }
+          return lines.join("\n");
         }
       }
     } catch (e: any) {
