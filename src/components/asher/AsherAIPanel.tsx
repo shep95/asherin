@@ -148,6 +148,46 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
             lines.push(`**Sources:**\n` + data.sources.slice(0, 5).map((s: any, i: number) => `${i + 1}. [${s.title || s.url}](${s.url})`).join("\n"));
           return lines.join("\n\n") || "Property intel: no facts extracted.";
         }
+        case "phone_intel": {
+          const phone = String(args?.phone ?? "").trim();
+          const defaultCountry = args?.defaultCountry ? String(args.defaultCountry).toUpperCase() : undefined;
+          if (!phone) return "Phone intel: phone number required.";
+          const byok = getActiveIntelMapByok();
+          const { data, error } = await supabase.functions.invoke("asher-phone-intel", {
+            body: { phone, defaultCountry, ...(byok ? { byok: byok.apiKey } : {}) },
+          });
+          if (error) return `Phone intel failed: ${error.message}`;
+          if (!data?.success) return `Phone intel failed: ${data?.error || "invalid number"}`;
+          const p = data.phone || {};
+          const o = data.osint || {};
+          // Fly map to country centroid (country-level only)
+          if (data.geo?.lat && data.geo?.lng) {
+            try { await onAction({ type: "search", query: `${data.geo.country_name || p.country_name || p.country}` }); } catch {}
+          }
+          const lines: string[] = [];
+          lines.push(`**Phone Intel · ${p.international || phone}**`);
+          lines.push([
+            `- **Country:** ${p.country_name || p.country || "?"} (${p.country_calling_code || ""})`,
+            `- **Line type:** ${p.line_type}`,
+            `- **National:** ${p.national}`,
+            `- **E.164:** ${p.e164}`,
+          ].join("\n"));
+          if (o.summary) lines.push(`**Brief:** ${o.summary}`);
+          if (o.owner_or_business) lines.push(`- **Listed as:** ${o.owner_or_business}`);
+          if (o.risk_assessment) lines.push(`- **Risk:** ${o.risk_assessment}`);
+          if (Array.isArray(o.spam_or_scam_reports) && o.spam_or_scam_reports.length)
+            lines.push(`**Spam/Scam reports:**\n` + o.spam_or_scam_reports.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(o.public_listings) && o.public_listings.length)
+            lines.push(`**Public listings:**\n` + o.public_listings.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(o.social_or_breach_mentions) && o.social_or_breach_mentions.length)
+            lines.push(`**Social / breach mentions:**\n` + o.social_or_breach_mentions.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(o.associated_locations) && o.associated_locations.length)
+            lines.push(`**Associated locations:**\n` + o.associated_locations.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(data.sources) && data.sources.length)
+            lines.push(`**Sources:**\n` + data.sources.slice(0, 5).map((s: any, i: number) => `${i + 1}. [${s.title || s.url}](${s.url})`).join("\n"));
+          lines.push(`\n_${data.disclaimer}_`);
+          return lines.join("\n\n");
+        }
         case "generate_image": {
           await runImagine(String(args?.prompt ?? "tactical sketch"));
           return `Imagine dispatched: ${args?.prompt}`;
