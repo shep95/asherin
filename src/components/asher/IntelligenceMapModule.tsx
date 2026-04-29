@@ -842,7 +842,48 @@ const IntelligenceMapModule = () => {
               <Popup><div className="text-xs"><b>{p.label}</b><br/>{p.meta}</div></Popup>
             </CircleMarker>
           ))}
+
+          {/* AI Visual Recon detections */}
+          {reconLayer.detections.map((d, i) => {
+            const c = (d.color || "").toLowerCase();
+            const fill = c.includes("red") || c.includes("rust") || c.includes("orange") ? "#ef4444"
+              : c.includes("blue") || c.includes("navy") || c.includes("cyan") ? "#3b82f6"
+              : c.includes("green") ? "#22c55e"
+              : c.includes("yellow") ? "#eab308"
+              : "#a855f7";
+            return (
+              <CircleMarker
+                key={`recon-${i}`}
+                center={[d.lat, d.lng]}
+                radius={Math.max(5, Math.min(11, 4 + d.confidence * 8))}
+                pathOptions={{ color: fill, weight: 2, fillColor: fill, fillOpacity: 0.55 }}
+              >
+                <Popup>
+                  <div className="text-xs space-y-1">
+                    <div className="font-semibold">{d.label}</div>
+                    <div className="opacity-70">Confidence: {(d.confidence * 100).toFixed(0)}%</div>
+                    {d.reason && <div className="opacity-80">{d.reason}</div>}
+                    <div className="opacity-50 font-mono text-[10px]">{d.lat.toFixed(5)}, {d.lng.toFixed(5)}</div>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            );
+          })}
         </MapContainer>
+
+        {/* RECON LAYER BANNER */}
+        {reconLayer.detections.length > 0 && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 rounded-xl border border-foreground/20 bg-card/90 backdrop-blur-md px-3 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase text-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Visual Recon · {reconLayer.detections.length} match{reconLayer.detections.length === 1 ? "" : "es"}</span>
+            {reconLayer.label && <span className="opacity-60 normal-case tracking-normal">— {reconLayer.label}</span>}
+            <button
+              onClick={() => setReconLayer({ detections: [], bbox: null })}
+              className="ml-2 text-muted-foreground hover:text-foreground"
+              title="Clear recon layer"
+            >×</button>
+          </div>
+        )}
 
         {/* LIVE FEEDS TOGGLE */}
         {entity && (
