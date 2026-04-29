@@ -672,6 +672,24 @@ const IntelligenceMapModule = () => {
       }
       return "Property intel scrape dispatched.";
     }
+    if (a.type === "visual_recon") {
+      setReconLayer({
+        detections: a.detections || [],
+        bbox: a.bbox || null,
+        summary: a.summary,
+        label: [a.landmark, a.area].filter(Boolean).join(" · "),
+      });
+      // Auto-switch to satellite for visual context
+      setActiveBase("esri-sat");
+      // Fly to centre / fit bbox
+      if (a.bbox && mapRef.current) {
+        const [w, s, e, n] = a.bbox;
+        try { mapRef.current.fitBounds([[s, w], [n, e]], { padding: [40, 40] }); } catch {}
+      } else if (a.center) {
+        flyTo(a.center.lat, a.center.lng, 15);
+      }
+      return `Visual recon: ${a.detections?.length || 0} detections rendered.`;
+    }
   };
 
   return (
