@@ -617,13 +617,18 @@ const IntelligenceMapModule = () => {
     center: { lat: coord.lat, lng: coord.lng, zoom: coord.zoom },
     activeBase,
     activeThreats,
-    selectedEntity: entity ? {
-      lat: entity.lat, lng: entity.lng,
-      address: entity.hit?.display_name,
-      country: entity.country?.name?.common,
-      weather: entity.weather?.current,
-      elevation: entity.elevation,
-    } : null,
+    selectedEntity: entity ? (() => {
+      const primary = entity.features ? classifyClick(entity.features).primary : null;
+      const entityName = primary?.tags?.name || primary?.tags?.["name:en"] || primary?.tags?.operator;
+      return {
+        lat: entity.lat, lng: entity.lng,
+        address: entity.hit?.display_name,
+        entityName,
+        country: entity.country?.name?.common,
+        weather: entity.weather?.current,
+        elevation: entity.elevation,
+      };
+    })() : null,
   };
 
   // Asher AI dispatcher — drives the map from the right-side panel
