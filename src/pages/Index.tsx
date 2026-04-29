@@ -1021,26 +1021,49 @@ const Index = () => {
       )}
       {showHouseLogo && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-6 cursor-zoom-out animate-in fade-in"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-background/85 backdrop-blur-2xl p-8 cursor-zoom-out animate-in fade-in duration-300"
           onClick={() => setShowHouseLogo(false)}
         >
+          {/* Ambient glow */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--foreground)/0.06),transparent_60%)]" />
+
+          {/* Close */}
           <button
             type="button"
             onClick={() => setShowHouseLogo(false)}
-            className="absolute top-6 right-6 rounded-full border border-border/30 bg-background/40 p-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute top-6 right-6 rounded-full border border-border/20 bg-card/40 backdrop-blur-md p-2.5 text-muted-foreground hover:text-foreground hover:border-border/50 transition-all"
             aria-label="Close"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" strokeWidth={1.5} />
           </button>
-          <img
-            src={houseOfAsherLogo}
-            alt="House of Asher emblem"
+
+          {/* Card */}
+          <div
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[85vh] max-w-[90vw] rounded-2xl border border-border/20 shadow-2xl object-contain cursor-default"
-          />
-          <p className="absolute bottom-8 left-0 right-0 text-center text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">
-            #HouseOfAsher
-          </p>
+            className="relative flex flex-col items-center gap-6 rounded-3xl border border-border/20 bg-card/30 backdrop-blur-xl p-6 sm:p-8 shadow-2xl cursor-default animate-in zoom-in-95 duration-300"
+          >
+            <div className="flex items-center gap-2 self-start">
+              <span className="h-1 w-1 rounded-full bg-foreground/60" />
+              <p className="text-[9px] font-light tracking-[0.4em] text-muted-foreground uppercase">
+                House of Asher · Emblem
+              </p>
+            </div>
+
+            <img
+              src={houseOfAsherLogo}
+              alt="House of Asher emblem"
+              className="max-h-[70vh] max-w-[80vw] rounded-2xl border border-border/15 object-contain"
+            />
+
+            <div className="flex w-full items-center justify-between gap-6 border-t border-border/15 pt-4">
+              <p className="text-[10px] font-extralight tracking-[0.25em] text-muted-foreground/70 uppercase">
+                #HouseOfAsher
+              </p>
+              <p className="text-[9px] font-extralight tracking-[0.3em] text-muted-foreground/40 uppercase">
+                Click anywhere to close
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </LandingBackground>
