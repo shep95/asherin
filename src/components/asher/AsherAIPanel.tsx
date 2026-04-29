@@ -271,6 +271,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         <QuickChip icon={Zap} label="Aircraft"    onClick={() => onAction({ type: "toggle_threat", layer: "aircraft",    enabled: true })} />
         <QuickChip icon={MapPin}    label="Satellite" onClick={() => onAction({ type: "set_base", layer: "satellite" })} />
         <QuickChip icon={Crosshair} label="Save Target" onClick={() => onAction({ type: "save_target" })} />
+        <QuickChip icon={Sparkles} label="Property Intel" onClick={() => { setInput("Run property_intel on the selected location"); setTimeout(() => send(), 0); }} />
       </div>
 
       {/* Stream */}
