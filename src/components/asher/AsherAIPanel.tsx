@@ -14,6 +14,14 @@ export type ReconDetection = {
   label: string; color?: string; confidence: number; reason?: string;
 };
 
+export type TemporalTrack = {
+  lat: number; lng: number;
+  label: string; color?: string;
+  first_seen: number; last_seen: number;
+  years_present: number[];
+  confidence: number; reason?: string;
+};
+
 export type MapAction =
   | { type: "search"; query: string }
   | { type: "toggle_threat"; layer: "earthquakes" | "wildfires" | "aircraft"; enabled: boolean }
@@ -21,6 +29,7 @@ export type MapAction =
   | { type: "analyze_entity" }
   | { type: "property_intel"; address?: string; entityName?: string }
   | { type: "visual_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; detections: ReconDetection[]; summary?: string; area?: string; landmark?: string }
+  | { type: "temporal_recon"; center: { lat: number; lng: number }; bbox: [number, number, number, number]; tracks: TemporalTrack[]; years: number[]; frames: Array<{ year: number; source: string; detection_count: number; summary: string }>; area?: string; landmark?: string }
   | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" };
 
 export interface AsherAIPanelHandle {
