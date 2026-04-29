@@ -299,6 +299,10 @@ Return STRICT JSON only:
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Use the actual bbox returned by the imagery fetch (may differ from
+    // requested bbox when we fall back to a single tile).
+    const imgBbox = img.bbox;
+
     const data = await resp.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     let parsed: any = {};
@@ -310,7 +314,7 @@ Return STRICT JSON only:
     const rawDet: PixelDetection[] = Array.isArray(parsed?.detections) ? parsed.detections : [];
     const detections: GeoDetection[] = rawDet
       .filter((d) => typeof d.x === "number" && typeof d.y === "number" && d.x >= 0 && d.x <= 1 && d.y >= 0 && d.y <= 1)
-      .map((d) => pixelToGeo(d, bbox))
+      .map((d) => pixelToGeo(d, imgBbox))
       .slice(0, 60);
 
     console.log(`[asher-visual-recon] area="${area}" landmark="${landmark || ""}" criteria="${criteria.slice(0,80)}" detections=${detections.length}`);
