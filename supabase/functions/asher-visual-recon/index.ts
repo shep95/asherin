@@ -72,14 +72,58 @@ function bufToB64(buf: Uint8Array): string {
   return btoa(bin);
 }
 
-// Fetch a single ESRI World Imagery XYZ tile.
-async function fetchEsriTile(z: number, x: number, y: number): Promise<Uint8Array | null> {
-  const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+type ImagePayload = { b64: string; mime: string; width: number; height: number; bbox: [number, number, number, number]; source: string };
+
+function inferMime(buf: Uint8Array, contentType: string | null): string | null {
+  const ct = (contentType || "").split(";")[0].trim().toLowerCase();
+  if (ct.startsWith("image/")) return ct;
+  if (buf[0] === 0xff && buf[1] === 0xd8) return "image/jpeg";
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "image/png";
+  return null;
+}
+
+async function fetchImageBytes(url: string, source: string): Promise<{ b64: string; mime: string; source: string } | null> {
   try {
-    const r = await fetch(url, { headers: { "User-Agent": UA } });
-    if (!r.ok) return null;
-    return new Uint8Array(await r.arrayBuffer());
-  } catch { return null; }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 9000);
+    const r = await fetch(url, { headers: { "User-Agent": UA, Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8" }, signal: controller.signal });
+    clearTimeout(timeout);
+    if (!r.ok) {
+      console.warn(`[visual-recon] ${source} failed status=${r.status}`);
+      return null;
+    }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const mime = inferMime(buf, r.headers.get("content-type"));
+    if (!mime || buf.length < 500) {
+      console.warn(`[visual-recon] ${source} returned non-image/empty payload bytes=${buf.length}`);
+      return null;
+    }
+    return { b64: bufToB64(buf), mime, source };
+  } catch (e) {
+    console.warn(`[visual-recon] ${source} threw:`, e);
+    return null;
+  }
+}
+
+function tileXYToBbox(z: number, x: number, y: number): [number, number, number, number] {
+  const n2 = Math.pow(2, z);
+  const tileLngW = (x / n2) * 360 - 180;
+  const tileLngE = ((x + 1) / n2) * 360 - 180;
+  const tileLatN = (180 / Math.PI) * Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n2)));
+  const tileLatS = (180 / Math.PI) * Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n2)));
+  return [tileLngW, tileLatS, tileLngE, tileLatN];
+}
+
+async function fetchEsriTile(z: number, x: number, y: number): Promise<ImagePayload | null> {
+  const urls = [
+    `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+    `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+  ];
+  for (const url of urls) {
+    const img = await fetchImageBytes(url, `ESRI tile z${z}`);
+    if (img) return { ...img, width: 256, height: 256, bbox: tileXYToBbox(z, x, y) };
+  }
+  return null;
 }
 
 // Pull satellite imagery covering the bbox. Tries ESRI export (single image)
@@ -87,7 +131,7 @@ async function fetchEsriTile(z: number, x: number, y: number): Promise<Uint8Arra
 async function fetchSatelliteImage(
   bbox: [number, number, number, number],
   size = 1024,
-): Promise<{ b64: string; mime: string; width: number; height: number; bbox: [number, number, number, number] } | null> {
+): Promise<ImagePayload | null> {
   const [w, s, e, n] = bbox;
 
   // --- Attempt 1: ESRI export endpoint (full bbox) ---
@@ -95,21 +139,19 @@ async function fetchSatelliteImage(
     `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export` +
     `?bbox=${w},${s},${e},${n}` +
     `&bboxSR=4326&imageSR=4326&size=${size},${size}&format=png&transparent=false&f=image`;
-  try {
-    const r = await fetch(exportUrl, { headers: { "User-Agent": UA } });
-    if (r.ok) {
-      const buf = new Uint8Array(await r.arrayBuffer());
-      if (buf.length > 1000) {
-        return { b64: bufToB64(buf), mime: "image/png", width: size, height: size, bbox };
-      }
-    } else {
-      console.warn(`[visual-recon] ESRI export failed status=${r.status}`);
-    }
-  } catch (e) {
-    console.warn(`[visual-recon] ESRI export threw:`, e);
+  const exported = await fetchImageBytes(exportUrl, "ESRI export");
+  if (exported) return { ...exported, width: size, height: size, bbox };
+
+  // --- Attempt 2: ESRI Wayback recent releases (same imagery family, different endpoint) ---
+  for (const release of ["2025-06-25", "2024-12-04", "2023-12-13"]) {
+    const waybackUrl =
+      `https://wayback.maptiles.arcgis.com/arcgis/rest/services/world_imagery/MapServer/exts/Wayback/release/${release}/export` +
+      `?bbox=${w},${s},${e},${n}&bboxSR=4326&imageSR=4326&size=${size},${size}&format=jpg&f=image`;
+    const img = await fetchImageBytes(waybackUrl, `ESRI Wayback ${release}`);
+    if (img) return { ...img, width: size, height: size, bbox };
   }
 
-  // --- Attempt 2: single XYZ tile centered on bbox ---
+  // --- Attempt 3: XYZ tiles centered on bbox ---
   const cLat = (s + n) / 2;
   const cLng = (w + e) / 2;
   // Pick zoom level based on bbox span
@@ -121,26 +163,24 @@ async function fetchSatelliteImage(
   else if (spanDeg > 0.05) z = 14;
   else if (spanDeg > 0.02) z = 15;
 
-  const n2 = Math.pow(2, z);
-  const x = Math.floor(((cLng + 180) / 360) * n2);
-  const latRad = (cLat * Math.PI) / 180;
-  const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n2);
-
-  const tile = await fetchEsriTile(z, x, y);
-  if (tile && tile.length > 500) {
-    // Compute the actual bbox of this tile so pixel->geo stays correct.
-    const tileLngW = (x / n2) * 360 - 180;
-    const tileLngE = ((x + 1) / n2) * 360 - 180;
-    const tileLatN = (180 / Math.PI) * Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n2)));
-    const tileLatS = (180 / Math.PI) * Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n2)));
-    return {
-      b64: bufToB64(tile),
-      mime: "image/jpeg",
-      width: 256,
-      height: 256,
-      bbox: [tileLngW, tileLatS, tileLngE, tileLatN],
-    };
+  for (const zoom of [z, Math.max(1, z - 1), Math.max(1, z - 2)]) {
+    const n2 = Math.pow(2, zoom);
+    const x = Math.floor(((cLng + 180) / 360) * n2);
+    const latRad = (cLat * Math.PI) / 180;
+    const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n2);
+    const tile = await fetchEsriTile(zoom, x, y);
+    if (tile) return tile;
   }
+
+  // --- Attempt 4: NASA GIBS visible imagery fallback. Lower-res, but keeps recon nonfatal. ---
+  const d = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const gibsUrl =
+    `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi` +
+    `?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=MODIS_Terra_CorrectedReflectance_TrueColor` +
+    `&STYLES=&FORMAT=image/jpeg&TRANSPARENT=false&HEIGHT=${size}&WIDTH=${size}` +
+    `&CRS=EPSG:4326&BBOX=${s},${w},${n},${e}&TIME=${d}`;
+  const gibs = await fetchImageBytes(gibsUrl, "NASA GIBS visible imagery");
+  if (gibs) return { ...gibs, width: size, height: size, bbox };
 
   return null;
 }
