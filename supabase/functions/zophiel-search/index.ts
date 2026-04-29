@@ -680,10 +680,419 @@ async function searchYandex(query: string): Promise<SearchResult[]> {
   } catch { return []; }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// PANTHEON v3 — DEEP / CODE / ACADEMIC / SOCIAL / CHAIN / BREACH / IOT / VULN
+// Net-new source modules covering the corners of the internet that standard
+// surface engines do not index. Every module is failure-tolerant — a dead API
+// returns [] and is skipped by Promise.allSettled at the orchestrator level.
+// ══════════════════════════════════════════════════════════════════════════════
+
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+function tagLayer(r: SearchResult, layer: PantheonLayer, engine: string): SearchResult {
+  r.layer = layer;
+  r.engine = engine;
+  return r;
+}
+
+// ── DEEP WEB: Common Crawl Index (petabyte-scale historical web archive) ─────
+async function searchCommonCrawl(query: string, limit = 10): Promise<SearchResult[]> {
+  // CDX API — query the most recent index for URLs matching the term as a host substring.
+  // Covers billions of pages Google has dropped.
+  try {
+    const idx = 'CC-MAIN-2024-51'; // rolling — tolerant to 404 if index ages out
+    const url = `https://index.commoncrawl.org/${idx}-index?url=*${encodeURIComponent(query.replace(/\s+/g, '-'))}*&output=json&limit=${limit}`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return [];
+    const text = await r.text();
+    const out: SearchResult[] = [];
+    for (const line of text.split('\n').filter(Boolean).slice(0, limit)) {
+      try {
+        const row = JSON.parse(line);
+        const built = buildSearchResult(row.url || '', row.url || '', `Common Crawl archive · status ${row.status} · captured ${row.timestamp}`);
+        if (built) {
+          built.publishDate = row.timestamp ? `${row.timestamp.slice(0,4)}-${row.timestamp.slice(4,6)}-${row.timestamp.slice(6,8)}` : undefined;
+          out.push(tagLayer(built, 'deep', 'common-crawl'));
+        }
+      } catch { /* malformed line */ }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── DEEP WEB: Wayback Machine CDX (historical snapshots) ─────────────────────
+async function searchWayback(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://web.archive.org/cdx/search/cdx?url=*${encodeURIComponent(query.replace(/\s+/g, '-'))}*&output=json&limit=${limit}&filter=statuscode:200&collapse=urlkey`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return [];
+    const rows = await r.json();
+    if (!Array.isArray(rows) || rows.length < 2) return [];
+    const out: SearchResult[] = [];
+    for (const row of rows.slice(1, limit + 1)) {
+      const [, ts, original] = row;
+      if (!original) continue;
+      const archiveUrl = `https://web.archive.org/web/${ts}/${original}`;
+      const built = buildSearchResult(`Archived: ${original}`, archiveUrl, `Snapshot from ${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)} preserved by the Internet Archive.`);
+      if (built) {
+        built.publishDate = `${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}`;
+        out.push(tagLayer(built, 'deep', 'wayback'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── CODE: GitHub Code Search (no auth — rate-limited but works) ──────────────
+async function searchGitHubCode(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://api.github.com/search/code?q=${encodeURIComponent(query)}&per_page=${limit}`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': UA, 'Accept': 'application/vnd.github.v3.text-match+json' },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!r.ok) {
+      // Fallback: repo search (more permissive rate limit)
+      const r2 = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&per_page=${limit}`, {
+        headers: { 'User-Agent': UA, 'Accept': 'application/vnd.github.v3+json' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!r2.ok) return [];
+      const data = await r2.json();
+      const out: SearchResult[] = [];
+      for (const item of (data.items || []).slice(0, limit)) {
+        const built = buildSearchResult(item.full_name, item.html_url, item.description || `${item.stargazers_count}★ · ${item.language || 'mixed'}`);
+        if (built) {
+          built.publishDate = item.updated_at;
+          out.push(tagLayer(built, 'code', 'github-repos'));
+        }
+      }
+      return out;
+    }
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const item of (data.items || []).slice(0, limit)) {
+      const fragment = item.text_matches?.[0]?.fragment || '';
+      const built = buildSearchResult(`${item.repository.full_name} · ${item.path}`, item.html_url, fragment.slice(0, 280));
+      if (built) out.push(tagLayer(built, 'code', 'github-code'));
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── DEEP WEB: SEC EDGAR full-text search (corporate filings) ─────────────────
+async function searchEDGAR(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent('"' + query + '"')}&dateRange=custom&startdt=2020-01-01&forms=10-K,10-Q,8-K,S-1,DEF+14A`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Aureon Intel research@aureonai.app', 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const hit of (data.hits?.hits || []).slice(0, limit)) {
+      const src = hit._source || {};
+      const adsh = (src.adsh || '').replace(/-/g, '');
+      const cik = src.ciks?.[0] || '';
+      const file = hit._id?.split(':')?.[1] || '';
+      const url2 = cik && adsh && file
+        ? `https://www.sec.gov/Archives/edgar/data/${parseInt(cik, 10)}/${adsh}/${file}`
+        : `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(query)}`;
+      const title = `${src.display_names?.[0] || 'Filer'} · ${src.form || 'Filing'} · ${src.file_date || ''}`;
+      const built = buildSearchResult(title, url2, (src.file_description || src.items || '').toString().slice(0, 280));
+      if (built) {
+        built.publishDate = src.file_date;
+        out.push(tagLayer(built, 'deep', 'sec-edgar'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── ACADEMIC: arXiv (preprints — physics, CS, math, biology) ─────────────────
+async function searchArxiv(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=${limit}&sortBy=relevance`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return [];
+    const xml = await r.text();
+    const out: SearchResult[] = [];
+    const entryRe = /<entry>([\s\S]*?)<\/entry>/g;
+    let m: RegExpExecArray | null;
+    while ((m = entryRe.exec(xml)) !== null && out.length < limit) {
+      const block = m[1];
+      const title = (block.match(/<title>([\s\S]*?)<\/title>/)?.[1] || '').replace(/\s+/g, ' ').trim();
+      const url2 = block.match(/<id>([\s\S]*?)<\/id>/)?.[1]?.trim() || '';
+      const summary = (block.match(/<summary>([\s\S]*?)<\/summary>/)?.[1] || '').replace(/\s+/g, ' ').trim().slice(0, 320);
+      const published = block.match(/<published>([\s\S]*?)<\/published>/)?.[1]?.trim();
+      const built = buildSearchResult(title, url2, summary);
+      if (built) {
+        built.publishDate = published;
+        out.push(tagLayer(built, 'academic', 'arxiv'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── ACADEMIC: CrossRef (DOI registry — covers most peer-reviewed papers) ─────
+async function searchCrossRef(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${limit}&select=DOI,title,author,published-print,abstract,URL,container-title`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Aureon/1.0 (mailto:research@aureonai.app)' }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const item of (data.message?.items || []).slice(0, limit)) {
+      const title = (item.title?.[0] || '').toString();
+      const url2 = item.URL || `https://doi.org/${item.DOI}`;
+      const journal = (item['container-title']?.[0] || '').toString();
+      const authors = (item.author || []).slice(0, 3).map((a: { family?: string; given?: string }) => `${a.family || ''} ${a.given || ''}`.trim()).join(', ');
+      const snippet = `${authors ? authors + ' · ' : ''}${journal ? journal + ' · ' : ''}${(item.abstract || '').replace(/<[^>]+>/g, '').slice(0, 240)}`;
+      const built = buildSearchResult(title, url2, snippet);
+      if (built) {
+        const dp = item['published-print']?.['date-parts']?.[0];
+        if (dp) built.publishDate = `${dp[0]}-${String(dp[1] || 1).padStart(2,'0')}-${String(dp[2] || 1).padStart(2,'0')}`;
+        out.push(tagLayer(built, 'academic', 'crossref'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── ACADEMIC: OpenAlex (citation graph + open-access scholarly works) ────────
+async function searchOpenAlex(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per-page=${limit}`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Aureon/1.0 (mailto:research@aureonai.app)' }, signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const w of (data.results || []).slice(0, limit)) {
+      const title = w.title || w.display_name || '';
+      const url2 = w.doi ? `https://doi.org/${String(w.doi).replace(/^https?:\/\/doi\.org\//, '')}` : (w.id || '');
+      const authors = (w.authorships || []).slice(0, 3).map((a: { author?: { display_name?: string } }) => a.author?.display_name).filter(Boolean).join(', ');
+      const snippet = `${authors ? authors + ' · ' : ''}cited ${w.cited_by_count || 0}× · ${w.host_venue?.display_name || w.primary_location?.source?.display_name || 'open access'}`;
+      const built = buildSearchResult(title, url2, snippet);
+      if (built) {
+        built.publishDate = w.publication_date;
+        out.push(tagLayer(built, 'academic', 'openalex'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── SOCIAL: Hacker News via Algolia (tech community signal) ──────────────────
+async function searchHackerNews(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&hitsPerPage=${limit}&tags=story`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const hit of (data.hits || []).slice(0, limit)) {
+      const url2 = hit.url || `https://news.ycombinator.com/item?id=${hit.objectID}`;
+      const snippet = `${hit.points || 0} points · ${hit.num_comments || 0} comments · by ${hit.author || 'anon'}`;
+      const built = buildSearchResult(hit.title || hit.story_title || '', url2, snippet);
+      if (built) {
+        built.publishDate = hit.created_at;
+        out.push(tagLayer(built, 'social', 'hackernews'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── SOCIAL: Reddit JSON (public posts across all subreddits) ─────────────────
+async function searchReddit(query: string, limit = 10): Promise<SearchResult[]> {
+  try {
+    const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=${limit}&sort=relevance&t=year`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Aureon-Intel/1.0' }, signal: AbortSignal.timeout(6000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const child of (data.data?.children || []).slice(0, limit)) {
+      const p = child.data || {};
+      const url2 = `https://www.reddit.com${p.permalink}`;
+      const snippet = `r/${p.subreddit} · ${p.score || 0} upvotes · ${p.num_comments || 0} comments · ${(p.selftext || '').slice(0, 200)}`;
+      const built = buildSearchResult(p.title || '', url2, snippet);
+      if (built) {
+        built.publishDate = p.created_utc ? new Date(p.created_utc * 1000).toISOString() : undefined;
+        out.push(tagLayer(built, 'social', 'reddit'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── BLOCKCHAIN: Blockchair (BTC/ETH address + tx lookup if query matches) ────
+async function searchBlockchain(query: string): Promise<SearchResult[]> {
+  const out: SearchResult[] = [];
+  const q = query.trim();
+  // Heuristic: only fire if the query *looks* like an address or tx hash
+  const btcAddr = /\b([13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{25,62})\b/.exec(q);
+  const ethAddr = /\b0x[a-fA-F0-9]{40}\b/.exec(q);
+  const txHash = /\b0x[a-fA-F0-9]{64}\b/.exec(q);
+  const targets: { chain: string; type: string; value: string }[] = [];
+  if (btcAddr) targets.push({ chain: 'bitcoin', type: 'address', value: btcAddr[0] });
+  if (ethAddr && !txHash) targets.push({ chain: 'ethereum', type: 'address', value: ethAddr[0] });
+  if (txHash) targets.push({ chain: 'ethereum', type: 'transaction', value: txHash[0] });
+  if (targets.length === 0) return [];
+  await Promise.all(targets.map(async (t) => {
+    try {
+      const url = `https://api.blockchair.com/${t.chain}/dashboards/${t.type}/${t.value}?limit=5`;
+      const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000) });
+      if (!r.ok) return;
+      const data = await r.json();
+      const obj = data?.data?.[t.value];
+      if (!obj) return;
+      const explorer = `https://blockchair.com/${t.chain}/${t.type}/${t.value}`;
+      const summary = t.type === 'address'
+        ? `${t.chain} · balance ${obj.address?.balance ?? '?'} · ${obj.address?.transaction_count ?? 0} txs · first seen ${obj.address?.first_seen_receiving || '?'}`
+        : `${t.chain} tx · block ${obj.transaction?.block_id ?? '?'} · value ${obj.transaction?.value ?? '?'} · time ${obj.transaction?.time ?? '?'}`;
+      const built = buildSearchResult(`${t.chain.toUpperCase()} ${t.type}: ${t.value.slice(0, 16)}…`, explorer, summary);
+      if (built) {
+        built.publishDate = obj.address?.last_seen_spending || obj.transaction?.time;
+        built.veracity = 95; // on-chain data is cryptographically verified
+        out.push(tagLayer(built, 'blockchain', `blockchair-${t.chain}`));
+      }
+    } catch { /* skip */ }
+  }));
+  return out;
+}
+
+// ── BREACH: HIBP breached-domain count (admin-keyless k-anon password check) ─
+// Without an HIBP key we can only do password-hash k-anonymity, not domain
+// search. We surface the public breach catalogue endpoint instead.
+async function searchBreaches(query: string, limit = 6): Promise<SearchResult[]> {
+  // Only fire if query looks like a domain or company name short enough
+  if (query.length > 60 || query.includes(' ') && !/\.[a-z]{2,}/i.test(query)) return [];
+  try {
+    const r = await fetch('https://haveibeenpwned.com/api/v3/breaches', {
+      headers: { 'User-Agent': UA, 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!r.ok) return [];
+    const all = await r.json();
+    const q = query.toLowerCase();
+    const matches = (Array.isArray(all) ? all : [])
+      .filter((b: { Name?: string; Domain?: string; Title?: string }) =>
+        (b.Name || '').toLowerCase().includes(q)
+        || (b.Domain || '').toLowerCase().includes(q)
+        || (b.Title || '').toLowerCase().includes(q))
+      .slice(0, limit);
+    const out: SearchResult[] = [];
+    for (const b of matches) {
+      const built = buildSearchResult(
+        `Breach: ${b.Title || b.Name} (${(b.PwnCount || 0).toLocaleString()} accounts)`,
+        `https://haveibeenpwned.com/PwnedWebsites#${b.Name}`,
+        `${b.Description?.replace(/<[^>]+>/g, '').slice(0, 280) || ''} · classes: ${(b.DataClasses || []).join(', ')}`,
+      );
+      if (built) {
+        built.publishDate = b.BreachDate;
+        built.veracity = 90;
+        out.push(tagLayer(built, 'breach', 'hibp'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── IOT: Shodan (admin-key gated — exposed device intelligence) ──────────────
+async function searchShodan(query: string, limit = 10): Promise<SearchResult[]> {
+  const key = (Deno.env.get('SHODAN_API_KEY') || '').trim();
+  if (!key) return [];
+  try {
+    const url = `https://api.shodan.io/shodan/host/search?key=${key}&query=${encodeURIComponent(query)}&limit=${limit}`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const m of (data.matches || []).slice(0, limit)) {
+      const url2 = `https://www.shodan.io/host/${m.ip_str}`;
+      const snippet = `${m.org || 'unknown'} · ${m.location?.country_name || ''} · port ${m.port} · ${m.product || m._shodan?.module || ''} · ${(m.data || '').slice(0, 200)}`;
+      const built = buildSearchResult(`${m.ip_str}:${m.port} (${m.hostnames?.[0] || m.org || 'host'})`, url2, snippet);
+      if (built) {
+        built.publishDate = m.timestamp;
+        built.veracity = 92;
+        out.push(tagLayer(built, 'iot', 'shodan'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── VULN: NVD CVE search (vulnerability intelligence) ────────────────────────
+async function searchCVE(query: string, limit = 8): Promise<SearchResult[]> {
+  // Only fire if query mentions CVE, vulnerability, exploit, or matches CVE-XXXX-NNNN
+  const directCve = /CVE-\d{4}-\d{4,7}/i.exec(query);
+  const looksVuln = directCve || /\b(cve|vulnerab|exploit|0-?day|rce|xss|sqli|csrf|ssrf)\b/i.test(query);
+  if (!looksVuln) return [];
+  try {
+    const params = directCve
+      ? `cveId=${directCve[0].toUpperCase()}`
+      : `keywordSearch=${encodeURIComponent(query)}&resultsPerPage=${limit}`;
+    const url = `https://services.nvd.nist.gov/rest/json/cves/2.0?${params}`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const v of (data.vulnerabilities || []).slice(0, limit)) {
+      const cve = v.cve || {};
+      const id = cve.id || '';
+      const desc = (cve.descriptions || []).find((d: { lang?: string }) => d.lang === 'en')?.value || '';
+      const cvss = cve.metrics?.cvssMetricV31?.[0]?.cvssData?.baseScore
+                 ?? cve.metrics?.cvssMetricV30?.[0]?.cvssData?.baseScore
+                 ?? cve.metrics?.cvssMetricV2?.[0]?.cvssData?.baseScore;
+      const sev = cvss ? (cvss >= 9 ? 'CRITICAL' : cvss >= 7 ? 'HIGH' : cvss >= 4 ? 'MEDIUM' : 'LOW') : 'UNRATED';
+      const built = buildSearchResult(`${id} · ${sev}${cvss ? ' (' + cvss + ')' : ''}`, `https://nvd.nist.gov/vuln/detail/${id}`, desc.slice(0, 320));
+      if (built) {
+        built.publishDate = cve.published;
+        built.veracity = 95;
+        out.push(tagLayer(built, 'vuln', 'nvd-cve'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
+// ── DEEP: Google Books (corpus of digitised books) ───────────────────────────
+async function searchGoogleBooks(query: string, limit = 8): Promise<SearchResult[]> {
+  try {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=${limit}&printType=books`;
+    const r = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const out: SearchResult[] = [];
+    for (const item of (data.items || []).slice(0, limit)) {
+      const v = item.volumeInfo || {};
+      const title = `${v.title || ''}${v.subtitle ? ': ' + v.subtitle : ''}`;
+      const url2 = v.infoLink || v.canonicalVolumeLink || `https://books.google.com/books?id=${item.id}`;
+      const snippet = `${(v.authors || []).join(', ')} · ${v.publisher || ''} · ${v.publishedDate || ''} · ${(v.description || '').slice(0, 240)}`;
+      const built = buildSearchResult(title, url2, snippet);
+      if (built) {
+        built.publishDate = v.publishedDate;
+        out.push(tagLayer(built, 'deep', 'google-books'));
+      }
+    }
+    return out;
+  } catch { return []; }
+}
+
 // ── Multi-Engine Aggregated Search ──────────────────────────────────────────
 async function multiEngineSearch(query: string, page: number, dateFilter?: string): Promise<SearchResult[]> {
-  // Run ALL engines in parallel — no result caps, full breadth
-  const [ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults, wikiResults, braveResults, yandexResults] = await Promise.allSettled([
+  // PANTHEON v3: surface engines + deep/code/academic/social/chain/breach/iot/vuln in parallel.
+  const [
+    ddgResults, searxResults, mojeekResults, metagerResults, gigablastResults,
+    wikiResults, braveResults, yandexResults,
+    // PANTHEON layers
+    commonCrawlResults, waybackResults, githubResults, edgarResults,
+    arxivResults, crossrefResults, openalexResults,
+    hnResults, redditResults,
+    chainResults, breachResults, shodanResults, cveResults, booksResults,
+  ] = await Promise.allSettled([
     searchDDG(query, page, dateFilter),
     searchSearXNG(query),
     searchMojeek(query),
@@ -692,17 +1101,34 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
     searchWikipedia(query),
     searchBrave(query),
     searchYandex(query),
+    // PANTHEON
+    searchCommonCrawl(query),
+    searchWayback(query),
+    searchGitHubCode(query),
+    searchEDGAR(query),
+    searchArxiv(query),
+    searchCrossRef(query),
+    searchOpenAlex(query),
+    searchHackerNews(query),
+    searchReddit(query),
+    searchBlockchain(query),
+    searchBreaches(query),
+    searchShodan(query),
+    searchCVE(query),
+    searchGoogleBooks(query),
   ]);
 
   const all: SearchResult[] = [];
   const seenUrls = new Set<string>();
 
-  const addResults = (settled: PromiseSettledResult<SearchResult[]>, engineWeight: number) => {
+  const addResults = (settled: PromiseSettledResult<SearchResult[]>, engine: string, layer: PantheonLayer = 'surface') => {
     if (settled.status !== 'fulfilled') return;
     for (const r of settled.value) {
+      // Stamp surface results that came in untagged.
+      if (!r.layer) r.layer = layer;
+      if (!r.engine) r.engine = engine;
       const normalUrl = r.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://');
       if (seenUrls.has(normalUrl)) {
-        // Boost veracity for cross-engine corroboration
         const existing = all.find(e => e.url.replace(/\/$/, '').replace(/^https?:\/\/www\./, 'https://') === normalUrl);
         if (existing) {
           existing.veracity = Math.min(100, existing.veracity + 5);
@@ -715,14 +1141,30 @@ async function multiEngineSearch(query: string, page: number, dateFilter?: strin
     }
   };
 
-  addResults(ddgResults, 1.0);
-  addResults(searxResults, 0.9);
-  addResults(mojeekResults, 0.8);
-  addResults(metagerResults, 0.7);
-  addResults(gigablastResults, 0.7);
-  addResults(wikiResults, 0.95);
-  addResults(braveResults, 0.85);
-  addResults(yandexResults, 0.65);
+  // Surface
+  addResults(ddgResults, 'ddg', 'surface');
+  addResults(searxResults, 'searxng', 'surface');
+  addResults(mojeekResults, 'mojeek', 'surface');
+  addResults(metagerResults, 'metager', 'surface');
+  addResults(gigablastResults, 'gigablast', 'surface');
+  addResults(wikiResults, 'wikipedia', 'surface');
+  addResults(braveResults, 'brave', 'surface');
+  addResults(yandexResults, 'yandex', 'surface');
+  // PANTHEON layers (already tagged inside their fetchers)
+  addResults(commonCrawlResults, 'common-crawl', 'deep');
+  addResults(waybackResults, 'wayback', 'deep');
+  addResults(githubResults, 'github', 'code');
+  addResults(edgarResults, 'sec-edgar', 'deep');
+  addResults(arxivResults, 'arxiv', 'academic');
+  addResults(crossrefResults, 'crossref', 'academic');
+  addResults(openalexResults, 'openalex', 'academic');
+  addResults(hnResults, 'hackernews', 'social');
+  addResults(redditResults, 'reddit', 'social');
+  addResults(chainResults, 'blockchair', 'blockchain');
+  addResults(breachResults, 'hibp', 'breach');
+  addResults(shodanResults, 'shodan', 'iot');
+  addResults(cveResults, 'nvd-cve', 'vuln');
+  addResults(booksResults, 'google-books', 'deep');
 
   return all;
 }
