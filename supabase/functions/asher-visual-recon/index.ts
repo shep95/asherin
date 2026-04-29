@@ -398,9 +398,14 @@ serve(async (req) => {
       center = { lat: areaHit!.lat, lng: areaHit!.lng };
     }
 
-    // 3) Pull satellite image
-    const img = await fetchSatelliteImage(bbox, 1024);
-    if (!img) {
+    // 3) Pull satellite images. Broad regional queries scan multiple live ESRI frames
+    // instead of one arbitrary tile, preventing false zero-results from a bad POI hit.
+    const scanBboxes = buildScanBboxes(bbox, radiusKm, area, !!landmarkHit);
+    const frames = (await Promise.all(scanBboxes.map(async (b, index) => {
+      const img = await fetchSatelliteImage(b, 1024);
+      return img ? ({ ...img, index } as ReconFrame) : null;
+    }))).filter(Boolean) as ReconFrame[];
+    if (!frames.length) {
       console.warn(`[asher-visual-recon] all imagery providers failed area="${area}" landmark="${landmark || ""}" bbox=${bbox.join(",")}`);
       return new Response(JSON.stringify({
         success: false,
@@ -414,97 +419,44 @@ serve(async (req) => {
         landmark: landmarkHit?.display_name || null,
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    console.log(`[asher-visual-recon] imagery source=${img.source} mime=${img.mime} bbox=${img.bbox.join(",")}`);
+    console.log(`[asher-visual-recon] frames=${frames.length} sources=${frames.map((f) => f.source).join("|")}`);
 
     // 4) Gemini Vision — strict JSON output via responseMimeType
-    const prompt = `You are a satellite image recon analyst. Examine the provided high-resolution overhead satellite image and locate every feature that matches the user criteria. Be precise. Do not invent results — if nothing matches, return an empty array.
-
-USER CRITERIA: ${criteria}
-${landmark ? `LANDMARK CONTEXT (image is centred on this): ${landmark}` : ""}
-AREA CONTEXT: ${area || "(unspecified)"}
-
-For every match, return:
-- x, y: pixel position normalised to [0..1] from the TOP-LEFT of the image (x = column / width, y = row / height). Aim for the centre of the feature.
-- label: short human label (e.g. "Red metal roof", "Blue tarp roof")
-- color: dominant color word ("red", "blue", "rust", "navy", etc.)
-- confidence: 0..1
-- reason: one short sentence explaining why it matches.
-
-Return STRICT JSON only:
-{
-  "detections": [
-    {"x":0.42,"y":0.31,"label":"...","color":"red","confidence":0.86,"reason":"..."}
-  ],
-  "summary": "2 sentence overview of what was found"
-}`;
-
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    let resp: Response | null = null;
-    let lastErr = "";
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      resp = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType: img.mime, data: img.b64 } },
-            ],
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 4096,
-            responseMimeType: "application/json",
-          },
-        }),
-      });
-      if (resp.ok) break;
-      lastErr = await resp.text();
-      if (resp.status === 429 || resp.status === 503) {
-        await new Promise((r) => setTimeout(r, 1500 * attempt));
-        continue;
-      }
-      break;
-    }
-    if (!resp || !resp.ok) {
+    const analyses = await Promise.all(frames.map((frame) => visionDetect(apiKey, criteria, area, landmark, frame)));
+    if (analyses.every((x) => x.error)) {
       return new Response(JSON.stringify({
         success: false,
-        error: `Vision analysis unavailable: ${resp?.status || "no_response"} ${lastErr.slice(0, 200)}`,
+        error: analyses.find((x) => x.error)?.error || "Vision analysis unavailable",
         code: "VISION_UNAVAILABLE",
         center,
-        bbox: img.bbox,
+        bbox,
         radiusKm,
         detections: [],
         area: areaHit?.display_name || null,
         landmark: landmarkHit?.display_name || null,
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    // Use the actual bbox returned by the imagery fetch (may differ from
-    // requested bbox when we fall back to a single tile).
-    const imgBbox = img.bbox;
 
-    const data = await resp.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    let parsed: any = {};
-    try { parsed = JSON.parse(raw); } catch {
-      const m = raw.match(/\{[\s\S]*\}/);
-      if (m) { try { parsed = JSON.parse(m[0]); } catch {} }
-    }
-
-    const rawDet: PixelDetection[] = Array.isArray(parsed?.detections) ? parsed.detections : [];
-    const detections: GeoDetection[] = rawDet
-      .filter((d) => typeof d.x === "number" && typeof d.y === "number" && d.x >= 0 && d.x <= 1 && d.y >= 0 && d.y <= 1)
-      .map((d) => pixelToGeo(d, imgBbox))
-      .slice(0, 60);
+    const detections: GeoDetection[] = analyses.flatMap((a) => a.detections).slice(0, 80);
+    const frameBboxes = frames.map((f) => f.bbox);
+    const resultBbox: Bbox = [
+      Math.min(...frameBboxes.map((b) => b[0])),
+      Math.min(...frameBboxes.map((b) => b[1])),
+      Math.max(...frameBboxes.map((b) => b[2])),
+      Math.max(...frameBboxes.map((b) => b[3])),
+    ];
+    const summaries = analyses.map((a) => a.summary).filter(Boolean);
+    const summary = detections.length
+      ? `Scanned ${frames.length} ESRI satellite frames across the requested area and found ${detections.length} candidate match${detections.length === 1 ? "" : "es"}. ${summaries[0] || ""}`.trim()
+      : `Scanned ${frames.length} ESRI satellite frames across the requested area. ${summaries[0] || "No matching features were confirmed in the sampled frames."}`.trim();
 
     console.log(`[asher-visual-recon] area="${area}" landmark="${landmark || ""}" criteria="${criteria.slice(0,80)}" detections=${detections.length}`);
 
     return new Response(JSON.stringify({
       success: true,
-      summary: parsed?.summary || "",
+      summary,
       center,
-      bbox: imgBbox,
+      bbox: resultBbox,
       radiusKm,
       detections,
       area: areaHit?.display_name || null,
