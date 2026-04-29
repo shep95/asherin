@@ -1016,100 +1016,222 @@ const IntelligenceMapModule = () => {
                   })()}
 
 
-                  {/* Property Intelligence (Zophiel · Live Web Scrape) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase flex items-center gap-1.5">
-                        <Globe2 className="h-3 w-3" strokeWidth={1.5} />
-                        Property Intel · Zophiel Web
-                      </p>
-                      <button
-                        onClick={() => fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features)}
-                        disabled={propertyIntel.loading}
-                        className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
-                        title="Re-scrape property intelligence"
-                      >
-                        <RefreshCw className={`h-3 w-3 ${propertyIntel.loading ? "animate-spin" : ""}`} strokeWidth={1.5} />
-                      </button>
-                    </div>
-                    <div className="rounded-lg border border-border/15 bg-background/40 p-3 space-y-2 text-[11px] font-light">
-                      {propertyIntel.loading && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          <span>Scraping live web sources via Zophiel…</span>
+                  {/* ── Property Intelligence · Zophiel Live Web Scrape ── */}
+                  {(() => {
+                    const intel = propertyIntel.intel as any;
+                    const facts: Array<{ icon: any; label: string; value?: string }> = intel ? [
+                      { icon: User,        label: "Owner",      value: intel.owner },
+                      { icon: Building2,   label: "Operator",   value: intel.operator },
+                      { icon: Hash,        label: "Type",       value: intel.property_type },
+                      { icon: CalendarDays,label: "Year Built", value: intel.year_built },
+                      { icon: Ruler,       label: "Size",       value: intel.size },
+                      { icon: DollarSign,  label: "Est. Value", value: intel.value_estimate },
+                    ].filter(f => !!f.value) : [];
+
+                    const status = propertyIntel.loading
+                      ? { dot: "bg-amber-400 animate-pulse", text: "SCRAPING", color: "text-amber-300/90" }
+                      : propertyIntel.error
+                        ? { dot: "bg-red-500", text: "FAILED", color: "text-red-400/90" }
+                        : intel
+                          ? { dot: "bg-emerald-400", text: "LIVE", color: "text-emerald-300/90" }
+                          : { dot: "bg-muted-foreground/40", text: "STANDBY", color: "text-muted-foreground/60" };
+
+                    return (
+                      <div>
+                        {/* Section header */}
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase flex items-center gap-1.5">
+                            <Globe2 className="h-3 w-3" strokeWidth={1.5} />
+                            Property Intel · Zophiel Web
+                          </p>
+                          <button
+                            onClick={() => fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features)}
+                            disabled={propertyIntel.loading}
+                            className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+                            title="Re-scrape property intelligence"
+                          >
+                            <RefreshCw className={`h-3 w-3 ${propertyIntel.loading ? "animate-spin" : ""}`} strokeWidth={1.5} />
+                          </button>
                         </div>
-                      )}
-                      {propertyIntel.error && !propertyIntel.loading && (
-                        <p className="text-amber-400/80 text-[10px]">{propertyIntel.error}</p>
-                      )}
-                      {!propertyIntel.loading && !propertyIntel.error && !propertyIntel.intel && (
-                        <p className="text-muted-foreground/60 text-[10px]">No property intelligence yet.</p>
-                      )}
-                      {propertyIntel.intel && (
-                        <>
-                          {propertyIntel.intel.summary && (
-                            <p className="text-foreground/90 leading-relaxed">{propertyIntel.intel.summary}</p>
-                          )}
-                          {([
-                            ["Owner", propertyIntel.intel.owner],
-                            ["Operator", propertyIntel.intel.operator],
-                            ["Type", propertyIntel.intel.property_type],
-                            ["Year Built", propertyIntel.intel.year_built],
-                            ["Size", propertyIntel.intel.size],
-                            ["Est. Value", propertyIntel.intel.value_estimate],
-                          ].filter(([, v]) => !!v) as Array<[string, string]>).map(([k, v]) => (
-                            <p key={k}><span className="text-muted-foreground/60">{k}:</span> {v}</p>
-                          ))}
-                          {Array.isArray(propertyIntel.intel.tenants_or_occupants) && propertyIntel.intel.tenants_or_occupants.length > 0 && (
-                            <div>
-                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Tenants / Occupants</p>
-                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
-                                {propertyIntel.intel.tenants_or_occupants.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
-                              </ul>
+
+                        {/* Intel card */}
+                        <div className="rounded-xl border border-border/15 bg-gradient-to-b from-background/60 to-background/30 backdrop-blur-sm overflow-hidden">
+
+                          {/* Status bar */}
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-border/10 bg-background/40">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                              <span className={`text-[9px] font-medium tracking-[0.25em] uppercase ${status.color}`}>{status.text}</span>
+                              {intel && (
+                                <span className="text-[9px] font-light text-muted-foreground/50 tracking-[0.2em] uppercase">
+                                  · {propertyIntel.sources.length} src
+                                </span>
+                              )}
                             </div>
-                          )}
-                          {Array.isArray(propertyIntel.intel.history) && propertyIntel.intel.history.length > 0 && (
-                            <div>
-                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">History</p>
-                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
-                                {propertyIntel.intel.history.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
-                              </ul>
-                            </div>
-                          )}
-                          {Array.isArray(propertyIntel.intel.notable_events) && propertyIntel.intel.notable_events.length > 0 && (
-                            <div>
-                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Notable Events</p>
-                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
-                                {propertyIntel.intel.notable_events.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
-                              </ul>
-                            </div>
-                          )}
-                          {Array.isArray(propertyIntel.intel.risks) && propertyIntel.intel.risks.length > 0 && (
-                            <div>
-                              <p className="text-amber-400/70 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Risks</p>
-                              <ul className="list-disc list-inside text-amber-200/80 space-y-0.5">
-                                {propertyIntel.intel.risks.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
-                              </ul>
-                            </div>
-                          )}
-                          {propertyIntel.sources.length > 0 && (
-                            <div className="pt-1.5 mt-1.5 border-t border-border/10">
-                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mb-1">Sources Scraped</p>
-                              <div className="space-y-0.5">
-                                {propertyIntel.sources.map((s, i) => (
-                                  <a key={i} href={s.url} target="_blank" rel="noreferrer"
-                                    className="flex items-start gap-1 text-muted-foreground hover:text-foreground truncate">
-                                    <ExternalLink className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
-                                    <span className="truncate text-[10px]">{s.title || s.url}</span>
-                                  </a>
-                                ))}
+                            <Radio className="h-2.5 w-2.5 text-muted-foreground/40" strokeWidth={1.5} />
+                          </div>
+
+                          {/* Body */}
+                          <div className="p-3 space-y-3">
+
+                            {/* Loading */}
+                            {propertyIntel.loading && (
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-muted-foreground text-[11px] font-light">
+                                  <Activity className="h-3 w-3 animate-pulse" />
+                                  <span>Scraping live web sources via Zophiel…</span>
+                                </div>
+                                <div className="space-y-1.5">
+                                  {[80, 65, 90].map((w, i) => (
+                                    <div key={i} className="h-1.5 rounded-full bg-muted-foreground/10 overflow-hidden">
+                                      <div
+                                        className="h-full bg-muted-foreground/25 animate-pulse rounded-full"
+                                        style={{ width: `${w}%`, animationDelay: `${i * 120}ms` }}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
+                            )}
+
+                            {/* Error */}
+                            {propertyIntel.error && !propertyIntel.loading && (
+                              <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5">
+                                <AlertTriangle className="h-3 w-3 text-amber-400/80 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                                <p className="text-[10px] text-amber-300/80 font-light leading-relaxed">{propertyIntel.error}</p>
+                              </div>
+                            )}
+
+                            {/* Empty */}
+                            {!propertyIntel.loading && !propertyIntel.error && !intel && (
+                              <p className="text-muted-foreground/60 text-[10px] font-light text-center py-3">
+                                Awaiting target lock. Select a location to scrape.
+                              </p>
+                            )}
+
+                            {/* Intel content */}
+                            {intel && (
+                              <>
+                                {/* Hero summary */}
+                                {intel.summary && (
+                                  <div className="relative pl-3 border-l border-emerald-400/30">
+                                    <p className="text-[11px] text-foreground/90 leading-relaxed font-light">{intel.summary}</p>
+                                  </div>
+                                )}
+
+                                {/* Fact grid */}
+                                {facts.length > 0 && (
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    {facts.map(({ icon: Icon, label, value }) => (
+                                      <div key={label} className="rounded-md border border-border/10 bg-background/30 px-2 py-1.5">
+                                        <div className="flex items-center gap-1 mb-0.5">
+                                          <Icon className="h-2.5 w-2.5 text-muted-foreground/50" strokeWidth={1.5} />
+                                          <span className="text-[8.5px] uppercase tracking-[0.18em] text-muted-foreground/55 font-light">{label}</span>
+                                        </div>
+                                        <p className="text-[10.5px] text-foreground/90 font-light leading-snug truncate" title={value}>{value}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Tenants / occupants chips */}
+                                {Array.isArray(intel.tenants_or_occupants) && intel.tenants_or_occupants.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <UsersIcon className="h-2.5 w-2.5 text-muted-foreground/55" strokeWidth={1.5} />
+                                      <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground/60 font-light">Tenants / Occupants</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {intel.tenants_or_occupants.slice(0, 8).map((x: string, i: number) => (
+                                        <span key={i} className="text-[10px] font-light px-1.5 py-0.5 rounded-md border border-border/15 bg-background/40 text-foreground/80">
+                                          {x}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* History timeline */}
+                                {Array.isArray(intel.history) && intel.history.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <History className="h-2.5 w-2.5 text-muted-foreground/55" strokeWidth={1.5} />
+                                      <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground/60 font-light">History</p>
+                                    </div>
+                                    <div className="space-y-1 pl-1">
+                                      {intel.history.slice(0, 6).map((x: string, i: number) => (
+                                        <div key={i} className="relative pl-3 text-[10.5px] text-foreground/80 font-light leading-snug">
+                                          <span className="absolute left-0 top-[5px] w-1 h-1 rounded-full bg-muted-foreground/40" />
+                                          {x}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Notable events */}
+                                {Array.isArray(intel.notable_events) && intel.notable_events.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                      <Activity className="h-2.5 w-2.5 text-muted-foreground/55" strokeWidth={1.5} />
+                                      <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground/60 font-light">Notable Events</p>
+                                    </div>
+                                    <div className="space-y-1 pl-1">
+                                      {intel.notable_events.slice(0, 6).map((x: string, i: number) => (
+                                        <div key={i} className="relative pl-3 text-[10.5px] text-foreground/80 font-light leading-snug">
+                                          <span className="absolute left-0 top-[5px] w-1 h-1 rounded-full bg-blue-400/60" />
+                                          {x}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Risks callout */}
+                                {Array.isArray(intel.risks) && intel.risks.length > 0 && (
+                                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.04] p-2">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                      <AlertTriangle className="h-2.5 w-2.5 text-amber-400/80" strokeWidth={1.5} />
+                                      <p className="text-[9px] uppercase tracking-[0.22em] text-amber-300/80 font-medium">Risks</p>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                      {intel.risks.slice(0, 6).map((x: string, i: number) => (
+                                        <div key={i} className="relative pl-3 text-[10.5px] text-amber-100/85 font-light leading-snug">
+                                          <span className="absolute left-0 top-[5px] w-1 h-1 rounded-full bg-amber-400/70" />
+                                          {x}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Sources */}
+                                {propertyIntel.sources.length > 0 && (
+                                  <div className="pt-2 border-t border-border/10">
+                                    <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground/55 font-light mb-1.5">Sources Scraped</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {propertyIntel.sources.map((s, i) => {
+                                        let host = "";
+                                        try { host = new URL(s.url).hostname.replace(/^www\./, ""); } catch { host = s.url; }
+                                        return (
+                                          <a key={i} href={s.url} target="_blank" rel="noreferrer"
+                                            title={s.title || s.url}
+                                            className="group flex items-center gap-1 text-[10px] font-light px-1.5 py-0.5 rounded-md border border-border/15 bg-background/40 text-muted-foreground hover:text-foreground hover:border-border/30 transition-colors">
+                                            <ExternalLink className="h-2.5 w-2.5 opacity-60 group-hover:opacity-100" strokeWidth={1.5} />
+                                            <span className="truncate max-w-[140px]">{host}</span>
+                                          </a>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Country profile */}
                   {entity.country && (
