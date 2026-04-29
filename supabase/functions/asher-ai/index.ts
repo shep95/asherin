@@ -93,7 +93,7 @@ serve(async (req) => {
           model: "gemini-2.5-flash",
           messages: [
             { role: "system", content: SYSTEM_PROMPT + ctxBlock },
-            ...messages,
+            ...cleaned,
           ],
           tools: TOOLS,
           stream: true,
