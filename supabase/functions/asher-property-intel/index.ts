@@ -53,39 +53,105 @@ async function fetchPage(url: string, timeoutMs = 5000): Promise<string> {
   }
 }
 
-async function ddgSearch(query: string, n = 6): Promise<Array<{ title: string; url: string; snippet: string }>> {
+type Hit = { title: string; url: string; snippet: string };
+
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36";
+
+async function ddgLite(query: string, n = 6): Promise<Hit[]> {
   try {
     const r = await fetch("https://lite.duckduckgo.com/lite/", {
       method: "POST",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "text/html",
-      },
+      headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded", "Accept": "text/html" },
       body: `q=${encodeURIComponent(query)}`,
     });
     if (!r.ok) return [];
     const html = await r.text();
-    const out: Array<{ title: string; url: string; snippet: string }> = [];
+    const out: Hit[] = [];
     const linkRe = /<a[^>]+class="result-link"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
     const snipRe = /<td class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi;
     const links: Array<{ title: string; url: string }> = [];
     const snippets: string[] = [];
     let m;
-    while ((m = linkRe.exec(html)) !== null) {
-      links.push({ url: m[1], title: stripHtml(m[2]) });
-    }
-    while ((m = snipRe.exec(html)) !== null) {
-      snippets.push(stripHtml(m[1]));
-    }
-    for (let i = 0; i < Math.min(links.length, n); i++) {
-      out.push({ ...links[i], snippet: snippets[i] || "" });
+    while ((m = linkRe.exec(html)) !== null) links.push({ url: m[1], title: stripHtml(m[2]) });
+    while ((m = snipRe.exec(html)) !== null) snippets.push(stripHtml(m[1]));
+    for (let i = 0; i < Math.min(links.length, n); i++) out.push({ ...links[i], snippet: snippets[i] || "" });
+    return out;
+  } catch { return []; }
+}
+
+async function ddgHtml(query: string, n = 6): Promise<Hit[]> {
+  try {
+    const r = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+      headers: { "User-Agent": UA, "Accept": "text/html" },
+    });
+    if (!r.ok) return [];
+    const html = await r.text();
+    const out: Hit[] = [];
+    const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m;
+    while ((m = re.exec(html)) !== null && out.length < n) {
+      let url = m[1];
+      // unwrap DDG redirect
+      const u = url.match(/uddg=([^&]+)/);
+      if (u) url = decodeURIComponent(u[1]);
+      out.push({ url, title: stripHtml(m[2]), snippet: stripHtml(m[3]) });
     }
     return out;
-  } catch {
-    return [];
+  } catch { return []; }
+}
+
+async function bingSearch(query: string, n = 6): Promise<Hit[]> {
+  try {
+    const r = await fetch(`https://www.bing.com/search?q=${encodeURIComponent(query)}`, {
+      headers: { "User-Agent": UA, "Accept": "text/html" },
+    });
+    if (!r.ok) return [];
+    const html = await r.text();
+    const out: Hit[] = [];
+    const re = /<li class="b_algo"[\s\S]*?<h2><a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:<p[^>]*>([\s\S]*?)<\/p>)?/gi;
+    let m;
+    while ((m = re.exec(html)) !== null && out.length < n) {
+      out.push({ url: m[1], title: stripHtml(m[2]), snippet: stripHtml(m[3] || "") });
+    }
+    return out;
+  } catch { return []; }
+}
+
+async function wikiSearch(query: string, n = 3): Promise<Hit[]> {
+  try {
+    const r = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srlimit=${n}&srsearch=${encodeURIComponent(query)}&origin=*`,
+      { headers: { "User-Agent": UA } },
+    );
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j?.query?.search || []).map((s: any) => ({
+      title: s.title,
+      url: `https://en.wikipedia.org/wiki/${encodeURIComponent(s.title.replace(/ /g, "_"))}`,
+      snippet: stripHtml(s.snippet || ""),
+    }));
+  } catch { return []; }
+}
+
+async function multiSearch(query: string, n = 6): Promise<Hit[]> {
+  // run all in parallel; first non-empty wins, but merge unique
+  const [a, b, c, d] = await Promise.all([
+    ddgLite(query, n),
+    ddgHtml(query, n),
+    bingSearch(query, n),
+    wikiSearch(query, 3),
+  ]);
+  const seen = new Set<string>();
+  const out: Hit[] = [];
+  for (const arr of [a, b, c, d]) {
+    for (const h of arr) {
+      if (!h.url || seen.has(h.url)) continue;
+      seen.add(h.url);
+      out.push(h);
+      if (out.length >= n) return out;
+    }
   }
+  return out;
 }
 
 serve(async (req) => {
@@ -123,14 +189,16 @@ serve(async (req) => {
     }
 
     const queries: string[] = [];
-    if (entityName) queries.push(`"${entityName}" ${address ?? ""}`.trim());
-    if (address) queries.push(`${address} property owner records`);
-    if (address) queries.push(`${address} site:wikipedia.org OR site:wikimapia.org OR site:loopnet.com OR site:zillow.com`);
+    if (entityName && address) queries.push(`"${entityName}" ${address}`);
+    if (entityName) queries.push(`"${entityName}" owner operator history`);
+    if (address) queries.push(`"${address}" property owner`);
+    if (address) queries.push(`${address} site:wikipedia.org OR site:loopnet.com OR site:zillow.com OR site:realtor.com`);
+    if (!queries.length && entityName) queries.push(entityName);
 
     const seen = new Set<string>();
-    const merged: Array<{ title: string; url: string; snippet: string }> = [];
+    const merged: Hit[] = [];
     for (const q of queries) {
-      const r = await ddgSearch(q, 5);
+      const r = await multiSearch(q, 6);
       for (const hit of r) {
         if (seen.has(hit.url)) continue;
         seen.add(hit.url);
@@ -139,6 +207,7 @@ serve(async (req) => {
       }
       if (merged.length >= 8) break;
     }
+    console.log(`[asher-property-intel] queries=${queries.length} hits=${merged.length} for "${address ?? entityName}"`);
 
     // Scrape top 4 in parallel
     const top = merged.slice(0, 4);
