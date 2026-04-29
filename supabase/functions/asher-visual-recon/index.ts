@@ -24,37 +24,77 @@ const corsHeaders = {
 
 const UA = "AsherVisualRecon/1.0 (intel-map)";
 
-type GeoHit = { lat: number; lng: number; display_name: string; bbox?: [number, number, number, number] };
+type Bbox = [number, number, number, number];
+type GeoHit = { lat: number; lng: number; display_name: string; bbox?: Bbox; category?: string; type?: string };
+
+function normalizeGeocodeQueries(q: string): string[] {
+  const lower = q.toLowerCase();
+  const variants: string[] = [];
+  if (/north(ern)?\s+new\s+delhi|north\s+delhi/.test(lower)) variants.push("North Delhi, Delhi, India");
+  if (/south(ern)?\s+new\s+delhi|south\s+delhi/.test(lower)) variants.push("South Delhi, Delhi, India");
+  if (/east(ern)?\s+new\s+delhi|east\s+delhi/.test(lower)) variants.push("East Delhi, Delhi, India");
+  if (/west(ern)?\s+new\s+delhi|west\s+delhi/.test(lower)) variants.push("West Delhi, Delhi, India");
+  variants.push(q);
+  return Array.from(new Set(variants.map((v) => v.trim()).filter(Boolean)));
+}
+
+function parseHit(h: any): GeoHit | null {
+  const lat = parseFloat(h?.lat);
+  const lng = parseFloat(h?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const bbox = h.boundingbox
+    ? ([parseFloat(h.boundingbox[2]), parseFloat(h.boundingbox[0]), parseFloat(h.boundingbox[3]), parseFloat(h.boundingbox[1])] as Bbox)
+    : undefined;
+  return { lat, lng, display_name: h.display_name, bbox, category: h.class, type: h.type };
+}
+
+function geocodeScore(h: GeoHit, originalQuery: string): number {
+  const cls = (h.category || "").toLowerCase();
+  const typ = (h.type || "").toLowerCase();
+  const name = (h.display_name || "").toLowerCase();
+  const q = originalQuery.toLowerCase();
+  let score = 0;
+  if (cls === "boundary") score += 160;
+  if (cls === "place") score += 120;
+  if (typ === "administrative") score += 90;
+  if (["city", "town", "suburb", "neighbourhood", "county", "district"].includes(typ)) score += 55;
+  if (["shop", "amenity", "tourism", "office", "building", "leisure"].includes(cls)) score -= 240;
+  if (name.includes("delhi")) score += 25;
+  if ((q.includes("north new delhi") || q.includes("north delhi")) && name.includes("north delhi")) score += 110;
+  if (h.bbox) {
+    const [w, s, e, n] = h.bbox;
+    const area = Math.abs((e - w) * (n - s));
+    if (area < 0.000001) score -= 120;
+    else score += Math.min(80, Math.log10(area * 1_000_000 + 1) * 18);
+  }
+  return score;
+}
 
 async function geocode(q: string): Promise<GeoHit | null> {
   try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`,
-      { headers: { "User-Agent": UA, "Accept-Language": "en" } },
-    );
-    if (!r.ok) return null;
-    const arr = await r.json();
-    if (!Array.isArray(arr) || !arr.length) return null;
-    const h = arr[0];
-    const bbox = h.boundingbox
-      ? ([
-          parseFloat(h.boundingbox[2]), // west  (minLng)
-          parseFloat(h.boundingbox[0]), // south (minLat)
-          parseFloat(h.boundingbox[3]), // east  (maxLng)
-          parseFloat(h.boundingbox[1]), // north (maxLat)
-        ] as [number, number, number, number])
-      : undefined;
-    return { lat: parseFloat(h.lat), lng: parseFloat(h.lon), display_name: h.display_name, bbox };
+    const candidates: GeoHit[] = [];
+    for (const query of normalizeGeocodeQueries(q)) {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&q=${encodeURIComponent(query)}`,
+        { headers: { "User-Agent": UA, "Accept-Language": "en" } },
+      );
+      if (!r.ok) continue;
+      const arr = await r.json();
+      if (Array.isArray(arr)) candidates.push(...arr.map(parseHit).filter(Boolean) as GeoHit[]);
+    }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => geocodeScore(b, q) - geocodeScore(a, q));
+    return candidates[0];
   } catch { return null; }
 }
 
-function bboxAround(lat: number, lng: number, radiusKm: number): [number, number, number, number] {
+function bboxAround(lat: number, lng: number, radiusKm: number): Bbox {
   const dLat = radiusKm / 111;
   const dLng = radiusKm / (111 * Math.cos((lat * Math.PI) / 180));
   return [lng - dLng, lat - dLat, lng + dLng, lat + dLat];
 }
 
-function clampBbox(b: [number, number, number, number], maxKm = 8): [number, number, number, number] {
+function clampBbox(b: Bbox, maxKm = 8): Bbox {
   const [w, s, e, n] = b;
   const cLat = (s + n) / 2, cLng = (w + e) / 2;
   const widthKm = Math.max(0.1, (e - w) * 111 * Math.cos((cLat * Math.PI) / 180));
