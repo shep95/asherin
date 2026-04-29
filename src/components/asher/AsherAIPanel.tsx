@@ -57,7 +57,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
       id: "welcome",
       role: "assistant",
       content:
-        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
+        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Look up phone +44 7700 900123* (country / carrier / line type / public OSINT — not live GPS)\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
     },
   ]);
   const [input, setInput] = useState("");
@@ -147,6 +147,46 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           if (Array.isArray(data.sources) && data.sources.length)
             lines.push(`**Sources:**\n` + data.sources.slice(0, 5).map((s: any, i: number) => `${i + 1}. [${s.title || s.url}](${s.url})`).join("\n"));
           return lines.join("\n\n") || "Property intel: no facts extracted.";
+        }
+        case "phone_intel": {
+          const phone = String(args?.phone ?? "").trim();
+          const defaultCountry = args?.defaultCountry ? String(args.defaultCountry).toUpperCase() : undefined;
+          if (!phone) return "Phone intel: phone number required.";
+          const byok = getActiveIntelMapByok();
+          const { data, error } = await supabase.functions.invoke("asher-phone-intel", {
+            body: { phone, defaultCountry, ...(byok ? { byok: byok.apiKey } : {}) },
+          });
+          if (error) return `Phone intel failed: ${error.message}`;
+          if (!data?.success) return `Phone intel failed: ${data?.error || "invalid number"}`;
+          const p = data.phone || {};
+          const o = data.osint || {};
+          // Fly map to country centroid (country-level only)
+          if (data.geo?.lat && data.geo?.lng) {
+            try { await onAction({ type: "search", query: `${data.geo.country_name || p.country_name || p.country}` }); } catch {}
+          }
+          const lines: string[] = [];
+          lines.push(`**Phone Intel · ${p.international || phone}**`);
+          lines.push([
+            `- **Country:** ${p.country_name || p.country || "?"} (${p.country_calling_code || ""})`,
+            `- **Line type:** ${p.line_type}`,
+            `- **National:** ${p.national}`,
+            `- **E.164:** ${p.e164}`,
+          ].join("\n"));
+          if (o.summary) lines.push(`**Brief:** ${o.summary}`);
+          if (o.owner_or_business) lines.push(`- **Listed as:** ${o.owner_or_business}`);
+          if (o.risk_assessment) lines.push(`- **Risk:** ${o.risk_assessment}`);
+          if (Array.isArray(o.spam_or_scam_reports) && o.spam_or_scam_reports.length)
+            lines.push(`**Spam/Scam reports:**\n` + o.spam_or_scam_reports.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(o.public_listings) && o.public_listings.length)
+            lines.push(`**Public listings:**\n` + o.public_listings.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(o.social_or_breach_mentions) && o.social_or_breach_mentions.length)
+            lines.push(`**Social / breach mentions:**\n` + o.social_or_breach_mentions.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(o.associated_locations) && o.associated_locations.length)
+            lines.push(`**Associated locations:**\n` + o.associated_locations.slice(0, 5).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(data.sources) && data.sources.length)
+            lines.push(`**Sources:**\n` + data.sources.slice(0, 5).map((s: any, i: number) => `${i + 1}. [${s.title || s.url}](${s.url})`).join("\n"));
+          lines.push(`\n_${data.disclaimer}_`);
+          return lines.join("\n\n");
         }
         case "generate_image": {
           await runImagine(String(args?.prompt ?? "tactical sketch"));
@@ -368,6 +408,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
         <QuickChip icon={MapPin}    label="Satellite" onClick={() => onAction({ type: "set_base", layer: "satellite" })} />
         <QuickChip icon={Crosshair} label="Save Target" onClick={() => onAction({ type: "save_target" })} />
         <QuickChip icon={Sparkles} label="Property Intel" onClick={() => { setInput("Run property_intel on the selected location"); setTimeout(() => send(), 0); }} />
+        <QuickChip icon={Sparkles} label="Phone Intel" onClick={() => { setInput("Run phone_intel on +"); }} />
       </div>
 
       {/* Stream */}
