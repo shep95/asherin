@@ -323,7 +323,7 @@ Return STRICT JSON only:
       success: true,
       summary: parsed?.summary || "",
       center,
-      bbox,
+      bbox: imgBbox,
       radiusKm,
       detections,
       area: areaHit?.display_name || null,
