@@ -1019,6 +1019,30 @@ const Index = () => {
           onClose={() => setShowAuth(false)}
         />
       )}
+      {showHouseLogo && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-6 cursor-zoom-out animate-in fade-in"
+          onClick={() => setShowHouseLogo(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setShowHouseLogo(false)}
+            className="absolute top-6 right-6 rounded-full border border-border/30 bg-background/40 p-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <img
+            src={houseOfAsherLogo}
+            alt="House of Asher emblem"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[85vh] max-w-[90vw] rounded-2xl border border-border/20 shadow-2xl object-contain cursor-default"
+          />
+          <p className="absolute bottom-8 left-0 right-0 text-center text-[10px] font-light tracking-[0.3em] text-muted-foreground/60 uppercase">
+            #HouseOfAsher
+          </p>
+        </div>
+      )}
     </LandingBackground>
   );
 };
