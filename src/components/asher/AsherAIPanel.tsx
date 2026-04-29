@@ -6,6 +6,7 @@ import { Brain, Send, Loader2, ChevronRight, ChevronLeft, Sparkles, Image as Ima
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { logAsherEvent } from "@/lib/asherAudit";
+import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 import { toast } from "sonner";
 
 export type MapAction =
