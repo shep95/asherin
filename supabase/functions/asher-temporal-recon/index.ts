@@ -285,27 +285,32 @@ serve(async (req) => {
     for (let y = startYear; y <= endYear; y += stride) years.push(y);
     if (years[years.length - 1] !== endYear) years.push(endYear);
 
-    const trimmed = years.length > 8 ? years.filter((_, i) => i % Math.ceil(years.length / 8) === 0).slice(0, 8) : years;
-    if (!trimmed.includes(endYear)) trimmed.push(endYear);
-
-    const frames: Array<{ year: number; source: string; detection_count: number; summary: string }> = [];
-    const allDet: GeoDet[] = [];
-
-    for (const y of trimmed) {
-      const tile = await fetchYearTile(y, bbox);
-      if (!tile) {
-        frames.push({ year: y, source: "unavailable", detection_count: 0, summary: "No imagery for this year" });
-        continue;
-      }
-      const det = await geminiDetect(apiKey, criteria, y, areaHit?.display_name || area, landmarkHit?.display_name || landmark, tile);
-      if (!det) {
-        frames.push({ year: y, source: tile.source, detection_count: 0, summary: "Vision call failed" });
-        continue;
-      }
-      const geos = det.detections.map((d) => pixelToGeo(d, bbox, y, tile.source));
-      allDet.push(...geos);
-      frames.push({ year: y, source: tile.source, detection_count: geos.length, summary: det.summary });
+    // Hard cap to 5 frames to stay within edge-function wall-time budget.
+    const MAX_FRAMES = 5;
+    let trimmed: number[];
+    if (years.length <= MAX_FRAMES) {
+      trimmed = years;
+    } else {
+      const step = (years.length - 1) / (MAX_FRAMES - 1);
+      trimmed = Array.from(new Set(Array.from({ length: MAX_FRAMES }, (_, i) => years[Math.round(i * step)])));
     }
+    if (!trimmed.includes(endYear)) trimmed.push(endYear);
+    trimmed = trimmed.sort((a, b) => a - b);
+
+    // Process all years IN PARALLEL — fetch tile + run vision concurrently.
+    const perYearArea = areaHit?.display_name || area;
+    const perYearLandmark = landmarkHit?.display_name || landmark;
+    const yearResults = await Promise.all(trimmed.map(async (y) => {
+      const tile = await fetchYearTile(y, bbox);
+      if (!tile) return { year: y, source: "unavailable", detection_count: 0, summary: "No imagery for this year", geos: [] as GeoDet[] };
+      const det = await geminiDetect(apiKey, criteria, y, perYearArea, perYearLandmark, tile);
+      if (!det) return { year: y, source: tile.source, detection_count: 0, summary: "Vision call failed", geos: [] as GeoDet[] };
+      const geos = det.detections.map((d) => pixelToGeo(d, bbox, y, tile.source));
+      return { year: y, source: tile.source, detection_count: geos.length, summary: det.summary, geos };
+    }));
+
+    const frames = yearResults.map(({ year, source, detection_count, summary }) => ({ year, source, detection_count, summary }));
+    const allDet: GeoDet[] = yearResults.flatMap((r) => r.geos);
 
     const tracks = buildTracks(allDet);
 
