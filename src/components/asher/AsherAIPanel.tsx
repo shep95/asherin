@@ -13,6 +13,7 @@ export type MapAction =
   | { type: "toggle_threat"; layer: "earthquakes" | "wildfires" | "aircraft"; enabled: boolean }
   | { type: "save_target"; label?: string }
   | { type: "analyze_entity" }
+  | { type: "property_intel"; address?: string; entityName?: string }
   | { type: "set_base"; layer: "street" | "satellite" | "topo" | "dark" };
 
 export interface AsherAIPanelHandle {
