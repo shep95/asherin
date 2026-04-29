@@ -278,10 +278,20 @@ serve(async (req) => {
     // 3) Pull satellite image
     const img = await fetchSatelliteImage(bbox, 1024);
     if (!img) {
-      return new Response(JSON.stringify({ error: "Failed to fetch satellite imagery" }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.warn(`[asher-visual-recon] all imagery providers failed area="${area}" landmark="${landmark || ""}" bbox=${bbox.join(",")}`);
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Imagery providers unavailable. No satellite frame could be retrieved for this area right now.",
+        code: "IMAGERY_UNAVAILABLE",
+        center,
+        bbox,
+        radiusKm,
+        detections: [],
+        area: areaHit?.display_name || null,
+        landmark: landmarkHit?.display_name || null,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    console.log(`[asher-visual-recon] imagery source=${img.source} mime=${img.mime} bbox=${img.bbox.join(",")}`);
 
     // 4) Gemini Vision — strict JSON output via responseMimeType
     const prompt = `You are a satellite image recon analyst. Examine the provided high-resolution overhead satellite image and locate every feature that matches the user criteria. Be precise. Do not invent results — if nothing matches, return an empty array.
