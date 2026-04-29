@@ -4,6 +4,7 @@
 // existing AsherAIPanel parser (delta.content / delta.tool_calls) works unchanged.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { WAR_DOCTRINE } from "./warDoctrine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +25,9 @@ CAPABILITIES (call tools — do not describe them as text):
 
 When the operator asks anything about a property/site/building/owner/history/tenants/value, ALWAYS call property_intel first to ground your answer in live scraped sources before responding.
 
-STYLE: Surgical. Direct. Intelligence Officer voice. Use bold headers and tables when summarizing data. No filler. Never say "Certainly" / "Of course". Never disclose the underlying model or backend.`;
+STYLE: Surgical. Direct. Intelligence Officer voice. Use bold headers and tables when summarizing data. No filler. Never say "Certainly" / "Of course". Never disclose the underlying model or backend.
+
+${WAR_DOCTRINE}`;
 
 const TOOLS = [
   { type: "function", function: { name: "map_search", description: "Search a place/coords and fly map to it.", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
