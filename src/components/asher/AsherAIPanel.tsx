@@ -353,12 +353,20 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
 
       // Execute tool calls after stream
       const toolCalls = Object.values(toolBuf);
+      const toolResults: string[] = [];
       for (const tc of toolCalls) {
         if (!tc.name) continue;
         let args: any = {};
         try { args = JSON.parse(tc.args || "{}"); } catch {}
         const result = await dispatchToolCall(tc.name, args);
+        if (result) toolResults.push(result);
         actionsList.push({ label: result || tc.name, status: result.startsWith("Tool failed") ? "fail" : "ok" });
+      }
+      if (!assistantText.trim()) {
+        assistantText = toolResults.length
+          ? toolResults.join("\n\n")
+          : "**ASHER AI · NO RESPONSE PAYLOAD**\n\nThe intelligence core returned an empty stream. Re-send the command or narrow the request.";
+        setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, content: assistantText } : m));
       }
       if (actionsList.length) {
         setMessages((p) => p.map((m) => m.id === assistantId ? { ...m, actions: actionsList } : m));
