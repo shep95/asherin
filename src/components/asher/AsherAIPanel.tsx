@@ -234,6 +234,8 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           return lines.join("\n");
         }
       }
+    } catch (e: any) {
+      return `Tool failed: ${e?.message || e}`;
     }
     return "";
   };
