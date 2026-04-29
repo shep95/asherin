@@ -698,6 +698,26 @@ const IntelligenceMapModule = () => {
       }
       return `Visual recon: ${a.detections?.length || 0} detections rendered.`;
     }
+    if (a.type === "temporal_recon") {
+      setTemporalLayer({
+        tracks: a.tracks || [],
+        years: a.years || [],
+        frames: a.frames || [],
+        bbox: a.bbox || null,
+        label: [a.landmark, a.area].filter(Boolean).join(" · "),
+      });
+      // Default scrubber to latest year
+      const last = (a.years || []).length ? Math.max(...a.years) : null;
+      setTimelineYear(last);
+      setActiveBase("esri-sat");
+      if (a.bbox && mapRef.current) {
+        const [w, s, e, n] = a.bbox;
+        try { mapRef.current.fitBounds([[s, w], [n, e]], { padding: [40, 40] }); } catch {}
+      } else if (a.center) {
+        flyTo(a.center.lat, a.center.lng, 16);
+      }
+      return `Temporal recon: ${a.tracks?.length || 0} tracks across ${a.years?.length || 0} year frames.`;
+    }
   };
 
   return (
