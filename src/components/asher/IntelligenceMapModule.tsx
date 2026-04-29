@@ -856,6 +856,17 @@ const IntelligenceMapModule = () => {
             attribution=""
             maxZoom={tile.max ?? 19}
           />
+          {showSatelliteTacticalOverlay && (
+            <TileLayer
+              key="esri-tactical-borders"
+              url={TACTICAL_BORDER_OVERLAY.url}
+              attribution=""
+              maxZoom={19}
+              opacity={0.92}
+              zIndex={260}
+              className="asher-tactical-border-overlay"
+            />
+          )}
           <MapClick onClick={loadEntity} />
           <CoordDisplay onMove={() => {}} />
 
