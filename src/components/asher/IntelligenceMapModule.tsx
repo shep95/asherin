@@ -462,6 +462,7 @@ const IntelligenceMapModule = () => {
   const [savingTarget, setSavingTarget] = useState(false);
   const [activeThreats, setActiveThreats] = useState<Record<ThreatId, boolean>>({ "h-quake": false, "h-fire": false, "h-air": false });
   const [threatData, setThreatData] = useState<Record<ThreatId, ThreatPoint[]>>({ "h-quake": [], "h-fire": [], "h-air": [] });
+  const [showTacticalBorders, setShowTacticalBorders] = useState(true);
   const mapRef = useRef<L.Map | null>(null);
   const [showLiveFeeds, setShowLiveFeeds] = useState(false);
   const [propertyIntel, setPropertyIntel] = useState<{
@@ -519,6 +520,7 @@ const IntelligenceMapModule = () => {
 
 
   const tile = TILE_SOURCES[activeBase] ?? TILE_SOURCES["carto-dark"];
+  const showSatelliteTacticalOverlay = activeBase === "esri-sat" && showTacticalBorders;
 
   const toggleCat = (id: string) => setOpenCats((p) => ({ ...p, [id]: !p[id] }));
 
@@ -751,9 +753,10 @@ const IntelligenceMapModule = () => {
                     {cat.layers.map((l) => {
                       const isBase = cat.id === "base";
                       const isThreat = (THREAT_IDS as readonly string[]).includes(l.id);
+                      const isBoundary = l.id === "borders-intl";
                       const isActive = isBase
                         ? l.id === activeBase
-                        : isThreat ? !!activeThreats[l.id as ThreatId] : false;
+                        : isThreat ? !!activeThreats[l.id as ThreatId] : isBoundary ? showTacticalBorders : false;
                       return (
                         <button
                           key={l.id}
@@ -761,6 +764,7 @@ const IntelligenceMapModule = () => {
                             if (l.status !== "live") return;
                             if (isBase) setActiveBase(l.id);
                             else if (isThreat) setActiveThreats((p) => ({ ...p, [l.id]: !p[l.id as ThreatId] }));
+                            else if (isBoundary) setShowTacticalBorders((p) => !p);
                           }}
                           disabled={l.status !== "live"}
                           className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors ${
