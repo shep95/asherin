@@ -345,9 +345,17 @@ Return STRICT JSON only:
       break;
     }
     if (!resp || !resp.ok) {
-      return new Response(JSON.stringify({ error: `Gemini failed: ${resp?.status} ${lastErr.slice(0, 200)}` }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Vision analysis unavailable: ${resp?.status || "no_response"} ${lastErr.slice(0, 200)}`,
+        code: "VISION_UNAVAILABLE",
+        center,
+        bbox: img.bbox,
+        radiusKm,
+        detections: [],
+        area: areaHit?.display_name || null,
+        landmark: landmarkHit?.display_name || null,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     // Use the actual bbox returned by the imagery fetch (may differ from
     // requested bbox when we fall back to a single tile).
@@ -381,8 +389,8 @@ Return STRICT JSON only:
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("asher-visual-recon error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ success: false, error: e instanceof Error ? e.message : String(e), code: "SERVICE_FAILED", detections: [] }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
