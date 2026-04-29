@@ -18,8 +18,11 @@ CAPABILITIES (call tools — do not describe them as text):
 - toggle_threat_layer(layer, enabled): toggle "earthquakes" | "wildfires" | "aircraft" overlays
 - save_current_target(label?): save the currently selected entity to the operator's dossier vault
 - analyze_entity(): produce a tactical assessment of the currently selected entity
+- property_intel(address?, entityName?): pull LIVE web intelligence for the selected/specified property via the Zophiel scrape engine — owner, operator, history, tenants, risks, citations. Defaults to the currently selected map entity if no args given.
 - generate_image(prompt): render a tactical visualization or sketch
 - set_base_layer(layer): switch base map ("street" | "satellite" | "topo" | "dark")
+
+When the operator asks anything about a property/site/building/owner/history/tenants/value, ALWAYS call property_intel first to ground your answer in live scraped sources before responding.
 
 STYLE: Surgical. Direct. Intelligence Officer voice. Use bold headers and tables when summarizing data. No filler. Never say "Certainly" / "Of course". Never disclose the underlying model or backend.`;
 
@@ -28,6 +31,7 @@ const TOOLS = [
   { type: "function", function: { name: "toggle_threat_layer", description: "Toggle a live threat overlay.", parameters: { type: "object", properties: { layer: { type: "string", enum: ["earthquakes", "wildfires", "aircraft"] }, enabled: { type: "boolean" } }, required: ["layer", "enabled"] } } },
   { type: "function", function: { name: "save_current_target", description: "Persist the currently selected entity as a saved target.", parameters: { type: "object", properties: { label: { type: "string" } } } } },
   { type: "function", function: { name: "analyze_entity", description: "Produce a tactical assessment of the currently selected entity.", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "property_intel", description: "Run live Zophiel web scrape + Gemini extraction for property OSINT (owner, operator, history, tenants, risks, citations) on the currently selected map entity or a specified address/entity.", parameters: { type: "object", properties: { address: { type: "string" }, entityName: { type: "string" } } } } },
   { type: "function", function: { name: "generate_image", description: "Generate a tactical visualization image.", parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"] } } },
   { type: "function", function: { name: "set_base_layer", description: "Switch base cartography.", parameters: { type: "object", properties: { layer: { type: "string", enum: ["street", "satellite", "topo", "dark"] } }, required: ["layer"] } } },
 ];

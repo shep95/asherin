@@ -617,13 +617,18 @@ const IntelligenceMapModule = () => {
     center: { lat: coord.lat, lng: coord.lng, zoom: coord.zoom },
     activeBase,
     activeThreats,
-    selectedEntity: entity ? {
-      lat: entity.lat, lng: entity.lng,
-      address: entity.hit?.display_name,
-      country: entity.country?.name?.common,
-      weather: entity.weather?.current,
-      elevation: entity.elevation,
-    } : null,
+    selectedEntity: entity ? (() => {
+      const primary = entity.features ? classifyClick(entity.features).primary : null;
+      const entityName = primary?.tags?.name || primary?.tags?.["name:en"] || primary?.tags?.operator;
+      return {
+        lat: entity.lat, lng: entity.lng,
+        address: entity.hit?.display_name,
+        entityName,
+        country: entity.country?.name?.common,
+        weather: entity.weather?.current,
+        elevation: entity.elevation,
+      };
+    })() : null,
   };
 
   // Asher AI dispatcher — drives the map from the right-side panel
@@ -653,6 +658,13 @@ const IntelligenceMapModule = () => {
     if (a.type === "analyze_entity") {
       if (!entity) return "No entity selected.";
       return `Selected: ${entity.hit?.display_name || `${entity.lat.toFixed(3)}, ${entity.lng.toFixed(3)}`}. Country=${entity.country?.name?.common ?? "unknown"}. Weather=${entity.weather?.current?.temperature_2m ?? "?"}°C, wind ${entity.weather?.current?.wind_speed_10m ?? "?"} km/h. Elevation=${entity.elevation ?? "?"}m. Nearby features=${entity.features?.length ?? 0}.`;
+    }
+    if (a.type === "property_intel") {
+      // If args provided, run on those; otherwise re-fetch on current entity to refresh the side panel.
+      if (entity) {
+        fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features);
+      }
+      return "Property intel scrape dispatched.";
     }
   };
 
