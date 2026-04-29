@@ -471,6 +471,14 @@ const IntelligenceMapModule = () => {
     summary?: string;
     label?: string;
   }>({ detections: [], bbox: null });
+  const [temporalLayer, setTemporalLayer] = useState<{
+    tracks: Array<{ lat: number; lng: number; label: string; color?: string; first_seen: number; last_seen: number; years_present: number[]; confidence: number; reason?: string }>;
+    years: number[];
+    frames: Array<{ year: number; source: string; detection_count: number; summary: string }>;
+    bbox: [number, number, number, number] | null;
+    label?: string;
+  }>({ tracks: [], years: [], frames: [], bbox: null });
+  const [timelineYear, setTimelineYear] = useState<number | null>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
