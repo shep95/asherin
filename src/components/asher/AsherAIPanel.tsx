@@ -94,6 +94,44 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
           await onAction({ type: "set_base", layer: args?.layer });
           return `Base layer → ${args?.layer}.`;
         }
+        case "property_intel": {
+          // Notify parent (so its property panel can refresh too)
+          try { await onAction({ type: "property_intel", address: args?.address, entityName: args?.entityName }); } catch {}
+          // Pull the OSINT directly so we can stream a rich summary back into chat
+          const sel = (mapContext as any)?.selectedEntity;
+          const address = args?.address || sel?.address;
+          const entityName = args?.entityName || sel?.entityName;
+          if (!address && !entityName) return "Property intel: no address or entity selected.";
+          const byok = getActiveIntelMapByok();
+          const { data, error } = await supabase.functions.invoke("asher-property-intel", {
+            body: {
+              address, entityName,
+              lat: sel?.lat, lng: sel?.lng,
+              ...(byok ? { byok: byok.apiKey } : {}),
+            },
+          });
+          if (error) return `Property intel failed: ${error.message}`;
+          if (!data?.success) return `Property intel failed: ${data?.error || "unknown"}`;
+          const intel = data.intel || {};
+          const lines: string[] = [];
+          if (intel.summary) lines.push(`**Brief:** ${intel.summary}`);
+          const kv: Array<[string, any]> = [
+            ["Owner", intel.owner], ["Operator", intel.operator],
+            ["Type", intel.property_type], ["Year Built", intel.year_built],
+            ["Size", intel.size], ["Est. Value", intel.value_estimate],
+          ];
+          const facts = kv.filter(([, v]) => !!v).map(([k, v]) => `- **${k}:** ${v}`).join("\n");
+          if (facts) lines.push(facts);
+          if (Array.isArray(intel.tenants_or_occupants) && intel.tenants_or_occupants.length)
+            lines.push(`**Tenants/Occupants:**\n` + intel.tenants_or_occupants.slice(0, 6).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(intel.history) && intel.history.length)
+            lines.push(`**History:**\n` + intel.history.slice(0, 6).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(intel.risks) && intel.risks.length)
+            lines.push(`**Risks:**\n` + intel.risks.slice(0, 6).map((x: string) => `- ${x}`).join("\n"));
+          if (Array.isArray(data.sources) && data.sources.length)
+            lines.push(`**Sources:**\n` + data.sources.slice(0, 5).map((s: any, i: number) => `${i + 1}. [${s.title || s.url}](${s.url})`).join("\n"));
+          return lines.join("\n\n") || "Property intel: no facts extracted.";
+        }
         case "generate_image": {
           await runImagine(String(args?.prompt ?? "tactical sketch"));
           return `Imagine dispatched: ${args?.prompt}`;
