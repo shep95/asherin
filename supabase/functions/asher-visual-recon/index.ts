@@ -63,25 +63,86 @@ function clampBbox(b: [number, number, number, number], maxKm = 8): [number, num
   return bboxAround(cLat, cLng, maxKm / 2);
 }
 
-// Fetch ESRI World Imagery as a PNG export. The "export" endpoint takes a
-// bbox in WGS84 and renders it server-side at the requested pixel size.
+function bufToB64(buf: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < buf.length; i += chunk) {
+    bin += String.fromCharCode.apply(null, buf.subarray(i, i + chunk) as unknown as number[]);
+  }
+  return btoa(bin);
+}
+
+// Fetch a single ESRI World Imagery XYZ tile.
+async function fetchEsriTile(z: number, x: number, y: number): Promise<Uint8Array | null> {
+  const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+  try {
+    const r = await fetch(url, { headers: { "User-Agent": UA } });
+    if (!r.ok) return null;
+    return new Uint8Array(await r.arrayBuffer());
+  } catch { return null; }
+}
+
+// Pull satellite imagery covering the bbox. Tries ESRI export (single image)
+// first, then falls back to the central XYZ tile (always works).
 async function fetchSatelliteImage(
   bbox: [number, number, number, number],
   size = 1024,
-): Promise<{ b64: string; mime: string; width: number; height: number } | null> {
+): Promise<{ b64: string; mime: string; width: number; height: number; bbox: [number, number, number, number] } | null> {
   const [w, s, e, n] = bbox;
-  const url =
+
+  // --- Attempt 1: ESRI export endpoint (full bbox) ---
+  const exportUrl =
     `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export` +
     `?bbox=${w},${s},${e},${n}` +
     `&bboxSR=4326&imageSR=4326&size=${size},${size}&format=png&transparent=false&f=image`;
   try {
-    const r = await fetch(url, { headers: { "User-Agent": UA } });
-    if (!r.ok) return null;
-    const buf = new Uint8Array(await r.arrayBuffer());
-    let bin = "";
-    for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-    return { b64: btoa(bin), mime: "image/png", width: size, height: size };
-  } catch { return null; }
+    const r = await fetch(exportUrl, { headers: { "User-Agent": UA } });
+    if (r.ok) {
+      const buf = new Uint8Array(await r.arrayBuffer());
+      if (buf.length > 1000) {
+        return { b64: bufToB64(buf), mime: "image/png", width: size, height: size, bbox };
+      }
+    } else {
+      console.warn(`[visual-recon] ESRI export failed status=${r.status}`);
+    }
+  } catch (e) {
+    console.warn(`[visual-recon] ESRI export threw:`, e);
+  }
+
+  // --- Attempt 2: single XYZ tile centered on bbox ---
+  const cLat = (s + n) / 2;
+  const cLng = (w + e) / 2;
+  // Pick zoom level based on bbox span
+  const spanDeg = Math.max(e - w, n - s);
+  // rough mapping: spanDeg=0.1 -> z=14, 0.05 -> z=15, 0.02 -> z=16
+  let z = 16;
+  if (spanDeg > 0.2) z = 12;
+  else if (spanDeg > 0.1) z = 13;
+  else if (spanDeg > 0.05) z = 14;
+  else if (spanDeg > 0.02) z = 15;
+
+  const n2 = Math.pow(2, z);
+  const x = Math.floor(((cLng + 180) / 360) * n2);
+  const latRad = (cLat * Math.PI) / 180;
+  const y = Math.floor(((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n2);
+
+  const tile = await fetchEsriTile(z, x, y);
+  if (tile && tile.length > 500) {
+    // Compute the actual bbox of this tile so pixel->geo stays correct.
+    const tileLngW = (x / n2) * 360 - 180;
+    const tileLngE = ((x + 1) / n2) * 360 - 180;
+    const tileLatN = (180 / Math.PI) * Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n2)));
+    const tileLatS = (180 / Math.PI) * Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n2)));
+    return {
+      b64: bufToB64(tile),
+      mime: "image/jpeg",
+      width: 256,
+      height: 256,
+      bbox: [tileLngW, tileLatS, tileLngE, tileLatN],
+    };
+  }
+
+  return null;
 }
 
 interface PixelDetection {
@@ -238,6 +299,10 @@ Return STRICT JSON only:
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Use the actual bbox returned by the imagery fetch (may differ from
+    // requested bbox when we fall back to a single tile).
+    const imgBbox = img.bbox;
+
     const data = await resp.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     let parsed: any = {};
@@ -249,7 +314,7 @@ Return STRICT JSON only:
     const rawDet: PixelDetection[] = Array.isArray(parsed?.detections) ? parsed.detections : [];
     const detections: GeoDetection[] = rawDet
       .filter((d) => typeof d.x === "number" && typeof d.y === "number" && d.x >= 0 && d.x <= 1 && d.y >= 0 && d.y <= 1)
-      .map((d) => pixelToGeo(d, bbox))
+      .map((d) => pixelToGeo(d, imgBbox))
       .slice(0, 60);
 
     console.log(`[asher-visual-recon] area="${area}" landmark="${landmark || ""}" criteria="${criteria.slice(0,80)}" detections=${detections.length}`);
@@ -258,7 +323,7 @@ Return STRICT JSON only:
       success: true,
       summary: parsed?.summary || "",
       center,
-      bbox,
+      bbox: imgBbox,
       radiusKm,
       detections,
       area: areaHit?.display_name || null,
