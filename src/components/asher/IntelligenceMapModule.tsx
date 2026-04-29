@@ -1004,6 +1004,101 @@ const IntelligenceMapModule = () => {
                   })()}
 
 
+                  {/* Property Intelligence (Zophiel · Live Web Scrape) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground uppercase flex items-center gap-1.5">
+                        <Globe2 className="h-3 w-3" strokeWidth={1.5} />
+                        Property Intel · Zophiel Web
+                      </p>
+                      <button
+                        onClick={() => fetchPropertyIntel(entity.lat, entity.lng, entity.hit, entity.features)}
+                        disabled={propertyIntel.loading}
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
+                        title="Re-scrape property intelligence"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${propertyIntel.loading ? "animate-spin" : ""}`} strokeWidth={1.5} />
+                      </button>
+                    </div>
+                    <div className="rounded-lg border border-border/15 bg-background/40 p-3 space-y-2 text-[11px] font-light">
+                      {propertyIntel.loading && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>Scraping live web sources via Zophiel…</span>
+                        </div>
+                      )}
+                      {propertyIntel.error && !propertyIntel.loading && (
+                        <p className="text-amber-400/80 text-[10px]">{propertyIntel.error}</p>
+                      )}
+                      {!propertyIntel.loading && !propertyIntel.error && !propertyIntel.intel && (
+                        <p className="text-muted-foreground/60 text-[10px]">No property intelligence yet.</p>
+                      )}
+                      {propertyIntel.intel && (
+                        <>
+                          {propertyIntel.intel.summary && (
+                            <p className="text-foreground/90 leading-relaxed">{propertyIntel.intel.summary}</p>
+                          )}
+                          {([
+                            ["Owner", propertyIntel.intel.owner],
+                            ["Operator", propertyIntel.intel.operator],
+                            ["Type", propertyIntel.intel.property_type],
+                            ["Year Built", propertyIntel.intel.year_built],
+                            ["Size", propertyIntel.intel.size],
+                            ["Est. Value", propertyIntel.intel.value_estimate],
+                          ].filter(([, v]) => !!v) as Array<[string, string]>).map(([k, v]) => (
+                            <p key={k}><span className="text-muted-foreground/60">{k}:</span> {v}</p>
+                          ))}
+                          {Array.isArray(propertyIntel.intel.tenants_or_occupants) && propertyIntel.intel.tenants_or_occupants.length > 0 && (
+                            <div>
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Tenants / Occupants</p>
+                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
+                                {propertyIntel.intel.tenants_or_occupants.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(propertyIntel.intel.history) && propertyIntel.intel.history.length > 0 && (
+                            <div>
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">History</p>
+                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
+                                {propertyIntel.intel.history.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(propertyIntel.intel.notable_events) && propertyIntel.intel.notable_events.length > 0 && (
+                            <div>
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Notable Events</p>
+                              <ul className="list-disc list-inside text-foreground/80 space-y-0.5">
+                                {propertyIntel.intel.notable_events.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {Array.isArray(propertyIntel.intel.risks) && propertyIntel.intel.risks.length > 0 && (
+                            <div>
+                              <p className="text-amber-400/70 text-[9px] tracking-[0.2em] uppercase mt-1 mb-0.5">Risks</p>
+                              <ul className="list-disc list-inside text-amber-200/80 space-y-0.5">
+                                {propertyIntel.intel.risks.slice(0, 6).map((x: string, i: number) => <li key={i}>{x}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {propertyIntel.sources.length > 0 && (
+                            <div className="pt-1.5 mt-1.5 border-t border-border/10">
+                              <p className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase mb-1">Sources Scraped</p>
+                              <div className="space-y-0.5">
+                                {propertyIntel.sources.map((s, i) => (
+                                  <a key={i} href={s.url} target="_blank" rel="noreferrer"
+                                    className="flex items-start gap-1 text-muted-foreground hover:text-foreground truncate">
+                                    <ExternalLink className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+                                    <span className="truncate text-[10px]">{s.title || s.url}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Country profile */}
                   {entity.country && (
                     <div>
