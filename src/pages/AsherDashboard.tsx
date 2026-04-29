@@ -4,7 +4,7 @@ import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
-  Building2, Wrench, PenSquare,
+  Building2, Wrench, PenSquare, Activity,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import AsherCommandCenter from "@/components/asher/AsherCommandCenter";
 import AsherAzplenModule from "@/components/asher/AsherAzplenModule";
 import AsherZaliModule from "@/components/asher/AsherZaliModule";
 import AsherWhiteboardModule from "@/components/asher/AsherWhiteboardModule";
+import AsherAxrlenModule from "@/components/asher/AsherAxrlenModule";
 import AsherSettingsModule from "@/components/asher/AsherSettingsModule";
 import AsherAuditVault from "@/components/asher/AsherAuditVault";
 import AsherSavedTargets from "@/components/asher/AsherSavedTargets";
@@ -115,7 +116,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 };
 
 type AsherTab =
-  | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "targets" | "comms"
+  | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
   | "audit" | "settings" | "profile" | "orgs";
 
@@ -133,6 +134,7 @@ const buildBranches = (superOwner: boolean): NavBranch[] => [
   { id: "ai", label: "AI & Reasoning", items: [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
+    { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
@@ -266,6 +268,7 @@ const AsherDashboard = () => {
           {active === "azplen"    && <AsherAzplenModule />}
           {active === "zali"      && <AsherZaliModule />}
           {active === "whiteboard"&& <AsherWhiteboardModule />}
+          {active === "axrlen"    && <AsherAxrlenModule />}
           {active === "targets"   && <AsherSavedTargets />}
           {active === "comms"     && <AsherCommsModule />}
           {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
