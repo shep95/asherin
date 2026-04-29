@@ -897,6 +897,38 @@ const IntelligenceMapModule = () => {
               </CircleMarker>
             );
           })}
+
+          {/* AI Temporal Recon — tracks visible at the scrubbed year */}
+          {temporalLayer.tracks
+            .filter((t) => timelineYear == null || (t.first_seen <= timelineYear && t.last_seen >= timelineYear))
+            .map((t, i) => {
+              const c = (t.color || "").toLowerCase();
+              const fill = c.includes("red") || c.includes("rust") || c.includes("orange") ? "#ef4444"
+                : c.includes("blue") || c.includes("navy") || c.includes("cyan") ? "#3b82f6"
+                : c.includes("green") ? "#22c55e"
+                : c.includes("yellow") ? "#eab308"
+                : "#f0abfc";
+              const isNew = timelineYear != null && t.first_seen === timelineYear;
+              return (
+                <CircleMarker
+                  key={`temporal-${i}-${timelineYear}`}
+                  center={[t.lat, t.lng]}
+                  radius={Math.max(6, Math.min(13, 5 + t.confidence * 9))}
+                  pathOptions={{ color: fill, weight: isNew ? 3 : 1.5, fillColor: fill, fillOpacity: 0.55, dashArray: isNew ? "4 3" : undefined }}
+                >
+                  <Popup>
+                    <div className="text-xs space-y-1">
+                      <div className="font-semibold">{t.label}</div>
+                      <div className="opacity-80">First seen: <b>{t.first_seen}</b> · Last seen: <b>{t.last_seen}</b></div>
+                      <div className="opacity-70">Years present: {t.years_present.join(", ")}</div>
+                      <div className="opacity-70">Confidence: {(t.confidence * 100).toFixed(0)}%</div>
+                      {t.reason && <div className="opacity-80">{t.reason}</div>}
+                      <div className="opacity-50 font-mono text-[10px]">{t.lat.toFixed(5)}, {t.lng.toFixed(5)}</div>
+                    </div>
+                  </Popup>
+                </CircleMarker>
+              );
+            })}
         </MapContainer>
 
         {/* RECON LAYER BANNER */}
@@ -912,6 +944,58 @@ const IntelligenceMapModule = () => {
             >×</button>
           </div>
         )}
+
+        {/* TEMPORAL TIMELINE SCRUBBER */}
+        {temporalLayer.years.length > 0 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[1001] w-[min(720px,calc(100%-24px))] rounded-xl border border-foreground/20 bg-card/95 backdrop-blur-md px-4 py-3 shadow-2xl">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[10px] font-light tracking-[0.25em] uppercase text-foreground">Temporal Recon</span>
+              <span className="text-[10px] tracking-wide text-muted-foreground">
+                {temporalLayer.tracks.length} track{temporalLayer.tracks.length === 1 ? "" : "s"} · {temporalLayer.years.length} frames
+              </span>
+              {temporalLayer.label && (
+                <span className="text-[10px] text-muted-foreground/70 truncate">— {temporalLayer.label}</span>
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-[11px] font-mono text-foreground tabular-nums">
+                  {timelineYear ?? Math.max(...temporalLayer.years)}
+                </span>
+                <button
+                  onClick={() => { setTemporalLayer({ tracks: [], years: [], frames: [], bbox: null }); setTimelineYear(null); }}
+                  className="text-muted-foreground hover:text-foreground text-base leading-none"
+                  title="Clear temporal layer"
+                >×</button>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={Math.min(...temporalLayer.years)}
+              max={Math.max(...temporalLayer.years)}
+              step={1}
+              value={timelineYear ?? Math.max(...temporalLayer.years)}
+              onChange={(e) => setTimelineYear(parseInt(e.target.value, 10))}
+              className="w-full accent-emerald-400"
+            />
+            <div className="mt-1.5 flex items-center justify-between gap-1">
+              {temporalLayer.frames.map((f) => {
+                const active = (timelineYear ?? Math.max(...temporalLayer.years)) === f.year;
+                return (
+                  <button
+                    key={f.year}
+                    onClick={() => setTimelineYear(f.year)}
+                    className={`flex flex-col items-center gap-0.5 rounded px-1.5 py-0.5 transition-colors ${active ? "bg-foreground/15 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    title={`${f.source} · ${f.detection_count} detections`}
+                  >
+                    <span className="text-[9px] font-mono tabular-nums">{f.year}</span>
+                    <span className={`h-1 w-1 rounded-full ${f.detection_count > 0 ? "bg-emerald-400" : "bg-muted-foreground/30"}`} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
 
         {/* LIVE FEEDS TOGGLE */}
         {entity && (
