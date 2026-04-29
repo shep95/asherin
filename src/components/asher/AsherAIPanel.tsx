@@ -48,7 +48,7 @@ const AsherAIPanel = ({ mapContext, onAction }: Props) => {
       id: "welcome",
       role: "assistant",
       content:
-        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Fly to Kyiv*\n- *Show live earthquakes*\n- *Switch to satellite*\n- *Save this target*\n- *Analyze the selected entity*\n- *Imagine a topographic sketch of this terrain*",
+        "**ASHER AI · Online**\n\nI can drive the map for you. Try:\n- *Find me all red or blue roofs in northern New Delhi near the Kali Temple*\n- *Locate construction cranes in Doha west bay*\n- *Spot blue tarps within 1km of Kharkiv central station*\n- *Fly to Kyiv* · *Show live earthquakes* · *Switch to satellite*\n- *Property intel on this site* · *Save this target*",
     },
   ]);
   const [input, setInput] = useState("");
