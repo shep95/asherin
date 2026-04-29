@@ -275,6 +275,60 @@ function pixelToGeo(d: PixelDetection, bbox: [number, number, number, number]): 
   return { ...d, lat, lng };
 }
 
+async function visionDetect(apiKey: string, criteria: string, area: string, landmark: string | undefined, img: ReconFrame): Promise<{ detections: GeoDetection[]; summary: string; error?: string }> {
+  const prompt = `You are a satellite image recon analyst. Examine the provided high-resolution overhead satellite image and locate every feature that matches the user criteria. Be precise, but do not be overly conservative for roof-color searches: include visible red, terracotta, rust, clay-tile, maroon, or orange-red roof surfaces when the user asks for red roofs. If nothing matches, return an empty array.
+
+USER CRITERIA: ${criteria}
+${landmark ? `LANDMARK CONTEXT (image is centred on this): ${landmark}` : ""}
+AREA CONTEXT: ${area || "(unspecified)"}
+SCAN FRAME: ${img.index + 1}
+
+For every match, return:
+- x, y: pixel position normalised to [0..1] from the TOP-LEFT of the image (x = column / width, y = row / height). Aim for the centre of the feature.
+- label: short human label (e.g. "Red metal roof", "Terracotta roof", "Blue tarp roof")
+- color: dominant color word ("red", "terracotta", "rust", "blue", "navy", etc.)
+- confidence: 0..1
+- reason: one short sentence explaining why it matches.
+
+Return STRICT JSON only:
+{"detections":[{"x":0.42,"y":0.31,"label":"...","color":"red","confidence":0.86,"reason":"..."}],"summary":"2 sentence overview of what was found"}`;
+
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  let resp: Response | null = null;
+  let lastErr = "";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    resp = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: img.mime, data: img.b64 } }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 3072, responseMimeType: "application/json" },
+      }),
+    });
+    if (resp.ok) break;
+    lastErr = await resp.text();
+    if (resp.status === 429 || resp.status === 503) {
+      await new Promise((r) => setTimeout(r, 1500 * attempt));
+      continue;
+    }
+    break;
+  }
+  if (!resp || !resp.ok) return { detections: [], summary: "", error: `Vision analysis unavailable: ${resp?.status || "no_response"} ${lastErr.slice(0, 200)}` };
+
+  const data = await resp.json();
+  const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+  let parsed: any = {};
+  try { parsed = JSON.parse(raw); } catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) { try { parsed = JSON.parse(m[0]); } catch {} }
+  }
+  const rawDet: PixelDetection[] = Array.isArray(parsed?.detections) ? parsed.detections : [];
+  const detections = rawDet
+    .filter((d) => typeof d.x === "number" && typeof d.y === "number" && d.x >= 0 && d.x <= 1 && d.y >= 0 && d.y <= 1)
+    .map((d) => pixelToGeo(d, img.bbox));
+  return { detections, summary: parsed?.summary || "" };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
