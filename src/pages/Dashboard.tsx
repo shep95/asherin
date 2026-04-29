@@ -99,7 +99,7 @@ const ZeeionView = React.lazy(() => import("@/components/dashboard/zeeion/Zeeion
 const AxrlenView = React.lazy(() => import("@/components/dashboard/axrlen/AxrlenView"));
 const ZerlalView = React.lazy(() => import("@/components/dashboard/zerlal/ZerlalView"));
 const FileScrapperView = React.lazy(() => import("@/components/dashboard/scrapper/FileScrapperView"));
-const AziionView = React.lazy(() => import("@/components/dashboard/aziion/AziionView"));
+
 const CipherView = React.lazy(() => import("@/components/dashboard/cipher/CipherToolkit"));
 import CommandPalette from "@/components/dashboard/CommandPalette";
 import FocusMode from "@/components/dashboard/FocusMode";
@@ -1289,7 +1289,7 @@ const Dashboard = () => {
       case "zeeion": return gatedView("zeeion", ZeeionView, "Zeeion — Financial Intelligence", "AI-powered financial analysis — upload data for cost savings, efficiency scoring, and budget optimization. Available on Pro plans.");
       case "axrlen": return gatedView("axrlen", AxrlenView, "Axrlen — Predictive Intelligence", "Real-time global event prediction and policy simulation — powered by live data from 9+ intelligence sources. Available on Pro plans.");
       case "zerlal": return gatedView("zerlal", ZerlalView, "Zerlal — Cyber Security", "AI-powered cyber security intelligence — threat analysis, vulnerability detection, and defense strategies powered by AUREON. Available on Pro plans.");
-      case "aziion": return gatedView("aziion", AziionView, "Aziion — Automated Oil Trading", "Automated Brent Oil trading bot — AI predicts price direction every 24h and executes trades on Hyperliquid. Admin only.");
+      
       case "imagine-intelligence": return gatedView("imagine-intelligence", ImagineIntelligenceView, "Imagine Intelligence", "Geo-intelligence analysis engine. Available on all paid plans.");
       case "file-scrapper": return gatedView("file-scrapper", FileScrapperView, "File Scrapper", "Upload unstructured documents and extract all text into a single downloadable TXT file. Available on Aureon ($199/mo) and above.");
       case "video-intelligence": return gatedView("video-intelligence", VideoIntelligenceView, "Video Intelligence", "Behavioral analysis, deception detection, and personality profiling. Available on Pro plans.");
