@@ -869,6 +869,177 @@ export type Database = {
           },
         ]
       }
+      asher_code_files: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          language: string
+          path: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          language?: string
+          path: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          language?: string
+          path?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_code_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_code_projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          name: string
+          org_id: string | null
+          owner_id: string
+          team_id: string | null
+          template: string | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["asher_code_visibility"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          name: string
+          org_id?: string | null
+          owner_id: string
+          team_id?: string | null
+          template?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["asher_code_visibility"]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          name?: string
+          org_id?: string | null
+          owner_id?: string
+          team_id?: string | null
+          template?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["asher_code_visibility"]
+        }
+        Relationships: []
+      }
+      asher_code_published_tabs: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          entry_html: string
+          icon: string
+          id: string
+          install_count: number
+          name: string
+          org_id: string | null
+          owner_id: string
+          project_id: string
+          rating: number | null
+          team_id: string | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["asher_code_visibility"]
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          entry_html: string
+          icon?: string
+          id?: string
+          install_count?: number
+          name: string
+          org_id?: string | null
+          owner_id: string
+          project_id: string
+          rating?: number | null
+          team_id?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["asher_code_visibility"]
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          entry_html?: string
+          icon?: string
+          id?: string
+          install_count?: number
+          name?: string
+          org_id?: string | null
+          owner_id?: string
+          project_id?: string
+          rating?: number | null
+          team_id?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["asher_code_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_code_published_tabs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asher_code_tab_installs: {
+        Row: {
+          id: string
+          installed_at: string
+          tab_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          installed_at?: string
+          tab_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          installed_at?: string
+          tab_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_code_tab_installs_tab_id_fkey"
+            columns: ["tab_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_published_tabs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asher_comms_audit: {
         Row: {
           action: string
@@ -7122,6 +7293,7 @@ export type Database = {
         | "SECRET"
         | "TOP_SECRET"
         | "TS_SCI"
+      asher_code_visibility: "private" | "team" | "organization" | "public"
       asher_invite_status: "pending" | "accepted" | "revoked" | "expired"
       asher_role:
         | "super_owner"
@@ -7266,6 +7438,7 @@ export const Constants = {
         "TOP_SECRET",
         "TS_SCI",
       ],
+      asher_code_visibility: ["private", "team", "organization", "public"],
       asher_invite_status: ["pending", "accepted", "revoked", "expired"],
       asher_role: [
         "super_owner",
