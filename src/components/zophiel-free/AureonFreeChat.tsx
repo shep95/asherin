@@ -230,7 +230,7 @@ const AureonFreeChat = () => {
             </h2>
             <p className="text-xs font-light text-muted-foreground/70 leading-relaxed max-w-lg mx-auto">
               Drop in your own API key from any major provider — Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek, Perplexity, Meta, or Venice — and Aureon transforms its raw output into intelligence-grade responses.
-              No key? Get <strong>5 free messages every 30 minutes</strong>. Nothing is saved. Refresh the tab and it's gone forever.
+              <strong className="text-foreground/80"> 5 free messages every 30 minutes</strong>, billed entirely against your own key. We never use platform keys here, never store your key, never log a single message. Refresh = total wipe.
             </p>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3 max-w-2xl mx-auto pt-2">
               {[
@@ -284,8 +284,8 @@ const AureonFreeChat = () => {
           <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             {error}
-            {resetAt && resetAt > Date.now() && !byokActive && (
-              <span className="block text-red-300/60 mt-0.5">Resets in ~{minutesUntilReset} min — or add your own API key above for unlimited.</span>
+            {resetAt && resetAt > Date.now() && (
+              <span className="block text-red-300/60 mt-0.5">Resets in ~{minutesUntilReset} min.</span>
             )}
           </div>
           <button onClick={() => setError(null)} className="text-red-300/60 hover:text-red-300"><X className="h-3 w-3" /></button>
@@ -304,7 +304,7 @@ const AureonFreeChat = () => {
                 send();
               }
             }}
-            placeholder={byokActive ? "Ask Aureon anything — unlimited via your key…" : "5 free messages every 30 min — ask anything…"}
+            placeholder={byokActive ? "Ask Aureon anything — 5 msgs / 30 min on your key…" : "Add your API key above to begin (5 msgs / 30 min)…"}
             rows={1}
             className="flex-1 resize-none rounded-xl border border-border/20 bg-card/40 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none max-h-32"
             disabled={loading}
