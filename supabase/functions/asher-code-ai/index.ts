@@ -411,6 +411,87 @@ serve(async (req) => {
       );
     }
 
+    // ── ORCHESTRATE MODE: parallel multi-model with ranking ────────
+    if (mode === "orchestrate") {
+      const calls: ProviderCall[] = [];
+      const sources: string[] = [];
+
+      // Resolve up to 5 concurrent providers from byoks[] (or fall back to single byok)
+      const requested = (byoks && byoks.length ? byoks : (byok ? [byok] : [])).slice(0, 5);
+      for (const b of requested) {
+        if (!b.provider || !b.model) continue;
+        if (b.apiKey) {
+          calls.push({ provider: b.provider, model: b.model, apiKey: b.apiKey });
+          sources.push("request");
+        } else {
+          const { data: keyRow } = await supabase
+            .from("user_api_keys")
+            .select("api_key")
+            .eq("user_id", userId)
+            .eq("provider", b.provider)
+            .eq("is_active", true)
+            .maybeSingle();
+          if (keyRow?.api_key) {
+            calls.push({ provider: b.provider, model: b.model, apiKey: keyRow.api_key });
+            sources.push("stored");
+          }
+        }
+      }
+
+      // Admin bypass: append Gemini if admin and no calls resolved
+      if (!calls.length && isAdmin) {
+        const adminKey = Deno.env.get("GEMINI_API_KEY");
+        if (adminKey) { calls.push({ provider: "google", model: "gemini-2.5-pro", apiKey: adminKey }); sources.push("admin"); }
+      }
+
+      if (!calls.length) {
+        return new Response(
+          JSON.stringify({ error: "byok_required", message: "Orchestrate requires at least one BYOK." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const orchMessages = buildPrompt(payload.subMode || "chat", payload);
+      const t0 = Date.now();
+      const settled = await Promise.allSettled(calls.map((c) => dispatch(c, orchMessages, 4096)));
+      const responses = settled.map((s, i) => ({
+        provider: calls[i].provider,
+        model: calls[i].model,
+        keySource: sources[i],
+        content: s.status === "fulfilled" ? s.value : "",
+        error: s.status === "rejected" ? String((s.reason as Error)?.message || s.reason) : null,
+        latencyMs: Date.now() - t0,
+      }));
+
+      // Rank with the first successful provider as judge — fall back to longest-response heuristic
+      const successful = responses.filter((r) => !r.error && r.content);
+      let ranking: number[] = successful.map((_, i) => i);
+      if (successful.length > 1) {
+        try {
+          const judgePrompt: ChatMessage[] = [{
+            role: "user",
+            content: `Rank these ${successful.length} code solutions by correctness, code quality, completeness, and adherence to the user request. Return ONLY a JSON array of indices from best to worst, e.g. [2,0,1]. No prose.\n\nUSER REQUEST:\n${payload.instruction || payload.description || (payload.messages?.[payload.messages.length - 1]?.content) || ""}\n\n${successful.map((r, i) => `=== SOLUTION ${i} (${r.provider}/${r.model}) ===\n${r.content.slice(0, 6000)}`).join("\n\n")}`,
+          }];
+          const judgeReply = await dispatch(calls[responses.indexOf(successful[0])], judgePrompt, 256);
+          const m = judgeReply.match(/\[[\d,\s]+\]/);
+          if (m) {
+            const parsed = JSON.parse(m[0]);
+            if (Array.isArray(parsed) && parsed.every((n: any) => typeof n === "number" && n < successful.length)) {
+              ranking = parsed;
+            }
+          }
+        } catch { /* keep default ranking */ }
+      }
+
+      return new Response(JSON.stringify({
+        mode: "orchestrate",
+        responses,
+        ranking, // indices into successful[]
+        successful: successful.length,
+        timing: { totalMs: Date.now() - t0 },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const messages = buildPrompt(mode, payload);
     if (!messages.length) {
       return new Response(JSON.stringify({ error: "no prompt content" }), {
