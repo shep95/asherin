@@ -1,7 +1,7 @@
 // AureonFreeChat — public BYOK chat shown on /zophiel.
 // Zero persistence: state lives in memory only; refresh wipes everything.
-// Free tier: 5 msgs / 30 min (server-enforced by IP+fingerprint).
-// BYOK tier: unlimited, calls user's own provider key directly through edge proxy.
+// Free tier: 5 msgs / 3 hours (server-enforced by IP+fingerprint).
+// BYOK required: calls user's own provider key directly through edge proxy.
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
@@ -131,7 +131,7 @@ const AureonFreeChat = () => {
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full border border-border/20 bg-card/30 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-muted-foreground uppercase">
-              {remaining !== null ? `${remaining}/5 left` : "Free · 5 / 30min"}
+              {remaining !== null ? `${remaining}/5 left` : "Free · 5 / 3hr"}
             </span>
           )}
         </div>
@@ -230,7 +230,7 @@ const AureonFreeChat = () => {
             </h2>
             <p className="text-xs font-light text-muted-foreground/70 leading-relaxed max-w-lg mx-auto">
               Drop in your own API key from any major provider — Google, OpenAI, Anthropic, xAI, Mistral, DeepSeek, Perplexity, Meta, or Venice — and Aureon transforms its raw output into intelligence-grade responses.
-              <strong className="text-foreground/80"> 5 free messages every 30 minutes</strong>, billed entirely against your own key. We never use platform keys here, never store your key, never log a single message. Refresh = total wipe.
+              <strong className="text-foreground/80"> 5 free messages every 3 hours</strong>, billed entirely against your own key. We never use platform keys here, never store your key, never log a single message. Refresh = total wipe.
             </p>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3 max-w-2xl mx-auto pt-2">
               {[
@@ -304,7 +304,7 @@ const AureonFreeChat = () => {
                 send();
               }
             }}
-            placeholder={byokActive ? "Ask Aureon anything — 5 msgs / 30 min on your key…" : "Add your API key above to begin (5 msgs / 30 min)…"}
+            placeholder={byokActive ? "Ask Aureon anything — 5 msgs / 3 hours on your key…" : "Add your API key above to begin (5 msgs / 3 hours)…"}
             rows={1}
             className="flex-1 resize-none rounded-xl border border-border/20 bg-card/40 px-4 py-2.5 text-sm font-light text-foreground placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none max-h-32"
             disabled={loading}
