@@ -127,8 +127,8 @@ const ZophielFree = () => {
     <LandingBackground>
       <Header />
 
-      {/* Floating "Free" pill — only shown pre-search, top-right */}
-      {!hasSearched && (
+      {/* Floating "Free" pill — only shown pre-search on search tab */}
+      {!hasSearched && tab === "search" && (
         <div className="fixed top-20 right-4 sm:right-6 z-30 animate-fade-in">
           <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 backdrop-blur-md px-3 py-1.5">
             <Sparkles className="h-3 w-3 text-emerald-300" />
@@ -139,19 +139,48 @@ const ZophielFree = () => {
         </div>
       )}
 
-      {/* Engine — full-bleed, no box, no border */}
-      <main className="relative z-10 pt-16 min-h-screen">
-        {/* SEO: persistent semantic H1 (visually hidden) */}
+      {/* Tab bar */}
+      <div className="fixed top-16 left-1/2 -translate-x-1/2 z-30 mt-2">
+        <div className="inline-flex items-center gap-1 rounded-full border border-border/20 bg-card/40 backdrop-blur-xl p-1 shadow-lg">
+          <button
+            onClick={() => setTab("search")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition ${
+              tab === "search"
+                ? "bg-foreground/10 text-foreground border border-foreground/20"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Search className="h-3 w-3" /> Search
+          </button>
+          <button
+            onClick={() => setTab("chat")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase transition ${
+              tab === "chat"
+                ? "bg-foreground/10 text-foreground border border-foreground/20"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <MessageSquare className="h-3 w-3" /> Aureon Chat
+          </button>
+        </div>
+      </div>
+
+      {/* Engine — full-bleed */}
+      <main className="relative z-10 pt-28 min-h-screen">
         <h1 className="sr-only">
-          Zophiel — Free Private AI Search Engine with Source Credibility, Deep Research, Image Geo-Location and Intel Mapping
+          Zophiel — Free Private AI Search Engine and Aureon BYOK Chat
         </h1>
-        <div className="h-[calc(100vh-4rem)]">
-          <ZophielEngineView onSearchedChange={setHasSearched} />
+        <div className="h-[calc(100vh-7rem)]">
+          {tab === "search" ? (
+            <ZophielEngineView onSearchedChange={setHasSearched} />
+          ) : (
+            <AureonFreeChat />
+          )}
         </div>
       </main>
 
-      {/* Trust strip — only shown pre-search */}
-      {!hasSearched && (
+      {/* Trust strip — only shown pre-search on search tab */}
+      {!hasSearched && tab === "search" && (
         <section className="relative z-10 px-4 sm:px-6 pb-10 -mt-24 sm:-mt-20 pointer-events-none">
           <div className="mx-auto max-w-3xl">
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] font-light tracking-[0.2em] text-muted-foreground/40 uppercase">
