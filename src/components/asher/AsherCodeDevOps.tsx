@@ -67,8 +67,8 @@ export default function AsherCodeDevOps({ projectId, previewIframe, onClose, fil
         {tab === "perf"      && <PerformancePanel iframe={previewIframe} />}
         {tab === "mobile"    && <MobilePreviewPanel iframe={previewIframe} />}
         {tab === "deploy"    && <DeployPanel projectId={projectId} />}
-        {tab === "ci"        && <CIPipelinePanel projectId={projectId} />}
-        {tab === "workflows" && <WorkflowPanel projectId={projectId} />}
+        {tab === "ci"        && <CIPipelinePanel projectId={projectId} files={files} iframe={previewIframe} />}
+        {tab === "workflows" && <WorkflowPanel projectId={projectId} iframe={previewIframe} />}
         {tab === "problems"  && <ProblemsPanel files={files} />}
         {tab === "packages"  && <PackagesPanel files={files} />}
       </div>
@@ -396,29 +396,91 @@ function DeployPanel({ projectId }: { projectId: string }) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// 5. CI/CD PIPELINE — simulated stages
+// 5. CI/CD PIPELINE — real checks against project files & preview
 // ──────────────────────────────────────────────────────────────────
-function CIPipelinePanel({ projectId }: { projectId: string }) {
-  const stages = ["Build", "Lint", "Test", "Security Scan", "Deploy Staging", "Integration Tests"];
+function CIPipelinePanel({ projectId, files, iframe }: { projectId: string; files: Array<{ path: string; content: string }>; iframe: HTMLIFrameElement | null }) {
+  type Stage = { name: string; run: () => Promise<{ ok: boolean; detail?: string }> };
   const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<{ name: string; status: "pending" | "running" | "passed" | "failed"; ms?: number }[]>(
-    stages.map(s => ({ name: s, status: "pending" }))
-  );
+  const [results, setResults] = useState<{ name: string; status: "pending" | "running" | "passed" | "failed"; ms?: number; detail?: string }[]>([]);
+
+  const stages: Stage[] = useMemo(() => [
+    {
+      name: "Build (parse files)",
+      run: async () => {
+        if (!files.length) return { ok: false, detail: "No files in project" };
+        let bad = 0;
+        for (const f of files) {
+          if (f.path.endsWith(".json")) { try { JSON.parse(f.content); } catch { bad++; } }
+        }
+        return bad === 0 ? { ok: true, detail: `${files.length} files parsed` } : { ok: false, detail: `${bad} invalid JSON file(s)` };
+      },
+    },
+    {
+      name: "Lint (heuristic scan)",
+      run: async () => {
+        let errors = 0;
+        for (const f of files) {
+          if (/eval\(/.test(f.content)) errors++;
+        }
+        return errors === 0 ? { ok: true, detail: "No eval() / blocking issues" } : { ok: false, detail: `${errors} eval() usage(s)` };
+      },
+    },
+    {
+      name: "Test (preview reachable)",
+      run: async () => {
+        if (!iframe?.contentWindow) return { ok: false, detail: "Preview iframe not mounted" };
+        const doc = iframe.contentDocument;
+        const nodes = doc?.querySelectorAll("*").length ?? 0;
+        return nodes > 0 ? { ok: true, detail: `${nodes} DOM nodes rendered` } : { ok: false, detail: "Empty preview document" };
+      },
+    },
+    {
+      name: "Security Scan",
+      run: async () => {
+        const flagged: string[] = [];
+        for (const f of files) {
+          if (/api[_-]?key\s*[:=]\s*["'][A-Za-z0-9]{16,}/i.test(f.content)) flagged.push(f.path);
+          if (/(?:password|secret)\s*[:=]\s*["'][^"']{6,}/i.test(f.content)) flagged.push(f.path);
+        }
+        return flagged.length === 0 ? { ok: true, detail: "No hardcoded secrets" } : { ok: false, detail: `Secrets in: ${flagged.slice(0, 3).join(", ")}` };
+      },
+    },
+    {
+      name: "Deploy Ledger Sync",
+      run: async () => {
+        const key = `asherCode.deploy.${projectId}`;
+        const exists = localStorage.getItem(key);
+        return exists ? { ok: true, detail: "Ledger present" } : { ok: false, detail: "No deploy ledger initialised" };
+      },
+    },
+    {
+      name: "Integration (preview no-error)",
+      run: async () => {
+        if (!iframe?.contentWindow) return { ok: false, detail: "No preview" };
+        const w = iframe.contentWindow as any;
+        const errs = w.__asherErrors || 0;
+        return errs === 0 ? { ok: true, detail: "No runtime errors captured" } : { ok: false, detail: `${errs} runtime error(s)` };
+      },
+    },
+  ], [files, iframe, projectId]);
+
+  useEffect(() => { setResults(stages.map(s => ({ name: s.name, status: "pending" }))); }, [stages.length]);
 
   async function run() {
     if (running) return;
     setRunning(true);
-    setResults(stages.map(s => ({ name: s, status: "pending" })));
+    setResults(stages.map(s => ({ name: s.name, status: "pending" })));
     for (let i = 0; i < stages.length; i++) {
       setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: "running" } : r));
-      const ms = 400 + Math.random() * 1200;
-      await new Promise(r => setTimeout(r, ms));
-      const failed = Math.random() < 0.05;
-      setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: failed ? "failed" : "passed", ms: Math.round(ms) } : r));
-      if (failed) { toast.error(`Stage failed: ${stages[i]}`); setRunning(false); return; }
+      const t0 = performance.now();
+      let res: { ok: boolean; detail?: string };
+      try { res = await stages[i].run(); } catch (e: any) { res = { ok: false, detail: e.message }; }
+      const ms = Math.round(performance.now() - t0);
+      setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: res.ok ? "passed" : "failed", ms, detail: res.detail } : r));
+      if (!res.ok) { toast.error(`${stages[i].name}: ${res.detail || "failed"}`); setRunning(false); return; }
     }
     setRunning(false);
-    toast.success("Pipeline complete");
+    toast.success("Pipeline complete — all checks passed");
   }
 
   return (
@@ -429,13 +491,16 @@ function CIPipelinePanel({ projectId }: { projectId: string }) {
       </div>
       <div className="space-y-1">
         {results.map((r, i) => (
-          <div key={i} className="flex items-center gap-2 rounded border border-border/15 bg-card/30 px-2.5 py-1.5">
-            {r.status === "passed"  && <CheckCircle2 className="h-3 w-3 text-emerald-400/80" />}
-            {r.status === "failed"  && <AlertTriangle className="h-3 w-3 text-red-400/80" />}
-            {r.status === "running" && <Loader2 className="h-3 w-3 animate-spin text-foreground/60" />}
-            {r.status === "pending" && <Clock className="h-3 w-3 text-muted-foreground/40" />}
-            <span className="text-[11px] font-light flex-1">{r.name}</span>
-            {r.ms && <span className="text-[10px] text-muted-foreground/60">{r.ms} ms</span>}
+          <div key={i} className="flex items-start gap-2 rounded border border-border/15 bg-card/30 px-2.5 py-1.5">
+            {r.status === "passed"  && <CheckCircle2 className="h-3 w-3 text-emerald-400/80 mt-0.5" />}
+            {r.status === "failed"  && <AlertTriangle className="h-3 w-3 text-red-400/80 mt-0.5" />}
+            {r.status === "running" && <Loader2 className="h-3 w-3 animate-spin text-foreground/60 mt-0.5" />}
+            {r.status === "pending" && <Clock className="h-3 w-3 text-muted-foreground/40 mt-0.5" />}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-light">{r.name}</p>
+              {r.detail && <p className="text-[9px] text-muted-foreground/60 mt-0.5 truncate">{r.detail}</p>}
+            </div>
+            {r.ms !== undefined && <span className="text-[10px] text-muted-foreground/60">{r.ms} ms</span>}
           </div>
         ))}
       </div>
@@ -444,18 +509,21 @@ function CIPipelinePanel({ projectId }: { projectId: string }) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// 6. WORKFLOWS — saved task macros
+// 6. WORKFLOWS — real executable steps (no fake delays)
+// Step DSL: "reload" | "count:<selector>" | "click:<selector>" |
+//           "wait:<ms>" | "log:<msg>" | "fetch:<url>" | "assert:<selector>"
 // ──────────────────────────────────────────────────────────────────
-function WorkflowPanel({ projectId }: { projectId: string }) {
+function WorkflowPanel({ projectId, iframe }: { projectId: string; iframe: HTMLIFrameElement | null }) {
   const key = `asherCode.workflows.${projectId}`;
   type Wf = { id: string; name: string; steps: string[] };
   const [wfs, setWfs] = useState<Wf[]>(() => {
     try { return JSON.parse(localStorage.getItem(key) || "null") || defaults(); } catch { return defaults(); }
   });
+  const [log, setLog] = useState<string[]>([]);
   function defaults(): Wf[] {
     return [
-      { id: crypto.randomUUID(), name: "Add New Component", steps: ["Create file", "Add to index", "Generate test"] },
-      { id: crypto.randomUUID(), name: "Deploy to Staging", steps: ["Build", "Test", "Deploy", "Smoke test"] },
+      { id: crypto.randomUUID(), name: "Smoke Test Preview", steps: ["assert:body", "count:*", "log:smoke ok"] },
+      { id: crypto.randomUUID(), name: "Reload & Verify", steps: ["reload", "wait:800", "assert:body"] },
     ];
   }
   useEffect(() => { localStorage.setItem(key, JSON.stringify(wfs)); }, [key, wfs]);
@@ -463,15 +531,66 @@ function WorkflowPanel({ projectId }: { projectId: string }) {
   function add() {
     const name = prompt("Workflow name");
     if (!name) return;
-    const stepsStr = prompt("Steps (comma-separated)") || "";
+    const stepsStr = prompt("Steps (comma-separated). Verbs: reload, wait:<ms>, count:<sel>, click:<sel>, assert:<sel>, fetch:<url>, log:<msg>") || "";
     const steps = stepsStr.split(",").map(s => s.trim()).filter(Boolean);
     setWfs(prev => [...prev, { id: crypto.randomUUID(), name, steps }]);
   }
-  async function run(wf: Wf) {
-    for (const s of wf.steps) {
-      toast.message(`▶ ${s}`);
-      await new Promise(r => setTimeout(r, 600));
+
+  async function execStep(s: string): Promise<string> {
+    const [verb, ...rest] = s.split(":");
+    const arg = rest.join(":");
+    const doc = iframe?.contentDocument;
+    const win = iframe?.contentWindow;
+    switch (verb) {
+      case "reload":
+        if (!win) throw new Error("no preview");
+        win.location.reload();
+        return "preview reloaded";
+      case "wait":
+        await new Promise(r => setTimeout(r, parseInt(arg) || 0));
+        return `waited ${arg}ms`;
+      case "count": {
+        if (!doc) throw new Error("no preview doc");
+        const n = doc.querySelectorAll(arg).length;
+        return `${arg} → ${n} nodes`;
+      }
+      case "click": {
+        if (!doc) throw new Error("no preview doc");
+        const el = doc.querySelector(arg) as HTMLElement | null;
+        if (!el) throw new Error(`selector not found: ${arg}`);
+        el.click();
+        return `clicked ${arg}`;
+      }
+      case "assert": {
+        if (!doc) throw new Error("no preview doc");
+        const el = doc.querySelector(arg);
+        if (!el) throw new Error(`assertion failed: ${arg} missing`);
+        return `assert ok: ${arg}`;
+      }
+      case "fetch": {
+        const r = await fetch(arg);
+        return `fetch ${arg} → ${r.status}`;
+      }
+      case "log":
+        return arg;
+      default:
+        throw new Error(`unknown verb: ${verb}`);
     }
+  }
+
+  async function run(wf: Wf) {
+    setLog([`▶ ${wf.name}`]);
+    for (const s of wf.steps) {
+      try {
+        const out = await execStep(s);
+        setLog(prev => [...prev, `  ✓ ${s} — ${out}`]);
+      } catch (e: any) {
+        setLog(prev => [...prev, `  ✗ ${s} — ${e.message}`]);
+        toast.error(`Workflow failed: ${e.message}`);
+        return;
+      }
+    }
+    setLog(prev => [...prev, `✓ "${wf.name}" complete`]);
     toast.success(`Workflow "${wf.name}" complete`);
   }
 
@@ -486,12 +605,17 @@ function WorkflowPanel({ projectId }: { projectId: string }) {
               <button onClick={() => setWfs(prev => prev.filter(x => x.id !== w.id))} className="text-muted-foreground hover:text-red-400"><Trash2 className="h-3 w-3" /></button>
             </div>
             <ol className="text-[10px] text-muted-foreground/70 list-decimal list-inside space-y-0.5 mb-2">
-              {w.steps.map((s, i) => <li key={i}>{s}</li>)}
+              {w.steps.map((s, i) => <li key={i} className="font-mono">{s}</li>)}
             </ol>
             <button onClick={() => run(w)} className="w-full ide-btn justify-center"><PlayCircle className="h-3 w-3" /> Run</button>
           </div>
         ))}
       </div>
+      {log.length > 0 && (
+        <div className="rounded border border-border/15 bg-background/60 p-2 max-h-40 overflow-auto">
+          <pre className="text-[10px] font-mono text-muted-foreground/80 whitespace-pre-wrap">{log.join("\n")}</pre>
+        </div>
+      )}
     </div>
   );
 }
