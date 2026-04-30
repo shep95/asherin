@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
-  Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical,
+  Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
 } from "lucide-react";
+import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +34,7 @@ export default function AsherCodeModule() {
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
+  const [showDevOps, setShowDevOps] = useState(false);
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const previewRef = useRef<HTMLIFrameElement>(null);
 
@@ -446,6 +448,7 @@ export default function AsherCodeModule() {
           <button onClick={saveAll} disabled={!Object.keys(dirty).length} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Save className="h-3 w-3" /> Save</button>
           <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> Run</button>
           <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-emerald-200/80 hover:bg-emerald-400/10"><Upload className="h-3 w-3" /> Publish</button>
+          <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> DevOps</button>
           <button onClick={() => setShowSettings(true)} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Settings className="h-3 w-3" /></button>
         </div>
       </div>
@@ -562,6 +565,15 @@ export default function AsherCodeModule() {
           </div>
         </aside>
       </div>
+
+      {showDevOps && (
+        <AsherCodeDevOps
+          projectId={activeProject.id}
+          previewIframe={previewRef.current}
+          onClose={() => setShowDevOps(false)}
+          files={files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }))}
+        />
+      )}
 
       {showSettings && <BYOKSettings onClose={() => setShowSettings(false)} provider={provider} model={model} apiKey={apiKey} setProvider={setProvider} setModel={setModel} setApiKey={setApiKey} />}
       {showPublish && <PublishDialog onClose={() => setShowPublish(false)} onPublish={publishAsTab} defaultName={activeProject.name} />}
