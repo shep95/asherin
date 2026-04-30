@@ -172,7 +172,8 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false, governance: true });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true });
+  const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [superOwner, setSuperOwner] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
@@ -183,6 +184,21 @@ const AsherDashboard = () => {
   useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
+
+  // Load published custom tabs visible to this operator (RLS handles filtering).
+  useEffect(() => {
+    if (!unlocked || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("asher_code_published_tabs")
+        .select("id, name, icon, entry_html")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (!cancelled && data) setPublishedTabs(data as PublishedTab[]);
+    })();
+    return () => { cancelled = true; };
+  }, [unlocked, user?.id]);
 
   useAsherAutoLock(() => {
     try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
