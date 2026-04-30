@@ -34,6 +34,7 @@ export default function AsherCodeModule() {
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
+  const [showDevOps, setShowDevOps] = useState(false);
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const previewRef = useRef<HTMLIFrameElement>(null);
 
