@@ -4,7 +4,7 @@ import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
-  Building2, Wrench, PenSquare, Activity, NotebookPen,
+  Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,8 @@ import AsherZophielModule from "@/components/asher/AsherZophielModule";
 import AsherCommsModule from "@/components/asher/AsherCommsModule";
 import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModule";
 import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
+import AsherCodeModule from "@/components/asher/AsherCodeModule";
+import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
@@ -119,7 +121,8 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs";
+  | "audit" | "settings" | "profile" | "orgs" | "code"
+  | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
 interface NavBranch { id: string; label: string; items: NavItem[] }
