@@ -50,6 +50,21 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
   useEffect(() => { localStorage.setItem("asherCode.apiKey", apiKey); }, [apiKey]);
   useEffect(() => { localStorage.setItem("asherCode.orchestrate", orchestrateMode ? "1" : "0"); }, [orchestrateMode]);
+  useEffect(() => { localStorage.setItem("asherCode.showFiles", showFiles ? "1" : "0"); }, [showFiles]);
+  useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
+  useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
+
+  // Auto-collapse on small viewports
+  useEffect(() => {
+    const onResize = () => {
+      const w = window.innerWidth;
+      if (w < 768) { setShowFiles(false); setShowAi(false); setShowPreview(false); }
+      else if (w < 1100) { setShowFiles(false); }
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
