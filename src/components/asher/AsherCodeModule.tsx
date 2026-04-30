@@ -3,6 +3,7 @@ import Editor from "@monaco-editor/react";
 import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
@@ -35,6 +36,9 @@ export default function AsherCodeModule() {
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
   const [showDevOps, setShowDevOps] = useState(false);
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
+  const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
+  const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
+  const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   // BYOK config — stored per-tab in localStorage
@@ -46,6 +50,21 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
   useEffect(() => { localStorage.setItem("asherCode.apiKey", apiKey); }, [apiKey]);
   useEffect(() => { localStorage.setItem("asherCode.orchestrate", orchestrateMode ? "1" : "0"); }, [orchestrateMode]);
+  useEffect(() => { localStorage.setItem("asherCode.showFiles", showFiles ? "1" : "0"); }, [showFiles]);
+  useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
+  useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
+
+  // Auto-collapse on small viewports
+  useEffect(() => {
+    const onResize = () => {
+      const w = window.innerWidth;
+      if (w < 768) { setShowFiles(false); setShowAi(false); setShowPreview(false); }
+      else if (w < 1100) { setShowFiles(false); }
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
@@ -455,47 +474,60 @@ export default function AsherCodeModule() {
   return (
     <div className="flex h-full w-full flex-col bg-background text-foreground">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-border/15 bg-card/20 px-3 py-2 backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <button onClick={() => { setActiveProject(null); setFiles([]); }} className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground">← Projects</button>
-          <span className="text-muted-foreground/30">/</span>
-          <span className="text-xs font-light">{activeProject.name}</span>
-          {Object.keys(dirty).length > 0 && <span className="text-[9px] text-amber-400/80 ml-1">● {Object.keys(dirty).length} unsaved</span>}
+      <div className="flex items-center justify-between gap-2 border-b border-border/15 bg-card/20 px-2 sm:px-3 py-2 backdrop-blur-md flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={() => { setActiveProject(null); setFiles([]); }} className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground whitespace-nowrap">← Projects</button>
+          <span className="text-muted-foreground/30 hidden sm:inline">/</span>
+          <span className="text-xs font-light truncate max-w-[140px] sm:max-w-none">{activeProject.name}</span>
+          {Object.keys(dirty).length > 0 && <span className="text-[9px] text-amber-400/80 ml-1 whitespace-nowrap">● {Object.keys(dirty).length} unsaved</span>}
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={saveAll} disabled={!Object.keys(dirty).length} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Save className="h-3 w-3" /> Save</button>
-          <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> Run</button>
-          <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-emerald-200/80 hover:bg-emerald-400/10"><Upload className="h-3 w-3" /> Publish</button>
-          <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> DevOps</button>
+        <div className="flex items-center gap-1 flex-wrap">
+          {/* Pane toggles */}
+          <button onClick={() => setShowFiles(s => !s)} title="Toggle file tree" className={`inline-flex items-center justify-center rounded-md border px-2 py-1 ${showFiles ? "border-foreground/30 bg-foreground/10" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}>
+            {showFiles ? <PanelLeftClose className="h-3 w-3" /> : <PanelLeftOpen className="h-3 w-3" />}
+          </button>
+          <button onClick={() => setShowPreview(s => !s)} title="Toggle preview" className={`inline-flex items-center justify-center rounded-md border px-2 py-1 ${showPreview ? "border-foreground/30 bg-foreground/10" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}>
+            {showPreview ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          </button>
+          <button onClick={() => setShowAi(s => !s)} title="Toggle AI sidebar" className={`inline-flex items-center justify-center rounded-md border px-2 py-1 ${showAi ? "border-foreground/30 bg-foreground/10" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}>
+            {showAi ? <PanelRightClose className="h-3 w-3" /> : <PanelRightOpen className="h-3 w-3" />}
+          </button>
+          <span className="w-px h-4 bg-border/20 mx-0.5" />
+          <button onClick={saveAll} disabled={!Object.keys(dirty).length} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Save className="h-3 w-3" /> <span className="hidden sm:inline">Save</span></button>
+          <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> <span className="hidden sm:inline">Run</span></button>
+          <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-emerald-200/80 hover:bg-emerald-400/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
+          <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> <span className="hidden md:inline">DevOps</span></button>
           <button onClick={() => setShowSettings(true)} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Settings className="h-3 w-3" /></button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* File tree */}
-        <aside className="w-56 flex-shrink-0 border-r border-border/15 bg-card/10 overflow-y-auto">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border/15">
-            <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Files</span>
-            <button onClick={addFile} className="text-muted-foreground hover:text-foreground"><FolderPlus className="h-3 w-3" /></button>
-          </div>
-          {files.map(f => (
-            <div key={f.id} className={`group flex items-center justify-between px-3 py-1.5 text-[11px] font-light cursor-pointer hover:bg-foreground/5 ${activeFileId === f.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}
-              onClick={() => { if (!openTabs.includes(f.id)) setOpenTabs(t => [...t, f.id]); setActiveFileId(f.id); }}>
-              <span className="truncate flex items-center gap-1.5"><FileText className="h-3 w-3 flex-shrink-0" />{f.path}{f.id in dirty && <span className="text-amber-400">●</span>}</span>
-              <button onClick={(e) => { e.stopPropagation(); void removeFile(f.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400"><X className="h-3 w-3" /></button>
+      <div className="flex flex-1 overflow-hidden min-w-0">
+        {/* File tree — collapsible */}
+        {showFiles && (
+          <aside className="w-44 sm:w-52 lg:w-56 flex-shrink-0 border-r border-border/15 bg-card/10 overflow-y-auto">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border/15 sticky top-0 bg-card/40 backdrop-blur-md">
+              <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Files</span>
+              <button onClick={addFile} className="text-muted-foreground hover:text-foreground" title="Add file"><FolderPlus className="h-3 w-3" /></button>
             </div>
-          ))}
-        </aside>
+            {files.map(f => (
+              <div key={f.id} className={`group flex items-center justify-between px-3 py-1.5 text-[11px] font-light cursor-pointer hover:bg-foreground/5 ${activeFileId === f.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}
+                onClick={() => { if (!openTabs.includes(f.id)) setOpenTabs(t => [...t, f.id]); setActiveFileId(f.id); }}>
+                <span className="truncate flex items-center gap-1.5"><FileText className="h-3 w-3 flex-shrink-0" />{f.path}{f.id in dirty && <span className="text-amber-400">●</span>}</span>
+                <button onClick={(e) => { e.stopPropagation(); void removeFile(f.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400"><X className="h-3 w-3" /></button>
+              </div>
+            ))}
+          </aside>
+        )}
 
         {/* Editor + preview */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Tabs */}
           <div className="flex items-center border-b border-border/15 bg-card/10 overflow-x-auto">
             {openTabs.map(tid => {
               const f = files.find(x => x.id === tid);
               if (!f) return null;
               return (
-                <div key={tid} className={`group flex items-center gap-2 border-r border-border/15 px-3 py-1.5 text-[11px] font-light cursor-pointer ${activeFileId === tid ? "bg-background text-foreground" : "text-muted-foreground hover:bg-foreground/5"}`}
+                <div key={tid} className={`group flex items-center gap-2 border-r border-border/15 px-3 py-1.5 text-[11px] font-light cursor-pointer whitespace-nowrap ${activeFileId === tid ? "bg-background text-foreground" : "text-muted-foreground hover:bg-foreground/5"}`}
                   onClick={() => setActiveFileId(tid)}>
                   {f.path}{f.id in dirty && <span className="text-amber-400">●</span>}
                   <button onClick={(e) => { e.stopPropagation(); setOpenTabs(t => t.filter(x => x !== tid)); if (activeFileId === tid) setActiveFileId(openTabs.filter(x => x !== tid)[0] || null); }} className="opacity-50 hover:opacity-100"><X className="h-3 w-3" /></button>
@@ -505,8 +537,8 @@ export default function AsherCodeModule() {
           </div>
 
           {/* Editor + preview split */}
-          <div className="flex flex-1 overflow-hidden">
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
+            <div className="flex-1 min-w-0 min-h-[200px]">
               {activeFile ? (
                 <Editor
                   height="100%"
@@ -520,15 +552,21 @@ export default function AsherCodeModule() {
                 <div className="h-full flex items-center justify-center text-xs text-muted-foreground/50">Open a file to start editing</div>
               )}
             </div>
-            <div className="w-2/5 border-l border-border/15 bg-card/5 flex flex-col">
-              <div className="px-3 py-1.5 border-b border-border/15 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Preview</div>
-              <iframe key={previewKey} ref={previewRef} srcDoc={previewSrcDoc} sandbox="allow-scripts" className="flex-1 bg-white" title="preview" />
-            </div>
+            {showPreview && (
+              <div className="w-full lg:w-2/5 lg:min-w-[280px] border-t lg:border-t-0 lg:border-l border-border/15 bg-card/5 flex flex-col min-h-[200px]">
+                <div className="px-3 py-1.5 border-b border-border/15 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase flex items-center justify-between">
+                  <span>Preview</span>
+                  <button onClick={() => setShowPreview(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                </div>
+                <iframe key={previewKey} ref={previewRef} srcDoc={previewSrcDoc} sandbox="allow-scripts" className="flex-1 bg-white" title="preview" />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* AI sidebar */}
-        <aside className="w-80 flex-shrink-0 border-l border-border/15 bg-card/10 flex flex-col">
+        {/* AI sidebar — collapsible */}
+        {showAi && (
+        <aside className="w-72 lg:w-80 flex-shrink-0 border-l border-border/15 bg-card/10 flex flex-col absolute lg:relative right-0 top-0 bottom-0 z-20 lg:z-auto bg-background/95 lg:bg-card/10 backdrop-blur-xl">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/15">
             <div className="flex items-center gap-1.5">
               <Brain className="h-3 w-3 text-foreground/60" />
@@ -582,6 +620,7 @@ export default function AsherCodeModule() {
             </button>
           </div>
         </aside>
+        )}
       </div>
 
       {showDevOps && (
