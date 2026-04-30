@@ -1,7 +1,7 @@
 // AUREON FREE CHAT — public endpoint for /zophiel free chat tab.
-// • If `byok` provided → proxies to user's own provider key (no rate limit, no storage).
-// • If no key → uses platform Gemini Flash, capped at 5 messages / 30 min per IP.
-// Nothing is persisted to the database under any circumstance.
+// • Requires user-supplied API key (BYOK). We NEVER use platform keys here.
+// • Hard cap: 5 messages per 30 min per IP+fingerprint, even with their own key.
+// • Nothing is persisted to the database under any circumstance.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -179,23 +179,18 @@ serve(async (req) => {
       });
     }
 
-    // ─── Path A: User-supplied key. Unlimited, never logged. ───
-    if (byok?.apiKey && byok?.provider && byok?.model) {
-      try {
-        const reply = await routeByok(byok, messages);
-        return new Response(
-          JSON.stringify({ reply, mode: "byok", remaining: -1 }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      } catch (e) {
-        return new Response(
-          JSON.stringify({ error: e instanceof Error ? e.message : "BYOK call failed" }),
-          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+    // ─── BYOK required. No platform key fallback. ───
+    if (!byok?.apiKey || !byok?.provider || !byok?.model) {
+      return new Response(
+        JSON.stringify({
+          error: "byok_required",
+          message: "Add your own API key to start. Aureon Free never uses platform keys — your key, your data, zero footprint.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    // ─── Path B: Free tier. 5 / 30 min per IP+fingerprint. ───
+    // ─── Rate limit: 5 msgs / 30 min per IP+fingerprint, even with BYOK. ───
     const ip = getClientIp(req);
     const limitKey = fingerprint(ip, fp);
     const gate = checkLimit(limitKey);
@@ -203,30 +198,22 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: "rate_limited",
-          message: "Free tier limit reached (5 msgs / 30 min). Add your own API key for unlimited access.",
+          message: "Free tier cap reached (5 messages / 30 min). Resets soon, or upgrade for unlimited.",
           resetAt: gate.resetAt,
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const platformKey = Deno.env.get("GEMINI_API_KEY_APP");
-    if (!platformKey) {
-      return new Response(
-        JSON.stringify({ error: "Free tier unavailable" }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     try {
-      const reply = await callGemini(platformKey, "gemini-2.5-flash", messages);
+      const reply = await routeByok(byok, messages);
       return new Response(
-        JSON.stringify({ reply, mode: "free", remaining: gate.remaining, resetAt: gate.resetAt }),
+        JSON.stringify({ reply, mode: "byok", remaining: gate.remaining, resetAt: gate.resetAt }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (e) {
       return new Response(
-        JSON.stringify({ error: e instanceof Error ? e.message : "Free tier failed" }),
+        JSON.stringify({ error: e instanceof Error ? e.message : "BYOK call failed" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

@@ -174,7 +174,11 @@ const ZophielFree = () => {
           {tab === "search" ? (
             <ZophielEngineView onSearchedChange={setHasSearched} />
           ) : (
-            <AureonFreeChat />
+            <div className="mx-auto h-full max-w-5xl px-4 sm:px-6 pb-6">
+              <div className="h-full overflow-hidden rounded-2xl border border-border/20 bg-card/30 backdrop-blur-xl shadow-2xl">
+                <AureonFreeChat />
+              </div>
+            </div>
           )}
         </div>
       </main>
