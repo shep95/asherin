@@ -43,7 +43,7 @@ export interface AsherCodePublishedTab {
   updated_at: string;
 }
 
-export type AiMode = "chat" | "inline" | "generate" | "explain" | "fix";
+export type AiMode = "chat" | "inline" | "generate" | "explain" | "fix" | "tests" | "edit_plan" | "orchestrate";
 
 export const ASHER_CODE_PROVIDERS = [
   { id: "google", label: "Google Gemini", models: [

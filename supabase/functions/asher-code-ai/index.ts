@@ -137,6 +137,30 @@ async function dispatch(p: ProviderCall, messages: ChatMessage[], maxTokens = 40
   }
 }
 
+// ── Codebase relevance ranker (cheap keyword + path heuristic) ────
+// Picks the K most relevant files for a query without an embeddings store.
+function rankCodebaseFiles(
+  query: string,
+  files: Array<{ path: string; content: string }>,
+  k = 6,
+): Array<{ path: string; content: string; score: number }> {
+  const tokens = (query.toLowerCase().match(/[a-z0-9_]{3,}/g) || []);
+  if (!tokens.length) return files.slice(0, k).map((f) => ({ ...f, score: 0 }));
+  const scored = files.map((f) => {
+    const hay = (f.path + "\n" + f.content).toLowerCase();
+    let s = 0;
+    for (const t of tokens) {
+      // path matches weighted higher
+      if (f.path.toLowerCase().includes(t)) s += 5;
+      // content occurrences (capped)
+      const matches = hay.split(t).length - 1;
+      s += Math.min(matches, 8);
+    }
+    return { ...f, score: s };
+  });
+  return scored.sort((a, b) => b.score - a.score).slice(0, k);
+}
+
 // ── Mode prompt builders ──────────────────────────────────────────
 function buildPrompt(mode: string, payload: any): ChatMessage[] {
   const ctxFiles = payload.contextFiles
@@ -222,13 +246,77 @@ Diagnose root cause, then return:
         },
       ];
     }
+    case "tests": {
+      return [
+        {
+          role: "user",
+          content:
+`Generate a comprehensive test suite for this code.
+
+\`\`\`${payload.language || ""}
+${payload.code}
+\`\`\`
+
+REQUIREMENTS:
+- Framework: ${payload.framework || "vitest"}
+- Cover happy path + at least 5 edge cases (null, empty, boundary, malformed, async failure)
+- Include integration tests where the function touches I/O
+- Use descriptive test names ("returns X when Y")
+
+Return ONLY the test file in a single fenced code block. One short paragraph after listing what is NOT covered.`,
+        },
+      ];
+    }
+    case "edit_plan": {
+      // Multi-file edit planner — returns structured JSON plan
+      const fileBlock = (payload.contextFiles || [])
+        .map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 4000)}`)
+        .join("\n\n");
+      return [
+        {
+          role: "user",
+          content:
+`You are operating in EDIT MODE. The user wants to apply a multi-file change.
+
+USER INSTRUCTION: ${payload.instruction}
+
+PROJECT FILES:
+${fileBlock}
+
+Produce a JSON plan inside a single \`\`\`json fenced block with this exact shape:
+{
+  "summary": "one-sentence description",
+  "edits": [
+    { "path": "file/path.ts", "new_content": "FULL new file content after edit", "rationale": "why" }
+  ]
+}
+
+CRITICAL:
+- Include FULL new content for each modified file (not a diff). The client computes the diff.
+- Only include files that actually change.
+- Preserve existing imports/exports/style.
+- Do not invent files unless the instruction requires creating them.
+- After the JSON block, write one paragraph explaining the overall approach.`,
+        },
+      ];
+    }
     case "chat":
     default: {
       const msgs: ChatMessage[] = payload.messages || [];
-      if (ctxFiles && msgs.length > 0) {
-        // Prepend context to the latest user message
+      // Use ranked context if a codebase is provided
+      let ctxBlock = "";
+      if (payload.codebase && Array.isArray(payload.codebase) && payload.codebase.length > 0) {
+        const lastUser = [...msgs].reverse().find((m) => m.role === "user")?.content || "";
+        const ranked = rankCodebaseFiles(lastUser, payload.codebase, 6);
+        ctxBlock = "\n\nRELEVANT PROJECT FILES (ranked by relevance):\n" +
+          ranked.map((f) => `--- ${f.path} (relevance: ${f.score}) ---\n${f.content.slice(0, 3500)}`).join("\n\n");
+      } else if (payload.contextFiles) {
+        ctxBlock = "\n\nPROJECT FILES (context):\n" +
+          payload.contextFiles.map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 3000)}`).join("\n\n");
+      }
+      if (ctxBlock && msgs.length > 0) {
         const last = msgs[msgs.length - 1];
-        if (last.role === "user") last.content = ctxFiles + "\n\nUSER REQUEST:\n" + last.content;
+        if (last.role === "user") last.content = ctxBlock + "\n\nUSER REQUEST:\n" + last.content;
       }
       return msgs;
     }
@@ -268,9 +356,10 @@ serve(async (req) => {
     const isAdmin = email === ADMIN_EMAIL;
 
     const body = await req.json();
-    const { mode, byok, ...payload } = body as {
-      mode: "chat" | "inline" | "generate" | "explain" | "fix";
+    const { mode, byok, byoks, ...payload } = body as {
+      mode: "chat" | "inline" | "generate" | "explain" | "fix" | "tests" | "edit_plan" | "orchestrate";
       byok?: { provider: string; model: string; apiKey?: string };
+      byoks?: Array<{ provider: string; model: string; apiKey?: string }>; // for orchestrate
       [k: string]: any;
     };
 
@@ -320,6 +409,87 @@ serve(async (req) => {
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // ── ORCHESTRATE MODE: parallel multi-model with ranking ────────
+    if (mode === "orchestrate") {
+      const calls: ProviderCall[] = [];
+      const sources: string[] = [];
+
+      // Resolve up to 5 concurrent providers from byoks[] (or fall back to single byok)
+      const requested = (byoks && byoks.length ? byoks : (byok ? [byok] : [])).slice(0, 5);
+      for (const b of requested) {
+        if (!b.provider || !b.model) continue;
+        if (b.apiKey) {
+          calls.push({ provider: b.provider, model: b.model, apiKey: b.apiKey });
+          sources.push("request");
+        } else {
+          const { data: keyRow } = await supabase
+            .from("user_api_keys")
+            .select("api_key")
+            .eq("user_id", userId)
+            .eq("provider", b.provider)
+            .eq("is_active", true)
+            .maybeSingle();
+          if (keyRow?.api_key) {
+            calls.push({ provider: b.provider, model: b.model, apiKey: keyRow.api_key });
+            sources.push("stored");
+          }
+        }
+      }
+
+      // Admin bypass: append Gemini if admin and no calls resolved
+      if (!calls.length && isAdmin) {
+        const adminKey = Deno.env.get("GEMINI_API_KEY");
+        if (adminKey) { calls.push({ provider: "google", model: "gemini-2.5-pro", apiKey: adminKey }); sources.push("admin"); }
+      }
+
+      if (!calls.length) {
+        return new Response(
+          JSON.stringify({ error: "byok_required", message: "Orchestrate requires at least one BYOK." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const orchMessages = buildPrompt(payload.subMode || "chat", payload);
+      const t0 = Date.now();
+      const settled = await Promise.allSettled(calls.map((c) => dispatch(c, orchMessages, 4096)));
+      const responses = settled.map((s, i) => ({
+        provider: calls[i].provider,
+        model: calls[i].model,
+        keySource: sources[i],
+        content: s.status === "fulfilled" ? s.value : "",
+        error: s.status === "rejected" ? String((s.reason as Error)?.message || s.reason) : null,
+        latencyMs: Date.now() - t0,
+      }));
+
+      // Rank with the first successful provider as judge — fall back to longest-response heuristic
+      const successful = responses.filter((r) => !r.error && r.content);
+      let ranking: number[] = successful.map((_, i) => i);
+      if (successful.length > 1) {
+        try {
+          const judgePrompt: ChatMessage[] = [{
+            role: "user",
+            content: `Rank these ${successful.length} code solutions by correctness, code quality, completeness, and adherence to the user request. Return ONLY a JSON array of indices from best to worst, e.g. [2,0,1]. No prose.\n\nUSER REQUEST:\n${payload.instruction || payload.description || (payload.messages?.[payload.messages.length - 1]?.content) || ""}\n\n${successful.map((r, i) => `=== SOLUTION ${i} (${r.provider}/${r.model}) ===\n${r.content.slice(0, 6000)}`).join("\n\n")}`,
+          }];
+          const judgeReply = await dispatch(calls[responses.indexOf(successful[0])], judgePrompt, 256);
+          const m = judgeReply.match(/\[[\d,\s]+\]/);
+          if (m) {
+            const parsed = JSON.parse(m[0]);
+            if (Array.isArray(parsed) && parsed.every((n: any) => typeof n === "number" && n < successful.length)) {
+              ranking = parsed;
+            }
+          }
+        } catch { /* keep default ranking */ }
+      }
+
+      return new Response(JSON.stringify({
+        mode: "orchestrate",
+        responses,
+        ranking, // indices into successful[]
+        successful: successful.length,
+        timing: { totalMs: Date.now() - t0 },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const messages = buildPrompt(mode, payload);
