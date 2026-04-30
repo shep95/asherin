@@ -2,14 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
 import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
-  Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, ChevronRight, ChevronDown,
+  Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ASHER_CODE_PROVIDERS, type AsherCodeProject, type AsherCodeFile } from "@/lib/asherCode/types";
 import { ASHER_CODE_TEMPLATES, getTemplate } from "@/lib/asherCode/templates";
-import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
+import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, type CallAsherCodeResult } from "@/lib/asherCode/aiClient";
+import EditPlanReview from "./AsherCodeEditPlan";
+import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
