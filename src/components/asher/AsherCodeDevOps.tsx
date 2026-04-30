@@ -396,29 +396,91 @@ function DeployPanel({ projectId }: { projectId: string }) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// 5. CI/CD PIPELINE — simulated stages
+// 5. CI/CD PIPELINE — real checks against project files & preview
 // ──────────────────────────────────────────────────────────────────
-function CIPipelinePanel({ projectId }: { projectId: string }) {
-  const stages = ["Build", "Lint", "Test", "Security Scan", "Deploy Staging", "Integration Tests"];
+function CIPipelinePanel({ projectId, files, iframe }: { projectId: string; files: Array<{ path: string; content: string }>; iframe: HTMLIFrameElement | null }) {
+  type Stage = { name: string; run: () => Promise<{ ok: boolean; detail?: string }> };
   const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<{ name: string; status: "pending" | "running" | "passed" | "failed"; ms?: number }[]>(
-    stages.map(s => ({ name: s, status: "pending" }))
-  );
+  const [results, setResults] = useState<{ name: string; status: "pending" | "running" | "passed" | "failed"; ms?: number; detail?: string }[]>([]);
+
+  const stages: Stage[] = useMemo(() => [
+    {
+      name: "Build (parse files)",
+      run: async () => {
+        if (!files.length) return { ok: false, detail: "No files in project" };
+        let bad = 0;
+        for (const f of files) {
+          if (f.path.endsWith(".json")) { try { JSON.parse(f.content); } catch { bad++; } }
+        }
+        return bad === 0 ? { ok: true, detail: `${files.length} files parsed` } : { ok: false, detail: `${bad} invalid JSON file(s)` };
+      },
+    },
+    {
+      name: "Lint (heuristic scan)",
+      run: async () => {
+        let errors = 0;
+        for (const f of files) {
+          if (/eval\(/.test(f.content)) errors++;
+        }
+        return errors === 0 ? { ok: true, detail: "No eval() / blocking issues" } : { ok: false, detail: `${errors} eval() usage(s)` };
+      },
+    },
+    {
+      name: "Test (preview reachable)",
+      run: async () => {
+        if (!iframe?.contentWindow) return { ok: false, detail: "Preview iframe not mounted" };
+        const doc = iframe.contentDocument;
+        const nodes = doc?.querySelectorAll("*").length ?? 0;
+        return nodes > 0 ? { ok: true, detail: `${nodes} DOM nodes rendered` } : { ok: false, detail: "Empty preview document" };
+      },
+    },
+    {
+      name: "Security Scan",
+      run: async () => {
+        const flagged: string[] = [];
+        for (const f of files) {
+          if (/api[_-]?key\s*[:=]\s*["'][A-Za-z0-9]{16,}/i.test(f.content)) flagged.push(f.path);
+          if (/(?:password|secret)\s*[:=]\s*["'][^"']{6,}/i.test(f.content)) flagged.push(f.path);
+        }
+        return flagged.length === 0 ? { ok: true, detail: "No hardcoded secrets" } : { ok: false, detail: `Secrets in: ${flagged.slice(0, 3).join(", ")}` };
+      },
+    },
+    {
+      name: "Deploy Ledger Sync",
+      run: async () => {
+        const key = `asherCode.deploy.${projectId}`;
+        const exists = localStorage.getItem(key);
+        return exists ? { ok: true, detail: "Ledger present" } : { ok: false, detail: "No deploy ledger initialised" };
+      },
+    },
+    {
+      name: "Integration (preview no-error)",
+      run: async () => {
+        if (!iframe?.contentWindow) return { ok: false, detail: "No preview" };
+        const w = iframe.contentWindow as any;
+        const errs = w.__asherErrors || 0;
+        return errs === 0 ? { ok: true, detail: "No runtime errors captured" } : { ok: false, detail: `${errs} runtime error(s)` };
+      },
+    },
+  ], [files, iframe, projectId]);
+
+  useEffect(() => { setResults(stages.map(s => ({ name: s.name, status: "pending" }))); }, [stages.length]);
 
   async function run() {
     if (running) return;
     setRunning(true);
-    setResults(stages.map(s => ({ name: s, status: "pending" })));
+    setResults(stages.map(s => ({ name: s.name, status: "pending" })));
     for (let i = 0; i < stages.length; i++) {
       setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: "running" } : r));
-      const ms = 400 + Math.random() * 1200;
-      await new Promise(r => setTimeout(r, ms));
-      const failed = Math.random() < 0.05;
-      setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: failed ? "failed" : "passed", ms: Math.round(ms) } : r));
-      if (failed) { toast.error(`Stage failed: ${stages[i]}`); setRunning(false); return; }
+      const t0 = performance.now();
+      let res: { ok: boolean; detail?: string };
+      try { res = await stages[i].run(); } catch (e: any) { res = { ok: false, detail: e.message }; }
+      const ms = Math.round(performance.now() - t0);
+      setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: res.ok ? "passed" : "failed", ms, detail: res.detail } : r));
+      if (!res.ok) { toast.error(`${stages[i].name}: ${res.detail || "failed"}`); setRunning(false); return; }
     }
     setRunning(false);
-    toast.success("Pipeline complete");
+    toast.success("Pipeline complete — all checks passed");
   }
 
   return (
