@@ -36,6 +36,9 @@ export default function AsherCodeModule() {
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
   const [showDevOps, setShowDevOps] = useState(false);
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
+  const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
+  const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
+  const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   // BYOK config — stored per-tab in localStorage
