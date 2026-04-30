@@ -81,19 +81,38 @@ export default function AsherCodeModule() {
     setChat([]);
   }
 
-  async function createProject(name: string, templateId: string) {
+  async function createProject(name: string) {
     if (!user) return;
-    const tpl = getTemplate(templateId);
     const { data: proj, error } = await supabase
       .from("asher_code_projects")
-      .insert({ owner_id: user.id, name, template: templateId, language: tpl?.language || "javascript" })
+      .insert({ owner_id: user.id, name, template: "blank", language: "html" })
       .select().single();
     if (error || !proj) { toast.error(error?.message || "create failed"); return; }
-    if (tpl) {
-      const rows = tpl.files.map(f => ({ project_id: proj.id, path: f.path, content: f.content, language: f.language }));
-      const { error: fErr } = await supabase.from("asher_code_files").insert(rows);
-      if (fErr) toast.error(fErr.message);
-    }
+    // Seed with a single neutral entry file. The AI adapts to whatever the user
+    // asks for next — vanilla HTML, React via CDN, automation script, etc.
+    const seed = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${name}</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background:#0a0a0a; color:#e5e5e5; margin:0; padding:2rem; }
+    .hint { opacity:.6; font-size:13px; }
+  </style>
+</head>
+<body>
+  <h1>${name}</h1>
+  <p class="hint">Tell Aureon Code what to build — it adapts to any stack.</p>
+  <script>
+    // Your code starts here.
+  </script>
+</body>
+</html>`;
+    const { error: fErr } = await supabase
+      .from("asher_code_files")
+      .insert({ project_id: proj.id, path: "index.html", content: seed, language: "html" });
+    if (fErr) toast.error(fErr.message);
     setShowNewProject(false);
     await loadProjects();
     await openProject(proj as AsherCodeProject);
