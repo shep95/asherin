@@ -188,7 +188,7 @@ export default function AsherCodeModule() {
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
       const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx });
-      setChat([...next, { role: "assistant", content: r.reply }]);
+      setChat([...next, { role: "assistant", content: r.reply || "" }]);
     } catch (e: any) {
       setChat([...next, { role: "assistant", content: "**Error:** " + (e.message || "AI call failed") }]);
     } finally { setAiBusy(false); }
@@ -199,7 +199,7 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language });
-      setChat(c => [...c, { role: "user", content: `Explain ${activeFile.path}` }, { role: "assistant", content: r.reply }]);
+      setChat(c => [...c, { role: "user", content: `Explain ${activeFile.path}` }, { role: "assistant", content: r.reply || "" }]);
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
 
@@ -210,8 +210,8 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err });
-      setChat(c => [...c, { role: "user", content: `Fix: ${err}` }, { role: "assistant", content: r.reply }]);
-      const fixed = extractCodeBlock(r.reply);
+      setChat(c => [...c, { role: "user", content: `Fix: ${err}` }, { role: "assistant", content: r.reply || "" }]);
+      const fixed = extractCodeBlock(r.reply || "");
       if (fixed && confirm("Replace file content with fixed version?")) {
         setDirty(d => ({ ...d, [activeFile.id]: fixed }));
       }
