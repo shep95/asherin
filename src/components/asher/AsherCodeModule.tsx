@@ -621,30 +621,29 @@ export default function AsherCodeModule() {
 }
 
 // ── Sub-components ──────────────────────────────────────────────
-function NewProjectDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, tplId: string) => void }) {
+function NewProjectDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {
   const [name, setName] = useState("");
-  const [tpl, setTpl] = useState(ASHER_CODE_TEMPLATES[0].id);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-border/20 bg-card/60 backdrop-blur-xl p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/60 backdrop-blur-xl p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-light tracking-[0.2em] uppercase">New Project</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" className="w-full rounded-md border border-border/20 bg-card/40 px-3 py-2 text-xs font-light mb-3 focus:border-foreground/40 focus:outline-none" />
-        <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase mb-2">Template</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
-          {ASHER_CODE_TEMPLATES.map(t => (
-            <button key={t.id} onClick={() => setTpl(t.id)} className={`rounded-lg border p-3 text-left transition ${tpl === t.id ? "border-foreground/40 bg-foreground/10" : "border-border/15 bg-card/20 hover:border-foreground/20"}`}>
-              <p className="text-xs font-light">{t.name}</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{t.description}</p>
-              <p className="text-[9px] text-muted-foreground/40 mt-1 uppercase tracking-wider">{t.stack}</p>
-            </button>
-          ))}
-        </div>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) onCreate(name.trim()); }}
+          placeholder="Project name"
+          className="w-full rounded-md border border-border/20 bg-card/40 px-3 py-2 text-xs font-light focus:border-foreground/40 focus:outline-none"
+        />
+        <p className="text-[10px] text-muted-foreground/60 mt-3 leading-relaxed">
+          No template needed. Aureon Code adapts to whatever you describe — vanilla HTML, React, TypeScript, automation scripts, dashboards, charts, anything. Just tell it what to build.
+        </p>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={onClose} className="rounded-md border border-border/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/5">Cancel</button>
-          <button onClick={() => name.trim() && onCreate(name.trim(), tpl)} disabled={!name.trim()} className="rounded-md border border-foreground/20 bg-foreground/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/20 disabled:opacity-40">Create</button>
+          <button onClick={() => name.trim() && onCreate(name.trim())} disabled={!name.trim()} className="rounded-md border border-foreground/20 bg-foreground/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/20 disabled:opacity-40">Create</button>
         </div>
       </div>
     </div>
