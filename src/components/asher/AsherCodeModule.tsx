@@ -515,10 +515,20 @@ export default function AsherCodeModule() {
             </div>
             <span className="text-[8px] tracking-[0.2em] text-emerald-400/70 uppercase">{apiKey ? "BYOK" : "No Key"}</span>
           </div>
-          <div className="flex gap-1 p-2 border-b border-border/15">
-            <button onClick={aiGenerate} disabled={aiBusy || !apiKey} className="flex-1 inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Wand2 className="h-2.5 w-2.5" />Gen</button>
-            <button onClick={aiExplain} disabled={aiBusy || !apiKey} className="flex-1 inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Sparkles className="h-2.5 w-2.5" />Explain</button>
-            <button onClick={aiFix} disabled={aiBusy || !apiKey} className="flex-1 inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Bug className="h-2.5 w-2.5" />Fix</button>
+          <div className="grid grid-cols-3 gap-1 p-2 border-b border-border/15">
+            <button onClick={aiGenerate} disabled={aiBusy || !apiKey} className="inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Wand2 className="h-2.5 w-2.5" />Gen</button>
+            <button onClick={aiExplain} disabled={aiBusy || !apiKey} className="inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Sparkles className="h-2.5 w-2.5" />Explain</button>
+            <button onClick={aiFix} disabled={aiBusy || !apiKey} className="inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Bug className="h-2.5 w-2.5" />Fix</button>
+            <button onClick={aiTests} disabled={aiBusy || !apiKey} title="Generate test suite" className="inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><FlaskConical className="h-2.5 w-2.5" />Tests</button>
+            <button onClick={aiEditMode} disabled={aiBusy || !apiKey} title="Multi-file Edit Mode with diff approval" className="inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><FileEdit className="h-2.5 w-2.5" />Edit</button>
+            <button onClick={runInlineAiPrompts} disabled={aiBusy || !apiKey} title="Resolve `// AI: ...` prompts in active file" className="inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Code2 className="h-2.5 w-2.5" />// AI:</button>
+          </div>
+          <div className="flex items-center justify-between px-2 py-1 border-b border-border/15 bg-card/5">
+            <label className="flex items-center gap-1.5 text-[9px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase cursor-pointer">
+              <input type="checkbox" checked={orchestrateMode} onChange={(e) => setOrchestrateMode(e.target.checked)} className="accent-emerald-500 h-3 w-3" />
+              <Layers className="h-2.5 w-2.5" /> Multi-Model
+            </label>
+            {orchestrateMode && <span className="text-[8px] text-emerald-400/70 tracking-[0.15em] uppercase">3 models · ranked</span>}
           </div>
           <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
             {chat.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
