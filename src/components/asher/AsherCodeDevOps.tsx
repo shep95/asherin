@@ -509,18 +509,21 @@ function CIPipelinePanel({ projectId, files, iframe }: { projectId: string; file
 }
 
 // ──────────────────────────────────────────────────────────────────
-// 6. WORKFLOWS — saved task macros
+// 6. WORKFLOWS — real executable steps (no fake delays)
+// Step DSL: "reload" | "count:<selector>" | "click:<selector>" |
+//           "wait:<ms>" | "log:<msg>" | "fetch:<url>" | "assert:<selector>"
 // ──────────────────────────────────────────────────────────────────
-function WorkflowPanel({ projectId }: { projectId: string }) {
+function WorkflowPanel({ projectId, iframe }: { projectId: string; iframe: HTMLIFrameElement | null }) {
   const key = `asherCode.workflows.${projectId}`;
   type Wf = { id: string; name: string; steps: string[] };
   const [wfs, setWfs] = useState<Wf[]>(() => {
     try { return JSON.parse(localStorage.getItem(key) || "null") || defaults(); } catch { return defaults(); }
   });
+  const [log, setLog] = useState<string[]>([]);
   function defaults(): Wf[] {
     return [
-      { id: crypto.randomUUID(), name: "Add New Component", steps: ["Create file", "Add to index", "Generate test"] },
-      { id: crypto.randomUUID(), name: "Deploy to Staging", steps: ["Build", "Test", "Deploy", "Smoke test"] },
+      { id: crypto.randomUUID(), name: "Smoke Test Preview", steps: ["assert:body", "count:*", "log:smoke ok"] },
+      { id: crypto.randomUUID(), name: "Reload & Verify", steps: ["reload", "wait:800", "assert:body"] },
     ];
   }
   useEffect(() => { localStorage.setItem(key, JSON.stringify(wfs)); }, [key, wfs]);
@@ -528,15 +531,66 @@ function WorkflowPanel({ projectId }: { projectId: string }) {
   function add() {
     const name = prompt("Workflow name");
     if (!name) return;
-    const stepsStr = prompt("Steps (comma-separated)") || "";
+    const stepsStr = prompt("Steps (comma-separated). Verbs: reload, wait:<ms>, count:<sel>, click:<sel>, assert:<sel>, fetch:<url>, log:<msg>") || "";
     const steps = stepsStr.split(",").map(s => s.trim()).filter(Boolean);
     setWfs(prev => [...prev, { id: crypto.randomUUID(), name, steps }]);
   }
-  async function run(wf: Wf) {
-    for (const s of wf.steps) {
-      toast.message(`▶ ${s}`);
-      await new Promise(r => setTimeout(r, 600));
+
+  async function execStep(s: string): Promise<string> {
+    const [verb, ...rest] = s.split(":");
+    const arg = rest.join(":");
+    const doc = iframe?.contentDocument;
+    const win = iframe?.contentWindow;
+    switch (verb) {
+      case "reload":
+        if (!win) throw new Error("no preview");
+        win.location.reload();
+        return "preview reloaded";
+      case "wait":
+        await new Promise(r => setTimeout(r, parseInt(arg) || 0));
+        return `waited ${arg}ms`;
+      case "count": {
+        if (!doc) throw new Error("no preview doc");
+        const n = doc.querySelectorAll(arg).length;
+        return `${arg} → ${n} nodes`;
+      }
+      case "click": {
+        if (!doc) throw new Error("no preview doc");
+        const el = doc.querySelector(arg) as HTMLElement | null;
+        if (!el) throw new Error(`selector not found: ${arg}`);
+        el.click();
+        return `clicked ${arg}`;
+      }
+      case "assert": {
+        if (!doc) throw new Error("no preview doc");
+        const el = doc.querySelector(arg);
+        if (!el) throw new Error(`assertion failed: ${arg} missing`);
+        return `assert ok: ${arg}`;
+      }
+      case "fetch": {
+        const r = await fetch(arg);
+        return `fetch ${arg} → ${r.status}`;
+      }
+      case "log":
+        return arg;
+      default:
+        throw new Error(`unknown verb: ${verb}`);
     }
+  }
+
+  async function run(wf: Wf) {
+    setLog([`▶ ${wf.name}`]);
+    for (const s of wf.steps) {
+      try {
+        const out = await execStep(s);
+        setLog(prev => [...prev, `  ✓ ${s} — ${out}`]);
+      } catch (e: any) {
+        setLog(prev => [...prev, `  ✗ ${s} — ${e.message}`]);
+        toast.error(`Workflow failed: ${e.message}`);
+        return;
+      }
+    }
+    setLog(prev => [...prev, `✓ "${wf.name}" complete`]);
     toast.success(`Workflow "${wf.name}" complete`);
   }
 
@@ -551,12 +605,17 @@ function WorkflowPanel({ projectId }: { projectId: string }) {
               <button onClick={() => setWfs(prev => prev.filter(x => x.id !== w.id))} className="text-muted-foreground hover:text-red-400"><Trash2 className="h-3 w-3" /></button>
             </div>
             <ol className="text-[10px] text-muted-foreground/70 list-decimal list-inside space-y-0.5 mb-2">
-              {w.steps.map((s, i) => <li key={i}>{s}</li>)}
+              {w.steps.map((s, i) => <li key={i} className="font-mono">{s}</li>)}
             </ol>
             <button onClick={() => run(w)} className="w-full ide-btn justify-center"><PlayCircle className="h-3 w-3" /> Run</button>
           </div>
         ))}
       </div>
+      {log.length > 0 && (
+        <div className="rounded border border-border/15 bg-background/60 p-2 max-h-40 overflow-auto">
+          <pre className="text-[10px] font-mono text-muted-foreground/80 whitespace-pre-wrap">{log.join("\n")}</pre>
+        </div>
+      )}
     </div>
   );
 }
