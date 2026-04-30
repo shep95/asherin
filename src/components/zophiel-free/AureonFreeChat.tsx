@@ -117,7 +117,7 @@ const AureonFreeChat = () => {
   const minutesUntilReset = resetAt ? Math.max(0, Math.ceil((resetAt - Date.now()) / 60000)) : 0;
 
   return (
-    <div className="flex h-full w-full flex-col bg-background text-foreground">
+    <div className="flex h-full w-full flex-col bg-transparent text-foreground">
       {/* Header bar */}
       <div className="flex items-center justify-between gap-3 border-b border-border/15 bg-card/20 px-4 py-2.5 backdrop-blur-md">
         <div className="flex items-center gap-2 min-w-0">
