@@ -246,13 +246,77 @@ Diagnose root cause, then return:
         },
       ];
     }
+    case "tests": {
+      return [
+        {
+          role: "user",
+          content:
+`Generate a comprehensive test suite for this code.
+
+\`\`\`${payload.language || ""}
+${payload.code}
+\`\`\`
+
+REQUIREMENTS:
+- Framework: ${payload.framework || "vitest"}
+- Cover happy path + at least 5 edge cases (null, empty, boundary, malformed, async failure)
+- Include integration tests where the function touches I/O
+- Use descriptive test names ("returns X when Y")
+
+Return ONLY the test file in a single fenced code block. One short paragraph after listing what is NOT covered.`,
+        },
+      ];
+    }
+    case "edit_plan": {
+      // Multi-file edit planner — returns structured JSON plan
+      const fileBlock = (payload.contextFiles || [])
+        .map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 4000)}`)
+        .join("\n\n");
+      return [
+        {
+          role: "user",
+          content:
+`You are operating in EDIT MODE. The user wants to apply a multi-file change.
+
+USER INSTRUCTION: ${payload.instruction}
+
+PROJECT FILES:
+${fileBlock}
+
+Produce a JSON plan inside a single \`\`\`json fenced block with this exact shape:
+{
+  "summary": "one-sentence description",
+  "edits": [
+    { "path": "file/path.ts", "new_content": "FULL new file content after edit", "rationale": "why" }
+  ]
+}
+
+CRITICAL:
+- Include FULL new content for each modified file (not a diff). The client computes the diff.
+- Only include files that actually change.
+- Preserve existing imports/exports/style.
+- Do not invent files unless the instruction requires creating them.
+- After the JSON block, write one paragraph explaining the overall approach.`,
+        },
+      ];
+    }
     case "chat":
     default: {
       const msgs: ChatMessage[] = payload.messages || [];
-      if (ctxFiles && msgs.length > 0) {
-        // Prepend context to the latest user message
+      // Use ranked context if a codebase is provided
+      let ctxBlock = "";
+      if (payload.codebase && Array.isArray(payload.codebase) && payload.codebase.length > 0) {
+        const lastUser = [...msgs].reverse().find((m) => m.role === "user")?.content || "";
+        const ranked = rankCodebaseFiles(lastUser, payload.codebase, 6);
+        ctxBlock = "\n\nRELEVANT PROJECT FILES (ranked by relevance):\n" +
+          ranked.map((f) => `--- ${f.path} (relevance: ${f.score}) ---\n${f.content.slice(0, 3500)}`).join("\n\n");
+      } else if (payload.contextFiles) {
+        ctxBlock = "\n\nPROJECT FILES (context):\n" +
+          payload.contextFiles.map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 3000)}`).join("\n\n");
+      }
+      if (ctxBlock && msgs.length > 0) {
         const last = msgs[msgs.length - 1];
-        if (last.role === "user") last.content = ctxFiles + "\n\nUSER REQUEST:\n" + last.content;
+        if (last.role === "user") last.content = ctxBlock + "\n\nUSER REQUEST:\n" + last.content;
       }
       return msgs;
     }
