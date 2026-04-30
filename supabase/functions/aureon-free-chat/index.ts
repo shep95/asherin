@@ -1,6 +1,6 @@
 // AUREON FREE CHAT — public endpoint for /zophiel free chat tab.
 // • Requires user-supplied API key (BYOK). We NEVER use platform keys here.
-// • Hard cap: 5 messages per 30 min per IP+fingerprint, even with their own key.
+// • Hard cap: 5 messages per 3 hours per IP+fingerprint, even with their own key.
 // • Nothing is persisted to the database under any circumstance.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -9,9 +9,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// In-memory rate limiter (per-IP, 5 msgs / 30 min). Resets on cold start — acceptable for free tier.
+// In-memory rate limiter (per-IP, 5 msgs / 3 hours). Resets on cold start — acceptable for free tier.
 const FREE_LIMIT = 5;
-const WINDOW_MS = 30 * 60 * 1000;
+const WINDOW_MS = 3 * 60 * 60 * 1000;
 const ipBuckets = new Map<string, { count: number; resetAt: number }>();
 
 function getClientIp(req: Request): string {
@@ -190,7 +190,7 @@ serve(async (req) => {
       );
     }
 
-    // ─── Rate limit: 5 msgs / 30 min per IP+fingerprint, even with BYOK. ───
+    // ─── Rate limit: 5 msgs / 3 hours per IP+fingerprint, even with BYOK. ───
     const ip = getClientIp(req);
     const limitKey = fingerprint(ip, fp);
     const gate = checkLimit(limitKey);
@@ -198,7 +198,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: "rate_limited",
-          message: "Free tier cap reached (5 messages / 30 min). Resets soon, or upgrade for unlimited.",
+          message: "Free tier cap reached (5 messages / 3 hours). Resets soon, or upgrade for unlimited.",
           resetAt: gate.resetAt,
         }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
