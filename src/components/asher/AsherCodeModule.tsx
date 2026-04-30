@@ -3,6 +3,7 @@ import Editor from "@monaco-editor/react";
 import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
