@@ -67,7 +67,7 @@ export default function AsherCodeDevOps({ projectId, previewIframe, onClose, fil
         {tab === "perf"      && <PerformancePanel iframe={previewIframe} />}
         {tab === "mobile"    && <MobilePreviewPanel iframe={previewIframe} />}
         {tab === "deploy"    && <DeployPanel projectId={projectId} />}
-        {tab === "ci"        && <CIPipelinePanel projectId={projectId} />}
+        {tab === "ci"        && <CIPipelinePanel projectId={projectId} files={files} iframe={previewIframe} />}
         {tab === "workflows" && <WorkflowPanel projectId={projectId} />}
         {tab === "problems"  && <ProblemsPanel files={files} />}
         {tab === "packages"  && <PackagesPanel files={files} />}
