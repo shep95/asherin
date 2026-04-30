@@ -310,6 +310,11 @@ const AsherDashboard = () => {
           {active === "audit"     && <AsherAuditVault />}
           {active === "settings"  && <AsherSettingsModule />}
           {active === "profile"   && <AsherProfile />}
+          {active === "code"      && <AsherCodeModule />}
+          {typeof active === "string" && active.startsWith("pub:") && (() => {
+            const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
+            return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
+          })()}
         </div>
       </main>
     </div>
