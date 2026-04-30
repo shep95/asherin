@@ -566,6 +566,15 @@ export default function AsherCodeModule() {
         </aside>
       </div>
 
+      {showDevOps && (
+        <AsherCodeDevOps
+          projectId={activeProject.id}
+          previewIframe={previewRef.current}
+          onClose={() => setShowDevOps(false)}
+          files={files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }))}
+        />
+      )}
+
       {showSettings && <BYOKSettings onClose={() => setShowSettings(false)} provider={provider} model={model} apiKey={apiKey} setProvider={setProvider} setModel={setModel} setApiKey={setApiKey} />}
       {showPublish && <PublishDialog onClose={() => setShowPublish(false)} onPublish={publishAsTab} defaultName={activeProject.name} />}
       {editPlan && (
