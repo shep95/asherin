@@ -491,13 +491,16 @@ function CIPipelinePanel({ projectId, files, iframe }: { projectId: string; file
       </div>
       <div className="space-y-1">
         {results.map((r, i) => (
-          <div key={i} className="flex items-center gap-2 rounded border border-border/15 bg-card/30 px-2.5 py-1.5">
-            {r.status === "passed"  && <CheckCircle2 className="h-3 w-3 text-emerald-400/80" />}
-            {r.status === "failed"  && <AlertTriangle className="h-3 w-3 text-red-400/80" />}
-            {r.status === "running" && <Loader2 className="h-3 w-3 animate-spin text-foreground/60" />}
-            {r.status === "pending" && <Clock className="h-3 w-3 text-muted-foreground/40" />}
-            <span className="text-[11px] font-light flex-1">{r.name}</span>
-            {r.ms && <span className="text-[10px] text-muted-foreground/60">{r.ms} ms</span>}
+          <div key={i} className="flex items-start gap-2 rounded border border-border/15 bg-card/30 px-2.5 py-1.5">
+            {r.status === "passed"  && <CheckCircle2 className="h-3 w-3 text-emerald-400/80 mt-0.5" />}
+            {r.status === "failed"  && <AlertTriangle className="h-3 w-3 text-red-400/80 mt-0.5" />}
+            {r.status === "running" && <Loader2 className="h-3 w-3 animate-spin text-foreground/60 mt-0.5" />}
+            {r.status === "pending" && <Clock className="h-3 w-3 text-muted-foreground/40 mt-0.5" />}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-light">{r.name}</p>
+              {r.detail && <p className="text-[9px] text-muted-foreground/60 mt-0.5 truncate">{r.detail}</p>}
+            </div>
+            {r.ms !== undefined && <span className="text-[10px] text-muted-foreground/60">{r.ms} ms</span>}
           </div>
         ))}
       </div>
