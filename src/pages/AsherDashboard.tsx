@@ -4,7 +4,7 @@ import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
-  Building2, Wrench, PenSquare, Activity, NotebookPen,
+  Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,8 @@ import AsherZophielModule from "@/components/asher/AsherZophielModule";
 import AsherCommsModule from "@/components/asher/AsherCommsModule";
 import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModule";
 import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
+import AsherCodeModule from "@/components/asher/AsherCodeModule";
+import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
@@ -119,12 +121,15 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs";
+  | "audit" | "settings" | "profile" | "orgs" | "code"
+  | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
 interface NavBranch { id: string; label: string; items: NavItem[] }
 
-const buildBranches = (superOwner: boolean): NavBranch[] => [
+interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
+
+const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
   ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
@@ -136,6 +141,7 @@ const buildBranches = (superOwner: boolean): NavBranch[] => [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
+    { id: "code",    label: "Asher Code",     icon: Code2,    sub: "IDE" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
@@ -148,6 +154,12 @@ const buildBranches = (superOwner: boolean): NavBranch[] => [
     { id: "geoint",    label: "GEOINT Layer",    icon: Satellite },
     { id: "doctrine",  label: "Doctrine Recall", icon: BookOpen },
   ]},
+  ...(publishedTabs.length ? [{ id: "custom", label: "Custom Tabs", items: publishedTabs.map((t) => ({
+    id: `pub:${t.id}` as AsherTab,
+    label: t.name,
+    icon: Package,
+    sub: "Custom",
+  })) }] : []),
   { id: "comms", label: "Secure Comms", items: [
     { id: "comms", label: "Operator Comms", icon: MessageSquare, sub: "E2EE" },
   ]},
@@ -160,7 +172,8 @@ const buildBranches = (superOwner: boolean): NavBranch[] => [
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, comms: true, vault: false, governance: true });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true });
+  const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [superOwner, setSuperOwner] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
@@ -171,6 +184,21 @@ const AsherDashboard = () => {
   useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
+
+  // Load published custom tabs visible to this operator (RLS handles filtering).
+  useEffect(() => {
+    if (!unlocked || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("asher_code_published_tabs")
+        .select("id, name, icon, entry_html")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (!cancelled && data) setPublishedTabs(data as PublishedTab[]);
+    })();
+    return () => { cancelled = true; };
+  }, [unlocked, user?.id]);
 
   useAsherAutoLock(() => {
     try { sessionStorage.removeItem(ASHER_GATE_KEY); } catch {}
@@ -208,7 +236,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner).map((branch) => {
+          {buildBranches(superOwner, publishedTabs).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
@@ -282,6 +310,11 @@ const AsherDashboard = () => {
           {active === "audit"     && <AsherAuditVault />}
           {active === "settings"  && <AsherSettingsModule />}
           {active === "profile"   && <AsherProfile />}
+          {active === "code"      && <AsherCodeModule />}
+          {typeof active === "string" && active.startsWith("pub:") && (() => {
+            const tab = publishedTabs.find((t) => `pub:${t.id}` === active);
+            return tab ? <AsherPublishedTabRenderer name={tab.name} entryHtml={tab.entry_html} /> : null;
+          })()}
         </div>
       </main>
     </div>
