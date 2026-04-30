@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Lock, Zap } from "lucide-react";
+import { Sparkles, Lock, Zap, Search, MessageSquare } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
+import AureonFreeChat from "@/components/zophiel-free/AureonFreeChat";
+
+type Tab = "search" | "chat";
 
 const ZophielFree = () => {
   const [hasSearched, setHasSearched] = useState(false);
+  const [tab, setTab] = useState<Tab>("search");
 
   useEffect(() => {
     // Title — keyword-front, <60 chars
