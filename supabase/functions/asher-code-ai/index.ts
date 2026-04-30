@@ -356,9 +356,10 @@ serve(async (req) => {
     const isAdmin = email === ADMIN_EMAIL;
 
     const body = await req.json();
-    const { mode, byok, ...payload } = body as {
-      mode: "chat" | "inline" | "generate" | "explain" | "fix";
+    const { mode, byok, byoks, ...payload } = body as {
+      mode: "chat" | "inline" | "generate" | "explain" | "fix" | "tests" | "edit_plan" | "orchestrate";
       byok?: { provider: string; model: string; apiKey?: string };
+      byoks?: Array<{ provider: string; model: string; apiKey?: string }>; // for orchestrate
       [k: string]: any;
     };
 
