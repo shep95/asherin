@@ -31,6 +31,9 @@ export default function AsherCodeModule() {
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
+  const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
+  const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
+  const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   // BYOK config — stored per-tab in localStorage
