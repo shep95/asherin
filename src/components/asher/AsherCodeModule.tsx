@@ -44,6 +44,7 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.provider", provider); }, [provider]);
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
   useEffect(() => { localStorage.setItem("asherCode.apiKey", apiKey); }, [apiKey]);
+  useEffect(() => { localStorage.setItem("asherCode.orchestrate", orchestrateMode ? "1" : "0"); }, [orchestrateMode]);
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
