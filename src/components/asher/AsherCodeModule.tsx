@@ -448,6 +448,7 @@ export default function AsherCodeModule() {
           <button onClick={saveAll} disabled={!Object.keys(dirty).length} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Save className="h-3 w-3" /> Save</button>
           <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> Run</button>
           <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-emerald-200/80 hover:bg-emerald-400/10"><Upload className="h-3 w-3" /> Publish</button>
+          <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> DevOps</button>
           <button onClick={() => setShowSettings(true)} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Settings className="h-3 w-3" /></button>
         </div>
       </div>
