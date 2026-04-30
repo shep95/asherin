@@ -225,9 +225,138 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language });
-      const code = extractCodeBlock(r.reply);
+      const code = extractCodeBlock(r.reply || "");
       setDirty(d => ({ ...d, [activeFile.id]: code }));
-      setChat(c => [...c, { role: "user", content: `Generate: ${desc}` }, { role: "assistant", content: r.reply }]);
+      setChat(c => [...c, { role: "user", content: `Generate: ${desc}` }, { role: "assistant", content: r.reply || "" }]);
+    } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
+  }
+
+  // Generate full test suite for the active file
+  async function aiTests() {
+    if (!activeFile) return;
+    setAiBusy(true);
+    try {
+      const r = await callAsherCodeAi({ mode: "tests", byok: byok(), code: activeContent, language: activeFile.language, framework: "vitest" });
+      const code = extractCodeBlock(r.reply || "");
+      // Create a sibling test file
+      const base = activeFile.path.replace(/\.(tsx?|jsx?|py)$/, "");
+      const ext = activeFile.path.match(/\.(tsx?|jsx?)$/)?.[1] || "ts";
+      const testPath = `${base}.test.${ext}`;
+      const { data, error } = await supabase
+        .from("asher_code_files")
+        .insert({ project_id: activeProject!.id, path: testPath, content: code, language: activeFile.language })
+        .select().single();
+      if (error || !data) { toast.error(error?.message || "Failed to create test file"); return; }
+      const f = data as AsherCodeFile;
+      setFiles(fs => [...fs, f]);
+      setOpenTabs(t => [...t, f.id]);
+      setActiveFileId(f.id);
+      toast.success(`Tests generated → ${testPath}`);
+    } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
+  }
+
+  // Multi-file Edit Mode — AI proposes plan, user approves diff
+  async function aiEditMode() {
+    const instruction = prompt("What should change across the project?");
+    if (!instruction) return;
+    setAiBusy(true);
+    try {
+      const projectFiles = files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }));
+      const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles });
+      const plan = extractJsonBlock<EditPlan>(r.reply || "");
+      if (!plan?.edits?.length) { toast.error("AI did not return a valid edit plan"); return; }
+      setEditPlan(plan);
+    } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
+  }
+
+  function applyEditPlan(selectedPaths: string[]) {
+    if (!editPlan || !activeProject) return;
+    let appliedCount = 0;
+    let createdFiles: AsherCodeFile[] = [];
+    const newDirty = { ...dirty };
+    for (const edit of editPlan.edits) {
+      if (!selectedPaths.includes(edit.path)) continue;
+      const existing = files.find(f => f.path === edit.path);
+      if (existing) {
+        newDirty[existing.id] = edit.new_content;
+        appliedCount++;
+      } else {
+        // New file — must persist immediately to get an ID
+        void supabase.from("asher_code_files").insert({
+          project_id: activeProject.id,
+          path: edit.path,
+          content: edit.new_content,
+          language: edit.path.split(".").pop() || "plaintext",
+        }).select().single().then(({ data }) => {
+          if (data) {
+            const f = data as AsherCodeFile;
+            setFiles(fs => [...fs, f]);
+          }
+        });
+        appliedCount++;
+      }
+    }
+    setDirty(newDirty);
+    setEditPlan(null);
+    toast.success(`Staged ${appliedCount} edits — review in editor and Save to commit`);
+  }
+
+  // Multi-model orchestration on the chat input
+  async function aiOrchestrate() {
+    if (!chatInput.trim()) { toast.error("Type a request in the chat box first"); return; }
+    setAiBusy(true);
+    try {
+      // Pick top 3 providers — current + 2 most distinct
+      const others = ASHER_CODE_PROVIDERS
+        .filter(p => p.id !== provider)
+        .slice(0, 2)
+        .map(p => ({ provider: p.id, model: p.models[0].id, apiKey: undefined as any }));
+      const byoks = [{ provider, model, apiKey: apiKey || undefined }, ...others];
+      const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
+      const r = await callAsherCodeAi({
+        mode: "orchestrate",
+        subMode: "chat",
+        byoks,
+        messages: [...chat, { role: "user", content: chatInput }],
+        contextFiles: ctx,
+      });
+      setChatInput("");
+      setOrchResult(r);
+    } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
+  }
+
+  // Inline `// AI: <prompt>` trigger — detected on save with Cmd+Enter or button
+  async function runInlineAiPrompts() {
+    if (!activeFile) return;
+    const lines = activeContent.split("\n");
+    const re = /^(\s*)(?:\/\/|\/\*|#)\s*AI:\s*(.+?)\s*(?:\*\/)?\s*$/i;
+    const targets: { lineIdx: number; indent: string; prompt: string }[] = [];
+    lines.forEach((ln, i) => {
+      const m = ln.match(re);
+      if (m) targets.push({ lineIdx: i, indent: m[1], prompt: m[2] });
+    });
+    if (!targets.length) { toast.info("No `// AI: ...` prompts found in this file"); return; }
+    setAiBusy(true);
+    try {
+      const newLines = [...lines];
+      // Process bottom-up so indices stay stable
+      for (const t of [...targets].reverse()) {
+        const before = newLines.slice(Math.max(0, t.lineIdx - 30), t.lineIdx).join("\n");
+        const after = newLines.slice(t.lineIdx + 1, t.lineIdx + 31).join("\n");
+        const r = await callAsherCodeAi({
+          mode: "inline",
+          byok: byok(),
+          path: activeFile.path,
+          language: activeFile.language,
+          before: `${before}\n// REQUEST: ${t.prompt}\n`,
+          after,
+        });
+        const completion = (r.reply || "").trim().replace(/^```[\w]*\n?|\n?```$/g, "");
+        const indented = completion.split("\n").map(l => t.indent + l).join("\n");
+        newLines.splice(t.lineIdx + 1, 0, indented);
+      }
+      setDirty(d => ({ ...d, [activeFile.id]: newLines.join("\n") }));
+      toast.success(`Resolved ${targets.length} inline prompt${targets.length > 1 ? "s" : ""}`);
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
 
