@@ -127,7 +127,9 @@ type AsherTab =
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
 interface NavBranch { id: string; label: string; items: NavItem[] }
 
-const buildBranches = (superOwner: boolean): NavBranch[] => [
+interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
+
+const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
   ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
@@ -139,6 +141,7 @@ const buildBranches = (superOwner: boolean): NavBranch[] => [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
+    { id: "code",    label: "Asher Code",     icon: Code2,    sub: "IDE" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
@@ -151,6 +154,12 @@ const buildBranches = (superOwner: boolean): NavBranch[] => [
     { id: "geoint",    label: "GEOINT Layer",    icon: Satellite },
     { id: "doctrine",  label: "Doctrine Recall", icon: BookOpen },
   ]},
+  ...(publishedTabs.length ? [{ id: "custom", label: "Custom Tabs", items: publishedTabs.map((t) => ({
+    id: `pub:${t.id}` as AsherTab,
+    label: t.name,
+    icon: Package,
+    sub: "Custom",
+  })) }] : []),
   { id: "comms", label: "Secure Comms", items: [
     { id: "comms", label: "Operator Comms", icon: MessageSquare, sub: "E2EE" },
   ]},
