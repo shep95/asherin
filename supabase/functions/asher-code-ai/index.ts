@@ -137,6 +137,30 @@ async function dispatch(p: ProviderCall, messages: ChatMessage[], maxTokens = 40
   }
 }
 
+// ── Codebase relevance ranker (cheap keyword + path heuristic) ────
+// Picks the K most relevant files for a query without an embeddings store.
+function rankCodebaseFiles(
+  query: string,
+  files: Array<{ path: string; content: string }>,
+  k = 6,
+): Array<{ path: string; content: string; score: number }> {
+  const tokens = (query.toLowerCase().match(/[a-z0-9_]{3,}/g) || []);
+  if (!tokens.length) return files.slice(0, k).map((f) => ({ ...f, score: 0 }));
+  const scored = files.map((f) => {
+    const hay = (f.path + "\n" + f.content).toLowerCase();
+    let s = 0;
+    for (const t of tokens) {
+      // path matches weighted higher
+      if (f.path.toLowerCase().includes(t)) s += 5;
+      // content occurrences (capped)
+      const matches = hay.split(t).length - 1;
+      s += Math.min(matches, 8);
+    }
+    return { ...f, score: s };
+  });
+  return scored.sort((a, b) => b.score - a.score).slice(0, k);
+}
+
 // ── Mode prompt builders ──────────────────────────────────────────
 function buildPrompt(mode: string, payload: any): ChatMessage[] {
   const ctxFiles = payload.contextFiles
