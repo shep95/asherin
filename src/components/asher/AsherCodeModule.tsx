@@ -551,13 +551,40 @@ export default function AsherCodeModule() {
               rows={2}
               className="flex-1 resize-none rounded border border-border/20 bg-card/40 px-2 py-1.5 text-[11px] font-light placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none disabled:opacity-40"
             />
-            <button onClick={sendChat} disabled={aiBusy || !chatInput.trim() || !apiKey} className="rounded border border-foreground/20 bg-foreground/10 px-2 hover:bg-foreground/20 disabled:opacity-40"><Send className="h-3 w-3" /></button>
+            <button
+              onClick={() => orchestrateMode ? aiOrchestrate() : sendChat()}
+              disabled={aiBusy || !chatInput.trim() || !apiKey}
+              title={orchestrateMode ? "Orchestrate across 3 models" : "Send"}
+              className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
+            >
+              {orchestrateMode ? <Layers className="h-3 w-3 text-emerald-300" /> : <Send className="h-3 w-3" />}
+            </button>
           </div>
         </aside>
       </div>
 
       {showSettings && <BYOKSettings onClose={() => setShowSettings(false)} provider={provider} model={model} apiKey={apiKey} setProvider={setProvider} setModel={setModel} setApiKey={setApiKey} />}
       {showPublish && <PublishDialog onClose={() => setShowPublish(false)} onPublish={publishAsTab} defaultName={activeProject.name} />}
+      {editPlan && (
+        <EditPlanReview
+          plan={editPlan}
+          currentFiles={files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content }))}
+          busy={aiBusy}
+          onCancel={() => setEditPlan(null)}
+          onApply={applyEditPlan}
+        />
+      )}
+      {orchResult && (
+        <AsherCodeOrchestrationResult
+          result={orchResult}
+          onClose={() => setOrchResult(null)}
+          onInsert={(code) => {
+            if (activeFile) setDirty(d => ({ ...d, [activeFile.id]: code }));
+            setOrchResult(null);
+            toast.success("Inserted into active file");
+          }}
+        />
+      )}
     </div>
   );
 }
