@@ -9,7 +9,6 @@ import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ASHER_CODE_PROVIDERS, type AsherCodeProject, type AsherCodeFile } from "@/lib/asherCode/types";
-import { ASHER_CODE_TEMPLATES, getTemplate } from "@/lib/asherCode/templates";
 import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, type CallAsherCodeResult } from "@/lib/asherCode/aiClient";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
@@ -81,19 +80,38 @@ export default function AsherCodeModule() {
     setChat([]);
   }
 
-  async function createProject(name: string, templateId: string) {
+  async function createProject(name: string) {
     if (!user) return;
-    const tpl = getTemplate(templateId);
     const { data: proj, error } = await supabase
       .from("asher_code_projects")
-      .insert({ owner_id: user.id, name, template: templateId, language: tpl?.language || "javascript" })
+      .insert({ owner_id: user.id, name, template: "blank", language: "html" })
       .select().single();
     if (error || !proj) { toast.error(error?.message || "create failed"); return; }
-    if (tpl) {
-      const rows = tpl.files.map(f => ({ project_id: proj.id, path: f.path, content: f.content, language: f.language }));
-      const { error: fErr } = await supabase.from("asher_code_files").insert(rows);
-      if (fErr) toast.error(fErr.message);
-    }
+    // Seed with a single neutral entry file. The AI adapts to whatever the user
+    // asks for next — vanilla HTML, React via CDN, automation script, etc.
+    const seed = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${name}</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background:#0a0a0a; color:#e5e5e5; margin:0; padding:2rem; }
+    .hint { opacity:.6; font-size:13px; }
+  </style>
+</head>
+<body>
+  <h1>${name}</h1>
+  <p class="hint">Tell Aureon Code what to build — it adapts to any stack.</p>
+  <script>
+    // Your code starts here.
+  </script>
+</body>
+</html>`;
+    const { error: fErr } = await supabase
+      .from("asher_code_files")
+      .insert({ project_id: proj.id, path: "index.html", content: seed, language: "html" });
+    if (fErr) toast.error(fErr.message);
     setShowNewProject(false);
     await loadProjects();
     await openProject(proj as AsherCodeProject);
@@ -602,30 +620,29 @@ export default function AsherCodeModule() {
 }
 
 // ── Sub-components ──────────────────────────────────────────────
-function NewProjectDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, tplId: string) => void }) {
+function NewProjectDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string) => void }) {
   const [name, setName] = useState("");
-  const [tpl, setTpl] = useState(ASHER_CODE_TEMPLATES[0].id);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-border/20 bg-card/60 backdrop-blur-xl p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-border/20 bg-card/60 backdrop-blur-xl p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-light tracking-[0.2em] uppercase">New Project</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" className="w-full rounded-md border border-border/20 bg-card/40 px-3 py-2 text-xs font-light mb-3 focus:border-foreground/40 focus:outline-none" />
-        <p className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase mb-2">Template</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
-          {ASHER_CODE_TEMPLATES.map(t => (
-            <button key={t.id} onClick={() => setTpl(t.id)} className={`rounded-lg border p-3 text-left transition ${tpl === t.id ? "border-foreground/40 bg-foreground/10" : "border-border/15 bg-card/20 hover:border-foreground/20"}`}>
-              <p className="text-xs font-light">{t.name}</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5">{t.description}</p>
-              <p className="text-[9px] text-muted-foreground/40 mt-1 uppercase tracking-wider">{t.stack}</p>
-            </button>
-          ))}
-        </div>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) onCreate(name.trim()); }}
+          placeholder="Project name"
+          className="w-full rounded-md border border-border/20 bg-card/40 px-3 py-2 text-xs font-light focus:border-foreground/40 focus:outline-none"
+        />
+        <p className="text-[10px] text-muted-foreground/60 mt-3 leading-relaxed">
+          No template needed. Aureon Code adapts to whatever you describe — vanilla HTML, React, TypeScript, automation scripts, dashboards, charts, anything. Just tell it what to build.
+        </p>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={onClose} className="rounded-md border border-border/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/5">Cancel</button>
-          <button onClick={() => name.trim() && onCreate(name.trim(), tpl)} disabled={!name.trim()} className="rounded-md border border-foreground/20 bg-foreground/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/20 disabled:opacity-40">Create</button>
+          <button onClick={() => name.trim() && onCreate(name.trim())} disabled={!name.trim()} className="rounded-md border border-foreground/20 bg-foreground/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/20 disabled:opacity-40">Create</button>
         </div>
       </div>
     </div>
