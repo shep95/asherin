@@ -555,7 +555,7 @@ const ZaliView = () => {
                 }}
                 disabled={downloading}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-accent/30 bg-accent/10 text-accent text-[10px] sm:text-xs font-light tracking-wide hover:bg-accent/20 transition-colors disabled:opacity-50"
-                title="Download ZALI Blueprint (Admin Only)"
+                title="Download ZANOEM Blueprint (Admin Only)"
               >
                 <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 <Download className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
