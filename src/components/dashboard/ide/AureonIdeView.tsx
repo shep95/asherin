@@ -24,6 +24,7 @@ import {
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
+import { routeGoal } from "@/lib/asherCode/goalRouter";
 import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -657,6 +658,45 @@ const AureonIdeView = () => {
       toast({ title: "Credit limit reached", description: `You've used all ${maxCredits} credits this hour.`, variant: "destructive" });
       return;
     }
+
+    // ── GOAL ROUTER (mirrors Asher IDE) ─────────────────────
+    // Auto-dispatch high-level commands like "finish building this product"
+    // or "fix every bug" to the swarm/autopilot — user does NOT need to
+    // be on a specific file. Only fires for fresh user turns, never for
+    // autopilot loops (which would otherwise re-trigger themselves).
+    if (!_isAutopilotTurn) {
+      const goal = routeGoal(content);
+      if (goal.intent === "swarm_fix" && activeSessionId) {
+        toast({ title: "◈ Goal Router → Swarm Fix", description: goal.reason });
+        const userMsg: ChatMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date() };
+        const ackMsg: ChatMsg = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `◈ **Swarm dispatched.** Scanning every file in this session for bugs and validator errors. One agent per broken file, all in parallel — I'll re-engage until clean.`,
+          timestamp: new Date(),
+        };
+        setChatMessages(prev => [...prev, userMsg, ackMsg]);
+        if (!autoDebugRef.current) autoDebugRef.current = true;
+        void zqEnqueue({
+          kind: "autofix",
+          payload: { projectRef: activeSessionId },
+          surface: "aureon_ide",
+          projectRef: activeSessionId,
+          ownerUserId: user?.id,
+        });
+        return;
+      }
+      if (goal.intent === "build_all") {
+        toast({ title: "◈ Goal Router → Build All", description: goal.reason });
+        if (!zanoemMode) setZanoemMode(true);
+        if (!autopilotZanoem) { setAutopilotZanoem(true); autopilotZanoemRef.current = true; }
+        autopilotRoundsRef.current = 0;
+        // Fall through with an enriched prompt — ZANOEM autopilot will then
+        // run round-by-round until the build is complete.
+        content = `${content}\n\n[GOAL ROUTER DIRECTIVE]\nThis is a project-wide build request. Plan the complete file tree, then write each file in turn. Do not stop until every file in the plan is written and the build is shippable. After each file, list what's still missing and continue automatically.`;
+      }
+    }
+
     useCredit();
     const isAutopilotTurn = _isAutopilotTurn;
     if (!isAutopilotTurn) {
