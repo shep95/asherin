@@ -645,25 +645,6 @@ export default function AsherCodeModule() {
   // exists, auto-synthesizes one from CSS + JS/JSX/TSX so ZANOEM-generated projects
   // still render in the preview pane.
   const previewSrcDoc = useMemo(() => {
-    const html = files.find(f => f.path.endsWith("index.html"));
-    if (html) {
-      let content = (dirty[html.id] ?? html.content);
-      for (const f of files) {
-        if (f.id === html.id) continue;
-        const c = dirty[f.id] ?? f.content;
-        content = content.replace(`<script src="${f.path}"></script>`, `<script>${c}</script>`);
-        content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
-      }
-      return content;
-    }
-    // Auto-synth path
-    const css = files.filter(f => f.path.endsWith(".css")).map(f => dirty[f.id] ?? f.content).join("\n");
-    const jsxFiles = files.filter(f => /\.(jsx|tsx)$/.test(f.path));
-    const jsFiles = files.filter(f => /\.(m?js)$/.test(f.path) && !/\.(jsx|tsx)$/.test(f.path));
-    const hasReact = jsxFiles.length > 0 || files.some(f => /from ['"]react['"]/.test(dirty[f.id] ?? f.content));
-    if (jsxFiles.length === 0 && jsFiles.length === 0 && css.length === 0) {
-      return `<html><body style="background:#0a0a0a;color:#888;font-family:monospace;padding:2rem">No <code>index.html</code> in this project — and no JS/CSS to auto-render.</body></html>`;
-    }
     // Strip ES module imports/exports (Babel standalone can't resolve them in-browser).
     // Also collect default-exported component names so we can auto-mount the last one.
     const stripModuleSyntax = (src: string): { code: string; defaultExport: string | null; namedComponents: string[] } => {
@@ -692,6 +673,34 @@ export default function AsherCodeModule() {
       while ((m = rxFn.exec(code)) !== null) namedComponents.push(m[1]);
       return { code, defaultExport, namedComponents };
     };
+
+    const compileScriptTag = (path: string, source: string) => {
+      const { code } = stripModuleSyntax(source);
+      return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${path} */\n${code.replace(/<\/script/gi, "<\\/script")}\n</script>`;
+    };
+
+    const html = files.find(f => f.path.endsWith("index.html"));
+    if (html) {
+      let content = (dirty[html.id] ?? html.content);
+      for (const f of files) {
+        if (f.id === html.id) continue;
+        const c = dirty[f.id] ?? f.content;
+        if (/\.(tsx?|jsx?|mjs)$/.test(f.path)) {
+          content = content.replace(`<script src="${f.path}"></script>`, compileScriptTag(f.path, c));
+          content = content.replace(`<script type="module" src="${f.path}"></script>`, compileScriptTag(f.path, c));
+        }
+        content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
+      }
+      return content;
+    }
+    // Auto-synth path
+    const css = files.filter(f => f.path.endsWith(".css")).map(f => dirty[f.id] ?? f.content).join("\n");
+    const jsxFiles = files.filter(f => /\.(jsx|tsx)$/.test(f.path));
+    const jsFiles = files.filter(f => /\.(m?js|ts)$/.test(f.path) && !/\.(jsx|tsx)$/.test(f.path));
+    const hasReact = jsxFiles.length > 0 || files.some(f => /from ['"]react['"]/.test(dirty[f.id] ?? f.content));
+    if (jsxFiles.length === 0 && jsFiles.length === 0 && css.length === 0) {
+      return `<html><body style="background:#0a0a0a;color:#888;font-family:monospace;padding:2rem">No <code>index.html</code> in this project — and no JS/CSS to auto-render.</body></html>`;
+    }
     let mountTarget: string | null = null;
     const jsxBlocks = jsxFiles.map(f => {
       const raw = dirty[f.id] ?? f.content;
