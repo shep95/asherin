@@ -477,19 +477,37 @@ export default function AsherCodeModule() {
     if (activeFileId === id) setActiveFileId(openTabs.find(x => x !== id) || null);
   }
 
-  // Build live preview srcdoc — concatenates all HTML/JS/CSS files (best-effort)
+  // Build live preview srcdoc — concatenates HTML/JS/CSS files. If no index.html
+  // exists, auto-synthesizes one from CSS + JS/JSX/TSX so ZALI-generated projects
+  // still render in the preview pane.
   const previewSrcDoc = useMemo(() => {
     const html = files.find(f => f.path.endsWith("index.html"));
-    if (!html) return "<html><body style='background:#0a0a0a;color:#888;font-family:monospace;padding:2rem'>No <code>index.html</code> in this project — preview is HTML-based.</body></html>";
-    let content = (dirty[html.id] ?? html.content);
-    // Inline external scripts/styles referenced by relative path
-    for (const f of files) {
-      if (f.id === html.id) continue;
-      const c = dirty[f.id] ?? f.content;
-      content = content.replace(`<script src="${f.path}"></script>`, `<script>${c}</script>`);
-      content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
+    if (html) {
+      let content = (dirty[html.id] ?? html.content);
+      for (const f of files) {
+        if (f.id === html.id) continue;
+        const c = dirty[f.id] ?? f.content;
+        content = content.replace(`<script src="${f.path}"></script>`, `<script>${c}</script>`);
+        content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
+      }
+      return content;
     }
-    return content;
+    // Auto-synth path
+    const css = files.filter(f => f.path.endsWith(".css")).map(f => dirty[f.id] ?? f.content).join("\n");
+    const jsxFiles = files.filter(f => /\.(jsx|tsx)$/.test(f.path));
+    const jsFiles = files.filter(f => /\.(m?js)$/.test(f.path) && !/\.(jsx|tsx)$/.test(f.path));
+    const hasReact = jsxFiles.length > 0 || files.some(f => /from ['"]react['"]/.test(dirty[f.id] ?? f.content));
+    if (jsxFiles.length === 0 && jsFiles.length === 0 && css.length === 0) {
+      return `<html><body style="background:#0a0a0a;color:#888;font-family:monospace;padding:2rem">No <code>index.html</code> in this project — and no JS/CSS to auto-render.</body></html>`;
+    }
+    const jsxBlocks = jsxFiles.map(f => `<script type="text/babel" data-presets="env,react,typescript" data-type="module">\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    const reactCdn = hasReact
+      ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`
+      : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}</body></html>`;
   }, [files, dirty]);
 
   function runPreview() { setPreviewKey(k => k + 1); }
