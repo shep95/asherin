@@ -36,7 +36,7 @@ export default function IdeModelRouterBadge({ decision, onOverride, isOverridden
         <ChevronDown className="size-2.5 opacity-50" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-[220px] rounded-md border border-border/30 bg-card/95 shadow-xl z-30 py-1">
+        <div className="absolute right-0 top-full mt-1 w-[220px] rounded-md border border-border/30 bg-popover/95 backdrop-blur-md shadow-2xl z-[100] py-1">
           <div className="px-2.5 py-1 text-[9px] uppercase tracking-wider text-muted-foreground/60 border-b border-border/20">
             Detected: {TASK_LABELS[decision.task]}
           </div>
