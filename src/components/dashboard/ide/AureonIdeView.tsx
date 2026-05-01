@@ -265,6 +265,10 @@ const AureonIdeView = () => {
   const [fileWorkflowStats, setFileWorkflowStats] = useState<Record<string, FileWorkflowStat>>({});
   const fileLocksRef = useRef<Set<string>>(new Set());
   const agentFileRef = useRef<Map<string, string>>(new Map());
+  // Pause control for the swarm autofix loop.
+  const [swarmPaused, setSwarmPaused] = useState(false);
+  const swarmPausedRef = useRef(false);
+  useEffect(() => { swarmPausedRef.current = swarmPaused; }, [swarmPaused]);
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<LeftTab>("files");
 
