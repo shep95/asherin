@@ -286,9 +286,10 @@ export default function AsherCodeModule() {
 
   async function openProject(p: AsherCodeProject) {
     setActiveProject(p);
-    const [filesRes, chatRes] = await Promise.all([
-      supabase.from("asher_code_files").select("*").eq("project_id", p.id).order("path"),
+    const [filesRes, chatRes, brRes] = await Promise.all([
+      supabase.from("asher_code_files").select("*").eq("project_id", p.id).is("branch_id", null).order("path"),
       supabase.from("asher_code_chat_messages").select("role,content").eq("project_id", p.id).order("created_at", { ascending: true }),
+      supabase.from("asher_code_branches").select("id,name,parent_branch_id").eq("project_id", p.id).order("created_at"),
     ]);
     if (filesRes.error) { toast.error(filesRes.error.message); return; }
     const fs = (filesRes.data || []) as AsherCodeFile[];
@@ -296,12 +297,81 @@ export default function AsherCodeModule() {
     setOpenTabs(fs.length ? [fs[0].id] : []);
     setActiveFileId(fs[0]?.id || null);
     setDirty({});
+    setActiveBranchId(null);
+    setBranches((brRes.data as any[] | null) || []);
     if (chatRes.error) {
       setChat([]);
     } else {
       setChat(((chatRes.data as any[]) || []).map((m) => ({ role: m.role as "user" | "assistant", content: m.content })));
     }
   }
+
+  async function switchBranch(branchId: string | null) {
+    if (!activeProject) return;
+    if (Object.keys(dirty).length && !confirm("You have unsaved changes. Switch branch and discard?")) return;
+    let q = supabase.from("asher_code_files").select("*").eq("project_id", activeProject.id).order("path");
+    q = branchId ? q.eq("branch_id", branchId) : q.is("branch_id", null);
+    const { data, error } = await q;
+    if (error) { toast.error(error.message); return; }
+    const fs = (data || []) as AsherCodeFile[];
+    setFiles(fs);
+    setOpenTabs(fs.length ? [fs[0].id] : []);
+    setActiveFileId(fs[0]?.id || null);
+    setDirty({});
+    setActiveBranchId(branchId);
+  }
+
+  async function createBranch() {
+    if (!activeProject) return;
+    const name = prompt("New branch name (e.g. feature/login)");
+    if (!name) return;
+    const { data: br, error } = await supabase.from("asher_code_branches")
+      .insert({ project_id: activeProject.id, name, parent_branch_id: activeBranchId })
+      .select().single();
+    if (error || !br) { toast.error(error?.message || "branch failed"); return; }
+    // Snapshot current branch's files into the new branch
+    const snapshot = files.map(f => ({
+      project_id: activeProject.id,
+      branch_id: (br as any).id,
+      path: f.path,
+      content: dirty[f.id] ?? f.content,
+      language: f.language,
+    }));
+    if (snapshot.length) {
+      const { error: insErr } = await supabase.from("asher_code_files").insert(snapshot);
+      if (insErr) { toast.error(insErr.message); return; }
+    }
+    setBranches(b => [...b, br as any]);
+    toast.success(`Branch "${name}" created from ${activeBranchId ? branches.find(b => b.id === activeBranchId)?.name : "main"}`);
+    await switchBranch((br as any).id);
+  }
+
+  async function deleteBranch(id: string) {
+    if (!confirm("Delete this branch and all its files?")) return;
+    const { error } = await supabase.from("asher_code_branches").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setBranches(b => b.filter(x => x.id !== id));
+    if (activeBranchId === id) await switchBranch(null);
+  }
+
+  async function downloadProjectZip() {
+    if (!activeProject) return;
+    const zip = new JSZip();
+    for (const f of files) {
+      zip.file(f.path, dirty[f.id] ?? f.content);
+    }
+    const branchName = activeBranchId ? branches.find(b => b.id === activeBranchId)?.name || "branch" : "main";
+    const safeBranch = branchName.replace(/[^a-z0-9._-]/gi, "_");
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activeProject.name}-${safeBranch}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${a.download}`);
+  }
+
 
   async function persistChatMessages(msgs: ChatMsg[]) {
     if (!user || !activeProject || msgs.length === 0) return;
