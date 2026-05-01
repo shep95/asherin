@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Calendar, FolderOpen, Globe2, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, User2 } from "lucide-react";
+import { BookOpen, Calendar, FolderOpen, Globe2, Heart, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, TrendingUp, User2 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
   getNakshatraFromDeg,
@@ -16,6 +16,8 @@ import { COUNTRY_CHARTS, type CountryFoundation } from "@/data/vedic/countryChar
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 import AsherChatPanel from "./vedic/AsherChatPanel";
+import GlobalPredictionsTab from "./vedic/GlobalPredictionsTab";
+import CompatibilityPanel from "./vedic/CompatibilityPanel";
 
 interface SavedChart {
   id: string;
@@ -203,7 +205,8 @@ const VedicAstrologyView = () => {
   const [chartName, setChartName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"mine" | "country">("mine");
+  const [tab, setTab] = useState<"mine" | "country" | "predictions">("mine");
+  const [showCompat, setShowCompat] = useState(false);
   const [activeCountry, setActiveCountry] = useState<CountryFoundation | null>(null);
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
   const [activeName, setActiveName] = useState<string>("");
@@ -583,10 +586,11 @@ const VedicAstrologyView = () => {
         </div>
 
         {/* TAB STRIP — My Charts vs Country Charts */}
-        <div className="grid grid-cols-2 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
+        <div className="grid grid-cols-3 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
           {([
             { key: "mine" as const, icon: User2, label: "My Charts" },
             { key: "country" as const, icon: Globe2, label: "Country Charts" },
+            { key: "predictions" as const, icon: TrendingUp, label: "Global Predictions" },
           ]).map(({ key, icon: Icon, label }) => (
             <button
               key={key}
@@ -597,6 +601,8 @@ const VedicAstrologyView = () => {
             </button>
           ))}
         </div>
+
+        {tab === "predictions" && <GlobalPredictionsTab />}
 
         {tab === "country" && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
@@ -699,13 +705,16 @@ const VedicAstrologyView = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-2 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
             <input value={chartName} onChange={(e) => setChartName(e.target.value)} placeholder="Name this chart…" className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             <button onClick={() => void saveChart()} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save Named Chart
             </button>
             <button onClick={() => setShowSaved((v) => !v)} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition">
               <FolderOpen className="h-3.5 w-3.5" /> Saved ({savedCharts.length})
+            </button>
+            <button onClick={() => setShowCompat((v) => !v)} disabled={!chart} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-40">
+              <Heart className="h-3.5 w-3.5" /> Compatibility
             </button>
           </div>
 
@@ -734,6 +743,15 @@ const VedicAstrologyView = () => {
             </button>
           </div>
         </div>
+        )}
+
+        {tab === "mine" && showCompat && chart && (
+          <CompatibilityPanel
+            baseChart={chart}
+            baseLabel={activeName || `Chart · ${birthDate} ${birthTime}`}
+            savedCharts={savedCharts}
+            onClose={() => setShowCompat(false)}
+          />
         )}
 
         {chart && (
