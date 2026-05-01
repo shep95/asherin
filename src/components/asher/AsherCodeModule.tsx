@@ -1203,12 +1203,6 @@ try {
           setTimeout(() => { autopilotEnqueueGuardRef.current = false; }, 2000);
         }
       }
-    } catch (e: any) {
-      const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
-      setChat([...next, errMsg]);
-      void persistChatMessages([userMsg, errMsg]);
-      toast.error(e.message || "ZANOEM call failed");
-    } finally { setAiBusy(false); }
       // ── HAND-OFF: when ZANOEM finishes a build round (files created and
       // no further human decision needed), auto-switch the chat into the
       // Asher IDE Coder (BYOK) so it can finish wiring + auto-debug.
@@ -1231,8 +1225,6 @@ try {
         setChat((prev) => [...prev, handoffMsg]);
         void persistChatMessages([handoffMsg]);
         toast.success("Hand-off → Asher IDE Coder");
-        // Kick off an auto-fix pass immediately so the Coder starts cleaning
-        // anything ZANOEM left rough.
         if (apiKey) {
           void zqEnqueue({
             kind: "autofix",
@@ -1243,6 +1235,13 @@ try {
           });
         }
       }
+    } catch (e: any) {
+      const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
+      setChat([...next, errMsg]);
+      void persistChatMessages([userMsg, errMsg]);
+      toast.error(e.message || "ZANOEM call failed");
+    } finally { setAiBusy(false); }
+  }
 
   // Bind the offline-queue handlers to the live sendChatViaZanoem so they
   // can dispatch autopilot turns while the user is away.
