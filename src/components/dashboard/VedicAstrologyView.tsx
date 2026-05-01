@@ -20,6 +20,7 @@ import AsherChatPanel from "./vedic/AsherChatPanel";
 import GlobalPredictionsTab from "./vedic/GlobalPredictionsTab";
 import CompatibilityPanel from "./vedic/CompatibilityPanel";
 import SwvPanel from "./vedic/SwvPanel";
+import { classifyLagnaRelation, relationColorClass, relationLabel, signIndexFromName } from "@/lib/vedic/lagnaRelationship";
 
 interface SavedChart {
   id: string;
