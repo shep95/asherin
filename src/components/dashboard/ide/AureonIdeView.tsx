@@ -219,6 +219,14 @@ const AureonIdeView = () => {
   const [rightOpen, setRightOpen] = useState(false); // AI chat hidden by default
   const [bottomOpen, setBottomOpen] = useState(false); // Terminal hidden by default
   const [centerTab, setCenterTab] = useState<CenterTab>("code");
+
+  // ── SWARM / WORKFLOW MAP STATE (ported from Asher IDE) ──────────────
+  // Live registry of per-issue debugger agents. One agent per file.
+  const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
+  const [workflowEvents, setWorkflowEvents] = useState<WorkflowEvent[]>([]);
+  const [fileWorkflowStats, setFileWorkflowStats] = useState<Record<string, FileWorkflowStat>>({});
+  const fileLocksRef = useRef<Set<string>>(new Set());
+  const agentFileRef = useRef<Map<string, string>>(new Map());
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<LeftTab>("files");
 
