@@ -592,8 +592,8 @@ export default function AsherCodeModule() {
     const userMsg: ChatMsg = { role: "user", content: composed };
     const next = [...chat, userMsg];
     setChat(next);
-    setChatInput("");
-    setPendingUploads([]);
+    if (!isAutopilotTurn) { setChatInput(""); setPendingUploads([]); }
+    if (!isAutopilotTurn) autopilotRoundsRef.current = 0;
     setAiBusy(true);
     let assistantText = "";
     try {
