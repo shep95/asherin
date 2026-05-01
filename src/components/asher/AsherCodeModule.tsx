@@ -58,8 +58,79 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.showFiles", showFiles ? "1" : "0"); }, [showFiles]);
   useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
+  useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
+  useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
-  // Auto-collapse on small viewports
+  // Line-by-line typing animation for AI-generated content
+  function animateApply(fileId: string, finalContent: string) {
+    if (!animateInsertion) {
+      setDirty(d => ({ ...d, [fileId]: finalContent }));
+      return;
+    }
+    const lines = finalContent.split("\n");
+    let i = 0;
+    setDirty(d => ({ ...d, [fileId]: "" }));
+    const tick = () => {
+      i++;
+      const partial = lines.slice(0, i).join("\n");
+      setDirty(d => ({ ...d, [fileId]: partial }));
+      if (i < lines.length) {
+        // Adaptive: faster on long files
+        const delay = lines.length > 200 ? 4 : lines.length > 80 ? 10 : 18;
+        setTimeout(tick, delay);
+      }
+    };
+    tick();
+  }
+
+  // ── File upload handler (images + ZIP + text) ──────────────────
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+    for (const file of files) {
+      if (file.size > MAX_SIZE) {
+        toast.error(`${file.name} exceeds 100MB limit`);
+        continue;
+      }
+      try {
+        if (file.type.startsWith("image/")) {
+          const dataUrl = await new Promise<string>((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(file);
+          });
+          setPendingUploads(p => [...p, { name: file.name, preview: dataUrl, content: dataUrl, kind: "image" }]);
+          toast.success(`Image attached: ${file.name}`);
+        } else if (file.name.endsWith(".zip") || file.type === "application/zip") {
+          const zip = await JSZip.loadAsync(file);
+          let extracted = "";
+          let count = 0;
+          for (const name of Object.keys(zip.files)) {
+            const entry = zip.files[name];
+            if (entry.dir) continue;
+            if (count >= 60) { extracted += `\n[... ${Object.keys(zip.files).length - count} more files truncated]`; break; }
+            try {
+              const txt = await entry.async("string");
+              if (txt.length > 50000) continue;
+              extracted += `\n\n=== ${name} ===\n${txt}`;
+              count++;
+            } catch {}
+          }
+          setPendingUploads(p => [...p, { name: file.name, content: extracted, kind: "zip" }]);
+          toast.success(`ZIP extracted: ${count} files from ${file.name}`);
+        } else {
+          const txt = await file.text();
+          setPendingUploads(p => [...p, { name: file.name, content: txt, kind: "text" }]);
+          toast.success(`Attached: ${file.name}`);
+        }
+      } catch (err: any) {
+        toast.error(`Failed to read ${file.name}: ${err.message}`);
+      }
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
   useEffect(() => {
     const onResize = () => {
       const w = window.innerWidth;
