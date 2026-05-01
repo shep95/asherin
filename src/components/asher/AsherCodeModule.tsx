@@ -48,6 +48,26 @@ export default function AsherCodeModule() {
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [dirty, setDirty] = useState<Record<string, string>>({});
   const [showNewProject, setShowNewProject] = useState(false);
+  const [renamingTitle, setRenamingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+
+  const commitProjectRename = async () => {
+    if (!activeProject) return;
+    const next = titleDraft.trim();
+    setRenamingTitle(false);
+    if (!next || next === activeProject.name) return;
+    const prev = activeProject.name;
+    setActiveProject({ ...activeProject, name: next });
+    setProjects(ps => ps.map(p => p.id === activeProject.id ? { ...p, name: next } : p));
+    const { error } = await supabase.from("asher_code_projects").update({ name: next }).eq("id", activeProject.id);
+    if (error) {
+      toast.error("Rename failed");
+      setActiveProject({ ...activeProject, name: prev });
+      setProjects(ps => ps.map(p => p.id === activeProject.id ? { ...p, name: prev } : p));
+    } else {
+      toast.success("Project renamed");
+    }
+  };
   const [showSettings, setShowSettings] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
