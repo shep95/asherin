@@ -111,7 +111,7 @@ export function explainErrorLocal(message: string): ExplainedError | null {
 
 export async function explainError(message: string, contextCode?: string): Promise<ExplainedError> {
   const local = explainErrorLocal(message);
-  if (local) return local;
+  if (local && !contextCode) return local;
 
   // Fallback to AI via existing zali-chat edge function (already wired to Lovable AI Gateway).
   try {
@@ -133,19 +133,21 @@ export async function explainError(message: string, contextCode?: string): Promi
       return {
         rawMessage: message,
         source: "ai",
-        plainEnglish: String(parsed.plainEnglish ?? "Couldn't explain this error."),
-        rootCause: String(parsed.rootCause ?? ""),
+        plainEnglish: String(parsed.plainEnglish ?? local?.plainEnglish ?? "Couldn't explain this error."),
+        rootCause: String(parsed.rootCause ?? local?.rootCause ?? ""),
         fixes: Array.isArray(parsed.fixes) ? parsed.fixes.slice(0, 5).map((f: any) => ({
           title: String(f.title ?? "Suggested fix"),
           description: String(f.description ?? ""),
           code: f.code ? String(f.code) : undefined,
-        })) : [],
+        })) : (local?.fixes ?? []),
         correctedCode: corrected && corrected !== contextCode?.trim() ? corrected : undefined,
       };
     }
   } catch {
     // ignore — fall through to generic
   }
+
+  if (local) return local;
 
   return {
     rawMessage: message,
