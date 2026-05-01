@@ -670,6 +670,13 @@ const VedicAstrologyView = () => {
               <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Global Foundation Charts</h3>
               <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Independence / Constitution moments · sidereal Lahiri</span>
             </div>
+            <div className="flex flex-wrap items-center gap-3 text-[10px] font-light text-muted-foreground/70 -mt-1">
+              <span className="uppercase tracking-[0.15em] text-muted-foreground/50">Leader Lagna vs you:</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#ff4fd8] shadow-[0_0_6px_rgba(255,79,216,0.7)]" /> Soulmate</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Friend</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> Enemy</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-foreground/80" /> Neutral</span>
+              {!chart && <span className="italic text-muted-foreground/50">· generate your chart to activate</span>}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {COUNTRY_CHARTS.map((c) => {
                 const lagna = countryLagnas[c.code];
