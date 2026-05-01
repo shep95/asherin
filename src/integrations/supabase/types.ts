@@ -6256,6 +6256,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vedic_charts: {
+        Row: {
+          birth_date: string
+          birth_time: string
+          city_label: string | null
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          notes: string | null
+          tz_offset: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_date: string
+          birth_time: string
+          city_label?: string | null
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          notes?: string | null
+          tz_offset: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string
+          birth_time?: string
+          city_label?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          notes?: string | null
+          tz_offset?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vibe_imager_messages: {
         Row: {
           content: string

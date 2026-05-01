@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Moon, Sparkles, MapPin } from "lucide-react";
+import { Loader2, Moon, Sparkles, MapPin, Save, Trash2, BookOpen, Calendar } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
@@ -8,6 +8,11 @@ import {
   getNakshatraFromDeg,
   getRashiFromDeg,
 } from "@/data/nakshatraData";
+import { supabase } from "@/integrations/supabase/client";
+import { computeMahadasha, findCurrentDasha, type MahadashaPeriod } from "@/lib/vedic/dasha";
+import { computeDignity, houseFromAsc, type PlanetName } from "@/lib/vedic/dignities";
+import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
+import { toast } from "sonner";
 
 /**
  * VEDIC ASTROLOGY — Sidereal natal chart (Lahiri ayanamsa).
@@ -152,27 +157,23 @@ function computeChart(birthUtc: Date, lat: number, lon: number) {
     }
   }
 
-  // Ascendant — Meeus AA Ch. 13 / Ch. 27. Standard textbook formula.
-  // tan(Asc) = -cos(LST) / (sin(LST)·cos(ε) + tan(φ)·sin(ε))
-  const gst = Astronomy.SiderealTime(time); // hours
-  const lst = norm360((gst + lon / 15) * 15); // degrees
+  // Ascendant — Meeus AA Ch. 13.4 (corrected form, matches Swiss Ephemeris/Astro-Seek).
+  // Asc = atan2( cos(LST),  -(sin(LST)·cos(ε) + tan(φ)·sin(ε)) )
+  // This places Asc 90° east of MC (LST) in zodiacal order, which is the rising point.
+  const gst = Astronomy.SiderealTime(time); // hours, GMST
+  const lst = norm360((gst + lon / 15) * 15); // local sidereal time in degrees (= MC tropical)
   const lstRad = (lst * Math.PI) / 180;
   const latRad = (lat * Math.PI) / 180;
   const obliquity = (meanObliquity(birthUtc) * Math.PI) / 180;
-  // Use atan2(y, x) where the standard form is y = -cos(LST), x = sin(LST)cos(ε) + tan(φ)sin(ε)
-  // then add 180° if cos(LST) > 0 to land in the correct ecliptic hemisphere (rising on east).
-  let ascRad = Math.atan2(
-    -Math.cos(lstRad),
-    Math.sin(lstRad) * Math.cos(obliquity) + Math.tan(latRad) * Math.sin(obliquity),
+  const ascRad = Math.atan2(
+    Math.cos(lstRad),
+    -(Math.sin(lstRad) * Math.cos(obliquity) + Math.tan(latRad) * Math.sin(obliquity)),
   );
-  let ascTrop = norm360((ascRad * 180) / Math.PI);
-  // Quadrant correction — ensure ascendant is on the eastern horizon.
-  // If MC (= LST in tropical longitude) and Asc are not ~90° apart, flip 180°.
-  const mcDiff = norm360(ascTrop - lst);
-  if (mcDiff < 90 || mcDiff > 270) ascTrop = norm360(ascTrop + 180);
+  const ascTrop = norm360((ascRad * 180) / Math.PI);
   const ascSid = norm360(ascTrop - ayan);
+  const mcSid = norm360(lst - ayan);
 
-  return { planets, ascendant: ascSid, ayanamsa: ayan };
+  return { planets, ascendant: ascSid, mc: mcSid, ayanamsa: ayan };
 }
 
 /* ── North-Indian style square wheel ───────────────────────── */
