@@ -75,6 +75,12 @@ export default function AsherCodeModule() {
   const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
   const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
   const routeDecision = useMemo(() => routeTask(chatInput || "", modelOverride ?? undefined), [chatInput, modelOverride]);
+  const [semanticOpen, setSemanticOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryAge, setRecoveryAge] = useState(0);
+  const [recoverySnap, setRecoverySnap] = useState<AutoSaveSnapshot | null>(null);
 
   useEffect(() => { localStorage.setItem("asherCode.provider", provider); }, [provider]);
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
