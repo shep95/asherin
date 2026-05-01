@@ -24,6 +24,8 @@ import {
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { History, Stethoscope, Wand2, Cpu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { startQueueWorker as zqStart, registerHandler as zqRegister, type QueuedJob } from "@/lib/zanoem/offlineQueue";
+import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
