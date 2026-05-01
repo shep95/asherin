@@ -15,6 +15,25 @@ interface Leaf { label: string; value: string; confidence?: "high" | "med" | "lo
 interface Branch { id: string; label: string; icon: string; tone: Tone; leaves: Leaf[]; }
 interface Edge { from: string; to: string; label?: string; }
 interface Critical { branch: string; finding: string; severity: "high" | "med" | "low"; }
+interface Intel {
+  board_score?: { total: number; code: number; supply_chain: number; infra: number; human: number; trend: string; peer_median: number };
+  nation_state?: { primary_ttp: string; groups: { id: string; aka: string; nation: string; sectors: string; rationale: string }[]; active_campaign_note: string };
+  red_team?: { stages: { k: string; reachable: boolean; via: string }[] };
+  quantum_crypto?: { algo: string; status: "vulnerable" | "safe"; evidence: string; recommendation: string }[];
+  ai_generated_code?: { pattern: string; evidence: string; confidence: "high" | "med" | "low" }[];
+  dark_web?: { k: string; v: string }[];
+  ueba?: { k: string; v: string }[];
+  ot_ics?: { k: string; exposed: boolean; evidence: string }[];
+  incident_response?: { armed: boolean; affected_surfaces: number; forensic_artifacts: string; breach_notice_drafts: string[]; triage_tasks: number };
+  siem?: { k: string; status: string; alerts_queued: number }[];
+  cve_pipeline?: { k: string; n: number; active: boolean }[];
+  geopolitical?: { scenario: string; risk: "HIGH" | "MED" | "LOW"; time_to_exploit: string }[];
+  compliance?: { framework: string; violations: number; controls: string[] }[];
+  memory_safety?: { k: string; hit: boolean; evidence: string }[];
+  infra_misconfig?: { k: string; hit: boolean; evidence: string }[];
+  zero_day_confidence?: { branch: string; finding: string; confidence_pct: number; novel: boolean; cve_match: string }[];
+  remediation_sla?: { critical_24h: number; high_72h: number; medium_14d: number; low_30d: number };
+}
 interface Blueprint {
   target: string;
   summary: string;
@@ -22,6 +41,7 @@ interface Blueprint {
   branches: Branch[];
   edges: Edge[];
   criticals?: Critical[];
+  intel?: Intel;
 }
 
 const ICONS: Record<string, typeof Shield> = {
