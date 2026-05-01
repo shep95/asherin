@@ -6,3 +6,7 @@ export * from "./modelRouter";
 export * from "./templates";
 export * from "./errorExplainer";
 export * from "./codeAnimator";
+export * from "./autoSave";
+export * from "./semanticSearch";
+export * from "./projectGuide";
+
