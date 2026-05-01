@@ -1,6 +1,6 @@
 // IDE Pain Point #13/#14: AI Bug Doctor — explains an error in plain English.
 import { useEffect, useState } from "react";
-import { Stethoscope, X, Loader2, Wand2, Copy } from "lucide-react";
+import { Stethoscope, X, Loader2, Wand2, Copy, Sparkles, CheckCircle2 } from "lucide-react";
 import { explainError, type ExplainedError } from "@/lib/ide";
 import { toast } from "sonner";
 
