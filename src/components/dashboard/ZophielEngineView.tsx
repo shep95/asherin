@@ -550,7 +550,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                   {/* Grouped results */}
                   {!loading && results.length > 0 && hasGroups && (
                     <div className="space-y-6">
-                      {Object.entries(grouped).filter(([_, items]) => items.length > 0).map(([category, items]) => (
+                      {Object.entries(grouped).filter(([cat, items]) => items.length > 0 && cat !== "primary").map(([category, items]) => (
                         <div key={category}>
                           <h2 className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-3 flex items-center gap-2">
                             <span className="h-px flex-1 bg-border/20" />
