@@ -534,7 +534,7 @@ serve(async (req) => {
             role: "user",
             content: `Rank these ${successful.length} code solutions by correctness, code quality, completeness, and adherence to the user request. Return ONLY a JSON array of indices from best to worst, e.g. [2,0,1]. No prose.\n\nUSER REQUEST:\n${payload.instruction || payload.description || (payload.messages?.[payload.messages.length - 1]?.content) || ""}\n\n${successful.map((r, i) => `=== SOLUTION ${i} (${r.provider}/${r.model}) ===\n${r.content.slice(0, 6000)}`).join("\n\n")}`,
           }];
-          const judgeReply = await dispatch(calls[responses.indexOf(successful[0])], judgePrompt, 256);
+          const judgeReply = await dispatch(calls[responses.indexOf(successful[0])], judgePrompt, orchSystem, 256);
           const m = judgeReply.match(/\[[\d,\s]+\]/);
           if (m) {
             const parsed = JSON.parse(m[0]);
