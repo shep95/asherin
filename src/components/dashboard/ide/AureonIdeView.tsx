@@ -143,18 +143,52 @@ const AureonIdeView = () => {
     return () => { if (historyTimerRef.current) clearTimeout(historyTimerRef.current); };
   }, [files, pushHistory]);
 
-  // ── ZANOEM offline autopilot worker (cross-IDE) ──
-  // Keeps draining persisted jobs from Asher IDE / previous sessions even
-  // when the user is on the Aureon IDE tab. Vision jobs without a usable
-  // iframe target are skipped; auto-fix jobs run against the current Aureon
-  // file tree as a best-effort cleanup pass.
+  // ── ZANOEM autopilot state (mirrors Asher IDE checkboxes) ──
+  // Separate localStorage keys from Asher so each IDE preserves its own toggle state.
+  const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("aureonIde.zanoemMode") === "1");
+  const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("aureonIde.autopilotZanoem") === "1");
+  const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("aureonIde.autoDebug") !== "0");       // default ON
+  const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("aureonIde.autoUiDebug") !== "0"); // default ON
+  const [decisionLogOpen, setDecisionLogOpen] = useState(false);
+  const autopilotRoundsRef = useRef(0);
+  const AUTOPILOT_MAX_ROUNDS = 6;
+  useEffect(() => { localStorage.setItem("aureonIde.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
+  useEffect(() => { localStorage.setItem("aureonIde.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
+  useEffect(() => { localStorage.setItem("aureonIde.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
+  useEffect(() => { localStorage.setItem("aureonIde.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
+
+  // Refs for offline queue handlers (run outside React's render cycle)
   const filesRefAureon = useRef(files);
+  const autopilotZanoemRef = useRef(autopilotZanoem);
+  const autoDebugRef = useRef(autoDebug);
+  const autoUiDebugRef = useRef(autoUiDebug);
+  const lastIntentRef = useRef<string>("");
+  const lastAssistantRef = useRef<string>("");
+  const autopilotEnqueueGuardRef = useRef(false);
+  const autopilotTriggerRef = useRef<string>("");
+  // sendChatMessage is declared further down — route through a ref so the
+  // queue worker can call it once it exists.
+  const sendZanoemTurnRef = useRef<((prompt: string) => Promise<void>) | null>(null);
   useEffect(() => { filesRefAureon.current = files; }, [files]);
+  useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
+  useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
+  useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
+
+  // ── ZANOEM offline autopilot worker (cross-IDE) ──
+  // Drains persisted jobs even if the user closes the tab / loses wifi.
+  // Vision jobs are best-effort here (Aureon's preview iframe is owned by
+  // a child component); auto-fix runs the validator + dispatches a fix turn
+  // through Aureon's own chat backend when ZANOEM mode is on.
   useEffect(() => {
-    zqRegister("vision", async () => { /* no preview iframe surface here */ });
+    zqRegister("vision", async (_job: QueuedJob<{ intent: string; recentAssistant: string; projectRef?: string }>) => {
+      if (!autopilotZanoemRef.current || !autoUiDebugRef.current) return;
+      // Aureon's preview iframe is encapsulated; we still log the verdict so the
+      // user can see it in the console / future panels.
+      console.info("[zanoem] Aureon vision job (preview iframe owned by child component — skipping screenshot pass)");
+    });
+
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
-      // Aureon has no ZANOEM chat driver in this view — we can only re-run the
-      // validator and surface a toast; the actual code patch happens in Asher IDE.
+      if (!autopilotZanoemRef.current || !autoDebugRef.current) return;
       const flat: AutoFixFile[] = [];
       const walk = (nodes: IdeFile[]) => {
         for (const n of nodes) {
@@ -165,13 +199,17 @@ const AureonIdeView = () => {
       walk(filesRefAureon.current);
       const result = await autoFixUntilClean({
         files: () => flat,
-        runZanoemTurn: async () => { /* no-op driver in Aureon */ },
-        maxPasses: 1,
+        runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
+        maxPasses: 6,
+        onProgress: (pass, n) => {
+          if (n > 0) toast({ title: `ZANOEM Auto-Fix pass ${pass}`, description: `${n} error${n === 1 ? "" : "s"}` });
+        },
       });
-      if (!result.clean) console.info("[zanoem] Aureon validator:", result.finalErrorCount, "error(s)");
+      if (result.clean) toast({ title: "ZANOEM Auto-Fix: clean", description: `${result.passes} pass${result.passes === 1 ? "" : "es"}` });
+      else console.info("[zanoem] Aureon validator stopped:", result.finalErrorCount, "error(s) remain");
     });
     zqStart({ intervalMs: 2500 });
-  }, []);
+  }, [toast]);
 
   // Panel state — simplified defaults
   const [leftOpen, setLeftOpen] = useState(!isMobile);
