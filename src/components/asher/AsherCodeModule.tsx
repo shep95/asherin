@@ -653,6 +653,19 @@ export default function AsherCodeModule() {
       // Auto-write any code blocks tagged with file paths into the project
       const created = await materializeZanoemCodeBlocks(assistantText);
       if (created > 0) toast.success(`ZANOEM created ${created} file${created === 1 ? "" : "s"}`);
+      // ── AUTOPILOT: ZANOEM decides on the human's behalf ──
+      if (autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && needsHumanDecision(assistantText)) {
+        autopilotRoundsRef.current += 1;
+        const autoReply = buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        setAiBusy(false);
+        // Tiny delay so UI flushes the streamed message before the next turn starts
+        setTimeout(() => { void sendChatViaZanoem(autoReply, true); }, 350);
+        return;
+      }
+      if (isAutopilotTurn && !needsHumanDecision(assistantText)) {
+        toast.success(`ZANOEM autopilot complete (${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"})`);
+        autopilotRoundsRef.current = 0;
+      }
     } catch (e: any) {
       const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
       setChat([...next, errMsg]);
