@@ -208,6 +208,7 @@ const VedicAstrologyView = () => {
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
   const [activeName, setActiveName] = useState<string>("");
   const [chatOpen, setChatOpen] = useState(false);
+  const [asherDates, setAsherDates] = useState<string[]>([]);
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -500,6 +501,31 @@ const VedicAstrologyView = () => {
     return lines.join("\n");
   }, [chart, ascRashi, moonPlanet, moonNak, currentDasha, dashaTimeline, birthDate, birthTime, tzOffset, cityQuery, lat, lon]);
 
+  // Reset Asher-extracted timeline markers when active chart changes
+  useEffect(() => { setAsherDates([]); }, [chartKey]);
+
+  // Compute marker positions across the full Vimshottari span (for the timeline strip)
+  const timelineSpan = useMemo(() => {
+    if (dashaTimeline.length === 0) return null;
+    const start = dashaTimeline[0].start.getTime();
+    const end = dashaTimeline[dashaTimeline.length - 1].end.getTime();
+    return { start, end, span: end - start };
+  }, [dashaTimeline]);
+
+  const asherMarkers = useMemo(() => {
+    if (!timelineSpan) return [];
+    return asherDates
+      .map((d) => {
+        const t = new Date(`${d}T12:00:00Z`).getTime();
+        if (Number.isNaN(t)) return null;
+        const pct = ((t - timelineSpan.start) / timelineSpan.span) * 100;
+        return { date: d, pct: Math.max(0, Math.min(100, pct)), inRange: pct >= 0 && pct <= 100 };
+      })
+      .filter((m): m is { date: string; pct: number; inRange: boolean } => m !== null);
+  }, [asherDates, timelineSpan]);
+
+  const asherDateSet = useMemo(() => new Set(asherDates), [asherDates]);
+
 
   return (
     <div
@@ -754,7 +780,51 @@ const VedicAstrologyView = () => {
               )}
             </div>
 
-            {/* Active drill-down: Maha → Antar → Pratyantar → Sookshma → Prana */}
+            {/* ASHER-extracted date markers across the entire Vimshottari span */}
+            {asherMarkers.length > 0 && timelineSpan && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70">
+                  <span>Asher Markers · {asherMarkers.length} date{asherMarkers.length > 1 ? "s" : ""}</span>
+                  <button
+                    onClick={() => setAsherDates([])}
+                    className="normal-case tracking-normal text-[10px] text-muted-foreground/60 hover:text-foreground transition"
+                  >
+                    clear
+                  </button>
+                </div>
+                <div className="relative h-8 rounded-md border border-border/25 bg-background/40 overflow-hidden">
+                  {/* baseline gradient showing time axis */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-foreground/[0.03] to-foreground/[0.08]" />
+                  {/* "now" indicator */}
+                  {(() => {
+                    const now = Date.now();
+                    if (now < timelineSpan.start || now > timelineSpan.start + timelineSpan.span) return null;
+                    const pct = ((now - timelineSpan.start) / timelineSpan.span) * 100;
+                    return (
+                      <div className="absolute top-0 bottom-0 w-px bg-foreground/40" style={{ left: `${pct}%` }} title="Now" />
+                    );
+                  })()}
+                  {asherMarkers.map((m) => (
+                    <div
+                      key={m.date}
+                      className="absolute top-0 bottom-0 w-0.5 bg-amber-400/80 hover:bg-amber-300 group cursor-help"
+                      style={{ left: `${m.pct}%` }}
+                      title={m.date}
+                    >
+                      <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.7)]" />
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0.5 whitespace-nowrap text-[9px] text-amber-300/90 opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                        {m.date}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-[9px] tabular-nums text-muted-foreground/60">
+                  <span>{new Date(timelineSpan.start).getUTCFullYear()}</span>
+                  <span>{new Date(timelineSpan.start + timelineSpan.span).getUTCFullYear()}</span>
+                </div>
+              </div>
+            )}
+
             {currentDasha.maha && (
               <div className="rounded-lg border border-foreground/25 bg-foreground/[0.035] p-3 space-y-2">
                 <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">Active Period</div>
@@ -824,6 +894,7 @@ const VedicAstrologyView = () => {
         chartKey={chartKey}
         chartLabel={chartLabel}
         chartContext={chartContext}
+        onDatesExtracted={(dates) => setAsherDates((prev) => Array.from(new Set([...prev, ...dates])).sort())}
       />
     </div>
   );
