@@ -437,6 +437,40 @@ const ZerlalView = () => {
           {/* SUPPLY CHAIN / SBOM */}
           <SbomPanel blueprint={blueprint} />
 
+          {/* ── ZERLAL TIER 1 — DIFFERENTIATORS ───────────────────────── */}
+          <BoardRiskScorePanel blueprint={blueprint} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <NationStateAttributionPanel blueprint={blueprint} />
+            <AutonomousRedTeamPanel blueprint={blueprint} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <QuantumCryptoAuditPanel blueprint={blueprint} />
+            <AiGeneratedCodeSecurityPanel blueprint={blueprint} />
+          </div>
+
+          {/* ── ZERLAL TIER 2 — ENTERPRISE ────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <DarkWebIntelPanel blueprint={blueprint} />
+            <UebaInsiderThreatPanel blueprint={blueprint} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <OtIcsScadaPanel blueprint={blueprint} />
+            <IncidentResponseCommandPanel blueprint={blueprint} />
+          </div>
+          <SiemIntegrationStatusPanel blueprint={blueprint} />
+
+          {/* ── ZERLAL TIER 3 — GOVERNMENT / COMPLIANCE ───────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <CvePipelinePanel blueprint={blueprint} />
+            <GeopoliticalThreatPanel blueprint={blueprint} />
+          </div>
+          <ComplianceAutoMapPanel blueprint={blueprint} />
+          <MemorySafetyPanel blueprint={blueprint} />
+          <InfraMisconfigPanel blueprint={blueprint} />
+          <ZeroDayConfidencePanel blueprint={blueprint} />
+          <RemediationSlaPanel blueprint={blueprint} />
+          <ScanHistoryPanel blueprint={blueprint} />
+
           {/* Criticals strip */}
           {blueprint.criticals && blueprint.criticals.length > 0 && (
             <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-3">
