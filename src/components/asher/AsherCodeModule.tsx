@@ -645,25 +645,6 @@ export default function AsherCodeModule() {
   // exists, auto-synthesizes one from CSS + JS/JSX/TSX so ZANOEM-generated projects
   // still render in the preview pane.
   const previewSrcDoc = useMemo(() => {
-    const html = files.find(f => f.path.endsWith("index.html"));
-    if (html) {
-      let content = (dirty[html.id] ?? html.content);
-      for (const f of files) {
-        if (f.id === html.id) continue;
-        const c = dirty[f.id] ?? f.content;
-        content = content.replace(`<script src="${f.path}"></script>`, `<script>${c}</script>`);
-        content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
-      }
-      return content;
-    }
-    // Auto-synth path
-    const css = files.filter(f => f.path.endsWith(".css")).map(f => dirty[f.id] ?? f.content).join("\n");
-    const jsxFiles = files.filter(f => /\.(jsx|tsx)$/.test(f.path));
-    const jsFiles = files.filter(f => /\.(m?js)$/.test(f.path) && !/\.(jsx|tsx)$/.test(f.path));
-    const hasReact = jsxFiles.length > 0 || files.some(f => /from ['"]react['"]/.test(dirty[f.id] ?? f.content));
-    if (jsxFiles.length === 0 && jsFiles.length === 0 && css.length === 0) {
-      return `<html><body style="background:#0a0a0a;color:#888;font-family:monospace;padding:2rem">No <code>index.html</code> in this project — and no JS/CSS to auto-render.</body></html>`;
-    }
     // Strip ES module imports/exports (Babel standalone can't resolve them in-browser).
     // Also collect default-exported component names so we can auto-mount the last one.
     const stripModuleSyntax = (src: string): { code: string; defaultExport: string | null; namedComponents: string[] } => {
@@ -692,6 +673,80 @@ export default function AsherCodeModule() {
       while ((m = rxFn.exec(code)) !== null) namedComponents.push(m[1]);
       return { code, defaultExport, namedComponents };
     };
+
+    const compileScriptTag = (path: string, source: string) => {
+      const { code, defaultExport, namedComponents } = stripModuleSyntax(source);
+      const filename = path.replace(/"/g, "&quot;");
+      const globals = Array.from(new Set([defaultExport, ...namedComponents].filter(Boolean)))
+        .map((name) => `try{if(typeof ${name}!=="undefined")window.${name}=${name};}catch(e){}`)
+        .join("\n");
+      return `<script type="application/x-asher-source" data-filename="${filename}">\n${`${code}\n${globals}`.replace(/<\/script/gi, "<\\/script")}\n</script>`;
+    };
+
+    const sourceRunner = `<script>
+(function(){
+  function showPreviewError(label, err){
+    var msg = err && err.stack ? err.stack : (err && err.message ? err.message : String(err));
+    var pre = document.createElement('pre');
+    pre.style.cssText='color:#f88;background:#1a0a0a;font-family:ui-monospace,monospace;padding:1rem;white-space:pre-wrap;font-size:12px;margin:0';
+    pre.textContent=label + ': ' + msg;
+    document.body.appendChild(pre);
+  }
+  try {
+    if (!window.Babel) { showPreviewError('Preview compiler missing', 'Babel runtime did not load'); return; }
+    var nodes = document.querySelectorAll('script[type="application/x-asher-source"]');
+    Array.prototype.forEach.call(nodes, function(node){
+      var filename = node.getAttribute('data-filename') || 'preview.tsx';
+      try {
+        var compiled = Babel.transform(node.textContent || '', {
+          filename: filename,
+          sourceType: 'script',
+          presets: [['env', { modules: false }], ['react', { runtime: 'classic' }], ['typescript', { allExtensions: true, isTSX: true }]]
+        }).code;
+        (0, eval)(compiled + '\n//# sourceURL=' + filename);
+      } catch (e) { showPreviewError('Preview compile/runtime error in ' + filename, e); }
+    });
+  } catch(e) { showPreviewError('Preview runner error', e); }
+})();
+</script>`;
+
+    const html = files.find(f => f.path.endsWith("index.html"));
+    if (html) {
+      let content = (dirty[html.id] ?? html.content);
+      let needsHtmlCompiler = false;
+      let needsHtmlReact = false;
+      for (const f of files) {
+        if (f.id === html.id) continue;
+        const c = dirty[f.id] ?? f.content;
+        if (/\.(tsx?|jsx?|mjs)$/.test(f.path)) {
+          const compiled = compileScriptTag(f.path, c);
+          const escapedPath = f.path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${escapedPath}["']([^>]*)><\\/script>`, "g");
+          if (scriptRef.test(content)) {
+            content = content.replace(scriptRef, () => compiled);
+            needsHtmlCompiler = true;
+            if (/\.(tsx|jsx|js)$/.test(f.path) || /from ['"]react['"]/.test(c) || /React/.test(c)) needsHtmlReact = true;
+          }
+        }
+        content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
+      }
+      if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
+        const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script><script>try{var R=window.React||{};['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){if(R[k]&&typeof window[k]==='undefined')window[k]=R[k];});if(window.ReactDOM&&typeof window.createRoot==='undefined')window.createRoot=window.ReactDOM.createRoot;}catch(e){}</script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`;
+        content = content.includes("</head>") ? content.replace("</head>", `${runtime}</head>`) : runtime + content;
+      }
+      if (needsHtmlCompiler) {
+        content = content.includes("</body>") ? content.replace("</body>", `${sourceRunner}</body>`) : content + sourceRunner;
+      }
+      return content;
+    }
+    // Auto-synth path
+    const css = files.filter(f => f.path.endsWith(".css")).map(f => dirty[f.id] ?? f.content).join("\n");
+    const jsxFiles = files.filter(f => /\.(jsx|tsx)$/.test(f.path));
+    const jsFiles = files.filter(f => /\.(m?js|ts)$/.test(f.path) && !/\.(jsx|tsx)$/.test(f.path));
+    const hasReact = jsxFiles.length > 0 || files.some(f => /from ['"]react['"]/.test(dirty[f.id] ?? f.content));
+    if (jsxFiles.length === 0 && jsFiles.length === 0 && css.length === 0) {
+      return `<html><body style="background:#0a0a0a;color:#888;font-family:monospace;padding:2rem">No <code>index.html</code> in this project — and no JS/CSS to auto-render.</body></html>`;
+    }
     let mountTarget: string | null = null;
     const jsxBlocks = jsxFiles.map(f => {
       const raw = dirty[f.id] ?? f.content;
@@ -701,19 +756,19 @@ export default function AsherCodeModule() {
       else if (namedComponents.length) mountTarget = namedComponents[namedComponents.length - 1];
       return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.path} */\n${code}\n</script>`;
     }).join("\n");
-    const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    const jsBlocks = jsFiles.map(f => compileScriptTag(f.path, dirty[f.id] ?? f.content)).join("\n");
     // Detect whether the user already mounts something (ReactDOM.render / createRoot).
     const userMountsItself = jsxFiles.concat(jsFiles).some(f => {
       const c = dirty[f.id] ?? f.content;
       return /ReactDOM\.render\s*\(/.test(c) || /createRoot\s*\([^)]*\)\s*\.render\s*\(/.test(c);
     });
     const autoMount = (hasReact && mountTarget && !userMountsItself)
-      ? `<script type="text/babel" data-presets="env,react,typescript">
+      ? `<script>
 try {
   const __el = document.getElementById('root') || document.getElementById('app');
-  if (__el && typeof ${mountTarget} !== 'undefined') {
-    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(${mountTarget})); }
-    else { ReactDOM.render(React.createElement(${mountTarget}), __el); }
+  if (__el && (window.${mountTarget} || typeof ${mountTarget} !== 'undefined')) {
+    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(window.${mountTarget} || ${mountTarget})); }
+    else { ReactDOM.render(React.createElement(window.${mountTarget} || ${mountTarget}), __el); }
   } else if (!__el) {
     document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: no #root or #app element.</pre>';
   } else {
@@ -726,11 +781,12 @@ try {
       : (hasReact && !userMountsItself
         ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')</script>`
         : "");
+    const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.length > 0;
     const reactCdn = hasReact
       ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`
-      : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
+      : (needsBabel ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
     // Shim: expose React hooks + common Next.js / framework imports as globals so that
     // stripped `import { useState } from 'react'` / `import { useRouter } from 'next/router'`
     // statements don't leave undefined identifiers behind. Also captures any Babel compile
@@ -759,7 +815,7 @@ window.addEventListener('error', function(ev){
   document.body.appendChild(pre);
 });
 </script>` : "";
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}${shim}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}${autoMount}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}${shim}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}${sourceRunner}${autoMount}</body></html>`;
   }, [files, dirty]);
 
   function runPreview() { setPreviewKey(k => k + 1); }

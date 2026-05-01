@@ -52,6 +52,10 @@ function stripModuleSyntax(src: string): { code: string; defaultExport: string |
 
 function buildPreviewHtml(files: IdeFile[]): string {
   const flat = flattenFiles(files);
+  const compileScriptTag = (name: string, source: string) => {
+    const { code } = stripModuleSyntax(source);
+    return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${name} */\n${code.replace(/<\/script/gi, "<\\/script")}\n<\/script>`;
+  };
 
   const htmlFile = flat.find(f => f.name.endsWith(".html"));
   const cssFiles = flat.filter(f => f.name.endsWith(".css"));
@@ -62,7 +66,27 @@ function buildPreviewHtml(files: IdeFile[]): string {
 
   if (htmlFile?.content) {
     const injectedCss = allCss ? `<style>${allCss}</style>` : "";
-    return htmlFile.content.replace("</head>", `${injectedCss}</head>`);
+    let content = htmlFile.content.replace("</head>", `${injectedCss}</head>`);
+    let needsHtmlCompiler = false;
+    let needsHtmlReact = false;
+    for (const f of flat) {
+      if (f === htmlFile) continue;
+      if (/\.(tsx?|jsx?|mjs)$/.test(f.name)) {
+        const compiled = compileScriptTag(f.name, f.content ?? "");
+        const escapedName = f.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${escapedName}["']([^>]*)><\\/script>`, "g");
+        if (scriptRef.test(content)) {
+          content = content.replace(scriptRef, () => compiled);
+          needsHtmlCompiler = true;
+          if (/\.(tsx|jsx|js)$/.test(f.name) || /from ['"]react['"]/.test(f.content ?? "") || /React/.test(f.content ?? "")) needsHtmlReact = true;
+        }
+      }
+    }
+    if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
+      const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script><script>try{var R=window.React||{};['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){if(R[k]&&typeof window[k]==='undefined')window[k]=R[k];});if(window.ReactDOM&&typeof window.createRoot==='undefined')window.createRoot=window.ReactDOM.createRoot;}catch(e){}</script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`;
+      content = content.includes("</head>") ? content.replace("</head>", `${runtime}</head>`) : runtime + content;
+    }
+    return content;
   }
 
   const hasReact = jsxFiles.length > 0 || flat.some(f => /from ['"]react['"]/.test(f.content ?? ""));
@@ -80,7 +104,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
     return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.name} */\n${code}\n</script>`;
   }).join("\n");
 
-  const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.name} */\n${f.content ?? ""}\n</script>`).join("\n");
+  const jsBlocks = jsFiles.map(f => compileScriptTag(f.name, f.content ?? "")).join("\n");
 
   const userMountsItself = jsxFiles.concat(jsFiles).some(f => {
     const c = f.content ?? "";
@@ -107,11 +131,12 @@ try {
       ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')<\/script>`
       : "");
 
+  const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.length > 0;
   const reactCdn = hasReact
     ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`
-    : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>` : "");
+    : (needsBabel ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>` : "");
 
   // Shim hooks + Next.js / common framework imports as globals so stripped
   // `import { useState } from 'react'` / `import { useRouter } from 'next/router'`
