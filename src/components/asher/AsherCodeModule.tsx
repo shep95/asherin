@@ -1436,7 +1436,8 @@ export default function AsherCodeModule() {
                       language={activeFile.language}
                       value={activeContent}
                       onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
-                      options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
+                      onMount={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+                      options={{ fontSize: 13, minimap: { enabled: true }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 }, glyphMargin: true }}
                     />
                   </div>
                 ) : (
