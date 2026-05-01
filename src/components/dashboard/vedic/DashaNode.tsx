@@ -7,9 +7,11 @@ import { ensureChildren, DASHA_LEVEL_LABEL, type DashaPeriod } from "@/lib/vedic
 import { buildDashaInsight, type LifeFlag } from "@/lib/vedic/dashaReading";
 import type { SweVedicChart } from "@/lib/vedic/sweChart";
 
-const fmtDate = (d: Date) => d.toISOString().slice(0, 10);
+// US date formatting (MM/DD/YYYY) — never ISO/European.
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
 const fmtDateTime = (d: Date) =>
-  `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
+  d.toLocaleString("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true });
 const fmtDuration = (years: number) => {
   if (years >= 1) return `${years.toFixed(2)}y`;
   const days = years * 365.25;
