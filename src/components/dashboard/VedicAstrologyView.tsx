@@ -337,7 +337,7 @@ const VedicAstrologyView = () => {
 
   const dashaTimeline = useMemo(() => {
     if (!chart || !moonPlanet) return [];
-    return computeMahadasha(chart.birthUtc, moonPlanet.sid, 30);
+    return computeMahadasha(chart.birthUtc, moonPlanet.sid, 14); // 14 mahadashas from birth-lord forward
   }, [chart, moonPlanet]);
 
   const currentDasha = useMemo(() => findCurrentDasha(dashaTimeline), [dashaTimeline]);
