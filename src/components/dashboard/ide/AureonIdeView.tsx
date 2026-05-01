@@ -191,12 +191,14 @@ const AureonIdeView = () => {
 
   const applyAureonDebuggerFix = useCallback(async (file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) => {
     const ownIssues = issues.filter((i) => i.file === file.name);
-    if (ownIssues.length === 0) return false;
-
     const flat = flattenFiles(filesRefAureon.current);
     const live = flat.find((f) => f.id === file.id || f.name === file.name);
     const current = live?.content ?? file.content;
-    const diagnostic = ownIssues.map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+    // Scan-all mode: with no validator errors we still ask the model to
+    // audit logic across the whole file (bugs, races, edge cases).
+    const diagnostic = ownIssues.length > 0
+      ? ownIssues.map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n")
+      : `[LOGIC AUDIT] No validator errors in ${file.name}. Review the entire file for: latent bugs, race conditions, unhandled errors, off-by-one errors, missing null checks, dead code, security flaws, and broken logic. If the file is already correct, return it UNCHANGED. Only rewrite if you find a real defect.`;
 
     let corrected: string | undefined;
     let lastErr: unknown;
@@ -214,6 +216,8 @@ const AureonIdeView = () => {
         });
         corrected = extractCodeBlock(forced.reply || "").trim();
         if (corrected && corrected !== current.trim()) break;
+        // Scan-all mode: AI confirms the file is already clean — treat as success.
+        if (ownIssues.length === 0) return true;
         return false;
       } catch (e: any) {
         lastErr = e;
@@ -222,7 +226,10 @@ const AureonIdeView = () => {
         await new Promise((r) => setTimeout(r, (2 ** attempt) * 1000 + Math.floor(Math.random() * 600)));
       }
     }
-    if (!corrected || corrected === current.trim()) throw lastErr ?? new Error("No corrected code produced");
+    if (!corrected || corrected === current.trim()) {
+      if (ownIssues.length === 0) return true;
+      throw lastErr ?? new Error("No corrected code produced");
+    }
 
     const updateInTree = (nodes: IdeFile[]): IdeFile[] =>
       nodes.map((n) => {
@@ -271,6 +278,8 @@ const AureonIdeView = () => {
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 6,
         swarmConcurrency: 2,
+        perAgentDelayMs: 1000,
+        scanAllFiles: true,
         shouldPause: () => swarmPausedRef.current,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);

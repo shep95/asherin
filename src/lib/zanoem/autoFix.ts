@@ -42,6 +42,15 @@ interface AutoFixOptions {
   // Max parallel agents (default 6) so we don't slam BYOK provider
   // rate limits when 30 files all break at once.
   swarmConcurrency?: number;
+  // ── QUEUE THROTTLE ─────────────────────────────────────────────
+  // Minimum gap (ms) between agent spawns. Acts as a token-bucket so
+  // we don't fire 30 Gemini calls in the same 100ms window. Default 800ms.
+  perAgentDelayMs?: number;
+  // ── SCAN-ALL MODE ──────────────────────────────────────────────
+  // When true, every file gets an agent each pass (not just files
+  // flagged by the validator). Use this to audit bugs AND logic
+  // across the entire project / zip package.
+  scanAllFiles?: boolean;
   // ── PAUSE / ABORT CONTROLS ─────────────────────────────────────
   // Polled between agents and between passes. If `shouldPause()` returns
   // true, the loop sleeps in 250ms ticks until it returns false. If
@@ -82,6 +91,16 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
     return !!opts.shouldAbort?.();
   };
 
+  // Token-bucket gate so spawns are spaced out across the swarm.
+  const perAgentDelayMs = Math.max(0, opts.perAgentDelayMs ?? 800);
+  let lastSpawnAt = 0;
+  const queueGate = async (): Promise<void> => {
+    if (perAgentDelayMs <= 0) return;
+    const wait = lastSpawnAt + perAgentDelayMs - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastSpawnAt = Date.now();
+  };
+
   for (let pass = 1; pass <= max; pass++) {
     if (await waitWhilePaused()) {
       const finalErrors = collect().length;
@@ -94,7 +113,9 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
       errorCount: errors.length,
       sample: errors.slice(0, 5).map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`),
     });
-    if (errors.length === 0) {
+    // In scan-all mode we keep iterating even with zero validator errors,
+    // because the goal is to audit logic across every file.
+    if (errors.length === 0 && !opts.scanAllFiles) {
       return { passes: pass - 1, finalErrorCount: 0, clean: true, history };
     }
 
@@ -104,21 +125,24 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
       // by `concurrency`), then tear the swarm down at the end of the
       // pass. Each agent owns ONE file end-to-end so failures are
       // isolated.
-      const targets = opts.files()
-        .map((f) => ({ file: f, issues: errors.filter((e) => e.file === f.name) }))
-        .filter((t) => t.issues.length > 0);
+      const allFiles = opts.files();
+      const targets = opts.scanAllFiles
+        ? allFiles.map((f) => ({ file: f, issues: errors.filter((e) => e.file === f.name) }))
+        : allFiles
+            .map((f) => ({ file: f, issues: errors.filter((e) => e.file === f.name) }))
+            .filter((t) => t.issues.length > 0);
 
       let appliedTotal = 0;
-      // Simple pool: kick off `concurrency` workers, each pulls the
-      // next target until the queue drains.
       let cursor = 0;
       const next = () => (cursor < targets.length ? targets[cursor++] : null);
       const worker = async () => {
         while (true) {
-          // Honor pause/abort between agents in the same pass.
           if (await waitWhilePaused()) return;
           const t = next();
           if (!t) return;
+          // Queue gate: throttle spawns so the BYOK API doesn't get flooded.
+          await queueGate();
+          if (await waitWhilePaused()) return;
           const agentId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
             ? crypto.randomUUID()
             : `agent_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -136,6 +160,11 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
         }
       };
       await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => worker()));
+      // In scan-all mode the loop should still terminate when nothing
+      // changed AND no validator errors remain.
+      if (opts.scanAllFiles && appliedTotal === 0 && errors.length === 0) {
+        return { passes: pass, finalErrorCount: 0, clean: true, history };
+      }
       if (appliedTotal > 0) continue;
     }
 
