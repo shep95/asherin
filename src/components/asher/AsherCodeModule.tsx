@@ -24,10 +24,15 @@ import {
   IdeModelRouterBadge,
   AnimatedOrbBackground,
   IdeValidatorBadge,
+  IdeSemanticSearch,
+  IdeProjectGuide,
+  IdeCommandPalette,
+  IdeRecoveryDialog,
   type PlannedChange,
+  type IdeCommand,
 } from "@/components/ide-shared";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -75,6 +80,12 @@ export default function AsherCodeModule() {
   const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
   const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
   const routeDecision = useMemo(() => routeTask(chatInput || "", modelOverride ?? undefined), [chatInput, modelOverride]);
+  const [semanticOpen, setSemanticOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryAge, setRecoveryAge] = useState(0);
+  const [recoverySnap, setRecoverySnap] = useState<AutoSaveSnapshot | null>(null);
 
   useEffect(() => { localStorage.setItem("asherCode.provider", provider); }, [provider]);
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
@@ -169,6 +180,12 @@ export default function AsherCodeModule() {
         e.preventDefault(); setHistoryOpen(true);
       } else if (!e.shiftKey && (e.key === "p" || e.key === "P")) {
         e.preventDefault(); setFuzzyOpen(true);
+      } else if (e.key === "k" || e.key === "K") {
+        e.preventDefault(); setPaletteOpen(true);
+      } else if (e.shiftKey && (e.key === "F" || e.key === "f")) {
+        e.preventDefault(); setSemanticOpen(true);
+      } else if (e.key === "g" || e.key === "G") {
+        e.preventDefault(); setGuideOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -192,6 +209,25 @@ export default function AsherCodeModule() {
     }, 1500);
     return () => clearTimeout(t);
   }, [activeContent, activeFile, activeProject]);
+
+  // Pain Point #6/#12: 30s autosave loop + crash-recovery check on project open.
+  useEffect(() => {
+    if (!activeProject) return;
+    const sid = `asher::${activeProject.id}`;
+    // Recovery check: only prompt if snapshot newer than 60s and we haven't shown yet
+    const snap = readAutoSave(sid);
+    const age = getAutoSaveAge(sid);
+    if (snap && age != null && age < 24 * 3600_000 && snap.files.length > 0) {
+      setRecoverySnap(snap); setRecoveryAge(age); setRecoveryOpen(true);
+    }
+    const dispose = startAutoSaveLoop(sid, () => ({
+      files: files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content, language: f.language })),
+      activeFileId,
+      savedAt: Date.now(),
+    }));
+    return dispose;
+  }, [activeProject?.id]);
+
 
   // Scaffold from natural-language template launcher
   async function handleScaffold(result: { kind: string; name: string; files: { path: string; content: string; language: string }[]; primary: string }) {
@@ -976,6 +1012,47 @@ export default function AsherCodeModule() {
           onCancel={() => { approval.resolve(false); setApproval(null); }}
         />
       )}
+      <IdeSemanticSearch
+        open={semanticOpen}
+        files={files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content }))}
+        onClose={() => setSemanticOpen(false)}
+        onJump={(fileId) => { if (!openTabs.includes(fileId)) setOpenTabs(t => [...t, fileId]); setActiveFileId(fileId); }}
+      />
+      <IdeProjectGuide
+        open={guideOpen}
+        files={files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content, language: f.language }))}
+        onClose={() => setGuideOpen(false)}
+      />
+      <IdeCommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        commands={[
+          { id: "save", label: "Save All", shortcut: "Ctrl+S", keywords: ["save", "write", "persist"], run: () => void saveAll() },
+          { id: "fuzzy", label: "Go to File", shortcut: "Ctrl+P", keywords: ["open", "find file", "fuzzy"], run: () => setFuzzyOpen(true) },
+          { id: "semantic", label: "Semantic Search", shortcut: "Ctrl+Shift+F", keywords: ["search", "find", "where"], run: () => setSemanticOpen(true) },
+          { id: "guide", label: "Project Guide — what to work on", shortcut: "Ctrl+G", keywords: ["next", "task", "todo", "guide"], run: () => setGuideOpen(true) },
+          { id: "history", label: "Version History (time machine)", shortcut: "Ctrl+Shift+H", keywords: ["history", "undo", "restore"], run: () => setHistoryOpen(true) },
+          { id: "template", label: "Scaffold from natural language", shortcut: "Ctrl+Shift+P", keywords: ["new", "create", "template", "component"], run: () => setTemplateOpen(true) },
+          { id: "bug", label: "Bug Doctor — explain last error", keywords: ["error", "fix", "debug", "bug"], run: () => { setBugDoctorMsg(""); setBugDoctorOpen(true); } },
+          { id: "preview", label: "Run Preview", keywords: ["run", "preview", "play"], run: () => runPreview() },
+          { id: "settings", label: "Open Settings", keywords: ["config", "settings", "byok", "key"], run: () => setShowSettings(true) },
+        ]}
+      />
+      <IdeRecoveryDialog
+        open={recoveryOpen}
+        ageMs={recoveryAge}
+        fileCount={recoverySnap?.files.length ?? 0}
+        onDiscard={() => { if (activeProject) clearAutoSave(`asher::${activeProject.id}`); setRecoveryOpen(false); }}
+        onRestore={() => {
+          if (!recoverySnap) return setRecoveryOpen(false);
+          const map: Record<string, string> = {};
+          for (const f of recoverySnap.files) map[f.id] = f.content;
+          setDirty(map);
+          if (recoverySnap.activeFileId) setActiveFileId(recoverySnap.activeFileId);
+          setRecoveryOpen(false);
+          toast.success("Restored auto-saved work");
+        }}
+      />
     </div>
   );
 }
