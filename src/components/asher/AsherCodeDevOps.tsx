@@ -9,9 +9,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X, Camera, GitCompare, Activity, Smartphone, Rocket, GitBranch, ListChecks,
   Bug, Package as PkgIcon, PlayCircle, CheckCircle2, AlertTriangle, Clock,
-  RefreshCw, Trash2, Plus, Loader2,
+  RefreshCw, Trash2, Plus, Loader2, ShieldAlert, Bot,
 } from "lucide-react";
 import { toast } from "sonner";
+import AsherCodeZerlal from "./AsherCodeZerlal";
+import AsherCodeAgents from "./AsherCodeAgents";
 
 interface Props {
   projectId: string;
@@ -21,9 +23,11 @@ interface Props {
 }
 
 type DevTab =
-  | "visual" | "perf" | "mobile" | "deploy" | "ci" | "workflows" | "problems" | "packages";
+  | "zerlal" | "agents" | "visual" | "perf" | "mobile" | "deploy" | "ci" | "workflows" | "problems" | "packages";
 
 const TABS: { id: DevTab; label: string; icon: any }[] = [
+  { id: "zerlal",    label: "ZERLAL",            icon: ShieldAlert },
+  { id: "agents",    label: "Agents",            icon: Bot },
   { id: "visual",    label: "Visual Regression", icon: GitCompare },
   { id: "perf",      label: "Profiler",          icon: Activity },
   { id: "mobile",    label: "Mobile Preview",    icon: Smartphone },
@@ -35,10 +39,10 @@ const TABS: { id: DevTab; label: string; icon: any }[] = [
 ];
 
 export default function AsherCodeDevOps({ projectId, previewIframe, onClose, files }: Props) {
-  const [tab, setTab] = useState<DevTab>("visual");
+  const [tab, setTab] = useState<DevTab>("zerlal");
 
   return (
-    <div className="border-t border-border/15 bg-card/30 backdrop-blur-md flex flex-col h-64 sm:h-72 lg:h-80 flex-shrink-0">
+    <div className="border-t border-border/15 bg-card/30 backdrop-blur-md flex flex-col h-80 sm:h-96 lg:h-[28rem] xl:h-[32rem] flex-shrink-0 resize-y overflow-hidden min-h-[16rem] max-h-[80vh]">
       <div className="flex items-center justify-between border-b border-border/15 px-2">
         <div className="flex overflow-x-auto">
           {TABS.map(t => {
@@ -63,6 +67,8 @@ export default function AsherCodeDevOps({ projectId, previewIframe, onClose, fil
       </div>
 
       <div className="flex-1 overflow-auto">
+        {tab === "zerlal"    && <AsherCodeZerlal projectId={projectId} files={files} />}
+        {tab === "agents"    && <AsherCodeAgents projectId={projectId} files={files} />}
         {tab === "visual"    && <VisualRegression projectId={projectId} iframe={previewIframe} />}
         {tab === "perf"      && <PerformancePanel iframe={previewIframe} />}
         {tab === "mobile"    && <MobilePreviewPanel iframe={previewIframe} />}
