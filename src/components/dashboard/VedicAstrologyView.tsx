@@ -745,6 +745,15 @@ const VedicAstrologyView = () => {
         </div>
         )}
 
+        {tab === "mine" && showCompat && chart && (
+          <CompatibilityPanel
+            baseChart={chart}
+            baseLabel={activeName || `Chart · ${birthDate} ${birthTime}`}
+            savedCharts={savedCharts}
+            onClose={() => setShowCompat(false)}
+          />
+        )}
+
         {chart && (
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
             <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4 flex justify-center">
