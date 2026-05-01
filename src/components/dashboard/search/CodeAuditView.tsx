@@ -1,13 +1,15 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
   Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
   Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye, FileArchive, KeyRound,
+  Download, FileText, FileJson, FileSpreadsheet, GitBranch, History,
 } from "lucide-react";
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok, isIntelMapByokEnabled } from "@/lib/intelMapByok";
 import IntelMapByokPanel from "./IntelMapByokPanel";
+import { exportCSV, exportJSON, exportPDF } from "@/lib/exportEngine";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -65,6 +67,9 @@ const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|covera
 
 type ScanDepth = "quick" | "standard" | "deep";
 type ScanCategory = "injection" | "auth" | "crypto" | "deps" | "secrets" | "logic";
+type InputMode = "zip" | "github" | "paste";
+type ZerlalPage = "scan" | "history" | "compliance" | "patterns";
+type ScanHistoryEntry = { id: string; target: string; risk: number; files: number; timestamp: string; critical: number; high: number; medium: number; low: number };
 const ALL_CATEGORIES: { id: ScanCategory; label: string }[] = [
   { id: "injection", label: "Injection" },
   { id: "auth", label: "Auth/Session" },
