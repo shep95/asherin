@@ -5,6 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
+  History, Stethoscope,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
@@ -14,6 +15,16 @@ import { ASHER_CODE_PROVIDERS, type AsherCodeProject, type AsherCodeFile } from 
 import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, type CallAsherCodeResult } from "@/lib/asherCode/aiClient";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
+import {
+  IdeHistoryPanel,
+  IdeErrorExplainer,
+  IdeTemplateLauncher,
+  IdeFuzzyFinder,
+  IdeApprovalGate,
+  IdeModelRouterBadge,
+  type PlannedChange,
+} from "@/components/ide-shared";
+import { snapshotIfChanged, routeTask, type IdeModelId } from "@/lib/ide";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
