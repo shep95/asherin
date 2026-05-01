@@ -558,26 +558,55 @@ const VedicAstrologyView = () => {
                 <Calendar className="h-4 w-4 text-foreground/70" />
                 <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Vimshottari Timeline</h3>
               </div>
-              {currentDasha.maha && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Current: {currentDasha.maha.lord}/{currentDasha.antar?.lord ?? "—"}</span>}
+              {currentDasha.maha && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {[currentDasha.maha?.lord, currentDasha.antar?.lord, currentDasha.pratyantar?.lord, currentDasha.sookshma?.lord, currentDasha.prana?.lord].filter(Boolean).join(" / ")}
+                </span>
+              )}
             </div>
-            <div className="space-y-2">
-              {dashaTimeline.map((period) => (
-                <div key={`${period.lord}-${period.start.toISOString()}`} className={`rounded-lg border p-3 ${period.isCurrent ? "border-foreground/40 bg-foreground/[0.045]" : "border-border/20 bg-background/25"}`}>
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="text-sm text-foreground/85 font-light">{period.lord} Mahadasha</div>
-                    <div className="text-[11px] text-muted-foreground tabular-nums">{fmtDate(period.start)} → {fmtDate(period.end)} · {period.years.toFixed(2)} yrs</div>
-                  </div>
-                  {period.isCurrent && (
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                      {period.antardashas.map((antar) => (
-                        <div key={`${period.lord}-${antar.lord}`} className={`rounded border px-2 py-1 text-[10px] ${antar.isCurrent ? "border-foreground/35 text-foreground bg-foreground/[0.04]" : "border-border/20 text-muted-foreground"}`}>
-                          {period.lord}/{antar.lord}: {fmtDate(antar.start)} → {fmtDate(antar.end)}
-                        </div>
-                      ))}
+
+            {/* Active drill-down: Maha → Antar → Pratyantar → Sookshma → Prana */}
+            {currentDasha.maha && (
+              <div className="rounded-lg border border-foreground/25 bg-foreground/[0.035] p-3 space-y-2">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">Active Period</div>
+                {([
+                  ["maha", currentDasha.maha],
+                  ["antar", currentDasha.antar],
+                  ["pratyantar", currentDasha.pratyantar],
+                  ["sookshma", currentDasha.sookshma],
+                  ["prana", currentDasha.prana],
+                ] as const).map(([lvl, p]) =>
+                  p ? (
+                    <div key={lvl} className="flex items-center justify-between gap-3 flex-wrap text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground/70 w-32 inline-block tracking-wider uppercase text-[9px]">{DASHA_LEVEL_LABEL[lvl]}</span>
+                        <span className="text-foreground/90 font-light">{p.lord}</span>
+                      </div>
+                      <div className="text-muted-foreground tabular-nums">
+                        {(lvl === "sookshma" || lvl === "prana") ? fmtDateTime(p.start) : fmtDate(p.start)} → {(lvl === "sookshma" || lvl === "prana") ? fmtDateTime(p.end) : fmtDate(p.end)} · {fmtDuration(p.years)}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  ) : null
+                )}
+              </div>
+            )}
+
+            {/* 14 Mahadashas with on-demand drill-down */}
+            <div className="space-y-2">
+              {dashaTimeline.map((period) => {
+                const key = `M:${period.lord}:${period.start.toISOString()}`;
+                const isOpen = expandedDasha[key] ?? period.isCurrent;
+                return (
+                  <DashaNode
+                    key={key}
+                    period={period}
+                    expandedKey={key}
+                    expandedMap={expandedDasha}
+                    setExpandedMap={setExpandedDasha}
+                    isOpen={isOpen}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
