@@ -125,21 +125,24 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
       // by `concurrency`), then tear the swarm down at the end of the
       // pass. Each agent owns ONE file end-to-end so failures are
       // isolated.
-      const targets = opts.files()
-        .map((f) => ({ file: f, issues: errors.filter((e) => e.file === f.name) }))
-        .filter((t) => t.issues.length > 0);
+      const allFiles = opts.files();
+      const targets = opts.scanAllFiles
+        ? allFiles.map((f) => ({ file: f, issues: errors.filter((e) => e.file === f.name) }))
+        : allFiles
+            .map((f) => ({ file: f, issues: errors.filter((e) => e.file === f.name) }))
+            .filter((t) => t.issues.length > 0);
 
       let appliedTotal = 0;
-      // Simple pool: kick off `concurrency` workers, each pulls the
-      // next target until the queue drains.
       let cursor = 0;
       const next = () => (cursor < targets.length ? targets[cursor++] : null);
       const worker = async () => {
         while (true) {
-          // Honor pause/abort between agents in the same pass.
           if (await waitWhilePaused()) return;
           const t = next();
           if (!t) return;
+          // Queue gate: throttle spawns so the BYOK API doesn't get flooded.
+          await queueGate();
+          if (await waitWhilePaused()) return;
           const agentId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
             ? crypto.randomUUID()
             : `agent_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -157,6 +160,11 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
         }
       };
       await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => worker()));
+      // In scan-all mode the loop should still terminate when nothing
+      // changed AND no validator errors remain.
+      if (opts.scanAllFiles && appliedTotal === 0 && errors.length === 0) {
+        return { passes: pass, finalErrorCount: 0, clean: true, history };
+      }
       if (appliedTotal > 0) continue;
     }
 
