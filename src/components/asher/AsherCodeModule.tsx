@@ -324,7 +324,7 @@ export default function AsherCodeModule() {
           await sendZanoemTurnRef.current(prompt);
         },
         maxPasses: 6,
-        swarmConcurrency: 6,
+        swarmConcurrency: 2,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
           agentFileRef.current.set(a.id, a.file);
