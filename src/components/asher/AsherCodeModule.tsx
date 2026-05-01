@@ -50,7 +50,7 @@ export default function AsherCodeModule() {
   const [showPublish, setShowPublish] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [chat, setChat] = useState<ChatMsg[]>([]);
-  const [chatInput, setChatInput] = useState("");
+  const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
