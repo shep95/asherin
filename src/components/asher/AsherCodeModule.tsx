@@ -731,7 +731,35 @@ try {
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`
       : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}${autoMount}</body></html>`;
+    // Shim: expose React hooks + common Next.js / framework imports as globals so that
+    // stripped `import { useState } from 'react'` / `import { useRouter } from 'next/router'`
+    // statements don't leave undefined identifiers behind. Also captures any Babel compile
+    // errors and surfaces them inside the iframe body (otherwise they're silently swallowed
+    // by the iframe console and the user sees only a white screen).
+    const shim = hasReact ? `<script>
+(function(){
+  try {
+    var R = window.React || {};
+    ['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){ if (R[k] && typeof window[k]==='undefined') window[k]=R[k]; });
+    if (window.ReactDOM && typeof window.createRoot==='undefined') window.createRoot = window.ReactDOM.createRoot;
+    // Next.js stubs
+    if (typeof window.useRouter==='undefined') window.useRouter = function(){ return { push:function(){}, replace:function(){}, back:function(){}, query:{}, pathname:'/', asPath:'/' }; };
+    if (typeof window.dynamic==='undefined') window.dynamic = function(loader){ return function(){ return null; }; };
+    // react-hot-toast stub
+    if (typeof window.toast==='undefined') { var t=function(m){ console.log('[toast]',m); }; t.success=t; t.error=t; t.loading=t; t.dismiss=function(){}; window.toast=t; }
+    // Common auth context stub — overridden if user defines their own
+    if (typeof window.useAuth==='undefined') window.useAuth = function(){ return { user:null, loading:false, signIn:function(){}, signOut:function(){} }; };
+  } catch(e){}
+})();
+window.addEventListener('error', function(ev){
+  var msg = (ev && ev.error && ev.error.stack) ? ev.error.stack : (ev && ev.message ? ev.message : String(ev));
+  var pre = document.createElement('pre');
+  pre.style.cssText='color:#f88;background:#1a0a0a;font-family:ui-monospace,monospace;padding:1rem;white-space:pre-wrap;font-size:12px;margin:0';
+  pre.textContent='Preview error: '+msg;
+  document.body.appendChild(pre);
+});
+</script>` : "";
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}${shim}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}${autoMount}</body></html>`;
   }, [files, dirty]);
 
   function runPreview() { setPreviewKey(k => k + 1); }
