@@ -276,11 +276,18 @@ const AureonIdeView = () => {
         files: collectFlat,
         applyFileFix: applyAureonDebuggerFix,
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
-        maxPasses: 6,
+        maxPasses: 20,
         swarmConcurrency: 2,
         perAgentDelayMs: 1000,
         scanAllFiles: true,
         shouldPause: () => swarmPausedRef.current,
+        onPassComplete: (pass, remaining, applied) => {
+          if (remaining > 0) {
+            toast({ title: `◈ Pass ${pass} complete`, description: `${remaining} issue(s) remain — swarm re-engaging (${applied} fix(es) applied)` });
+          } else {
+            toast({ title: "◉ Codebase clean", description: `No red lines remaining after ${pass} pass(es)` });
+          }
+        },
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
           agentFileRef.current.set(a.id, a.file);

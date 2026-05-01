@@ -328,11 +328,20 @@ export default function AsherCodeModule() {
           if (!sendZanoemTurnRef.current) throw new Error("Auto-fix dispatcher is not ready");
           await sendZanoemTurnRef.current(prompt);
         },
-        maxPasses: 6,
+        maxPasses: 20,
         swarmConcurrency: 2,
         perAgentDelayMs: 1000,
         scanAllFiles: true,
         shouldPause: () => swarmPausedRef.current,
+        onPassComplete: (pass, remaining, applied) => {
+          if (remaining > 0) {
+            toast.message(`◈ Pass ${pass} complete — ${remaining} issue(s) remain, swarm re-engaging…`, {
+              description: `${applied} fix(es) applied this pass`,
+            });
+          } else {
+            toast.success(`◉ Codebase clean after ${pass} pass(es) — no red lines remaining`);
+          }
+        },
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
           agentFileRef.current.set(a.id, a.file);
