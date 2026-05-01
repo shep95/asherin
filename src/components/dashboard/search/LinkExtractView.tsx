@@ -62,6 +62,9 @@ const toLeafValue = (value: unknown): string => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const getErrorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
+
 const normalizeSubdomainBlueprint = (raw: unknown, host: string): Blueprint | null => {
   if (!isRecord(raw)) return null;
   if (Array.isArray(raw.branches) && raw.branches.length > 0) return raw as unknown as Blueprint;
@@ -122,9 +125,9 @@ const LinkExtractView = () => {
       const normalized = normalizeSubdomainBlueprint(data?.blueprint, host);
       if (!normalized?.branches?.length) throw new Error("No branch intelligence returned");
       setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: normalized } }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[subdomain] failed", host, err);
-      setSubStates((s) => ({ ...s, [host]: { loading: false, error: err.message || "Failed to extract" } }));
+      setSubStates((s) => ({ ...s, [host]: { loading: false, error: getErrorMessage(err, "Failed to extract") } }));
     }
   }, []);
 
@@ -159,8 +162,8 @@ const LinkExtractView = () => {
       if (data.error) throw new Error(data.error);
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
       setBlueprint(data.blueprint as Blueprint);
-    } catch (err: any) {
-      setError(err.message || "Failed to extract blueprint");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to extract blueprint"));
     } finally {
       setExtracting(false);
     }
