@@ -609,25 +609,7 @@ serve(async (req) => {
     const maxTokens = mode === "inline" ? 256 : 4096;
     const runtimeSystem = buildSystemPrompt(payload);
 
-    // ── Final global token-budget guard ──
-    // Even after per-section caps, defend against pathological payloads
-    // (e.g. 50 brain files × 20k chars). Trim oldest user/assistant turns
-    // first, then truncate the system prompt as a last resort.
-    const totalChars = (s: string) => s.length;
-    let totalSize = totalChars(runtimeSystem) + messages.reduce((n, m) => n + totalChars(m.content), 0);
-    let trimmedSystem = runtimeSystem;
-    const trimmedMessages = [...messages];
-    while (totalSize > MAX_TOTAL_INPUT_CHARS && trimmedMessages.length > 1) {
-      // Drop the oldest non-final message (preserve last user turn — that's the actual request)
-      const dropped = trimmedMessages.shift()!;
-      totalSize -= totalChars(dropped.content);
-    }
-    if (totalSize > MAX_TOTAL_INPUT_CHARS) {
-      // Hard truncate system prompt tail (keeps the AUREON CODE base directives intact at the head)
-      const overflow = totalSize - MAX_TOTAL_INPUT_CHARS;
-      trimmedSystem = trimmedSystem.slice(0, Math.max(8000, trimmedSystem.length - overflow - 1000)) +
-        "\n\n[…context truncated to fit token budget…]";
-    }
+    const { system: trimmedSystem, messages: trimmedMessages } = clampPayload(runtimeSystem, messages);
 
     try {
       const reply = await dispatch(providerCall, trimmedMessages, trimmedSystem, maxTokens);
