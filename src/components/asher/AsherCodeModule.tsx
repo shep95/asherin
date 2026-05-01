@@ -132,6 +132,63 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
+  // ── Vision + auto-fix + offline queue (autonomous loops) ──
+  // Keep refs to "latest" state so the queue handlers (which run outside React)
+  // always see fresh data, even if the user closes the tab and reopens later.
+  const filesRef = useRef(files);
+  const activeProjectRef = useRef(activeProject);
+  const previewRefForVision = previewRef;
+  const autopilotZanoemRef = useRef(autopilotZanoem);
+  const lastIntentRef = useRef<string>("");
+  const lastAssistantRef = useRef<string>("");
+  const autopilotEnqueueGuardRef = useRef(false);
+  useEffect(() => { filesRef.current = files; }, [files]);
+  useEffect(() => { activeProjectRef.current = activeProject; }, [activeProject]);
+  useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
+
+  // We need a stable way for the queue worker to "send a ZANOEM turn".
+  // sendChatViaZanoem isn't defined yet (declared further down), so route
+  // through a ref that we update in a later effect.
+  const sendZanoemTurnRef = useRef<((prompt: string) => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    // Register handlers ONCE per mount.
+    zqRegister("vision", async (job: QueuedJob<{ intent: string; recentAssistant: string; projectRef?: string }>) => {
+      if (!autopilotZanoemRef.current) return;       // user turned autopilot off → skip
+      const verdict = await verifyUiMatchesIntent({
+        intent: job.payload.intent,
+        recentAssistant: job.payload.recentAssistant,
+        iframe: previewRefForVision.current,
+      });
+      if (!verdict.matches && verdict.suggestedFixPrompt && sendZanoemTurnRef.current) {
+        toast.message("ZANOEM Vision: UI mismatch detected — auto-fixing", {
+          description: verdict.mismatches.slice(0, 2).join(" • ") || "patching UI",
+        });
+        await sendZanoemTurnRef.current(verdict.suggestedFixPrompt);
+      }
+    });
+
+    zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
+      if (!autopilotZanoemRef.current) return;
+      const result = await autoFixUntilClean({
+        files: () => filesRef.current.map<AutoFixFile>((f) => ({
+          id: f.id, name: f.path || f.name || "file", content: f.content, language: f.language,
+        })),
+        runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
+        maxPasses: 6,
+        onProgress: (pass, n) => {
+          if (n > 0) toast.message(`ZANOEM Auto-Fix pass ${pass}: ${n} error${n === 1 ? "" : "s"}`);
+        },
+      });
+      if (result.clean) toast.success(`ZANOEM Auto-Fix: clean (${result.passes} pass${result.passes === 1 ? "" : "es"})`);
+      else toast.warning(`ZANOEM Auto-Fix stopped: ${result.finalErrorCount} error(s) remain after ${result.passes} pass(es)`);
+    });
+
+    zqStart({ intervalMs: 2000 });
+    // No teardown — the queue is process-wide & must outlive component unmount
+    // so jobs continue draining if the user navigates between IDE tabs.
+  }, [previewRefForVision]);
+
   // ── Draft persistence: survives reloads, crashes, lost wifi ──
   // Keyed by active project (falls back to a global slot before a project is open).
   const draftKey = activeProject ? `asherCode.draft.${activeProject.id}` : "asherCode.draft.__global__";
