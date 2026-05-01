@@ -101,6 +101,11 @@ const AsherZaliModule = () => {
   const [chatMode, setChatMode] = useState<ChatMode>("chat");
   const [chatDepth, setChatDepth] = useState<ResponseDepth>("standard");
   const abortRef = useRef<AbortController | null>(null);
+  const [autopilot, setAutopilot] = useState(() => localStorage.getItem("asherZanoem.autopilot") === "1");
+  const autopilotRoundsRef = useRef(0);
+  const wasStreamingRef = useRef(false);
+  const AUTOPILOT_MAX_ROUNDS = 6;
+  useEffect(() => { localStorage.setItem("asherZanoem.autopilot", autopilot ? "1" : "0"); }, [autopilot]);
   const [autoBuildModel, setAutoBuildModel] = useState(false);
   const [modelPrompt, setModelPrompt] = useState("");
   const [codeFiles, setCodeFiles] = useState<Array<{ filename: string; language: string; content: string }>>([]);
