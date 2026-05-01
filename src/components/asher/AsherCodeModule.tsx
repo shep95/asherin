@@ -463,7 +463,10 @@ export default function AsherCodeModule() {
     setAiBusy(true);
     try {
       const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err });
-      setChat(c => [...c, { role: "user", content: `Fix: ${err}` }, { role: "assistant", content: r.reply || "" }]);
+      const u: ChatMsg = { role: "user", content: `Fix: ${err}` };
+      const a: ChatMsg = { role: "assistant", content: r.reply || "" };
+      setChat(c => [...c, u, a]);
+      void persistChatMessages([u, a]);
       const fixed = extractCodeBlock(r.reply || "");
       if (fixed) {
         if (autoApprove || confirm("Replace file content with fixed version?")) {
