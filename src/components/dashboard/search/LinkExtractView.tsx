@@ -4,6 +4,7 @@ import {
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
   Copy, Check, ChevronRight, ChevronDown,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 
@@ -24,7 +25,7 @@ interface Blueprint {
 
 type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
 
-const ICONS: Record<string, any> = {
+const ICONS: Record<string, LucideIcon> = {
   globe: Globe, server: Server, cpu: Cpu, shield: Shield,
   plug: Plug, network: Network, building: Building2,
 };
@@ -37,6 +38,70 @@ const TONE_STYLES: Record<Tone, { ring: string; dot: string; text: string; glow:
 };
 
 const URL_REGEX = /^https?:\/\/[^\s]+$/i;
+
+const SUBDOMAIN_BRANCH_META: Record<string, Pick<Branch, "label" | "icon" | "tone">> = {
+  domain: { label: "DOMAIN & DNS", icon: "globe", tone: "neutral" },
+  hosting: { label: "HOSTING & CDN", icon: "server", tone: "good" },
+  stack: { label: "TECH STACK", icon: "cpu", tone: "neutral" },
+  security: { label: "SECURITY POSTURE", icon: "shield", tone: "warn" },
+  thirdparty: { label: "THIRD-PARTY", icon: "plug", tone: "neutral" },
+  network: { label: "NETWORK TOPOLOGY", icon: "network", tone: "neutral" },
+  org: { label: "ORG INTEL", icon: "building", tone: "neutral" },
+};
+
+const toTitle = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+
+const toLeafValue = (value: unknown): string => {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null || value === undefined || value === "") return "Unknown";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const getErrorMessage = (err: unknown, fallback: string) =>
+  err instanceof Error ? err.message : fallback;
+
+const normalizeSubdomainBlueprint = (raw: unknown, host: string): Blueprint | null => {
+  if (!isRecord(raw)) return null;
+  if (Array.isArray(raw.branches) && raw.branches.length > 0) return raw as unknown as Blueprint;
+
+  const branches = Object.entries(SUBDOMAIN_BRANCH_META)
+    .map(([id, meta]) => {
+      const section = raw[id];
+      if (!isRecord(section)) return null;
+      const leaves = Object.entries(section)
+        .filter(([key]) => key !== "subdomains")
+        .slice(0, 8)
+        .map(([key, value]) => ({
+          label: toTitle(key),
+          value: toLeafValue(value),
+          confidence: /unknown|likely|inferred/i.test(toLeafValue(value)) ? "med" : "high",
+        })) as Leaf[];
+
+      return leaves.length > 0 ? { id, ...meta, leaves } : null;
+    })
+    .filter(Boolean) as Branch[];
+
+  if (!branches.length) return null;
+
+  return {
+    target: typeof raw.target === "string" ? raw.target : isRecord(raw.domain) && typeof raw.domain.name === "string" ? raw.domain.name : host,
+    summary: typeof raw.summary === "string" ? raw.summary : `Branch intelligence mapped for ${isRecord(raw.domain) && typeof raw.domain.name === "string" ? raw.domain.name : host}.`,
+    score: isRecord(raw.score) ? raw.score as Blueprint["score"] : undefined,
+    branches,
+    edges: Array.isArray(raw.edges) ? raw.edges as Edge[] : [
+      { from: "domain", to: "hosting", label: "resolves" },
+      { from: "hosting", to: "stack", label: "serves" },
+      { from: "stack", to: "security", label: "exposes" },
+      { from: "stack", to: "thirdparty", label: "loads" },
+    ],
+    criticals: Array.isArray(raw.criticals) ? raw.criticals as Critical[] : [],
+  };
+};
 
 const LinkExtractView = () => {
   const [url, setUrl] = useState("");
@@ -57,11 +122,12 @@ const LinkExtractView = () => {
       console.log("[subdomain]", host, { invokeError, data });
       if (invokeError) throw new Error(invokeError.message || String(invokeError));
       if (data?.error) throw new Error(data.error);
-      if (!data?.blueprint?.branches?.length) throw new Error("Empty blueprint returned");
-      setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: data.blueprint as Blueprint } }));
-    } catch (err: any) {
+      const normalized = normalizeSubdomainBlueprint(data?.blueprint, host);
+      if (!normalized?.branches?.length) throw new Error("No branch intelligence returned");
+      setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: normalized } }));
+    } catch (err: unknown) {
       console.error("[subdomain] failed", host, err);
-      setSubStates((s) => ({ ...s, [host]: { loading: false, error: err.message || "Failed to extract" } }));
+      setSubStates((s) => ({ ...s, [host]: { loading: false, error: getErrorMessage(err, "Failed to extract") } }));
     }
   }, []);
 
@@ -96,8 +162,8 @@ const LinkExtractView = () => {
       if (data.error) throw new Error(data.error);
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
       setBlueprint(data.blueprint as Blueprint);
-    } catch (err: any) {
-      setError(err.message || "Failed to extract blueprint");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to extract blueprint"));
     } finally {
       setExtracting(false);
     }
@@ -462,7 +528,7 @@ const SubdomainRow = ({
   const handleToggle = () => {
     const next = !open;
     setOpen(next);
-    if (next && !state) onFetch();
+    if (next && (!state || state.error)) onFetch();
   };
 
   return (
