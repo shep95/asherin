@@ -143,8 +143,12 @@ export async function explainError(message: string, contextCode?: string): Promi
         correctedCode: corrected && corrected !== contextCode?.trim() ? corrected : undefined,
       };
     }
-  } catch {
-    // ignore — fall through to generic
+  } catch (e: any) {
+    const msg = String(e?.message || e || "");
+    // Re-throw rate-limit / quota errors so the swarm can back off and retry.
+    if (/429|rate.?limit|quota|too.?many.?requests/i.test(msg)) throw e;
+    // Other errors → fall through to local/generic explanation.
+    console.warn("[explainError] AI fallback failed:", msg);
   }
 
   if (local) return local;
