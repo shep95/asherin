@@ -259,11 +259,18 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
                   ) : msg.role === "assistant" ? (
                     (() => {
                       const { cleanContent, options } = parseQuestionOptions(msg.content);
+                      const { text: stripped, codeCount } = stripCodeBlocks(cleanContent);
                       const isLastAssistant = msg === lastMsg && !isStreaming;
                       return (
                         <>
-                          <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_p]:text-xs [&_p]:font-light [&_p]:leading-relaxed [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_li]:text-xs [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-secondary/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_table]:text-[10px] [&_th]:text-[10px] [&_td]:text-[10px]">
-                            <ReactMarkdown components={markdownComponents}>{cleanContent}</ReactMarkdown>
+                          <div className="prose prose-sm prose-invert max-w-none overflow-hidden [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1.5 [&_p]:text-xs [&_p]:font-light [&_p]:leading-relaxed [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_li]:text-xs [&_code]:text-accent [&_code]:bg-secondary/50 [&_code]:px-1 [&_code]:rounded [&_blockquote]:border-accent/50 [&_blockquote]:text-muted-foreground [&_strong]:text-foreground [&_hr]:border-border/30 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_table]:text-[10px] [&_th]:text-[10px] [&_td]:text-[10px]">
+                            <ReactMarkdown components={markdownComponents}>{stripped || (codeCount > 0 ? "_Code generated._" : "")}</ReactMarkdown>
+                            {codeCount > 0 && (
+                              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-accent/25 bg-accent/10 text-accent text-[10px] font-light tracking-wide">
+                                <FileCode2 className="h-3 w-3" />
+                                <span>{codeCount} code block{codeCount > 1 ? "s" : ""} → workspace</span>
+                              </div>
+                            )}
                             {isStreaming && msg === lastMsg && (
                               <span className="inline-block w-0.5 h-4 bg-foreground/60 animate-pulse ml-0.5 align-text-bottom" />
                             )}
@@ -278,26 +285,12 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
                     <UserMessageContent content={msg.content} />
                   )}
                 </div>
-                {/* Action bar */}
+                {/* Action bar — copy only */}
                 {msg.content && !isStreaming && (
-                  <div className="flex items-center gap-2 mt-1.5 px-1 flex-wrap animate-fade-in">
+                  <div className="flex items-center gap-2 mt-1.5 px-1 animate-fade-in">
                     <MessageCopyButton text={msg.content} />
-                    {msg.role === "assistant" && (
-                      <>
-                        <TruthScore score="medium" />
-                        <button
-                          onClick={() => setDecodeId(decodeId === msg.id ? null : msg.id)}
-                          className="flex items-center gap-1 text-[10px] font-light text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                        >
-                          <Eye className="h-3 w-3" />
-                          Decode
-                        </button>
-                        <CalibrationFeedback messageId={msg.id} onFeedback={onCalibrationFeedback ?? (() => {})} />
-                      </>
-                    )}
                   </div>
                 )}
-                {msg.role === "assistant" && decodeId === msg.id && <DecodeView open={true} content={msg.content} />}
               </div>
             </div>
           ))}
