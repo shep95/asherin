@@ -214,6 +214,16 @@ const ZophielFree = () => {
           </div>
         </section>
       )}
+
+      {/* Disclaimer footer */}
+      <footer className="relative z-10 border-t border-border/20 bg-gradient-to-r from-background/60 via-card/40 to-background/60 backdrop-blur-xl px-4 py-3">
+        <div className="mx-auto max-w-5xl flex items-center justify-center gap-2 text-center">
+          <AlertOctagon className="h-3.5 w-3.5 text-foreground/70 shrink-0" />
+          <p className="text-[10px] sm:text-xs font-light tracking-wide text-foreground/80">
+            <span className="font-medium text-foreground">#HouseOfAsher</span> and its assets are not responsible for your use of Aureon. I'm tired of seeing cease-and-desist letters in my mail — knock it off.
+          </p>
+        </div>
+      </footer>
     </LandingBackground>
   );
 };
