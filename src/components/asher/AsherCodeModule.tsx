@@ -840,13 +840,29 @@ export default function AsherCodeModule() {
       ? `<script>
 try {
   const __el = document.getElementById('root') || document.getElementById('app');
-  if (__el && (window.${mountTarget} || typeof ${mountTarget} !== 'undefined')) {
-    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(window.${mountTarget} || ${mountTarget})); }
-    else { ReactDOM.render(React.createElement(window.${mountTarget} || ${mountTarget}), __el); }
+  // Resolve mount target: prefer explicit name, then any PascalCase function/class on window
+  // that looks like a React component (covers cases where the strip/regex missed it).
+  function __resolveComponent(){
+    if (window.${mountTarget}) return window.${mountTarget};
+    try { if (typeof ${mountTarget} !== 'undefined') return ${mountTarget}; } catch(e){}
+    var keys = Object.keys(window).filter(function(k){
+      if (!/^[A-Z][A-Za-z0-9_]*$/.test(k)) return false;
+      var v = window[k];
+      if (typeof v !== 'function') return false;
+      // Skip built-ins and known globals
+      if (['React','ReactDOM','Babel','Object','Array','String','Number','Boolean','Function','Error','Date','RegExp','Map','Set','Promise','Symbol','Proxy','Reflect','JSON','Math','URL','URLSearchParams','FormData','Blob','File','FileReader','Image','Audio','Video','Worker','WebSocket','XMLHttpRequest','Event','CustomEvent','Element','HTMLElement','Node','Document','Window','Navigator','Location','History','Storage','Performance','PerformanceObserver','MutationObserver','IntersectionObserver','ResizeObserver','AbortController','AbortSignal','TextEncoder','TextDecoder','Intl','BigInt','WeakMap','WeakSet','DataView','ArrayBuffer','Int8Array','Uint8Array','Uint8ClampedArray','Int16Array','Uint16Array','Int32Array','Uint32Array','Float32Array','Float64Array','BigInt64Array','BigUint64Array','SharedArrayBuffer','Atomics','Crypto','SubtleCrypto','CryptoKey','Headers','Request','Response','ReadableStream','WritableStream','TransformStream','Fragment','Suspense'].indexOf(k) !== -1) return false;
+      return true;
+    });
+    return keys.length ? window[keys[keys.length-1]] : null;
+  }
+  var __Comp = __resolveComponent();
+  if (__el && __Comp) {
+    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(__Comp)); }
+    else { ReactDOM.render(React.createElement(__Comp), __el); }
   } else if (!__el) {
     document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: no #root or #app element.</pre>';
   } else {
-    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: component "${mountTarget}" is not defined at runtime.</pre>';
+    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem;white-space:pre-wrap">Auto-mount failed: component "${mountTarget}" is not defined at runtime.\\n\\nDeclared globals: ' + Object.keys(window).filter(function(k){return /^[A-Z][A-Za-z0-9_]*$/.test(k) && typeof window[k]==="function";}).slice(0,20).join(", ") + '</pre>';
   }
 } catch (e) {
   document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem;white-space:pre-wrap">Auto-mount error: ' + (e && e.message ? e.message : String(e)) + '</pre>';
