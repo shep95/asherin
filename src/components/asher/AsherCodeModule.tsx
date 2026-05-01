@@ -122,6 +122,7 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.viewMode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
   useEffect(() => { localStorage.setItem("asherCode.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
+  useEffect(() => { localStorage.setItem("asherCode.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
