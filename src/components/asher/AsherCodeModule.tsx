@@ -1110,7 +1110,7 @@ export default function AsherCodeModule() {
 
         {/* AI sidebar — collapsible */}
         {showAi && (
-        <aside className="w-72 lg:w-80 flex-shrink-0 border-l border-border/15 bg-card/10 flex flex-col absolute lg:relative right-0 top-0 bottom-0 z-20 lg:z-auto bg-background/95 lg:bg-card/10 backdrop-blur-xl">
+        <aside className="w-full sm:w-72 lg:w-80 max-w-full flex-shrink-0 border-l border-border/15 bg-card/10 flex flex-col absolute lg:relative right-0 top-0 bottom-0 z-20 lg:z-auto bg-background/95 lg:bg-card/10 backdrop-blur-xl min-w-0 overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/15">
             <div className="flex items-center gap-1.5">
               <Brain className="h-3 w-3 text-foreground/60" />
