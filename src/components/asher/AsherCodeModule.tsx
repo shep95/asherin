@@ -168,6 +168,43 @@ export default function AsherCodeModule() {
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
 
+  // Auto-snapshot active file (infinite history, IndexedDB)
+  useEffect(() => {
+    if (!activeProject || !activeFile || !activeContent) return;
+    const t = setTimeout(() => {
+      void snapshotIfChanged({
+        scope: "asher",
+        projectId: activeProject.id,
+        fileId: activeFile.id,
+        filePath: activeFile.path,
+        content: activeContent,
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [activeContent, activeFile, activeProject]);
+
+  // Scaffold from natural-language template launcher
+  async function handleScaffold(result: { kind: string; name: string; files: { path: string; content: string; language: string }[]; primary: string }) {
+    if (!activeProject) return;
+    const ok = await new Promise<boolean>(resolve => setApproval({
+      title: `${result.kind} ${result.name}`,
+      changes: result.files.map(f => ({ path: f.path, action: "create" as const, content: f.content, language: f.language })),
+      resolve,
+    }));
+    if (!ok) return;
+    for (const f of result.files) {
+      const { data } = await supabase.from("asher_code_files")
+        .insert({ project_id: activeProject.id, path: f.path, content: f.content, language: f.language }).select().single();
+      if (data) {
+        const af = data as AsherCodeFile;
+        setFiles(fs => [...fs, af]);
+        if (f.path === result.primary) { setOpenTabs(t => [...t, af.id]); setActiveFileId(af.id); }
+      }
+    }
+    toast.success(`Scaffolded ${result.files.length} file(s)`);
+  }
+
+
   // Load projects on mount
   useEffect(() => { void loadProjects(); }, [user?.id]);
 
