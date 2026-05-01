@@ -67,12 +67,24 @@ function buildPreviewHtml(files: IdeFile[]): string {
   if (htmlFile?.content) {
     const injectedCss = allCss ? `<style>${allCss}</style>` : "";
     let content = htmlFile.content.replace("</head>", `${injectedCss}</head>`);
+    let needsHtmlCompiler = false;
+    let needsHtmlReact = false;
     for (const f of flat) {
       if (f === htmlFile) continue;
       if (/\.(tsx?|jsx?|mjs)$/.test(f.name)) {
-        content = content.replace(`<script src="${f.name}"><\/script>`, compileScriptTag(f.name, f.content ?? ""));
-        content = content.replace(`<script type="module" src="${f.name}"><\/script>`, compileScriptTag(f.name, f.content ?? ""));
+        const compiled = compileScriptTag(f.name, f.content ?? "");
+        const escapedName = f.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./)?${escapedName}["']([^>]*)><\\/script>`, "g");
+        if (scriptRef.test(content)) {
+          content = content.replace(scriptRef, compiled);
+          needsHtmlCompiler = true;
+          if (/\.(tsx|jsx)$/.test(f.name) || /from ['"]react['"]/.test(f.content ?? "")) needsHtmlReact = true;
+        }
       }
+    }
+    if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
+      const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`;
+      content = content.includes("</head>") ? content.replace("</head>", `${runtime}</head>`) : runtime + content;
     }
     return content;
   }
