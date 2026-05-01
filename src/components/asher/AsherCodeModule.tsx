@@ -4,7 +4,7 @@ import JSZip from "jszip";
 import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
-  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap,
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
@@ -39,6 +39,7 @@ export default function AsherCodeModule() {
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
+  const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
@@ -57,6 +58,7 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.orchestrate", orchestrateMode ? "1" : "0"); }, [orchestrateMode]);
   useEffect(() => { localStorage.setItem("asherCode.showFiles", showFiles ? "1" : "0"); }, [showFiles]);
   useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
+  useEffect(() => { localStorage.setItem("asherCode.viewMode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
@@ -620,47 +622,76 @@ export default function AsherCodeModule() {
         {/* Editor + preview */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Tabs */}
-          <div className="flex items-center border-b border-border/15 bg-card/10 overflow-x-auto">
-            {openTabs.map(tid => {
-              const f = files.find(x => x.id === tid);
-              if (!f) return null;
-              return (
-                <div key={tid} className={`group flex items-center gap-2 border-r border-border/15 px-3 py-1.5 text-[11px] font-light cursor-pointer whitespace-nowrap ${activeFileId === tid ? "bg-background text-foreground" : "text-muted-foreground hover:bg-foreground/5"}`}
-                  onClick={() => setActiveFileId(tid)}>
-                  {f.path}{f.id in dirty && <span className="text-amber-400">●</span>}
-                  <button onClick={(e) => { e.stopPropagation(); setOpenTabs(t => t.filter(x => x !== tid)); if (activeFileId === tid) setActiveFileId(openTabs.filter(x => x !== tid)[0] || null); }} className="opacity-50 hover:opacity-100"><X className="h-3 w-3" /></button>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-between border-b border-border/15 bg-card/10">
+            <div className="flex items-center overflow-x-auto flex-1 min-w-0">
+              {openTabs.map(tid => {
+                const f = files.find(x => x.id === tid);
+                if (!f) return null;
+                return (
+                  <div key={tid} className={`group flex items-center gap-2 border-r border-border/15 px-3 py-1.5 text-[11px] font-light cursor-pointer whitespace-nowrap ${activeFileId === tid ? "bg-background text-foreground" : "text-muted-foreground hover:bg-foreground/5"}`}
+                    onClick={() => setActiveFileId(tid)}>
+                    {f.path}{f.id in dirty && <span className="text-amber-400">●</span>}
+                    <button onClick={(e) => { e.stopPropagation(); setOpenTabs(t => t.filter(x => x !== tid)); if (activeFileId === tid) setActiveFileId(openTabs.filter(x => x !== tid)[0] || null); }} className="opacity-50 hover:opacity-100"><X className="h-3 w-3" /></button>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Code / Split / Preview segmented control */}
+            <div className="flex items-center gap-0.5 px-2 py-1 border-l border-border/15 flex-shrink-0">
+              <button
+                onClick={() => setViewMode("code")}
+                title="Code only"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "code" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Code2 className="h-3 w-3" /><span className="hidden sm:inline">Code</span>
+              </button>
+              <button
+                onClick={() => setViewMode("split")}
+                title="Split view"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "split" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Columns2 className="h-3 w-3" /><span className="hidden sm:inline">Split</span>
+              </button>
+              <button
+                onClick={() => setViewMode("preview")}
+                title="Preview only"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "preview" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Eye className="h-3 w-3" /><span className="hidden sm:inline">Preview</span>
+              </button>
+            </div>
           </div>
 
-          {/* Editor + preview split */}
+          {/* Editor + preview — controlled by viewMode (code | split | preview) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
-            <div className="flex-1 min-w-0 min-h-[200px]">
-              {activeFile ? (
-                <Editor
-                  height="100%"
-                  theme="vs-dark"
-                  language={activeFile.language}
-                  value={activeContent}
-                  onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
-                  options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-xs text-muted-foreground/50">Open a file to start editing</div>
-              )}
-            </div>
-            {showPreview && (
-              <div className="w-full lg:w-2/5 lg:min-w-[280px] border-t lg:border-t-0 lg:border-l border-border/15 bg-card/5 flex flex-col min-h-[200px]">
+            {viewMode !== "preview" && (
+              <div className={`min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}>
+                {activeFile ? (
+                  <Editor
+                    height="100%"
+                    theme="vs-dark"
+                    language={activeFile.language}
+                    value={activeContent}
+                    onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
+                    options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-muted-foreground/50">Open a file to start editing</div>
+                )}
+              </div>
+            )}
+            {viewMode !== "code" && (
+              <div className={`${viewMode === "preview" ? "w-full flex-1" : "w-full lg:w-2/5 lg:min-w-[280px]"} border-t lg:border-t-0 ${viewMode === "split" ? "lg:border-l" : ""} border-border/15 bg-card/5 flex flex-col min-h-[200px]`}>
                 <div className="px-3 py-1.5 border-b border-border/15 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase flex items-center justify-between">
                   <span>Preview</span>
-                  <button onClick={() => setShowPreview(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                  <span className="text-muted-foreground/50 normal-case tracking-normal text-[9px]">Live · Sandboxed</span>
                 </div>
                 <iframe key={previewKey} ref={previewRef} srcDoc={previewSrcDoc} sandbox="allow-scripts" className="flex-1 bg-white" title="preview" />
               </div>
             )}
           </div>
         </div>
+
 
         {/* AI sidebar — collapsible */}
         {showAi && (
