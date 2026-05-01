@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { X, Copy, Check, Search, WrapText, AlignLeft } from "lucide-react";
 import type { IdeFile } from "./IdeFileTree";
 import { getLanguage } from "./IdeFileTree";
+import { validateCode } from "@/lib/ide";
 
 interface Props {
   openFiles: IdeFile[];
@@ -24,6 +25,15 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
   const content = activeFile?.content ?? "";
   const lines = content.split("\n");
   const language = activeFile ? getLanguage(activeFile.name) : "plaintext";
+
+  // Red-line error highlighting (powered by the shared ZANOEM validator).
+  const errorLines = useMemo(() => {
+    if (!activeFile || !content) return new Set<number>();
+    try {
+      const result = validateCode(content, language);
+      return new Set(result.issues.filter((i) => i.severity === "error").map((i) => i.line));
+    } catch { return new Set<number>(); }
+  }, [content, language, activeFile]);
 
   const handleScroll = useCallback(() => {
     if (textareaRef.current && lineNumbersRef.current) {
@@ -136,18 +146,34 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
           className="flex-shrink-0 overflow-hidden select-none bg-card/10 border-r border-border/10 py-3 px-1 hidden sm:block"
           style={{ width: "40px" }}
         >
-          {lines.map((_, i) => (
-            <div
-              key={i}
-              className="text-[10px] font-light text-muted-foreground/30 text-right pr-2 leading-[1.6rem]"
-            >
-              {i + 1}
-            </div>
-          ))}
+          {lines.map((_, i) => {
+            const isErr = errorLines.has(i + 1);
+            return (
+              <div
+                key={i}
+                className={`text-[10px] font-light text-right pr-2 leading-[1.6rem] ${isErr ? "text-red-400 bg-red-500/15 border-l-2 border-red-500" : "text-muted-foreground/30"}`}
+                title={isErr ? "ZANOEM validator: error on this line" : undefined}
+              >
+                {i + 1}
+              </div>
+            );
+          })}
         </div>
 
         {/* Code textarea */}
         <div className="flex-1 relative overflow-hidden min-w-0">
+          {/* Red-line overlay (under the textarea, scrolls with it) */}
+          {errorLines.size > 0 && (
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none p-3 font-mono text-[11px] sm:text-[12px] leading-[1.6rem] overflow-hidden"
+              style={{ transform: `translateY(${-(textareaRef.current?.scrollTop ?? 0)}px)` }}
+            >
+              {lines.map((_, i) => (
+                <div key={i} className={`h-[1.6rem] ${errorLines.has(i + 1) ? "bg-red-500/15 border-l-2 border-red-500" : ""}`} />
+              ))}
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             value={content}

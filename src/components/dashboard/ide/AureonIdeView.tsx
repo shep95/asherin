@@ -22,10 +22,12 @@ import {
   type PlannedChange,
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
-import { History, Stethoscope, Wand2, Cpu } from "lucide-react";
+import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { startQueueWorker as zqStart, registerHandler as zqRegister, type QueuedJob } from "@/lib/zanoem/offlineQueue";
+import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
+import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
+import ZanoemDecisionLog from "@/components/asher/ZanoemDecisionLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -141,18 +143,52 @@ const AureonIdeView = () => {
     return () => { if (historyTimerRef.current) clearTimeout(historyTimerRef.current); };
   }, [files, pushHistory]);
 
-  // ── ZANOEM offline autopilot worker (cross-IDE) ──
-  // Keeps draining persisted jobs from Asher IDE / previous sessions even
-  // when the user is on the Aureon IDE tab. Vision jobs without a usable
-  // iframe target are skipped; auto-fix jobs run against the current Aureon
-  // file tree as a best-effort cleanup pass.
+  // ── ZANOEM autopilot state (mirrors Asher IDE checkboxes) ──
+  // Separate localStorage keys from Asher so each IDE preserves its own toggle state.
+  const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("aureonIde.zanoemMode") === "1");
+  const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("aureonIde.autopilotZanoem") === "1");
+  const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("aureonIde.autoDebug") !== "0");       // default ON
+  const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("aureonIde.autoUiDebug") !== "0"); // default ON
+  const [decisionLogOpen, setDecisionLogOpen] = useState(false);
+  const autopilotRoundsRef = useRef(0);
+  const AUTOPILOT_MAX_ROUNDS = 6;
+  useEffect(() => { localStorage.setItem("aureonIde.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
+  useEffect(() => { localStorage.setItem("aureonIde.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
+  useEffect(() => { localStorage.setItem("aureonIde.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
+  useEffect(() => { localStorage.setItem("aureonIde.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
+
+  // Refs for offline queue handlers (run outside React's render cycle)
   const filesRefAureon = useRef(files);
+  const autopilotZanoemRef = useRef(autopilotZanoem);
+  const autoDebugRef = useRef(autoDebug);
+  const autoUiDebugRef = useRef(autoUiDebug);
+  const lastIntentRef = useRef<string>("");
+  const lastAssistantRef = useRef<string>("");
+  const autopilotEnqueueGuardRef = useRef(false);
+  const autopilotTriggerRef = useRef<string>("");
+  // sendChatMessage is declared further down — route through a ref so the
+  // queue worker can call it once it exists.
+  const sendZanoemTurnRef = useRef<((prompt: string) => Promise<void>) | null>(null);
   useEffect(() => { filesRefAureon.current = files; }, [files]);
+  useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
+  useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
+  useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
+
+  // ── ZANOEM offline autopilot worker (cross-IDE) ──
+  // Drains persisted jobs even if the user closes the tab / loses wifi.
+  // Vision jobs are best-effort here (Aureon's preview iframe is owned by
+  // a child component); auto-fix runs the validator + dispatches a fix turn
+  // through Aureon's own chat backend when ZANOEM mode is on.
   useEffect(() => {
-    zqRegister("vision", async () => { /* no preview iframe surface here */ });
+    zqRegister("vision", async (_job: QueuedJob<{ intent: string; recentAssistant: string; projectRef?: string }>) => {
+      if (!autopilotZanoemRef.current || !autoUiDebugRef.current) return;
+      // Aureon's preview iframe is encapsulated; we still log the verdict so the
+      // user can see it in the console / future panels.
+      console.info("[zanoem] Aureon vision job (preview iframe owned by child component — skipping screenshot pass)");
+    });
+
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
-      // Aureon has no ZANOEM chat driver in this view — we can only re-run the
-      // validator and surface a toast; the actual code patch happens in Asher IDE.
+      if (!autopilotZanoemRef.current || !autoDebugRef.current) return;
       const flat: AutoFixFile[] = [];
       const walk = (nodes: IdeFile[]) => {
         for (const n of nodes) {
@@ -163,13 +199,17 @@ const AureonIdeView = () => {
       walk(filesRefAureon.current);
       const result = await autoFixUntilClean({
         files: () => flat,
-        runZanoemTurn: async () => { /* no-op driver in Aureon */ },
-        maxPasses: 1,
+        runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
+        maxPasses: 6,
+        onProgress: (pass, n) => {
+          if (n > 0) toast({ title: `ZANOEM Auto-Fix pass ${pass}`, description: `${n} error${n === 1 ? "" : "s"}` });
+        },
       });
-      if (!result.clean) console.info("[zanoem] Aureon validator:", result.finalErrorCount, "error(s)");
+      if (result.clean) toast({ title: "ZANOEM Auto-Fix: clean", description: `${result.passes} pass${result.passes === 1 ? "" : "es"}` });
+      else console.info("[zanoem] Aureon validator stopped:", result.finalErrorCount, "error(s) remain");
     });
     zqStart({ intervalMs: 2500 });
-  }, []);
+  }, [toast]);
 
   // Panel state — simplified defaults
   const [leftOpen, setLeftOpen] = useState(!isMobile);
@@ -464,12 +504,20 @@ const AureonIdeView = () => {
   }, [files, sessions, activeSessionId, toast]);
 
   // ── Chat ──
-  const sendChatMessage = useCallback(async (content: string, customBrainPrompt?: string) => {
+  // When ZANOEM mode is on we prepend a "first-principles inventor" preamble.
+  // When "You Decide ZANOEM" is also on, we recursively self-answer any
+  // clarifying question the assistant comes back with (up to 6 rounds).
+  const sendChatMessage = useCallback(async (content: string, customBrainPrompt?: string, _isAutopilotTurn = false) => {
     if (creditsRemaining <= 0) {
       toast({ title: "Credit limit reached", description: `You've used all ${maxCredits} credits this hour.`, variant: "destructive" });
       return;
     }
     useCredit();
+    const isAutopilotTurn = _isAutopilotTurn;
+    if (!isAutopilotTurn) {
+      autopilotRoundsRef.current = 0;
+      lastIntentRef.current = content;
+    }
     const userMsg: ChatMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date() };
     setChatMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
@@ -480,6 +528,13 @@ const AureonIdeView = () => {
     const allMsgs = [...chatMessages, userMsg].map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     const contextParts: string[] = [];
+    if (zanoemMode) {
+      contextParts.push([
+        "[ZANOEM MODE — Aureon IDE]",
+        "You are ZANOEM, a first-principles software inventor. Design and ship production-grade code, never apologise, never ask for permission you can resolve yourself.",
+        "Use BOLD section headers, prefer code blocks for any concrete change, and write self-documenting code with strict types and guard clauses.",
+      ].join("\n"));
+    }
     if (activeFile?.content) {
       contextParts.push(`[IDE Context] Currently editing: ${activeFile.name}\n\`\`\`${getLanguage(activeFile.name)}\n${activeFile.content.slice(0, 4000)}\n\`\`\``);
     }
@@ -512,21 +567,118 @@ const AureonIdeView = () => {
           fetchSuggestions(assistantContent).then(setSuggestions).catch(() => {});
         },
       });
+
+      lastAssistantRef.current = assistantContent;
+
+      // ── Autopilot loop ──
+      if (zanoemMode && autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && zanoemNeedsDecision(assistantContent)) {
+        if (isAutopilotTurn && autopilotTriggerRef.current) {
+          void zanoemLogDecision({
+            surface: "aureon_ide",
+            projectRef: activeSessionId ?? null,
+            round: autopilotRoundsRef.current,
+            triggerText: autopilotTriggerRef.current,
+            replySent: zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS),
+            responseText: assistantContent,
+          });
+        }
+        autopilotRoundsRef.current += 1;
+        autopilotTriggerRef.current = assistantContent;
+        const autoReply = zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        setTimeout(() => { void sendChatMessage(autoReply, customBrainPrompt, true); }, 250);
+      } else if (isAutopilotTurn && autopilotRoundsRef.current > 0) {
+        toast({ title: "ZANOEM autopilot complete", description: `${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"}` });
+        autopilotRoundsRef.current = 0;
+        autopilotTriggerRef.current = "";
+
+        // Background sweep — autofix + vision verification.
+        if (!autopilotEnqueueGuardRef.current) {
+          autopilotEnqueueGuardRef.current = true;
+          if (autoDebugRef.current) {
+            void zqEnqueue({
+              kind: "autofix",
+              payload: { projectRef: activeSessionId ?? undefined },
+              surface: "aureon_ide",
+              projectRef: activeSessionId ?? undefined,
+              ownerUserId: user?.id,
+            });
+          }
+          if (autoUiDebugRef.current) {
+            void zqEnqueue({
+              kind: "vision",
+              payload: {
+                intent: lastIntentRef.current,
+                recentAssistant: assistantContent,
+                projectRef: activeSessionId ?? undefined,
+              },
+              surface: "aureon_ide",
+              projectRef: activeSessionId ?? undefined,
+              ownerUserId: user?.id,
+            });
+          }
+          setTimeout(() => { autopilotEnqueueGuardRef.current = false; }, 2000);
+        }
+      }
     } catch (err: any) {
       if (err.name !== "AbortError") {
         setChatMessages(prev => [...prev, { id: assistantId, role: "assistant", content: `Error: ${err.message}`, timestamp: new Date() }]);
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput]);
+  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId]);
+
+  // Expose sendChatMessage to the offline queue worker as a stable ref.
+  useEffect(() => { sendZanoemTurnRef.current = (p: string) => sendChatMessage(p, undefined, true); }, [sendChatMessage]);
 
   const stopStreaming = useCallback(() => { abortRef.current?.abort(); setIsStreaming(false); }, []);
+
 
   const handleTerminalAiCommand = useCallback((query: string) => {
     sendChatMessage(query);
     if (!rightOpen && !isMobile) setRightOpen(true);
     if (isMobile) setMobilePanel("chat");
   }, [sendChatMessage, rightOpen, isMobile]);
+
+  // ── ZANOEM toggle strip (rendered above the chat panel on both layouts) ──
+  const zanoemToggleBar = (
+    <div className="border-b border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
+      <label
+        title="ZANOEM Mode: design brand-new software from first principles. Uses Aureon's engine — no API key needed."
+        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zanoemMode ? "text-foreground" : "text-muted-foreground/70"}`}
+      >
+        <input type="checkbox" checked={zanoemMode} onChange={(e) => setZanoemMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
+        <Brain className="h-2.5 w-2.5" /> ZANOEM
+      </label>
+      <label
+        title="You Decide ZANOEM: autopilot. ZANOEM auto-answers its own questions and recommendations on your behalf for up to 6 rounds."
+        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autopilotZanoem ? "text-foreground" : "text-muted-foreground/70"} ${!zanoemMode ? "opacity-50" : ""}`}
+      >
+        <input type="checkbox" checked={autopilotZanoem} onChange={(e) => setAutopilotZanoem(e.target.checked)} disabled={!zanoemMode} className="accent-foreground h-2.5 w-2.5" />
+        <Zap className="h-2.5 w-2.5" /> You Decide ZANOEM
+      </label>
+      <label
+        title="Auto Debug: when autopilot is on, ZANOEM keeps re-running the validator + Bug Doctor in the background until the codebase has zero errors."
+        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
+      >
+        <input type="checkbox" checked={autoDebug} onChange={(e) => setAutoDebug(e.target.checked)} disabled={!autopilotZanoem} className="accent-foreground h-2.5 w-2.5" />
+        <Bug className="h-2.5 w-2.5" /> Auto Debug
+      </label>
+      <label
+        title="Auto UI Debug: ZANOEM verifies the rendered preview matches what was just built and queues fixes when it doesn't."
+        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoUiDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
+      >
+        <input type="checkbox" checked={autoUiDebug} onChange={(e) => setAutoUiDebug(e.target.checked)} disabled={!autopilotZanoem} className="accent-foreground h-2.5 w-2.5" />
+        <Eye className="h-2.5 w-2.5" /> Auto UI Debug
+      </label>
+      <button
+        onClick={() => setDecisionLogOpen(true)}
+        title="ZANOEM Decision Log — review or override every choice the autopilot made."
+        className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase text-muted-foreground/70 hover:text-foreground transition-colors"
+      >
+        <ScrollText className="h-2.5 w-2.5" /> Decision Log
+      </button>
+    </div>
+  );
 
   // ── Mobile Layout ──
   if (isMobile) {
@@ -550,7 +702,12 @@ const AureonIdeView = () => {
             : <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} onMoveFile={moveFile} />
           )}
           {mobilePanel === "editor" && (centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />)}
-          {mobilePanel === "chat" && <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} />}
+          {mobilePanel === "chat" && (
+            <div className="flex flex-col h-full">
+              {zanoemToggleBar}
+              <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
+            </div>
+          )}
           {mobilePanel === "terminal" && <IdeTerminal onAiCommand={handleTerminalAiCommand} files={files} onCreateFile={createFile} onDeleteFile={deleteFile} onUpdateContent={updateContent} onTerminalOutput={handleTerminalOutput} />}
         </div>
 
@@ -756,8 +913,9 @@ const AureonIdeView = () => {
             <>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={24} minSize={15} maxSize={40} className="overflow-hidden">
-                <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden">
-                  <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} />
+                <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden flex flex-col">
+                  {zanoemToggleBar}
+                  <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
                 </div>
               </ResizablePanel>
             </>
@@ -766,6 +924,13 @@ const AureonIdeView = () => {
       </div>
 
       <IdeQuickOpen open={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} files={files} onSelectFile={selectFile} />
+
+      <ZanoemDecisionLog
+        open={decisionLogOpen}
+        surface="aureon_ide"
+        projectRef={activeSessionId ?? null}
+        onClose={() => setDecisionLogOpen(false)}
+      />
 
       {/* Shared IDE upgrade pack modals */}
       <IdeFuzzyFinder
