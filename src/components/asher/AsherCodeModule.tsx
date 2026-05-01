@@ -294,15 +294,29 @@ export default function AsherCodeModule() {
   }
 
   async function sendChat() {
-    if (!chatInput.trim() || aiBusy) return;
-    const userMsg: ChatMsg = { role: "user", content: chatInput };
+    if ((!chatInput.trim() && pendingUploads.length === 0) || aiBusy) return;
+    // Compose attachments into the user message
+    let composed = chatInput;
+    const imageAttachments: { name: string; dataUrl: string }[] = [];
+    for (const u of pendingUploads) {
+      if (u.kind === "image") {
+        imageAttachments.push({ name: u.name, dataUrl: u.preview! });
+        composed += `\n\n[Attached image: ${u.name}]`;
+      } else if (u.kind === "zip") {
+        composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
+      } else {
+        composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+      }
+    }
+    const userMsg: ChatMsg = { role: "user", content: composed };
     const next = [...chat, userMsg];
     setChat(next);
     setChatInput("");
+    setPendingUploads([]);
     setAiBusy(true);
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx });
+      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments } as any);
       setChat([...next, { role: "assistant", content: r.reply || "" }]);
     } catch (e: any) {
       setChat([...next, { role: "assistant", content: "**Error:** " + (e.message || "AI call failed") }]);
