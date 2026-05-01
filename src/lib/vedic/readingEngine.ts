@@ -24,6 +24,33 @@ const NAK_NAMES = [
   "shatabhisha", "purva bhadrapada", "uttara bhadrapada", "revati",
 ];
 
+const HOUSE_THEMES = [
+  "identity, vitality, body, and self-direction",
+  "wealth, speech, family lineage, food, and stored assets",
+  "courage, siblings, media, skills, hands, and self-made effort",
+  "home, mother, land, vehicles, emotional security, and private peace",
+  "intelligence, children, creativity, speculation, mantra, and past-life merit",
+  "work, health, enemies, debts, disputes, service, and daily discipline",
+  "marriage, contracts, open rivals, clients, and public dealing",
+  "occult knowledge, inheritance, joint wealth, crisis, secrecy, and rebirth",
+  "fortune, teachers, father, dharma, publishing, and long-distance movement",
+  "career, authority, reputation, command, rank, and visible achievement",
+  "income, networks, elder siblings, patrons, influence, and major gains",
+  "foreign lands, sleep, losses, isolation, liberation, and hidden expenditure",
+];
+
+const PLANET_THEMES: Record<string, string> = {
+  sun: "authority, confidence, father, rank, visibility, and sovereign will",
+  moon: "mind, emotions, mother, memory, public mood, and adaptability",
+  mars: "drive, combat, engineering, courage, land, conflict, and decisive action",
+  mercury: "speech, trade, analytics, writing, strategy, calculation, and youth",
+  venus: "wealth, pleasure, art, women, luxury, agreements, and relational magnetism",
+  jupiter: "wisdom, teachers, law, children, blessings, finance, and expansion",
+  saturn: "discipline, delay, labor, systems, endurance, duty, and mass influence",
+  rahu: "foreignness, obsession, amplification, technology, taboo, and unconventional rise",
+  ketu: "detachment, past-life mastery, severance, austerity, moksha, and sharp insight",
+};
+
 export interface PlacementInput {
   name: string;     // "Sun", "Moon", ...
   house: number;    // 1..12
@@ -61,6 +88,20 @@ function dedupe(arr: string[]): string[] {
   return out;
 }
 
+function fallbackReading(p: PlacementInput, sign: string, nak: string): string[] {
+  const planet = p.name.toLowerCase();
+  const planetTheme = PLANET_THEMES[planet] ?? "chart activation";
+  const houseTheme = HOUSE_THEMES[p.house - 1];
+  return [
+    `${p.name} activates House ${p.house}, making ${houseTheme} a primary field where ${planetTheme} must express itself in concrete life events.`,
+    `In ${capitalize(sign)}, ${p.name} operates through the sign's style, so its results become personalized through that rashi before manifesting through House ${p.house}.`,
+    `Through ${capitalize(nak)}, this placement refines the result to a nakshatra-level pattern; the reading should prioritize its lunar mansion before giving broad sign-only judgments.`,
+    p.retrograde
+      ? `${p.name} is retrograde, so its results are internalized, delayed, repeated, or intensified until the native consciously masters that planetary function.`
+      : `${p.name} is direct, so its house and sign results tend to express more outwardly and straightforwardly when its dasha or antardasha activates.`,
+  ];
+}
+
 export function generateReading(placements: PlacementInput[]): ReadingReport {
   const sections: ReadingSection[] = [];
 
@@ -79,6 +120,7 @@ export function generateReading(placements: PlacementInput[]): ReadingReport {
       ...houseReadings.slice(0, 3),
       ...signReadings.slice(0, 2),
       ...nakReadings.slice(0, 2),
+      ...fallbackReading(p, sign, nak),
     ]).slice(0, 6);
 
     if (bullets.length === 0) continue;
