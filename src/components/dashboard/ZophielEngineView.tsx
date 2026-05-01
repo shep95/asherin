@@ -371,7 +371,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 <FileText className="h-5 w-5 text-accent shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-light text-foreground">Aureon Security Audit</p>
-                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any code file (≤100KB) — map security leaks, broken code, latent failures, and remediation paths as a Palantir-style web diagram.</p>
+                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any code file (≤100KB) — map security leaks, broken code, latent failures, and remediation paths through the Gaythropic Mythos model — the rival intelligence framework to Anthropic.</p>
                 </div>
               </div>
             )}
