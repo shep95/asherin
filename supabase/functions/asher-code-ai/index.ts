@@ -58,13 +58,33 @@ interface ProviderCall {
 }
 
 // ── Provider routing ──────────────────────────────────────────────
-// Hard token-budget guard. OpenAI gpt-5* TPM is ~400k tokens/min.
-// We budget ~150k input tokens (≈ 600k chars) so user prompt + response
-// + persona + brain + context never exceed provider limits.
-const MAX_TOTAL_INPUT_CHARS = 600_000;             // ~150k tokens
-const MAX_BRAIN_FILES_TOTAL_CHARS = 200_000;       // ~50k tokens for brain knowledge
-const MAX_BRAIN_FILE_CHARS = 20_000;               // per-file cap (was 40k — halved)
-const MAX_CONTEXT_FILES_TOTAL_CHARS = 200_000;     // shared cap for project context files
+// Hard token-budget guard. OpenAI gpt-5* TPM is ~400k tokens/min and a
+// SINGLE request must also stay under that ceiling. We budget ~70k input
+// tokens (≈ 280k chars) so prompt + response + retries fit comfortably
+// even if other concurrent calls eat into the per-minute window.
+const MAX_TOTAL_INPUT_CHARS = 280_000;             // ~70k tokens
+const MAX_BRAIN_FILES_TOTAL_CHARS = 80_000;        // ~20k tokens for brain knowledge
+const MAX_BRAIN_FILE_CHARS = 12_000;               // per-file cap
+const MAX_CONTEXT_FILES_TOTAL_CHARS = 100_000;     // shared cap for project context files
+
+// Reusable global clamp — applied right before EVERY provider dispatch
+// (single-call AND orchestrate fan-out) so no path can exceed budget.
+function clampPayload(system: string, messages: ChatMessage[]): { system: string; messages: ChatMessage[] } {
+  const len = (s: string) => s.length;
+  let total = len(system) + messages.reduce((n, m) => n + len(m.content), 0);
+  let sys = system;
+  const msgs = [...messages];
+  while (total > MAX_TOTAL_INPUT_CHARS && msgs.length > 1) {
+    const dropped = msgs.shift()!;
+    total -= len(dropped.content);
+  }
+  if (total > MAX_TOTAL_INPUT_CHARS) {
+    const overflow = total - MAX_TOTAL_INPUT_CHARS;
+    sys = sys.slice(0, Math.max(8000, sys.length - overflow - 1000)) +
+      "\n\n[…context truncated to fit token budget…]";
+  }
+  return { system: sys, messages: msgs };
+}
 
 function clampJoin(
   items: Array<{ header: string; body: string }>,
@@ -554,8 +574,9 @@ serve(async (req) => {
         );
       }
 
-      const orchMessages = buildPrompt(payload.subMode || "chat", payload);
-      const orchSystem = buildSystemPrompt(payload);
+      const rawOrchMessages = buildPrompt(payload.subMode || "chat", payload);
+      const rawOrchSystem = buildSystemPrompt(payload);
+      const { system: orchSystem, messages: orchMessages } = clampPayload(rawOrchSystem, rawOrchMessages);
       const t0 = Date.now();
       const settled = await Promise.allSettled(calls.map((c) => dispatch(c, orchMessages, orchSystem, 4096)));
       const responses = settled.map((s, i) => ({
@@ -607,25 +628,7 @@ serve(async (req) => {
     const maxTokens = mode === "inline" ? 256 : 4096;
     const runtimeSystem = buildSystemPrompt(payload);
 
-    // ── Final global token-budget guard ──
-    // Even after per-section caps, defend against pathological payloads
-    // (e.g. 50 brain files × 20k chars). Trim oldest user/assistant turns
-    // first, then truncate the system prompt as a last resort.
-    const totalChars = (s: string) => s.length;
-    let totalSize = totalChars(runtimeSystem) + messages.reduce((n, m) => n + totalChars(m.content), 0);
-    let trimmedSystem = runtimeSystem;
-    const trimmedMessages = [...messages];
-    while (totalSize > MAX_TOTAL_INPUT_CHARS && trimmedMessages.length > 1) {
-      // Drop the oldest non-final message (preserve last user turn — that's the actual request)
-      const dropped = trimmedMessages.shift()!;
-      totalSize -= totalChars(dropped.content);
-    }
-    if (totalSize > MAX_TOTAL_INPUT_CHARS) {
-      // Hard truncate system prompt tail (keeps the AUREON CODE base directives intact at the head)
-      const overflow = totalSize - MAX_TOTAL_INPUT_CHARS;
-      trimmedSystem = trimmedSystem.slice(0, Math.max(8000, trimmedSystem.length - overflow - 1000)) +
-        "\n\n[…context truncated to fit token budget…]";
-    }
+    const { system: trimmedSystem, messages: trimmedMessages } = clampPayload(runtimeSystem, messages);
 
     try {
       const reply = await dispatch(providerCall, trimmedMessages, trimmedSystem, maxTokens);
