@@ -310,7 +310,7 @@ serve(async (req) => {
         raw = await callByokJsonWithRetry(byok as ZophielByokConfig, FULL_SYSTEM_PROMPT, userPrompt, {
           timeoutMs: 90_000,
           temperature: 0.2,
-          maxOutputTokens: 16384,
+          maxOutputTokens: 32768,
           attempts: 2,
         });
       } catch (e) {
@@ -338,7 +338,7 @@ serve(async (req) => {
             generationConfig: {
               responseMimeType: "application/json",
               temperature: 0.2,
-              maxOutputTokens: 16384,
+              maxOutputTokens: 32768,
             },
           }),
         },
