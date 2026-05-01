@@ -191,12 +191,14 @@ const AureonIdeView = () => {
 
   const applyAureonDebuggerFix = useCallback(async (file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) => {
     const ownIssues = issues.filter((i) => i.file === file.name);
-    if (ownIssues.length === 0) return false;
-
     const flat = flattenFiles(filesRefAureon.current);
     const live = flat.find((f) => f.id === file.id || f.name === file.name);
     const current = live?.content ?? file.content;
-    const diagnostic = ownIssues.map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+    // Scan-all mode: with no validator errors we still ask the model to
+    // audit logic across the whole file (bugs, races, edge cases).
+    const diagnostic = ownIssues.length > 0
+      ? ownIssues.map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n")
+      : `[LOGIC AUDIT] No validator errors in ${file.name}. Review the entire file for: latent bugs, race conditions, unhandled errors, off-by-one errors, missing null checks, dead code, security flaws, and broken logic. If the file is already correct, return it UNCHANGED. Only rewrite if you find a real defect.`;
 
     let corrected: string | undefined;
     let lastErr: unknown;
