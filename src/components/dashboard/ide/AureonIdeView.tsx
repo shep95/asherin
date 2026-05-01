@@ -254,7 +254,9 @@ const AureonIdeView = () => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveSession(); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "p") { e.preventDefault(); setQuickOpenOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "p") { e.preventDefault(); setFuzzyOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "P") { e.preventDefault(); setTemplateOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "h" && e.shiftKey) { e.preventDefault(); setHistoryOpen(true); }
       if ((e.metaKey || e.ctrlKey) && e.key === "b") { e.preventDefault(); setLeftOpen(p => !p); }
       if ((e.metaKey || e.ctrlKey) && e.key === "j") { e.preventDefault(); setBottomOpen(p => !p); }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "z") { e.preventDefault(); handleRedo(); return; }
@@ -263,6 +265,47 @@ const AureonIdeView = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [saveSession, handleUndo, handleRedo]);
+
+  // ── Auto-snapshot active file (infinite history, IndexedDB) ──
+  useEffect(() => {
+    if (!activeSessionId || !activeFileId) return;
+    const file = allFiles.find(f => f.id === activeFileId);
+    if (!file?.content) return;
+    const t = setTimeout(() => {
+      void snapshotIfChanged({
+        scope: "aureon",
+        projectId: activeSessionId,
+        fileId: activeFileId,
+        filePath: file.name,
+        content: file.content!,
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [files, activeFileId, activeSessionId, allFiles]);
+
+  // ── Pro tools helpers ──
+  const requestApproval = useCallback((title: string, changes: PlannedChange[]): Promise<boolean> => {
+    return new Promise(resolve => setApproval({ title, changes, resolve }));
+  }, []);
+
+  const handleScaffold = useCallback(async (result: { kind: string; name: string; files: { path: string; content: string; language: string }[]; primary: string }) => {
+    const changes: PlannedChange[] = result.files.map(f => ({
+      path: f.path, action: "create", content: f.content, language: f.language,
+    }));
+    const ok = await requestApproval(`${result.kind} ${result.name}`, changes);
+    if (!ok) return;
+    // Apply: create each file at the root for simplicity
+    for (const f of result.files) {
+      const newFile: IdeFile = { id: crypto.randomUUID(), name: f.path.split("/").pop() ?? f.path, type: "file", content: f.content };
+      setFiles(prev => [...prev, newFile]);
+      if (f.path === result.primary) {
+        setOpenFileIds(prev => [...prev, newFile.id]);
+        setActiveFileId(newFile.id);
+      }
+    }
+    toast({ title: "Scaffolded", description: `Created ${result.files.length} file(s)` });
+  }, [requestApproval, toast]);
+
 
   // ── File operations ──
   const selectFile = (file: IdeFile) => {
