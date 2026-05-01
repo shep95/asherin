@@ -677,6 +677,7 @@ const VedicAstrologyView = () => {
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> Enemy</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-foreground/80" /> Neutral</span>
               {!chart && <span className="italic text-muted-foreground/50">· generate your chart to activate</span>}
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {COUNTRY_CHARTS.map((c) => {
                 const lagna = countryLagnas[c.code];
