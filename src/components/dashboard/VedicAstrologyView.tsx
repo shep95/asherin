@@ -282,9 +282,11 @@ const VedicAstrologyView = () => {
   };
 
   const loadChart = async (saved: SavedChart) => {
+    setTzAuto(false); // honor the saved offset exactly
     setBirthDate(saved.birth_date);
     setBirthTime(saved.birth_time);
     setTzOffset(String(saved.tz_offset));
+    setTzZoneName(null);
     setLat(String(saved.latitude));
     setLon(String(saved.longitude));
     setCityQuery(saved.city_label ?? "");
