@@ -165,6 +165,23 @@ export default function AsherCodeModule() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Keyboard shortcuts: Ctrl/Cmd+P fuzzy, Ctrl+Shift+P templates, Ctrl+Shift+H history
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      if (e.shiftKey && (e.key === "P" || e.key === "p")) {
+        e.preventDefault(); setTemplateOpen(true);
+      } else if (e.shiftKey && (e.key === "H" || e.key === "h")) {
+        e.preventDefault(); setHistoryOpen(true);
+      } else if (!e.shiftKey && (e.key === "p" || e.key === "P")) {
+        e.preventDefault(); setFuzzyOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
 
@@ -876,6 +893,58 @@ export default function AsherCodeModule() {
             setOrchResult(null);
             toast.success("Inserted into active file");
           }}
+        />
+      )}
+
+      {/* ── Shared IDE Upgrade Pack modals ── */}
+      <IdeFuzzyFinder
+        open={fuzzyOpen}
+        files={files.map(f => ({ id: f.id, path: f.path }))}
+        onClose={() => setFuzzyOpen(false)}
+        onPick={(id) => {
+          setOpenTabs(t => t.includes(id) ? t : [...t, id]);
+          setActiveFileId(id);
+          setFuzzyOpen(false);
+        }}
+      />
+      <IdeTemplateLauncher
+        open={templateOpen}
+        onClose={() => setTemplateOpen(false)}
+        onCreate={(r) => { setTemplateOpen(false); void handleScaffold(r); }}
+      />
+      {activeProject && activeFile && (
+        <IdeHistoryPanel
+          scope="asher"
+          projectId={activeProject.id}
+          fileId={activeFile.id}
+          filePath={activeFile.path}
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          onRestore={(content) => {
+            setDirty(d => ({ ...d, [activeFile.id]: content }));
+            setHistoryOpen(false);
+            toast.success("Snapshot restored to editor (unsaved)");
+          }}
+        />
+      )}
+      <IdeErrorExplainer
+        open={bugDoctorOpen}
+        message={bugDoctorMsg}
+        contextCode={activeContent}
+        onClose={() => setBugDoctorOpen(false)}
+        onApplyFix={(code) => {
+          if (activeFile) setDirty(d => ({ ...d, [activeFile.id]: code }));
+          setBugDoctorOpen(false);
+          toast.success("Fix applied to editor");
+        }}
+      />
+      {approval && (
+        <IdeApprovalGate
+          open={true}
+          title={approval.title}
+          changes={approval.changes}
+          onApprove={() => { approval.resolve(true); setApproval(null); }}
+          onCancel={() => { approval.resolve(false); setApproval(null); }}
         />
       )}
     </div>
