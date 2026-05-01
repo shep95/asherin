@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, Lock, Zap, Search, MessageSquare } from "lucide-react";
+import { Sparkles, Lock, Zap, Search, MessageSquare, AlertOctagon } from "lucide-react";
 import Header from "@/components/Header";
 import LandingBackground from "@/components/LandingBackground";
 import ZophielEngineView from "@/components/dashboard/ZophielEngineView";
