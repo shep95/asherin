@@ -504,12 +504,20 @@ const AureonIdeView = () => {
   }, [files, sessions, activeSessionId, toast]);
 
   // ── Chat ──
-  const sendChatMessage = useCallback(async (content: string, customBrainPrompt?: string) => {
+  // When ZANOEM mode is on we prepend a "first-principles inventor" preamble.
+  // When "You Decide ZANOEM" is also on, we recursively self-answer any
+  // clarifying question the assistant comes back with (up to 6 rounds).
+  const sendChatMessage = useCallback(async (content: string, customBrainPrompt?: string, _isAutopilotTurn = false) => {
     if (creditsRemaining <= 0) {
       toast({ title: "Credit limit reached", description: `You've used all ${maxCredits} credits this hour.`, variant: "destructive" });
       return;
     }
     useCredit();
+    const isAutopilotTurn = _isAutopilotTurn;
+    if (!isAutopilotTurn) {
+      autopilotRoundsRef.current = 0;
+      lastIntentRef.current = content;
+    }
     const userMsg: ChatMsg = { id: crypto.randomUUID(), role: "user", content, timestamp: new Date() };
     setChatMessages(prev => [...prev, userMsg]);
     setIsStreaming(true);
@@ -520,6 +528,13 @@ const AureonIdeView = () => {
     const allMsgs = [...chatMessages, userMsg].map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
     const contextParts: string[] = [];
+    if (zanoemMode) {
+      contextParts.push([
+        "[ZANOEM MODE — Aureon IDE]",
+        "You are ZANOEM, a first-principles software inventor. Design and ship production-grade code, never apologise, never ask for permission you can resolve yourself.",
+        "Use BOLD section headers, prefer code blocks for any concrete change, and write self-documenting code with strict types and guard clauses.",
+      ].join("\n"));
+    }
     if (activeFile?.content) {
       contextParts.push(`[IDE Context] Currently editing: ${activeFile.name}\n\`\`\`${getLanguage(activeFile.name)}\n${activeFile.content.slice(0, 4000)}\n\`\`\``);
     }
@@ -552,15 +567,55 @@ const AureonIdeView = () => {
           fetchSuggestions(assistantContent).then(setSuggestions).catch(() => {});
         },
       });
+
+      lastAssistantRef.current = assistantContent;
+
+      // ── Autopilot loop ──
+      if (zanoemMode && autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && zanoemNeedsDecision(assistantContent)) {
+        if (isAutopilotTurn && autopilotTriggerRef.current) {
+          void zanoemLogDecision({
+            surface: "aureon_ide",
+            projectRef: activeSessionId ?? null,
+            round: autopilotRoundsRef.current,
+            triggerText: autopilotTriggerRef.current,
+            replySent: zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS),
+            responseText: assistantContent,
+          });
+        }
+        autopilotRoundsRef.current += 1;
+        autopilotTriggerRef.current = assistantContent;
+        const autoReply = zanoemBuildReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        setTimeout(() => { void sendChatMessage(autoReply, customBrainPrompt, true); }, 250);
+      } else if (isAutopilotTurn && autopilotRoundsRef.current > 0) {
+        toast({ title: "ZANOEM autopilot complete", description: `${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"}` });
+        autopilotRoundsRef.current = 0;
+        autopilotTriggerRef.current = "";
+
+        // Background sweep — autofix + vision verification.
+        if (!autopilotEnqueueGuardRef.current) {
+          autopilotEnqueueGuardRef.current = true;
+          if (autoDebugRef.current) zqEnqueue("autofix", { projectRef: activeSessionId ?? undefined });
+          if (autoUiDebugRef.current) zqEnqueue("vision", {
+            intent: lastIntentRef.current,
+            recentAssistant: assistantContent,
+            projectRef: activeSessionId ?? undefined,
+          });
+          setTimeout(() => { autopilotEnqueueGuardRef.current = false; }, 2000);
+        }
+      }
     } catch (err: any) {
       if (err.name !== "AbortError") {
         setChatMessages(prev => [...prev, { id: assistantId, role: "assistant", content: `Error: ${err.message}`, timestamp: new Date() }]);
       }
       setIsStreaming(false);
     }
-  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput]);
+  }, [chatMessages, activeFile, creditsRemaining, useCredit, maxCredits, toast, terminalOutput, zanoemMode, autopilotZanoem, activeSessionId]);
+
+  // Expose sendChatMessage to the offline queue worker as a stable ref.
+  useEffect(() => { sendZanoemTurnRef.current = (p: string) => sendChatMessage(p, undefined, true); }, [sendChatMessage]);
 
   const stopStreaming = useCallback(() => { abortRef.current?.abort(); setIsStreaming(false); }, []);
+
 
   const handleTerminalAiCommand = useCallback((query: string) => {
     sendChatMessage(query);
