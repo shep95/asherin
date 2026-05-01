@@ -473,7 +473,7 @@ const VedicAstrologyView = () => {
   const chartContext = useMemo(() => {
     if (!chart || !ascRashi) return "";
     const lines: string[] = [];
-    lines.push(`Birth: ${birthDate} ${birthTime} (UTC${tzOffset >= "0" ? "+" : ""}${tzOffset}) at ${cityQuery || `${lat}, ${lon}`}`);
+    lines.push(`Birth: ${birthDate} ${birthTime} (UTC${parseFloat(tzOffset) >= 0 ? "+" : ""}${tzOffset}) at ${cityQuery || `${lat}, ${lon}`}`);
     lines.push(`Ascendant: ${ascRashi.name} ${fmtDeg(chart.ascendant % 30)} (ruler ${ascRashi.ruler})`);
     if (moonPlanet && moonNak) {
       lines.push(`Moon Nakshatra: ${moonNak.nakshatra.name} pada ${moonNak.pada} (lord ${moonNak.nakshatra.ruler})`);
