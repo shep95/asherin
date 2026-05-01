@@ -698,19 +698,51 @@ export default function AsherCodeModule() {
             ))}
             {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
           </div>
+          {/* Pending uploads chips */}
+          {pendingUploads.length > 0 && (
+            <div className="border-t border-border/15 px-2 py-1.5 flex flex-wrap gap-1 bg-card/20">
+              {pendingUploads.map((u, i) => (
+                <div key={i} className="inline-flex items-center gap-1 rounded border border-border/20 bg-card/40 px-1.5 py-0.5 text-[9px] font-light">
+                  {u.kind === "image" ? <ImageIcon className="h-2.5 w-2.5" /> : u.kind === "zip" ? <FileArchive className="h-2.5 w-2.5" /> : <FileText className="h-2.5 w-2.5" />}
+                  <span className="truncate max-w-[80px]">{u.name}</span>
+                  <button onClick={() => setPendingUploads(p => p.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-red-400"><X className="h-2 w-2" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Auto-approve + Animation toggles */}
+          <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5">
+            <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
+              <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-emerald-500 h-2.5 w-2.5" />
+              <Zap className="h-2.5 w-2.5" /> Auto-Apply
+            </label>
+            <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
+              <input type="checkbox" checked={animateInsertion} onChange={(e) => setAnimateInsertion(e.target.checked)} className="accent-emerald-500 h-2.5 w-2.5" />
+              Type-Anim
+            </label>
+          </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
+            <input ref={fileInputRef} type="file" multiple accept="image/*,.zip,.txt,.md,.json,.csv,.py,.js,.ts,.tsx,.jsx,.html,.css" onChange={handleFileUpload} className="hidden" />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={aiBusy}
+              title="Attach images, ZIPs (up to 100MB), or text files"
+              className="rounded border border-border/20 bg-card/40 px-2 hover:border-foreground/30 disabled:opacity-40"
+            >
+              <Upload className="h-3 w-3" />
+            </button>
             <textarea
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
-              placeholder={apiKey ? "Ask Aureon Code…" : "Add API key in BYOK settings first"}
+              placeholder={apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first"}
               disabled={!apiKey}
               rows={2}
               className="flex-1 resize-none rounded border border-border/20 bg-card/40 px-2 py-1.5 text-[11px] font-light placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none disabled:opacity-40"
             />
             <button
               onClick={() => orchestrateMode ? aiOrchestrate() : sendChat()}
-              disabled={aiBusy || !chatInput.trim() || !apiKey}
+              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || !apiKey}
               title={orchestrateMode ? "Orchestrate across 3 models" : "Send"}
               className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
             >
