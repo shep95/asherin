@@ -377,6 +377,9 @@ const VedicAstrologyView = () => {
     setShowSaved(false);
     setError(null);
     setLoadingChart(true);
+    setActiveCountry(null);
+    setActiveSavedId(saved.id);
+    setActiveName(saved.name);
     try {
       await computeAndSetChart({
         birthDate: saved.birth_date,
@@ -386,6 +389,33 @@ const VedicAstrologyView = () => {
         lon: String(saved.longitude),
       });
       toast.success(`Loaded ${saved.name}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
+  const loadCountryChart = async (c: CountryFoundation) => {
+    setTzAuto(false);
+    setBirthDate(c.birthDate);
+    setBirthTime(c.birthTime);
+    setTzOffset(String(c.tzOffset));
+    setTzZoneName(null);
+    setLat(String(c.lat));
+    setLon(String(c.lon));
+    setCityQuery(`${c.city}, ${c.name}`);
+    setError(null);
+    setLoadingChart(true);
+    setActiveCountry(c);
+    setActiveSavedId(null);
+    setActiveName(`${c.flag} ${c.name}`);
+    try {
+      await computeAndSetChart({
+        birthDate: c.birthDate, birthTime: c.birthTime,
+        tzOffset: String(c.tzOffset), lat: String(c.lat), lon: String(c.lon),
+      });
+      toast.success(`Loaded ${c.name} foundation chart`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
