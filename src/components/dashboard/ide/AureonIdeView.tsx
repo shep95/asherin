@@ -913,8 +913,9 @@ const AureonIdeView = () => {
             <>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={24} minSize={15} maxSize={40} className="overflow-hidden">
-                <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden">
-                  <IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} />
+                <div className="h-full border-l border-border/20 bg-card/10 overflow-hidden flex flex-col">
+                  {zanoemToggleBar}
+                  <div className="flex-1 min-h-0"><IdeChatPanel messages={chatMessages} isStreaming={isStreaming} onSend={sendChatMessage} onStop={stopStreaming} suggestions={suggestions} activeFileName={activeFile?.name} activeFileContent={activeFile?.content} creditsRemaining={creditsRemaining} maxCredits={maxCredits} /></div>
                 </div>
               </ResizablePanel>
             </>
@@ -923,6 +924,13 @@ const AureonIdeView = () => {
       </div>
 
       <IdeQuickOpen open={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} files={files} onSelectFile={selectFile} />
+
+      <ZanoemDecisionLog
+        open={decisionLogOpen}
+        surface="aureon_ide"
+        projectRef={activeSessionId ?? null}
+        onClose={() => setDecisionLogOpen(false)}
+      />
 
       {/* Shared IDE upgrade pack modals */}
       <IdeFuzzyFinder
