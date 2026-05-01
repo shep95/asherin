@@ -377,8 +377,30 @@ const VedicAstrologyView = () => {
               <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             </label>
             <label className="space-y-1">
-              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">UTC offset (hrs)</span>
-              <input type="number" step="0.5" value={tzOffset} onChange={(e) => setTzOffset(e.target.value)} placeholder="IST = 5.5" className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider flex items-center justify-between gap-2">
+                <span>
+                  UTC offset {tzAuto ? "(auto)" : "(manual)"}
+                  {tzResolving && <Loader2 className="inline h-2.5 w-2.5 ml-1 animate-spin" />}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTzAuto((v) => !v)}
+                  className="text-[9px] text-muted-foreground/60 hover:text-foreground transition normal-case tracking-normal"
+                >
+                  {tzAuto ? "override" : "auto"}
+                </button>
+              </span>
+              <input
+                type="number"
+                step="0.25"
+                value={tzOffset}
+                onChange={(e) => { setTzAuto(false); setTzOffset(e.target.value); }}
+                placeholder="auto from city"
+                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+              {tzZoneName && tzAuto && (
+                <span className="block text-[9px] text-muted-foreground/60 tracking-wider truncate">{tzZoneName}</span>
+              )}
             </label>
           </div>
 
