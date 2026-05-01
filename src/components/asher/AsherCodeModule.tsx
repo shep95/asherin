@@ -1101,10 +1101,10 @@ export default function AsherCodeModule() {
             <button
               onClick={() => zaliMode ? sendChat() : (orchestrateMode ? aiOrchestrate() : sendChat())}
               disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || (!zaliMode && !apiKey)}
-              title={orchestrateMode ? "Orchestrate across 3 models" : "Send"}
-              className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
+              title={zaliMode ? "ZALI: invent new software from first principles" : (orchestrateMode ? "Orchestrate across 3 models" : "Send")}
+              className={`rounded border px-2 disabled:opacity-40 ${zaliMode ? "border-foreground/40 bg-foreground/15 hover:bg-foreground/25" : orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
             >
-              {orchestrateMode ? <Layers className="h-3 w-3 text-foreground" /> : <Send className="h-3 w-3" />}
+              {zaliMode ? <Brain className="h-3 w-3 text-foreground" /> : orchestrateMode ? <Layers className="h-3 w-3 text-foreground" /> : <Send className="h-3 w-3" />}
             </button>
           </div>
         </aside>
