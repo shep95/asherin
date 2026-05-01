@@ -144,6 +144,35 @@ const ZerlalView = () => {
     file.type === "application/zip" ||
     file.type === "application/x-zip-compressed";
 
+  const importGithubTarget = useCallback(async () => {
+    const rawUrl = normalizeGithubUrl(githubUrl.trim());
+    if (!rawUrl) {
+      setError("Paste a public GitHub raw/blob file URL first");
+      return;
+    }
+    setError(null);
+    setProgress(8);
+    setProgressLabel("Fetching GitHub source…");
+    try {
+      const resp = await fetch(rawUrl);
+      if (!resp.ok) throw new Error(`GitHub fetch failed (${resp.status})`);
+      const text = await resp.text();
+      if (!text.trim()) throw new Error("GitHub file returned empty content");
+      if (text.length > MAX_COMBINED_CODE) throw new Error("GitHub file exceeds 500KB scan bundle limit");
+      setCode(text);
+      setFilename(rawUrl.split("/").pop() || "github-source");
+      setByteSize(new TextEncoder().encode(text).length);
+      setZipFileCount(0);
+      setBlueprint(null);
+      setProgress(100);
+      setProgressLabel("GitHub source ready");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not import GitHub source");
+    } finally {
+      setTimeout(() => { setProgress(0); setProgressLabel(""); }, 800);
+    }
+  }, [githubUrl]);
+
   const handleZip = useCallback(async (file: File) => {
     if (file.size > MAX_ZIP_BYTES) {
       setError(`ZIP exceeds 10MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
