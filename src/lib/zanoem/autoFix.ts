@@ -22,6 +22,7 @@ export interface AutoFixResult {
   passes: number;
   finalErrorCount: number;
   clean: boolean;
+  aborted?: boolean;
   history: { pass: number; errorCount: number; sample: string[] }[];
 }
 
