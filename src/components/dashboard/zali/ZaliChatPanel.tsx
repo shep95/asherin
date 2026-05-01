@@ -170,14 +170,14 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
   const downloadConversation = useCallback(() => {
     if (!messages.length) return;
     const lines = messages.map(m =>
-      `**${m.role === "user" ? "You" : "ZALI"}** (${m.createdAt.toLocaleString()}):\n${m.content}`
+      `**${m.role === "user" ? "You" : "ZANOEM"}** (${m.createdAt.toLocaleString()}):\n${m.content}`
     );
-    const md = `# ZALI Design Lab — ${project?.name || "Conversation"}\n\n${lines.join("\n\n---\n\n")}`;
+    const md = `# ZANOEM Design Lab — ${project?.name || "Conversation"}\n\n${lines.join("\n\n---\n\n")}`;
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ZALI-${(project?.name || "conversation").replace(/[^a-zA-Z0-9 -]/g, "")}.md`;
+    a.download = `ZANOEM-${(project?.name || "conversation").replace(/[^a-zA-Z0-9 -]/g, "")}.md`;
     a.click();
     URL.revokeObjectURL(url);
   }, [messages, project]);
