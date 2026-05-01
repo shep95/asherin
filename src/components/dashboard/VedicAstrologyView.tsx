@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Moon, Sparkles, MapPin } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
@@ -248,28 +248,56 @@ const VedicAstrologyView = () => {
   const [chart, setChart] = useState<ReturnType<typeof computeChart> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const searchCity = async () => {
-    if (!cityQuery.trim()) return;
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const searchCity = async (q?: string) => {
+    const query = (q ?? cityQuery).trim();
+    if (query.length < 2) {
+      setCityResults([]);
+      return;
+    }
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     setSearching(true);
+    setError(null);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(cityQuery)}`,
-        { headers: { "Accept-Language": "en" } },
+        `https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=0&q=${encodeURIComponent(query)}`,
+        { headers: { "Accept-Language": "en" }, signal: ctrl.signal },
       );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setCityResults(
-        data.map((d: { display_name: string; lat: string; lon: string }) => ({
+        (data as { display_name: string; lat: string; lon: string }[]).map((d) => ({
           label: d.display_name,
           lat: parseFloat(d.lat),
           lon: parseFloat(d.lon),
         })),
       );
-    } catch {
-      setError("City lookup failed");
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") setError("City lookup failed");
     } finally {
       setSearching(false);
     }
   };
+
+  // Debounced auto-search as the user types.
+  useEffect(() => {
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    if (cityQuery.trim().length < 2) {
+      setCityResults([]);
+      return;
+    }
+    debounceRef.current = window.setTimeout(() => {
+      void searchCity(cityQuery);
+    }, 350);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cityQuery]);
 
   const generateChart = () => {
     setError(null);
