@@ -699,21 +699,24 @@ const AsherZaliModule = () => {
               <span className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/80">
                 ZANOEM Conversation
               </span>
-              <button
-                onClick={() => setAutopilot((v) => !v)}
-                title="You Decide ZANOEM: autopilot. ZANOEM auto-answers its own questions and recommendations on your behalf for up to 6 rounds."
-                className={`ml-2 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[8.5px] font-light tracking-[0.2em] uppercase transition ${
-                  autopilot
-                    ? "border-foreground/40 bg-foreground/15 text-foreground"
-                    : "border-border/30 bg-card/30 text-muted-foreground/70 hover:border-foreground/30"
+              <label
+                title="You Decide ZANOEM: autopilot. ZANOEM auto-answers its own questions and recommendations on your behalf for up to 6 rounds. Includes auto-fix loop and vision UI verification."
+                className={`ml-2 inline-flex items-center gap-1 text-[8.5px] font-light tracking-[0.2em] uppercase cursor-pointer ${
+                  autopilot ? "text-foreground" : "text-muted-foreground/70"
                 }`}
               >
+                <input
+                  type="checkbox"
+                  checked={autopilot}
+                  onChange={(e) => setAutopilot(e.target.checked)}
+                  className="accent-foreground h-2.5 w-2.5"
+                />
                 <Zap className="h-2.5 w-2.5" />
                 You Decide ZANOEM
                 {autopilot && autopilotRoundsRef.current > 0 && (
                   <span className="ml-1 text-foreground/70">{autopilotRoundsRef.current}/{AUTOPILOT_MAX_ROUNDS}</span>
                 )}
-              </button>
+              </label>
               {isStreaming && (
                 <span className="ml-auto flex items-center gap-1.5">
                   <span className="h-1 w-1 rounded-full bg-foreground/60 animate-pulse" />
