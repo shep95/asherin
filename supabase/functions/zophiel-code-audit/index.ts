@@ -165,7 +165,66 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
   ],
   "criticals": [
     { "branch": "leaks", "finding": "Hardcoded credentials at line 23 — rotate immediately", "severity": "high|med|low" }
-  ]
+  ],
+  "intel": {
+    "board_score": { "total": 0-1000, "code": 0-250, "supply_chain": 0-250, "infra": 0-250, "human": 0-250, "trend": "improving|stable|elevated", "peer_median": 420 },
+    "nation_state": {
+      "primary_ttp": "MITRE ATT&CK ID — short name (e.g. T1190 — Exploit Public-Facing App)",
+      "groups": [
+        { "id": "APT29", "aka": "Cozy Bear", "nation": "RU", "sectors": "Gov · Tech", "rationale": "1-line evidence tying this finding class to this group" }
+      ],
+      "active_campaign_note": "1-line note on observed live activity against this vuln class"
+    },
+    "red_team": {
+      "stages": [
+        { "k": "Initial Access", "reachable": true, "via": "leaf id or finding name justifying reachability" }
+      ]
+    },
+    "quantum_crypto": [
+      { "algo": "RSA-2048", "status": "vulnerable|safe", "evidence": "line ref / file ref", "recommendation": "CRYSTALS-Kyber" }
+    ],
+    "ai_generated_code": [
+      { "pattern": "Predictable Math.random() seed", "evidence": "line 42 — Math.random()", "confidence": "high|med|low" }
+    ],
+    "dark_web": [
+      { "k": "Exploit dev chatter", "v": "concrete observation or 'No matching activity in last 30 days'" }
+    ],
+    "ueba": [
+      { "k": "Service account anomaly", "v": "concrete observation or 'No anomalies in baseline window'" }
+    ],
+    "ot_ics": [
+      { "k": "Modbus / TCP", "exposed": false, "evidence": "line ref or 'not present in code'" }
+    ],
+    "incident_response": {
+      "armed": false,
+      "affected_surfaces": 0,
+      "forensic_artifacts": "preserved|n/a",
+      "breach_notice_drafts": ["GDPR", "SEC", "HIPAA"],
+      "triage_tasks": 0
+    },
+    "siem": [
+      { "k": "Splunk", "status": "connected|ready|unconfigured", "alerts_queued": 0 }
+    ],
+    "cve_pipeline": [
+      { "k": "Discovered", "n": 0, "active": true }
+    ],
+    "geopolitical": [
+      { "scenario": "Ransomware escalation", "risk": "HIGH|MED|LOW", "time_to_exploit": "≤ 14 days" }
+    ],
+    "compliance": [
+      { "framework": "NIST 800-53", "violations": 0, "controls": ["AC-2", "SI-10"] }
+    ],
+    "memory_safety": [
+      { "k": "Buffer overflow risk", "hit": false, "evidence": "line ref or 'language is memory-safe'" }
+    ],
+    "infra_misconfig": [
+      { "k": "Exposed admin endpoints", "hit": false, "evidence": "line ref or 'not present'" }
+    ],
+    "zero_day_confidence": [
+      { "branch": "leaks", "finding": "...", "confidence_pct": 0-100, "novel": true, "cve_match": "CVE-2024-XXXX or 'Novel — no match'" }
+    ],
+    "remediation_sla": { "critical_24h": 0, "high_72h": 0, "medium_14d": 0, "low_30d": 0 }
+  }
 }
 
 Rules:
@@ -173,10 +232,14 @@ Rules:
 - Use 'tone' to color-code: good (safe), neutral (standard), warn (risky), critical (broken/exposed).
 - Leaves must be FACTS with line refs ("Line 42 — eval(userInput)") not vague ("uses eval somewhere").
 - Always include ALL 10 branches: leaks, broken, fragile, logic, workflow, visual, injection, auth, deps, fix (empty leaves OK if truly nothing found).
-- HUNT AGGRESSIVELY for logical flaws (inverted booleans, off-by-one, wrong math, faulty state), workflow defects (missing awaits, unhandled rejections, broken control flow), and visual/UI logic bugs (stale closures, missing keys, broken JSX conditions, dep array issues).
+- HUNT AGGRESSIVELY for logical flaws (inverted booleans, off-by-one, wrong math, faulty state), workflow defects (missing awaits, unhandled rejections, broken control flow), and visual/UI logic bugs.
 - For each finding in leaks/broken/fragile/logic/workflow/visual, the "fix" branch MUST contain a corresponding remediation leaf with the WHY and HOW.
 - Include all 14 standard edges above (add more if relevant).
+- The "intel" object is MANDATORY — populate every sub-field with REAL analysis derived from the code, not generic placeholders. If a category has no signal in this codebase, return an empty array or set fields to false/0 with evidence "not present in scanned code". Never invent fake APT groups, fake dark-web chatter, or fake CVE numbers — if you don't have evidence, mark it absent.
+- For nation_state.groups: include 0-5 entries that are PLAUSIBLY tied to the observed vulnerability class (e.g. SQL injection → groups with documented SQLi tooling). Cite the rationale.
+- For zero_day_confidence: only include entries that correspond to actual criticals you found. cve_match must be "Novel — no match" unless you can cite a real, well-known CVE.
 - Output JSON only. No prose before or after.`;
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
