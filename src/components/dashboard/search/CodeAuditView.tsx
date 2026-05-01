@@ -353,6 +353,22 @@ const ZerlalView = () => {
 
   return (
     <div className="w-full animate-fade-in space-y-4">
+      <ZerlalTopNav active={activePage} onChange={setActivePage} />
+      {activePage !== "scan" && (
+        <ZerlalIntelPage page={activePage} history={scanHistory} blueprint={blueprint} />
+      )}
+      {activePage === "scan" && (
+        <>
+      <ZerlalDashboardHeader
+        blueprint={blueprint}
+        auditing={auditing}
+        progress={progress}
+        progressLabel={progressLabel}
+        liveLog={liveLog}
+        fileCount={fileCount}
+        scanStartedAt={scanStartedAt}
+        scanCompletedAt={scanCompletedAt}
+      />
       {/* Hero / Input */}
       <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.04] via-card/30 to-card/10 backdrop-blur-xl px-5 py-4">
         <div className="flex items-center gap-3 mb-2">
@@ -686,6 +702,8 @@ const ZerlalView = () => {
             </p>
           </div>
         </div>
+      )}
+        </>
       )}
       {/* BYOK Panel */}
       <IntelMapByokPanel
