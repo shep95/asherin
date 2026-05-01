@@ -512,12 +512,59 @@ const ZerlalView = () => {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — advertises the full ZERLAL intelligence suite */}
       {!blueprint && !auditing && !error && !filename && (
-        <div className="rounded-2xl border border-dashed border-border/20 bg-card/10 px-5 py-10 text-center">
-          <p className="text-[11px] font-extralight tracking-wide text-muted-foreground/50">
-            Upload a code file above to analyze its security posture.
-          </p>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-dashed border-border/20 bg-card/10 px-5 py-8 text-center">
+            <ShieldAlert className="h-5 w-5 text-foreground/40 mx-auto mb-2" />
+            <p className="text-[11px] font-light tracking-wide text-foreground/70">
+              Upload a code file to unlock the full <span className="text-foreground font-semibold">ZERLAL</span> intelligence suite.
+            </p>
+            <p className="text-[10px] font-extralight tracking-wide text-muted-foreground/50 mt-1">
+              Live signal — no simulation. Backed by Zophiel's adversarial reasoning engine.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/20 bg-card/20 backdrop-blur-sm px-5 py-4">
+            <div className="text-[9px] font-semibold tracking-[0.25em] text-foreground/60 uppercase mb-3">
+              Intelligence Panels Activated On Scan
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {[
+                { tier: "T1", label: "Board Risk Score (0–1000)" },
+                { tier: "T1", label: "Nation-State Attribution (MITRE)" },
+                { tier: "T1", label: "Autonomous Red Team — Kill Chain" },
+                { tier: "T1", label: "Quantum Cryptography Audit" },
+                { tier: "T1", label: "AI-Generated Code Security" },
+                { tier: "T2", label: "Dark Web / Leak Intelligence" },
+                { tier: "T2", label: "UEBA — Insider Threat" },
+                { tier: "T2", label: "OT / ICS / SCADA Exposure" },
+                { tier: "T2", label: "Incident Response Command" },
+                { tier: "T2", label: "SIEM Integration Status" },
+                { tier: "T3", label: "CVE Pipeline + 0-Day Confidence" },
+                { tier: "T3", label: "Geopolitical Threat Map" },
+                { tier: "T3", label: "Compliance Auto-Map (NIST/SOC2/GDPR)" },
+                { tier: "FX", label: "Memory Safety Forensics" },
+                { tier: "FX", label: "Infrastructure Misconfig" },
+                { tier: "FX", label: "Remediation SLA Tracker" },
+                { tier: "FX", label: "Exploit Chain Map" },
+                { tier: "FX", label: "Scan History / Posture Trend" },
+              ].map((p) => (
+                <div key={p.label} className="flex items-center gap-2 rounded-lg border border-border/15 bg-background/30 px-2.5 py-1.5">
+                  <span className={`text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded ${
+                    p.tier === "T1" ? "bg-red-400/10 text-red-300/80 border border-red-400/20"
+                    : p.tier === "T2" ? "bg-amber-400/10 text-amber-300/80 border border-amber-400/20"
+                    : p.tier === "T3" ? "bg-blue-400/10 text-blue-300/80 border border-blue-400/20"
+                    : "bg-foreground/5 text-foreground/50 border border-border/20"
+                  }`}>{p.tier}</span>
+                  <span className="text-[10px] font-light text-foreground/70 truncate">{p.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[9px] font-extralight tracking-wide text-muted-foreground/40 mt-3 text-center">
+              18+ live intelligence panels render after upload. Use your own API key (BYOK) to bypass shared rate limits.
+            </p>
+          </div>
         </div>
       )}
       {/* BYOK Panel */}
