@@ -23,28 +23,95 @@ function flattenFiles(files: IdeFile[]): IdeFile[] {
   return result;
 }
 
+function stripModuleSyntax(src: string): { code: string; defaultExport: string | null; namedComponents: string[] } {
+  let code = src;
+  // Remove ES module imports (Babel standalone can't resolve them in-browser)
+  code = code.replace(/^\s*import\s+[^;]*?from\s+['"][^'"]+['"];?\s*$/gm, "");
+  code = code.replace(/^\s*import\s+['"][^'"]+['"];?\s*$/gm, "");
+  // Capture default export name
+  let defaultExport: string | null = null;
+  const defFnMatch = code.match(/export\s+default\s+function\s+([A-Z][A-Za-z0-9_]*)/);
+  const defClassMatch = code.match(/export\s+default\s+class\s+([A-Z][A-Za-z0-9_]*)/);
+  const defIdentMatch = code.match(/export\s+default\s+([A-Z][A-Za-z0-9_]*)\s*;?/);
+  if (defFnMatch) defaultExport = defFnMatch[1];
+  else if (defClassMatch) defaultExport = defClassMatch[1];
+  else if (defIdentMatch) defaultExport = defIdentMatch[1];
+  // Strip export keywords (keep declarations in global scope)
+  code = code.replace(/export\s+default\s+function\s+/g, "function ");
+  code = code.replace(/export\s+default\s+class\s+/g, "class ");
+  code = code.replace(/export\s+default\s+([A-Z][A-Za-z0-9_]*)\s*;?/g, "");
+  code = code.replace(/export\s+(const|let|var|function|class)\s+/g, "$1 ");
+  code = code.replace(/^\s*export\s+\{[^}]*\}\s*;?\s*$/gm, "");
+  // Fallback: top-level component-like declarations
+  const namedComponents: string[] = [];
+  const rxFn = /(?:^|\n)\s*(?:function|const|let|var)\s+([A-Z][A-Za-z0-9_]*)/g;
+  let m: RegExpExecArray | null;
+  while ((m = rxFn.exec(code)) !== null) namedComponents.push(m[1]);
+  return { code, defaultExport, namedComponents };
+}
+
 function buildPreviewHtml(files: IdeFile[]): string {
   const flat = flattenFiles(files);
 
   const htmlFile = flat.find(f => f.name.endsWith(".html"));
   const cssFiles = flat.filter(f => f.name.endsWith(".css"));
-  const tsxFiles = flat.filter(f => f.name.match(/\.(tsx|jsx|ts|js)$/));
+  const jsxFiles = flat.filter(f => f.name.match(/\.(tsx|jsx)$/));
+  const jsFiles = flat.filter(f => f.name.match(/\.(m?js|ts)$/) && !f.name.match(/\.(tsx|jsx)$/));
 
   const allCss = cssFiles.map(f => f.content ?? "").join("\n");
-
-  let componentPreview = "";
-  for (const file of tsxFiles) {
-    const content = file.content ?? "";
-    const returnMatch = content.match(/return\s*\(\s*([\s\S]*?)\s*\);/);
-    if (returnMatch) {
-      componentPreview += `<!-- ${file.name} -->\n${returnMatch[1]}\n`;
-    }
-  }
 
   if (htmlFile?.content) {
     const injectedCss = allCss ? `<style>${allCss}</style>` : "";
     return htmlFile.content.replace("</head>", `${injectedCss}</head>`);
   }
+
+  const hasReact = jsxFiles.length > 0 || flat.some(f => /from ['"]react['"]/.test(f.content ?? ""));
+
+  if (jsxFiles.length === 0 && jsFiles.length === 0 && allCss.length === 0) {
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script src="https://cdn.tailwindcss.com"><\/script></head><body style="background:#0a0a0a;color:#888;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:13px;opacity:0.5">Write code to see preview</body></html>`;
+  }
+
+  let mountTarget: string | null = null;
+  const jsxBlocks = jsxFiles.map(f => {
+    const raw = f.content ?? "";
+    const { code, defaultExport, namedComponents } = stripModuleSyntax(raw);
+    if (defaultExport) mountTarget = defaultExport;
+    else if (namedComponents.length) mountTarget = namedComponents[namedComponents.length - 1];
+    return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.name} */\n${code}\n</script>`;
+  }).join("\n");
+
+  const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.name} */\n${f.content ?? ""}\n</script>`).join("\n");
+
+  const userMountsItself = jsxFiles.concat(jsFiles).some(f => {
+    const c = f.content ?? "";
+    return /ReactDOM\.render\s*\(/.test(c) || /createRoot\s*\([^)]*\)\s*\.render\s*\(/.test(c);
+  });
+
+  const autoMount = (hasReact && mountTarget && !userMountsItself)
+    ? `<script type="text/babel" data-presets="env,react,typescript">
+try {
+  const __el = document.getElementById('root') || document.getElementById('app');
+  if (__el && typeof ${mountTarget} !== 'undefined') {
+    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(${mountTarget})); }
+    else { ReactDOM.render(React.createElement(${mountTarget}), __el); }
+  } else if (!__el) {
+    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: no #root or #app element.</pre>';
+  } else {
+    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: component "${mountTarget}" is not defined at runtime.</pre>';
+  }
+} catch (e) {
+  document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem;white-space:pre-wrap">Auto-mount error: ' + (e && e.message ? e.message : String(e)) + '</pre>';
+}
+<\/script>`
+    : (hasReact && !userMountsItself
+      ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')<\/script>`
+      : "");
+
+  const reactCdn = hasReact
+    ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`
+    : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>` : "");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -53,15 +120,18 @@ function buildPreviewHtml(files: IdeFile[]): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Preview</title>
   <script src="https://cdn.tailwindcss.com"><\/script>
+  ${reactCdn}
   <style>
     body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; }
     ${allCss}
   </style>
 </head>
 <body>
-  <div id="root">
-    ${componentPreview || `<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;opacity:0.4;font-size:14px;">Write code to see preview</div>`}
-  </div>
+  <div id="root"></div>
+  <div id="app"></div>
+  ${jsxBlocks}
+  ${jsBlocks}
+  ${autoMount}
 </body>
 </html>`;
 }
