@@ -180,6 +180,12 @@ export default function AsherCodeModule() {
         e.preventDefault(); setHistoryOpen(true);
       } else if (!e.shiftKey && (e.key === "p" || e.key === "P")) {
         e.preventDefault(); setFuzzyOpen(true);
+      } else if (e.key === "k" || e.key === "K") {
+        e.preventDefault(); setPaletteOpen(true);
+      } else if (e.shiftKey && (e.key === "F" || e.key === "f")) {
+        e.preventDefault(); setSemanticOpen(true);
+      } else if (e.key === "g" || e.key === "G") {
+        e.preventDefault(); setGuideOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
