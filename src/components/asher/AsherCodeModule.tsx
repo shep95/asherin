@@ -774,6 +774,7 @@ export default function AsherCodeModule() {
       } else {
         void supabase.from("asher_code_files").insert({
           project_id: activeProject.id,
+          branch_id: activeBranchId,
           path: edit.path,
           content: edit.new_content,
           language: edit.path.split(".").pop() || "plaintext",
