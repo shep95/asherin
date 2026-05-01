@@ -2040,6 +2040,34 @@ try {
               ))}
             </div>
           )}
+          {/* Manual "Fix Bugs & Logic" trigger — runs the same swarm autofix loop on demand */}
+          <div className="border-t border-border/15 px-2 py-1 flex items-center gap-2 bg-card/10">
+            <button
+              type="button"
+              title="Manually launch the ZANOEM swarm to scan every file, spawn one agent per broken file, and fix all validator errors (red-line bugs) and logic issues until clean."
+              onClick={() => {
+                if (!activeProject) {
+                  toast.error("Open a project first");
+                  return;
+                }
+                if (!autoDebug) setAutoDebug(true);
+                autoDebugRef.current = true;
+                toast.message("◈ Fix Bugs & Logic — dispatching swarm");
+                void zqEnqueue({
+                  kind: "autofix",
+                  payload: { projectRef: activeProject.id },
+                });
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-foreground/20 bg-foreground/5 hover:bg-foreground/15 text-[9px] font-light tracking-[0.18em] uppercase text-foreground transition-colors"
+            >
+              <Wrench className="h-2.5 w-2.5" /> Fix Bugs & Logic
+            </button>
+            {swarmAgents.filter(a => a.status === "working").length > 0 && (
+              <span className="text-[8.5px] font-light tracking-[0.15em] uppercase text-muted-foreground/70">
+                {swarmAgents.filter(a => a.status === "working").length} agent{swarmAgents.filter(a => a.status === "working").length === 1 ? "" : "s"} working
+              </span>
+            )}
+          </div>
           {/* Auto-approve + Animation + ZANOEM toggles */}
           <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
