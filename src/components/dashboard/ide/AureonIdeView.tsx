@@ -47,7 +47,7 @@ interface ChatMsg {
   timestamp: Date;
 }
 
-type CenterTab = "code" | "preview";
+type CenterTab = "code" | "preview" | "workflow";
 type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
 type LeftTab = "files" | "search" | "sessions" | "git";
 
