@@ -16,14 +16,6 @@ const AsherZophielModule = () => {
 
   return (
     <div className="h-full w-full overflow-hidden bg-background flex flex-col">
-      {/* House of Asher disclaimer — always visible */}
-      <div className="flex-shrink-0 border-b border-border/15 bg-gradient-to-r from-foreground/[0.04] via-foreground/[0.07] to-foreground/[0.04] backdrop-blur-md px-4 py-2 flex items-center gap-3">
-        <AlertOctagon className="h-3.5 w-3.5 text-foreground/70 shrink-0" strokeWidth={1.4} />
-        <p className="text-[10px] font-light tracking-wide text-foreground/85 leading-relaxed flex-1">
-          <span className="text-foreground uppercase tracking-[0.25em] mr-2 font-normal">#HouseOfAsher</span>
-          and its assets are not responsible for your use of Aureon. I'm tired of seeing cease-and-desist letters in my mail — knock it off.
-        </p>
-      </div>
       {showNotice && (
         <div className="flex-shrink-0 border-b border-border/15 bg-card/30 backdrop-blur-md px-4 py-2 flex items-center gap-3">
           <Shield className="h-3.5 w-3.5 text-foreground/60 shrink-0" strokeWidth={1.4} />
