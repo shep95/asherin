@@ -11,6 +11,7 @@ import { computeMahadasha, findCurrentDasha } from "@/lib/vedic/dasha";
 import { houseFromAsc } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
+import { resolveBirthTimezone } from "@/lib/vedic/timezoneLookup";
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 
