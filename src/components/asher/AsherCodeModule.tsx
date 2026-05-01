@@ -324,7 +324,7 @@ export default function AsherCodeModule() {
           await sendZanoemTurnRef.current(prompt);
         },
         maxPasses: 6,
-        swarmConcurrency: 6,
+        swarmConcurrency: 2,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
           agentFileRef.current.set(a.id, a.file);
@@ -516,7 +516,30 @@ export default function AsherCodeModule() {
     if (ownIssues.length === 0) return false;
     const current = filesRef.current.find(f => f.id === file.id)?.content ?? file.content;
     const diagnostic = ownIssues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
-    const explained = await explainError(diagnostic || lastPreviewErrorRef.current, current);
+
+    // ── 429-aware retry with exponential backoff + jitter ──
+    // The AI gateway throws 429 when too many agents fire at once. Instead of
+    // letting the agent fail and the whole swarm pass be wasted, we retry the
+    // explainError call up to 4 times with exponential backoff (1s, 2s, 4s, 8s)
+    // plus a small random jitter to de-sync parallel agents.
+    let explained: Awaited<ReturnType<typeof explainError>> | null = null;
+    let lastErr: any = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        explained = await explainError(diagnostic || lastPreviewErrorRef.current, current);
+        break;
+      } catch (e: any) {
+        lastErr = e;
+        const msg = String(e?.message || e || "");
+        const is429 = msg.includes("429") || /rate.?limit/i.test(msg);
+        if (!is429 || attempt === 3) throw e;
+        const backoff = (2 ** attempt) * 1000 + Math.floor(Math.random() * 600);
+        console.warn(`[swarm-agent] 429 on ${file.name} — retrying in ${backoff}ms (attempt ${attempt + 1}/4)`);
+        await new Promise((r) => setTimeout(r, backoff));
+      }
+    }
+    if (!explained) throw lastErr ?? new Error("explainError failed");
+
     const corrected = explained.correctedCode?.trim();
     if (!corrected || corrected === current.trim()) return false;
     // Strict file-id scoping: only mutate the file this agent owns.
