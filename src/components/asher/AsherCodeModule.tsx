@@ -486,7 +486,10 @@ export default function AsherCodeModule() {
       const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language });
       const code = extractCodeBlock(r.reply || "");
       animateApply(activeFile.id, code);
-      setChat(c => [...c, { role: "user", content: `Generate: ${desc}` }, { role: "assistant", content: r.reply || "" }]);
+      const u: ChatMsg = { role: "user", content: `Generate: ${desc}` };
+      const a: ChatMsg = { role: "assistant", content: r.reply || "" };
+      setChat(c => [...c, u, a]);
+      void persistChatMessages([u, a]);
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
 
