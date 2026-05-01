@@ -208,6 +208,7 @@ const VedicAstrologyView = () => {
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
   const [activeName, setActiveName] = useState<string>("");
   const [chatOpen, setChatOpen] = useState(false);
+  const [asherDates, setAsherDates] = useState<string[]>([]);
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
