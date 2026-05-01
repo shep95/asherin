@@ -62,7 +62,7 @@ export default function AsherCodeModule() {
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
   const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
-  const [zanoemMode, setZaliMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
+  const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
@@ -1213,7 +1213,7 @@ export default function AsherCodeModule() {
               title="ZANOEM Mode: design brand-new software from first principles. Auto-creates files from generated code blocks. Uses Aureon engine — no BYOK key needed."
               className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zanoemMode ? "text-foreground" : "text-muted-foreground/70"}`}
             >
-              <input type="checkbox" checked={zanoemMode} onChange={(e) => setZaliMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
+              <input type="checkbox" checked={zanoemMode} onChange={(e) => setZanoemMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               <Brain className="h-2.5 w-2.5" /> ZANOEM
             </label>
           </div>
