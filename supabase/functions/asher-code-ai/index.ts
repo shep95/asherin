@@ -58,6 +58,33 @@ interface ProviderCall {
 }
 
 // ── Provider routing ──────────────────────────────────────────────
+// Hard token-budget guard. OpenAI gpt-5* TPM is ~400k tokens/min.
+// We budget ~150k input tokens (≈ 600k chars) so user prompt + response
+// + persona + brain + context never exceed provider limits.
+const MAX_TOTAL_INPUT_CHARS = 600_000;             // ~150k tokens
+const MAX_BRAIN_FILES_TOTAL_CHARS = 200_000;       // ~50k tokens for brain knowledge
+const MAX_BRAIN_FILE_CHARS = 20_000;               // per-file cap (was 40k — halved)
+const MAX_CONTEXT_FILES_TOTAL_CHARS = 200_000;     // shared cap for project context files
+
+function clampJoin(
+  items: Array<{ header: string; body: string }>,
+  perItemCap: number,
+  totalCap: number,
+  separator = "\n\n---\n\n",
+): string {
+  let used = 0;
+  const out: string[] = [];
+  for (const it of items) {
+    const remaining = totalCap - used;
+    if (remaining <= 200) break; // not worth including a sliver
+    const body = (it.body || "").slice(0, Math.min(perItemCap, remaining));
+    const chunk = `${it.header}\n${body}`;
+    out.push(chunk);
+    used += chunk.length + separator.length;
+  }
+  return out.join(separator);
+}
+
 // ── Build the active system prompt: AUREON CODE base + active persona + active brain.
 // This makes Asher Code inherit the same brain/persona stack the rest of Aureon uses.
 function buildSystemPrompt(payload: any): string {
@@ -74,10 +101,15 @@ function buildSystemPrompt(payload: any): string {
     }
     const fileContents = Array.isArray(brain.fileContents) ? brain.fileContents : [];
     if (fileContents.length) {
-      const filesBlock = fileContents
-        .map((f: { name?: string; content?: string }) => `FILE: ${f?.name || "unnamed"}\n${(f?.content || "").slice(0, 40000)}`)
-        .join("\n\n---\n\n");
-      parts.push(`\n## ACTIVE AUREON BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
+      const filesBlock = clampJoin(
+        fileContents.map((f: { name?: string; content?: string }) => ({
+          header: `FILE: ${f?.name || "unnamed"}`,
+          body: f?.content || "",
+        })),
+        MAX_BRAIN_FILE_CHARS,
+        MAX_BRAIN_FILES_TOTAL_CHARS,
+      );
+      if (filesBlock) parts.push(`\n## ACTIVE AUREON BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
     }
   }
   parts.push(`\n## CONTEXT MERGE RULES\n- Apply the active persona and brain context as your operating mindset.\n- The AUREON CODE engineering directives above always win on code quality, security, and output format.\n- Never mention persona/brain mechanics in your output. Just embody them.`);
