@@ -65,17 +65,40 @@ async function callOpenAICompatible(
   messages: ChatMessage[],
   maxTokens = 4096,
 ): Promise<string> {
-  const resp = await fetch(`${baseUrl}/chat/completions`, {
+  // Newer OpenAI models (gpt-5, o1, o3, etc.) require `max_completion_tokens` and reject custom `temperature`.
+  const isNewOpenAI = /^(gpt-5|o1|o3|o4)/i.test(model);
+  const body: Record<string, unknown> = {
+    model,
+    messages: [{ role: "system", content: ASHER_CODE_SYSTEM_PROMPT }, ...messages],
+  };
+  if (isNewOpenAI) {
+    body.max_completion_tokens = maxTokens;
+  } else {
+    body.max_tokens = maxTokens;
+    body.temperature = 0.4;
+  }
+  let resp = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "system", content: ASHER_CODE_SYSTEM_PROMPT }, ...messages],
-      temperature: 0.4,
-      max_tokens: maxTokens,
-    }),
+    body: JSON.stringify(body),
   });
-  if (!resp.ok) throw new Error(`Provider ${resp.status}: ${(await resp.text()).slice(0, 400)}`);
+  // Fallback: if provider rejects max_tokens, retry with max_completion_tokens (and drop temperature)
+  if (!resp.ok) {
+    const errText = await resp.text();
+    if (/max_completion_tokens/i.test(errText) && "max_tokens" in body) {
+      delete body.max_tokens;
+      delete body.temperature;
+      body.max_completion_tokens = maxTokens;
+      resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) throw new Error(`Provider ${resp.status}: ${(await resp.text()).slice(0, 400)}`);
+    } else {
+      throw new Error(`Provider ${resp.status}: ${errText.slice(0, 400)}`);
+    }
+  }
   const data = await resp.json();
   return data.choices?.[0]?.message?.content || "(empty response)";
 }
