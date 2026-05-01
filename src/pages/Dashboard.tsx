@@ -60,6 +60,7 @@ const CodeSnippetsView = React.lazy(() => import("@/components/dashboard/CodeSni
 const ProjectsView = React.lazy(() => import("@/components/dashboard/ProjectsView"));
 const MemoryCenterView = React.lazy(() => import("@/components/dashboard/MemoryCenterView"));
 const StatsView = React.lazy(() => import("@/components/dashboard/StatsView"));
+const VedicAstrologyView = React.lazy(() => import("@/components/dashboard/VedicAstrologyView"));
 const SettingsView = React.lazy(() => import("@/components/dashboard/SettingsView"));
 const SubscriptionView = React.lazy(() => import("@/components/dashboard/SubscriptionView"));
 const ZophielEngineView = React.lazy(() => import("@/components/dashboard/ZophielEngineView"));
@@ -1314,6 +1315,7 @@ const Dashboard = () => {
       case "projects": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><ProjectsView /></Suspense></ErrorBoundary>;
       case "memory": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><MemoryCenterView /></Suspense></ErrorBoundary>;
       case "stats": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><StatsView /></Suspense></ErrorBoundary>;
+      case "vedic-astrology": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><VedicAstrologyView /></Suspense></ErrorBoundary>;
       case "settings": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SettingsView /></Suspense></ErrorBoundary>;
       case "subscription": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><SubscriptionView /></Suspense></ErrorBoundary>;
       case "persona-store": return <ErrorBoundary><Suspense fallback={<LazyFallback />}><PersonaStoreView /></Suspense></ErrorBoundary>;
