@@ -37,7 +37,7 @@ import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSa
 import { toast } from "sonner";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import ZanoemDecisionLog from "./ZanoemDecisionLog";
-import { validateFiles, validateCode, explainError } from "@/lib/ide";
+import { validateFiles, validateCode } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -525,35 +525,49 @@ export default function AsherCodeModule() {
     // letting the agent fail and the whole swarm pass be wasted, we retry the
     // explainError call up to 4 times with exponential backoff (1s, 2s, 4s, 8s)
     // plus a small random jitter to de-sync parallel agents.
-    let explained: Awaited<ReturnType<typeof explainError>> | null = null;
+    let reply = "";
     let lastErr: any = null;
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        explained = await explainError(diagnostic || lastPreviewErrorRef.current, current);
+        const aureon = await loadAureonContext();
+        const result = await callAsherCodeAi({
+          mode: "fix",
+          byok: byok(),
+          code: current,
+          language: file.language,
+          error: diagnostic || lastPreviewErrorRef.current,
+          ...aureon,
+        });
+        reply = result.reply || "";
         break;
       } catch (e: any) {
         lastErr = e;
         const msg = String(e?.message || e || "");
-        const is429 = msg.includes("429") || /rate.?limit/i.test(msg);
+        const is429 = /429|rate.?limit|quota|too.?many.?requests/i.test(msg);
         if (!is429 || attempt === 3) throw e;
         const backoff = (2 ** attempt) * 1000 + Math.floor(Math.random() * 600);
         console.warn(`[swarm-agent] 429 on ${file.name} — retrying in ${backoff}ms (attempt ${attempt + 1}/4)`);
         await new Promise((r) => setTimeout(r, backoff));
       }
     }
-    if (!explained) throw lastErr ?? new Error("explainError failed");
+    if (!reply) throw lastErr ?? new Error("BYOK fixer returned no response");
 
-    let corrected = explained.correctedCode?.trim();
+    let corrected = extractCodeBlock(reply || "").trim();
     // ── Retry if AI returned no correctedCode ──
     // The first pass sometimes returns explanation-only (no rewrite). Force a
     // second pass with an explicit "rewrite the file" prompt before giving up.
     if (!corrected || corrected === current.trim()) {
       try {
-        const forced = await explainError(
-          `${diagnostic}\n\n[REWRITE REQUIRED] Output the COMPLETE corrected file in correctedCode. Do not skip.`,
-          current,
-        );
-        const c2 = forced.correctedCode?.trim();
+        const aureon = await loadAureonContext();
+        const forced = await callAsherCodeAi({
+          mode: "fix",
+          byok: byok(),
+          code: current,
+          language: file.language,
+          error: `${diagnostic}\n\n[REWRITE REQUIRED] Return ONLY the COMPLETE corrected file inside one fenced code block. Do not skip.`,
+          ...aureon,
+        });
+        const c2 = extractCodeBlock(forced.reply || "").trim();
         if (c2 && c2 !== current.trim()) corrected = c2;
       } catch {
         // fall through — return false below
