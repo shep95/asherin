@@ -209,6 +209,8 @@ const VedicAstrologyView = () => {
   const [activeName, setActiveName] = useState<string>("");
   const [chatOpen, setChatOpen] = useState(false);
   const [asherDates, setAsherDates] = useState<string[]>([]);
+  const [countryLagnas, setCountryLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
+  const [computingLagnas, setComputingLagnas] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
