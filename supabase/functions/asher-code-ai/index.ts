@@ -58,12 +58,14 @@ interface ProviderCall {
 }
 
 // ── Provider routing ──────────────────────────────────────────────
-// Hard token-budget guard. OpenAI gpt-5* TPM is ~400k tokens/min.
-// We budget ~150k input tokens (≈ 600k chars) so user prompt + response
-// + persona + brain + context never exceed provider limits.
-const MAX_TOTAL_INPUT_CHARS = 600_000;             // ~150k tokens
-const MAX_BRAIN_FILES_TOTAL_CHARS = 200_000;       // ~50k tokens for brain knowledge
-const MAX_BRAIN_FILE_CHARS = 20_000;               // per-file cap (was 40k — halved)
+// Hard token-budget guard. OpenAI gpt-5* TPM is ~400k tokens/min and a
+// SINGLE request must also stay under that ceiling. We budget ~70k input
+// tokens (≈ 280k chars) so prompt + response + retries fit comfortably
+// even if other concurrent calls eat into the per-minute window.
+const MAX_TOTAL_INPUT_CHARS = 280_000;             // ~70k tokens
+const MAX_BRAIN_FILES_TOTAL_CHARS = 80_000;        // ~20k tokens for brain knowledge
+const MAX_BRAIN_FILE_CHARS = 12_000;               // per-file cap
+const MAX_CONTEXT_FILES_TOTAL_CHARS = 100_000;     // shared cap for project context files
 const MAX_CONTEXT_FILES_TOTAL_CHARS = 200_000;     // shared cap for project context files
 
 function clampJoin(
