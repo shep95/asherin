@@ -52,6 +52,10 @@ function stripModuleSyntax(src: string): { code: string; defaultExport: string |
 
 function buildPreviewHtml(files: IdeFile[]): string {
   const flat = flattenFiles(files);
+  const compileScriptTag = (name: string, source: string) => {
+    const { code } = stripModuleSyntax(source);
+    return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${name} */\n${code.replace(/<\/script/gi, "<\\/script")}\n<\/script>`;
+  };
 
   const htmlFile = flat.find(f => f.name.endsWith(".html"));
   const cssFiles = flat.filter(f => f.name.endsWith(".css"));
@@ -62,7 +66,15 @@ function buildPreviewHtml(files: IdeFile[]): string {
 
   if (htmlFile?.content) {
     const injectedCss = allCss ? `<style>${allCss}</style>` : "";
-    return htmlFile.content.replace("</head>", `${injectedCss}</head>`);
+    let content = htmlFile.content.replace("</head>", `${injectedCss}</head>`);
+    for (const f of flat) {
+      if (f === htmlFile) continue;
+      if (/\.(tsx?|jsx?|mjs)$/.test(f.name)) {
+        content = content.replace(`<script src="${f.name}"><\/script>`, compileScriptTag(f.name, f.content ?? ""));
+        content = content.replace(`<script type="module" src="${f.name}"><\/script>`, compileScriptTag(f.name, f.content ?? ""));
+      }
+    }
+    return content;
   }
 
   const hasReact = jsxFiles.length > 0 || flat.some(f => /from ['"]react['"]/.test(f.content ?? ""));
@@ -80,7 +92,10 @@ function buildPreviewHtml(files: IdeFile[]): string {
     return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.name} */\n${code}\n</script>`;
   }).join("\n");
 
-  const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.name} */\n${f.content ?? ""}\n</script>`).join("\n");
+  const jsBlocks = jsFiles.map(f => /\.ts$/.test(f.name)
+    ? compileScriptTag(f.name, f.content ?? "")
+    : `<script>\n/* ${f.name} */\n${(f.content ?? "").replace(/<\/script/gi, "<\\/script")}\n<\/script>`
+  ).join("\n");
 
   const userMountsItself = jsxFiles.concat(jsFiles).some(f => {
     const c = f.content ?? "";
@@ -107,11 +122,12 @@ try {
       ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')<\/script>`
       : "");
 
+  const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.some(f => /\.ts$/.test(f.name));
   const reactCdn = hasReact
     ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`
-    : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>` : "");
+    : (needsBabel ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>` : "");
 
   // Shim hooks + Next.js / common framework imports as globals so stripped
   // `import { useState } from 'react'` / `import { useRouter } from 'next/router'`
