@@ -786,12 +786,12 @@ const AureonIdeView = () => {
         <div className="flex items-center border-t border-border/20 bg-card/20 flex-shrink-0">
           {([
             { id: "explorer" as MobilePanel, icon: FolderKanban, label: "Files" },
-            { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : "Code" },
+            { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : centerTab === "workflow" ? "Workflow" : "Code" },
             { id: "chat" as MobilePanel, icon: Sparkles, label: "AI" },
             { id: "terminal" as MobilePanel, icon: TerminalIcon, label: "Terminal" },
           ]).map(tab => (
             <button key={tab.id}
-              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : "code"); else setMobilePanel(tab.id); }}
+              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : t === "preview" ? "workflow" : "code"); else setMobilePanel(tab.id); }}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-light transition-colors ${mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"}`}
             >
               <tab.icon className="h-4 w-4" />
