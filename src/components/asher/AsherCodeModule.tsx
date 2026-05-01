@@ -498,11 +498,24 @@ export default function AsherCodeModule() {
   }
 
   async function applyDebuggerFix(file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) {
+    // ── PER-FILE ISOLATION GUARD ──
+    // Each agent owns exactly one file. Refuse to write if another agent is
+    // already mid-flight on the same file (defensive — one-agent-per-file is
+    // also enforced upstream by the dispatcher).
+    if (fileLocksRef.current.has(file.name)) {
+      // Another agent is already working this exact path; skip silently.
+      return false;
+    }
+    // Only act on issues that belong to THIS file. Strip cross-file noise so
+    // the agent stays surgical and never accidentally rewrites a sibling.
+    const ownIssues = issues.filter((i) => i.file === file.name);
+    if (ownIssues.length === 0) return false;
     const current = filesRef.current.find(f => f.id === file.id)?.content ?? file.content;
-    const diagnostic = issues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+    const diagnostic = ownIssues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
     const explained = await explainError(diagnostic || lastPreviewErrorRef.current, current);
     const corrected = explained.correctedCode?.trim();
     if (!corrected || corrected === current.trim()) return false;
+    // Strict file-id scoping: only mutate the file this agent owns.
     applyProjectFileContent(file.id, corrected, true);
     toast.success(`Auto-applied debugger fix → ${file.name}`);
     return true;
