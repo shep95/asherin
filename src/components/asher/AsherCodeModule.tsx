@@ -182,7 +182,7 @@ export default function AsherCodeModule() {
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
-  const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
+  const [viewMode, setViewMode] = useState<"code" | "split" | "preview" | "workflow">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
   const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("asherCode.autopilotZanoem") === "1");
