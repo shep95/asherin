@@ -13,6 +13,7 @@ import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine"
 import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { resolveBirthTimezone } from "@/lib/vedic/timezoneLookup";
 import { COUNTRY_CHARTS, type CountryFoundation } from "@/data/vedic/countryCharts";
+import { COUNTRY_LEADERS, getLeaderForCountry, type LeaderRecord } from "@/data/vedic/countryLeaders";
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 import AsherChatPanel from "./vedic/AsherChatPanel";
