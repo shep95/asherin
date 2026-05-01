@@ -1093,14 +1093,14 @@ export default function AsherCodeModule() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
-              placeholder={apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first"}
-              disabled={!apiKey}
+              placeholder={zaliMode ? "ZALI: invent brand-new software from first principles…" : (apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first")}
+              disabled={!zaliMode && !apiKey}
               rows={2}
               className="flex-1 resize-none rounded border border-border/20 bg-card/40 px-2 py-1.5 text-[11px] font-light placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none disabled:opacity-40"
             />
             <button
-              onClick={() => orchestrateMode ? aiOrchestrate() : sendChat()}
-              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || !apiKey}
+              onClick={() => zaliMode ? sendChat() : (orchestrateMode ? aiOrchestrate() : sendChat())}
+              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || (!zaliMode && !apiKey)}
               title={orchestrateMode ? "Orchestrate across 3 models" : "Send"}
               className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
             >
