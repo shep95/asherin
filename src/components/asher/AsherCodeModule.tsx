@@ -90,6 +90,8 @@ export default function AsherCodeModule() {
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
   const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("asherCode.autopilotZanoem") === "1");
+  const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("asherCode.autoDebug") !== "0");          // default ON
+  const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("asherCode.autoUiDebug") !== "0");    // default ON
   const autopilotRoundsRef = useRef(0);
   const AUTOPILOT_MAX_ROUNDS = 6;
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
@@ -129,6 +131,8 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
   useEffect(() => { localStorage.setItem("asherCode.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
   useEffect(() => { localStorage.setItem("asherCode.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
+  useEffect(() => { localStorage.setItem("asherCode.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
+  useEffect(() => { localStorage.setItem("asherCode.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
@@ -139,12 +143,16 @@ export default function AsherCodeModule() {
   const activeProjectRef = useRef(activeProject);
   const previewRefForVision = previewRef;
   const autopilotZanoemRef = useRef(autopilotZanoem);
+  const autoDebugRef = useRef(autoDebug);
+  const autoUiDebugRef = useRef(autoUiDebug);
   const lastIntentRef = useRef<string>("");
   const lastAssistantRef = useRef<string>("");
   const autopilotEnqueueGuardRef = useRef(false);
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { activeProjectRef.current = activeProject; }, [activeProject]);
   useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
+  useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
+  useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
 
   // We need a stable way for the queue worker to "send a ZANOEM turn".
   // sendChatViaZanoem isn't defined yet (declared further down), so route
@@ -154,7 +162,7 @@ export default function AsherCodeModule() {
   useEffect(() => {
     // Register handlers ONCE per mount.
     zqRegister("vision", async (job: QueuedJob<{ intent: string; recentAssistant: string; projectRef?: string }>) => {
-      if (!autopilotZanoemRef.current) return;       // user turned autopilot off → skip
+      if (!autopilotZanoemRef.current || !autoUiDebugRef.current) return;       // gated by Auto UI Debug
       const verdict = await verifyUiMatchesIntent({
         intent: job.payload.intent,
         recentAssistant: job.payload.recentAssistant,
@@ -169,7 +177,7 @@ export default function AsherCodeModule() {
     });
 
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
-      if (!autopilotZanoemRef.current) return;
+      if (!autopilotZanoemRef.current || !autoDebugRef.current) return;         // gated by Auto Debug
       const result = await autoFixUntilClean({
         files: () => filesRef.current.map<AutoFixFile>((f) => ({
           id: f.id, name: f.path, content: f.content, language: f.language,
@@ -1535,6 +1543,32 @@ export default function AsherCodeModule() {
                 className="accent-foreground h-2.5 w-2.5"
               />
               <Zap className="h-2.5 w-2.5" /> You Decide ZANOEM
+            </label>
+            <label
+              title="Auto Debug: when autopilot is on, ZANOEM keeps re-running the validator + Bug Doctor in the background until the codebase has zero errors (max 6 passes)."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={autoDebug}
+                onChange={(e) => setAutoDebug(e.target.checked)}
+                disabled={!autopilotZanoem}
+                className="accent-foreground h-2.5 w-2.5"
+              />
+              <Bug className="h-2.5 w-2.5" /> Auto Debug
+            </label>
+            <label
+              title="Auto UI Debug: ZANOEM screenshots the live preview and uses vision to verify the rendered UI matches what was just built. Mismatches are auto-patched."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoUiDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={autoUiDebug}
+                onChange={(e) => setAutoUiDebug(e.target.checked)}
+                disabled={!autopilotZanoem}
+                className="accent-foreground h-2.5 w-2.5"
+              />
+              <Eye className="h-2.5 w-2.5" /> Auto UI Debug
             </label>
           </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
