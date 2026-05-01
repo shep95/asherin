@@ -129,6 +129,33 @@ export default function AsherCodeModule() {
   const [showPublish, setShowPublish] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [chat, setChat] = useState<ChatMsg[]>([]);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const [chatScrolledUp, setChatScrolledUp] = useState(false);
+  const chatAutoScrollingRef = useRef(false);
+  const jumpChatToPresent = useCallback(() => {
+    setChatScrolledUp(false);
+    chatAutoScrollingRef.current = true;
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    requestAnimationFrame(() => { chatAutoScrollingRef.current = false; });
+  }, []);
+  useEffect(() => {
+    const el = chatScrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (chatAutoScrollingRef.current) return;
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setChatScrolledUp(dist > 100);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+  useEffect(() => {
+    if (chatScrolledUp) return;
+    chatAutoScrollingRef.current = true;
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    requestAnimationFrame(() => { chatAutoScrollingRef.current = false; });
+  }, [chat, aiBusy, chatScrolledUp]);
   const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
