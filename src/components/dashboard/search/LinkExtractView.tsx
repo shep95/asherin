@@ -81,6 +81,7 @@ const LinkExtractView = () => {
     setExtracting(true);
     setError(null);
     setBlueprint(null);
+    setSubStates({});
 
     try {
       const byok = getActiveIntelMapByok();
