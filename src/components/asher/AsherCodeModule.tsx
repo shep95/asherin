@@ -42,6 +42,8 @@ export default function AsherCodeModule() {
   const [projects, setProjects] = useState<AsherCodeProject[]>([]);
   const [activeProject, setActiveProject] = useState<AsherCodeProject | null>(null);
   const [files, setFiles] = useState<AsherCodeFile[]>([]);
+  const [branches, setBranches] = useState<{ id: string; name: string; parent_branch_id: string | null }[]>([]);
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null); // null == main/default
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [dirty, setDirty] = useState<Record<string, string>>({});
