@@ -259,7 +259,7 @@ export default function AsherCodeModule() {
     if (!ok) return;
     for (const f of result.files) {
       const { data } = await supabase.from("asher_code_files")
-        .insert({ project_id: activeProject.id, path: f.path, content: f.content, language: f.language }).select().single();
+        .insert({ project_id: activeProject.id, branch_id: activeBranchId, path: f.path, content: f.content, language: f.language }).select().single();
       if (data) {
         const af = data as AsherCodeFile;
         setFiles(fs => [...fs, af]);
