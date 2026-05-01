@@ -662,9 +662,25 @@ export default function AsherCodeModule() {
       // Auto-write any code blocks tagged with file paths into the project
       const created = await materializeZanoemCodeBlocks(assistantText);
       if (created > 0) toast.success(`ZANOEM created ${created} file${created === 1 ? "" : "s"}`);
-      // ── AUTOPILOT: ZANOEM decides on the human's behalf ──
+      // ── AUTOPILOT: log this turn's decision (if we're inside one) ──
+      // If THIS response is the answer to the previous autopilot question,
+      // record what was asked + what ZANOEM picked.
+      if (isAutopilotTurn && autopilotTriggerRef.current) {
+        void zanoemLogDecision({
+          surface: "asher_ide",
+          projectRef: activeProject.id,
+          conversationRef: activeProject.id,
+          round: autopilotRoundsRef.current,
+          triggerText: autopilotTriggerRef.current,
+          replySent: composed,
+          responseText: assistantText,
+        });
+        autopilotTriggerRef.current = "";
+      }
+      // ── AUTOPILOT: ZANOEM decides on the human's behalf for the NEXT turn ──
       if (autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && needsHumanDecision(assistantText)) {
         autopilotRoundsRef.current += 1;
+        autopilotTriggerRef.current = assistantText;  // remember what triggered it
         const autoReply = buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
         setAiBusy(false);
         // Tiny delay so UI flushes the streamed message before the next turn starts
@@ -674,6 +690,7 @@ export default function AsherCodeModule() {
       if (isAutopilotTurn && !needsHumanDecision(assistantText)) {
         toast.success(`ZANOEM autopilot complete (${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"})`);
         autopilotRoundsRef.current = 0;
+        autopilotTriggerRef.current = "";
       }
     } catch (e: any) {
       const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
