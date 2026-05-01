@@ -37,10 +37,23 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
   const max = opts.maxPasses ?? 8;
   const history: AutoFixResult["history"] = [];
 
-  for (let pass = 1; pass <= max; pass++) {
+  type FlatErr = { file: string; line?: number; message: string };
+  const collect = (): FlatErr[] => {
     const cur = opts.files();
-    const report = validateFiles(cur.map((f) => ({ name: f.name, content: f.content, language: f.language })));
-    const errors = report.filter((r) => r.severity === "error");
+    const report = validateFiles(cur.map((f) => ({ path: f.name, content: f.content })));
+    const errs: FlatErr[] = [];
+    for (const pf of report.perFile) {
+      for (const issue of pf.result.issues) {
+        if (issue.severity === "error") {
+          errs.push({ file: pf.path, line: issue.line, message: issue.message });
+        }
+      }
+    }
+    return errs;
+  };
+
+  for (let pass = 1; pass <= max; pass++) {
+    const errors = collect();
     opts.onProgress?.(pass, errors.length);
     history.push({
       pass,
@@ -78,8 +91,6 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
   }
 
   // Final read after the last pass.
-  const cur = opts.files();
-  const report = validateFiles(cur.map((f) => ({ name: f.name, content: f.content, language: f.language })));
-  const finalErrors = report.filter((r) => r.severity === "error").length;
+  const finalErrors = collect().length;
   return { passes: max, finalErrorCount: finalErrors, clean: finalErrors === 0, history };
 }
