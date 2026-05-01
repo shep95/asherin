@@ -38,6 +38,64 @@ const TONE_STYLES: Record<Tone, { ring: string; dot: string; text: string; glow:
 
 const URL_REGEX = /^https?:\/\/[^\s]+$/i;
 
+const SUBDOMAIN_BRANCH_META: Record<string, Pick<Branch, "label" | "icon" | "tone">> = {
+  domain: { label: "DOMAIN & DNS", icon: "globe", tone: "neutral" },
+  hosting: { label: "HOSTING & CDN", icon: "server", tone: "good" },
+  stack: { label: "TECH STACK", icon: "cpu", tone: "neutral" },
+  security: { label: "SECURITY POSTURE", icon: "shield", tone: "warn" },
+  thirdparty: { label: "THIRD-PARTY", icon: "plug", tone: "neutral" },
+  network: { label: "NETWORK TOPOLOGY", icon: "network", tone: "neutral" },
+  org: { label: "ORG INTEL", icon: "building", tone: "neutral" },
+};
+
+const toTitle = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+
+const toLeafValue = (value: unknown): string => {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null || value === undefined || value === "") return "Unknown";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+};
+
+const normalizeSubdomainBlueprint = (raw: any, host: string): Blueprint | null => {
+  if (!raw) return null;
+  if (Array.isArray(raw.branches) && raw.branches.length > 0) return raw as Blueprint;
+
+  const branches = Object.entries(SUBDOMAIN_BRANCH_META)
+    .map(([id, meta]) => {
+      const section = raw[id];
+      if (!section || typeof section !== "object" || Array.isArray(section)) return null;
+      const leaves = Object.entries(section)
+        .filter(([key]) => key !== "subdomains")
+        .slice(0, 8)
+        .map(([key, value]) => ({
+          label: toTitle(key),
+          value: toLeafValue(value),
+          confidence: /unknown|likely|inferred/i.test(toLeafValue(value)) ? "med" : "high",
+        })) as Leaf[];
+
+      return leaves.length > 0 ? { id, ...meta, leaves } : null;
+    })
+    .filter(Boolean) as Branch[];
+
+  if (!branches.length) return null;
+
+  return {
+    target: raw.target || raw.domain?.name || host,
+    summary: raw.summary || `Branch intelligence mapped for ${raw.domain?.name || host}.`,
+    score: raw.score,
+    branches,
+    edges: raw.edges || [
+      { from: "domain", to: "hosting", label: "resolves" },
+      { from: "hosting", to: "stack", label: "serves" },
+      { from: "stack", to: "security", label: "exposes" },
+      { from: "stack", to: "thirdparty", label: "loads" },
+    ],
+    criticals: raw.criticals || [],
+  };
+};
+
 const LinkExtractView = () => {
   const [url, setUrl] = useState("");
   const [extracting, setExtracting] = useState(false);
@@ -57,8 +115,9 @@ const LinkExtractView = () => {
       console.log("[subdomain]", host, { invokeError, data });
       if (invokeError) throw new Error(invokeError.message || String(invokeError));
       if (data?.error) throw new Error(data.error);
-      if (!data?.blueprint?.branches?.length) throw new Error("Empty blueprint returned");
-      setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: data.blueprint as Blueprint } }));
+      const normalized = normalizeSubdomainBlueprint(data?.blueprint, host);
+      if (!normalized?.branches?.length) throw new Error("No branch intelligence returned");
+      setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: normalized } }));
     } catch (err: any) {
       console.error("[subdomain] failed", host, err);
       setSubStates((s) => ({ ...s, [host]: { loading: false, error: err.message || "Failed to extract" } }));
@@ -462,7 +521,7 @@ const SubdomainRow = ({
   const handleToggle = () => {
     const next = !open;
     setOpen(next);
-    if (next && !state) onFetch();
+    if (next && (!state || state.error)) onFetch();
   };
 
   return (
