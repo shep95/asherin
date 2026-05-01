@@ -333,6 +333,26 @@ const AureonIdeView = () => {
     setFiles(prev => updateInTree(prev));
   };
 
+  // Find a file's current content (for animateReplace fade-out source).
+  const findContent = (id: string, nodes: IdeFile[] = files): string => {
+    for (const n of nodes) {
+      if (n.id === id && n.type === "file") return n.content ?? "";
+      if (n.children) {
+        const v = findContent(id, n.children);
+        if (v) return v;
+      }
+    }
+    return "";
+  };
+
+  // AI-driven write: word-by-word fade-out current → fade-in new.
+  const aiWriteContent = (id: string, content: string) => {
+    const current = findContent(id);
+    const set = (next: string) => updateContent(id, next);
+    if (current && current.trim().length > 0) animateReplace(current, content, set);
+    else animateInsert(content, set);
+  };
+
   const createFile = (parentId: string | null, name: string, type: "file" | "folder") => {
     const newFile: IdeFile = { id: crypto.randomUUID(), name, type, content: type === "file" ? "" : undefined, children: type === "folder" ? [] : undefined };
     if (!parentId) { setFiles(prev => [...prev, newFile]); }
