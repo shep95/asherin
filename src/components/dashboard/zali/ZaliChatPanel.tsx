@@ -10,7 +10,6 @@ import DepthSelector from "../DepthSelector";
 import ContextHealthIndicator from "../ContextHealthIndicator";
 import type { FeedbackType } from "../CalibrationFeedback";
 import TypingIndicator from "../TypingIndicator";
-import CodeFilePreview from "../CodeFilePreview";
 import FollowUpSuggestions from "../FollowUpSuggestions";
 import ScrollIntelligence from "../ScrollIntelligence";
 import ZaliQuestionOptions, { parseQuestionOptions } from "./ZaliQuestionOptions";
@@ -114,34 +113,12 @@ const CODE_BLOCK_RE = /```(\w+)?\n([\s\S]*?)```/g;
 function UserMessageContent({ content }: { content: string }) {
   // Clean generate trigger prefix for display
   const displayContent = content.replace("__GENERATE_CODE_NOW__ ", "").replace("__GENERATE_CODE_NOW__", "");
-
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  const regex = new RegExp(CODE_BLOCK_RE);
-  let key = 0;
-
-  while ((match = regex.exec(displayContent)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(<span key={key++} className="whitespace-pre-wrap">{displayContent.slice(lastIndex, match.index)}</span>);
-    }
-    parts.push(<CodeFilePreview key={key++} code={match[2].trimEnd()} language={match[1]} />);
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < displayContent.length) {
-    parts.push(<span key={key++} className="whitespace-pre-wrap">{displayContent.slice(lastIndex)}</span>);
-  }
-
-  if (parts.length === 0) {
-    const trimmed = displayContent.trim();
-    const looksLikeCode = trimmed.split("\n").length >= 3 && (
-      /[{};()=>]/.test(trimmed) && /^(import|export|const|let|var|function|def |class |#include|package |fn |pub )/.test(trimmed)
-    );
-    if (looksLikeCode) return <CodeFilePreview code={trimmed} />;
-    return <span className="whitespace-pre-wrap">{displayContent}</span>;
-  }
-  return <>{parts}</>;
+  const { text, codeCount } = sanitizeZanoemAssistantContent(displayContent);
+  return (
+    <span className="whitespace-pre-wrap">
+      {text || (codeCount > 0 ? "Code sent to workspace." : displayContent)}
+    </span>
+  );
 }
 
 const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, onModeChange, depth, onDepthChange, suggestions = [], onCalibrationFeedback }: Props) => {
