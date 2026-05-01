@@ -607,8 +607,28 @@ serve(async (req) => {
     const maxTokens = mode === "inline" ? 256 : 4096;
     const runtimeSystem = buildSystemPrompt(payload);
 
+    // ── Final global token-budget guard ──
+    // Even after per-section caps, defend against pathological payloads
+    // (e.g. 50 brain files × 20k chars). Trim oldest user/assistant turns
+    // first, then truncate the system prompt as a last resort.
+    const totalChars = (s: string) => s.length;
+    let totalSize = totalChars(runtimeSystem) + messages.reduce((n, m) => n + totalChars(m.content), 0);
+    let trimmedSystem = runtimeSystem;
+    const trimmedMessages = [...messages];
+    while (totalSize > MAX_TOTAL_INPUT_CHARS && trimmedMessages.length > 1) {
+      // Drop the oldest non-final message (preserve last user turn — that's the actual request)
+      const dropped = trimmedMessages.shift()!;
+      totalSize -= totalChars(dropped.content);
+    }
+    if (totalSize > MAX_TOTAL_INPUT_CHARS) {
+      // Hard truncate system prompt tail (keeps the AUREON CODE base directives intact at the head)
+      const overflow = totalSize - MAX_TOTAL_INPUT_CHARS;
+      trimmedSystem = trimmedSystem.slice(0, Math.max(8000, trimmedSystem.length - overflow - 1000)) +
+        "\n\n[…context truncated to fit token budget…]";
+    }
+
     try {
-      const reply = await dispatch(providerCall, messages, runtimeSystem, maxTokens);
+      const reply = await dispatch(providerCall, trimmedMessages, trimmedSystem, maxTokens);
       return new Response(
         JSON.stringify({
           reply,
@@ -620,9 +640,20 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (e) {
+      const msg = e instanceof Error ? e.message : "Provider call failed";
+      // Surface friendly token / rate-limit errors instead of opaque 502
+      const isTokenLimit = /tokens per min|TPM|Request too large|context length|maximum context/i.test(msg);
+      const isRateLimit = /\b429\b|rate limit/i.test(msg);
       return new Response(
-        JSON.stringify({ error: e instanceof Error ? e.message : "Provider call failed" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: isTokenLimit
+            ? "Your request is too large for this model. Trim brain knowledge files, attached context, or pick a smaller scope."
+            : isRateLimit
+              ? "The model is rate-limited right now. Wait a few seconds and retry, or switch provider."
+              : msg,
+          rawError: msg,
+        }),
+        { status: isRateLimit ? 429 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
   } catch (e) {
