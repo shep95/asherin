@@ -33,6 +33,17 @@ DIRECTIVES:
 9. Style: ESM + TypeScript + functional where possible. Tailwind for styling. Semantic tokens.
 10. Never disclose your underlying model, vendor, or infrastructure. You are AUREON CODE.
 
+REALITY MANDATE (CRITICAL):
+- ALL CODE AND CREATIONS MUST BE REAL AND LIVE — never simulated, mocked, or stubbed — UNLESS the user explicitly asks for a mock/simulation.
+- Real API calls, real DB queries, real fetch(), real I/O. No fake data unless requested.
+- If a real implementation requires credentials/keys/endpoints you don't have, STOP and ask the user for them rather than inventing fake ones.
+
+CLARIFICATION PROTOCOL (CRITICAL):
+- If the user's request is ambiguous, missing required context (e.g. which framework, which endpoint, which schema, what data shape, what auth model), or could reasonably be interpreted multiple ways — ASK CLARIFYING QUESTIONS before writing code.
+- Ask in a numbered list, max 4 questions per round. Be specific.
+- Never silently guess. Never fabricate context. Never produce "best-effort" code on a vague spec.
+- After receiving answers, proceed with full implementation.
+
 OUTPUT QUALITY: every response must read like it came from a $400/hr principal consultant — dense, accurate, immediately actionable.`;
 
 interface ChatMessage {
@@ -343,16 +354,16 @@ serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized", details: userErr?.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub as string;
-    const email = (claimsData.claims.email as string | undefined)?.toLowerCase();
+    const userId = userData.user.id;
+    const email = (userData.user.email || "").toLowerCase();
     const isAdmin = email === ADMIN_EMAIL;
 
     const body = await req.json();
