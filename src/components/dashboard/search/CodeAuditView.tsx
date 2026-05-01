@@ -97,7 +97,47 @@ const ZerlalView = () => {
   const [liveLog, setLiveLog] = useState<{ agent: string; file: string; findings: number; ts: number }[]>([]);
   const [byokOpen, setByokOpen] = useState(false);
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
+  const [inputMode, setInputMode] = useState<InputMode>("zip");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [activePage, setActivePage] = useState<ZerlalPage>("scan");
+  const [scanStartedAt, setScanStartedAt] = useState<string | null>(null);
+  const [scanCompletedAt, setScanCompletedAt] = useState<string | null>(null);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("zerlal_scan_history");
+      if (raw) setScanHistory(JSON.parse(raw));
+    } catch { /* ignore malformed local history */ }
+  }, []);
+
+  const fileCount = useMemo(() => {
+    if (zipFileCount > 0) return zipFileCount;
+    if (!code.trim()) return 0;
+    const markers = code.match(/\/\* ───── FILE: .*? ───── \*\//g);
+    return markers?.length || 1;
+  }, [code, zipFileCount]);
+
+  const persistHistory = useCallback((bp: Blueprint) => {
+    const counts = countSeverities(bp);
+    const entry: ScanHistoryEntry = {
+      id: `${Date.now()}`,
+      target: bp.target || filename || "target",
+      risk: computeRiskScore(bp),
+      files: fileCount || 1,
+      timestamp: new Date().toISOString(),
+      critical: counts.high,
+      high: counts.high,
+      medium: counts.med,
+      low: counts.low,
+    };
+    setScanHistory(prev => {
+      const next = [entry, ...prev].slice(0, 25);
+      localStorage.setItem("zerlal_scan_history", JSON.stringify(next));
+      return next;
+    });
+  }, [fileCount, filename]);
 
   const isZip = (file: File) =>
     file.name.toLowerCase().endsWith(".zip") ||
