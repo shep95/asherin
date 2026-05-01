@@ -594,12 +594,28 @@ const AureonIdeView = () => {
         // Background sweep — autofix + vision verification.
         if (!autopilotEnqueueGuardRef.current) {
           autopilotEnqueueGuardRef.current = true;
-          if (autoDebugRef.current) zqEnqueue("autofix", { projectRef: activeSessionId ?? undefined });
-          if (autoUiDebugRef.current) zqEnqueue("vision", {
-            intent: lastIntentRef.current,
-            recentAssistant: assistantContent,
-            projectRef: activeSessionId ?? undefined,
-          });
+          if (autoDebugRef.current) {
+            void zqEnqueue({
+              kind: "autofix",
+              payload: { projectRef: activeSessionId ?? undefined },
+              surface: "aureon_ide",
+              projectRef: activeSessionId ?? undefined,
+              ownerUserId: user?.id,
+            });
+          }
+          if (autoUiDebugRef.current) {
+            void zqEnqueue({
+              kind: "vision",
+              payload: {
+                intent: lastIntentRef.current,
+                recentAssistant: assistantContent,
+                projectRef: activeSessionId ?? undefined,
+              },
+              surface: "aureon_ide",
+              projectRef: activeSessionId ?? undefined,
+              ownerUserId: user?.id,
+            });
+          }
           setTimeout(() => { autopilotEnqueueGuardRef.current = false; }, 2000);
         }
       }
