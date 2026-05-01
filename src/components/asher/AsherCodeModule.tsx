@@ -1110,7 +1110,7 @@ export default function AsherCodeModule() {
 
         {/* AI sidebar — collapsible */}
         {showAi && (
-        <aside className="w-72 lg:w-80 flex-shrink-0 border-l border-border/15 bg-card/10 flex flex-col absolute lg:relative right-0 top-0 bottom-0 z-20 lg:z-auto bg-background/95 lg:bg-card/10 backdrop-blur-xl">
+        <aside className="w-full sm:w-72 lg:w-80 max-w-full flex-shrink-0 border-l border-border/15 bg-card/10 flex flex-col absolute lg:relative right-0 top-0 bottom-0 z-20 lg:z-auto bg-background/95 lg:bg-card/10 backdrop-blur-xl min-w-0 overflow-hidden">
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/15">
             <div className="flex items-center gap-1.5">
               <Brain className="h-3 w-3 text-foreground/60" />
@@ -1133,13 +1133,13 @@ export default function AsherCodeModule() {
             </label>
             {orchestrateMode && <span className="text-[8px] text-foreground/70 tracking-[0.15em] uppercase">3 models · ranked</span>}
           </div>
-          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-w-0">
             {chat.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
             {chat.map((m, i) => (
-              <div key={i} className={`rounded-lg px-2.5 py-2 text-[11px] font-light ${m.role === "user" ? "bg-foreground/10 border border-foreground/15" : "bg-card/30 border border-border/15"}`}>
+              <div key={i} className={`rounded-lg px-2.5 py-2 text-[11px] font-light min-w-0 max-w-full overflow-hidden ${m.role === "user" ? "bg-foreground/10 border border-foreground/15" : "bg-card/30 border border-border/15"}`}>
                 {m.role === "assistant"
-                  ? <div className="prose prose-xs prose-invert max-w-none prose-pre:bg-background/60 prose-pre:text-[10px] prose-pre:border prose-pre:border-border/20 prose-code:text-[10px]"><ReactMarkdown>{m.content}</ReactMarkdown></div>
-                  : <p className="whitespace-pre-wrap">{m.content}</p>}
+                  ? <div className="prose prose-xs prose-invert max-w-none break-words [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre]:whitespace-pre [&_code]:break-words [&_p]:break-words [&_a]:break-all prose-pre:bg-background/60 prose-pre:text-[10px] prose-pre:border prose-pre:border-border/20 prose-code:text-[10px]"><ReactMarkdown>{m.content}</ReactMarkdown></div>
+                  : <p className="whitespace-pre-wrap break-words">{m.content}</p>}
               </div>
             ))}
             {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
