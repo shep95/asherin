@@ -301,6 +301,66 @@ export default function AsherCodeModule() {
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
 
+  // ── Red-line bug highlighting in Monaco ──
+  // Validator issues become red squigglies (markers) + a red line-background decoration
+  // so error lines are instantly spottable AND consumable by the auto-fix loop.
+  const monacoRef = useRef<any>(null);
+  const editorRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    if (!monaco || !editor || !activeFile) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const result = validateCode(activeContent, activeFile.language);
+    const totalLines = model.getLineCount();
+
+    // 1. Markers (red squigglies + Problems panel)
+    const markers = result.issues.map((iss) => {
+      const line = Math.max(1, Math.min(iss.line, totalLines));
+      const lineLen = model.getLineLength(line) || 1;
+      return {
+        severity: iss.severity === "error"
+          ? monaco.MarkerSeverity.Error
+          : iss.severity === "warning"
+          ? monaco.MarkerSeverity.Warning
+          : monaco.MarkerSeverity.Info,
+        startLineNumber: line,
+        endLineNumber: line,
+        startColumn: 1,
+        endColumn: lineLen + 1,
+        message: `[${iss.rule}] ${iss.message}`,
+        source: "ZANOEM",
+      };
+    });
+    monaco.editor.setModelMarkers(model, "zanoem-validator", markers);
+
+    // 2. Red line-background decorations for error lines (the "highlight in red")
+    const errorDecorations = result.issues
+      .filter((i) => i.severity === "error")
+      .map((iss) => {
+        const line = Math.max(1, Math.min(iss.line, totalLines));
+        return {
+          range: new monaco.Range(line, 1, line, 1),
+          options: {
+            isWholeLine: true,
+            className: "zanoem-error-line",
+            glyphMarginClassName: "zanoem-error-glyph",
+            overviewRuler: {
+              color: "rgba(239,68,68,0.9)",
+              position: monaco.editor.OverviewRulerLane.Full,
+            },
+            minimap: { color: "rgba(239,68,68,0.6)", position: 1 },
+          },
+        };
+      });
+    decorationsRef.current = editor.deltaDecorations(decorationsRef.current, errorDecorations);
+  }, [activeContent, activeFile]);
+
+
   // Auto-snapshot active file (infinite history, IndexedDB)
   useEffect(() => {
     if (!activeProject || !activeFile || !activeContent) return;
