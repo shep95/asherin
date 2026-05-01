@@ -143,12 +143,16 @@ export default function AsherCodeModule() {
   const activeProjectRef = useRef(activeProject);
   const previewRefForVision = previewRef;
   const autopilotZanoemRef = useRef(autopilotZanoem);
+  const autoDebugRef = useRef(autoDebug);
+  const autoUiDebugRef = useRef(autoUiDebug);
   const lastIntentRef = useRef<string>("");
   const lastAssistantRef = useRef<string>("");
   const autopilotEnqueueGuardRef = useRef(false);
   useEffect(() => { filesRef.current = files; }, [files]);
   useEffect(() => { activeProjectRef.current = activeProject; }, [activeProject]);
   useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
+  useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
+  useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
 
   // We need a stable way for the queue worker to "send a ZANOEM turn".
   // sendChatViaZanoem isn't defined yet (declared further down), so route
@@ -158,7 +162,7 @@ export default function AsherCodeModule() {
   useEffect(() => {
     // Register handlers ONCE per mount.
     zqRegister("vision", async (job: QueuedJob<{ intent: string; recentAssistant: string; projectRef?: string }>) => {
-      if (!autopilotZanoemRef.current) return;       // user turned autopilot off → skip
+      if (!autopilotZanoemRef.current || !autoUiDebugRef.current) return;       // gated by Auto UI Debug
       const verdict = await verifyUiMatchesIntent({
         intent: job.payload.intent,
         recentAssistant: job.payload.recentAssistant,
@@ -173,7 +177,7 @@ export default function AsherCodeModule() {
     });
 
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
-      if (!autopilotZanoemRef.current) return;
+      if (!autopilotZanoemRef.current || !autoDebugRef.current) return;         // gated by Auto Debug
       const result = await autoFixUntilClean({
         files: () => filesRef.current.map<AutoFixFile>((f) => ({
           id: f.id, name: f.path, content: f.content, language: f.language,
