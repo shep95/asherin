@@ -78,7 +78,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
         if (scriptRef.test(content)) {
           content = content.replace(scriptRef, compiled);
           needsHtmlCompiler = true;
-          if (/\.(tsx|jsx)$/.test(f.name) || /from ['"]react['"]/.test(f.content ?? "")) needsHtmlReact = true;
+          if (/\.(tsx|jsx|js)$/.test(f.name) || /from ['"]react['"]/.test(f.content ?? "") || /React/.test(f.content ?? "")) needsHtmlReact = true;
         }
       }
     }
@@ -104,10 +104,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
     return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.name} */\n${code}\n</script>`;
   }).join("\n");
 
-  const jsBlocks = jsFiles.map(f => /\.ts$/.test(f.name)
-    ? compileScriptTag(f.name, f.content ?? "")
-    : `<script>\n/* ${f.name} */\n${(f.content ?? "").replace(/<\/script/gi, "<\\/script")}\n<\/script>`
-  ).join("\n");
+  const jsBlocks = jsFiles.map(f => compileScriptTag(f.name, f.content ?? "")).join("\n");
 
   const userMountsItself = jsxFiles.concat(jsFiles).some(f => {
     const c = f.content ?? "";
@@ -134,7 +131,7 @@ try {
       ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')<\/script>`
       : "");
 
-  const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.some(f => /\.ts$/.test(f.name));
+  const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.length > 0;
   const reactCdn = hasReact
     ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
