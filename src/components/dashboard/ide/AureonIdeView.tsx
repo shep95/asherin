@@ -161,6 +161,21 @@ const AureonIdeView = () => {
     setTerminalOutput(prev => [...prev.slice(-20), output]);
   }, []);
 
+  // ── Pro tools state (shared IDE upgrade pack) ──
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
+  const [bugDoctorMsg, setBugDoctorMsg] = useState("");
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [fuzzyOpen, setFuzzyOpen] = useState(false);
+  const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
+  const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
+  const [chatDraft, setChatDraft] = useState("");
+  const routeDecision: RoutingDecision = useMemo(
+    () => routeTask(chatDraft || (chatMessages[chatMessages.length - 1]?.content ?? ""), modelOverride ?? undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chatDraft, chatMessages.length, modelOverride]
+  );
+
   // Derived
   const allFiles = flattenFiles(files);
   const openFiles = openFileIds.map(id => allFiles.find(f => f.id === id)).filter(Boolean) as IdeFile[];
