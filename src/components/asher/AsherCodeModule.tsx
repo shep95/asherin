@@ -766,7 +766,7 @@ export default function AsherCodeModule() {
       ? `<script>
 try {
   const __el = document.getElementById('root') || document.getElementById('app');
-  if (__el && typeof ${mountTarget} !== 'undefined') {
+  if (__el && (window.${mountTarget} || typeof ${mountTarget} !== 'undefined')) {
     if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(window.${mountTarget} || ${mountTarget})); }
     else { ReactDOM.render(React.createElement(window.${mountTarget} || ${mountTarget}), __el); }
   } else if (!__el) {
