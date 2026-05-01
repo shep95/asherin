@@ -106,8 +106,8 @@ const LinkExtractView = () => {
               Drop any URL. Get a visual blueprint web — infrastructure, stack, security, topology.
             </p>
           </div>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-emerald-200/70 uppercase shrink-0">
-            <Sparkles className="h-2.5 w-2.5" /> Free
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-border/30 bg-card/30 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase shrink-0">
+            <Shield className="h-2.5 w-2.5" /> Local-Only
           </span>
         </div>
 
