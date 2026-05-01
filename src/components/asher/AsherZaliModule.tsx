@@ -434,7 +434,73 @@ const AsherZaliModule = () => {
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
     setIsStreaming(false);
+    autopilotRoundsRef.current = 0;
   }, []);
+
+  // ── "You Decide ZANOEM" autopilot helpers ──
+  const needsHumanDecision = useCallback((text: string): boolean => {
+    if (!text) return false;
+    const stripped = text.replace(/```[\s\S]*?```/g, "").trim();
+    if (!stripped) return false;
+    const lower = stripped.toLowerCase();
+    if (/\?\s*$/m.test(stripped)) return true;
+    const cues = [
+      "would you like", "do you want", "should i", "shall i",
+      "which option", "which one", "which approach", "which would you",
+      "let me know", "your preference", "your choice", "your call",
+      "please confirm", "please choose", "please pick", "please select",
+      "option a", "option 1", "recommendation:", "recommendations:",
+      "which do you prefer", "what would you like", "what do you want",
+      "next steps?", "proceed?", "continue?", "ready to proceed",
+    ];
+    return cues.some((c) => lower.includes(c));
+  }, []);
+
+  const buildAutopilotReply = useCallback((round: number, max: number): string => [
+    `[YOU DECIDE ZANOEM — autopilot round ${round}/${max}]`,
+    "",
+    "Decide on my behalf. Pick the best option from your recommendations and proceed.",
+    "Rules:",
+    "- Make every decision yourself using first-principles reasoning.",
+    "- Choose the most production-ready, secure, and maintainable path.",
+    "- Do NOT ask me any more questions in this round.",
+    "- Continue building / writing / fixing until the task is complete.",
+    "- If the task is functionally complete, say 'AUTOPILOT COMPLETE' and stop.",
+  ].join("\n"), []);
+
+  // Wrap sendMessage so user-initiated turns reset the autopilot counter.
+  const sendMessageHuman = useCallback((content: string) => {
+    autopilotRoundsRef.current = 0;
+    void sendMessage(content);
+  }, [sendMessage]);
+
+  // Watcher: when streaming finishes, if autopilot is on and ZANOEM asked
+  // a question / made a recommendation, auto-reply on the human's behalf.
+  useEffect(() => {
+    if (wasStreamingRef.current && !isStreaming) {
+      const last = messages[messages.length - 1];
+      if (
+        autopilot &&
+        last?.role === "assistant" &&
+        last.content &&
+        needsHumanDecision(last.content) &&
+        autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS
+      ) {
+        autopilotRoundsRef.current += 1;
+        const reply = buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        const t = setTimeout(() => { void sendMessage(reply); }, 400);
+        wasStreamingRef.current = isStreaming;
+        return () => clearTimeout(t);
+      } else if (autopilotRoundsRef.current > 0) {
+        toast({
+          title: "ZANOEM autopilot complete",
+          description: `${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"} executed`,
+        });
+        autopilotRoundsRef.current = 0;
+      }
+    }
+    wasStreamingRef.current = isStreaming;
+  }, [isStreaming, messages, autopilot, needsHumanDecision, buildAutopilotReply, sendMessage, toast]);
 
   const renderTabContent = () => {
     switch (activeTab) {
