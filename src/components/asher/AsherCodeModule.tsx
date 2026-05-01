@@ -406,19 +406,19 @@ export default function AsherCodeModule() {
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
 
-  function applyEditPlan(selectedPaths: string[]) {
-    if (!editPlan || !activeProject) return;
+  function applyEditPlan(selectedPaths: string[], planOverride?: EditPlan) {
+    const planToUse = planOverride || editPlan;
+    if (!planToUse || !activeProject) return;
     let appliedCount = 0;
-    let createdFiles: AsherCodeFile[] = [];
     const newDirty = { ...dirty };
-    for (const edit of editPlan.edits) {
+    for (const edit of planToUse.edits) {
       if (!selectedPaths.includes(edit.path)) continue;
       const existing = files.find(f => f.path === edit.path);
       if (existing) {
-        newDirty[existing.id] = edit.new_content;
+        if (animateInsertion) animateApply(existing.id, edit.new_content);
+        else newDirty[existing.id] = edit.new_content;
         appliedCount++;
       } else {
-        // New file — must persist immediately to get an ID
         void supabase.from("asher_code_files").insert({
           project_id: activeProject.id,
           path: edit.path,
@@ -433,9 +433,9 @@ export default function AsherCodeModule() {
         appliedCount++;
       }
     }
-    setDirty(newDirty);
+    if (!animateInsertion) setDirty(newDirty);
     setEditPlan(null);
-    toast.success(`Staged ${appliedCount} edits — review in editor and Save to commit`);
+    toast.success(`${autoApprove ? "Applied" : "Staged"} ${appliedCount} edits — Save to commit`);
   }
 
   // Multi-model orchestration on the chat input
