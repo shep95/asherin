@@ -2056,6 +2056,9 @@ try {
                 void zqEnqueue({
                   kind: "autofix",
                   payload: { projectRef: activeProject.id },
+                  surface: "asher_ide",
+                  projectRef: activeProject.id,
+                  ownerUserId: user?.id,
                 });
               }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-foreground/20 bg-foreground/5 hover:bg-foreground/15 text-[9px] font-light tracking-[0.18em] uppercase text-foreground transition-colors"
