@@ -20,7 +20,7 @@ import {
   IdeModelRouterBadge,
   type PlannedChange,
 } from "@/components/ide-shared";
-import { snapshotIfChanged, routeTask, type IdeModelId, type RoutingDecision } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { History, Stethoscope, Wand2, Cpu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
