@@ -1374,6 +1374,19 @@ export default function AsherCodeModule() {
               <input type="checkbox" checked={zanoemMode} onChange={(e) => setZanoemMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               <Brain className="h-2.5 w-2.5" /> ZANOEM
             </label>
+            <label
+              title="You Decide ZANOEM: autopilot. ZANOEM auto-answers its own questions and recommendations on your behalf for up to 6 rounds, picking the best option each time."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autopilotZanoem ? "text-foreground" : "text-muted-foreground/70"} ${!zanoemMode ? "opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={autopilotZanoem}
+                onChange={(e) => setAutopilotZanoem(e.target.checked)}
+                disabled={!zanoemMode}
+                className="accent-foreground h-2.5 w-2.5"
+              />
+              <Zap className="h-2.5 w-2.5" /> You Decide ZANOEM
+            </label>
           </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
             <input ref={fileInputRef} type="file" multiple accept="image/*,.zip,.txt,.md,.json,.csv,.py,.js,.ts,.tsx,.jsx,.html,.css" onChange={handleFileUpload} className="hidden" />
