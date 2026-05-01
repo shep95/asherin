@@ -624,22 +624,47 @@ export default function AsherCodeModule() {
     if (!activeProject) return 0;
     type Hit = { path: string; content: string; language: string };
     const hits: Hit[] = [];
-    // Pattern A: fenced block with path on info line
-    const fence = /```([a-zA-Z0-9+#_-]*)\s+([^\s`][^\n`]*?\.[a-zA-Z0-9]+)\s*\n([\s\S]*?)```/g;
+    const seen = new Set<string>();
+    const push = (path: string, content: string, lang?: string) => {
+      const p = path.trim().replace(/^[./\\]+/, "");
+      if (!p || seen.has(p)) return;
+      seen.add(p);
+      const ext = (p.split(".").pop() || "txt").toLowerCase();
+      const langGuess = lang || ({ js:"javascript", mjs:"javascript", cjs:"javascript", jsx:"javascript", ts:"typescript", tsx:"typescript", py:"python", html:"html", htm:"html", css:"css", json:"json", md:"markdown", sh:"shell", yml:"yaml", yaml:"yaml" } as any)[ext] || ext;
+      hits.push({ path: p, content: content.replace(/\s+$/, ""), language: langGuess });
+    };
+
+    // Pattern A: ```lang path/to/file.ext  (path on the fence info line)
+    const fenceWithPath = /```([a-zA-Z0-9+#_-]*)[ \t]+([^\s`][^\n`]*?\.[a-zA-Z0-9]+)[ \t]*\n([\s\S]*?)```/g;
     let m: RegExpExecArray | null;
-    while ((m = fence.exec(text)) !== null) {
-      hits.push({ language: (m[1] || "plaintext").toLowerCase(), path: m[2].trim(), content: m[3] });
-    }
-    // Pattern B: <code_output path="..."> blocks
+    while ((m = fenceWithPath.exec(text)) !== null) push(m[2], m[3], (m[1] || "").toLowerCase());
+
+    // Pattern B: <code_output path="..."> ... </code_output>
     const tag = /<code_output[^>]*path=["']([^"']+)["'][^>]*>([\s\S]*?)<\/code_output>/gi;
     while ((m = tag.exec(text)) !== null) {
-      const path = m[1].trim();
       let body = m[2].trim();
       const inner = body.match(/```[a-zA-Z0-9+#_-]*\s*\n([\s\S]*?)```/);
       if (inner) body = inner[1];
-      const ext = path.split(".").pop() || "txt";
-      hits.push({ language: ext, path, content: body });
+      push(m[1], body);
     }
+
+    // Pattern C: header line followed by fenced block. Picks up:
+    //   **path/to/file.ext**\n```js\n...```
+    //   ### path/to/file.ext\n```js\n...```
+    //   `path/to/file.ext`\n```js\n...```
+    //   File: path/to/file.ext\n```js\n...```
+    //   // File: path/to/file.ext\n```js\n...```
+    const headerThenFence = /(?:^|\n)[ \t]*(?:[#>*\-`]+[ \t]*)?(?:(?:\/\/|#)[ \t]*)?(?:File|Path|FILE|PATH)?\s*[:\-]?\s*[`*"']?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)[`*"']?[ \t]*\*?\*?[ \t]*\n+```([a-zA-Z0-9+#_-]*)[ \t]*\n([\s\S]*?)```/g;
+    while ((m = headerThenFence.exec(text)) !== null) push(m[1], m[3], (m[2] || "").toLowerCase());
+
+    // Pattern D: fenced block whose FIRST line is a comment with the path:
+    //   ```js
+    //   // path/to/file.ext
+    //   ...code...
+    //   ```
+    const fenceCommentPath = /```([a-zA-Z0-9+#_-]*)\s*\n[ \t]*(?:\/\/|#|--)[ \t]*([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)[ \t]*\n([\s\S]*?)```/g;
+    while ((m = fenceCommentPath.exec(text)) !== null) push(m[2], m[3], (m[1] || "").toLowerCase());
+
     if (hits.length === 0) return 0;
     let count = 0;
     for (const h of hits) {
