@@ -622,18 +622,44 @@ export default function AsherCodeModule() {
         {/* Editor + preview */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Tabs */}
-          <div className="flex items-center border-b border-border/15 bg-card/10 overflow-x-auto">
-            {openTabs.map(tid => {
-              const f = files.find(x => x.id === tid);
-              if (!f) return null;
-              return (
-                <div key={tid} className={`group flex items-center gap-2 border-r border-border/15 px-3 py-1.5 text-[11px] font-light cursor-pointer whitespace-nowrap ${activeFileId === tid ? "bg-background text-foreground" : "text-muted-foreground hover:bg-foreground/5"}`}
-                  onClick={() => setActiveFileId(tid)}>
-                  {f.path}{f.id in dirty && <span className="text-amber-400">●</span>}
-                  <button onClick={(e) => { e.stopPropagation(); setOpenTabs(t => t.filter(x => x !== tid)); if (activeFileId === tid) setActiveFileId(openTabs.filter(x => x !== tid)[0] || null); }} className="opacity-50 hover:opacity-100"><X className="h-3 w-3" /></button>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-between border-b border-border/15 bg-card/10">
+            <div className="flex items-center overflow-x-auto flex-1 min-w-0">
+              {openTabs.map(tid => {
+                const f = files.find(x => x.id === tid);
+                if (!f) return null;
+                return (
+                  <div key={tid} className={`group flex items-center gap-2 border-r border-border/15 px-3 py-1.5 text-[11px] font-light cursor-pointer whitespace-nowrap ${activeFileId === tid ? "bg-background text-foreground" : "text-muted-foreground hover:bg-foreground/5"}`}
+                    onClick={() => setActiveFileId(tid)}>
+                    {f.path}{f.id in dirty && <span className="text-amber-400">●</span>}
+                    <button onClick={(e) => { e.stopPropagation(); setOpenTabs(t => t.filter(x => x !== tid)); if (activeFileId === tid) setActiveFileId(openTabs.filter(x => x !== tid)[0] || null); }} className="opacity-50 hover:opacity-100"><X className="h-3 w-3" /></button>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Code / Split / Preview segmented control */}
+            <div className="flex items-center gap-0.5 px-2 py-1 border-l border-border/15 flex-shrink-0">
+              <button
+                onClick={() => setViewMode("code")}
+                title="Code only"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "code" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Code2 className="h-3 w-3" /><span className="hidden sm:inline">Code</span>
+              </button>
+              <button
+                onClick={() => setViewMode("split")}
+                title="Split view"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "split" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Columns2 className="h-3 w-3" /><span className="hidden sm:inline">Split</span>
+              </button>
+              <button
+                onClick={() => setViewMode("preview")}
+                title="Preview only"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "preview" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Eye className="h-3 w-3" /><span className="hidden sm:inline">Preview</span>
+              </button>
+            </div>
           </div>
 
           {/* Editor + preview split */}
