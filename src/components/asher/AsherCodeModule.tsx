@@ -1847,16 +1847,28 @@ try {
             </label>
             {orchestrateMode && <span className="text-[8px] text-foreground/70 tracking-[0.15em] uppercase">3 models · ranked</span>}
           </div>
-          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-w-0">
-            {chat.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
-            {chat.map((m, i) => (
-              <div key={i} className={`rounded-lg px-2.5 py-2 text-[11px] font-light min-w-0 max-w-full overflow-hidden ${m.role === "user" ? "bg-foreground/10 border border-foreground/15" : "bg-card/30 border border-border/15"}`}>
-                {m.role === "assistant"
-                  ? <div className="prose prose-xs prose-invert max-w-none break-words [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre]:whitespace-pre [&_code]:break-words [&_p]:break-words [&_a]:break-all prose-pre:bg-background/60 prose-pre:text-[10px] prose-pre:border prose-pre:border-border/20 prose-code:text-[10px]"><ReactMarkdown>{m.content}</ReactMarkdown></div>
-                  : <p className="whitespace-pre-wrap break-words">{m.content}</p>}
-              </div>
-            ))}
-            {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
+          <div className="relative flex-1 min-h-0 min-w-0">
+            <div ref={chatScrollRef} className="absolute inset-0 overflow-y-auto px-3 py-2 space-y-2 min-w-0">
+              {chat.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
+              {chat.map((m, i) => (
+                <div key={i} className={`rounded-lg px-2.5 py-2 text-[11px] font-light min-w-0 max-w-full overflow-hidden ${m.role === "user" ? "bg-foreground/10 border border-foreground/15" : "bg-card/30 border border-border/15"}`}>
+                  {m.role === "assistant"
+                    ? <div className="prose prose-xs prose-invert max-w-none break-words [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_pre]:whitespace-pre [&_code]:break-words [&_p]:break-words [&_a]:break-all prose-pre:bg-background/60 prose-pre:text-[10px] prose-pre:border prose-pre:border-border/20 prose-code:text-[10px]"><ReactMarkdown>{m.content}</ReactMarkdown></div>
+                    : <p className="whitespace-pre-wrap break-words">{m.content}</p>}
+                </div>
+              ))}
+              {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
+              <div ref={chatEndRef} />
+            </div>
+            {chatScrolledUp && (
+              <button
+                onClick={jumpChatToPresent}
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border border-border/30 bg-card/90 backdrop-blur-xl px-3 py-1.5 text-[10px] font-light tracking-wide text-muted-foreground hover:text-foreground shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] animate-fade-in"
+              >
+                <ArrowDown className="h-3 w-3" />
+                {aiBusy ? "Asher is still writing — Jump to present" : "Jump to present"}
+              </button>
+            )}
           </div>
           {/* Pending uploads chips */}
           {pendingUploads.length > 0 && (
