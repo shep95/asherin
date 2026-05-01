@@ -660,6 +660,7 @@ const VedicAstrologyView = () => {
             </button>
           </div>
         </div>
+        )}
 
         {chart && (
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
