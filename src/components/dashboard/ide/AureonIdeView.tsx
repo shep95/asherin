@@ -212,7 +212,11 @@ const AureonIdeView = () => {
         if (n.children) return { ...n, children: updateInTree(n.children) };
         return n;
       });
-    setFiles((prev) => updateInTree(prev));
+    setFiles((prev) => {
+      const next = updateInTree(prev);
+      filesRefAureon.current = next;
+      return next;
+    });
     toast({ title: "Auto-applied debugger fix", description: file.name });
     return true;
   }, [toast]);
@@ -232,16 +236,20 @@ const AureonIdeView = () => {
 
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
       if (!autopilotZanoemRef.current || !autoDebugRef.current) return;
-      const flat: AutoFixFile[] = [];
-      const walk = (nodes: IdeFile[]) => {
+      const collectFlat = (): AutoFixFile[] => {
+        const flat: AutoFixFile[] = [];
+        const walk = (nodes: IdeFile[]) => {
         for (const n of nodes) {
           if (n.children) walk(n.children);
           else flat.push({ id: n.id, name: n.name, content: n.content || "", language: getLanguage(n.name) });
         }
       };
-      walk(filesRefAureon.current);
+        walk(filesRefAureon.current);
+        return flat;
+      };
       const result = await autoFixUntilClean({
-        files: () => flat,
+        files: collectFlat,
+        applyFileFix: applyAureonDebuggerFix,
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 6,
         swarmConcurrency: 2,
@@ -291,7 +299,7 @@ const AureonIdeView = () => {
       else console.info("[zanoem] Aureon validator stopped:", result.finalErrorCount, "error(s) remain");
     });
     zqStart({ intervalMs: 2500 });
-  }, [toast]);
+  }, [applyAureonDebuggerFix, toast]);
 
   // Panel state — simplified defaults
   const [leftOpen, setLeftOpen] = useState(!isMobile);
