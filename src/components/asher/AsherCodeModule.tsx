@@ -434,13 +434,27 @@ export default function AsherCodeModule() {
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
       const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments } as any);
-      setChat([...next, { role: "assistant", content: r.reply || "" }]);
+      const assistantMsg: ChatMsg = { role: "assistant", content: r.reply || "" };
+      setChat([...next, assistantMsg]);
+      void persistChatMessages([userMsg, assistantMsg]);
     } catch (e: any) {
-      setChat([...next, { role: "assistant", content: "**Error:** " + (e.message || "AI call failed") }]);
+      const errMsg: ChatMsg = { role: "assistant", content: "**Error:** " + (e.message || "AI call failed") };
+      setChat([...next, errMsg]);
+      void persistChatMessages([userMsg, errMsg]);
     } finally { setAiBusy(false); }
   }
 
   async function aiExplain() {
+    if (!activeFile) return;
+    setAiBusy(true);
+    try {
+      const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language });
+      const u: ChatMsg = { role: "user", content: `Explain ${activeFile.path}` };
+      const a: ChatMsg = { role: "assistant", content: r.reply || "" };
+      setChat(c => [...c, u, a]);
+      void persistChatMessages([u, a]);
+    } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
+  }
     if (!activeFile) return;
     setAiBusy(true);
     try {
