@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { X, Copy, Check, Search, WrapText, AlignLeft } from "lucide-react";
 import type { IdeFile } from "./IdeFileTree";
 import { getLanguage } from "./IdeFileTree";
+import { validateCode } from "@/lib/ide";
 
 interface Props {
   openFiles: IdeFile[];
@@ -24,6 +25,15 @@ const IdeCodeEditor = ({ openFiles, activeFileId, onSelectTab, onCloseTab, onCon
   const content = activeFile?.content ?? "";
   const lines = content.split("\n");
   const language = activeFile ? getLanguage(activeFile.name) : "plaintext";
+
+  // Red-line error highlighting (powered by the shared ZANOEM validator).
+  const errorLines = useMemo(() => {
+    if (!activeFile || !content) return new Set<number>();
+    try {
+      const result = validateCode(content, language);
+      return new Set(result.issues.filter((i) => i.severity === "error").map((i) => i.line));
+    } catch { return new Set<number>(); }
+  }, [content, language, activeFile]);
 
   const handleScroll = useCallback(() => {
     if (textareaRef.current && lineNumbersRef.current) {
