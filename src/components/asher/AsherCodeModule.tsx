@@ -40,8 +40,59 @@ import { validateFiles, validateCode } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
+import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
+
+// Load active Aureon persona + brain (mirrors Aureon Chat / ZALI). Result is spread into every
+// asher-code-ai call so Asher IDE inherits the same coding brain stack as the rest of the dashboard.
+async function loadAureonContext(): Promise<{
+  personaSystemPrompt: string | null;
+  brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null;
+}> {
+  let personaSystemPrompt: string | null = null;
+  let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
+  try {
+    const personaId = localStorage.getItem("aureon_active_persona_id");
+    if (personaId) {
+      const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
+      const activePersona = customPersonas.find((p: any) => p.id === personaId)
+        || builtInPersonas.find((p) => p.id === personaId);
+      personaSystemPrompt = activePersona?.systemPrompt || null;
+    }
+  } catch { /* ignore */ }
+  try {
+    const activeBrainId = localStorage.getItem("aureon_active_brain_id");
+    if (activeBrainId) {
+      const { data: brain } = await supabase
+        .from("brains")
+        .select("system_prompt, file_ids")
+        .eq("id", activeBrainId)
+        .single();
+      if (brain) {
+        const fileContents: { name: string; content: string }[] = [];
+        if (brain.file_ids?.length) {
+          const { data: files } = await supabase
+            .from("library_files")
+            .select("file_name, storage_path, file_type")
+            .in("id", brain.file_ids);
+          if (files) {
+            for (const f of files) {
+              const isText = !f.file_type.startsWith("image/")
+                && !f.file_type.startsWith("video/")
+                && !f.file_type.startsWith("audio/");
+              if (!isText) continue;
+              const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
+              if (blob) fileContents.push({ name: f.file_name, content: (await blob.text()).slice(0, 80000) });
+            }
+          }
+        }
+        brainContext = { prompt: brain.system_prompt || "", fileContents };
+      }
+    }
+  } catch (e) { console.error("Asher Code: failed to load Aureon brain context:", e); }
+  return { personaSystemPrompt, brainContext };
+}
 
 export default function AsherCodeModule() {
   const { user } = useAuth();
