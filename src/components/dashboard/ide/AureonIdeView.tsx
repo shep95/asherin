@@ -206,7 +206,13 @@ const AureonIdeView = () => {
     }
     if (!corrected || corrected === current.trim()) throw lastErr ?? new Error("No corrected code produced");
 
-    setFiles((prev) => updateFileContent(prev, file.id, corrected));
+    const updateInTree = (nodes: IdeFile[]): IdeFile[] =>
+      nodes.map((n) => {
+        if (n.id === file.id || n.name === file.name) return { ...n, content: corrected };
+        if (n.children) return { ...n, children: updateInTree(n.children) };
+        return n;
+      });
+    setFiles((prev) => updateInTree(prev));
     toast({ title: "Auto-applied debugger fix", description: file.name });
     return true;
   }, [toast]);
