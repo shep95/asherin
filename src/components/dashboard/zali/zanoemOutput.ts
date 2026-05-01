@@ -99,6 +99,18 @@ export function sanitizeZanoemAssistantContent(content: string): { text: string;
     codeCount += codeCount ? 0 : 1;
   }
 
+  const leakedFileIndex = stripped.search(/`?(?:src\/|app\/|components\/|pages\/|lib\/|public\/|server\.|main\.|index\.|App\.)[\w./-]+`?[,\s]*(?:demonstrating|containing|with|\{|'|"|\\n)/i);
+  if (leakedFileIndex !== -1) {
+    stripped = stripped.slice(0, leakedFileIndex);
+    codeCount += codeCount ? 0 : 1;
+  }
+
+  const escapedCodeIndex = stripped.search(/(?:\\n|\n)(?:import|export|const|let|function|class|def |from |bash\s|npm\s|yarn\s|pnpm\s)/i);
+  if (escapedCodeIndex !== -1) {
+    stripped = stripped.slice(0, escapedCodeIndex);
+    codeCount += codeCount ? 0 : 1;
+  }
+
   stripped = stripped
     .replace(/\b(?:code_output|design_output)\b:?/gi, "")
     .replace(/\n{3,}/g, "\n\n")
