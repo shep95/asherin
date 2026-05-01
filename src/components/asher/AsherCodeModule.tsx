@@ -36,7 +36,7 @@ import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSa
 import { toast } from "sonner";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import ZanoemDecisionLog from "./ZanoemDecisionLog";
-import { validateFiles, validateCode } from "@/lib/ide";
+import { validateFiles, validateCode, explainError } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -387,6 +387,25 @@ export default function AsherCodeModule() {
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
+
+  function applyProjectFileContent(fileId: string, content: string, persist = false) {
+    setDirty(d => ({ ...d, [fileId]: content }));
+    setFiles(fs => fs.map(f => f.id === fileId ? { ...f, content } : f));
+    filesRef.current = filesRef.current.map(f => f.id === fileId ? { ...f, content } : f);
+    if (persist) void supabase.from("asher_code_files").update({ content }).eq("id", fileId);
+    setPreviewKey(k => k + 1);
+  }
+
+  async function applyDebuggerFix(file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) {
+    const current = filesRef.current.find(f => f.id === file.id)?.content ?? file.content;
+    const diagnostic = issues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+    const explained = await explainError(diagnostic || lastPreviewErrorRef.current, current);
+    const corrected = explained.correctedCode?.trim();
+    if (!corrected || corrected === current.trim()) return false;
+    applyProjectFileContent(file.id, corrected, true);
+    toast.success(`Auto-applied debugger fix → ${file.name}`);
+    return true;
+  }
 
   // ── Red-line bug highlighting in Monaco ──
   // Validator issues become red squigglies (markers) + a red line-background decoration
