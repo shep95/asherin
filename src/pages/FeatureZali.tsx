@@ -105,7 +105,7 @@ const FeatureZali = () => {
           <span className="text-muted-foreground">Engineer With Precision.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
-          ZALI is an AI-powered design lab that takes you from concept to specification.
+          ZANOEM is an AI-powered design lab that takes you from concept to specification.
           Describe what you want to build — ZANOEM handles research, specifications, cost analysis, and manufacturing feasibility.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
