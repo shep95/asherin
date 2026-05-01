@@ -586,10 +586,11 @@ const VedicAstrologyView = () => {
         </div>
 
         {/* TAB STRIP — My Charts vs Country Charts */}
-        <div className="grid grid-cols-2 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
+        <div className="grid grid-cols-3 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
           {([
             { key: "mine" as const, icon: User2, label: "My Charts" },
             { key: "country" as const, icon: Globe2, label: "Country Charts" },
+            { key: "predictions" as const, icon: TrendingUp, label: "Global Predictions" },
           ]).map(({ key, icon: Icon, label }) => (
             <button
               key={key}
@@ -600,6 +601,8 @@ const VedicAstrologyView = () => {
             </button>
           ))}
         </div>
+
+        {tab === "predictions" && <GlobalPredictionsTab />}
 
         {tab === "country" && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
