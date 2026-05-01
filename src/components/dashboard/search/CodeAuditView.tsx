@@ -962,6 +962,28 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
   );
 };
 
+const mitreFor = (text: string) => {
+  const t = text.toLowerCase();
+  if (/sql|xss|injection|eval|rce|command/.test(t)) return "T1190 — Exploit Public-Facing Application";
+  if (/auth|session|jwt|password|role|admin/.test(t)) return "T1078 — Valid Accounts";
+  if (/secret|token|key|credential/.test(t)) return "T1552 — Unsecured Credentials";
+  if (/dependency|package|cve|library/.test(t)) return "T1195 — Supply Chain Compromise";
+  return "T1580 — Cloud Infrastructure Discovery";
+};
+
+const confidenceLabel = (confidence?: "high" | "med" | "low") => confidence === "high" ? "High" : confidence === "med" ? "Medium" : confidence === "low" ? "Low" : "Medium";
+
+const cveIndicator = (text: string) => text.match(/CVE-\d{4}-\d{4,7}/i)?.[0]?.toUpperCase() || "Novel — no CVE match";
+
+const pocSnippet = (branch: Branch, leaf: Leaf) => {
+  const combined = `${branch.label} ${leaf.label} ${leaf.value}`.toLowerCase();
+  if (/sql|injection/.test(combined)) return "' OR 1=1 --";
+  if (/xss|html/.test(combined)) return "<img src=x onerror=alert(1)>";
+  if (/auth|jwt|role/.test(combined)) return "Replay stale token / force alternate role claim against protected route";
+  if (/command|exec|rce|eval/.test(combined)) return "$(id) && whoami";
+  return "Evidence-only PoC: reproduce with the cited line/path and hostile input for this sink.";
+};
+
 const BranchCard = ({ branch }: { branch: Branch }) => {
   const Icon = ICONS[branch.icon] || Shield;
   const tone = TONE_STYLES[branch.tone] || TONE_STYLES.neutral;
