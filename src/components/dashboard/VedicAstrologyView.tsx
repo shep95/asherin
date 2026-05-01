@@ -456,6 +456,51 @@ const VedicAstrologyView = () => {
     return generateReading(placements);
   }, [chart]);
 
+  // ── Stable chart key + grounded context for ASHER AI side-chat ───────────
+  const chartKey = useMemo(() => {
+    if (activeCountry) return `country:${activeCountry.code}`;
+    if (activeSavedId) return `user:${activeSavedId}`;
+    if (chart) return `adhoc:${birthDate}_${birthTime}_${lat}_${lon}`;
+    return null;
+  }, [activeCountry, activeSavedId, chart, birthDate, birthTime, lat, lon]);
+
+  const chartLabel = useMemo(() => {
+    if (activeName) return activeName;
+    if (chart) return `Unsaved · ${birthDate} ${birthTime}`;
+    return "";
+  }, [activeName, chart, birthDate, birthTime]);
+
+  const chartContext = useMemo(() => {
+    if (!chart || !ascRashi) return "";
+    const lines: string[] = [];
+    lines.push(`Birth: ${birthDate} ${birthTime} (UTC${tzOffset >= "0" ? "+" : ""}${tzOffset}) at ${cityQuery || `${lat}, ${lon}`}`);
+    lines.push(`Ascendant: ${ascRashi.name} ${fmtDeg(chart.ascendant % 30)} (ruler ${ascRashi.ruler})`);
+    if (moonPlanet && moonNak) {
+      lines.push(`Moon Nakshatra: ${moonNak.nakshatra.name} pada ${moonNak.pada} (lord ${moonNak.nakshatra.ruler})`);
+    }
+    lines.push("Planetary placements (whole-sign houses from Lagna):");
+    for (const p of chart.planets) {
+      const r = getRashiFromDeg(p.sid);
+      const n = getNakshatraFromDeg(p.sid);
+      lines.push(`  ${p.name}${p.retrograde ? "(R)" : ""}: H${houseFromAsc(p.sid, chart.ascendant)} ${r.name} ${fmtDeg(p.sid % 30)} · ${n.nakshatra.name} pada ${n.pada}`);
+    }
+    if (currentDasha.maha) {
+      const cd = [currentDasha.maha, currentDasha.antar, currentDasha.pratyantar, currentDasha.sookshma, currentDasha.prana]
+        .filter(Boolean)
+        .map((p) => `${p!.lord} (${DASHA_LEVEL_LABEL[p!.level]} ends ${p!.end.toISOString().slice(0, 10)})`)
+        .join(" / ");
+      lines.push(`Active Vimshottari path: ${cd}`);
+    }
+    if (dashaTimeline.length > 0) {
+      lines.push("Upcoming Mahadashas:");
+      for (const m of dashaTimeline.slice(0, 6)) {
+        lines.push(`  ${m.lord}: ${m.start.toISOString().slice(0, 10)} → ${m.end.toISOString().slice(0, 10)}`);
+      }
+    }
+    return lines.join("\n");
+  }, [chart, ascRashi, moonPlanet, moonNak, currentDasha, dashaTimeline, birthDate, birthTime, tzOffset, cityQuery, lat, lon]);
+
+
   return (
     <div
       className="h-full overflow-y-auto relative"
