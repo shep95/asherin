@@ -24,10 +24,15 @@ import {
   IdeModelRouterBadge,
   AnimatedOrbBackground,
   IdeValidatorBadge,
+  IdeSemanticSearch,
+  IdeProjectGuide,
+  IdeCommandPalette,
+  IdeRecoveryDialog,
   type PlannedChange,
+  type IdeCommand,
 } from "@/components/ide-shared";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
