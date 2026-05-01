@@ -22,10 +22,12 @@ import {
   type PlannedChange,
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
-import { History, Stethoscope, Wand2, Cpu } from "lucide-react";
+import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { startQueueWorker as zqStart, registerHandler as zqRegister, type QueuedJob } from "@/lib/zanoem/offlineQueue";
+import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
+import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
+import ZanoemDecisionLog from "@/components/asher/ZanoemDecisionLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
