@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Calendar, FolderOpen, Globe2, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, User2 } from "lucide-react";
+import { BookOpen, Calendar, FolderOpen, Globe2, Heart, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, TrendingUp, User2 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
   getNakshatraFromDeg,
@@ -16,6 +16,8 @@ import { COUNTRY_CHARTS, type CountryFoundation } from "@/data/vedic/countryChar
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 import AsherChatPanel from "./vedic/AsherChatPanel";
+import GlobalPredictionsTab from "./vedic/GlobalPredictionsTab";
+import CompatibilityPanel from "./vedic/CompatibilityPanel";
 
 interface SavedChart {
   id: string;
@@ -203,7 +205,8 @@ const VedicAstrologyView = () => {
   const [chartName, setChartName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"mine" | "country">("mine");
+  const [tab, setTab] = useState<"mine" | "country" | "predictions">("mine");
+  const [showCompat, setShowCompat] = useState(false);
   const [activeCountry, setActiveCountry] = useState<CountryFoundation | null>(null);
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
   const [activeName, setActiveName] = useState<string>("");
