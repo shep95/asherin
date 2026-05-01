@@ -1,58 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Moon, Sparkles, MapPin, Save, Trash2, BookOpen, Calendar } from "lucide-react";
-import * as Astronomy from "astronomy-engine";
+import { BookOpen, Calendar, FolderOpen, Loader2, MapPin, Moon, Save, Sparkles, Trash2 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
-  nakshatras,
-  rashis,
   getNakshatraFromDeg,
   getRashiFromDeg,
+  rashis,
 } from "@/data/nakshatraData";
 import { supabase } from "@/integrations/supabase/client";
-import { computeMahadasha, findCurrentDasha, type MahadashaPeriod } from "@/lib/vedic/dasha";
-import { computeDignity, houseFromAsc, type PlanetName } from "@/lib/vedic/dignities";
+import { computeMahadasha, findCurrentDasha } from "@/lib/vedic/dasha";
+import { houseFromAsc } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
+import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 
-/**
- * VEDIC ASTROLOGY — Sidereal natal chart (Lahiri ayanamsa).
- * Self-contained: uses astronomy-engine for tropical positions, then
- * subtracts Lahiri ayanamsa to derive sidereal (Vedic) longitudes.
- * No WASM, no backend — pure client computation.
- */
-
-interface Planet {
+interface SavedChart {
+  id: string;
   name: string;
-  symbol: string;
-  body: Astronomy.Body | "Rahu" | "Ketu";
-  trop: number;
-  sid: number;
-  retrograde: boolean;
+  birth_date: string;
+  birth_time: string;
+  tz_offset: number;
+  latitude: number;
+  longitude: number;
+  city_label: string | null;
+  created_at: string;
 }
-
-const PLANET_DEFS: { name: string; symbol: string; body: Astronomy.Body | "Rahu" | "Ketu" }[] = [
-  { name: "Sun", symbol: "☉", body: Astronomy.Body.Sun },
-  { name: "Moon", symbol: "☽", body: Astronomy.Body.Moon },
-  { name: "Mercury", symbol: "☿", body: Astronomy.Body.Mercury },
-  { name: "Venus", symbol: "♀", body: Astronomy.Body.Venus },
-  { name: "Mars", symbol: "♂", body: Astronomy.Body.Mars },
-  { name: "Jupiter", symbol: "♃", body: Astronomy.Body.Jupiter },
-  { name: "Saturn", symbol: "♄", body: Astronomy.Body.Saturn },
-  { name: "Rahu", symbol: "☊", body: "Rahu" },
-  { name: "Ketu", symbol: "☋", body: "Ketu" },
-];
-
-import {
-  apparentEclipticLon,
-  apparentLST,
-  ascendant as computeAscendant,
-  jdFromDate,
-  lahiriAyanamsa,
-  norm360,
-  trueNodeLongitude,
-  trueObliquity,
-} from "@/lib/vedic/swissGrade";
 
 function fmtDeg(deg: number): string {
   const d = Math.floor(deg);
@@ -62,164 +34,76 @@ function fmtDeg(deg: number): string {
   return `${d}° ${m.toString().padStart(2, "0")}' ${s.toString().padStart(2, "0")}"`;
 }
 
-function computeChart(birthUtc: Date, lat: number, lon: number) {
-  const time = new Astronomy.AstroTime(birthUtc);
-  const observer = new Astronomy.Observer(lat, lon, 0);
-  const jd = jdFromDate(birthUtc);
-  const ayan = lahiriAyanamsa(jd);
-
-  const planets: Planet[] = [];
-  for (const def of PLANET_DEFS) {
-    if (def.body === "Rahu") {
-      const trop = trueNodeLongitude(jd);
-      planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde: true });
-    } else if (def.body === "Ketu") {
-      const rahu = trueNodeLongitude(jd);
-      const trop = norm360(rahu + 180);
-      planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde: true });
-    } else {
-      // Apparent geocentric (topocentric for Moon → matches Astro-Seek to <30″)
-      const trop = apparentEclipticLon(def.body as Astronomy.Body, time, observer);
-      let retrograde = false;
-      if (def.body !== Astronomy.Body.Sun && def.body !== Astronomy.Body.Moon) {
-        const t2 = new Astronomy.AstroTime(new Date(birthUtc.getTime() + 86400000));
-        const trop2 = apparentEclipticLon(def.body as Astronomy.Body, t2);
-        const delta = norm360(trop2 - trop + 180) - 180;
-        retrograde = delta < 0;
-      }
-      planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde });
-    }
-  }
-
-  const ascTrop = computeAscendant(time, lat, lon);
-  const ascSid = norm360(ascTrop - ayan);
-  const mcSid = norm360(apparentLST(time, lon) - ayan);
-  // touch trueObliquity so tree-shaking keeps it (used implicitly via ascendant)
-  void trueObliquity;
-
-  return { planets, ascendant: ascSid, mc: mcSid, ayanamsa: ayan };
+function fmtDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
 }
 
-/* ── North-Indian style square wheel ───────────────────────── */
 function VedicWheel({
   ascendant,
   planets,
   size = 420,
 }: {
   ascendant: number;
-  planets: Planet[];
+  planets: SweVedicPlanet[];
   size?: number;
 }) {
   const houses = useMemo(() => {
     const ascSign = Math.floor(ascendant / 30);
-    const list: { house: number; signIndex: number; planets: Planet[] }[] = [];
+    const list: { house: number; signIndex: number; planets: SweVedicPlanet[] }[] = [];
     for (let i = 0; i < 12; i++) {
       const signIndex = (ascSign + i) % 12;
-      const housePlanets = planets.filter(
-        (p) => Math.floor(p.sid / 30) === signIndex,
-      );
+      const housePlanets = planets.filter((p) => Math.floor(p.sid / 30) === signIndex);
       list.push({ house: i + 1, signIndex, planets: housePlanets });
     }
     return list;
   }, [ascendant, planets]);
 
   const c = size / 2;
-  const r = size / 2;
-
-  // 12 diamond/triangle slots — North Indian layout coordinates as fractions of size.
-  // Houses arranged: 1=top-center diamond, 2=top-left triangle, 3=left-top, 4=left-center, ...
   const SLOTS = [
-    { x: 0.5, y: 0.25 }, // 1
-    { x: 0.25, y: 0.12 }, // 2
-    { x: 0.12, y: 0.25 }, // 3
-    { x: 0.25, y: 0.5 }, // 4
-    { x: 0.12, y: 0.75 }, // 5
-    { x: 0.25, y: 0.88 }, // 6
-    { x: 0.5, y: 0.75 }, // 7
-    { x: 0.75, y: 0.88 }, // 8
-    { x: 0.88, y: 0.75 }, // 9
-    { x: 0.75, y: 0.5 }, // 10
-    { x: 0.88, y: 0.25 }, // 11
-    { x: 0.75, y: 0.12 }, // 12
+    { x: 0.5, y: 0.25 },
+    { x: 0.25, y: 0.12 },
+    { x: 0.12, y: 0.25 },
+    { x: 0.25, y: 0.5 },
+    { x: 0.12, y: 0.75 },
+    { x: 0.25, y: 0.88 },
+    { x: 0.5, y: 0.75 },
+    { x: 0.75, y: 0.88 },
+    { x: 0.88, y: 0.75 },
+    { x: 0.75, y: 0.5 },
+    { x: 0.88, y: 0.25 },
+    { x: 0.75, y: 0.12 },
   ];
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      className="select-none"
-    >
-      {/* Outer square */}
-      <rect
-        x={1}
-        y={1}
-        width={size - 2}
-        height={size - 2}
-        fill="none"
-        stroke="hsl(var(--border) / 0.3)"
-        strokeWidth={1}
-      />
-      {/* Diagonals */}
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="select-none max-w-full h-auto">
+      <rect x={1} y={1} width={size - 2} height={size - 2} fill="none" stroke="hsl(var(--border) / 0.3)" strokeWidth={1} />
       <line x1={0} y1={0} x2={size} y2={size} stroke="hsl(var(--border) / 0.25)" />
       <line x1={size} y1={0} x2={0} y2={size} stroke="hsl(var(--border) / 0.25)" />
-      {/* Inner diamond */}
-      <polygon
-        points={`${c},0 ${size},${c} ${c},${size} 0,${c}`}
-        fill="none"
-        stroke="hsl(var(--border) / 0.3)"
-      />
-      {/* Houses content */}
+      <polygon points={`${c},0 ${size},${c} ${c},${size} 0,${c}`} fill="none" stroke="hsl(var(--border) / 0.3)" />
       {houses.map((h, i) => {
         const slot = SLOTS[i];
         const px = slot.x * size;
         const py = slot.y * size;
         return (
-          <g key={i}>
-            <text
-              x={px}
-              y={py - 32}
-              textAnchor="middle"
-              fontSize={9}
-              fill="hsl(var(--muted-foreground) / 0.45)"
-              fontWeight={300}
-              letterSpacing="0.1em"
-            >
+          <g key={h.house}>
+            <text x={px} y={py - 32} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground) / 0.45)" fontWeight={300}>
               {rashis[h.signIndex].sanskrit} · H{h.house}
             </text>
             {h.planets.map((p, j) => (
-              <text
-                key={p.name}
-                x={px}
-                y={py - 14 + j * 12}
-                textAnchor="middle"
-                fontSize={11}
-                fill="hsl(var(--foreground) / 0.85)"
-                fontWeight={300}
-              >
-                {p.symbol} {p.name.slice(0, 2)}
-                {p.retrograde ? "ʀ" : ""}
+              <text key={p.name} x={px} y={py - 14 + j * 12} textAnchor="middle" fontSize={11} fill="hsl(var(--foreground) / 0.85)" fontWeight={300}>
+                {p.symbol} {p.name.slice(0, 2)}{p.retrograde ? "ʀ" : ""}
               </text>
             ))}
           </g>
         );
       })}
-      {/* Ascendant marker */}
-      <text
-        x={c}
-        y={size - 6}
-        textAnchor="middle"
-        fontSize={9}
-        fill="hsl(var(--muted-foreground) / 0.5)"
-        letterSpacing="0.15em"
-      >
+      <text x={c} y={size - 6} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground) / 0.5)" letterSpacing="0.15em">
         ASC {fmtDeg(ascendant % 30)} {rashis[Math.floor(ascendant / 30)].name.toUpperCase()}
       </text>
     </svg>
   );
 }
 
-/* ── Component ───────────────────────────────────────────── */
 const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("12:00");
@@ -229,11 +113,35 @@ const VedicAstrologyView = () => {
   const [cityQuery, setCityQuery] = useState("");
   const [cityResults, setCityResults] = useState<{ label: string; lat: number; lon: number }[]>([]);
   const [searching, setSearching] = useState(false);
-  const [chart, setChart] = useState<ReturnType<typeof computeChart> | null>(null);
+  const [chart, setChart] = useState<SweVedicChart | null>(null);
+  const [loadingChart, setLoadingChart] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
+  const [chartName, setChartName] = useState("");
+  const [showSaved, setShowSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const loadSavedCharts = async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      setSavedCharts([]);
+      return;
+    }
+    const { data, error: loadError } = await supabase
+      .from("vedic_charts")
+      .select("id,name,birth_date,birth_time,tz_offset,latitude,longitude,city_label,created_at")
+      .eq("user_id", auth.user.id)
+      .order("created_at", { ascending: false });
+    if (loadError) return;
+    setSavedCharts((data ?? []) as SavedChart[]);
+  };
+
+  useEffect(() => {
+    void loadSavedCharts();
+  }, []);
 
   const searchCity = async (q?: string) => {
     const query = (q ?? cityQuery).trim();
@@ -267,7 +175,6 @@ const VedicAstrologyView = () => {
     }
   };
 
-  // Debounced auto-search as the user types.
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     if (cityQuery.trim().length < 2) {
@@ -283,29 +190,128 @@ const VedicAstrologyView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityQuery]);
 
-  const generateChart = () => {
-    setError(null);
-    try {
-      if (!birthDate) throw new Error("Birth date required");
-      const latNum = parseFloat(lat);
-      const lonNum = parseFloat(lon);
-      if (isNaN(latNum) || isNaN(lonNum)) throw new Error("Latitude / longitude required");
+  const computeAndSetChart = async (input?: Partial<{ birthDate: string; birthTime: string; tzOffset: string; lat: string; lon: string }>) => {
+    const bd = input?.birthDate ?? birthDate;
+    const bt = input?.birthTime ?? birthTime;
+    const tzText = input?.tzOffset ?? tzOffset;
+    const latText = input?.lat ?? lat;
+    const lonText = input?.lon ?? lon;
+    if (!bd) throw new Error("Birth date required");
+    const latNum = parseFloat(latText);
+    const lonNum = parseFloat(lonText);
+    const tz = parseFloat(tzText);
+    if (Number.isNaN(latNum) || Number.isNaN(lonNum)) throw new Error("Latitude / longitude required");
+    if (Number.isNaN(tz)) throw new Error("UTC offset required");
+    const result = await calculateSweVedicChart({ birthDate: bd, birthTime: bt, tzOffset: tz, lat: latNum, lon: lonNum });
+    setChart(result);
+    return result;
+  };
 
-      const [y, m, d] = birthDate.split("-").map(Number);
-      const [hh, mm] = birthTime.split(":").map(Number);
-      const tz = parseFloat(tzOffset) || 0;
-      const utcMs = Date.UTC(y, m - 1, d, hh - tz, mm);
-      const result = computeChart(new Date(utcMs), latNum, lonNum);
-      setChart(result);
+  const generateChart = async () => {
+    setError(null);
+    setLoadingChart(true);
+    try {
+      await computeAndSetChart();
     } catch (e) {
       setError((e as Error).message);
       setChart(null);
+    } finally {
+      setLoadingChart(false);
     }
+  };
+
+  const saveChart = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Sign in to save named charts");
+      if (!chartName.trim()) throw new Error("Chart name required");
+      if (!birthDate) throw new Error("Generate a chart first");
+      const latNum = parseFloat(lat);
+      const lonNum = parseFloat(lon);
+      const tz = parseFloat(tzOffset);
+      if (Number.isNaN(latNum) || Number.isNaN(lonNum) || Number.isNaN(tz)) throw new Error("Birth location required");
+      const { error: insertError } = await supabase.from("vedic_charts").insert({
+        user_id: auth.user.id,
+        name: chartName.trim(),
+        birth_date: birthDate,
+        birth_time: birthTime,
+        tz_offset: tz,
+        latitude: latNum,
+        longitude: lonNum,
+        city_label: cityQuery.trim() || null,
+      });
+      if (insertError) throw insertError;
+      toast.success(`Saved ${chartName.trim()}`);
+      setChartName("");
+      await loadSavedCharts();
+    } catch (e) {
+      setError((e as Error).message);
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const loadChart = async (saved: SavedChart) => {
+    setBirthDate(saved.birth_date);
+    setBirthTime(saved.birth_time);
+    setTzOffset(String(saved.tz_offset));
+    setLat(String(saved.latitude));
+    setLon(String(saved.longitude));
+    setCityQuery(saved.city_label ?? "");
+    setShowSaved(false);
+    setError(null);
+    setLoadingChart(true);
+    try {
+      await computeAndSetChart({
+        birthDate: saved.birth_date,
+        birthTime: saved.birth_time,
+        tzOffset: String(saved.tz_offset),
+        lat: String(saved.latitude),
+        lon: String(saved.longitude),
+      });
+      toast.success(`Loaded ${saved.name}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
+  const deleteChart = async (id: string) => {
+    const { error: deleteError } = await supabase.from("vedic_charts").delete().eq("id", id);
+    if (deleteError) {
+      toast.error("Delete failed");
+      return;
+    }
+    await loadSavedCharts();
+    toast.success("Chart deleted");
   };
 
   const ascRashi = chart ? rashis[Math.floor(chart.ascendant / 30)] : null;
   const moonPlanet = chart?.planets.find((p) => p.name === "Moon");
   const moonNak = moonPlanet ? getNakshatraFromDeg(moonPlanet.sid) : null;
+
+  const dashaTimeline = useMemo(() => {
+    if (!chart || !moonPlanet) return [];
+    return computeMahadasha(chart.birthUtc, moonPlanet.sid, 30);
+  }, [chart, moonPlanet]);
+
+  const currentDasha = useMemo(() => findCurrentDasha(dashaTimeline), [dashaTimeline]);
+
+  const reading = useMemo(() => {
+    if (!chart) return null;
+    const placements: PlacementInput[] = chart.planets.map((planet) => ({
+      name: planet.name,
+      house: houseFromAsc(chart.ascendant, planet.sid),
+      signIndex: Math.floor(planet.sid / 30),
+      nakIndex: Math.floor(planet.sid / (360 / 27)),
+      retrograde: planet.retrograde,
+    }));
+    return generateReading(placements);
+  }, [chart]);
 
   return (
     <div
@@ -318,7 +324,7 @@ const VedicAstrologyView = () => {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="max-w-5xl mx-auto p-6 space-y-6 relative z-10">
+      <div className="max-w-6xl mx-auto p-6 space-y-6 relative z-10">
         <div className="flex items-center gap-3 border-b border-border/15 pb-4">
           <div className="h-10 w-10 rounded-full border border-border/30 bg-background/40 backdrop-blur-md flex items-center justify-center">
             <Moon className="h-4 w-4 text-foreground/70" />
@@ -326,109 +332,86 @@ const VedicAstrologyView = () => {
           <div>
             <h2 className="text-xl font-extralight tracking-[0.15em] text-foreground uppercase">Vedic Astrology</h2>
             <p className="text-[11px] font-light tracking-[0.2em] text-muted-foreground/70 mt-1 uppercase">
-              Sidereal Natal Chart · Lahiri Ayanamsa
+              Swiss Ephemeris · Sidereal Lahiri · Topocentric
             </p>
           </div>
         </div>
 
-        {/* Input panel */}
         <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="space-y-1">
               <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth date</span>
-              <input
-                type="date"
-                value={birthDate}
-                onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
-              />
+              <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             </label>
             <label className="space-y-1">
               <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth time (local)</span>
-              <input
-                type="time"
-                value={birthTime}
-                onChange={(e) => setBirthTime(e.target.value)}
-                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
-              />
+              <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             </label>
             <label className="space-y-1">
               <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">UTC offset (hrs)</span>
-              <input
-                type="number"
-                step="0.5"
-                value={tzOffset}
-                onChange={(e) => setTzOffset(e.target.value)}
-                placeholder="e.g. -5"
-                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
-              />
+              <input type="number" step="0.5" value={tzOffset} onChange={(e) => setTzOffset(e.target.value)} placeholder="IST = 5.5" className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             </label>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
             <div className="flex gap-2">
-              <input
-                value={cityQuery}
-                onChange={(e) => setCityQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && searchCity()}
-                placeholder="Search birth city…"
-                className="flex-1 rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
-              />
-              <button
-                onClick={() => searchCity()}
-                disabled={searching}
-                className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50"
-              >
+              <input value={cityQuery} onChange={(e) => setCityQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void searchCity()} placeholder="Search birth city…" className="flex-1 rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
+              <button onClick={() => void searchCity()} disabled={searching} className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50">
                 {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input
-                value={lat}
-                onChange={(e) => setLat(e.target.value)}
-                placeholder="Lat"
-                className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
-              />
-              <input
-                value={lon}
-                onChange={(e) => setLon(e.target.value)}
-                placeholder="Lon"
-                className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
-              />
+              <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Lat" className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
+              <input value={lon} onChange={(e) => setLon(e.target.value)} placeholder="Lon" className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             </div>
           </div>
 
           {cityResults.length > 0 && (
             <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-border/20 bg-background/30 p-1">
               {cityResults.map((c, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setLat(c.lat.toFixed(4));
-                    setLon(c.lon.toFixed(4));
-                    setCityQuery(c.label);
-                    setCityResults([]);
-                  }}
-                  className="block w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded"
-                >
+                <button key={i} onClick={() => { setLat(c.lat.toFixed(4)); setLon(c.lon.toFixed(4)); setCityQuery(c.label); setCityResults([]); }} className="block w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded">
                   {c.label}
                 </button>
               ))}
             </div>
           )}
 
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-2 items-center">
+            <input value={chartName} onChange={(e) => setChartName(e.target.value)} placeholder="Name this chart…" className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
+            <button onClick={() => void saveChart()} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save Named Chart
+            </button>
+            <button onClick={() => setShowSaved((v) => !v)} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition">
+              <FolderOpen className="h-3.5 w-3.5" /> Saved ({savedCharts.length})
+            </button>
+          </div>
+
+          {showSaved && (
+            <div className="rounded-lg border border-border/25 bg-background/30 divide-y divide-border/15">
+              {savedCharts.length === 0 ? (
+                <div className="px-3 py-3 text-xs text-muted-foreground">No saved charts yet.</div>
+              ) : savedCharts.map((saved) => (
+                <div key={saved.id} className="flex items-center gap-3 px-3 py-2">
+                  <button onClick={() => void loadChart(saved)} className="flex-1 text-left min-w-0">
+                    <span className="block truncate text-sm text-foreground/85 font-light">{saved.name}</span>
+                    <span className="block truncate text-[10px] uppercase tracking-wider text-muted-foreground/70">{saved.birth_date} · {saved.birth_time} · {saved.city_label || `${saved.latitude}, ${saved.longitude}`}</span>
+                  </button>
+                  <button onClick={() => void deleteChart(saved.id)} className="p-1 text-muted-foreground hover:text-destructive transition" aria-label="Delete saved Vedic chart">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             {error && <span className="text-xs text-destructive font-light">{error}</span>}
-            <button
-              onClick={generateChart}
-              className="ml-auto inline-flex items-center gap-2 rounded-md border border-foreground/20 bg-foreground/5 px-4 py-2 text-xs uppercase tracking-wider text-foreground hover:bg-foreground/10 transition"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> Generate Chart
+            <button onClick={() => void generateChart()} disabled={loadingChart} className="ml-auto inline-flex items-center gap-2 rounded-md border border-foreground/20 bg-foreground/5 px-4 py-2 text-xs uppercase tracking-wider text-foreground hover:bg-foreground/10 transition disabled:opacity-50">
+              {loadingChart ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Generate Chart
             </button>
           </div>
         </div>
 
-        {/* Chart output */}
         {chart && (
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
             <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4 flex justify-center">
@@ -438,90 +421,107 @@ const VedicAstrologyView = () => {
             <div className="space-y-4">
               {ascRashi && (
                 <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4">
-                  <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">
-                    Ascendant (Lagna)
-                  </div>
-                  <div className="text-lg font-extralight text-foreground">
-                    {ascRashi.name} <span className="text-muted-foreground">· {ascRashi.sanskrit}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {fmtDeg(chart.ascendant % 30)} · ruled by {ascRashi.ruler}
-                  </div>
+                  <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">Ascendant (Lagna)</div>
+                  <div className="text-lg font-extralight text-foreground">{ascRashi.name} <span className="text-muted-foreground">· {ascRashi.sanskrit}</span></div>
+                  <div className="text-xs text-muted-foreground mt-1">{fmtDeg(chart.ascendant % 30)} · ruled by {ascRashi.ruler}</div>
                 </div>
               )}
 
               {moonPlanet && moonNak && (
                 <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4">
-                  <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">
-                    Moon Nakshatra
-                  </div>
-                  <div className="text-lg font-extralight text-foreground">
-                    {moonNak.nakshatra.name}{" "}
-                    <span className="text-muted-foreground">· Pada {moonNak.pada}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Ruled by {moonNak.nakshatra.ruler} · Deity {moonNak.nakshatra.deity}
-                  </div>
-                  <div className="text-xs text-muted-foreground/80 mt-2 leading-relaxed font-light">
-                    {moonNak.nakshatra.description}
-                  </div>
+                  <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">Moon Nakshatra</div>
+                  <div className="text-lg font-extralight text-foreground">{moonNak.nakshatra.name} <span className="text-muted-foreground">· Pada {moonNak.pada}</span></div>
+                  <div className="text-xs text-muted-foreground mt-1">Ruled by {moonNak.nakshatra.ruler} · Deity {moonNak.nakshatra.deity}</div>
+                  <div className="text-xs text-muted-foreground/80 mt-2 leading-relaxed font-light">{moonNak.nakshatra.description}</div>
                 </div>
               )}
 
               <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4">
-                <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-3">
-                  Planetary Positions (Sidereal · Lahiri)
-                </div>
+                <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-3">Planetary Positions (Swiss Ephemeris · Sidereal Lahiri)</div>
                 <div className="space-y-1.5">
                   {chart.planets.map((p) => {
                     const r = getRashiFromDeg(p.sid);
                     const n = getNakshatraFromDeg(p.sid);
                     return (
-                      <div
-                        key={p.name}
-                        className="grid grid-cols-[20px_60px_1fr_auto] items-center gap-3 text-xs font-light"
-                      >
+                      <div key={p.name} className="grid grid-cols-[20px_70px_1fr_auto] items-center gap-3 text-xs font-light">
                         <span className="text-foreground/70">{p.symbol}</span>
-                        <span className="text-foreground">
-                          {p.name}
-                          {p.retrograde && <span className="text-muted-foreground"> ʀ</span>}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {r.name} · {n.nakshatra.name} (Pada {n.pada})
-                        </span>
-                        <span className="text-muted-foreground/70 tabular-nums">
-                          {fmtDeg(p.sid % 30)}
-                        </span>
+                        <span className="text-foreground">{p.name}{p.retrograde && <span className="text-muted-foreground"> ʀ</span>}</span>
+                        <span className="text-muted-foreground">House {houseFromAsc(chart.ascendant, p.sid)} · {r.name} · {n.nakshatra.name} (Pada {n.pada})</span>
+                        <span className="text-muted-foreground/70 tabular-nums">{fmtDeg(p.sid % 30)}</span>
                       </div>
                     );
                   })}
                 </div>
-                <div className="mt-3 pt-3 border-t border-border/20 text-[10px] text-muted-foreground/60">
-                  Ayanamsa: {chart.ayanamsa.toFixed(4)}°
-                </div>
+                <div className="mt-3 pt-3 border-t border-border/20 text-[10px] text-muted-foreground/60">Ayanamsa: {chart.ayanamsa.toFixed(6)}° · JD {chart.jd.toFixed(5)}</div>
               </div>
             </div>
           </div>
         )}
 
-        {chart && (
-          <WealthHousesPanel
-            ascendant={chart.ascendant}
-            planets={chart.planets.map((p) => ({
-              name: p.name,
-              symbol: p.symbol,
-              sid: p.sid,
-              retrograde: p.retrograde,
-            }))}
-          />
+        {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} />}
+
+        {chart && reading && (
+          <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
+            <div className="flex items-center gap-2 border-b border-border/15 pb-3">
+              <BookOpen className="h-4 w-4 text-foreground/70" />
+              <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Deterministic Personalized Reading</h3>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {reading.sections.map((section) => (
+                <div key={section.headline} className="rounded-lg border border-border/25 bg-background/30 p-3">
+                  <div className="text-xs text-foreground/85 font-light mb-2">{section.headline}</div>
+                  <ul className="space-y-1.5 text-[11px] text-muted-foreground/85 font-light leading-relaxed">
+                    {section.bullets.map((bullet) => <li key={bullet}>◈ {bullet}</li>)}
+                  </ul>
+                </div>
+              ))}
+              {reading.conjunctions.map((section) => (
+                <div key={section.headline} className="rounded-lg border border-border/25 bg-foreground/[0.025] p-3">
+                  <div className="text-xs text-foreground/85 font-light mb-2">{section.planet} · {section.headline}</div>
+                  <ul className="space-y-1.5 text-[11px] text-muted-foreground/85 font-light leading-relaxed">
+                    {section.bullets.map((bullet) => <li key={bullet}>◉ {bullet}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {chart && dashaTimeline.length > 0 && (
+          <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3 border-b border-border/15 pb-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-foreground/70" />
+                <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Vimshottari Timeline</h3>
+              </div>
+              {currentDasha.maha && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Current: {currentDasha.maha.lord}/{currentDasha.antar?.lord ?? "—"}</span>}
+            </div>
+            <div className="space-y-2">
+              {dashaTimeline.map((period) => (
+                <div key={`${period.lord}-${period.start.toISOString()}`} className={`rounded-lg border p-3 ${period.isCurrent ? "border-foreground/40 bg-foreground/[0.045]" : "border-border/20 bg-background/25"}`}>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="text-sm text-foreground/85 font-light">{period.lord} Mahadasha</div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums">{fmtDate(period.start)} → {fmtDate(period.end)} · {period.years.toFixed(2)} yrs</div>
+                  </div>
+                  {period.isCurrent && (
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                      {period.antardashas.map((antar) => (
+                        <div key={`${period.lord}-${antar.lord}`} className={`rounded border px-2 py-1 text-[10px] ${antar.isCurrent ? "border-foreground/35 text-foreground bg-foreground/[0.04]" : "border-border/20 text-muted-foreground"}`}>
+                          {period.lord}/{antar.lord}: {fmtDate(antar.start)} → {fmtDate(antar.end)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {!chart && (
           <div className="rounded-xl border border-dashed border-border/30 bg-background/40 backdrop-blur-xl p-10 text-center">
             <Moon className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground font-light">
-              Enter birth details and generate your sidereal Vedic chart.
-            </p>
+            <p className="text-sm text-muted-foreground font-light">Enter birth details and generate your sidereal Vedic chart.</p>
           </div>
         )}
       </div>
