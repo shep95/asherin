@@ -1,0 +1,259 @@
+import { useMemo, useState } from "react";
+import { ChevronDown, BookOpen, Sparkles, Coins } from "lucide-react";
+import { rashis } from "@/data/nakshatraData";
+
+export interface WHPlanet {
+  name: string;
+  symbol: string;
+  sid: number;
+  retrograde: boolean;
+}
+
+interface Props {
+  ascendant: number;
+  planets: WHPlanet[];
+}
+
+const HOUSE_META: { title: string; body: string; brand: string; archetype: string }[] = [
+  { title: "Lagna / Self", body: "Body, vitality, identity", brand: "Personal magnetism", archetype: "The Initiator" },
+  { title: "Wealth & Speech", body: "Money, family, voice, food", brand: "Earned income", archetype: "The Provider" },
+  { title: "Effort & Siblings", body: "Courage, hands, communication", brand: "Self-made hustle", archetype: "The Warrior" },
+  { title: "Home & Mother", body: "Roots, property, emotions", brand: "Real estate", archetype: "The Foundation" },
+  { title: "Creation & Children", body: "Mind, romance, speculation", brand: "Investments", archetype: "The Creator" },
+  { title: "Service & Enemies", body: "Work, debts, health", brand: "Daily grind", archetype: "The Servant" },
+  { title: "Partner & Public", body: "Spouse, contracts, market", brand: "Public deals", archetype: "The Partner" },
+  { title: "Transformation", body: "Inheritance, occult, crisis", brand: "Hidden money", archetype: "The Phoenix" },
+  { title: "Dharma & Fortune", body: "Luck, teachers, long travel", brand: "Big breaks", archetype: "The Sage" },
+  { title: "Career & Status", body: "Profession, authority, fame", brand: "Reputation", archetype: "The Sovereign" },
+  { title: "Gains & Network", body: "Income, friends, ambitions", brand: "Network wealth", archetype: "The Visionary" },
+  { title: "Loss & Liberation", body: "Expenses, foreign, moksha", brand: "Outflow", archetype: "The Mystic" },
+];
+
+const YOGAS: { name: string; test: (h: { signIndex: number; planets: WHPlanet[] }[]) => boolean; desc: string }[] = [
+  {
+    name: "Gajakesari Yoga",
+    desc: "Moon and Jupiter in mutual kendra (1, 4, 7, 10) — confers fame, intelligence, and respected wealth.",
+    test: (h) => {
+      const moonH = h.findIndex((x) => x.planets.some((p) => p.name === "Moon"));
+      const jupH = h.findIndex((x) => x.planets.some((p) => p.name === "Jupiter"));
+      if (moonH < 0 || jupH < 0) return false;
+      const diff = Math.abs(moonH - jupH);
+      return [0, 3, 6, 9].includes(diff);
+    },
+  },
+  {
+    name: "Dhana Yoga (2-11 link)",
+    desc: "Lord of the 2nd and 11th associating — classical wealth combination, steady accumulation.",
+    test: (h) => {
+      const lord2 = rashis[h[1].signIndex].ruler;
+      const lord11 = rashis[h[10].signIndex].ruler;
+      const lord2H = h.findIndex((x) => x.planets.some((p) => p.name === lord2));
+      const lord11H = h.findIndex((x) => x.planets.some((p) => p.name === lord11));
+      return lord2H >= 0 && lord2H === lord11H;
+    },
+  },
+  {
+    name: "Lakshmi Yoga",
+    desc: "Venus strong in a kendra/trikona — beauty, luxury, and grace-based wealth.",
+    test: (h) => {
+      const venusH = h.findIndex((x) => x.planets.some((p) => p.name === "Venus"));
+      return [0, 3, 4, 6, 8, 9].includes(venusH);
+    },
+  },
+  {
+    name: "Chandra-Mangala Yoga",
+    desc: "Moon + Mars conjunct — sharp commercial mind, money through trade and risk.",
+    test: (h) =>
+      h.some((x) => x.planets.some((p) => p.name === "Moon") && x.planets.some((p) => p.name === "Mars")),
+  },
+  {
+    name: "Budha-Aditya Yoga",
+    desc: "Sun + Mercury conjunct — intelligence, communication, and authority-driven income.",
+    test: (h) =>
+      h.some((x) => x.planets.some((p) => p.name === "Sun") && x.planets.some((p) => p.name === "Mercury")),
+  },
+  {
+    name: "Neecha Bhanga Raja Yoga",
+    desc: "A debilitated planet whose dispositor is strong — cancellation of weakness becomes royal rise.",
+    test: (h) => {
+      const DEB: Record<string, number> = {
+        Sun: 6, Moon: 7, Mercury: 11, Venus: 5, Mars: 3, Jupiter: 9, Saturn: 0,
+      };
+      for (const planet of Object.keys(DEB)) {
+        const debSign = DEB[planet];
+        const found = h.find((x) => x.signIndex === debSign && x.planets.some((p) => p.name === planet));
+        if (found) {
+          const dispositor = rashis[debSign].ruler;
+          if (h.some((x) => x.planets.some((p) => p.name === dispositor))) return true;
+        }
+      }
+      return false;
+    },
+  },
+];
+
+const GLOSSARY: { term: string; def: string }[] = [
+  { term: "Lagna", def: "Ascendant — the rising sign at the moment of birth. Anchors the entire chart." },
+  { term: "Rashi", def: "A zodiac sign (30° segment of the sidereal ecliptic)." },
+  { term: "Bhava", def: "House — one of 12 life areas, counted from the Lagna in whole-sign Vedic style." },
+  { term: "Kendra", def: "Angular houses 1, 4, 7, 10 — pillars of the chart, drive action." },
+  { term: "Trikona", def: "Trine houses 1, 5, 9 — houses of dharma and grace, source of fortune." },
+  { term: "Dushtana", def: "Difficult houses 6, 8, 12 — friction, transformation, and release." },
+  { term: "Dhana Bhava", def: "Wealth houses — primarily 2 (accumulation), 5 (speculation), 9 (luck), 11 (gains)." },
+  { term: "Yoga", def: "A planetary combination producing a specific life result (wealth, fame, hardship)." },
+  { term: "Dasha", def: "Planetary period — Vimshottari is the standard 120-year predictive cycle." },
+  { term: "Nakshatra", def: "One of 27 lunar mansions (~13°20' each). Finer than signs; rules personality and dasha." },
+  { term: "Pada", def: "A quarter of a nakshatra (3°20'). Maps to the 12 navamsa signs." },
+  { term: "Ayanamsa", def: "Offset between tropical and sidereal zodiacs. Lahiri is the Indian government standard." },
+  { term: "Retrograde (ʀ)", def: "Apparent backward motion of a planet — intensifies and internalizes its theme." },
+];
+
+export default function WealthHousesPanel({ ascendant, planets }: Props) {
+  const houses = useMemo(() => {
+    const ascSign = Math.floor(ascendant / 30);
+    return Array.from({ length: 12 }, (_, i) => {
+      const signIndex = (ascSign + i) % 12;
+      return {
+        house: i + 1,
+        signIndex,
+        planets: planets.filter((p) => Math.floor(p.sid / 30) === signIndex),
+      };
+    });
+  }, [ascendant, planets]);
+
+  const [openHouse, setOpenHouse] = useState<number | null>(null);
+  const [section, setSection] = useState<"step" | "yogas" | "glossary" | null>(null);
+
+  const detectedYogas = useMemo(() => YOGAS.filter((y) => y.test(houses)), [houses]);
+
+  return (
+    <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
+      <div className="flex items-baseline justify-between gap-4 flex-wrap">
+        <h3 className="text-lg font-extralight tracking-[0.15em] text-foreground uppercase">Whole-Sign Houses</h3>
+        <p className="text-[10px] font-light text-muted-foreground/80 italic">
+          Tap any house for a deep, specific reading — body, life areas, brand, archetype, planets
+        </p>
+      </div>
+
+      {/* Wealth Doctrine accordion */}
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.02]">
+        <div className="px-4 py-2.5 flex items-center gap-2 border-b border-amber-500/20">
+          <Coins className="h-3.5 w-3.5 text-amber-500/80" />
+          <span className="text-xs font-light tracking-[0.15em] text-amber-500/90 uppercase">
+            Wealth Doctrine — How Vedic Astrology Reveals Wealth
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 text-xs">
+          {[
+            { key: "step" as const, icon: BookOpen, label: "Step-by-Step (Your Chart)" },
+            { key: "yogas" as const, icon: Sparkles, label: "Detected Yogas" },
+            { key: "glossary" as const, icon: BookOpen, label: "Glossary" },
+          ].map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setSection(section === key ? null : key)}
+              className="px-4 py-2.5 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition border-r border-amber-500/10 last:border-r-0"
+            >
+              <Icon className="h-3 w-3" />
+              <span className="font-light">{label}</span>
+              <ChevronDown className={`h-3 w-3 transition ${section === key ? "rotate-180" : ""}`} />
+            </button>
+          ))}
+        </div>
+        {section === "step" && (
+          <div className="px-4 py-3 border-t border-amber-500/10 text-xs text-muted-foreground/90 font-light leading-relaxed space-y-2">
+            <p><span className="text-foreground">1.</span> Identify your <span className="text-amber-500/90">2nd house</span> ({rashis[houses[1].signIndex].name}) — the bank account.</p>
+            <p><span className="text-foreground">2.</span> Locate the <span className="text-amber-500/90">2nd lord</span> ({rashis[houses[1].signIndex].ruler}) — where your money comes from by sign and house.</p>
+            <p><span className="text-foreground">3.</span> Check the <span className="text-amber-500/90">11th house of gains</span> ({rashis[houses[10].signIndex].name}) and its lord ({rashis[houses[10].signIndex].ruler}).</p>
+            <p><span className="text-foreground">4.</span> Examine the <span className="text-amber-500/90">5th (speculation)</span> and <span className="text-amber-500/90">9th (fortune)</span>: {rashis[houses[4].signIndex].name} & {rashis[houses[8].signIndex].name}.</p>
+            <p><span className="text-foreground">5.</span> Look for connections (conjunction / aspect / exchange) between these lords — these are <span className="text-amber-500/90">Dhana Yogas</span>.</p>
+          </div>
+        )}
+        {section === "yogas" && (
+          <div className="px-4 py-3 border-t border-amber-500/10 text-xs space-y-2">
+            {detectedYogas.length === 0 ? (
+              <p className="text-muted-foreground/70 font-light italic">No major classical yogas detected in primary set.</p>
+            ) : (
+              detectedYogas.map((y) => (
+                <div key={y.name} className="flex gap-2">
+                  <Sparkles className="h-3 w-3 text-amber-500/80 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-foreground font-light">{y.name}</span>
+                    <span className="text-muted-foreground/80 font-light"> — {y.desc}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+        {section === "glossary" && (
+          <div className="px-4 py-3 border-t border-amber-500/10 text-xs grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+            {GLOSSARY.map((g) => (
+              <div key={g.term}>
+                <span className="text-amber-500/90 font-light">{g.term}</span>
+                <span className="text-muted-foreground/80 font-light"> — {g.def}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* House grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        {houses.map((h) => {
+          const meta = HOUSE_META[h.house - 1];
+          const sign = rashis[h.signIndex];
+          const open = openHouse === h.house;
+          return (
+            <div
+              key={h.house}
+              className={`rounded-lg border bg-background/30 transition cursor-pointer ${
+                open ? "border-amber-500/50 bg-amber-500/[0.03]" : "border-border/25 hover:border-border/50"
+              }`}
+              onClick={() => setOpenHouse(open ? null : h.house)}
+            >
+              <div className="px-3 pt-2.5 pb-2 flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-[9px] font-light text-muted-foreground/70 uppercase tracking-[0.12em]">
+                    House {h.house} · {meta.title}
+                  </div>
+                  <div className="text-sm font-light text-amber-500/90 mt-0.5">
+                    {sign.symbol} {sign.name} <span className="text-muted-foreground/70">({sign.sanskrit})</span>
+                  </div>
+                </div>
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground/50 mt-1 transition ${open ? "rotate-180" : ""}`} />
+              </div>
+              {h.planets.length > 0 && (
+                <div className="px-3 pb-2.5 flex flex-wrap gap-1.5">
+                  {h.planets.map((p) => (
+                    <span
+                      key={p.name}
+                      className="inline-flex items-center gap-1 rounded border border-amber-500/25 bg-amber-500/[0.04] px-1.5 py-0.5 text-[10px] font-light text-foreground/85"
+                    >
+                      <span className="text-amber-500/80">{p.symbol}</span>
+                      {p.name}{p.retrograde && <span className="text-muted-foreground"> ʀ</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {open && (
+                <div className="px-3 pb-3 pt-2 border-t border-border/20 text-[11px] font-light text-muted-foreground/90 space-y-1">
+                  <div><span className="text-muted-foreground/60">Body / Life:</span> {meta.body}</div>
+                  <div><span className="text-muted-foreground/60">Brand:</span> {meta.brand}</div>
+                  <div><span className="text-muted-foreground/60">Archetype:</span> {meta.archetype}</div>
+                  <div><span className="text-muted-foreground/60">Sign ruler:</span> {sign.ruler} · <span className="text-muted-foreground/60">Element:</span> {sign.element}</div>
+                  {h.planets.length > 0 && (
+                    <div className="pt-1">
+                      <span className="text-amber-500/80">Activated by:</span>{" "}
+                      {h.planets.map((p) => p.name).join(", ")} — these planets carry their themes into {meta.title.toLowerCase()}.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

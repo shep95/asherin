@@ -13,6 +13,7 @@ import { computeMahadasha, findCurrentDasha, type MahadashaPeriod } from "@/lib/
 import { computeDignity, houseFromAsc, type PlanetName } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { toast } from "sonner";
+import WealthHousesPanel from "./vedic/WealthHousesPanel";
 
 /**
  * VEDIC ASTROLOGY — Sidereal natal chart (Lahiri ayanamsa).
@@ -578,6 +579,18 @@ const VedicAstrologyView = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {chart && (
+          <WealthHousesPanel
+            ascendant={chart.ascendant}
+            planets={chart.planets.map((p) => ({
+              name: p.name,
+              symbol: p.symbol,
+              sid: p.sid,
+              retrograde: p.retrograde,
+            }))}
+          />
         )}
 
         {!chart && (
