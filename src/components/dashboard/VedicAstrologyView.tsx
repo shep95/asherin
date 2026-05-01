@@ -443,7 +443,7 @@ const VedicAstrologyView = () => {
     if (dashaTimeline.length > 0) {
       lines.push("Upcoming Mahadashas:");
       for (const m of dashaTimeline.slice(0, 6)) {
-        lines.push(`  ${m.lord}: ${m.start.toISOString().slice(0, 10)} → ${m.end.toISOString().slice(0, 10)}`);
+        lines.push(`  ${m.lord}: ${fmtDate(m.start)} → ${fmtDate(m.end)}`);
       }
     }
     return lines.join("\n");
