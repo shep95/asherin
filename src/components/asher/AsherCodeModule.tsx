@@ -662,33 +662,36 @@ export default function AsherCodeModule() {
             </div>
           </div>
 
-          {/* Editor + preview split */}
+          {/* Editor + preview — controlled by viewMode (code | split | preview) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
-            <div className="flex-1 min-w-0 min-h-[200px]">
-              {activeFile ? (
-                <Editor
-                  height="100%"
-                  theme="vs-dark"
-                  language={activeFile.language}
-                  value={activeContent}
-                  onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
-                  options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center text-xs text-muted-foreground/50">Open a file to start editing</div>
-              )}
-            </div>
-            {showPreview && (
-              <div className="w-full lg:w-2/5 lg:min-w-[280px] border-t lg:border-t-0 lg:border-l border-border/15 bg-card/5 flex flex-col min-h-[200px]">
+            {viewMode !== "preview" && (
+              <div className={`min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}>
+                {activeFile ? (
+                  <Editor
+                    height="100%"
+                    theme="vs-dark"
+                    language={activeFile.language}
+                    value={activeContent}
+                    onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
+                    options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-muted-foreground/50">Open a file to start editing</div>
+                )}
+              </div>
+            )}
+            {viewMode !== "code" && (
+              <div className={`${viewMode === "preview" ? "w-full flex-1" : "w-full lg:w-2/5 lg:min-w-[280px]"} border-t lg:border-t-0 ${viewMode === "split" ? "lg:border-l" : ""} border-border/15 bg-card/5 flex flex-col min-h-[200px]`}>
                 <div className="px-3 py-1.5 border-b border-border/15 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase flex items-center justify-between">
                   <span>Preview</span>
-                  <button onClick={() => setShowPreview(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                  <span className="text-muted-foreground/50 normal-case tracking-normal text-[9px]">Live · Sandboxed</span>
                 </div>
                 <iframe key={previewKey} ref={previewRef} srcDoc={previewSrcDoc} sandbox="allow-scripts" className="flex-1 bg-white" title="preview" />
               </div>
             )}
           </div>
         </div>
+
 
         {/* AI sidebar — collapsible */}
         {showAi && (
