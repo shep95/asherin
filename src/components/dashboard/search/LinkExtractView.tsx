@@ -210,7 +210,14 @@ const LinkExtractView = () => {
 
           {/* Branches grid (the tree leaves) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {blueprint.branches.map((b) => <BranchCard key={b.id} branch={b} />)}
+            {blueprint.branches.map((b) => (
+              <BranchCard
+                key={b.id}
+                branch={b}
+                subStates={subStates}
+                onFetchSubdomain={fetchSubdomainBlueprint}
+              />
+            ))}
           </div>
 
           {/* Criticals strip */}
