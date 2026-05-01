@@ -22,7 +22,8 @@ import {
   IdeValidatorBadge,
   type PlannedChange,
 } from "@/components/ide-shared";
-import { snapshotIfChanged, routeTask, animateInsert, animateReplace, explainError, type IdeModelId, type RoutingDecision } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
+import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
 import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -177,6 +178,17 @@ const AureonIdeView = () => {
   useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
   useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
 
+  const activeByok = useCallback(() => {
+    try {
+      const cached = localStorage.getItem("aureon_byok_active");
+      const parsed = cached ? JSON.parse(cached) : null;
+      if (parsed?.provider && parsed.provider !== "default" && parsed?.model) {
+        return { provider: parsed.provider, model: parsed.model };
+      }
+    } catch { /* ignore */ }
+    return { provider: "google", model: "gemini-2.5-flash" };
+  }, []);
+
   const applyAureonDebuggerFix = useCallback(async (file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) => {
     const ownIssues = issues.filter((i) => i.file === file.name);
     if (ownIssues.length === 0) return false;
@@ -190,11 +202,17 @@ const AureonIdeView = () => {
     let lastErr: unknown;
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        const explained = await explainError(diagnostic, current);
-        corrected = explained.correctedCode?.trim();
+        const response = await callAsherCodeAi({ mode: "fix", byok: activeByok(), code: current, language: file.language, error: diagnostic });
+        corrected = extractCodeBlock(response.reply || "").trim();
         if (corrected && corrected !== current.trim()) break;
-        const forced = await explainError(`${diagnostic}\n\n[REWRITE REQUIRED] Output the COMPLETE corrected file in correctedCode. Do not skip.`, current);
-        corrected = forced.correctedCode?.trim();
+        const forced = await callAsherCodeAi({
+          mode: "fix",
+          byok: activeByok(),
+          code: current,
+          language: file.language,
+          error: `${diagnostic}\n\n[REWRITE REQUIRED] Return ONLY the COMPLETE corrected file inside one fenced code block. Do not skip.`,
+        });
+        corrected = extractCodeBlock(forced.reply || "").trim();
         if (corrected && corrected !== current.trim()) break;
         return false;
       } catch (e: any) {
@@ -219,7 +237,7 @@ const AureonIdeView = () => {
     });
     toast({ title: "Auto-applied debugger fix", description: file.name });
     return true;
-  }, [toast]);
+  }, [activeByok, toast]);
 
   // ── ZANOEM offline autopilot worker (cross-IDE) ──
   // Drains persisted jobs even if the user closes the tab / loses wifi.
