@@ -90,6 +90,8 @@ export default function AsherCodeModule() {
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
   const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("asherCode.autopilotZanoem") === "1");
+  const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("asherCode.autoDebug") !== "0");          // default ON
+  const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("asherCode.autoUiDebug") !== "0");    // default ON
   const autopilotRoundsRef = useRef(0);
   const AUTOPILOT_MAX_ROUNDS = 6;
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
@@ -129,6 +131,8 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
   useEffect(() => { localStorage.setItem("asherCode.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
   useEffect(() => { localStorage.setItem("asherCode.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
+  useEffect(() => { localStorage.setItem("asherCode.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
+  useEffect(() => { localStorage.setItem("asherCode.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
