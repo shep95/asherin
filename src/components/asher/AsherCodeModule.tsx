@@ -5,6 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
+  History, Stethoscope,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
@@ -14,6 +15,16 @@ import { ASHER_CODE_PROVIDERS, type AsherCodeProject, type AsherCodeFile } from 
 import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, type CallAsherCodeResult } from "@/lib/asherCode/aiClient";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
+import {
+  IdeHistoryPanel,
+  IdeErrorExplainer,
+  IdeTemplateLauncher,
+  IdeFuzzyFinder,
+  IdeApprovalGate,
+  IdeModelRouterBadge,
+  type PlannedChange,
+} from "@/components/ide-shared";
+import { snapshotIfChanged, routeTask, type IdeModelId } from "@/lib/ide";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -51,6 +62,16 @@ export default function AsherCodeModule() {
   const [provider, setProvider] = useState(() => localStorage.getItem("asherCode.provider") || "anthropic");
   const [model, setModel] = useState(() => localStorage.getItem("asherCode.model") || "claude-sonnet-4-5");
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("asherCode.apiKey") || "");
+
+  // ── Shared IDE upgrade pack state ──
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
+  const [bugDoctorMsg, setBugDoctorMsg] = useState("");
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [fuzzyOpen, setFuzzyOpen] = useState(false);
+  const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
+  const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
+  const routeDecision = useMemo(() => routeTask(chatInput || "", modelOverride ?? undefined), [chatInput, modelOverride]);
 
   useEffect(() => { localStorage.setItem("asherCode.provider", provider); }, [provider]);
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
@@ -146,6 +167,43 @@ export default function AsherCodeModule() {
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
+
+  // Auto-snapshot active file (infinite history, IndexedDB)
+  useEffect(() => {
+    if (!activeProject || !activeFile || !activeContent) return;
+    const t = setTimeout(() => {
+      void snapshotIfChanged({
+        scope: "asher",
+        projectId: activeProject.id,
+        fileId: activeFile.id,
+        filePath: activeFile.path,
+        content: activeContent,
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [activeContent, activeFile, activeProject]);
+
+  // Scaffold from natural-language template launcher
+  async function handleScaffold(result: { kind: string; name: string; files: { path: string; content: string; language: string }[]; primary: string }) {
+    if (!activeProject) return;
+    const ok = await new Promise<boolean>(resolve => setApproval({
+      title: `${result.kind} ${result.name}`,
+      changes: result.files.map(f => ({ path: f.path, action: "create" as const, content: f.content, language: f.language })),
+      resolve,
+    }));
+    if (!ok) return;
+    for (const f of result.files) {
+      const { data } = await supabase.from("asher_code_files")
+        .insert({ project_id: activeProject.id, path: f.path, content: f.content, language: f.language }).select().single();
+      if (data) {
+        const af = data as AsherCodeFile;
+        setFiles(fs => [...fs, af]);
+        if (f.path === result.primary) { setOpenTabs(t => [...t, af.id]); setActiveFileId(af.id); }
+      }
+    }
+    toast.success(`Scaffolded ${result.files.length} file(s)`);
+  }
+
 
   // Load projects on mount
   useEffect(() => { void loadProjects(); }, [user?.id]);
@@ -597,6 +655,11 @@ export default function AsherCodeModule() {
           <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> <span className="hidden sm:inline">Run</span></button>
           <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-emerald-200/80 hover:bg-emerald-400/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
           <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> <span className="hidden md:inline">DevOps</span></button>
+          <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Wand2 className="h-3 w-3" /></button>
+          <button onClick={() => setFuzzyOpen(true)} title="Fuzzy file finder" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><FileText className="h-3 w-3" /></button>
+          <button onClick={() => setHistoryOpen(true)} disabled={!activeFile} title="Version history" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30 disabled:opacity-40"><History className="h-3 w-3" /></button>
+          <button onClick={() => { setBugDoctorMsg(""); setBugDoctorOpen(true); }} title="Bug Doctor" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Stethoscope className="h-3 w-3" /></button>
+          <IdeModelRouterBadge decision={routeDecision} onOverride={setModelOverride} isOverridden={!!modelOverride} />
           <button onClick={() => setShowSettings(true)} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Settings className="h-3 w-3" /></button>
         </div>
       </div>

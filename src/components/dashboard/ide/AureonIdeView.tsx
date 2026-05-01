@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
@@ -11,6 +11,17 @@ import IdeSearchPanel from "./IdeSearchPanel";
 import IdeQuickOpen from "./IdeQuickOpen";
 import IdeGitPanel from "./IdeGitPanel";
 import { streamChat, fetchSuggestions } from "@/lib/ai";
+import {
+  IdeHistoryPanel,
+  IdeErrorExplainer,
+  IdeTemplateLauncher,
+  IdeFuzzyFinder,
+  IdeApprovalGate,
+  IdeModelRouterBadge,
+  type PlannedChange,
+} from "@/components/ide-shared";
+import { snapshotIfChanged, routeTask, type IdeModelId, type RoutingDecision } from "@/lib/ide";
+import { History, Stethoscope, Wand2, Cpu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -144,11 +155,31 @@ const AureonIdeView = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Terminal output for AI context
+  // ── Pro tools state (shared IDE upgrade pack) ──
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
+  const [bugDoctorMsg, setBugDoctorMsg] = useState("");
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [fuzzyOpen, setFuzzyOpen] = useState(false);
+  const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
+  const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
+  const [chatDraft, setChatDraft] = useState("");
+
+  // Terminal output for AI context (also auto-detects errors → Bug Doctor)
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const handleTerminalOutput = useCallback((output: string) => {
     setTerminalOutput(prev => [...prev.slice(-20), output]);
-  }, []);
+    if (/^(error|uncaught|unhandled|exception|traceback|panic|fatal)/i.test(output) ||
+        /\b[A-Z][a-z]+Error: /.test(output) || /Cannot read propert/i.test(output)) {
+      if (!bugDoctorOpen) { setBugDoctorMsg(output.slice(0, 600)); setBugDoctorOpen(true); }
+    }
+  }, [bugDoctorOpen]);
+
+  const routeDecision: RoutingDecision = useMemo(
+    () => routeTask(chatDraft || (chatMessages[chatMessages.length - 1]?.content ?? ""), modelOverride ?? undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chatDraft, chatMessages.length, modelOverride]
+  );
 
   // Derived
   const allFiles = flattenFiles(files);
@@ -223,7 +254,9 @@ const AureonIdeView = () => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveSession(); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "p") { e.preventDefault(); setQuickOpenOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "p") { e.preventDefault(); setFuzzyOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "P") { e.preventDefault(); setTemplateOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "h" && e.shiftKey) { e.preventDefault(); setHistoryOpen(true); }
       if ((e.metaKey || e.ctrlKey) && e.key === "b") { e.preventDefault(); setLeftOpen(p => !p); }
       if ((e.metaKey || e.ctrlKey) && e.key === "j") { e.preventDefault(); setBottomOpen(p => !p); }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "z") { e.preventDefault(); handleRedo(); return; }
@@ -232,6 +265,47 @@ const AureonIdeView = () => {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [saveSession, handleUndo, handleRedo]);
+
+  // ── Auto-snapshot active file (infinite history, IndexedDB) ──
+  useEffect(() => {
+    if (!activeSessionId || !activeFileId) return;
+    const file = allFiles.find(f => f.id === activeFileId);
+    if (!file?.content) return;
+    const t = setTimeout(() => {
+      void snapshotIfChanged({
+        scope: "aureon",
+        projectId: activeSessionId,
+        fileId: activeFileId,
+        filePath: file.name,
+        content: file.content!,
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [files, activeFileId, activeSessionId, allFiles]);
+
+  // ── Pro tools helpers ──
+  const requestApproval = useCallback((title: string, changes: PlannedChange[]): Promise<boolean> => {
+    return new Promise(resolve => setApproval({ title, changes, resolve }));
+  }, []);
+
+  const handleScaffold = useCallback(async (result: { kind: string; name: string; files: { path: string; content: string; language: string }[]; primary: string }) => {
+    const changes: PlannedChange[] = result.files.map(f => ({
+      path: f.path, action: "create", content: f.content, language: f.language,
+    }));
+    const ok = await requestApproval(`${result.kind} ${result.name}`, changes);
+    if (!ok) return;
+    // Apply: create each file at the root for simplicity
+    for (const f of result.files) {
+      const newFile: IdeFile = { id: crypto.randomUUID(), name: f.path.split("/").pop() ?? f.path, type: "file", content: f.content };
+      setFiles(prev => [...prev, newFile]);
+      if (f.path === result.primary) {
+        setOpenFileIds(prev => [...prev, newFile.id]);
+        setActiveFileId(newFile.id);
+      }
+    }
+    toast({ title: "Scaffolded", description: `Created ${result.files.length} file(s)` });
+  }, [requestApproval, toast]);
+
 
   // ── File operations ──
   const selectFile = (file: IdeFile) => {
@@ -490,6 +564,18 @@ const AureonIdeView = () => {
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           </button>
 
+          {/* Pro Tools — shared IDE upgrade pack */}
+          <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language (Ctrl+Shift+P)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
+            <Wand2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => setHistoryOpen(true)} disabled={!activeSessionId || !activeFileId} title="Version history (Ctrl+Shift+H)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
+            <History className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => { setBugDoctorMsg(terminalOutput.slice(-5).join("\n") || ""); setBugDoctorOpen(true); }} title="Bug Doctor — explain last error" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
+            <Stethoscope className="h-3.5 w-3.5" />
+          </button>
+          <IdeModelRouterBadge decision={routeDecision} onOverride={setModelOverride} isOverridden={!!modelOverride} />
+
           {/* AI Chat toggle */}
           <button
             onClick={() => setRightOpen(!rightOpen)}
@@ -499,6 +585,7 @@ const AureonIdeView = () => {
             <Sparkles className="h-3.5 w-3.5" />
             <span className="hidden lg:inline">AI Chat</span>
           </button>
+
 
           {/* More menu — everything else tucked away */}
           <DropdownMenu>
@@ -617,6 +704,40 @@ const AureonIdeView = () => {
       </div>
 
       <IdeQuickOpen open={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} files={files} onSelectFile={selectFile} />
+
+      {/* Shared IDE upgrade pack modals */}
+      <IdeFuzzyFinder
+        open={fuzzyOpen}
+        files={allFiles.map(f => ({ id: f.id, path: f.name }))}
+        onPick={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
+        onClose={() => setFuzzyOpen(false)}
+      />
+      <IdeTemplateLauncher open={templateOpen} onClose={() => setTemplateOpen(false)} onCreate={handleScaffold} />
+      <IdeHistoryPanel
+        scope="aureon"
+        projectId={activeSessionId ?? ""}
+        fileId={activeFileId ?? ""}
+        filePath={activeFile?.name ?? ""}
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onRestore={(content) => activeFileId && updateContent(activeFileId, content)}
+      />
+      <IdeErrorExplainer
+        open={bugDoctorOpen}
+        message={bugDoctorMsg}
+        contextCode={activeFile?.content}
+        onClose={() => setBugDoctorOpen(false)}
+        onApplyFix={(code) => activeFileId && updateContent(activeFileId, code)}
+      />
+      {approval && (
+        <IdeApprovalGate
+          open={true}
+          title={approval.title}
+          changes={approval.changes}
+          onApprove={() => { approval.resolve(true); setApproval(null); }}
+          onCancel={() => { approval.resolve(false); setApproval(null); }}
+        />
+      )}
     </div>
   );
 };
