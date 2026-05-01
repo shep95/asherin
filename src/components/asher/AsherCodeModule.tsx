@@ -729,7 +729,7 @@ export default function AsherCodeModule() {
       const testPath = `${base}.test.${ext}`;
       const { data, error } = await supabase
         .from("asher_code_files")
-        .insert({ project_id: activeProject!.id, path: testPath, content: code, language: activeFile.language })
+        .insert({ project_id: activeProject!.id, branch_id: activeBranchId, path: testPath, content: code, language: activeFile.language })
         .select().single();
       if (error || !data) { toast.error(error?.message || "Failed to create test file"); return; }
       const f = data as AsherCodeFile;
