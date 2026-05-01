@@ -32,6 +32,9 @@ interface AutoFixOptions {
   applyFileFix?: (file: AutoFixFile, issues: FlatErr[]) => Promise<boolean> | boolean;
   maxPasses?: number;                                  // default 8
   onProgress?: (pass: number, errorCount: number) => void;
+  // Fired after every pass with the post-pass validator count so the UI
+  // can show "still N errors — restarting swarm" feedback.
+  onPassComplete?: (pass: number, remainingErrors: number, applied: number) => void;
   // ── SWARM HOOKS ────────────────────────────────────────────────
   // Called when an agent is spawned for a file. Returns an agent id
   // the consumer can use to render a live swarm panel. The swarm
