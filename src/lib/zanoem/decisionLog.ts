@@ -162,7 +162,7 @@ export async function logDecision(input: LogDecisionInput): Promise<string | nul
     };
     const { data, error } = await supabase
       .from("zanoem_autopilot_decisions")
-      .insert(row)
+      .insert([row])
       .select("id")
       .single();
     if (error) { console.warn("[zanoem] decision log failed", error.message); return null; }
