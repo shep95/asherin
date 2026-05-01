@@ -728,7 +728,7 @@ const AsherZaliModule = () => {
                     messages={messages}
                     project={activeProject}
                     isStreaming={isStreaming}
-                    onSend={sendMessage}
+                    onSend={sendMessageHuman}
                     onStop={stopStreaming}
                     mode={chatMode}
                     onModeChange={setChatMode}
@@ -764,7 +764,7 @@ const AsherZaliModule = () => {
                   messages={messages}
                   project={activeProject}
                   isStreaming={isStreaming}
-                  onSend={sendMessage}
+                  onSend={sendMessageHuman}
                   onStop={stopStreaming}
                   mode={chatMode}
                   onModeChange={setChatMode}
