@@ -7,7 +7,7 @@ import {
   rashis,
 } from "@/data/nakshatraData";
 import { supabase } from "@/integrations/supabase/client";
-import { computeMahadasha, findCurrentDasha } from "@/lib/vedic/dasha";
+import { computeMahadasha, ensureChildren, findCurrentDasha, DASHA_LEVEL_LABEL, type DashaPeriod } from "@/lib/vedic/dasha";
 import { houseFromAsc } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
@@ -37,6 +37,18 @@ function fmtDeg(deg: number): string {
 
 function fmtDate(date: Date): string {
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+}
+
+function fmtDateTime(date: Date): string {
+  return date.toLocaleString(undefined, { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtDuration(years: number): string {
+  if (years >= 1) return `${years.toFixed(2)} yrs`;
+  const days = years * 365.2425;
+  if (days >= 30) return `${(days / 30.4375).toFixed(1)} mo`;
+  if (days >= 1) return `${days.toFixed(1)} d`;
+  return `${(days * 24).toFixed(1)} h`;
 }
 
 function VedicWheel({
@@ -105,6 +117,70 @@ function VedicWheel({
   );
 }
 
+function DashaNode({
+  period,
+  expandedKey,
+  expandedMap,
+  setExpandedMap,
+  isOpen,
+  depth = 0,
+}: {
+  period: DashaPeriod;
+  expandedKey: string;
+  expandedMap: Record<string, boolean>;
+  setExpandedMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  isOpen: boolean;
+  depth?: number;
+}) {
+  const canExpand = period.level !== "prana";
+  const useDateTime = period.level === "sookshma" || period.level === "prana";
+  const toggle = () => {
+    if (!canExpand) return;
+    if (!period.children) ensureChildren(period);
+    setExpandedMap((m) => ({ ...m, [expandedKey]: !isOpen }));
+  };
+  const borderClass = period.isCurrent ? "border-foreground/40 bg-foreground/[0.045]" : "border-border/20 bg-background/25";
+  const padding = depth === 0 ? "p-3" : "px-2.5 py-1.5";
+  const labelClass = depth === 0 ? "text-sm text-foreground/85 font-light" : "text-[11px] text-foreground/80 font-light";
+  return (
+    <div className={`rounded-lg border ${borderClass} ${padding}`}>
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={!canExpand}
+        className="w-full flex items-center justify-between gap-3 flex-wrap text-left disabled:cursor-default"
+      >
+        <div className="flex items-center gap-2">
+          {canExpand && <span className="text-[9px] text-muted-foreground/60 w-3 inline-block">{isOpen ? "▾" : "▸"}</span>}
+          <span className={labelClass}>{period.lord} <span className="text-muted-foreground/60 text-[10px] uppercase tracking-wider ml-1">{DASHA_LEVEL_LABEL[period.level]}</span></span>
+        </div>
+        <div className="text-[10px] text-muted-foreground tabular-nums">
+          {useDateTime ? fmtDateTime(period.start) : fmtDate(period.start)} → {useDateTime ? fmtDateTime(period.end) : fmtDate(period.end)} · {fmtDuration(period.years)}
+        </div>
+      </button>
+      {isOpen && period.children && period.children.length > 0 && (
+        <div className="mt-2 space-y-1.5 pl-3 border-l border-border/15">
+          {period.children.map((child) => {
+            const childKey = `${expandedKey}>${child.level}:${child.lord}:${child.start.toISOString()}`;
+            const childOpen = expandedMap[childKey] ?? child.isCurrent;
+            return (
+              <DashaNode
+                key={childKey}
+                period={child}
+                expandedKey={childKey}
+                expandedMap={expandedMap}
+                setExpandedMap={setExpandedMap}
+                isOpen={childOpen}
+                depth={depth + 1}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("12:00");
@@ -118,6 +194,7 @@ const VedicAstrologyView = () => {
   const [cityResults, setCityResults] = useState<{ label: string; lat: number; lon: number }[]>([]);
   const [searching, setSearching] = useState(false);
   const [chart, setChart] = useState<SweVedicChart | null>(null);
+  const [expandedDasha, setExpandedDasha] = useState<Record<string, boolean>>({});
   const [loadingChart, setLoadingChart] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
@@ -325,7 +402,7 @@ const VedicAstrologyView = () => {
 
   const dashaTimeline = useMemo(() => {
     if (!chart || !moonPlanet) return [];
-    return computeMahadasha(chart.birthUtc, moonPlanet.sid, 30);
+    return computeMahadasha(chart.birthUtc, moonPlanet.sid, 14); // 14 mahadashas from birth-lord forward
   }, [chart, moonPlanet]);
 
   const currentDasha = useMemo(() => findCurrentDasha(dashaTimeline), [dashaTimeline]);
@@ -545,26 +622,55 @@ const VedicAstrologyView = () => {
                 <Calendar className="h-4 w-4 text-foreground/70" />
                 <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Vimshottari Timeline</h3>
               </div>
-              {currentDasha.maha && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Current: {currentDasha.maha.lord}/{currentDasha.antar?.lord ?? "—"}</span>}
+              {currentDasha.maha && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {[currentDasha.maha?.lord, currentDasha.antar?.lord, currentDasha.pratyantar?.lord, currentDasha.sookshma?.lord, currentDasha.prana?.lord].filter(Boolean).join(" / ")}
+                </span>
+              )}
             </div>
-            <div className="space-y-2">
-              {dashaTimeline.map((period) => (
-                <div key={`${period.lord}-${period.start.toISOString()}`} className={`rounded-lg border p-3 ${period.isCurrent ? "border-foreground/40 bg-foreground/[0.045]" : "border-border/20 bg-background/25"}`}>
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="text-sm text-foreground/85 font-light">{period.lord} Mahadasha</div>
-                    <div className="text-[11px] text-muted-foreground tabular-nums">{fmtDate(period.start)} → {fmtDate(period.end)} · {period.years.toFixed(2)} yrs</div>
-                  </div>
-                  {period.isCurrent && (
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-1.5">
-                      {period.antardashas.map((antar) => (
-                        <div key={`${period.lord}-${antar.lord}`} className={`rounded border px-2 py-1 text-[10px] ${antar.isCurrent ? "border-foreground/35 text-foreground bg-foreground/[0.04]" : "border-border/20 text-muted-foreground"}`}>
-                          {period.lord}/{antar.lord}: {fmtDate(antar.start)} → {fmtDate(antar.end)}
-                        </div>
-                      ))}
+
+            {/* Active drill-down: Maha → Antar → Pratyantar → Sookshma → Prana */}
+            {currentDasha.maha && (
+              <div className="rounded-lg border border-foreground/25 bg-foreground/[0.035] p-3 space-y-2">
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">Active Period</div>
+                {([
+                  ["maha", currentDasha.maha],
+                  ["antar", currentDasha.antar],
+                  ["pratyantar", currentDasha.pratyantar],
+                  ["sookshma", currentDasha.sookshma],
+                  ["prana", currentDasha.prana],
+                ] as const).map(([lvl, p]) =>
+                  p ? (
+                    <div key={lvl} className="flex items-center justify-between gap-3 flex-wrap text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground/70 w-32 inline-block tracking-wider uppercase text-[9px]">{DASHA_LEVEL_LABEL[lvl]}</span>
+                        <span className="text-foreground/90 font-light">{p.lord}</span>
+                      </div>
+                      <div className="text-muted-foreground tabular-nums">
+                        {(lvl === "sookshma" || lvl === "prana") ? fmtDateTime(p.start) : fmtDate(p.start)} → {(lvl === "sookshma" || lvl === "prana") ? fmtDateTime(p.end) : fmtDate(p.end)} · {fmtDuration(p.years)}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  ) : null
+                )}
+              </div>
+            )}
+
+            {/* 14 Mahadashas with on-demand drill-down */}
+            <div className="space-y-2">
+              {dashaTimeline.map((period) => {
+                const key = `M:${period.lord}:${period.start.toISOString()}`;
+                const isOpen = expandedDasha[key] ?? period.isCurrent;
+                return (
+                  <DashaNode
+                    key={key}
+                    period={period}
+                    expandedKey={key}
+                    expandedMap={expandedDasha}
+                    setExpandedMap={setExpandedDasha}
+                    isOpen={isOpen}
+                  />
+                );
+              })}
             </div>
           </div>
         )}

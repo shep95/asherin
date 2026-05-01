@@ -1,140 +1,194 @@
 /**
- * VIMSHOTTARI MAHADASHA — 120-year planetary cycle keyed off Moon nakshatra.
- * Each Mahadasha period is owned by a planet for a fixed number of years.
- * Birth dasha lord = ruler of Moon's nakshatra; remainder = portion of nakshatra unfinished.
+ * VIMSHOTTARI DASHA — 120-year planetary cycle keyed off Moon nakshatra.
+ *
+ * Hierarchy (each level subdivides the parent the same way):
+ *   1. Mahadasha       (years)
+ *   2. Antardasha      (months)
+ *   3. Pratyantardasha (weeks)
+ *   4. Sookshma        (days)        — "weekly" granularity in practice
+ *   5. Prana           (hours)       — "daily" granularity in practice
+ *
+ * Sub-period length = parentLength * (subLordYears / 120)
  */
 const DASHA_ORDER = [
-  "Ketu",
-  "Venus",
-  "Sun",
-  "Moon",
-  "Mars",
-  "Rahu",
-  "Jupiter",
-  "Saturn",
-  "Mercury",
+  "Ketu", "Venus", "Sun", "Moon", "Mars",
+  "Rahu", "Jupiter", "Saturn", "Mercury",
 ] as const;
 
 export type DashaLord = (typeof DASHA_ORDER)[number];
 
 const DASHA_YEARS: Record<DashaLord, number> = {
-  Ketu: 7,
-  Venus: 20,
-  Sun: 6,
-  Moon: 10,
-  Mars: 7,
-  Rahu: 18,
-  Jupiter: 16,
-  Saturn: 19,
-  Mercury: 17,
+  Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7,
+  Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17,
 };
+const TOTAL_CYCLE = 120;
 
-// Nakshatra index (0..26) → ruling planet (matches Vimshottari sequence).
 const NAK_LORDS: DashaLord[] = [
   "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
   "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
   "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
 ];
 
-const NAK_SPAN = 360 / 27; // 13.3333°
+const NAK_SPAN = 360 / 27;
 const YEAR_MS = 365.2425 * 86400000;
 
-export interface MahadashaPeriod {
+export type DashaLevel = "maha" | "antar" | "pratyantar" | "sookshma" | "prana";
+
+export interface DashaPeriod {
+  level: DashaLevel;
   lord: DashaLord;
   start: Date;
   end: Date;
-  years: number;
+  years: number;          // duration in fractional years
   isCurrent: boolean;
-  antardashas: AntardashaPeriod[];
+  /** Children one level deeper. Computed lazily — empty until expanded. */
+  children?: DashaPeriod[];
 }
 
-export interface AntardashaPeriod {
-  lord: DashaLord;
-  start: Date;
-  end: Date;
-  isCurrent: boolean;
-}
+const NEXT_LEVEL: Record<DashaLevel, DashaLevel | null> = {
+  maha: "antar",
+  antar: "pratyantar",
+  pratyantar: "sookshma",
+  sookshma: "prana",
+  prana: null,
+};
 
 /**
- * Compute Vimshottari Mahadasha sequence from birth, returning periods that
- * span from birth to (now + futureYears).
- *
- * @param birthUtc        Birth datetime in UTC
- * @param moonSiderealDeg Moon sidereal longitude in degrees (0..360)
- * @param futureYears     How many years past today to project
+ * Build the sub-period sequence inside a parent period.
+ * Order starts from the parent's own lord and follows the standard Vimshottari cycle.
  */
-export function computeMahadasha(
-  birthUtc: Date,
-  moonSiderealDeg: number,
-  futureYears = 30,
-): MahadashaPeriod[] {
-  const nakIndex = Math.floor(moonSiderealDeg / NAK_SPAN);
-  const degInNak = moonSiderealDeg - nakIndex * NAK_SPAN;
-  const fractionElapsed = degInNak / NAK_SPAN;
-
-  const birthLord = NAK_LORDS[nakIndex];
-  const birthLordYears = DASHA_YEARS[birthLord];
-  const remainingYears = birthLordYears * (1 - fractionElapsed);
-
-  const horizon = new Date(Date.now() + futureYears * YEAR_MS);
-
-  const periods: MahadashaPeriod[] = [];
-  let cursor = new Date(birthUtc);
-  let lordIdx = DASHA_ORDER.indexOf(birthLord);
-  let yearsForThis = remainingYears;
-  const now = Date.now();
-
-  while (cursor < horizon) {
-    const lord = DASHA_ORDER[lordIdx];
-    const end = new Date(cursor.getTime() + yearsForThis * YEAR_MS);
-    const isCurrent = now >= cursor.getTime() && now < end.getTime();
+function buildSubPeriods(
+  parentLord: DashaLord,
+  parentStart: Date,
+  parentYears: number,
+  level: DashaLevel,
+  nowMs: number,
+): DashaPeriod[] {
+  const startIdx = DASHA_ORDER.indexOf(parentLord);
+  const periods: DashaPeriod[] = [];
+  let cursorMs = parentStart.getTime();
+  for (let i = 0; i < DASHA_ORDER.length; i++) {
+    const lord = DASHA_ORDER[(startIdx + i) % DASHA_ORDER.length];
+    const subYears = (parentYears * DASHA_YEARS[lord]) / TOTAL_CYCLE;
+    const endMs = cursorMs + subYears * YEAR_MS;
     periods.push({
+      level,
       lord,
-      start: new Date(cursor),
-      end,
-      years: yearsForThis,
-      isCurrent,
-      antardashas: computeAntardashas(lord, cursor, yearsForThis, now),
+      start: new Date(cursorMs),
+      end: new Date(endMs),
+      years: subYears,
+      isCurrent: nowMs >= cursorMs && nowMs < endMs,
     });
-    cursor = end;
-    lordIdx = (lordIdx + 1) % DASHA_ORDER.length;
-    yearsForThis = DASHA_YEARS[DASHA_ORDER[lordIdx]];
+    cursorMs = endMs;
   }
-
   return periods;
 }
 
-/** Antardasha (sub-period) sequence inside a Mahadasha. Sums to mahadasha years. */
-function computeAntardashas(
-  mahaLord: DashaLord,
-  mahaStart: Date,
-  mahaYears: number,
-  nowMs: number,
-): AntardashaPeriod[] {
-  const startIdx = DASHA_ORDER.indexOf(mahaLord);
-  const result: AntardashaPeriod[] = [];
-  let cursor = new Date(mahaStart);
-  for (let i = 0; i < DASHA_ORDER.length; i++) {
-    const sub = DASHA_ORDER[(startIdx + i) % DASHA_ORDER.length];
-    // Antardasha length = mahaYears * (subYears / 120)
-    const subYears = (mahaYears * DASHA_YEARS[sub]) / 120;
-    const end = new Date(cursor.getTime() + subYears * YEAR_MS);
-    result.push({
-      lord: sub,
-      start: new Date(cursor),
-      end,
-      isCurrent: nowMs >= cursor.getTime() && nowMs < end.getTime(),
-    });
-    cursor = end;
+/** Recursively populate `children` on the *current* period at each level, down to `prana`. */
+export function expandCurrentPath(period: DashaPeriod, nowMs = Date.now()): DashaPeriod {
+  const nextLevel = NEXT_LEVEL[period.level];
+  if (!nextLevel) return period;
+  if (!period.children) {
+    period.children = buildSubPeriods(period.lord, period.start, period.years, nextLevel, nowMs);
   }
-  return result;
+  const cur = period.children.find((c) => c.isCurrent);
+  if (cur) expandCurrentPath(cur, nowMs);
+  return period;
 }
 
-export function findCurrentDasha(periods: MahadashaPeriod[]): {
-  maha: MahadashaPeriod | null;
-  antar: AntardashaPeriod | null;
-} {
-  const maha = periods.find((p) => p.isCurrent) ?? null;
-  const antar = maha?.antardashas.find((a) => a.isCurrent) ?? null;
-  return { maha, antar };
+/** Ensure a specific period has its direct children built (for on-demand UI expansion). */
+export function ensureChildren(period: DashaPeriod, nowMs = Date.now()): DashaPeriod[] {
+  const nextLevel = NEXT_LEVEL[period.level];
+  if (!nextLevel) return [];
+  if (!period.children) {
+    period.children = buildSubPeriods(period.lord, period.start, period.years, nextLevel, nowMs);
+  }
+  return period.children;
 }
+
+export interface MahadashaTimeline {
+  /** Moon nakshatra index 0..26 used as the dasha seed. */
+  moonNakIndex: number;
+  /** Birth-lord Mahadasha (often partial). */
+  birthLord: DashaLord;
+  periods: DashaPeriod[];
+}
+
+/**
+ * Compute the Vimshottari Mahadasha sequence.
+ *
+ * @param birthUtc      Birth datetime (UTC)
+ * @param moonSidDeg    Moon sidereal longitude (0..360)
+ * @param mahaCount     Number of Mahadashas to return (birth lord + following). Default 14.
+ *                      Pass `Infinity` to keep historical behaviour of "until horizon".
+ */
+export function computeMahadasha(
+  birthUtc: Date,
+  moonSidDeg: number,
+  mahaCount = 14,
+): DashaPeriod[] {
+  const nakIndex = Math.floor(moonSidDeg / NAK_SPAN);
+  const degInNak = moonSidDeg - nakIndex * NAK_SPAN;
+  const fractionElapsed = degInNak / NAK_SPAN;
+
+  const birthLord = NAK_LORDS[nakIndex];
+  const remainingYears = DASHA_YEARS[birthLord] * (1 - fractionElapsed);
+
+  const nowMs = Date.now();
+  const periods: DashaPeriod[] = [];
+  let cursorMs = birthUtc.getTime();
+  let lordIdx = DASHA_ORDER.indexOf(birthLord);
+  let yearsForThis = remainingYears;
+
+  for (let i = 0; i < mahaCount; i++) {
+    const lord = DASHA_ORDER[lordIdx];
+    const endMs = cursorMs + yearsForThis * YEAR_MS;
+    const period: DashaPeriod = {
+      level: "maha",
+      lord,
+      start: new Date(cursorMs),
+      end: new Date(endMs),
+      years: yearsForThis,
+      isCurrent: nowMs >= cursorMs && nowMs < endMs,
+    };
+    if (period.isCurrent) {
+      // Pre-expand the active branch all the way down to Prana for instant display.
+      expandCurrentPath(period, nowMs);
+    } else {
+      // Eagerly build Antardashas only — cheap and useful in the timeline.
+      ensureChildren(period, nowMs);
+    }
+    periods.push(period);
+    cursorMs = endMs;
+    lordIdx = (lordIdx + 1) % DASHA_ORDER.length;
+    yearsForThis = DASHA_YEARS[DASHA_ORDER[lordIdx]];
+  }
+  return periods;
+}
+
+export interface CurrentDashaPath {
+  maha: DashaPeriod | null;
+  antar: DashaPeriod | null;
+  pratyantar: DashaPeriod | null;
+  sookshma: DashaPeriod | null;
+  prana: DashaPeriod | null;
+}
+
+export function findCurrentDasha(periods: DashaPeriod[]): CurrentDashaPath {
+  const empty: CurrentDashaPath = { maha: null, antar: null, pratyantar: null, sookshma: null, prana: null };
+  const maha = periods.find((p) => p.isCurrent) ?? null;
+  if (!maha) return empty;
+  const antar = maha.children?.find((c) => c.isCurrent) ?? null;
+  const pratyantar = antar?.children?.find((c) => c.isCurrent) ?? null;
+  const sookshma = pratyantar?.children?.find((c) => c.isCurrent) ?? null;
+  const prana = sookshma?.children?.find((c) => c.isCurrent) ?? null;
+  return { maha, antar, pratyantar, sookshma, prana };
+}
+
+export const DASHA_LEVEL_LABEL: Record<DashaLevel, string> = {
+  maha: "Mahadasha",
+  antar: "Antardasha",
+  pratyantar: "Pratyantardasha",
+  sookshma: "Sookshma (Weekly)",
+  prana: "Prana (Daily)",
+};
