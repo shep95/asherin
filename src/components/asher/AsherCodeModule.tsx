@@ -163,6 +163,9 @@ export default function AsherCodeModule() {
   // so the user sees the swarm dissolve in real time.
   type SwarmAgent = { id: string; file: string; issueCount: number; pass: number; status: "working" | "done" | "failed" };
   const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
+  // Short-lived flag set the moment the user clicks "Fix Bugs & Logic" so the
+  // button shows "Running…" even before the first agent has spawned.
+  const [fixBugsPending, setFixBugsPending] = useState(false);
   // Workflow Map state — persists agent history so the Workflow tab still shows
   // the run after individual agent pills have dissolved from the chat overlay.
   const [workflowEvents, setWorkflowEvents] = useState<WorkflowEvent[]>([]);
