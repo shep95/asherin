@@ -118,7 +118,7 @@ function score(a: SweVedicChart, b: SweVedicChart): CompatResult {
   else if ((ea === "Earth" && eb === "Water") || (ea === "Water" && eb === "Earth")) ascScore = 3.5;
   else if ((ea === "Fire" && eb === "Water") || (ea === "Water" && eb === "Fire")) ascScore = 1.5;
   else ascScore = 2.5;
-  const ascAffinity = { score: ascScore, max: 4, note: `${ea} (${rashis[aAscSign]}) ↔ ${eb} (${rashis[bAscSign]})` };
+  const ascAffinity = { score: ascScore, max: 4, note: `${ea} (${rashis[aAscSign].name}) ↔ ${eb} (${rashis[bAscSign].name})` };
 
   const breakdown: CompatBreakdown = { varna, vashya, tara, yoni, graha, gana, bhakoot, nadi, ascAffinity };
   const total = varna.score + vashya.score + tara.score + yoni.score + graha.score + gana.score + bhakoot.score + nadi.score; // /36
