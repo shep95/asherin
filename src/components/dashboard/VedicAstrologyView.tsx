@@ -195,6 +195,28 @@ const VedicAstrologyView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityQuery]);
 
+  // Auto-resolve birth-location timezone whenever lat/lon/date/time change.
+  useEffect(() => {
+    if (!tzAuto) return;
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    if (!birthDate || Number.isNaN(latNum) || Number.isNaN(lonNum)) return;
+    if (tzDebounceRef.current) window.clearTimeout(tzDebounceRef.current);
+    tzDebounceRef.current = window.setTimeout(async () => {
+      setTzResolving(true);
+      try {
+        const r = await resolveBirthTimezone(latNum, lonNum, birthDate, birthTime || "12:00");
+        setTzOffset(String(r.offsetHours));
+        setTzZoneName(r.ianaName);
+      } finally {
+        setTzResolving(false);
+      }
+    }, 300);
+    return () => {
+      if (tzDebounceRef.current) window.clearTimeout(tzDebounceRef.current);
+    };
+  }, [lat, lon, birthDate, birthTime, tzAuto]);
+
   const computeAndSetChart = async (input?: Partial<{ birthDate: string; birthTime: string; tzOffset: string; lat: string; lon: string }>) => {
     const bd = input?.birthDate ?? birthDate;
     const bt = input?.birthTime ?? birthTime;
