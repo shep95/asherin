@@ -664,14 +664,74 @@ export default function AsherCodeModule() {
     if (jsxFiles.length === 0 && jsFiles.length === 0 && css.length === 0) {
       return `<html><body style="background:#0a0a0a;color:#888;font-family:monospace;padding:2rem">No <code>index.html</code> in this project — and no JS/CSS to auto-render.</body></html>`;
     }
-    const jsxBlocks = jsxFiles.map(f => `<script type="text/babel" data-presets="env,react,typescript" data-type="module">\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    // Strip ES module imports/exports (Babel standalone can't resolve them in-browser).
+    // Also collect default-exported component names so we can auto-mount the last one.
+    const stripModuleSyntax = (src: string): { code: string; defaultExport: string | null; namedComponents: string[] } => {
+      let code = src;
+      // Remove all `import ... from "..."` and bare `import "..."` lines
+      code = code.replace(/^\s*import\s+[^;]*?from\s+['"][^'"]+['"];?\s*$/gm, "");
+      code = code.replace(/^\s*import\s+['"][^'"]+['"];?\s*$/gm, "");
+      // Capture `export default <Name>;` or `export default function <Name>` or `export default class <Name>`
+      let defaultExport: string | null = null;
+      const defFnMatch = code.match(/export\s+default\s+function\s+([A-Z][A-Za-z0-9_]*)/);
+      const defClassMatch = code.match(/export\s+default\s+class\s+([A-Z][A-Za-z0-9_]*)/);
+      const defIdentMatch = code.match(/export\s+default\s+([A-Z][A-Za-z0-9_]*)\s*;?/);
+      if (defFnMatch) defaultExport = defFnMatch[1];
+      else if (defClassMatch) defaultExport = defClassMatch[1];
+      else if (defIdentMatch) defaultExport = defIdentMatch[1];
+      // Strip the export keywords (leave the declarations intact in global scope)
+      code = code.replace(/export\s+default\s+function\s+/g, "function ");
+      code = code.replace(/export\s+default\s+class\s+/g, "class ");
+      code = code.replace(/export\s+default\s+([A-Z][A-Za-z0-9_]*)\s*;?/g, "");
+      code = code.replace(/export\s+(const|let|var|function|class)\s+/g, "$1 ");
+      code = code.replace(/^\s*export\s+\{[^}]*\}\s*;?\s*$/gm, "");
+      // Capture top-level component declarations as fallback mount targets
+      const namedComponents: string[] = [];
+      const rxFn = /(?:^|\n)\s*(?:function|const|let|var)\s+([A-Z][A-Za-z0-9_]*)/g;
+      let m: RegExpExecArray | null;
+      while ((m = rxFn.exec(code)) !== null) namedComponents.push(m[1]);
+      return { code, defaultExport, namedComponents };
+    };
+    let mountTarget: string | null = null;
+    const jsxBlocks = jsxFiles.map(f => {
+      const raw = dirty[f.id] ?? f.content;
+      const { code, defaultExport, namedComponents } = stripModuleSyntax(raw);
+      // Last file's default export wins (or last named component as fallback)
+      if (defaultExport) mountTarget = defaultExport;
+      else if (namedComponents.length) mountTarget = namedComponents[namedComponents.length - 1];
+      return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.path} */\n${code}\n</script>`;
+    }).join("\n");
     const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    // Detect whether the user already mounts something (ReactDOM.render / createRoot).
+    const userMountsItself = jsxFiles.concat(jsFiles).some(f => {
+      const c = dirty[f.id] ?? f.content;
+      return /ReactDOM\.render\s*\(/.test(c) || /createRoot\s*\([^)]*\)\s*\.render\s*\(/.test(c);
+    });
+    const autoMount = (hasReact && mountTarget && !userMountsItself)
+      ? `<script type="text/babel" data-presets="env,react,typescript">
+try {
+  const __el = document.getElementById('root') || document.getElementById('app');
+  if (__el && typeof ${mountTarget} !== 'undefined') {
+    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(${mountTarget})); }
+    else { ReactDOM.render(React.createElement(${mountTarget}), __el); }
+  } else if (!__el) {
+    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: no #root or #app element.</pre>';
+  } else {
+    document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: component "${mountTarget}" is not defined at runtime.</pre>';
+  }
+} catch (e) {
+  document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem;white-space:pre-wrap">Auto-mount error: ' + (e && e.message ? e.message : String(e)) + '</pre>';
+}
+</script>`
+      : (hasReact && !userMountsItself
+        ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')</script>`
+        : "");
     const reactCdn = hasReact
       ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`
       : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}${autoMount}</body></html>`;
   }, [files, dirty]);
 
   function runPreview() { setPreviewKey(k => k + 1); }
