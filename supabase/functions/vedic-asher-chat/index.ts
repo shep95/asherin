@@ -1,17 +1,23 @@
+// Asher Vedic Chat — GEMINI-ONLY for admin (platform key) + BYOK for everyone else.
+// No Lovable AI Gateway. Supports multi-provider cross-validation.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 const PLATFORM_GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GEMINI_API_KEY_APP");
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 
-type Provider = "gemini" | "openai" | "anthropic" | "lovable";
+type Provider = "gemini" | "openai" | "anthropic";
 
 interface ByokConfig {
   provider: Provider;
   model: string;
-  apiKey?: string; // not required for "lovable"
+  apiKey?: string;
 }
 
 interface ChatBody {
@@ -19,6 +25,9 @@ interface ChatBody {
   chartContext: string;
   chartLabel: string;
   byok?: ByokConfig | null;
+  // Optional list of additional providers to cross-validate against.
+  // The first successful response is the primary; the rest are appended as a "Cross-Domain Verification" block.
+  crossCheck?: ByokConfig[];
 }
 
 const SYSTEM_PROMPT_BASE = `You are ASHER — an elite Vedic astrology intelligence officer fused with the Aureon reasoning brain.
@@ -84,10 +93,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { messages, chartContext, chartLabel, byok } = (await req.json()) as ChatBody;
+    const { messages, chartContext, chartLabel, byok, crossCheck } = (await req.json()) as ChatBody;
     if (!Array.isArray(messages) || messages.length === 0) {
       return jsonError(400, "messages required");
     }
+
+    // Identify caller (for admin-only platform key access)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const isAdmin = await checkAdmin(authHeader);
 
     const systemPrompt = `${SYSTEM_PROMPT_BASE}
 
@@ -96,30 +109,74 @@ ACTIVE CHART: ${chartLabel}
 ═══════════════════════════════════════════════════════
 ${chartContext}`;
 
-    // Resolve provider chain (primary + fallbacks)
-    const chain = resolveProviderChain(byok);
-    if (chain.length === 0) {
-      return jsonError(500, "No AI provider configured. Add a Gemini/OpenAI/Anthropic key in chat settings.");
+    // Build the primary provider chain
+    const primaryChain = resolveProviderChain(byok, isAdmin);
+    if (primaryChain.length === 0) {
+      return jsonError(400, "No AI provider configured. Add a Gemini, OpenAI, or Anthropic API key in Asher chat settings.");
     }
 
+    let primary: { text: string; provider: Provider; model: string } | null = null;
     let lastError = "no provider";
-    for (const cfg of chain) {
+    for (const cfg of primaryChain) {
       try {
         const text = await callProviderWithRetry(cfg, systemPrompt, messages);
-        return new Response(JSON.stringify(extractReply(text)), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        primary = { text, provider: cfg.provider, model: cfg.model };
+        break;
       } catch (e) {
         lastError = e instanceof Error ? e.message : String(e);
-        console.error(`[asher] provider ${cfg.provider}/${cfg.model} failed:`, lastError);
+        console.error(`[asher] primary ${cfg.provider}/${cfg.model} failed:`, lastError);
       }
     }
-    return jsonError(503, `All providers failed: ${lastError}`);
+    if (!primary) return jsonError(503, `Provider failed: ${lastError}`);
+
+    // Optional cross-validation across other providers (BYOK list)
+    const crossResults: { provider: Provider; model: string; text: string }[] = [];
+    if (Array.isArray(crossCheck) && crossCheck.length > 0) {
+      for (const cfg of crossCheck) {
+        if (!cfg?.apiKey || cfg.apiKey.trim().length === 0) continue;
+        if (cfg.provider === primary.provider && cfg.model === primary.model) continue;
+        try {
+          const text = await callProviderWithRetry(cfg, systemPrompt, messages);
+          crossResults.push({ provider: cfg.provider, model: cfg.model, text });
+        } catch (e) {
+          console.error(`[asher] cross ${cfg.provider}/${cfg.model} failed:`, e);
+        }
+      }
+    }
+
+    const extracted = extractReply(primary.text);
+    const crossExtracted = crossResults.map((c) => ({
+      provider: c.provider,
+      model: c.model,
+      ...extractReply(c.text),
+    }));
+
+    return new Response(JSON.stringify({
+      ...extracted,
+      provider: primary.provider,
+      model: primary.model,
+      crossCheck: crossExtracted,
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("vedic-asher-chat error:", e);
     return jsonError(500, e instanceof Error ? e.message : "unknown");
   }
 });
+
+async function checkAdmin(authHeader: string): Promise<boolean> {
+  try {
+    if (!authHeader) return false;
+    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data } = await supa.auth.getUser();
+    return data?.user?.email?.toLowerCase() === ADMIN_EMAIL;
+  } catch {
+    return false;
+  }
+}
 
 function jsonError(status: number, error: string): Response {
   return new Response(JSON.stringify({ error }), {
@@ -128,22 +185,16 @@ function jsonError(status: number, error: string): Response {
   });
 }
 
-function resolveProviderChain(byok?: ByokConfig | null): ByokConfig[] {
+function resolveProviderChain(byok: ByokConfig | null | undefined, isAdmin: boolean): ByokConfig[] {
   const chain: ByokConfig[] = [];
-  // 1. User BYOK first
-  if (byok && byok.provider) {
-    if (byok.provider === "lovable" || (byok.apiKey && byok.apiKey.trim().length > 0)) {
-      chain.push(byok);
-    }
+  // 1. User BYOK first (any provider with key)
+  if (byok && byok.provider && byok.apiKey && byok.apiKey.trim().length > 0) {
+    chain.push(byok);
   }
-  // 2. Platform Gemini (with model fallback)
-  if (PLATFORM_GEMINI_KEY) {
-    chain.push({ provider: "gemini", model: "gemini-2.5-pro", apiKey: PLATFORM_GEMINI_KEY });
+  // 2. Platform Gemini — ADMIN ONLY (Asher) — never exposed to non-admin users
+  if (isAdmin && PLATFORM_GEMINI_KEY) {
+    chain.push({ provider: "gemini", model: byok?.model && byok.provider === "gemini" ? byok.model : "gemini-2.5-pro", apiKey: PLATFORM_GEMINI_KEY });
     chain.push({ provider: "gemini", model: "gemini-2.5-flash", apiKey: PLATFORM_GEMINI_KEY });
-  }
-  // 3. Lovable AI Gateway (always-on fallback if available)
-  if (LOVABLE_API_KEY) {
-    chain.push({ provider: "lovable", model: "google/gemini-2.5-flash" });
   }
   return chain;
 }
@@ -182,19 +233,12 @@ async function callProvider(
       return callOpenAICompat("https://api.openai.com/v1", cfg.apiKey!, cfg.model, systemPrompt, messages);
     case "anthropic":
       return callAnthropic(cfg.apiKey!, cfg.model, systemPrompt, messages);
-    case "lovable":
-      return callOpenAICompat("https://ai.gateway.lovable.dev/v1", LOVABLE_API_KEY!, cfg.model, systemPrompt, messages);
     default:
       throw new Error(`unsupported provider: ${cfg.provider}`);
   }
 }
 
-async function callGemini(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  messages: ChatBody["messages"],
-): Promise<string> {
+async function callGemini(apiKey: string, model: string, systemPrompt: string, messages: ChatBody["messages"]): Promise<string> {
   const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
@@ -219,13 +263,7 @@ async function callGemini(
   return data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p?.text || "").join("") ?? "";
 }
 
-async function callOpenAICompat(
-  baseUrl: string,
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  messages: ChatBody["messages"],
-): Promise<string> {
+async function callOpenAICompat(baseUrl: string, apiKey: string, model: string, systemPrompt: string, messages: ChatBody["messages"]): Promise<string> {
   const resp = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -245,19 +283,10 @@ async function callOpenAICompat(
   return data?.choices?.[0]?.message?.content ?? "";
 }
 
-async function callAnthropic(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  messages: ChatBody["messages"],
-): Promise<string> {
+async function callAnthropic(apiKey: string, model: string, systemPrompt: string, messages: ChatBody["messages"]): Promise<string> {
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({
       model,
       max_tokens: 4096,
@@ -282,10 +311,7 @@ function extractReply(raw: string): { reply: string; note: string | null; dates:
   const noteMatch = cleaned.match(/\[NOTE\]\s*(.+?)\s*$/m);
   const note = noteMatch ? noteMatch[1].trim() : null;
   const reply = cleaned.replace(/\[NOTE\][^\n]*/g, "").trim();
-
-  // Extract ISO dates (YYYY-MM-DD) for timeline marking
   const dateRe = /\b(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b/g;
   const dates = Array.from(new Set((reply.match(dateRe) ?? [])));
-
   return { reply, note, dates };
 }

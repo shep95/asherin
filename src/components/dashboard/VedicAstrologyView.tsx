@@ -209,6 +209,8 @@ const VedicAstrologyView = () => {
   const [activeName, setActiveName] = useState<string>("");
   const [chatOpen, setChatOpen] = useState(false);
   const [asherDates, setAsherDates] = useState<string[]>([]);
+  const [countryLagnas, setCountryLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
+  const [computingLagnas, setComputingLagnas] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -526,6 +528,35 @@ const VedicAstrologyView = () => {
 
   const asherDateSet = useMemo(() => new Set(asherDates), [asherDates]);
 
+  // Lazy-compute Lagna (Rising Sign) for every country chart when the Country tab is opened.
+  useEffect(() => {
+    if (tab !== "country") return;
+    if (computingLagnas) return;
+    const missing = COUNTRY_CHARTS.filter((c) => !(c.code in countryLagnas));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      setComputingLagnas(true);
+      const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      for (const c of missing) {
+        try {
+          const r = await calculateSweVedicChart({
+            birthDate: c.birthDate, birthTime: c.birthTime,
+            tzOffset: c.tzOffset, lat: c.lat, lon: c.lon,
+          });
+          const sign = rashis[Math.floor(r.ascendant / 30)];
+          updates[c.code] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+        } catch {
+          updates[c.code] = null;
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setCountryLagnas((prev) => ({ ...prev, ...updates }));
+      setComputingLagnas(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   return (
     <div
@@ -575,19 +606,33 @@ const VedicAstrologyView = () => {
               <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Independence / Constitution moments · sidereal Lahiri</span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {COUNTRY_CHARTS.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={() => void loadCountryChart(c)}
-                  className={`text-left rounded-lg border px-3 py-2.5 transition ${activeCountry?.code === c.code ? "border-foreground/40 bg-foreground/[0.05]" : "border-border/25 bg-background/30 hover:border-border/50 hover:bg-foreground/[0.025]"}`}
-                >
-                  <div className="text-sm font-light text-foreground/90 flex items-center gap-1.5">
-                    <span className="text-base leading-none">{c.flag}</span> {c.name}
-                  </div>
-                  <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70 mt-0.5">{c.event}</div>
-                  <div className="text-[10px] text-muted-foreground/70 mt-0.5 tabular-nums">{c.birthDate} · {c.birthTime} · {c.city}</div>
-                </button>
-              ))}
+              {COUNTRY_CHARTS.map((c) => {
+                const lagna = countryLagnas[c.code];
+                return (
+                  <button
+                    key={c.code}
+                    onClick={() => void loadCountryChart(c)}
+                    className={`text-left rounded-lg border px-3 py-2.5 transition ${activeCountry?.code === c.code ? "border-foreground/40 bg-foreground/[0.05]" : "border-border/25 bg-background/30 hover:border-border/50 hover:bg-foreground/[0.025]"}`}
+                  >
+                    <div className="text-sm font-light text-foreground/90 flex items-center gap-1.5">
+                      <span className="text-base leading-none">{c.flag}</span> {c.name}
+                    </div>
+                    <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70 mt-0.5">{c.event}</div>
+                    <div className="text-[10px] text-muted-foreground/70 mt-0.5 tabular-nums">{c.birthDate} · {c.birthTime} · {c.city}</div>
+                    <div className="mt-1.5 pt-1.5 border-t border-border/20 text-[10px] flex items-center justify-between">
+                      <span className="text-muted-foreground/60 uppercase tracking-wider text-[9px]">Lagna</span>
+                      {lagna === undefined ? (
+                        <span className="text-muted-foreground/40 italic">…</span>
+                      ) : lagna === null ? (
+                        <span className="text-muted-foreground/40">—</span>
+                      ) : (
+                        <span className="text-foreground/85 font-light">{lagna.sign} <span className="text-muted-foreground/60">· {fmtDeg(lagna.deg)}</span></span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+
             </div>
           </div>
         )}
