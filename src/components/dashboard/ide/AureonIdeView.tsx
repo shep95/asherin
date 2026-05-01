@@ -704,6 +704,40 @@ const AureonIdeView = () => {
       </div>
 
       <IdeQuickOpen open={quickOpenOpen} onClose={() => setQuickOpenOpen(false)} files={files} onSelectFile={selectFile} />
+
+      {/* Shared IDE upgrade pack modals */}
+      <IdeFuzzyFinder
+        open={fuzzyOpen}
+        files={allFiles.map(f => ({ id: f.id, path: f.name }))}
+        onPick={(id) => { const f = allFiles.find(x => x.id === id); if (f) selectFile(f); }}
+        onClose={() => setFuzzyOpen(false)}
+      />
+      <IdeTemplateLauncher open={templateOpen} onClose={() => setTemplateOpen(false)} onCreate={handleScaffold} />
+      <IdeHistoryPanel
+        scope="aureon"
+        projectId={activeSessionId ?? ""}
+        fileId={activeFileId ?? ""}
+        filePath={activeFile?.name ?? ""}
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onRestore={(content) => activeFileId && updateContent(activeFileId, content)}
+      />
+      <IdeErrorExplainer
+        open={bugDoctorOpen}
+        message={bugDoctorMsg}
+        contextCode={activeFile?.content}
+        onClose={() => setBugDoctorOpen(false)}
+        onApplyFix={(code) => activeFileId && updateContent(activeFileId, code)}
+      />
+      {approval && (
+        <IdeApprovalGate
+          open={true}
+          title={approval.title}
+          changes={approval.changes}
+          onApprove={() => { approval.resolve(true); setApproval(null); }}
+          onCancel={() => { approval.resolve(false); setApproval(null); }}
+        />
+      )}
     </div>
   );
 };
