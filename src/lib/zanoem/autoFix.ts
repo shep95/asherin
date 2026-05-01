@@ -28,16 +28,18 @@ export interface AutoFixResult {
 interface AutoFixOptions {
   files: () => AutoFixFile[];                          // fresh files each pass
   runZanoemTurn: (prompt: string) => Promise<void>;    // sends one autopilot turn through the IDE chat
+  applyFileFix?: (file: AutoFixFile, issues: FlatErr[]) => Promise<boolean> | boolean;
   maxPasses?: number;                                  // default 8
   onProgress?: (pass: number, errorCount: number) => void;
 }
+
+type FlatErr = { file: string; line?: number; message: string };
 
 /** Wait until there are no validator errors, or we've burned all passes. */
 export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixResult> {
   const max = opts.maxPasses ?? 8;
   const history: AutoFixResult["history"] = [];
 
-  type FlatErr = { file: string; line?: number; message: string };
   const collect = (): FlatErr[] => {
     const cur = opts.files();
     const report = validateFiles(cur.map((f) => ({ path: f.name, content: f.content })));
@@ -62,6 +64,15 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
     });
     if (errors.length === 0) {
       return { passes: pass - 1, finalErrorCount: 0, clean: true, history };
+    }
+
+    if (opts.applyFileFix) {
+      let applied = 0;
+      for (const f of opts.files()) {
+        const fileErrors = errors.filter((e) => e.file === f.name);
+        if (fileErrors.length && await opts.applyFileFix(f, fileErrors)) applied++;
+      }
+      if (applied > 0) continue;
     }
 
     // Build a structured fix prompt for ZANOEM.
