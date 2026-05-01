@@ -742,7 +742,26 @@ export default function AsherCodeModule() {
                   <div className="relative z-10 h-full">
                     <Editor
                       height="100%"
-                      theme="vs-dark"
+                      theme="aureon-transparent"
+                      beforeMount={(monaco) => {
+                        monaco.editor.defineTheme("aureon-transparent", {
+                          base: "vs-dark",
+                          inherit: true,
+                          rules: [],
+                          colors: {
+                            "editor.background": "#00000000",
+                            "editor.lineHighlightBackground": "#ffffff08",
+                            "editor.lineHighlightBorder": "#00000000",
+                            "editorGutter.background": "#00000000",
+                            "minimap.background": "#00000000",
+                            "scrollbarSlider.background": "#ffffff14",
+                            "scrollbarSlider.hoverBackground": "#ffffff22",
+                            "scrollbarSlider.activeBackground": "#ffffff33",
+                            "editorWidget.background": "#0a0a0acc",
+                            "editorSuggestWidget.background": "#0a0a0acc",
+                          },
+                        });
+                      }}
                       language={activeFile.language}
                       value={activeContent}
                       onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
