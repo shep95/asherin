@@ -1,3 +1,5 @@
+import type SwissEPH from "sweph-wasm";
+
 export interface SweVedicPlanet {
   id: number;
   name: string;
@@ -35,7 +37,7 @@ const PLANET_DEFS = [
   { id: 11, name: "Rahu", symbol: "☊" },
 ];
 
-let swePromise: Promise<any> | null = null;
+let swePromise: Promise<SwissEPH> | null = null;
 
 const norm360 = (deg: number) => ((deg % 360) + 360) % 360;
 
