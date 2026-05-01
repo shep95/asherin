@@ -158,10 +158,6 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
   };
   // Avoid lint warnings for now-removed pieces while preserving prop API
   void onModeChange; void mode; void onCalibrationFeedback;
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { subscribed, loading: subLoading } = useSubscription();
-  const { isAdmin } = useAccess();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
