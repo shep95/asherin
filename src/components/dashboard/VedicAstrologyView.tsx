@@ -528,6 +528,35 @@ const VedicAstrologyView = () => {
 
   const asherDateSet = useMemo(() => new Set(asherDates), [asherDates]);
 
+  // Lazy-compute Lagna (Rising Sign) for every country chart when the Country tab is opened.
+  useEffect(() => {
+    if (tab !== "country") return;
+    if (computingLagnas) return;
+    const missing = COUNTRY_CHARTS.filter((c) => !(c.code in countryLagnas));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      setComputingLagnas(true);
+      const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      for (const c of missing) {
+        try {
+          const r = await calculateSweVedicChart({
+            birthDate: c.birthDate, birthTime: c.birthTime,
+            tzOffset: c.tzOffset, lat: c.lat, lon: c.lon,
+          });
+          const sign = rashis[Math.floor(r.ascendant / 30)];
+          updates[c.code] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+        } catch {
+          updates[c.code] = null;
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setCountryLagnas((prev) => ({ ...prev, ...updates }));
+      setComputingLagnas(false);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   return (
     <div
