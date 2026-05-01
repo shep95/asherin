@@ -1587,7 +1587,7 @@ try {
           <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
               <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
-              <Zap className="h-2.5 w-2.5" /> Auto-Apply
+              <Zap className="h-2.5 w-2.5" /> Auto Approve
             </label>
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
               <input type="checkbox" checked={animateInsertion} onChange={(e) => setAnimateInsertion(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
