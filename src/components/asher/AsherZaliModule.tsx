@@ -332,18 +332,33 @@ const AsherZaliModule = () => {
         role: "assistant", content: fullContent,
       });
 
-      // Code output → workspace
+      // Code output → workspace (structured JSON blocks first)
       const codeMatches = [...fullContent.matchAll(/```code_output\n([\s\S]*?)```/g)];
+      const allFiles: Array<{ filename: string; language: string; content: string }> = [];
       if (codeMatches.length) {
         try {
-          const allFiles: Array<{ filename: string; language: string; content: string }> = [];
           for (const m of codeMatches) {
             const parsed = JSON.parse(m[1]);
             if (Array.isArray(parsed.files)) allFiles.push(...parsed.files);
           }
-          if (allFiles.length) { setCodeFiles(allFiles); setActiveTab("workspace"); }
         } catch (e) { console.error(e); }
       }
+      // Fallback: extract any fenced code blocks (excluding our control blocks)
+      if (!allFiles.length) {
+        const fenceRe = /```([\w.+-]*)\n([\s\S]*?)```/g;
+        let fm: RegExpExecArray | null;
+        let i = 1;
+        while ((fm = fenceRe.exec(fullContent)) !== null) {
+          const lang = (fm[1] || "").toLowerCase();
+          if (lang === "code_output" || lang === "design_output") continue;
+          const code = fm[2].trimEnd();
+          if (!code.trim()) continue;
+          const ext = lang === "typescript" ? "ts" : lang === "javascript" ? "js" : lang === "python" ? "py" : (lang || "txt");
+          allFiles.push({ filename: `snippet-${i}.${ext}`, language: lang || "text", content: code });
+          i++;
+        }
+      }
+      if (allFiles.length) { setCodeFiles(allFiles); setActiveTab("workspace"); }
 
       // Design output → project state
       const designMatch = fullContent.match(/```design_output\n([\s\S]*?)```/);
