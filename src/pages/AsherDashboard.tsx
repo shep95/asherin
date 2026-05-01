@@ -4,7 +4,7 @@ import {
   Map as MapIcon, FileText, Crosshair, Radio, Satellite,
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
-  Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package,
+  Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ import AsherCommsModule from "@/components/asher/AsherCommsModule";
 import AsherOrganizationsModule from "@/components/asher/AsherOrganizationsModule";
 import AsherInvitationsBanner from "@/components/asher/AsherInvitationsBanner";
 import AsherCodeModule from "@/components/asher/AsherCodeModule";
+import VedicAstrologyView from "@/components/dashboard/VedicAstrologyView";
 import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import { isSuperOwner } from "@/lib/asherOrgs";
 
@@ -121,7 +122,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs" | "code"
+  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
@@ -148,6 +149,7 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
     { id: "zali",      label: "ZANOEM Design",     icon: Wrench,   sub: "Live" },
     { id: "whiteboard",label: "Whiteboard",      icon: PenSquare, sub: "Live" },
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
+    { id: "vedic",     label: "Vedic Astrology", icon: Moon,      sub: "Sidereal" },
     { id: "theater",   label: "Theater Brief",   icon: FileText },
     { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
     { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
@@ -300,6 +302,7 @@ const AsherDashboard = () => {
           {active === "whiteboard"&& <AsherWhiteboardModule />}
           {active === "axrlen"    && <AsherAxrlenModule />}
           {active === "notebooks" && <AsherNotebooksModule />}
+          {active === "vedic"     && <VedicAstrologyView />}
           {active === "targets"   && <AsherSavedTargets />}
           {active === "comms"     && <AsherCommsModule />}
           {active === "theater"   && <ComingSoonModule title="Theater Brief"   sub="Multi-source operational summary" />}
