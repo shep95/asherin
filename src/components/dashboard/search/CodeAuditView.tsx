@@ -399,50 +399,70 @@ const ZerlalView = () => {
           </span>
         </div>
 
-        <div
-          onDrop={onDrop}
-          onDragOver={(e) => e.preventDefault()}
-          className="mt-3 rounded-xl border border-dashed border-border/30 bg-background/30 hover:bg-background/40 transition-colors px-4 py-5"
-        >
-          {!filename ? (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-foreground transition-colors"
-              type="button"
+        <div className="mt-3 rounded-xl border border-border/20 bg-background/25 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-1 mb-3">
+            {[
+              { id: "zip" as const, label: "ZIP Upload", icon: FileArchive },
+              { id: "github" as const, label: "GitHub Link", icon: GitBranch },
+              { id: "paste" as const, label: "Paste Code", icon: FileCode },
+            ].map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setInputMode(m.id)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-light tracking-wide transition-colors ${
+                  inputMode === m.id ? "border-accent/50 bg-accent/15 text-accent" : "border-border/20 bg-card/20 text-muted-foreground/70 hover:text-foreground"
+                }`}
+              >
+                <m.icon className="h-3 w-3" /> {m.label}
+              </button>
+            ))}
+          </div>
+
+          {inputMode === "zip" && (
+            <div
+              onDrop={onDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="rounded-xl border border-dashed border-border/30 bg-background/30 hover:bg-background/40 transition-colors px-4 py-5"
             >
-              <UploadCloud className="h-6 w-6" />
-              <span className="text-[11px] font-light">Drop a code file or ZIP archive here, or click to upload</span>
-              <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">
-                Single file or ZIP up to 100MB · auto-extracted
-              </span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-3">
-              {isZipFile
-                ? <FileArchive className="h-5 w-5 text-accent shrink-0" />
-                : <FileCode className="h-5 w-5 text-accent shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-light text-foreground truncate">{filename}</p>
-                <p className="text-[9px] font-extralight text-muted-foreground/60">
-                  {(byteSize / 1024).toFixed(1)}KB · {code.split("\n").length} lines
-                  {zipFileCount > 0 && ` · ${zipFileCount} files extracted`}
-                </p>
+              {!filename ? (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-foreground transition-colors"
+                  type="button"
+                >
+                  <UploadCloud className="h-6 w-6" />
+                  <span className="text-[11px] font-light">Drop a code file or ZIP archive here, or click to upload</span>
+                  <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">Single file or ZIP up to 100MB · auto-extracted</span>
+                </button>
+              ) : <SelectedTarget filename={filename} isZipFile={isZipFile} byteSize={byteSize} lineCount={code.split("\n").length} zipFileCount={zipFileCount} auditing={auditing} onClear={clearFile} onAudit={handleAudit} />}
+            </div>
+          )}
+
+          {inputMode === "github" && (
+            <div className="rounded-xl border border-border/20 bg-background/30 px-3 py-3 space-y-3">
+              <div className="flex gap-2">
+                <input
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  placeholder="https://github.com/org/repo/blob/main/src/auth/session.ts"
+                  className="flex-1 rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-[11px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/40"
+                />
+                <button type="button" onClick={importGithubTarget} className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-[10px] font-medium tracking-wide text-accent hover:bg-accent/20 transition-colors">Import</button>
               </div>
-              <button
-                onClick={clearFile}
-                className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition"
-                type="button"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={handleAudit}
-                disabled={auditing}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent/20 hover:bg-accent/30 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-accent transition-colors"
-                type="button"
-              >
-                {auditing ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />AUDITING</>) : (<><ShieldAlert className="h-3.5 w-3.5" />AUDIT IT</>)}
-              </button>
+              {filename && <SelectedTarget filename={filename} isZipFile={false} byteSize={byteSize} lineCount={code.split("\n").length} zipFileCount={zipFileCount} auditing={auditing} onClear={clearFile} onAudit={handleAudit} />}
+            </div>
+          )}
+
+          {inputMode === "paste" && (
+            <div className="rounded-xl border border-border/20 bg-background/30 px-3 py-3 space-y-3">
+              <textarea
+                value={code}
+                onChange={(e) => { setCode(e.target.value); setFilename("pasted-code.ts"); setByteSize(new TextEncoder().encode(e.target.value).length); setZipFileCount(0); setBlueprint(null); }}
+                placeholder="Paste code here for ZERLAL analysis…"
+                className="min-h-[180px] w-full resize-y rounded-lg border border-border/20 bg-card/30 px-3 py-2 font-mono text-[11px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/40"
+              />
+              {code.trim() && <SelectedTarget filename={filename || "pasted-code.ts"} isZipFile={false} byteSize={byteSize} lineCount={code.split("\n").length} zipFileCount={zipFileCount} auditing={auditing} onClear={clearFile} onAudit={handleAudit} />}
             </div>
           )}
 
