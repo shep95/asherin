@@ -91,6 +91,16 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
     return !!opts.shouldAbort?.();
   };
 
+  // Token-bucket gate so spawns are spaced out across the swarm.
+  const perAgentDelayMs = Math.max(0, opts.perAgentDelayMs ?? 800);
+  let lastSpawnAt = 0;
+  const queueGate = async (): Promise<void> => {
+    if (perAgentDelayMs <= 0) return;
+    const wait = lastSpawnAt + perAgentDelayMs - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastSpawnAt = Date.now();
+  };
+
   for (let pass = 1; pass <= max; pass++) {
     if (await waitWhilePaused()) {
       const finalErrors = collect().length;
@@ -103,7 +113,9 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
       errorCount: errors.length,
       sample: errors.slice(0, 5).map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`),
     });
-    if (errors.length === 0) {
+    // In scan-all mode we keep iterating even with zero validator errors,
+    // because the goal is to audit logic across every file.
+    if (errors.length === 0 && !opts.scanAllFiles) {
       return { passes: pass - 1, finalErrorCount: 0, clean: true, history };
     }
 
