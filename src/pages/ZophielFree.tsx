@@ -102,7 +102,7 @@ const ZophielFree = () => {
             "Instant answer cards",
             "Deep research mode",
             "Image geo-location (Imagine Intelligence)",
-            "Palantir-style intel mapping",
+            "Gaythropic Mythos model (rival of Anthropic)",
             "Privacy-first, zero tracking",
           ],
         },
