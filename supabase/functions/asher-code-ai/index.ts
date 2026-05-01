@@ -574,8 +574,9 @@ serve(async (req) => {
         );
       }
 
-      const orchMessages = buildPrompt(payload.subMode || "chat", payload);
-      const orchSystem = buildSystemPrompt(payload);
+      const rawOrchMessages = buildPrompt(payload.subMode || "chat", payload);
+      const rawOrchSystem = buildSystemPrompt(payload);
+      const { system: orchSystem, messages: orchMessages } = clampPayload(rawOrchSystem, rawOrchMessages);
       const t0 = Date.now();
       const settled = await Promise.allSettled(calls.map((c) => dispatch(c, orchMessages, orchSystem, 4096)));
       const responses = settled.map((s, i) => ({
