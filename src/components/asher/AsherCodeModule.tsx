@@ -166,6 +166,11 @@ export default function AsherCodeModule() {
   // Short-lived flag set the moment the user clicks "Fix Bugs & Logic" so the
   // button shows "Running…" even before the first agent has spawned.
   const [fixBugsPending, setFixBugsPending] = useState(false);
+  // Pause control for the swarm autofix loop. Backed by a ref so the loop
+  // can read the latest value without re-renders restarting it.
+  const [swarmPaused, setSwarmPaused] = useState(false);
+  const swarmPausedRef = useRef(false);
+  useEffect(() => { swarmPausedRef.current = swarmPaused; }, [swarmPaused]);
   // Workflow Map state — persists agent history so the Workflow tab still shows
   // the run after individual agent pills have dissolved from the chat overlay.
   const [workflowEvents, setWorkflowEvents] = useState<WorkflowEvent[]>([]);
