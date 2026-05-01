@@ -117,6 +117,70 @@ function VedicWheel({
   );
 }
 
+function DashaNode({
+  period,
+  expandedKey,
+  expandedMap,
+  setExpandedMap,
+  isOpen,
+  depth = 0,
+}: {
+  period: DashaPeriod;
+  expandedKey: string;
+  expandedMap: Record<string, boolean>;
+  setExpandedMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  isOpen: boolean;
+  depth?: number;
+}) {
+  const canExpand = period.level !== "prana";
+  const useDateTime = period.level === "sookshma" || period.level === "prana";
+  const toggle = () => {
+    if (!canExpand) return;
+    if (!period.children) ensureChildren(period);
+    setExpandedMap((m) => ({ ...m, [expandedKey]: !isOpen }));
+  };
+  const borderClass = period.isCurrent ? "border-foreground/40 bg-foreground/[0.045]" : "border-border/20 bg-background/25";
+  const padding = depth === 0 ? "p-3" : "px-2.5 py-1.5";
+  const labelClass = depth === 0 ? "text-sm text-foreground/85 font-light" : "text-[11px] text-foreground/80 font-light";
+  return (
+    <div className={`rounded-lg border ${borderClass} ${padding}`}>
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={!canExpand}
+        className="w-full flex items-center justify-between gap-3 flex-wrap text-left disabled:cursor-default"
+      >
+        <div className="flex items-center gap-2">
+          {canExpand && <span className="text-[9px] text-muted-foreground/60 w-3 inline-block">{isOpen ? "▾" : "▸"}</span>}
+          <span className={labelClass}>{period.lord} <span className="text-muted-foreground/60 text-[10px] uppercase tracking-wider ml-1">{DASHA_LEVEL_LABEL[period.level]}</span></span>
+        </div>
+        <div className="text-[10px] text-muted-foreground tabular-nums">
+          {useDateTime ? fmtDateTime(period.start) : fmtDate(period.start)} → {useDateTime ? fmtDateTime(period.end) : fmtDate(period.end)} · {fmtDuration(period.years)}
+        </div>
+      </button>
+      {isOpen && period.children && period.children.length > 0 && (
+        <div className="mt-2 space-y-1.5 pl-3 border-l border-border/15">
+          {period.children.map((child) => {
+            const childKey = `${expandedKey}>${child.level}:${child.lord}:${child.start.toISOString()}`;
+            const childOpen = expandedMap[childKey] ?? child.isCurrent;
+            return (
+              <DashaNode
+                key={childKey}
+                period={child}
+                expandedKey={childKey}
+                expandedMap={expandedMap}
+                setExpandedMap={setExpandedMap}
+                isOpen={childOpen}
+                depth={depth + 1}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("12:00");
