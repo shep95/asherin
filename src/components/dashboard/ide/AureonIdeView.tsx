@@ -216,6 +216,8 @@ const AureonIdeView = () => {
         });
         corrected = extractCodeBlock(forced.reply || "").trim();
         if (corrected && corrected !== current.trim()) break;
+        // Scan-all mode: AI confirms the file is already clean — treat as success.
+        if (ownIssues.length === 0) return true;
         return false;
       } catch (e: any) {
         lastErr = e;
@@ -224,7 +226,10 @@ const AureonIdeView = () => {
         await new Promise((r) => setTimeout(r, (2 ** attempt) * 1000 + Math.floor(Math.random() * 600)));
       }
     }
-    if (!corrected || corrected === current.trim()) throw lastErr ?? new Error("No corrected code produced");
+    if (!corrected || corrected === current.trim()) {
+      if (ownIssues.length === 0) return true;
+      throw lastErr ?? new Error("No corrected code produced");
+    }
 
     const updateInTree = (nodes: IdeFile[]): IdeFile[] =>
       nodes.map((n) => {
