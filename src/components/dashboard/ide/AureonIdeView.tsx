@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
