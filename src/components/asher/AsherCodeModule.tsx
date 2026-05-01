@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ASHER_CODE_PROVIDERS, type AsherCodeProject, type AsherCodeFile } from "@/lib/asherCode/types";
 import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, type CallAsherCodeResult } from "@/lib/asherCode/aiClient";
+import { routeGoal } from "@/lib/asherCode/goalRouter";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
 import {
@@ -1173,6 +1174,61 @@ try {
   async function sendChat() {
     if ((!chatInput.trim() && pendingUploads.length === 0) || aiBusy) return;
     if (zanoemMode) return sendChatViaZanoem();
+
+    // ── GOAL ROUTER ────────────────────────────────────────────
+    // Before treating this as a normal chat turn, classify the prompt.
+    // High-level commands like "finish building this product" or
+    // "fix every bug" auto-dispatch to the swarm / ZANOEM autopilot
+    // — the user does NOT need to be on a specific file.
+    const goal = routeGoal(chatInput);
+    if (goal.intent === "swarm_fix" && chatInput.trim()) {
+      if (!activeProject) {
+        toast.error("Open a project first so the swarm has something to scan");
+      } else {
+        const userMsg: ChatMsg = { role: "user", content: chatInput };
+        const ackMsg: ChatMsg = {
+          role: "assistant",
+          content: `◈ **Swarm dispatched.** Scanning every file in **${activeProject.name}** for bugs, validator errors, and broken logic. Watch the chip strip below — one agent per broken file, all in parallel. I'll re-engage until the codebase is clean.`,
+        };
+        setChat([...chat, userMsg, ackMsg]);
+        setChatInput("");
+        setPendingUploads([]);
+        void persistChatMessages([userMsg, ackMsg]);
+        if (!autoDebug) setAutoDebug(true);
+        autoDebugRef.current = true;
+        setFixBugsPending(true);
+        window.setTimeout(() => setFixBugsPending(false), 12000);
+        toast.message("◈ Goal Router → Swarm Fix", { description: goal.reason });
+        void zqEnqueue({
+          kind: "autofix",
+          payload: { projectRef: activeProject.id },
+          surface: "asher_ide",
+          projectRef: activeProject.id,
+          ownerUserId: user?.id,
+        });
+        return;
+      }
+    }
+    if (goal.intent === "build_all" && chatInput.trim()) {
+      if (!activeProject) {
+        toast.error("Open a project first so I have somewhere to build");
+      } else {
+        toast.message("◈ Goal Router → Build All", { description: goal.reason });
+        // Force ZANOEM autopilot ON for the duration of this build, then
+        // hand the goal to the ZANOEM dispatcher which already knows how
+        // to invent / extend / file-by-file write code from a single prompt.
+        if (!zanoemMode) setZanoemMode(true);
+        if (!autopilotZanoem) { setAutopilotZanoem(true); autopilotZanoemRef.current = true; }
+        // Reset the autopilot round counter so this build gets the full budget.
+        autopilotRoundsRef.current = 0;
+        const enriched = `${chatInput}\n\n[GOAL ROUTER DIRECTIVE]\nThis is a project-wide build request. Plan the complete file tree, then write each file in turn. Do not stop until every file in the plan is written and the build is shippable. After each file, list what's still missing and continue automatically.`;
+        // Defer one tick so the zanoemMode state flush lands before dispatch.
+        setTimeout(() => { void sendChatViaZanoem(enriched, false); }, 50);
+        return;
+      }
+    }
+    // edit_file and chat fall through to the normal path below.
+
     // Compose attachments into the user message
     let composed = chatInput;
     const imageAttachments: { name: string; dataUrl: string }[] = [];
