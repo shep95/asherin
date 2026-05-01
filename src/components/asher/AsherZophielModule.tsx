@@ -1,6 +1,6 @@
 // AsherZophielModule — embeds the Zophiel search/intel engine inside the Asher dashboard.
 import { lazy, Suspense, useState } from "react";
-import { Loader2, Shield, X } from "lucide-react";
+import { Loader2, Shield, X, AlertOctagon } from "lucide-react";
 
 const ZophielEngineView = lazy(() => import("@/components/dashboard/ZophielEngineView"));
 
