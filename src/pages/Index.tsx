@@ -692,7 +692,7 @@ const Index = () => {
                   { feature: "Azplen Data Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "NOMAD OSINT", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Elion / Zohar Toolkit", lifetime: false, chat: false, aureon: false, pro: true },
-                  { feature: "ZALI Design Lab", lifetime: false, chat: false, aureon: false, pro: true },
+                  { feature: "ZANOEM Design Lab", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Predictive Intelligence", lifetime: false, chat: false, aureon: false, pro: true },
                   { feature: "Daily Briefings", lifetime: false, chat: false, aureon: false, pro: true },
                 ].map((row, i) => (
@@ -956,7 +956,7 @@ const Index = () => {
                 </div>
                 <div className="flex flex-col gap-2">
                   <p className="text-[9px] font-medium tracking-[0.2em] text-muted-foreground/50 uppercase mb-1">Creation</p>
-                  <Link to="/feature/zali" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">ZALI Design Lab</Link>
+                  <Link to="/feature/zali" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">ZANOEM Design Lab</Link>
                   <Link to="/feature/imagine-to-code" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Imagine To Code</Link>
                   <Link to="/feature/ide" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Aureon IDE</Link>
                   <Link to="/feature/vibe-imager" className="text-xs font-extralight tracking-wide text-muted-foreground hover:text-foreground transition-colors">Vibe Imager</Link>

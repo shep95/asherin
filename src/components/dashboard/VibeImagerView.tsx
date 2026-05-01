@@ -561,7 +561,7 @@ const VibeImagerView = () => {
           </div>
         )}
 
-        <p className="text-[9px] text-muted-foreground/30 tracking-wider pb-4">AI-Powered Image Editing • Created By ZALI Software</p>
+        <p className="text-[9px] text-muted-foreground/30 tracking-wider pb-4">AI-Powered Image Editing • Created By ZANOEM Software</p>
       </div>
     );
   }

@@ -191,7 +191,7 @@ const ComponentLibraryPanel = () => {
                 <AlertTriangle className="h-4 w-4 text-amber-400" />
                 <h3 className="text-xs font-light text-foreground">Known Compatibility Issues</h3>
               </div>
-              <p className="text-[10px] text-muted-foreground/50 mb-4">ZALI automatically detects when selected components have known conflicts.</p>
+              <p className="text-[10px] text-muted-foreground/50 mb-4">ZANOEM automatically detects when selected components have known conflicts.</p>
               {components.length === 0 ? (
                 <p className="text-[10px] text-muted-foreground/30 text-center py-4">Add components to check compatibility</p>
               ) : (

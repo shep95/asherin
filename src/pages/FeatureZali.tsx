@@ -14,19 +14,19 @@ const capabilities = [
     icon: MessageSquare,
     title: "Conversational Design",
     description:
-      "Describe what you want to build in natural language. ZALI interprets your intent and generates structured design specifications automatically.",
+      "Describe what you want to build in natural language. ZANOEM interprets your intent and generates structured design specifications automatically.",
   },
   {
     icon: Layers,
     title: "Multi-Phase Workflow",
     description:
-      "From concept to specification — ZALI guides you through research, ideation, specification, cost analysis, and manufacturing feasibility in a structured pipeline.",
+      "From concept to specification — ZANOEM guides you through research, ideation, specification, cost analysis, and manufacturing feasibility in a structured pipeline.",
   },
   {
     icon: Lightbulb,
     title: "AI Research Integration",
     description:
-      "ZALI pulls relevant research, patents, material properties, and engineering standards to inform your design decisions with real data.",
+      "ZANOEM pulls relevant research, patents, material properties, and engineering standards to inform your design decisions with real data.",
   },
   {
     icon: FileText,
@@ -44,7 +44,7 @@ const capabilities = [
     icon: Users,
     title: "Community & Collaboration",
     description:
-      "Share designs, get feedback, and collaborate with other engineers and designers in the ZALI community space.",
+      "Share designs, get feedback, and collaborate with other engineers and designers in the ZANOEM community space.",
   },
 ];
 
@@ -63,7 +63,7 @@ const FeatureZali = () => {
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
-    document.title = "ZALI Design Lab — Aureon";
+    document.title = "ZANOEM Design Lab — Aureon";
   }, []);
 
   const handleDownloadBlueprint = async () => {
@@ -105,8 +105,8 @@ const FeatureZali = () => {
           <span className="text-muted-foreground">Engineer With Precision.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-base font-extralight leading-relaxed text-muted-foreground">
-          ZALI is an AI-powered design lab that takes you from concept to specification.
-          Describe what you want to build — ZALI handles research, specifications, cost analysis, and manufacturing feasibility.
+          ZANOEM is an AI-powered design lab that takes you from concept to specification.
+          Describe what you want to build — ZANOEM handles research, specifications, cost analysis, and manufacturing feasibility.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <Link to="/pricing" className="group flex items-center gap-2 rounded-xl bg-foreground px-8 py-3 text-sm font-light tracking-wide text-background transition-all hover:bg-foreground/90">
@@ -121,9 +121,9 @@ const FeatureZali = () => {
       {/* Capabilities */}
       <section className="relative z-10 px-6 py-24">
         <div className="mx-auto max-w-6xl">
-          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">What ZALI Does</h2>
+          <h2 className="text-2xl sm:text-3xl font-extralight tracking-wide text-foreground mb-4">What ZANOEM Does</h2>
           <p className="text-sm font-extralight text-muted-foreground mb-12 max-w-2xl">
-            From napkin sketch to engineering specification — ZALI bridges the gap between idea and executable design.
+            From napkin sketch to engineering specification — ZANOEM bridges the gap between idea and executable design.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {capabilities.map((cap) => (
@@ -139,7 +139,7 @@ const FeatureZali = () => {
 
       {/* Architecture */}
       <AgentArchitectureDiagram
-        title="ZALI Design Intelligence Architecture"
+        title="ZANOEM Design Intelligence Architecture"
         subtitle="A multi-phase autonomous design pipeline. Natural language intent flows through specialist sub-agents — each handling a distinct engineering domain — converging in a complete specification."
         layers={[
           {
@@ -217,7 +217,7 @@ const FeatureZali = () => {
               className="group flex items-center gap-2 rounded-xl bg-accent text-accent-foreground px-6 py-3 text-sm font-light tracking-wide transition-all hover:bg-accent/90 disabled:opacity-50"
             >
               <Download className="h-4 w-4" />
-              {downloading ? "Downloading..." : "Download ZALI Blueprint"}
+              {downloading ? "Downloading..." : "Download ZANOEM Blueprint"}
             </button>
           </div>
         </section>

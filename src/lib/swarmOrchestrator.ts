@@ -211,7 +211,7 @@ Signal handoff by including [HANDOFF:agent-id] in your reasoning.`,
 
 const CODE_ENGINEER: SwarmAgent = {
   id: "code-engineer",
-  name: "ZALI Code Intelligence",
+  name: "ZANOEM Code Intelligence",
   module: "zali",
   description: "Software engineering, code review, architecture design, and reverse engineering",
   capabilities: ["code generation", "architecture design", "code review", "reverse engineering", "debugging"],

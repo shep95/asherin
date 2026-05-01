@@ -64,7 +64,7 @@ const ZaliAgentsPanel = () => {
       <div className="p-4 sm:p-6">
         <h3 className="text-xs font-light tracking-[0.15em] text-muted-foreground uppercase mb-3 sm:mb-4">Specialist Agents</h3>
         <p className="text-[10px] text-muted-foreground/50 mb-4 sm:mb-6">
-          ZALI delegates to specialist agents for deep domain expertise. Reference them in chat: "[OPTIMUS]: analyze the optical system"
+          ZANOEM delegates to specialist agents for deep domain expertise. Reference them in chat: "[OPTIMUS]: analyze the optical system"
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

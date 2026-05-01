@@ -170,14 +170,14 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
   const downloadConversation = useCallback(() => {
     if (!messages.length) return;
     const lines = messages.map(m =>
-      `**${m.role === "user" ? "You" : "ZALI"}** (${m.createdAt.toLocaleString()}):\n${m.content}`
+      `**${m.role === "user" ? "You" : "ZANOEM"}** (${m.createdAt.toLocaleString()}):\n${m.content}`
     );
-    const md = `# ZALI Design Lab — ${project?.name || "Conversation"}\n\n${lines.join("\n\n---\n\n")}`;
+    const md = `# ZANOEM Design Lab — ${project?.name || "Conversation"}\n\n${lines.join("\n\n---\n\n")}`;
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ZALI-${(project?.name || "conversation").replace(/[^a-zA-Z0-9 -]/g, "")}.md`;
+    a.download = `ZANOEM-${(project?.name || "conversation").replace(/[^a-zA-Z0-9 -]/g, "")}.md`;
     a.click();
     URL.revokeObjectURL(url);
   }, [messages, project]);
@@ -186,9 +186,9 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
   const showSuggestions = lastMsg?.role === "assistant" && !isStreaming && suggestions.length > 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background/40">
       {/* Top bar with mode/depth */}
-      <div className="flex-shrink-0 px-3 py-2.5 border-b border-border/20 hidden md:flex items-center justify-between gap-2">
+      <div className="flex-shrink-0 px-3 py-2 border-b border-border/15 hidden md:flex items-center justify-between gap-2">
         <ModeSelector active={mode} onChange={onModeChange} />
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
@@ -202,33 +202,36 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
       </div>
 
       {/* Mobile compact mode/depth bar */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-border/20 flex md:hidden items-center justify-between gap-2">
+      <div className="flex-shrink-0 px-3 py-2 border-b border-border/15 flex md:hidden items-center justify-between gap-2">
         <ModeSelector active={mode} onChange={onModeChange} />
         <DepthSelector active={depth} onChange={onDepthChange} />
       </div>
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
-        <div className="p-2.5 sm:p-4 space-y-2.5 sm:space-y-4">
+        <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-8 sm:py-12 animate-fade-in">
-              <div className="flex items-center justify-center gap-1.5 mb-2">
+            <div className="text-center py-10 sm:py-14 animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border/20 bg-card/30 mb-4">
                 <Lock className="h-3 w-3 text-emerald-500/70" />
-                <span className="text-xs font-extralight text-emerald-500/70">End-to-end encrypted</span>
+                <span className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground/80">End-to-end encrypted</span>
               </div>
-              <p className="text-sm font-extralight text-muted-foreground">
-                {project ? "Describe what you want to design..." : "Create a project to start designing"}
+              <p className="text-[13px] font-extralight text-foreground/80 mb-1">
+                {project ? "Describe what you want to design" : "Create a project to start designing"}
+              </p>
+              <p className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground/50">
+                ZANOEM Design Intelligence
               </p>
               {project && (
-                <div className="mt-4 space-y-1.5">
-                  <p className="text-[10px] text-muted-foreground/50">Example prompts:</p>
+                <div className="mt-6 space-y-1.5 max-w-md mx-auto">
+                  <p className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/40 mb-2">Example prompts</p>
                   {[
                     "Design a camera with human eye quality",
                     "Create a biodegradable phone case from mushroom mycelium",
                     "Engineer a water purification tablet for disaster zones",
                     "Design a neural interface for paralysis patients",
                   ].map((p) => (
-                    <button key={p} onClick={() => onSend(p)} className="block w-full text-left text-[11px] text-muted-foreground/60 hover:text-foreground rounded-lg px-3 py-2 hover:bg-foreground/5 transition-colors">
+                    <button key={p} onClick={() => onSend(p)} className="block w-full text-left text-[11px] font-light text-muted-foreground/70 hover:text-foreground rounded-lg px-3 py-2 hover:bg-foreground/5 border border-transparent hover:border-border/20 transition-all">
                       → {p}
                     </button>
                   ))}
@@ -318,13 +321,13 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
 
       {/* Input — subscription gated */}
       {subLoading ? (
-        <div className="flex-shrink-0 p-3 border-t border-border/20" />
+        <div className="flex-shrink-0 p-3 border-t border-border/15" />
       ) : !subscribed && !isAdmin ? (
-        <div className="flex-shrink-0 border-t border-border/20 bg-card/30 backdrop-blur-md px-3 py-3">
+        <div className="flex-shrink-0 border-t border-border/15 bg-card/30 backdrop-blur-md px-3 py-3">
           <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-2.5">
             <div className="flex items-center gap-2">
               <Lock className="h-3.5 w-3.5 text-accent shrink-0" />
-              <p className="text-[11px] font-light text-foreground">Subscribe to use ZALI.</p>
+              <p className="text-[11px] font-light text-foreground">Subscribe to use ZANOEM.</p>
             </div>
             <a
               href="/dashboard"
@@ -336,7 +339,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
           </div>
         </div>
       ) : (
-        <div className="flex-shrink-0 border-t border-border/20">
+        <div className="flex-shrink-0 border-t border-border/15 bg-card/20 backdrop-blur-sm">
           {/* Generate Code button for software projects */}
           {isSoftwareProject(project) && messages.length > 0 && !isStreaming && (
             <div className="px-2 sm:px-3 pt-2.5 pb-1">
@@ -350,21 +353,21 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
               </button>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="p-2 sm:p-3">
-            <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2.5 sm:py-2">
+          <form onSubmit={handleSubmit} className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border/25 bg-background/40 focus-within:border-foreground/30 focus-within:bg-background/60 px-3.5 py-2.5 transition-colors">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={project ? "Describe your design concept..." : "Create a project first"}
+                placeholder={project ? "Message ZANOEM…" : "Create a project first"}
                 disabled={!project || isStreaming}
-                className="flex-1 bg-transparent text-[11px] sm:text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
+                className="flex-1 bg-transparent text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
               />
               {isStreaming ? (
-                <button type="button" onClick={onStop} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
+                <button type="button" onClick={onStop} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors" title="Stop">
                   <Square className="h-3.5 w-3.5" />
                 </button>
               ) : (
-                <button type="submit" disabled={!input.trim() || !project} className="p-1.5 rounded-lg text-accent hover:bg-accent/10 transition-colors disabled:opacity-30">
+                <button type="submit" disabled={!input.trim() || !project} className="p-1.5 rounded-lg text-accent hover:bg-accent/10 transition-colors disabled:opacity-30" title="Send">
                   <Send className="h-3.5 w-3.5" />
                 </button>
               )}
