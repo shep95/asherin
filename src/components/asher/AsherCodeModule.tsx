@@ -1340,7 +1340,8 @@ try {
     setAiBusy(true);
     try {
       const projectFiles = files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }));
-      const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles, ...aureon });
       const plan = extractJsonBlock<EditPlan>(r.reply || "");
       if (!plan?.edits?.length) { toast.error("AI did not return a valid edit plan"); return; }
       if (autoApprove) {
