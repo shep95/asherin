@@ -1,0 +1,496 @@
+import { useMemo, useState } from "react";
+import { Loader2, Moon, Sparkles, MapPin } from "lucide-react";
+import * as Astronomy from "astronomy-engine";
+import {
+  nakshatras,
+  rashis,
+  getNakshatraFromDeg,
+  getRashiFromDeg,
+} from "@/data/nakshatraData";
+
+/**
+ * VEDIC ASTROLOGY — Sidereal natal chart (Lahiri ayanamsa).
+ * Self-contained: uses astronomy-engine for tropical positions, then
+ * subtracts Lahiri ayanamsa to derive sidereal (Vedic) longitudes.
+ * No WASM, no backend — pure client computation.
+ */
+
+interface Planet {
+  name: string;
+  symbol: string;
+  body: Astronomy.Body | "Rahu" | "Ketu";
+  trop: number;
+  sid: number;
+  retrograde: boolean;
+}
+
+const PLANET_DEFS: { name: string; symbol: string; body: Astronomy.Body | "Rahu" | "Ketu" }[] = [
+  { name: "Sun", symbol: "☉", body: Astronomy.Body.Sun },
+  { name: "Moon", symbol: "☽", body: Astronomy.Body.Moon },
+  { name: "Mercury", symbol: "☿", body: Astronomy.Body.Mercury },
+  { name: "Venus", symbol: "♀", body: Astronomy.Body.Venus },
+  { name: "Mars", symbol: "♂", body: Astronomy.Body.Mars },
+  { name: "Jupiter", symbol: "♃", body: Astronomy.Body.Jupiter },
+  { name: "Saturn", symbol: "♄", body: Astronomy.Body.Saturn },
+  { name: "Rahu", symbol: "☊", body: "Rahu" },
+  { name: "Ketu", symbol: "☋", body: "Ketu" },
+];
+
+// Lahiri ayanamsa at J2000.0 ≈ 23.85°, drifting ~50.29″ / yr.
+function lahiriAyanamsa(date: Date): number {
+  const J2000 = new Date(Date.UTC(2000, 0, 1, 12, 0, 0)).getTime();
+  const years = (date.getTime() - J2000) / (365.25 * 86400000);
+  return 23.85 + (years * 50.29) / 3600;
+}
+
+function trueNodeLongitude(date: Date): number {
+  // Mean lunar node formula (Meeus). Returns ecliptic longitude of ascending node.
+  const T = (date.getTime() / 86400000 + 2440587.5 - 2451545.0) / 36525;
+  let omega =
+    125.04452 -
+    1934.136261 * T +
+    0.0020708 * T * T +
+    (T * T * T) / 450000;
+  omega = ((omega % 360) + 360) % 360;
+  // Rahu = ascending node longitude (retrograde-moving).
+  return omega;
+}
+
+function norm360(x: number): number {
+  return ((x % 360) + 360) % 360;
+}
+
+function fmtDeg(deg: number): string {
+  const d = Math.floor(deg);
+  const mFloat = (deg - d) * 60;
+  const m = Math.floor(mFloat);
+  const s = Math.floor((mFloat - m) * 60);
+  return `${d}° ${m.toString().padStart(2, "0")}' ${s.toString().padStart(2, "0")}"`;
+}
+
+function computeChart(birthUtc: Date, lat: number, lon: number) {
+  const time = new Astronomy.AstroTime(birthUtc);
+  const ayan = lahiriAyanamsa(birthUtc);
+
+  const planets: Planet[] = [];
+  for (const def of PLANET_DEFS) {
+    if (def.body === "Rahu") {
+      const trop = trueNodeLongitude(birthUtc);
+      planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde: true });
+    } else if (def.body === "Ketu") {
+      const rahu = trueNodeLongitude(birthUtc);
+      const trop = norm360(rahu + 180);
+      planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde: true });
+    } else {
+      const eq = Astronomy.Ecliptic(
+        Astronomy.GeoVector(def.body as Astronomy.Body, time, true),
+      );
+      const trop = norm360(eq.elon);
+      // Retrograde detection — sample +1 day delta in ecliptic longitude.
+      let retrograde = false;
+      if (def.body !== Astronomy.Body.Sun && def.body !== Astronomy.Body.Moon) {
+        const t2 = new Astronomy.AstroTime(new Date(birthUtc.getTime() + 86400000));
+        const eq2 = Astronomy.Ecliptic(Astronomy.GeoVector(def.body as Astronomy.Body, t2, true));
+        const delta = norm360(eq2.elon - trop + 180) - 180;
+        retrograde = delta < 0;
+      }
+      planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde });
+    }
+  }
+
+  // Ascendant via local sidereal time.
+  const gst = Astronomy.SiderealTime(time); // hours
+  const lst = (gst + lon / 15) * 15; // degrees
+  const lstRad = (lst * Math.PI) / 180;
+  const latRad = (lat * Math.PI) / 180;
+  const obliquity = 23.4392911 * (Math.PI / 180);
+  const ascRad = Math.atan2(
+    -Math.cos(lstRad),
+    Math.sin(lstRad) * Math.cos(obliquity) + Math.tan(latRad) * Math.sin(obliquity),
+  );
+  let ascTrop = (ascRad * 180) / Math.PI;
+  ascTrop = norm360(ascTrop);
+  const ascSid = norm360(ascTrop - ayan);
+
+  return { planets, ascendant: ascSid, ayanamsa: ayan };
+}
+
+/* ── North-Indian style square wheel ───────────────────────── */
+function VedicWheel({
+  ascendant,
+  planets,
+  size = 420,
+}: {
+  ascendant: number;
+  planets: Planet[];
+  size?: number;
+}) {
+  const houses = useMemo(() => {
+    const ascSign = Math.floor(ascendant / 30);
+    const list: { house: number; signIndex: number; planets: Planet[] }[] = [];
+    for (let i = 0; i < 12; i++) {
+      const signIndex = (ascSign + i) % 12;
+      const housePlanets = planets.filter(
+        (p) => Math.floor(p.sid / 30) === signIndex,
+      );
+      list.push({ house: i + 1, signIndex, planets: housePlanets });
+    }
+    return list;
+  }, [ascendant, planets]);
+
+  const c = size / 2;
+  const r = size / 2;
+
+  // 12 diamond/triangle slots — North Indian layout coordinates as fractions of size.
+  // Houses arranged: 1=top-center diamond, 2=top-left triangle, 3=left-top, 4=left-center, ...
+  const SLOTS = [
+    { x: 0.5, y: 0.25 }, // 1
+    { x: 0.25, y: 0.12 }, // 2
+    { x: 0.12, y: 0.25 }, // 3
+    { x: 0.25, y: 0.5 }, // 4
+    { x: 0.12, y: 0.75 }, // 5
+    { x: 0.25, y: 0.88 }, // 6
+    { x: 0.5, y: 0.75 }, // 7
+    { x: 0.75, y: 0.88 }, // 8
+    { x: 0.88, y: 0.75 }, // 9
+    { x: 0.75, y: 0.5 }, // 10
+    { x: 0.88, y: 0.25 }, // 11
+    { x: 0.75, y: 0.12 }, // 12
+  ];
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="select-none"
+    >
+      {/* Outer square */}
+      <rect
+        x={1}
+        y={1}
+        width={size - 2}
+        height={size - 2}
+        fill="none"
+        stroke="hsl(var(--border) / 0.3)"
+        strokeWidth={1}
+      />
+      {/* Diagonals */}
+      <line x1={0} y1={0} x2={size} y2={size} stroke="hsl(var(--border) / 0.25)" />
+      <line x1={size} y1={0} x2={0} y2={size} stroke="hsl(var(--border) / 0.25)" />
+      {/* Inner diamond */}
+      <polygon
+        points={`${c},0 ${size},${c} ${c},${size} 0,${c}`}
+        fill="none"
+        stroke="hsl(var(--border) / 0.3)"
+      />
+      {/* Houses content */}
+      {houses.map((h, i) => {
+        const slot = SLOTS[i];
+        const px = slot.x * size;
+        const py = slot.y * size;
+        return (
+          <g key={i}>
+            <text
+              x={px}
+              y={py - 32}
+              textAnchor="middle"
+              fontSize={9}
+              fill="hsl(var(--muted-foreground) / 0.45)"
+              fontWeight={300}
+              letterSpacing="0.1em"
+            >
+              {rashis[h.signIndex].sanskrit} · H{h.house}
+            </text>
+            {h.planets.map((p, j) => (
+              <text
+                key={p.name}
+                x={px}
+                y={py - 14 + j * 12}
+                textAnchor="middle"
+                fontSize={11}
+                fill="hsl(var(--foreground) / 0.85)"
+                fontWeight={300}
+              >
+                {p.symbol} {p.name.slice(0, 2)}
+                {p.retrograde ? "ʀ" : ""}
+              </text>
+            ))}
+          </g>
+        );
+      })}
+      {/* Ascendant marker */}
+      <text
+        x={c}
+        y={size - 6}
+        textAnchor="middle"
+        fontSize={9}
+        fill="hsl(var(--muted-foreground) / 0.5)"
+        letterSpacing="0.15em"
+      >
+        ASC {fmtDeg(ascendant % 30)} {rashis[Math.floor(ascendant / 30)].name.toUpperCase()}
+      </text>
+    </svg>
+  );
+}
+
+/* ── Component ───────────────────────────────────────────── */
+const VedicAstrologyView = () => {
+  const [birthDate, setBirthDate] = useState("");
+  const [birthTime, setBirthTime] = useState("12:00");
+  const [tzOffset, setTzOffset] = useState("0");
+  const [lat, setLat] = useState("");
+  const [lon, setLon] = useState("");
+  const [cityQuery, setCityQuery] = useState("");
+  const [cityResults, setCityResults] = useState<{ label: string; lat: number; lon: number }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [chart, setChart] = useState<ReturnType<typeof computeChart> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const searchCity = async () => {
+    if (!cityQuery.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(cityQuery)}`,
+        { headers: { "Accept-Language": "en" } },
+      );
+      const data = await res.json();
+      setCityResults(
+        data.map((d: { display_name: string; lat: string; lon: string }) => ({
+          label: d.display_name,
+          lat: parseFloat(d.lat),
+          lon: parseFloat(d.lon),
+        })),
+      );
+    } catch {
+      setError("City lookup failed");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const generateChart = () => {
+    setError(null);
+    try {
+      if (!birthDate) throw new Error("Birth date required");
+      const latNum = parseFloat(lat);
+      const lonNum = parseFloat(lon);
+      if (isNaN(latNum) || isNaN(lonNum)) throw new Error("Latitude / longitude required");
+
+      const [y, m, d] = birthDate.split("-").map(Number);
+      const [hh, mm] = birthTime.split(":").map(Number);
+      const tz = parseFloat(tzOffset) || 0;
+      const utcMs = Date.UTC(y, m - 1, d, hh - tz, mm);
+      const result = computeChart(new Date(utcMs), latNum, lonNum);
+      setChart(result);
+    } catch (e) {
+      setError((e as Error).message);
+      setChart(null);
+    }
+  };
+
+  const ascRashi = chart ? rashis[Math.floor(chart.ascendant / 30)] : null;
+  const moonPlanet = chart?.planets.find((p) => p.name === "Moon");
+  const moonNak = moonPlanet ? getNakshatraFromDeg(moonPlanet.sid) : null;
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto p-6 space-y-6">
+        <div className="flex items-center gap-3">
+          <Moon className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <h2 className="text-xl font-extralight tracking-wide text-foreground">Vedic Astrology</h2>
+            <p className="text-sm font-extralight text-muted-foreground mt-1">
+              Sidereal natal chart computed with Lahiri ayanamsa.
+            </p>
+          </div>
+        </div>
+
+        {/* Input panel */}
+        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="space-y-1">
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth date</span>
+              <input
+                type="date"
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth time (local)</span>
+              <input
+                type="time"
+                value={birthTime}
+                onChange={(e) => setBirthTime(e.target.value)}
+                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">UTC offset (hrs)</span>
+              <input
+                type="number"
+                step="0.5"
+                value={tzOffset}
+                onChange={(e) => setTzOffset(e.target.value)}
+                placeholder="e.g. -5"
+                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+            <div className="flex gap-2">
+              <input
+                value={cityQuery}
+                onChange={(e) => setCityQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && searchCity()}
+                placeholder="Search birth city…"
+                className="flex-1 rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+              <button
+                onClick={searchCity}
+                disabled={searching}
+                className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50"
+              >
+                {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={lat}
+                onChange={(e) => setLat(e.target.value)}
+                placeholder="Lat"
+                className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+              <input
+                value={lon}
+                onChange={(e) => setLon(e.target.value)}
+                placeholder="Lon"
+                className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+            </div>
+          </div>
+
+          {cityResults.length > 0 && (
+            <div className="space-y-1 max-h-40 overflow-y-auto rounded-md border border-border/20 bg-background/30 p-1">
+              {cityResults.map((c, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setLat(c.lat.toFixed(4));
+                    setLon(c.lon.toFixed(4));
+                    setCityQuery(c.label);
+                    setCityResults([]);
+                  }}
+                  className="block w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 rounded"
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            {error && <span className="text-xs text-destructive font-light">{error}</span>}
+            <button
+              onClick={generateChart}
+              className="ml-auto inline-flex items-center gap-2 rounded-md border border-foreground/20 bg-foreground/5 px-4 py-2 text-xs uppercase tracking-wider text-foreground hover:bg-foreground/10 transition"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Generate Chart
+            </button>
+          </div>
+        </div>
+
+        {/* Chart output */}
+        {chart && (
+          <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
+            <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 flex justify-center">
+              <VedicWheel ascendant={chart.ascendant} planets={chart.planets} />
+            </div>
+
+            <div className="space-y-4">
+              {ascRashi && (
+                <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
+                  <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">
+                    Ascendant (Lagna)
+                  </div>
+                  <div className="text-lg font-extralight text-foreground">
+                    {ascRashi.name} <span className="text-muted-foreground">· {ascRashi.sanskrit}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {fmtDeg(chart.ascendant % 30)} · ruled by {ascRashi.ruler}
+                  </div>
+                </div>
+              )}
+
+              {moonPlanet && moonNak && (
+                <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
+                  <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">
+                    Moon Nakshatra
+                  </div>
+                  <div className="text-lg font-extralight text-foreground">
+                    {moonNak.nakshatra.name}{" "}
+                    <span className="text-muted-foreground">· Pada {moonNak.pada}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Ruled by {moonNak.nakshatra.ruler} · Deity {moonNak.nakshatra.deity}
+                  </div>
+                  <div className="text-xs text-muted-foreground/80 mt-2 leading-relaxed font-light">
+                    {moonNak.nakshatra.description}
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
+                <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-3">
+                  Planetary Positions (Sidereal · Lahiri)
+                </div>
+                <div className="space-y-1.5">
+                  {chart.planets.map((p) => {
+                    const r = getRashiFromDeg(p.sid);
+                    const n = getNakshatraFromDeg(p.sid);
+                    return (
+                      <div
+                        key={p.name}
+                        className="grid grid-cols-[20px_60px_1fr_auto] items-center gap-3 text-xs font-light"
+                      >
+                        <span className="text-foreground/70">{p.symbol}</span>
+                        <span className="text-foreground">
+                          {p.name}
+                          {p.retrograde && <span className="text-muted-foreground"> ʀ</span>}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {r.name} · {n.nakshatra.name} (Pada {n.pada})
+                        </span>
+                        <span className="text-muted-foreground/70 tabular-nums">
+                          {fmtDeg(p.sid % 30)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 pt-3 border-t border-border/20 text-[10px] text-muted-foreground/60">
+                  Ayanamsa: {chart.ayanamsa.toFixed(4)}°
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!chart && (
+          <div className="rounded-xl border border-dashed border-border/20 bg-card/10 p-10 text-center">
+            <Moon className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground font-light">
+              Enter birth details and generate your sidereal Vedic chart.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default VedicAstrologyView;
