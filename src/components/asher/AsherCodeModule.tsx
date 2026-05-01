@@ -25,7 +25,7 @@ import {
   AnimatedOrbBackground,
   type PlannedChange,
 } from "@/components/ide-shared";
-import { snapshotIfChanged, routeTask, type IdeModelId } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId } from "@/lib/ide";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
