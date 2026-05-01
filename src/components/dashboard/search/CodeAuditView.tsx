@@ -621,4 +621,290 @@ const CircularProgress = ({ value }: { value: number }) => {
   );
 };
 
+// ─── ZERLAL UPGRADE PANELS ───────────────────────────────────────────────────
+
+const DEPTHS: { id: ScanDepth; label: string; desc: string }[] = [
+  { id: "quick", label: "Quick", desc: "Fast surface scan" },
+  { id: "standard", label: "Standard", desc: "Balanced depth" },
+  { id: "deep", label: "Deep", desc: "Forensic full sweep" },
+];
+
+const ScanConfigBar = ({
+  depth, onDepthChange, categories, onToggleCategory,
+}: {
+  depth: ScanDepth;
+  onDepthChange: (d: ScanDepth) => void;
+  categories: Set<ScanCategory>;
+  onToggleCategory: (c: ScanCategory) => void;
+}) => (
+  <div className="mt-3 rounded-xl border border-border/15 bg-background/30 px-3 py-2.5 space-y-2">
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-[9px] font-semibold tracking-[0.2em] text-muted-foreground/60 uppercase">Scan Depth</span>
+      {DEPTHS.map((d) => (
+        <button
+          key={d.id}
+          onClick={() => onDepthChange(d.id)}
+          title={d.desc}
+          className={`rounded-md border px-2 py-0.5 text-[10px] tracking-wide transition-colors ${
+            depth === d.id
+              ? "border-accent/50 bg-accent/15 text-accent"
+              : "border-border/20 bg-card/30 text-muted-foreground/70 hover:text-foreground"
+          }`}
+        >
+          {d.label}
+        </button>
+      ))}
+    </div>
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-[9px] font-semibold tracking-[0.2em] text-muted-foreground/60 uppercase">Categories</span>
+      {ALL_CATEGORIES.map((c) => {
+        const on = categories.has(c.id);
+        return (
+          <button
+            key={c.id}
+            onClick={() => onToggleCategory(c.id)}
+            className={`rounded-md border px-2 py-0.5 text-[10px] tracking-wide transition-colors ${
+              on
+                ? "border-foreground/30 bg-foreground/10 text-foreground"
+                : "border-border/15 bg-transparent text-muted-foreground/40 hover:text-muted-foreground/80"
+            }`}
+          >
+            {c.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const LiveScanView = ({
+  progress, progressLabel, liveLog, filename,
+}: {
+  progress: number;
+  progressLabel: string;
+  liveLog: { agent: string; file: string; findings: number; ts: number }[];
+  filename: string;
+}) => (
+  <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-5 space-y-4">
+    <div className="flex items-center gap-3">
+      <CircularProgress value={progress} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-accent/80 uppercase">Live Scan</p>
+        <p className="text-[11px] font-light text-foreground/80 truncate">{progressLabel || `Auditing ${filename || "target"}…`}</p>
+        <p className="text-[9px] font-extralight text-muted-foreground/50 mt-1">{liveLog.length} agent events · {liveLog.reduce((a, b) => a + b.findings, 0)} findings so far</p>
+      </div>
+    </div>
+    <div className="rounded-xl border border-border/15 bg-background/40 max-h-44 overflow-y-auto">
+      {liveLog.length === 0 ? (
+        <p className="px-3 py-3 text-[10px] font-extralight text-muted-foreground/40 italic">Spinning up agents…</p>
+      ) : (
+        <ul className="divide-y divide-border/10">
+          {liveLog.map((e, i) => (
+            <li key={i} className="px-3 py-1.5 flex items-center gap-2 text-[10px] font-light">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent/70 shrink-0" />
+              <span className="text-accent/80 tracking-wide w-32 truncate">{e.agent}</span>
+              <span className="text-muted-foreground/50 truncate flex-1">→ {e.file}</span>
+              <span className={`tabular-nums ${e.findings > 0 ? "text-amber-300/80" : "text-muted-foreground/40"}`}>
+                {e.findings} finding{e.findings === 1 ? "" : "s"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+);
+
+const countSeverities = (b: Blueprint) => {
+  const counts = { high: 0, med: 0, low: 0 };
+  (b.criticals || []).forEach(c => {
+    if (c.severity === "high") counts.high++;
+    else if (c.severity === "med") counts.med++;
+    else counts.low++;
+  });
+  b.branches.forEach(br => {
+    if (br.tone === "critical") counts.high += 1;
+    else if (br.tone === "warn") counts.med += 1;
+  });
+  return counts;
+};
+
+const computeRiskScore = (b: Blueprint): number => {
+  if (typeof b.score?.security === "number") return Math.max(0, Math.min(100, 100 - b.score.security));
+  const counts = countSeverities(b);
+  const raw = counts.high * 25 + counts.med * 10 + counts.low * 3;
+  return Math.max(0, Math.min(100, raw));
+};
+
+const RiskScoreHeader = ({ blueprint }: { blueprint: Blueprint }) => {
+  const risk = computeRiskScore(blueprint);
+  const posture = risk >= 70 ? "CRITICAL" : risk >= 40 ? "ELEVATED" : risk >= 15 ? "MODERATE" : "HEALTHY";
+  const color = risk >= 70 ? "text-red-300 border-red-400/40 bg-red-500/[0.06]"
+    : risk >= 40 ? "text-amber-300 border-amber-400/40 bg-amber-500/[0.06]"
+    : risk >= 15 ? "text-yellow-200 border-yellow-400/30 bg-yellow-500/[0.04]"
+    : "text-emerald-300 border-emerald-400/40 bg-emerald-500/[0.05]";
+  return (
+    <div className={`rounded-2xl border ${color} backdrop-blur-sm px-5 py-4 flex items-center gap-5`}>
+      <div className="flex flex-col items-center justify-center min-w-[80px]">
+        <span className="text-3xl font-light tabular-nums">{risk}</span>
+        <span className="text-[8px] font-extralight tracking-[0.25em] uppercase opacity-70">/ 100</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[9px] font-semibold tracking-[0.25em] uppercase opacity-70">Overall Risk Posture</p>
+        <p className="text-base font-light tracking-wide">{posture}</p>
+        <p className="text-[10px] font-extralight opacity-60 mt-0.5 truncate">
+          {blueprint.target} · {blueprint.branches.length} surfaces analyzed
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const SeverityBreakdown = ({ blueprint }: { blueprint: Blueprint }) => {
+  const counts = countSeverities(blueprint);
+  const total = counts.high + counts.med + counts.low || 1;
+  const segments = [
+    { k: "Critical", n: counts.high, color: "bg-red-400/80" },
+    { k: "High/Med", n: counts.med, color: "bg-amber-400/80" },
+    { k: "Low", n: counts.low, color: "bg-emerald-400/70" },
+  ];
+  return (
+    <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="h-3 w-3 text-foreground/60" />
+        <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Severity Breakdown</span>
+        <span className="ml-auto text-[10px] font-light text-muted-foreground/60 tabular-nums">{counts.high + counts.med + counts.low} total</span>
+      </div>
+      <div className="h-2 rounded-full overflow-hidden flex bg-foreground/[0.05]">
+        {segments.map((s) => (
+          <div key={s.k} className={`h-full ${s.color} transition-all`} style={{ width: `${(s.n / total) * 100}%` }} />
+        ))}
+      </div>
+      <div className="flex items-center gap-4 text-[10px] font-light">
+        {segments.map((s) => (
+          <span key={s.k} className="inline-flex items-center gap-1.5 text-muted-foreground/70">
+            <span className={`h-1.5 w-1.5 rounded-full ${s.color}`} /> {s.k}: <strong className="text-foreground/80 font-medium tabular-nums">{s.n}</strong>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ChainArrow = () => (
+  <svg width="22" height="14" viewBox="0 0 22 14" className="shrink-0 text-red-300/50">
+    <path d="M0 7 H18 M14 3 L18 7 L14 11" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+  </svg>
+);
+
+const ExploitChainMap = ({ blueprint }: { blueprint: Blueprint }) => {
+  const chainNodes = blueprint.criticals && blueprint.criticals.length > 0
+    ? blueprint.criticals.slice(0, 6).map((c, i) => ({ id: `c${i}`, label: c.branch, sub: c.finding, sev: c.severity }))
+    : blueprint.branches.filter(b => b.tone === "critical" || b.tone === "warn").slice(0, 6).map((b) => ({ id: b.id, label: b.label, sub: `${b.leaves.length} signals`, sev: b.tone === "critical" ? "high" as const : "med" as const }));
+
+  if (chainNodes.length < 2) {
+    return (
+      <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm px-5 py-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Workflow className="h-3 w-3 text-foreground/60" />
+          <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Exploit Chain Map</span>
+        </div>
+        <p className="text-[10px] font-extralight text-muted-foreground/50 italic">No exploitable chain detected — isolated weaknesses only.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Workflow className="h-3 w-3 text-red-300/80" />
+        <span className="text-[10px] font-semibold tracking-[0.2em] text-red-300/80 uppercase">Exploit Chain Map</span>
+        <span className="ml-auto text-[9px] font-extralight tracking-wider text-muted-foreground/50 uppercase">{chainNodes.length}-step kill chain</span>
+      </div>
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
+        {chainNodes.map((n, i) => (
+          <div key={n.id} className="flex items-center gap-2 shrink-0">
+            <div className={`rounded-lg border px-3 py-2 min-w-[140px] max-w-[200px] ${
+              n.sev === "high" ? "border-red-400/40 bg-red-500/[0.06]" : "border-amber-400/30 bg-amber-500/[0.05]"
+            }`}>
+              <p className="text-[9px] font-semibold tracking-[0.2em] uppercase text-foreground/70">Step {i + 1}</p>
+              <p className="text-[10px] font-medium text-foreground/90 truncate">{n.label}</p>
+              <p className="text-[9px] font-extralight text-muted-foreground/60 line-clamp-2 mt-0.5">{n.sub}</p>
+            </div>
+            {i < chainNodes.length - 1 && <ChainArrow />}
+          </div>
+        ))}
+      </div>
+      <p className="text-[9px] font-extralight text-muted-foreground/50 mt-3 italic">
+        Chained together, these findings form a viable attack path. Severing any single link breaks the chain.
+      </p>
+    </div>
+  );
+};
+
+const PatternRecognitionPanel = ({ blueprint }: { blueprint: Blueprint }) => {
+  const map = new Map<string, number>();
+  (blueprint.criticals || []).forEach(c => map.set(c.branch, (map.get(c.branch) || 0) + 1));
+  blueprint.branches.forEach(b => {
+    if (b.tone === "warn" || b.tone === "critical") {
+      map.set(b.label, (map.get(b.label) || 0) + b.leaves.length);
+    }
+  });
+  const patterns = Array.from(map.entries()).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  return (
+    <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Brain className="h-3 w-3 text-foreground/60" />
+        <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Pattern Recognition</span>
+      </div>
+      {patterns.length === 0 ? (
+        <p className="text-[10px] font-extralight text-muted-foreground/50 italic">No recurring developer-level patterns detected across the codebase.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {patterns.map(([k, n]) => (
+            <li key={k} className="flex items-center gap-2 text-[11px] font-light">
+              <span className="h-1 w-1 rounded-full bg-amber-400/70 shrink-0" />
+              <span className="text-foreground/80 flex-1 truncate">Recurring weakness in <strong className="font-medium">{k}</strong></span>
+              <span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">×{n}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const SbomPanel = ({ blueprint }: { blueprint: Blueprint }) => {
+  const depsBranch = blueprint.branches.find(b =>
+    /dep|package|library|supply|sbom|module/i.test(b.label) || /dep|plug|wrench/i.test(b.icon)
+  );
+  const deps = depsBranch?.leaves || [];
+
+  return (
+    <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Plug className="h-3 w-3 text-foreground/60" />
+        <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Supply Chain · SBOM</span>
+        <span className="ml-auto text-[9px] font-extralight tracking-wider text-muted-foreground/50 uppercase tabular-nums">
+          {deps.length} component{deps.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      {deps.length === 0 ? (
+        <p className="text-[10px] font-extralight text-muted-foreground/50 italic">No third-party dependencies surfaced from this scan.</p>
+      ) : (
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+          {deps.slice(0, 12).map((l, i) => (
+            <li key={i} className="flex items-center gap-2 text-[10px] font-light min-w-0">
+              <span className="h-1 w-1 rounded-full bg-muted-foreground/40 shrink-0" />
+              <span className="text-muted-foreground/60 uppercase tracking-wider text-[9px] shrink-0">{l.label}</span>
+              <span className="text-foreground/80 truncate flex-1">{l.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 export default ZerlalView;
