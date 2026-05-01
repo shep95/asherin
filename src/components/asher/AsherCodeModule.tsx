@@ -678,7 +678,7 @@ export default function AsherCodeModule() {
   return (
     <div className="flex h-full w-full flex-col bg-background text-foreground">
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-2 border-b border-border/15 bg-card/20 px-2 sm:px-3 py-2 backdrop-blur-md flex-wrap">
+      <div className="relative z-[80] flex items-center justify-between gap-2 border-b border-border/15 bg-card/20 px-2 sm:px-3 py-2 backdrop-blur-md flex-wrap">
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={() => { setActiveProject(null); setFiles([]); }} className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground whitespace-nowrap">← Projects</button>
           <span className="text-muted-foreground/30 hidden sm:inline">/</span>
