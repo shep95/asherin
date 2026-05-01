@@ -580,12 +580,14 @@ export default function AsherCodeModule() {
   // Routes chat through zali-chat (Gemini, no BYOK required) for inventing
   // brand-new software from first principles. Auto-extracts ``` code blocks
   // tagged with file paths and writes them into the project as new files.
-  async function sendChatViaZanoem() {
+  async function sendChatViaZanoem(overrideContent?: string, isAutopilotTurn = false) {
     if (!activeProject || !user) { toast.error("Open a project first"); return; }
-    let composed = chatInput;
-    for (const u of pendingUploads) {
-      if (u.kind === "zip") composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
-      else if (u.kind === "text") composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+    let composed = overrideContent ?? chatInput;
+    if (!isAutopilotTurn) {
+      for (const u of pendingUploads) {
+        if (u.kind === "zip") composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
+        else if (u.kind === "text") composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+      }
     }
     const userMsg: ChatMsg = { role: "user", content: composed };
     const next = [...chat, userMsg];
