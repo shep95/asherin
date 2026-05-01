@@ -6,5 +6,6 @@ export { default as IdeTemplateLauncher } from "./IdeTemplateLauncher";
 export { default as IdeFuzzyFinder } from "./IdeFuzzyFinder";
 export { default as IdeApprovalGate } from "./IdeApprovalGate";
 export { default as IdeModelRouterBadge } from "./IdeModelRouterBadge";
+export { default as AnimatedOrbBackground } from "./AnimatedOrbBackground";
 export type { PlannedChange } from "./IdeApprovalGate";
 export type { FuzzyFile } from "./IdeFuzzyFinder";

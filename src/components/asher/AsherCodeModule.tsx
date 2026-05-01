@@ -22,6 +22,7 @@ import {
   IdeFuzzyFinder,
   IdeApprovalGate,
   IdeModelRouterBadge,
+  AnimatedOrbBackground,
   type PlannedChange,
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, type IdeModelId } from "@/lib/ide";
@@ -745,18 +746,21 @@ export default function AsherCodeModule() {
           {/* Editor + preview — controlled by viewMode (code | split | preview) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
             {viewMode !== "preview" && (
-              <div className={`min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}>
+              <div className={`relative min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}>
+                <AnimatedOrbBackground intensity={0.7} />
                 {activeFile ? (
-                  <Editor
-                    height="100%"
-                    theme="vs-dark"
-                    language={activeFile.language}
-                    value={activeContent}
-                    onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
-                    options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
-                  />
+                  <div className="relative z-10 h-full">
+                    <Editor
+                      height="100%"
+                      theme="vs-dark"
+                      language={activeFile.language}
+                      value={activeContent}
+                      onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
+                      options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
+                    />
+                  </div>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-xs text-muted-foreground/50">Open a file to start editing</div>
+                  <div className="relative z-10 h-full flex items-center justify-center text-xs text-muted-foreground/50">Open a file to start editing</div>
                 )}
               </div>
             )}
