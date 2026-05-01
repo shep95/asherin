@@ -408,12 +408,11 @@ const MapClick = ({ onClick }: { onClick: (lat: number, lng: number) => void }) 
 
 /* ─────────────── Coordinate display ─────────────── */
 
-const CoordDisplay = ({ onMove }: { onMove: (cb: (lat: number, lng: number, zoom: number) => void) => void }) => {
+const CoordDisplay = () => {
   const map = useMap();
   useEffect(() => {
     const handler = () => {
       const c = map.getCenter();
-      onMove(() => {});
       // expose via window event for parent
       window.dispatchEvent(new CustomEvent("asher:mapmove", { detail: { lat: c.lat, lng: c.lng, zoom: map.getZoom() } }));
     };
@@ -421,7 +420,7 @@ const CoordDisplay = ({ onMove }: { onMove: (cb: (lat: number, lng: number, zoom
     map.on("zoomend", handler);
     handler();
     return () => { map.off("move", handler); map.off("zoomend", handler); };
-  }, [map, onMove]);
+  }, [map]);
   return null;
 };
 
@@ -489,7 +488,10 @@ const IntelligenceMapModule = () => {
   useEffect(() => {
     const handler = (e: Event) => {
       const d = (e as CustomEvent).detail;
-      setCoord({ lat: d.lat, lng: d.lng, zoom: d.zoom });
+      setCoord((prev) => {
+        if (prev.lat === d.lat && prev.lng === d.lng && prev.zoom === d.zoom) return prev;
+        return { lat: d.lat, lng: d.lng, zoom: d.zoom };
+      });
     };
     window.addEventListener("asher:mapmove", handler);
     return () => window.removeEventListener("asher:mapmove", handler);
@@ -868,7 +870,7 @@ const IntelligenceMapModule = () => {
             />
           )}
           <MapClick onClick={loadEntity} />
-          <CoordDisplay onMove={() => {}} />
+          <CoordDisplay />
 
           {/* Threat overlays — live data */}
           {activeThreats["h-quake"] && threatData["h-quake"].map((p, i) => (
