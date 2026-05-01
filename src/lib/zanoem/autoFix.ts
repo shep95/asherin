@@ -22,6 +22,7 @@ export interface AutoFixResult {
   passes: number;
   finalErrorCount: number;
   clean: boolean;
+  aborted?: boolean;
   history: { pass: number; errorCount: number; sample: string[] }[];
 }
 
@@ -41,6 +42,13 @@ interface AutoFixOptions {
   // Max parallel agents (default 6) so we don't slam BYOK provider
   // rate limits when 30 files all break at once.
   swarmConcurrency?: number;
+  // ── PAUSE / ABORT CONTROLS ─────────────────────────────────────
+  // Polled between agents and between passes. If `shouldPause()` returns
+  // true, the loop sleeps in 250ms ticks until it returns false. If
+  // `shouldAbort()` returns true, the loop exits immediately and reports
+  // the current state as `aborted: true`.
+  shouldPause?: () => boolean;
+  shouldAbort?: () => boolean;
 }
 
 type FlatErr = { file: string; line?: number; message: string };
@@ -65,7 +73,20 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
     return errs;
   };
 
+  // Helper: block while paused, return true if we should abort.
+  const waitWhilePaused = async (): Promise<boolean> => {
+    while (opts.shouldPause?.()) {
+      if (opts.shouldAbort?.()) return true;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return !!opts.shouldAbort?.();
+  };
+
   for (let pass = 1; pass <= max; pass++) {
+    if (await waitWhilePaused()) {
+      const finalErrors = collect().length;
+      return { passes: pass - 1, finalErrorCount: finalErrors, clean: finalErrors === 0, aborted: true, history };
+    }
     const errors = collect();
     opts.onProgress?.(pass, errors.length);
     history.push({
@@ -94,6 +115,8 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
       const next = () => (cursor < targets.length ? targets[cursor++] : null);
       const worker = async () => {
         while (true) {
+          // Honor pause/abort between agents in the same pass.
+          if (await waitWhilePaused()) return;
           const t = next();
           if (!t) return;
           const agentId = (typeof crypto !== "undefined" && "randomUUID" in crypto)

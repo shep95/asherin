@@ -205,6 +205,7 @@ const AureonIdeView = () => {
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 6,
         swarmConcurrency: 2,
+        shouldPause: () => swarmPausedRef.current,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
           agentFileRef.current.set(a.id, a.file);
@@ -265,6 +266,10 @@ const AureonIdeView = () => {
   const [fileWorkflowStats, setFileWorkflowStats] = useState<Record<string, FileWorkflowStat>>({});
   const fileLocksRef = useRef<Set<string>>(new Set());
   const agentFileRef = useRef<Map<string, string>>(new Map());
+  // Pause control for the swarm autofix loop.
+  const [swarmPaused, setSwarmPaused] = useState(false);
+  const swarmPausedRef = useRef(false);
+  useEffect(() => { swarmPausedRef.current = swarmPaused; }, [swarmPaused]);
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<LeftTab>("files");
 
@@ -850,6 +855,25 @@ const AureonIdeView = () => {
                 </span>
               )}
             </button>
+            {/* Pause / Resume — visible only while the swarm autofix is running */}
+            {swarmAgents.filter(a => a.status === "working").length > 0 && (
+              <button
+                onClick={() => {
+                  const next = !swarmPaused;
+                  setSwarmPaused(next);
+                  swarmPausedRef.current = next;
+                  toast({ title: next ? "⏸ Swarm paused" : "▶ Swarm resumed" });
+                }}
+                title={swarmPaused ? "Resume the swarm — picks up where it left off." : "Pause the swarm — in-flight agents finish, no new agents spawn."}
+                className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors border-l border-border/15 ${
+                  swarmPaused
+                    ? "bg-accent/30 text-accent"
+                    : "text-muted-foreground/50 hover:text-foreground"
+                }`}
+              >
+                {swarmPaused ? "▶ Resume" : "⏸ Pause"}
+              </button>
+            )}
           </div>
 
           {/* Save */}

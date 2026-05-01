@@ -1,7 +1,7 @@
 // ASHER CODE AI — Coding assistant for the Asher Code IDE.
 // • Modes: chat | inline | generate | explain | fix
 // • Auth: requires Asher user JWT
-// • Keys: user BYOK (from body OR user_api_keys table) OR admin Gemini bypass for ashernewtonx@gmail.com
+// • Keys: user BYOK only (from body OR user_api_keys table). NO admin bypass — admin must BYOK too.
 // • Never falls back to Lovable AI Gateway. Per project rule: Asher Dashboard AI is GEMINI-or-BYOK only.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -453,20 +453,15 @@ serve(async (req) => {
       }
     }
 
-    // Admin bypass: if no BYOK resolved AND user is super-owner, use platform Gemini
-    if (!providerCall && isAdmin) {
-      const adminKey = Deno.env.get("GEMINI_API_KEY");
-      if (adminKey) {
-        providerCall = { provider: "google", model: "gemini-2.5-pro", apiKey: adminKey };
-        keySource = "admin";
-      }
-    }
+    // NOTE: Admin Gemini bypass intentionally REMOVED — both Asher IDE and Aureon IDE
+    // require the user (admin included) to provide their own BYOK key. The platform
+    // GEMINI_API_KEY is NEVER used for any IDE coding workload.
 
     if (!providerCall) {
       return new Response(
         JSON.stringify({
           error: "byok_required",
-          message: "Asher Code requires your own API key. Add one in Settings or pass it in the request. Asher Code never uses platform AI keys for non-admin users.",
+          message: "Asher IDE / Aureon IDE require your own API key (BYOK). Add one in Settings or pass it in the request. Platform AI keys are never used for IDE coding — admin included.",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -499,11 +494,8 @@ serve(async (req) => {
         }
       }
 
-      // Admin bypass: append Gemini if admin and no calls resolved
-      if (!calls.length && isAdmin) {
-        const adminKey = Deno.env.get("GEMINI_API_KEY");
-        if (adminKey) { calls.push({ provider: "google", model: "gemini-2.5-pro", apiKey: adminKey }); sources.push("admin"); }
-      }
+      // Admin bypass intentionally removed — even admin must provide BYOK keys
+      // for orchestrate mode in Asher IDE / Aureon IDE.
 
       if (!calls.length) {
         return new Response(
