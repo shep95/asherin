@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Globe2, Crown, Swords, AlertTriangle, TrendingUp, Anchor, Plane, Mountain, Rocket, ChevronDown } from "lucide-react";
 import { POWER_RANKINGS, POWER_SUIT, PROTOCOLS, FORECASTS } from "@/data/vedic/globalPredictions";
 import { COUNTRY_CHARTS } from "@/data/vedic/countryCharts";
+import TimelineZoomer from "./TimelineZoomer";
+import WW3Dossier from "./WW3Dossier";
 
 type Era = "Past" | "Present" | "Future";
 
@@ -35,6 +37,12 @@ export default function GlobalPredictionsTab() {
           </div>
         </div>
       </div>
+
+      {/* ANIMATED ±500-YEAR TIMELINE ZOOMER */}
+      <TimelineZoomer />
+
+      {/* WW3 DETAILED DOSSIER */}
+      <WW3Dossier />
 
       {/* ERA TOGGLE */}
       <div className="grid grid-cols-3 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
