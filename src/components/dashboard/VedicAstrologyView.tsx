@@ -436,7 +436,7 @@ const VedicAstrologyView = () => {
     if (currentDasha.maha) {
       const cd = [currentDasha.maha, currentDasha.antar, currentDasha.pratyantar, currentDasha.sookshma, currentDasha.prana]
         .filter(Boolean)
-        .map((p) => `${p!.lord} (${DASHA_LEVEL_LABEL[p!.level]} ends ${p!.end.toISOString().slice(0, 10)})`)
+        .map((p) => `${p!.lord} (${DASHA_LEVEL_LABEL[p!.level]} ends ${fmtDate(p!.end)})`)
         .join(" / ");
       lines.push(`Active Vimshottari path: ${cd}`);
     }
