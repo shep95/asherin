@@ -692,7 +692,7 @@ export default function AsherCodeModule() {
           const escapedPath = f.path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${escapedPath}["']([^>]*)><\\/script>`, "g");
           if (scriptRef.test(content)) {
-            content = content.replace(scriptRef, compiled);
+            content = content.replace(scriptRef, () => compiled);
             needsHtmlCompiler = true;
             if (/\.(tsx|jsx|js)$/.test(f.path) || /from ['"]react['"]/.test(c) || /React/.test(c)) needsHtmlReact = true;
           }
