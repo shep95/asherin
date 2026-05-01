@@ -54,12 +54,14 @@ const LinkExtractView = () => {
         "zophiel-blueprint-extract",
         { body: { url: `https://${host}`, mode: "subdomain", ...(byok ? { byok } : {}) } },
       );
+      console.log("[subdomain]", host, { invokeError, data });
       if (invokeError) throw new Error(invokeError.message || String(invokeError));
       if (data?.error) throw new Error(data.error);
-      if (!data?.blueprint?.branches?.length) throw new Error("Empty blueprint");
+      if (!data?.blueprint?.branches?.length) throw new Error("Empty blueprint returned");
       setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: data.blueprint as Blueprint } }));
     } catch (err: any) {
-      setSubStates((s) => ({ ...s, [host]: { loading: false, error: err.message || "Failed" } }));
+      console.error("[subdomain] failed", host, err);
+      setSubStates((s) => ({ ...s, [host]: { loading: false, error: err.message || "Failed to extract" } }));
     }
   }, []);
 
