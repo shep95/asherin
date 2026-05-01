@@ -42,7 +42,18 @@ const MAX_COMBINED_CODE = 500 * 1024;      // 500KB of extracted text sent to en
 const CODE_EXTS = /\.(js|jsx|ts|tsx|mjs|cjs|py|rb|go|rs|java|kt|kts|c|h|cc|cpp|hpp|cs|php|swift|m|mm|scala|lua|pl|r|sh|bash|zsh|sql|html?|css|scss|sass|less|vue|svelte|astro|json|ya?ml|toml|xml|env|config|ini|dockerfile|md|txt)$/i;
 const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|coverage|vendor|__pycache__|\.venv|venv|target)(\/|$)/i;
 
-const CodeAuditView = () => {
+type ScanDepth = "quick" | "standard" | "deep";
+type ScanCategory = "injection" | "auth" | "crypto" | "deps" | "secrets" | "logic";
+const ALL_CATEGORIES: { id: ScanCategory; label: string }[] = [
+  { id: "injection", label: "Injection" },
+  { id: "auth", label: "Auth/Session" },
+  { id: "crypto", label: "Crypto" },
+  { id: "deps", label: "Dependencies" },
+  { id: "secrets", label: "Secrets/Leaks" },
+  { id: "logic", label: "Logic Flaws" },
+];
+
+const ZerlalView = () => {
   const [filename, setFilename] = useState<string>("");
   const [code, setCode] = useState<string>("");
   const [byteSize, setByteSize] = useState(0);
@@ -53,6 +64,11 @@ const CodeAuditView = () => {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [zipFileCount, setZipFileCount] = useState(0);
+  const [scanDepth, setScanDepth] = useState<ScanDepth>("standard");
+  const [scanCategories, setScanCategories] = useState<Set<ScanCategory>>(
+    new Set(ALL_CATEGORIES.map(c => c.id))
+  );
+  const [liveLog, setLiveLog] = useState<{ agent: string; file: string; findings: number; ts: number }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isZip = (file: File) =>
