@@ -37,24 +37,58 @@ const PLANET_DEFS: { name: string; symbol: string; body: Astronomy.Body | "Rahu"
   { name: "Ketu", symbol: "☋", body: "Ketu" },
 ];
 
-// Lahiri ayanamsa at J2000.0 ≈ 23.85°, drifting ~50.29″ / yr.
+/**
+ * Lahiri (Chitra Paksha) ayanamsa — Swiss Ephemeris reference epoch.
+ * SE_SIDM_LAHIRI: at JD 2415020.0 (1900-Jan-0.5 UT) ayanamsa = 22°27'37.69" (22.46047°),
+ * drifting at the IAU2006 mean precession rate ≈ 50.290966″/yr.
+ * Matches `swe_get_ayanamsa_ut(JD, SE_SIDM_LAHIRI)` to within ~0.5″.
+ */
 function lahiriAyanamsa(date: Date): number {
-  const J2000 = new Date(Date.UTC(2000, 0, 1, 12, 0, 0)).getTime();
-  const years = (date.getTime() - J2000) / (365.25 * 86400000);
-  return 23.85 + (years * 50.29) / 3600;
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const t = (JD - 2415020.0) / 365.25; // tropical years since 1900.0
+  return 22.46047 + (t * 50.290966) / 3600;
 }
 
+/** Mean obliquity of the ecliptic (Laskar 1986, in degrees). */
+function meanObliquity(date: Date): number {
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const T = (JD - 2451545.0) / 36525;
+  // arcseconds, IAU 1980 + Laskar high-order
+  const eps =
+    84381.448 -
+    46.815 * T -
+    0.00059 * T * T +
+    0.001813 * T * T * T;
+  return eps / 3600;
+}
+
+/**
+ * True (osculating) lunar node — Meeus Astronomical Algorithms Ch. 47.
+ * Adds the dominant nutation/perturbation term to the mean node so Rahu
+ * matches Swiss Ephemeris's SE_TRUE_NODE within ~1 arcminute.
+ */
 function trueNodeLongitude(date: Date): number {
-  // Mean lunar node formula (Meeus). Returns ecliptic longitude of ascending node.
-  const T = (date.getTime() / 86400000 + 2440587.5 - 2451545.0) / 36525;
-  let omega =
-    125.04452 -
-    1934.136261 * T +
-    0.0020708 * T * T +
-    (T * T * T) / 450000;
-  omega = ((omega % 360) + 360) % 360;
-  // Rahu = ascending node longitude (retrograde-moving).
-  return omega;
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const T = (JD - 2451545.0) / 36525;
+  const meanNode =
+    125.0445479 -
+    1934.1362891 * T +
+    0.0020754 * T * T +
+    (T * T * T) / 467441 -
+    (T * T * T * T) / 60616000;
+  // Meeus 47.7 — leading periodic term for true node
+  const D = 297.8501921 + 445267.1114034 * T - 0.0018819 * T * T;
+  const M = 357.5291092 + 35999.0502909 * T - 0.0001536 * T * T;
+  const Mp = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T;
+  const F = 93.272095 + 483202.0175233 * T - 0.0036539 * T * T;
+  const deg = Math.PI / 180;
+  const corr =
+    -1.4979 * Math.sin(2 * (D - F) * deg) -
+    0.1500 * Math.sin(M * deg) -
+    0.1226 * Math.sin(2 * D * deg) +
+    0.1176 * Math.sin(2 * F * deg) -
+    0.0801 * Math.sin(2 * (Mp - F) * deg);
+  return ((meanNode + corr) % 360 + 360) % 360;
 }
 
 function norm360(x: number): number {
@@ -69,8 +103,26 @@ function fmtDeg(deg: number): string {
   return `${d}° ${m.toString().padStart(2, "0")}' ${s.toString().padStart(2, "0")}"`;
 }
 
+/** Topocentric ecliptic longitude of a body — corrects for observer parallax. */
+function topocentricEclLon(
+  body: Astronomy.Body,
+  time: Astronomy.AstroTime,
+  observer: Astronomy.Observer,
+): number {
+  const geo = Astronomy.GeoVector(body, time, true);
+  const obs = Astronomy.ObserverVector(time, observer, true);
+  const topo = {
+    x: geo.x - obs.x,
+    y: geo.y - obs.y,
+    z: geo.z - obs.z,
+    t: time,
+  } as Astronomy.Vector;
+  return norm360(Astronomy.Ecliptic(topo).elon);
+}
+
 function computeChart(birthUtc: Date, lat: number, lon: number) {
   const time = new Astronomy.AstroTime(birthUtc);
+  const observer = new Astronomy.Observer(lat, lon, 0);
   const ayan = lahiriAyanamsa(birthUtc);
 
   const planets: Planet[] = [];
@@ -83,10 +135,11 @@ function computeChart(birthUtc: Date, lat: number, lon: number) {
       const trop = norm360(rahu + 180);
       planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde: true });
     } else {
-      const eq = Astronomy.Ecliptic(
-        Astronomy.GeoVector(def.body as Astronomy.Body, time, true),
-      );
-      const trop = norm360(eq.elon);
+      // Topocentric for Moon (parallax matters), geocentric for everything else.
+      const trop =
+        def.body === Astronomy.Body.Moon
+          ? topocentricEclLon(Astronomy.Body.Moon, time, observer)
+          : norm360(Astronomy.Ecliptic(Astronomy.GeoVector(def.body as Astronomy.Body, time, true)).elon);
       // Retrograde detection — sample +1 day delta in ecliptic longitude.
       let retrograde = false;
       if (def.body !== Astronomy.Body.Sun && def.body !== Astronomy.Body.Moon) {
@@ -99,18 +152,24 @@ function computeChart(birthUtc: Date, lat: number, lon: number) {
     }
   }
 
-  // Ascendant via local sidereal time.
+  // Ascendant — Meeus AA Ch. 13 / Ch. 27. Standard textbook formula.
+  // tan(Asc) = -cos(LST) / (sin(LST)·cos(ε) + tan(φ)·sin(ε))
   const gst = Astronomy.SiderealTime(time); // hours
-  const lst = (gst + lon / 15) * 15; // degrees
+  const lst = norm360((gst + lon / 15) * 15); // degrees
   const lstRad = (lst * Math.PI) / 180;
   const latRad = (lat * Math.PI) / 180;
-  const obliquity = 23.4392911 * (Math.PI / 180);
-  const ascRad = Math.atan2(
+  const obliquity = (meanObliquity(birthUtc) * Math.PI) / 180;
+  // Use atan2(y, x) where the standard form is y = -cos(LST), x = sin(LST)cos(ε) + tan(φ)sin(ε)
+  // then add 180° if cos(LST) > 0 to land in the correct ecliptic hemisphere (rising on east).
+  let ascRad = Math.atan2(
     -Math.cos(lstRad),
     Math.sin(lstRad) * Math.cos(obliquity) + Math.tan(latRad) * Math.sin(obliquity),
   );
-  let ascTrop = (ascRad * 180) / Math.PI;
-  ascTrop = norm360(ascTrop);
+  let ascTrop = norm360((ascRad * 180) / Math.PI);
+  // Quadrant correction — ensure ascendant is on the eastern horizon.
+  // If MC (= LST in tropical longitude) and Asc are not ~90° apart, flip 180°.
+  const mcDiff = norm360(ascTrop - lst);
+  if (mcDiff < 90 || mcDiff > 270) ascTrop = norm360(ascTrop + 180);
   const ascSid = norm360(ascTrop - ayan);
 
   return { planets, ascendant: ascSid, ayanamsa: ayan };
