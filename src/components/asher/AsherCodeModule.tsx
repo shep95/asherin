@@ -653,7 +653,7 @@ export default function AsherCodeModule() {
       } else {
         const { data, error } = await supabase
           .from("asher_code_files")
-          .insert({ project_id: activeProject.id, path: h.path, content: h.content, language: h.language })
+          .insert({ project_id: activeProject.id, branch_id: activeBranchId, path: h.path, content: h.content, language: h.language })
           .select()
           .single();
         if (!error && data) {
