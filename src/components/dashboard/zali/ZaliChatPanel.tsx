@@ -1,23 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Square, Lock, Copy, Check, Eye, Download, ArrowRight, Sparkles, Code2, X, ZoomIn } from "lucide-react";
+import { Send, Square, Lock, Copy, Check, Download, ArrowRight, Sparkles, Code2, ZoomIn, FileCode2 } from "lucide-react";
 import type { ZaliMessage, ZaliProject } from "./types";
 import type { ResponseDepth } from "../DepthSelector";
 import type { ChatMode } from "../types";
 import ReactMarkdown from "react-markdown";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAccess } from "@/hooks/useAccess";
-import ModeSelector from "../ModeSelector";
 import DepthSelector from "../DepthSelector";
 import ContextHealthIndicator from "../ContextHealthIndicator";
-import TruthScore from "../TruthScore";
-import CalibrationFeedback from "../CalibrationFeedback";
 import type { FeedbackType } from "../CalibrationFeedback";
 import TypingIndicator from "../TypingIndicator";
 import CodeFilePreview from "../CodeFilePreview";
 import FollowUpSuggestions from "../FollowUpSuggestions";
 import ScrollIntelligence from "../ScrollIntelligence";
-import DecodeView from "../DecodeView";
 import ZaliQuestionOptions, { parseQuestionOptions } from "./ZaliQuestionOptions";
 
 const SOFTWARE_TYPES = ["software", "app", "web", "mobile", "api", "saas", "backend", "frontend", "fullstack", "full-stack", "service", "microservice", "platform", "dashboard", "cli", "library", "plugin", "extension", "bot", "automation", "script", "code"];
