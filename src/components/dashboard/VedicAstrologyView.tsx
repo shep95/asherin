@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Calendar, FolderOpen, Loader2, MapPin, Moon, Save, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, Calendar, FolderOpen, Globe2, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, User2 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
   getNakshatraFromDeg,
@@ -12,8 +12,10 @@ import { houseFromAsc } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { resolveBirthTimezone } from "@/lib/vedic/timezoneLookup";
+import { COUNTRY_CHARTS, type CountryFoundation } from "@/data/vedic/countryCharts";
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
+import AsherChatPanel from "./vedic/AsherChatPanel";
 
 interface SavedChart {
   id: string;
@@ -201,6 +203,11 @@ const VedicAstrologyView = () => {
   const [chartName, setChartName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<"mine" | "country">("mine");
+  const [activeCountry, setActiveCountry] = useState<CountryFoundation | null>(null);
+  const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
+  const [activeName, setActiveName] = useState<string>("");
+  const [chatOpen, setChatOpen] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -370,6 +377,9 @@ const VedicAstrologyView = () => {
     setShowSaved(false);
     setError(null);
     setLoadingChart(true);
+    setActiveCountry(null);
+    setActiveSavedId(saved.id);
+    setActiveName(saved.name);
     try {
       await computeAndSetChart({
         birthDate: saved.birth_date,
@@ -379,6 +389,33 @@ const VedicAstrologyView = () => {
         lon: String(saved.longitude),
       });
       toast.success(`Loaded ${saved.name}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
+  const loadCountryChart = async (c: CountryFoundation) => {
+    setTzAuto(false);
+    setBirthDate(c.birthDate);
+    setBirthTime(c.birthTime);
+    setTzOffset(String(c.tzOffset));
+    setTzZoneName(null);
+    setLat(String(c.lat));
+    setLon(String(c.lon));
+    setCityQuery(`${c.city}, ${c.name}`);
+    setError(null);
+    setLoadingChart(true);
+    setActiveCountry(c);
+    setActiveSavedId(null);
+    setActiveName(`${c.flag} ${c.name}`);
+    try {
+      await computeAndSetChart({
+        birthDate: c.birthDate, birthTime: c.birthTime,
+        tzOffset: String(c.tzOffset), lat: String(c.lat), lon: String(c.lon),
+      });
+      toast.success(`Loaded ${c.name} foundation chart`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -419,6 +456,51 @@ const VedicAstrologyView = () => {
     return generateReading(placements);
   }, [chart]);
 
+  // ── Stable chart key + grounded context for ASHER AI side-chat ───────────
+  const chartKey = useMemo(() => {
+    if (activeCountry) return `country:${activeCountry.code}`;
+    if (activeSavedId) return `user:${activeSavedId}`;
+    if (chart) return `adhoc:${birthDate}_${birthTime}_${lat}_${lon}`;
+    return null;
+  }, [activeCountry, activeSavedId, chart, birthDate, birthTime, lat, lon]);
+
+  const chartLabel = useMemo(() => {
+    if (activeName) return activeName;
+    if (chart) return `Unsaved · ${birthDate} ${birthTime}`;
+    return "";
+  }, [activeName, chart, birthDate, birthTime]);
+
+  const chartContext = useMemo(() => {
+    if (!chart || !ascRashi) return "";
+    const lines: string[] = [];
+    lines.push(`Birth: ${birthDate} ${birthTime} (UTC${parseFloat(tzOffset) >= 0 ? "+" : ""}${tzOffset}) at ${cityQuery || `${lat}, ${lon}`}`);
+    lines.push(`Ascendant: ${ascRashi.name} ${fmtDeg(chart.ascendant % 30)} (ruler ${ascRashi.ruler})`);
+    if (moonPlanet && moonNak) {
+      lines.push(`Moon Nakshatra: ${moonNak.nakshatra.name} pada ${moonNak.pada} (lord ${moonNak.nakshatra.ruler})`);
+    }
+    lines.push("Planetary placements (whole-sign houses from Lagna):");
+    for (const p of chart.planets) {
+      const r = getRashiFromDeg(p.sid);
+      const n = getNakshatraFromDeg(p.sid);
+      lines.push(`  ${p.name}${p.retrograde ? "(R)" : ""}: H${houseFromAsc(p.sid, chart.ascendant)} ${r.name} ${fmtDeg(p.sid % 30)} · ${n.nakshatra.name} pada ${n.pada}`);
+    }
+    if (currentDasha.maha) {
+      const cd = [currentDasha.maha, currentDasha.antar, currentDasha.pratyantar, currentDasha.sookshma, currentDasha.prana]
+        .filter(Boolean)
+        .map((p) => `${p!.lord} (${DASHA_LEVEL_LABEL[p!.level]} ends ${p!.end.toISOString().slice(0, 10)})`)
+        .join(" / ");
+      lines.push(`Active Vimshottari path: ${cd}`);
+    }
+    if (dashaTimeline.length > 0) {
+      lines.push("Upcoming Mahadashas:");
+      for (const m of dashaTimeline.slice(0, 6)) {
+        lines.push(`  ${m.lord}: ${m.start.toISOString().slice(0, 10)} → ${m.end.toISOString().slice(0, 10)}`);
+      }
+    }
+    return lines.join("\n");
+  }, [chart, ascRashi, moonPlanet, moonNak, currentDasha, dashaTimeline, birthDate, birthTime, tzOffset, cityQuery, lat, lon]);
+
+
   return (
     <div
       className="h-full overflow-y-auto relative"
@@ -443,6 +525,48 @@ const VedicAstrologyView = () => {
           </div>
         </div>
 
+        {/* TAB STRIP — My Charts vs Country Charts */}
+        <div className="grid grid-cols-2 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
+          {([
+            { key: "mine" as const, icon: User2, label: "My Charts" },
+            { key: "country" as const, icon: Globe2, label: "Country Charts" },
+          ]).map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-3 flex items-center justify-center gap-2 text-xs uppercase tracking-[0.18em] transition border-r border-border/20 last:border-r-0 ${tab === key ? "text-foreground bg-foreground/[0.06]" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Icon className="h-3.5 w-3.5" /> {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "country" && (
+          <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
+            <div className="flex items-center gap-2 border-b border-border/15 pb-3">
+              <Globe2 className="h-4 w-4 text-foreground/70" />
+              <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Global Foundation Charts</h3>
+              <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Independence / Constitution moments · sidereal Lahiri</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {COUNTRY_CHARTS.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={() => void loadCountryChart(c)}
+                  className={`text-left rounded-lg border px-3 py-2.5 transition ${activeCountry?.code === c.code ? "border-foreground/40 bg-foreground/[0.05]" : "border-border/25 bg-background/30 hover:border-border/50 hover:bg-foreground/[0.025]"}`}
+                >
+                  <div className="text-sm font-light text-foreground/90 flex items-center gap-1.5">
+                    <span className="text-base leading-none">{c.flag}</span> {c.name}
+                  </div>
+                  <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70 mt-0.5">{c.event}</div>
+                  <div className="text-[10px] text-muted-foreground/70 mt-0.5 tabular-nums">{c.birthDate} · {c.birthTime} · {c.city}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "mine" && (
         <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="space-y-1">
@@ -539,6 +663,7 @@ const VedicAstrologyView = () => {
             </button>
           </div>
         </div>
+        )}
 
         {chart && (
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
@@ -682,6 +807,24 @@ const VedicAstrologyView = () => {
           </div>
         )}
       </div>
+
+      {/* Floating ASHER chat trigger */}
+      <button
+        onClick={() => setChatOpen(true)}
+        disabled={!chartKey}
+        className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-background/80 backdrop-blur-md px-4 py-2.5 text-xs uppercase tracking-[0.18em] text-foreground hover:bg-foreground/10 shadow-[0_8px_28px_rgba(0,0,0,0.5)] disabled:opacity-40 transition"
+        aria-label="Open ASHER AI chat"
+      >
+        <MessageSquare className="h-3.5 w-3.5" /> Ask Asher
+      </button>
+
+      <AsherChatPanel
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        chartKey={chartKey}
+        chartLabel={chartLabel}
+        chartContext={chartContext}
+      />
     </div>
   );
 };

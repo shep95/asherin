@@ -2480,6 +2480,36 @@ export type Database = {
         }
         Relationships: []
       }
+      chart_notes: {
+        Row: {
+          chart_key: string
+          chart_label: string
+          created_at: string
+          id: string
+          note: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          chart_key: string
+          chart_label: string
+          created_at?: string
+          id?: string
+          note: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          chart_key?: string
+          chart_label?: string
+          created_at?: string
+          id?: string
+          note?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       code_folders: {
         Row: {
           created_at: string
