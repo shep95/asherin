@@ -10,6 +10,8 @@ export interface ExplainedError {
   plainEnglish: string;
   rootCause: string;
   fixes: { title: string; code?: string; description: string }[];
+  /** Full corrected version of the provided contextCode, ready to overwrite the file. */
+  correctedCode?: string;
   source: "local" | "ai";
 }
 
