@@ -398,35 +398,8 @@ const ZaliView = () => {
         role: "assistant", content: fullContent,
       });
 
-      // Parse code_output blocks (structured) — fallback to any fenced code
-      const codeOutputMatches = [...fullContent.matchAll(/```code_output\n([\s\S]*?)```/g)];
-      const allFiles: Array<{ filename: string; language: string; content: string }> = [];
-      if (codeOutputMatches.length > 0) {
-        try {
-          for (const match of codeOutputMatches) {
-            const parsed = JSON.parse(match[1]);
-            if (Array.isArray(parsed.files)) {
-              allFiles.push(...parsed.files);
-            }
-          }
-        } catch (e) {
-          console.error("Failed to parse code_output:", e);
-        }
-      }
-      if (!allFiles.length) {
-        const fenceRe = /```([\w.+-]*)\n([\s\S]*?)```/g;
-        let fm: RegExpExecArray | null;
-        let i = 1;
-        while ((fm = fenceRe.exec(fullContent)) !== null) {
-          const lang = (fm[1] || "").toLowerCase();
-          if (lang === "code_output" || lang === "design_output") continue;
-          const code = fm[2].trimEnd();
-          if (!code.trim()) continue;
-          const ext = lang === "typescript" ? "ts" : lang === "javascript" ? "js" : lang === "python" ? "py" : (lang || "txt");
-          allFiles.push({ filename: `snippet-${i}.${ext}`, language: lang || "text", content: code });
-          i++;
-        }
-      }
+      // Code output always routes into the workspace, never the chat bubble.
+      const allFiles = extractZanoemCodeFiles(fullContent);
       if (allFiles.length > 0) {
         setCodeFiles(allFiles);
         setActiveTab("workspace");
