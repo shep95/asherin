@@ -178,67 +178,33 @@ export function buildDashaInsight(
   rel = Math.max(0, Math.min(100, center(rel)));
 
   // ── Life-event flags ────────────────────────────────────────────────────
-  // Flags ONLY fire at narrow windows (Sookshma = ~weeks, Prana = ~days,
-  // Deha = ~hours). Maha/Antar/Pratyantar are too coarse to mark a single
-  // life event — they would smear hearts/dollars across years. We also
-  // require the CURRENT lord (not just the chain) to be the trigger so a
-  // wealth Mahadasha doesn't tag every one of its children.
   const flags: LifeFlag[] = [];
-  const NARROW_LEVELS = new Set<DashaLevel>(["sookshma", "prana", "deha"]);
-  const isNarrow = NARROW_LEVELS.has(period.level);
 
-  // Helper: does the parent chain support this theme? (background condition)
-  const chainHasRelation = chain.some((c) => RELATION_LORDS.has(c));
-  const chainHasWealth = chain.some((c) => WEALTH_LORDS.has(c));
-  const chainHasPower = chain.some((c) => POWER_LORDS.has(c));
+  // Soulmate: Venus / Moon / Jupiter touching the chain AND 7th-house resonance
+  const seventhLord = (chart.planets.find((p) => Math.floor(p.sid / 30) === ((Math.floor(chart.ascendant / 30) + 6) % 12))?.name as PlanetName) || "Venus";
+  if (
+    chain.some((c) => RELATION_LORDS.has(c)) &&
+    (chain.includes(seventhLord as DashaLord) || rel >= 70)
+  ) flags.push("soulmate");
 
-  // 7th-lord (partnership) for soulmate trigger
-  const ascSign = Math.floor(chart.ascendant / 30);
-  const seventhSign = (ascSign + 6) % 12;
-  const seventhLord = (chart.planets.find((p) => Math.floor(p.sid / 30) === seventhSign)?.name as PlanetName) || "Venus";
+  // Millionaire: wealth lord chain + activated 2/11 + lord not severely afflicted
+  const wealthChainHits = chain.filter((c) => WEALTH_LORDS.has(c)).length;
+  if (wealthChainHits >= 1 && wealth >= 65 && (WEALTH_HOUSES.has(me.house) || me.exalted || me.ownSign)) {
+    flags.push("millionaire");
+  }
 
-  if (isNarrow) {
-    // SOULMATE — narrow window, current lord must BE Venus/Moon/Jupiter or 7th-lord,
-    // chain must already carry relational charge, and rel score must be elite.
-    const isRelTrigger = RELATION_LORDS.has(lord) || lord === (seventhLord as DashaLord);
-    if (isRelTrigger && chainHasRelation && rel >= 78 && (me.house === 7 || me.house === 5 || me.house === 1 || me.exalted || me.ownSign)) {
-      flags.push("soulmate");
-    }
+  // Billionaire: rare — Jupiter + Saturn (Lakshmi-Yoga style: expansion + structure)
+  // anywhere in chain, with very high wealth and Jupiter or 11th-lord involvement.
+  const hasJup = chain.includes("Jupiter");
+  const hasSat = chain.includes("Saturn");
+  const hasMercOrRahu = chain.includes("Mercury") || chain.includes("Rahu");
+  if (hasJup && hasSat && hasMercOrRahu && wealth >= 78 && (snaps["Jupiter"]?.house ?? 0) !== 6) {
+    flags.push("billionaire");
+  }
 
-    // MILLIONAIRE — current lord must itself be a wealth significator and sit
-    // in a wealth house, chain must reinforce, score must be high.
-    if (
-      WEALTH_LORDS.has(lord) &&
-      chainHasWealth &&
-      wealth >= 75 &&
-      (WEALTH_HOUSES.has(me.house) || me.exalted || me.ownSign) &&
-      !me.combust && !me.debilitated
-    ) {
-      flags.push("millionaire");
-    }
-
-    // BILLIONAIRE — extremely rare. Require Jupiter + Saturn BOTH in the
-    // active chain (current period included), Mercury or Rahu present,
-    // current lord is a wealth lord, and Jupiter natal must be strong.
-    const fullChain = [...chain];
-    const hasJup = fullChain.includes("Jupiter");
-    const hasSat = fullChain.includes("Saturn");
-    const hasMercOrRahu = fullChain.includes("Mercury") || fullChain.includes("Rahu");
-    const jupSnap = snaps["Jupiter"];
-    const jupStrong = jupSnap && (jupSnap.exalted || jupSnap.ownSign || KENDRA.has(jupSnap.house) || TRIKONA.has(jupSnap.house)) && !jupSnap.debilitated;
-    if (
-      hasJup && hasSat && hasMercOrRahu &&
-      WEALTH_LORDS.has(lord) &&
-      wealth >= 85 &&
-      jupStrong
-    ) {
-      flags.push("billionaire");
-    }
-
-    // POWER PEAK — current lord is a power lord in kendra/10th, chain reinforces.
-    if (POWER_LORDS.has(lord) && chainHasPower && (KENDRA.has(me.house) || me.house === 10) && power >= 80) {
-      flags.push("power_peak");
-    }
+  // Power peak: Sun/Mars/Saturn/Rahu with kendra/10th activation, high power
+  if (POWER_LORDS.has(lord) && (KENDRA.has(me.house) || me.house === 10) && power >= 72) {
+    flags.push("power_peak");
   }
 
   // ── Mechanics narrative (chart-grounded, not generic) ──────────────────
