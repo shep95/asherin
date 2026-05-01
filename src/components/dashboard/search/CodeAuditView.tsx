@@ -265,6 +265,20 @@ const ZerlalView = () => {
           </span>
         </div>
 
+        {/* BYOK hookup notice */}
+        <div className={`mt-2 rounded-lg border px-3 py-2 flex items-start gap-2 text-[10px] font-extralight leading-relaxed ${
+          byokActive
+            ? "border-emerald-400/25 bg-emerald-400/[0.04] text-emerald-100/80"
+            : "border-border/20 bg-background/30 text-muted-foreground/70"
+        }`}>
+          <KeyRound className="h-3 w-3 mt-0.5 shrink-0 opacity-70" />
+          <span>
+            {byokActive
+              ? <>Your API key is <strong className="font-medium text-emerald-200">hooked into the Zophiel engine</strong> — used for ZERLAL audits and every Zophiel tab. No queue, no rate limits.</>
+              : <>Hitting limits or scanning at high volume? <button onClick={() => setByokOpen(true)} className="underline underline-offset-2 hover:text-foreground">Bring your own API key</button> — it gets <strong className="font-medium text-foreground/80">hooked into our Zophiel engine</strong> and powers ZERLAL plus every other Zophiel tab.</>}
+          </span>
+        </div>
+
         <div
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
@@ -452,6 +466,12 @@ const ZerlalView = () => {
           </p>
         </div>
       )}
+      {/* BYOK Panel */}
+      <IntelMapByokPanel
+        open={byokOpen}
+        onClose={() => setByokOpen(false)}
+        onChange={() => setByokActive(isIntelMapByokEnabled())}
+      />
     </div>
   );
 };
