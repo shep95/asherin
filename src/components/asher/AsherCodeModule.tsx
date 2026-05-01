@@ -25,7 +25,7 @@ import {
   AnimatedOrbBackground,
   type PlannedChange,
 } from "@/components/ide-shared";
-import { snapshotIfChanged, routeTask, type IdeModelId } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId } from "@/lib/ide";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
@@ -85,26 +85,16 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
-  // Line-by-line typing animation for AI-generated content
+  // Word-by-word fade-in / fade-out replace for AI-generated content.
   function animateApply(fileId: string, finalContent: string) {
-    if (!animateInsertion) {
-      setDirty(d => ({ ...d, [fileId]: finalContent }));
-      return;
+    const current = dirty[fileId] ?? files.find(f => f.id === fileId)?.content ?? "";
+    const set = (next: string) => setDirty(d => ({ ...d, [fileId]: next }));
+    if (!animateInsertion) { set(finalContent); return; }
+    if (current && current.trim().length > 0) {
+      animateReplace(current, finalContent, set);
+    } else {
+      animateInsert(finalContent, set);
     }
-    const lines = finalContent.split("\n");
-    let i = 0;
-    setDirty(d => ({ ...d, [fileId]: "" }));
-    const tick = () => {
-      i++;
-      const partial = lines.slice(0, i).join("\n");
-      setDirty(d => ({ ...d, [fileId]: partial }));
-      if (i < lines.length) {
-        // Adaptive: faster on long files
-        const delay = lines.length > 200 ? 4 : lines.length > 80 ? 10 : 18;
-        setTimeout(tick, delay);
-      }
-    };
-    tick();
   }
 
   // ── File upload handler (images + ZIP + text) ──────────────────

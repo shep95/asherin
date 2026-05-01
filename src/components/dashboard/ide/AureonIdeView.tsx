@@ -20,7 +20,7 @@ import {
   IdeModelRouterBadge,
   type PlannedChange,
 } from "@/components/ide-shared";
-import { snapshotIfChanged, routeTask, type IdeModelId, type RoutingDecision } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { History, Stethoscope, Wand2, Cpu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -331,6 +331,26 @@ const AureonIdeView = () => {
         return n;
       });
     setFiles(prev => updateInTree(prev));
+  };
+
+  // Find a file's current content (for animateReplace fade-out source).
+  const findContent = (id: string, nodes: IdeFile[] = files): string => {
+    for (const n of nodes) {
+      if (n.id === id && n.type === "file") return n.content ?? "";
+      if (n.children) {
+        const v = findContent(id, n.children);
+        if (v) return v;
+      }
+    }
+    return "";
+  };
+
+  // AI-driven write: word-by-word fade-out current → fade-in new.
+  const aiWriteContent = (id: string, content: string) => {
+    const current = findContent(id);
+    const set = (next: string) => updateContent(id, next);
+    if (current && current.trim().length > 0) animateReplace(current, content, set);
+    else animateInsert(content, set);
   };
 
   const createFile = (parentId: string | null, name: string, type: "file" | "folder") => {
@@ -720,14 +740,14 @@ const AureonIdeView = () => {
         filePath={activeFile?.name ?? ""}
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
-        onRestore={(content) => activeFileId && updateContent(activeFileId, content)}
+        onRestore={(content) => activeFileId && aiWriteContent(activeFileId, content)}
       />
       <IdeErrorExplainer
         open={bugDoctorOpen}
         message={bugDoctorMsg}
         contextCode={activeFile?.content}
         onClose={() => setBugDoctorOpen(false)}
-        onApplyFix={(code) => activeFileId && updateContent(activeFileId, code)}
+        onApplyFix={(code) => activeFileId && aiWriteContent(activeFileId, code)}
       />
       {approval && (
         <IdeApprovalGate
