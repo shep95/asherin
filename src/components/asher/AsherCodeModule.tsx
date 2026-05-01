@@ -736,8 +736,15 @@ export default function AsherCodeModule() {
           {/* Editor + preview — controlled by viewMode (code | split | preview) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
             {viewMode !== "preview" && (
-              <div className={`relative min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}>
-                <AnimatedOrbBackground intensity={0.7} />
+              <div
+                className={`relative min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}
+                style={{
+                  backgroundImage: `url(${wallpaperAureon})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }}
+              >
                 {activeFile ? (
                   <div className="relative z-10 h-full">
                     <Editor
