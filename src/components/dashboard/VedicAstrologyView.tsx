@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Loader2, Moon, Sparkles, MapPin } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
+import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
   nakshatras,
   rashis,
@@ -295,14 +296,25 @@ const VedicAstrologyView = () => {
   const moonNak = moonPlanet ? getNakshatraFromDeg(moonPlanet.sid) : null;
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-5xl mx-auto p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Moon className="h-5 w-5 text-muted-foreground" />
+    <div
+      className="h-full overflow-y-auto relative"
+      style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.72), rgba(0,0,0,0.78)), url(${wallpaperAureon})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="max-w-5xl mx-auto p-6 space-y-6 relative z-10">
+        <div className="flex items-center gap-3 border-b border-border/15 pb-4">
+          <div className="h-10 w-10 rounded-full border border-border/30 bg-background/40 backdrop-blur-md flex items-center justify-center">
+            <Moon className="h-4 w-4 text-foreground/70" />
+          </div>
           <div>
-            <h2 className="text-xl font-extralight tracking-wide text-foreground">Vedic Astrology</h2>
-            <p className="text-sm font-extralight text-muted-foreground mt-1">
-              Sidereal natal chart computed with Lahiri ayanamsa.
+            <h2 className="text-xl font-extralight tracking-[0.15em] text-foreground uppercase">Vedic Astrology</h2>
+            <p className="text-[11px] font-light tracking-[0.2em] text-muted-foreground/70 mt-1 uppercase">
+              Sidereal Natal Chart · Lahiri Ayanamsa
             </p>
           </div>
         </div>
