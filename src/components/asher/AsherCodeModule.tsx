@@ -154,6 +154,15 @@ export default function AsherCodeModule() {
   useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
   useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
 
+  // Auto-Approve: when enabled, any pending approval gate is auto-accepted instantly.
+  useEffect(() => {
+    if (autoApprove && approval) {
+      const a = approval;
+      setApproval(null);
+      a.resolve(true);
+    }
+  }, [autoApprove, approval]);
+
   // We need a stable way for the queue worker to "send a ZANOEM turn".
   // sendChatViaZanoem isn't defined yet (declared further down), so route
   // through a ref that we update in a later effect.
