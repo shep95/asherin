@@ -635,53 +635,108 @@ export default function AsherCodeModule() {
     } finally { setAiBusy(false); }
   }
 
-  // Extract ZANOEM code blocks and write them as files. Recognises:
-  //   ```lang path/to/file.ext\n...\n```
-  //   <code_output path="..."> ... </code_output>
+  // Extract ZANOEM code blocks and write them as files.
+  // SINGLE ORDERED SCAN: walks fenced ``` blocks in source order. For each
+  // block, the path is taken from (in priority order):
+  //   1) the fence info line:  ```lang path/to/file.ext
+  //   2) the first line INSIDE the fence if it's a comment:  // path/file.ext  (or # / --)
+  //   3) the LAST non-empty line ABOVE the fence within 2 lines:
+  //         **path/file.ext**     `path/file.ext`     File: path/file.ext     ### path/file.ext
+  // Also accepts <code_output path="..."> blocks anywhere.
+  // We only ever bind a path to the SINGLE fence it actually owns — never across the doc.
   async function materializeZanoemCodeBlocks(text: string): Promise<number> {
     if (!activeProject) return 0;
     type Hit = { path: string; content: string; language: string };
     const hits: Hit[] = [];
     const seen = new Set<string>();
+    const PATH_RE = /[A-Za-z0-9_][A-Za-z0-9_./-]*\.[A-Za-z0-9]{1,8}$/;
+
+    const cleanPath = (raw: string): string | null => {
+      let p = raw.trim()
+        .replace(/^[`*"'\[(]+|[`*"'\])]+$/g, "")  // strip wrappers
+        .replace(/^(?:\/\/|#|--)\s*/, "")          // strip comment leaders
+        .replace(/^(?:File|Path|FILE|PATH)\s*[:\-]\s*/i, "")
+        .replace(/^[./\\]+/, "")
+        .trim();
+      if (!p || !PATH_RE.test(p)) return null;
+      // Reject obvious prose words that LOOK like paths but aren't (no slash, single-letter ext)
+      if (!p.includes("/") && p.length < 4) return null;
+      return p;
+    };
+
+    const langFor = (ext: string, hint?: string) =>
+      hint || ({ js:"javascript", mjs:"javascript", cjs:"javascript", jsx:"javascript",
+                 ts:"typescript", tsx:"typescript", py:"python", html:"html", htm:"html",
+                 css:"css", json:"json", md:"markdown", sh:"shell", yml:"yaml", yaml:"yaml" } as any)[ext.toLowerCase()] || ext;
+
     const push = (path: string, content: string, lang?: string) => {
-      const p = path.trim().replace(/^[./\\]+/, "");
+      const p = cleanPath(path);
       if (!p || seen.has(p)) return;
       seen.add(p);
       const ext = (p.split(".").pop() || "txt").toLowerCase();
-      const langGuess = lang || ({ js:"javascript", mjs:"javascript", cjs:"javascript", jsx:"javascript", ts:"typescript", tsx:"typescript", py:"python", html:"html", htm:"html", css:"css", json:"json", md:"markdown", sh:"shell", yml:"yaml", yaml:"yaml" } as any)[ext] || ext;
-      hits.push({ path: p, content: content.replace(/\s+$/, ""), language: langGuess });
+      hits.push({ path: p, content: content.replace(/\s+$/, ""), language: langFor(ext, lang) });
     };
 
-    // Pattern A: ```lang path/to/file.ext  (path on the fence info line)
-    const fenceWithPath = /```([a-zA-Z0-9+#_-]*)[ \t]+([^\s`][^\n`]*?\.[a-zA-Z0-9]+)[ \t]*\n([\s\S]*?)```/g;
-    let m: RegExpExecArray | null;
-    while ((m = fenceWithPath.exec(text)) !== null) push(m[2], m[3], (m[1] || "").toLowerCase());
-
-    // Pattern B: <code_output path="..."> ... </code_output>
-    const tag = /<code_output[^>]*path=["']([^"']+)["'][^>]*>([\s\S]*?)<\/code_output>/gi;
-    while ((m = tag.exec(text)) !== null) {
-      let body = m[2].trim();
+    // 1) <code_output path="..."> blocks (highest precedence — explicit)
+    const tagRe = /<code_output[^>]*path=["']([^"']+)["'][^>]*>([\s\S]*?)<\/code_output>/gi;
+    let tm: RegExpExecArray | null;
+    while ((tm = tagRe.exec(text)) !== null) {
+      let body = tm[2].trim();
       const inner = body.match(/```[a-zA-Z0-9+#_-]*\s*\n([\s\S]*?)```/);
       if (inner) body = inner[1];
-      push(m[1], body);
+      push(tm[1], body);
     }
 
-    // Pattern C: header line followed by fenced block. Picks up:
-    //   **path/to/file.ext**\n```js\n...```
-    //   ### path/to/file.ext\n```js\n...```
-    //   `path/to/file.ext`\n```js\n...```
-    //   File: path/to/file.ext\n```js\n...```
-    //   // File: path/to/file.ext\n```js\n...```
-    const headerThenFence = /(?:^|\n)[ \t]*(?:[#>*\-`]+[ \t]*)?(?:(?:\/\/|#)[ \t]*)?(?:File|Path|FILE|PATH)?\s*[:\-]?\s*[`*"']?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)[`*"']?[ \t]*\*?\*?[ \t]*\n+```([a-zA-Z0-9+#_-]*)[ \t]*\n([\s\S]*?)```/g;
-    while ((m = headerThenFence.exec(text)) !== null) push(m[1], m[3], (m[2] || "").toLowerCase());
+    // 2) Walk fenced ``` blocks in order
+    const fenceRe = /```([a-zA-Z0-9+#_-]*)([^\n]*)\n([\s\S]*?)```/g;
+    let fm: RegExpExecArray | null;
+    while ((fm = fenceRe.exec(text)) !== null) {
+      const lang = (fm[1] || "").toLowerCase();
+      const infoTail = (fm[2] || "").trim();
+      const body = fm[3];
+      const startIdx = fm.index;
 
-    // Pattern D: fenced block whose FIRST line is a comment with the path:
-    //   ```js
-    //   // path/to/file.ext
-    //   ...code...
-    //   ```
-    const fenceCommentPath = /```([a-zA-Z0-9+#_-]*)\s*\n[ \t]*(?:\/\/|#|--)[ \t]*([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)[ \t]*\n([\s\S]*?)```/g;
-    while ((m = fenceCommentPath.exec(text)) !== null) push(m[2], m[3], (m[1] || "").toLowerCase());
+      let pathCandidate: string | null = null;
+
+      // (a) path on info line:  ```ts src/foo.ts
+      if (infoTail) {
+        const cand = cleanPath(infoTail.split(/\s+/)[0]);
+        if (cand) pathCandidate = cand;
+      }
+
+      // (b) first line inside the fence is a comment with a path
+      if (!pathCandidate) {
+        const firstLine = body.split("\n", 1)[0]?.trim() || "";
+        const cm = firstLine.match(/^(?:\/\/|#|--|\/\*)\s*([A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,8})\s*\*?\/?\s*$/);
+        if (cm) {
+          const cand = cleanPath(cm[1]);
+          if (cand) pathCandidate = cand;
+        }
+      }
+
+      // (c) line(s) immediately above the fence (within 2 non-empty lines)
+      if (!pathCandidate) {
+        const before = text.slice(Math.max(0, startIdx - 300), startIdx);
+        const lines = before.split("\n").map(l => l.trim()).filter(Boolean).slice(-2);
+        for (let i = lines.length - 1; i >= 0; i--) {
+          // strip markdown decoration: **x**  ### x  - x  > x  `x`
+          const stripped = lines[i]
+            .replace(/^[#>*\-`]+\s*/, "")
+            .replace(/\*\*/g, "")
+            .replace(/^[`"']|[`"']$/g, "")
+            .replace(/^(?:File|Path|FILE|PATH)\s*[:\-]\s*/i, "");
+          // Take the LAST token that looks like a path
+          const tokens = stripped.split(/\s+/);
+          for (let j = tokens.length - 1; j >= 0; j--) {
+            const cand = cleanPath(tokens[j]);
+            if (cand) { pathCandidate = cand; break; }
+          }
+          if (pathCandidate) break;
+        }
+      }
+
+      if (pathCandidate) push(pathCandidate, body, lang);
+    }
 
     if (hits.length === 0) return 0;
     let count = 0;
@@ -692,6 +747,8 @@ export default function AsherCodeModule() {
         if (!error) {
           setFiles((fs) => fs.map((f) => (f.id === existing.id ? { ...f, content: h.content } : f)));
           count++;
+        } else {
+          console.warn("[zanoem] update failed", h.path, error.message);
         }
       } else {
         const { data, error } = await supabase
@@ -702,6 +759,8 @@ export default function AsherCodeModule() {
         if (!error && data) {
           setFiles((fs) => [...fs, data as AsherCodeFile]);
           count++;
+        } else if (error) {
+          console.warn("[zanoem] insert failed", h.path, error.message);
         }
       }
     }
