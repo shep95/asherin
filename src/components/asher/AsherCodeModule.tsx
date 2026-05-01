@@ -96,6 +96,7 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
   useEffect(() => { localStorage.setItem("asherCode.viewMode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
+  useEffect(() => { localStorage.setItem("asherCode.zaliMode", zaliMode ? "1" : "0"); }, [zaliMode]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
