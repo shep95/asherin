@@ -1209,7 +1209,40 @@ try {
       void persistChatMessages([userMsg, errMsg]);
       toast.error(e.message || "ZANOEM call failed");
     } finally { setAiBusy(false); }
-  }
+      // ── HAND-OFF: when ZANOEM finishes a build round (files created and
+      // no further human decision needed), auto-switch the chat into the
+      // Asher IDE Coder (BYOK) so it can finish wiring + auto-debug.
+      const zanoemBuildFinished =
+        created > 0 && !needsHumanDecision(assistantText) &&
+        (!autopilotZanoem || autopilotRoundsRef.current === 0);
+      if (zanoemBuildFinished && zanoemMode) {
+        setZanoemMode(false);
+        if (!autoDebug) setAutoDebug(true);
+        const handoffMsg: ChatMsg = {
+          role: "assistant",
+          content:
+            `**◈ Hand-off: ZANOEM → Asher IDE Coder**\n\n` +
+            `ZANOEM finished scaffolding ${created} file${created === 1 ? "" : "s"}. ` +
+            `Switching to the **Asher IDE Coder** (BYOK) to finish wiring, fix runtime bugs, and harden the build.\n\n` +
+            (apiKey
+              ? `Auto Debug is **ON** — runtime errors will be caught and patched automatically.`
+              : `⚠ Add a BYOK key in **Settings → BYOK** so the Coder can take over.`),
+        };
+        setChat((prev) => [...prev, handoffMsg]);
+        void persistChatMessages([handoffMsg]);
+        toast.success("Hand-off → Asher IDE Coder");
+        // Kick off an auto-fix pass immediately so the Coder starts cleaning
+        // anything ZANOEM left rough.
+        if (apiKey) {
+          void zqEnqueue({
+            kind: "autofix",
+            payload: { projectRef: activeProject.id },
+            surface: "asher_ide",
+            projectRef: activeProject.id,
+            ownerUserId: user.id,
+          });
+        }
+      }
 
   // Bind the offline-queue handlers to the live sendChatViaZanoem so they
   // can dispatch autopilot turns while the user is away.
