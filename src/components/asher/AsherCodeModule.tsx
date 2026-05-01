@@ -2122,10 +2122,30 @@ try {
                     </>
                   )}
                 </button>
+                {/* Pause / Resume — visible only while the swarm is active */}
+                {isRunning && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !swarmPaused;
+                      setSwarmPaused(next);
+                      swarmPausedRef.current = next;
+                      toast.message(next ? "⏸ Swarm paused" : "▶ Swarm resumed");
+                    }}
+                    title={swarmPaused ? "Resume the swarm — it will pick up where it left off." : "Pause the swarm — in-flight agents finish, no new agents spawn until you resume."}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded border text-[9px] font-light tracking-[0.18em] uppercase transition-colors ${
+                      swarmPaused
+                        ? "border-foreground/40 bg-foreground/15 text-foreground"
+                        : "border-foreground/20 bg-foreground/5 hover:bg-foreground/15 text-foreground"
+                    }`}
+                  >
+                    {swarmPaused ? "▶ Resume" : "⏸ Pause"}
+                  </button>
+                )}
                 {isRunning && (
                   <span className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase text-muted-foreground/70">
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-foreground animate-pulse" />
-                    swarm active
+                    <span className={`inline-block h-1.5 w-1.5 rounded-full ${swarmPaused ? "bg-muted-foreground" : "bg-foreground animate-pulse"}`} />
+                    {swarmPaused ? "swarm paused" : "swarm active"}
                   </span>
                 )}
               </div>
