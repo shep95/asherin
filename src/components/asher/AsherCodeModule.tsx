@@ -429,6 +429,7 @@ export default function AsherCodeModule() {
 
   async function sendChat() {
     if ((!chatInput.trim() && pendingUploads.length === 0) || aiBusy) return;
+    if (zaliMode) return sendChatViaZali();
     // Compose attachments into the user message
     let composed = chatInput;
     const imageAttachments: { name: string; dataUrl: string }[] = [];
@@ -460,6 +461,139 @@ export default function AsherCodeModule() {
       void persistChatMessages([userMsg, errMsg]);
     } finally { setAiBusy(false); }
   }
+
+  // ── ZALI Mode: First-Principles Software Architect ──
+  // Routes chat through zali-chat (Gemini, no BYOK required) for inventing
+  // brand-new software from first principles. Auto-extracts ``` code blocks
+  // tagged with file paths and writes them into the project as new files.
+  async function sendChatViaZali() {
+    if (!activeProject || !user) { toast.error("Open a project first"); return; }
+    let composed = chatInput;
+    for (const u of pendingUploads) {
+      if (u.kind === "zip") composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
+      else if (u.kind === "text") composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+    }
+    const userMsg: ChatMsg = { role: "user", content: composed };
+    const next = [...chat, userMsg];
+    setChat(next);
+    setChatInput("");
+    setPendingUploads([]);
+    setAiBusy(true);
+    let assistantText = "";
+    try {
+      const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zali-chat`;
+      const { data: sess } = await supabase.auth.getSession();
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sess?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          messages: next.map((m) => ({ role: m.role, content: m.content })),
+          mode: "design",
+          projectContext: {
+            name: activeProject.name,
+            description: activeProject.description || "Software project in Aureon Code IDE",
+            designType: "software",
+            phase: "Architecture & Implementation",
+          },
+        }),
+      });
+      if (!resp.ok || !resp.body) {
+        const t = await resp.text().catch(() => "");
+        throw new Error(`ZALI gateway ${resp.status}: ${t.slice(0, 200)}`);
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      // Push placeholder so UI updates as we stream
+      setChat([...next, { role: "assistant", content: "▍" }]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, idx).trim();
+          buf = buf.slice(idx + 1);
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(payload);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              assistantText += delta;
+              setChat([...next, { role: "assistant", content: assistantText + "▍" }]);
+            }
+          } catch { /* skip */ }
+        }
+      }
+      const finalMsg: ChatMsg = { role: "assistant", content: assistantText || "(empty response)" };
+      setChat([...next, finalMsg]);
+      void persistChatMessages([userMsg, finalMsg]);
+      // Auto-write any code blocks tagged with file paths into the project
+      const created = await materializeZaliCodeBlocks(assistantText);
+      if (created > 0) toast.success(`ZALI created ${created} file${created === 1 ? "" : "s"}`);
+    } catch (e: any) {
+      const errMsg: ChatMsg = { role: "assistant", content: "**ZALI Error:** " + (e.message || "call failed") };
+      setChat([...next, errMsg]);
+      void persistChatMessages([userMsg, errMsg]);
+      toast.error(e.message || "ZALI call failed");
+    } finally { setAiBusy(false); }
+  }
+
+  // Extract ZALI code blocks and write them as files. Recognises:
+  //   ```lang path/to/file.ext\n...\n```
+  //   <code_output path="..."> ... </code_output>
+  async function materializeZaliCodeBlocks(text: string): Promise<number> {
+    if (!activeProject) return 0;
+    type Hit = { path: string; content: string; language: string };
+    const hits: Hit[] = [];
+    // Pattern A: fenced block with path on info line
+    const fence = /```([a-zA-Z0-9+#_-]*)\s+([^\s`][^\n`]*?\.[a-zA-Z0-9]+)\s*\n([\s\S]*?)```/g;
+    let m: RegExpExecArray | null;
+    while ((m = fence.exec(text)) !== null) {
+      hits.push({ language: (m[1] || "plaintext").toLowerCase(), path: m[2].trim(), content: m[3] });
+    }
+    // Pattern B: <code_output path="..."> blocks
+    const tag = /<code_output[^>]*path=["']([^"']+)["'][^>]*>([\s\S]*?)<\/code_output>/gi;
+    while ((m = tag.exec(text)) !== null) {
+      const path = m[1].trim();
+      let body = m[2].trim();
+      const inner = body.match(/```[a-zA-Z0-9+#_-]*\s*\n([\s\S]*?)```/);
+      if (inner) body = inner[1];
+      const ext = path.split(".").pop() || "txt";
+      hits.push({ language: ext, path, content: body });
+    }
+    if (hits.length === 0) return 0;
+    let count = 0;
+    for (const h of hits) {
+      const existing = files.find((f) => f.path === h.path);
+      if (existing) {
+        const { error } = await supabase.from("asher_code_files").update({ content: h.content }).eq("id", existing.id);
+        if (!error) {
+          setFiles((fs) => fs.map((f) => (f.id === existing.id ? { ...f, content: h.content } : f)));
+          count++;
+        }
+      } else {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .insert({ project_id: activeProject.id, path: h.path, content: h.content, language: h.language })
+          .select()
+          .single();
+        if (!error && data) {
+          setFiles((fs) => [...fs, data as AsherCodeFile]);
+          count++;
+        }
+      }
+    }
+    setPreviewKey((k) => k + 1);
+    return count;
+  }
+
 
   async function aiExplain() {
     if (!activeFile) return;
