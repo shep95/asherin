@@ -362,6 +362,8 @@ export default function AsherCodeModule() {
       });
       // Hard-clear any stragglers (e.g. timeouts) when the whole loop exits.
       setSwarmAgents([]);
+      fileLocksRef.current.clear();
+      agentFileRef.current.clear();
       if (result.clean) toast.success(`ZANOEM Auto-Fix: clean (${result.passes} pass${result.passes === 1 ? "" : "es"})`);
       else toast.warning(`ZANOEM Auto-Fix stopped: ${result.finalErrorCount} error(s) remain after ${result.passes} pass(es)`);
     });
