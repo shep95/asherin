@@ -766,7 +766,13 @@ const AureonIdeView = () => {
             : leftTab === "search" ? <IdeSearchPanel files={files} onOpenFile={selectFile} />
             : <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} onMoveFile={moveFile} />
           )}
-          {mobilePanel === "editor" && (centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />)}
+          {mobilePanel === "editor" && (
+            centerTab === "workflow"
+              ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
+              : centerTab === "code"
+                ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+                : <IdePreviewPanel files={files} />
+          )}
           {mobilePanel === "chat" && (
             <div className="flex flex-col h-full">
               {zanoemToggleBar}
