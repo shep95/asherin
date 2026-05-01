@@ -98,6 +98,21 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
+  // ── Draft persistence: survives reloads, crashes, lost wifi ──
+  // Keyed by active project (falls back to a global slot before a project is open).
+  const draftKey = activeProject ? `asherCode.draft.${activeProject.id}` : "asherCode.draft.__global__";
+  // Restore the draft for whichever project just became active.
+  useEffect(() => {
+    const saved = localStorage.getItem(draftKey);
+    setChatInput(saved || "");
+  }, [draftKey]);
+  // Persist every keystroke (cheap; localStorage is sync but tiny strings).
+  useEffect(() => {
+    if (chatInput) localStorage.setItem(draftKey, chatInput);
+    else localStorage.removeItem(draftKey);
+  }, [chatInput, draftKey]);
+
+
   // Word-by-word fade-in / fade-out replace for AI-generated content.
   function animateApply(fileId: string, finalContent: string) {
     const current = dirty[fileId] ?? files.find(f => f.id === fileId)?.content ?? "";
