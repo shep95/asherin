@@ -163,6 +163,17 @@ export default function AsherCodeModule() {
   // so the user sees the swarm dissolve in real time.
   type SwarmAgent = { id: string; file: string; issueCount: number; pass: number; status: "working" | "done" | "failed" };
   const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
+  // Workflow Map state — persists agent history so the Workflow tab still shows
+  // the run after individual agent pills have dissolved from the chat overlay.
+  const [workflowEvents, setWorkflowEvents] = useState<WorkflowEvent[]>([]);
+  const [fileWorkflowStats, setFileWorkflowStats] = useState<Record<string, FileWorkflowStat>>({});
+  // Per-file lock — prevents two agents from ever writing to the SAME file at
+  // the same time (defensive: the dispatcher already gives one agent per file
+  // per pass, but overlapping passes or manual triggers could collide).
+  const fileLocksRef = useRef<Set<string>>(new Set());
+  // Map agent.id → file path so onAgentDone can record stats / release locks
+  // even if the agent record has already been removed from swarmAgents.
+  const agentFileRef = useRef<Map<string, string>>(new Map());
   const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
