@@ -855,6 +855,25 @@ const AureonIdeView = () => {
                 </span>
               )}
             </button>
+            {/* Pause / Resume — visible only while the swarm autofix is running */}
+            {swarmAgents.filter(a => a.status === "working").length > 0 && (
+              <button
+                onClick={() => {
+                  const next = !swarmPaused;
+                  setSwarmPaused(next);
+                  swarmPausedRef.current = next;
+                  toast({ title: next ? "⏸ Swarm paused" : "▶ Swarm resumed" });
+                }}
+                title={swarmPaused ? "Resume the swarm — picks up where it left off." : "Pause the swarm — in-flight agents finish, no new agents spawn."}
+                className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors border-l border-border/15 ${
+                  swarmPaused
+                    ? "bg-accent/30 text-accent"
+                    : "text-muted-foreground/50 hover:text-foreground"
+                }`}
+              >
+                {swarmPaused ? "▶ Resume" : "⏸ Pause"}
+              </button>
+            )}
           </div>
 
           {/* Save */}
