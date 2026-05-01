@@ -796,6 +796,11 @@ export default function AsherCodeModule() {
     } finally { setAiBusy(false); }
   }
 
+  // Bind the offline-queue handlers to the live sendChatViaZanoem so they
+  // can dispatch autopilot turns while the user is away.
+  useEffect(() => {
+    sendZanoemTurnRef.current = (prompt: string) => sendChatViaZanoem(prompt, true);
+  });
   // Extract ZANOEM code blocks and write them as files.
   // SINGLE ORDERED SCAN: walks fenced ``` blocks in source order. For each
   // block, the path is taken from (in priority order):
