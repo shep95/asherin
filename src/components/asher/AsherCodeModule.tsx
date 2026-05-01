@@ -5,7 +5,7 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope,
+  History, Stethoscope, GitBranch, Download,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
@@ -42,6 +42,8 @@ export default function AsherCodeModule() {
   const [projects, setProjects] = useState<AsherCodeProject[]>([]);
   const [activeProject, setActiveProject] = useState<AsherCodeProject | null>(null);
   const [files, setFiles] = useState<AsherCodeFile[]>([]);
+  const [branches, setBranches] = useState<{ id: string; name: string; parent_branch_id: string | null }[]>([]);
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null); // null == main/default
   const [openTabs, setOpenTabs] = useState<string[]>([]);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [dirty, setDirty] = useState<Record<string, string>>({});
@@ -257,7 +259,7 @@ export default function AsherCodeModule() {
     if (!ok) return;
     for (const f of result.files) {
       const { data } = await supabase.from("asher_code_files")
-        .insert({ project_id: activeProject.id, path: f.path, content: f.content, language: f.language }).select().single();
+        .insert({ project_id: activeProject.id, branch_id: activeBranchId, path: f.path, content: f.content, language: f.language }).select().single();
       if (data) {
         const af = data as AsherCodeFile;
         setFiles(fs => [...fs, af]);
@@ -284,9 +286,10 @@ export default function AsherCodeModule() {
 
   async function openProject(p: AsherCodeProject) {
     setActiveProject(p);
-    const [filesRes, chatRes] = await Promise.all([
-      supabase.from("asher_code_files").select("*").eq("project_id", p.id).order("path"),
+    const [filesRes, chatRes, brRes] = await Promise.all([
+      supabase.from("asher_code_files").select("*").eq("project_id", p.id).is("branch_id", null).order("path"),
       supabase.from("asher_code_chat_messages").select("role,content").eq("project_id", p.id).order("created_at", { ascending: true }),
+      supabase.from("asher_code_branches").select("id,name,parent_branch_id").eq("project_id", p.id).order("created_at"),
     ]);
     if (filesRes.error) { toast.error(filesRes.error.message); return; }
     const fs = (filesRes.data || []) as AsherCodeFile[];
@@ -294,12 +297,81 @@ export default function AsherCodeModule() {
     setOpenTabs(fs.length ? [fs[0].id] : []);
     setActiveFileId(fs[0]?.id || null);
     setDirty({});
+    setActiveBranchId(null);
+    setBranches((brRes.data as any[] | null) || []);
     if (chatRes.error) {
       setChat([]);
     } else {
       setChat(((chatRes.data as any[]) || []).map((m) => ({ role: m.role as "user" | "assistant", content: m.content })));
     }
   }
+
+  async function switchBranch(branchId: string | null) {
+    if (!activeProject) return;
+    if (Object.keys(dirty).length && !confirm("You have unsaved changes. Switch branch and discard?")) return;
+    let q = supabase.from("asher_code_files").select("*").eq("project_id", activeProject.id).order("path");
+    q = branchId ? q.eq("branch_id", branchId) : q.is("branch_id", null);
+    const { data, error } = await q;
+    if (error) { toast.error(error.message); return; }
+    const fs = (data || []) as AsherCodeFile[];
+    setFiles(fs);
+    setOpenTabs(fs.length ? [fs[0].id] : []);
+    setActiveFileId(fs[0]?.id || null);
+    setDirty({});
+    setActiveBranchId(branchId);
+  }
+
+  async function createBranch() {
+    if (!activeProject) return;
+    const name = prompt("New branch name (e.g. feature/login)");
+    if (!name) return;
+    const { data: br, error } = await supabase.from("asher_code_branches")
+      .insert({ project_id: activeProject.id, name, parent_branch_id: activeBranchId })
+      .select().single();
+    if (error || !br) { toast.error(error?.message || "branch failed"); return; }
+    // Snapshot current branch's files into the new branch
+    const snapshot = files.map(f => ({
+      project_id: activeProject.id,
+      branch_id: (br as any).id,
+      path: f.path,
+      content: dirty[f.id] ?? f.content,
+      language: f.language,
+    }));
+    if (snapshot.length) {
+      const { error: insErr } = await supabase.from("asher_code_files").insert(snapshot);
+      if (insErr) { toast.error(insErr.message); return; }
+    }
+    setBranches(b => [...b, br as any]);
+    toast.success(`Branch "${name}" created from ${activeBranchId ? branches.find(b => b.id === activeBranchId)?.name : "main"}`);
+    await switchBranch((br as any).id);
+  }
+
+  async function deleteBranch(id: string) {
+    if (!confirm("Delete this branch and all its files?")) return;
+    const { error } = await supabase.from("asher_code_branches").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setBranches(b => b.filter(x => x.id !== id));
+    if (activeBranchId === id) await switchBranch(null);
+  }
+
+  async function downloadProjectZip() {
+    if (!activeProject) return;
+    const zip = new JSZip();
+    for (const f of files) {
+      zip.file(f.path, dirty[f.id] ?? f.content);
+    }
+    const branchName = activeBranchId ? branches.find(b => b.id === activeBranchId)?.name || "branch" : "main";
+    const safeBranch = branchName.replace(/[^a-z0-9._-]/gi, "_");
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activeProject.name}-${safeBranch}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${a.download}`);
+  }
+
 
   async function persistChatMessages(msgs: ChatMsg[]) {
     if (!user || !activeProject || msgs.length === 0) return;
@@ -387,7 +459,7 @@ export default function AsherCodeModule() {
     const lang = ({ js:"javascript", ts:"typescript", tsx:"typescript", jsx:"javascript", py:"python", html:"html", css:"css", json:"json", md:"markdown" } as any)[ext] || "plaintext";
     const { data, error } = await supabase
       .from("asher_code_files")
-      .insert({ project_id: activeProject.id, path, content: "", language: lang })
+      .insert({ project_id: activeProject.id, branch_id: activeBranchId, path, content: "", language: lang })
       .select().single();
     if (error || !data) { toast.error(error?.message || "create failed"); return; }
     const f = data as AsherCodeFile;
@@ -581,7 +653,7 @@ export default function AsherCodeModule() {
       } else {
         const { data, error } = await supabase
           .from("asher_code_files")
-          .insert({ project_id: activeProject.id, path: h.path, content: h.content, language: h.language })
+          .insert({ project_id: activeProject.id, branch_id: activeBranchId, path: h.path, content: h.content, language: h.language })
           .select()
           .single();
         if (!error && data) {
@@ -657,7 +729,7 @@ export default function AsherCodeModule() {
       const testPath = `${base}.test.${ext}`;
       const { data, error } = await supabase
         .from("asher_code_files")
-        .insert({ project_id: activeProject!.id, path: testPath, content: code, language: activeFile.language })
+        .insert({ project_id: activeProject!.id, branch_id: activeBranchId, path: testPath, content: code, language: activeFile.language })
         .select().single();
       if (error || !data) { toast.error(error?.message || "Failed to create test file"); return; }
       const f = data as AsherCodeFile;
@@ -702,6 +774,7 @@ export default function AsherCodeModule() {
       } else {
         void supabase.from("asher_code_files").insert({
           project_id: activeProject.id,
+          branch_id: activeBranchId,
           path: edit.path,
           content: edit.new_content,
           language: edit.path.split(".").pop() || "plaintext",
@@ -875,6 +948,7 @@ export default function AsherCodeModule() {
           <button onClick={saveAll} disabled={!Object.keys(dirty).length} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Save className="h-3 w-3" /> <span className="hidden sm:inline">Save</span></button>
           <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> <span className="hidden sm:inline">Run</span></button>
           <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-foreground/20 bg-foreground/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-foreground/80 hover:bg-foreground/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
+          <button onClick={downloadProjectZip} title="Download current branch as .zip" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Download className="h-3 w-3" /> <span className="hidden sm:inline">ZIP</span></button>
           <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> <span className="hidden md:inline">DevOps</span></button>
           <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Wand2 className="h-3 w-3" /></button>
           <button onClick={() => setFuzzyOpen(true)} title="Fuzzy file finder" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><FileText className="h-3 w-3" /></button>
@@ -889,8 +963,29 @@ export default function AsherCodeModule() {
         {/* File tree — collapsible */}
         {showFiles && (
           <aside className="w-44 sm:w-52 lg:w-56 flex-shrink-0 border-r border-border/15 bg-card/10 overflow-y-auto">
+            {/* Branches */}
+            <div className="border-b border-border/15 bg-card/20">
+              <div className="flex items-center justify-between px-3 py-2 sticky top-0 bg-card/40 backdrop-blur-md">
+                <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase flex items-center gap-1.5"><GitBranch className="h-3 w-3" /> Branches</span>
+                <button onClick={createBranch} className="text-muted-foreground hover:text-foreground" title="New branch from current"><Plus className="h-3 w-3" /></button>
+              </div>
+              <div
+                onClick={() => switchBranch(null)}
+                className={`group flex items-center justify-between px-3 py-1.5 text-[11px] font-light cursor-pointer hover:bg-foreground/5 ${activeBranchId === null ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}
+              >
+                <span className="truncate flex items-center gap-1.5"><GitBranch className="h-3 w-3 flex-shrink-0" />main</span>
+              </div>
+              {branches.map(b => (
+                <div key={b.id}
+                  onClick={() => switchBranch(b.id)}
+                  className={`group flex items-center justify-between px-3 py-1.5 text-[11px] font-light cursor-pointer hover:bg-foreground/5 ${activeBranchId === b.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}>
+                  <span className="truncate flex items-center gap-1.5 pl-3 border-l border-border/30"><GitBranch className="h-3 w-3 flex-shrink-0" />{b.name}</span>
+                  <button onClick={(e) => { e.stopPropagation(); void deleteBranch(b.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
+                </div>
+              ))}
+            </div>
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/15 sticky top-0 bg-card/40 backdrop-blur-md">
-              <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Files</span>
+              <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Files {activeBranchId && <span className="text-foreground/60">· {branches.find(b=>b.id===activeBranchId)?.name}</span>}</span>
               <button onClick={addFile} className="text-muted-foreground hover:text-foreground" title="Add file"><FolderPlus className="h-3 w-3" /></button>
             </div>
             {files.map(f => (

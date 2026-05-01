@@ -869,6 +869,45 @@ export type Database = {
           },
         ]
       }
+      asher_code_branches: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_branch_id: string | null
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_branch_id?: string | null
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_branch_id?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_code_branches_parent_branch_id_fkey"
+            columns: ["parent_branch_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asher_code_branches_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asher_code_chat_messages: {
         Row: {
           content: string
@@ -906,6 +945,7 @@ export type Database = {
       }
       asher_code_files: {
         Row: {
+          branch_id: string | null
           content: string
           created_at: string
           id: string
@@ -915,6 +955,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch_id?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -924,6 +965,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch_id?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -933,6 +975,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "asher_code_files_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "asher_code_files_project_id_fkey"
             columns: ["project_id"]
