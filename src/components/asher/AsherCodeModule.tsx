@@ -62,7 +62,7 @@ export default function AsherCodeModule() {
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
   const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
-  const [zaliMode, setZaliMode] = useState(() => localStorage.getItem("asherCode.zaliMode") === "1");
+  const [zanoemMode, setZaliMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
@@ -98,7 +98,7 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
   useEffect(() => { localStorage.setItem("asherCode.viewMode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
-  useEffect(() => { localStorage.setItem("asherCode.zaliMode", zaliMode ? "1" : "0"); }, [zaliMode]);
+  useEffect(() => { localStorage.setItem("asherCode.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
@@ -478,7 +478,7 @@ export default function AsherCodeModule() {
   }
 
   // Build live preview srcdoc — concatenates HTML/JS/CSS files. If no index.html
-  // exists, auto-synthesizes one from CSS + JS/JSX/TSX so ZALI-generated projects
+  // exists, auto-synthesizes one from CSS + JS/JSX/TSX so ZANOEM-generated projects
   // still render in the preview pane.
   const previewSrcDoc = useMemo(() => {
     const html = files.find(f => f.path.endsWith("index.html"));
@@ -519,7 +519,7 @@ export default function AsherCodeModule() {
 
   async function sendChat() {
     if ((!chatInput.trim() && pendingUploads.length === 0) || aiBusy) return;
-    if (zaliMode) return sendChatViaZali();
+    if (zanoemMode) return sendChatViaZanoem();
     // Compose attachments into the user message
     let composed = chatInput;
     const imageAttachments: { name: string; dataUrl: string }[] = [];
@@ -552,11 +552,11 @@ export default function AsherCodeModule() {
     } finally { setAiBusy(false); }
   }
 
-  // ── ZALI Mode: First-Principles Software Architect ──
+  // ── ZANOEM Mode: First-Principles Software Architect ──
   // Routes chat through zali-chat (Gemini, no BYOK required) for inventing
   // brand-new software from first principles. Auto-extracts ``` code blocks
   // tagged with file paths and writes them into the project as new files.
-  async function sendChatViaZali() {
+  async function sendChatViaZanoem() {
     if (!activeProject || !user) { toast.error("Open a project first"); return; }
     let composed = chatInput;
     for (const u of pendingUploads) {
@@ -593,7 +593,7 @@ export default function AsherCodeModule() {
       });
       if (!resp.ok || !resp.body) {
         const t = await resp.text().catch(() => "");
-        throw new Error(`ZALI gateway ${resp.status}: ${t.slice(0, 200)}`);
+        throw new Error(`ZANOEM gateway ${resp.status}: ${t.slice(0, 200)}`);
       }
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -625,20 +625,20 @@ export default function AsherCodeModule() {
       setChat([...next, finalMsg]);
       void persistChatMessages([userMsg, finalMsg]);
       // Auto-write any code blocks tagged with file paths into the project
-      const created = await materializeZaliCodeBlocks(assistantText);
-      if (created > 0) toast.success(`ZALI created ${created} file${created === 1 ? "" : "s"}`);
+      const created = await materializeZanoemCodeBlocks(assistantText);
+      if (created > 0) toast.success(`ZANOEM created ${created} file${created === 1 ? "" : "s"}`);
     } catch (e: any) {
-      const errMsg: ChatMsg = { role: "assistant", content: "**ZALI Error:** " + (e.message || "call failed") };
+      const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
       setChat([...next, errMsg]);
       void persistChatMessages([userMsg, errMsg]);
-      toast.error(e.message || "ZALI call failed");
+      toast.error(e.message || "ZANOEM call failed");
     } finally { setAiBusy(false); }
   }
 
-  // Extract ZALI code blocks and write them as files. Recognises:
+  // Extract ZANOEM code blocks and write them as files. Recognises:
   //   ```lang path/to/file.ext\n...\n```
   //   <code_output path="..."> ... </code_output>
-  async function materializeZaliCodeBlocks(text: string): Promise<number> {
+  async function materializeZanoemCodeBlocks(text: string): Promise<number> {
     if (!activeProject) return 0;
     type Hit = { path: string; content: string; language: string };
     const hits: Hit[] = [];
@@ -1199,7 +1199,7 @@ export default function AsherCodeModule() {
               ))}
             </div>
           )}
-          {/* Auto-approve + Animation + ZALI toggles */}
+          {/* Auto-approve + Animation + ZANOEM toggles */}
           <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
               <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
@@ -1210,11 +1210,11 @@ export default function AsherCodeModule() {
               Type-Anim
             </label>
             <label
-              title="ZALI Mode: design brand-new software from first principles. Auto-creates files from generated code blocks. Uses Aureon engine — no BYOK key needed."
-              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zaliMode ? "text-foreground" : "text-muted-foreground/70"}`}
+              title="ZANOEM Mode: design brand-new software from first principles. Auto-creates files from generated code blocks. Uses Aureon engine — no BYOK key needed."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zanoemMode ? "text-foreground" : "text-muted-foreground/70"}`}
             >
-              <input type="checkbox" checked={zaliMode} onChange={(e) => setZaliMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
-              <Brain className="h-2.5 w-2.5" /> ZALI
+              <input type="checkbox" checked={zanoemMode} onChange={(e) => setZaliMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
+              <Brain className="h-2.5 w-2.5" /> ZANOEM
             </label>
           </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
@@ -1231,18 +1231,18 @@ export default function AsherCodeModule() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
-              placeholder={zaliMode ? "ZALI: invent brand-new software from first principles…" : (apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first")}
-              disabled={!zaliMode && !apiKey}
+              placeholder={zanoemMode ? "ZANOEM: invent brand-new software from first principles…" : (apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first")}
+              disabled={!zanoemMode && !apiKey}
               rows={2}
               className="flex-1 resize-none rounded border border-border/20 bg-card/40 px-2 py-1.5 text-[11px] font-light placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none disabled:opacity-40"
             />
             <button
-              onClick={() => zaliMode ? sendChat() : (orchestrateMode ? aiOrchestrate() : sendChat())}
-              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || (!zaliMode && !apiKey)}
-              title={zaliMode ? "ZALI: invent new software from first principles" : (orchestrateMode ? "Orchestrate across 3 models" : "Send")}
-              className={`rounded border px-2 disabled:opacity-40 ${zaliMode ? "border-foreground/40 bg-foreground/15 hover:bg-foreground/25" : orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
+              onClick={() => zanoemMode ? sendChat() : (orchestrateMode ? aiOrchestrate() : sendChat())}
+              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || (!zanoemMode && !apiKey)}
+              title={zanoemMode ? "ZANOEM: invent new software from first principles" : (orchestrateMode ? "Orchestrate across 3 models" : "Send")}
+              className={`rounded border px-2 disabled:opacity-40 ${zanoemMode ? "border-foreground/40 bg-foreground/15 hover:bg-foreground/25" : orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
             >
-              {zaliMode ? <Brain className="h-3 w-3 text-foreground" /> : orchestrateMode ? <Layers className="h-3 w-3 text-foreground" /> : <Send className="h-3 w-3" />}
+              {zanoemMode ? <Brain className="h-3 w-3 text-foreground" /> : orchestrateMode ? <Layers className="h-3 w-3 text-foreground" /> : <Send className="h-3 w-3" />}
             </button>
           </div>
         </aside>
