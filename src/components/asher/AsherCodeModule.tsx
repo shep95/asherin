@@ -133,6 +133,25 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
   useEffect(() => { localStorage.setItem("asherCode.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
   useEffect(() => { localStorage.setItem("asherCode.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
+
+  // Capture preview iframe errors and feed the Bug Doctor automatically
+  const lastPreviewErrorRef = useRef<string>("");
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      const d: any = e.data;
+      if (!d || typeof d !== "object") return;
+      if (d.__asherPreviewError || d.__asherPreviewErrorSilent) {
+        const composed = `[${d.kind}] ${d.message}${d.source ? `\n@ ${d.source}` : ""}\n\nWhy: ${d.why}`;
+        lastPreviewErrorRef.current = composed;
+        if (d.__asherPreviewError) {
+          setBugDoctorMsg(composed);
+          setBugDoctorOpen(true);
+        }
+      }
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
