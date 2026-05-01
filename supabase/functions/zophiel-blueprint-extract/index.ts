@@ -69,13 +69,16 @@ serve(async (req) => {
   }
 
   try {
-    const { url, byok } = await req.json();
+    const { url, byok, mode } = await req.json();
     if (!url || typeof url !== "string") {
       return new Response(JSON.stringify({ error: "url required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const isSubdomainMode = mode === "subdomain";
+    const activeSystemPrompt = isSubdomainMode ? SUBDOMAIN_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const useByok = isValidByok(byok);
     const GEMINI_API_KEY = useByok ? "" : (Deno.env.get("GEMINI_API_KEY_APP") || "");
@@ -86,13 +89,15 @@ serve(async (req) => {
       });
     }
 
-    const userPrompt = `Target URL: ${url}\n\nReturn the JSON blueprint now.`;
+    const userPrompt = isSubdomainMode
+      ? `Subdomain target: ${url}\n\nReturn the JSON blueprint for THIS subdomain now.`
+      : `Target URL: ${url}\n\nReturn the JSON blueprint now (include the subdomains branch with enumerated hostnames).`;
 
     let raw = "";
     let finishReason: string | undefined;
     if (useByok) {
       try {
-        raw = await callByokJsonWithRetry(byok as ZophielByokConfig, SYSTEM_PROMPT, userPrompt, {
+        raw = await callByokJsonWithRetry(byok as ZophielByokConfig, activeSystemPrompt, userPrompt, {
           timeoutMs: 60_000,
           temperature: 0.3,
           maxOutputTokens: 16384,
@@ -113,7 +118,7 @@ serve(async (req) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            systemInstruction: { parts: [{ text: activeSystemPrompt }] },
             contents: [
               { role: "user", parts: [{ text: userPrompt }] },
             ],
