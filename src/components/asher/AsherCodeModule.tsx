@@ -36,7 +36,7 @@ import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSa
 import { toast } from "sonner";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import ZanoemDecisionLog from "./ZanoemDecisionLog";
-import { validateFiles, validateCode } from "@/lib/ide";
+import { validateFiles, validateCode, explainError } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -198,6 +198,15 @@ export default function AsherCodeModule() {
           setBugDoctorMsg(composed);
           setBugDoctorOpen(true);
         }
+        if (d.__asherPreviewErrorSilent && autoDebugRef.current && activeProjectRef.current) {
+          void zqEnqueue({
+            kind: "autofix",
+            payload: { projectRef: activeProjectRef.current.id },
+            surface: "asher_ide",
+            projectRef: activeProjectRef.current.id,
+            ownerUserId: user?.id,
+          });
+        }
       }
     }
     window.addEventListener("message", onMsg);
@@ -256,12 +265,16 @@ export default function AsherCodeModule() {
     });
 
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
-      if (!autopilotZanoemRef.current || !autoDebugRef.current) return;         // gated by Auto Debug
+      if (!autoDebugRef.current) return;         // gated by Auto Debug
       const result = await autoFixUntilClean({
         files: () => filesRef.current.map<AutoFixFile>((f) => ({
           id: f.id, name: f.path, content: f.content, language: f.language,
         })),
-        runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
+        applyFileFix: applyDebuggerFix,
+        runZanoemTurn: async (prompt) => {
+          if (!sendZanoemTurnRef.current) throw new Error("Auto-fix dispatcher is not ready");
+          await sendZanoemTurnRef.current(prompt);
+        },
         maxPasses: 6,
         onProgress: (pass, n) => {
           if (n > 0) toast.message(`ZANOEM Auto-Fix pass ${pass}: ${n} error${n === 1 ? "" : "s"}`);
@@ -387,6 +400,29 @@ export default function AsherCodeModule() {
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
+
+  function applyProjectFileContent(fileId: string, content: string, persist = false) {
+    setDirty(d => {
+      const next = { ...d, [fileId]: content };
+      if (persist) delete next[fileId];
+      return next;
+    });
+    setFiles(fs => fs.map(f => f.id === fileId ? { ...f, content } : f));
+    filesRef.current = filesRef.current.map(f => f.id === fileId ? { ...f, content } : f);
+    if (persist) void supabase.from("asher_code_files").update({ content }).eq("id", fileId);
+    setPreviewKey(k => k + 1);
+  }
+
+  async function applyDebuggerFix(file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) {
+    const current = filesRef.current.find(f => f.id === file.id)?.content ?? file.content;
+    const diagnostic = issues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+    const explained = await explainError(diagnostic || lastPreviewErrorRef.current, current);
+    const corrected = explained.correctedCode?.trim();
+    if (!corrected || corrected === current.trim()) return false;
+    applyProjectFileContent(file.id, corrected, true);
+    toast.success(`Auto-applied debugger fix → ${file.name}`);
+    return true;
+  }
 
   // ── Red-line bug highlighting in Monaco ──
   // Validator issues become red squigglies (markers) + a red line-background decoration
