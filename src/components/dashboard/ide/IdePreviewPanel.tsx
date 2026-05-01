@@ -44,9 +44,18 @@ function stripModuleSyntax(src: string): { code: string; defaultExport: string |
   code = code.replace(/^\s*export\s+\{[^}]*\}\s*;?\s*$/gm, "");
   // Fallback: top-level component-like declarations
   const namedComponents: string[] = [];
-  const rxFn = /(?:^|\n)\s*(?:function|const|let|var)\s+([A-Z][A-Za-z0-9_]*)/g;
+  const rxFn = /(?:^|\n)\s*(?:export\s+)?(?:async\s+)?(?:function|const|let|var|class)\s+([A-Z][A-Za-z0-9_]*)/g;
   let m: RegExpExecArray | null;
   while ((m = rxFn.exec(code)) !== null) namedComponents.push(m[1]);
+  const rxSrc = /(?:^|\n)\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:function|const|let|var|class)\s+([A-Z][A-Za-z0-9_]*)/g;
+  while ((m = rxSrc.exec(src)) !== null) if (!namedComponents.includes(m[1])) namedComponents.push(m[1]);
+  for (const name of namedComponents) {
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    code = code.replace(new RegExp(`(^|\\n)(\\s*)(async\\s+)?function\\s+${esc}\\s*\\(`, "g"), `$1$2var ${name} = window.${name} = $3function ${name}(`);
+    code = code.replace(new RegExp(`(^|\\n)(\\s*)class\\s+${esc}(\\s+extends\\s+)`, "g"), `$1$2var ${name} = window.${name} = class ${name}$3`);
+    code = code.replace(new RegExp(`(^|\\n)(\\s*)class\\s+${esc}(\\s*[{])`, "g"), `$1$2var ${name} = window.${name} = class ${name}$3`);
+    code = code.replace(new RegExp(`(^|\\n)(\\s*)(?:const|let|var)\\s+${esc}(?:\\s*:[^=]+)?\\s*=`, "g"), `$1$2var ${name} = window.${name} =`);
+  }
   return { code, defaultExport, namedComponents };
 }
 
