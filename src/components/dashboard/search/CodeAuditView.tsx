@@ -2,11 +2,12 @@ import { useState, useCallback, useRef } from "react";
 import {
   ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
   Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
-  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye, FileArchive,
+  Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye, FileArchive, KeyRound,
 } from "lucide-react";
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
-import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import { getActiveIntelMapByok, isIntelMapByokEnabled } from "@/lib/intelMapByok";
+import IntelMapByokPanel from "./IntelMapByokPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -69,6 +70,8 @@ const ZerlalView = () => {
     new Set(ALL_CATEGORIES.map(c => c.id))
   );
   const [liveLog, setLiveLog] = useState<{ agent: string; file: string; findings: number; ts: number }[]>([]);
+  const [byokOpen, setByokOpen] = useState(false);
+  const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isZip = (file: File) =>
@@ -242,7 +245,22 @@ const ZerlalView = () => {
               Drop a code file or ZIP archive (≤100MB). Multi-agent forensic scan with exploit-chain mapping.
             </p>
           </div>
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-emerald-200/70 uppercase shrink-0">
+          <button
+            onClick={() => setByokOpen(true)}
+            className={`ml-auto inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-light tracking-wide transition-colors shrink-0 ${
+              byokActive
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200"
+                : "border-border/30 bg-card/30 text-muted-foreground/70 hover:text-foreground hover:border-border/50"
+            }`}
+            title={byokActive
+              ? "Your API key is hooked into the Zophiel engine — used for ZERLAL, Search, Intel Map, Link Extract, all tabs"
+              : "Bring your own API key — hooks into the Zophiel engine across every tab and skips the shared queue"}
+            type="button"
+          >
+            <KeyRound className="h-3 w-3" />
+            {byokActive ? "My API Key: ON" : "Use My API Key"}
+          </button>
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-emerald-200/70 uppercase shrink-0">
             <Sparkles className="h-2.5 w-2.5" /> Free
           </span>
         </div>
