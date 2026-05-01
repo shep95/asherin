@@ -79,6 +79,26 @@ const ALL_CATEGORIES: { id: ScanCategory; label: string }[] = [
   { id: "logic", label: "Logic Flaws" },
 ];
 
+const normalizeGithubUrl = (url: string) => {
+  if (!url) return "";
+  if (/^https:\/\/raw\.githubusercontent\.com\//i.test(url)) return url;
+  const m = url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/i);
+  return m ? `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}/${m[4]}` : "";
+};
+
+const blueprintFindingSignal = (code: string, file: string, agent: string) => {
+  const fileChunk = code.includes(`FILE: ${file}`)
+    ? code.split(`FILE: ${file}`).slice(1).join("\n").slice(0, 12000)
+    : code.slice(0, 12000);
+  const hay = fileChunk.toLowerCase();
+  const probes = agent.includes("Injection") ? [/eval\(/, /innerhtml/, /execute\(/, /raw\(/, /select .*\$\{/, /exec\(/]
+    : agent.includes("Auth") ? [/localstorage/, /sessionstorage/, /jwt/, /admin/, /role/, /password/]
+    : agent.includes("Crypto") ? [/md5/, /sha1/, /rsa/, /des/, /math\.random/, /secret/, /private[_-]?key/]
+    : agent.includes("Deps") ? [/package\.json/, /import /, /require\(/, /from "/, /from '/]
+    : [/todo/, /fixme/, /catch \{/, /settimeout/, /promise/, /async/, /await/];
+  return probes.reduce((n, rx) => n + (rx.test(hay) ? 1 : 0), 0);
+};
+
 const ZerlalView = () => {
   const [filename, setFilename] = useState<string>("");
   const [code, setCode] = useState<string>("");
