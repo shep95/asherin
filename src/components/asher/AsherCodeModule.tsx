@@ -948,7 +948,8 @@ try {
     setAiBusy(true);
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments } as any);
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments, ...aureon } as any);
       const assistantMsg: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat([...next, assistantMsg]);
       void persistChatMessages([userMsg, assistantMsg]);
