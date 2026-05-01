@@ -603,7 +603,7 @@ export default function AsherCodeModule() {
 
         <div className="p-6 max-w-5xl mx-auto w-full">
           {!apiKey && (
-            <div className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] text-amber-200/80 font-light">
+            <div className="mb-4 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-[11px] text-muted-foreground/80 font-light">
               Add your own API key in <strong>BYOK</strong> settings. Asher Code never uses platform AI keys for non-admin users.
             </div>
           )}
@@ -621,7 +621,7 @@ export default function AsherCodeModule() {
                 <div key={p.id} className="rounded-xl border border-border/15 bg-card/20 p-4 backdrop-blur-md hover:border-foreground/30 transition group">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-foreground/60" /><h3 className="text-sm font-light tracking-wide">{p.name}</h3></div>
-                    <button onClick={() => deleteProject(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400"><Trash2 className="h-3 w-3" /></button>
+                    <button onClick={() => deleteProject(p)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                   </div>
                   <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-3">{p.language} · {p.visibility}</p>
                   <button onClick={() => openProject(p)} className="w-full rounded-md border border-border/20 bg-card/40 py-1.5 text-[10px] font-light tracking-[0.2em] uppercase hover:bg-foreground/10">Open</button>
@@ -646,7 +646,7 @@ export default function AsherCodeModule() {
           <button onClick={() => { setActiveProject(null); setFiles([]); }} className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground whitespace-nowrap">← Projects</button>
           <span className="text-muted-foreground/30 hidden sm:inline">/</span>
           <span className="text-xs font-light truncate max-w-[140px] sm:max-w-none">{activeProject.name}</span>
-          {Object.keys(dirty).length > 0 && <span className="text-[9px] text-amber-400/80 ml-1 whitespace-nowrap">● {Object.keys(dirty).length} unsaved</span>}
+          {Object.keys(dirty).length > 0 && <span className="text-[9px] text-muted-foreground/80 ml-1 whitespace-nowrap">● {Object.keys(dirty).length} unsaved</span>}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           {/* Pane toggles */}
@@ -662,7 +662,7 @@ export default function AsherCodeModule() {
           <span className="w-px h-4 bg-border/20 mx-0.5" />
           <button onClick={saveAll} disabled={!Object.keys(dirty).length} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Save className="h-3 w-3" /> <span className="hidden sm:inline">Save</span></button>
           <button onClick={runPreview} className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase hover:border-foreground/30"><Play className="h-3 w-3" /> <span className="hidden sm:inline">Run</span></button>
-          <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-emerald-200/80 hover:bg-emerald-400/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
+          <button onClick={() => setShowPublish(true)} className="inline-flex items-center gap-1 rounded-md border border-foreground/20 bg-foreground/5 px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase text-foreground/80 hover:bg-foreground/10"><Upload className="h-3 w-3" /> <span className="hidden sm:inline">Publish</span></button>
           <button onClick={() => setShowDevOps(s => !s)} className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-light tracking-[0.15em] uppercase ${showDevOps ? "border-foreground/40 bg-foreground/15" : "border-border/20 bg-card/30 hover:border-foreground/30"}`}><Wrench className="h-3 w-3" /> <span className="hidden md:inline">DevOps</span></button>
           <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><Wand2 className="h-3 w-3" /></button>
           <button onClick={() => setFuzzyOpen(true)} title="Fuzzy file finder" className="inline-flex items-center gap-1 rounded-md border border-border/20 bg-card/30 px-2 py-1 text-[10px] hover:border-foreground/30"><FileText className="h-3 w-3" /></button>
@@ -684,8 +684,8 @@ export default function AsherCodeModule() {
             {files.map(f => (
               <div key={f.id} className={`group flex items-center justify-between px-3 py-1.5 text-[11px] font-light cursor-pointer hover:bg-foreground/5 ${activeFileId === f.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}
                 onClick={() => { if (!openTabs.includes(f.id)) setOpenTabs(t => [...t, f.id]); setActiveFileId(f.id); }}>
-                <span className="truncate flex items-center gap-1.5"><FileText className="h-3 w-3 flex-shrink-0" />{f.path}{f.id in dirty && <span className="text-amber-400">●</span>}</span>
-                <button onClick={(e) => { e.stopPropagation(); void removeFile(f.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400"><X className="h-3 w-3" /></button>
+                <span className="truncate flex items-center gap-1.5"><FileText className="h-3 w-3 flex-shrink-0" />{f.path}{f.id in dirty && <span className="text-muted-foreground">●</span>}</span>
+                <button onClick={(e) => { e.stopPropagation(); void removeFile(f.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
               </div>
             ))}
           </aside>
@@ -702,7 +702,7 @@ export default function AsherCodeModule() {
                 return (
                   <div key={tid} className={`group flex items-center gap-2 border-r border-border/15 px-3 py-1.5 text-[11px] font-light cursor-pointer whitespace-nowrap ${activeFileId === tid ? "bg-background text-foreground" : "text-muted-foreground hover:bg-foreground/5"}`}
                     onClick={() => setActiveFileId(tid)}>
-                    {f.path}{f.id in dirty && <span className="text-amber-400">●</span>}
+                    {f.path}{f.id in dirty && <span className="text-muted-foreground">●</span>}
                     <button onClick={(e) => { e.stopPropagation(); setOpenTabs(t => t.filter(x => x !== tid)); if (activeFileId === tid) setActiveFileId(openTabs.filter(x => x !== tid)[0] || null); }} className="opacity-50 hover:opacity-100"><X className="h-3 w-3" /></button>
                   </div>
                 );
@@ -802,7 +802,7 @@ export default function AsherCodeModule() {
               <Brain className="h-3 w-3 text-foreground/60" />
               <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Aureon Code AI</span>
             </div>
-            <span className="text-[8px] tracking-[0.2em] text-emerald-400/70 uppercase">{apiKey ? "BYOK" : "No Key"}</span>
+            <span className="text-[8px] tracking-[0.2em] text-foreground/70 uppercase">{apiKey ? "BYOK" : "No Key"}</span>
           </div>
           <div className="grid grid-cols-3 gap-1 p-2 border-b border-border/15">
             <button onClick={aiGenerate} disabled={aiBusy || !apiKey} className="inline-flex items-center justify-center gap-1 rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] font-light tracking-[0.15em] uppercase hover:border-foreground/30 disabled:opacity-40"><Wand2 className="h-2.5 w-2.5" />Gen</button>
@@ -814,10 +814,10 @@ export default function AsherCodeModule() {
           </div>
           <div className="flex items-center justify-between px-2 py-1 border-b border-border/15 bg-card/5">
             <label className="flex items-center gap-1.5 text-[9px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase cursor-pointer">
-              <input type="checkbox" checked={orchestrateMode} onChange={(e) => setOrchestrateMode(e.target.checked)} className="accent-emerald-500 h-3 w-3" />
+              <input type="checkbox" checked={orchestrateMode} onChange={(e) => setOrchestrateMode(e.target.checked)} className="accent-foreground h-3 w-3" />
               <Layers className="h-2.5 w-2.5" /> Multi-Model
             </label>
-            {orchestrateMode && <span className="text-[8px] text-emerald-400/70 tracking-[0.15em] uppercase">3 models · ranked</span>}
+            {orchestrateMode && <span className="text-[8px] text-foreground/70 tracking-[0.15em] uppercase">3 models · ranked</span>}
           </div>
           <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
             {chat.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
@@ -837,7 +837,7 @@ export default function AsherCodeModule() {
                 <div key={i} className="inline-flex items-center gap-1 rounded border border-border/20 bg-card/40 px-1.5 py-0.5 text-[9px] font-light">
                   {u.kind === "image" ? <ImageIcon className="h-2.5 w-2.5" /> : u.kind === "zip" ? <FileArchive className="h-2.5 w-2.5" /> : <FileText className="h-2.5 w-2.5" />}
                   <span className="truncate max-w-[80px]">{u.name}</span>
-                  <button onClick={() => setPendingUploads(p => p.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-red-400"><X className="h-2 w-2" /></button>
+                  <button onClick={() => setPendingUploads(p => p.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive"><X className="h-2 w-2" /></button>
                 </div>
               ))}
             </div>
@@ -845,11 +845,11 @@ export default function AsherCodeModule() {
           {/* Auto-approve + Animation toggles */}
           <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5">
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
-              <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-emerald-500 h-2.5 w-2.5" />
+              <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               <Zap className="h-2.5 w-2.5" /> Auto-Apply
             </label>
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
-              <input type="checkbox" checked={animateInsertion} onChange={(e) => setAnimateInsertion(e.target.checked)} className="accent-emerald-500 h-2.5 w-2.5" />
+              <input type="checkbox" checked={animateInsertion} onChange={(e) => setAnimateInsertion(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               Type-Anim
             </label>
           </div>
@@ -876,9 +876,9 @@ export default function AsherCodeModule() {
               onClick={() => orchestrateMode ? aiOrchestrate() : sendChat()}
               disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || !apiKey}
               title={orchestrateMode ? "Orchestrate across 3 models" : "Send"}
-              className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
+              className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
             >
-              {orchestrateMode ? <Layers className="h-3 w-3 text-emerald-300" /> : <Send className="h-3 w-3" />}
+              {orchestrateMode ? <Layers className="h-3 w-3 text-foreground" /> : <Send className="h-3 w-3" />}
             </button>
           </div>
         </aside>
@@ -1054,7 +1054,7 @@ function PublishDialog({ onClose, onPublish, defaultName }: { onClose: () => voi
         </select>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={onClose} className="rounded-md border border-border/20 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground/5">Cancel</button>
-          <button onClick={() => onPublish(name.trim(), icon, vis)} disabled={!name.trim()} className="rounded-md border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-emerald-200/80 hover:bg-emerald-400/20 disabled:opacity-40">Publish</button>
+          <button onClick={() => onPublish(name.trim(), icon, vis)} disabled={!name.trim()} className="rounded-md border border-foreground/20 bg-foreground/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-foreground/80 hover:bg-foreground/20 disabled:opacity-40">Publish</button>
         </div>
       </div>
     </div>

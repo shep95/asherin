@@ -31,7 +31,7 @@ export default function IdeTemplateLauncher({ open, onCreate, onClose }: Props) 
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-background/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-[560px] max-w-full rounded-lg border border-border/30 bg-card/95 shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border/20">
-          <Sparkles className="size-3 text-emerald-400/70" />
+          <Sparkles className="size-3 text-foreground/70" />
           <input
             autoFocus
             value={phrase}
@@ -57,7 +57,7 @@ export default function IdeTemplateLauncher({ open, onCreate, onClose }: Props) 
             </ul>
             <button
               onClick={() => { onCreate(preview); onClose(); }}
-              className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 text-[11px] hover:bg-emerald-500/20"
+              className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-foreground/40 bg-foreground/10 text-foreground text-[11px] hover:bg-foreground/20"
             >
               <Wand2 className="size-3" /> Scaffold {preview.kind} <span className="opacity-60">↵</span>
             </button>
