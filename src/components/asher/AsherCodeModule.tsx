@@ -1331,6 +1331,11 @@ try {
     setChat(next);
     if (!isAutopilotTurn) { setChatInput(""); setPendingUploads([]); }
     if (!isAutopilotTurn) autopilotRoundsRef.current = 0;
+    // Auto-approved plan strip — surface immediately for ZANOEM turns too
+    if (!isAutopilotTurn && !activePlan) {
+      const goal = routeGoal(composed);
+      startPlan(composed, goal.intent === "chat" ? "build_all" : goal.intent, { activeFileName: activeFile?.path, projectName: activeProject?.name });
+    }
     setAiBusy(true);
     let assistantText = "";
     try {
