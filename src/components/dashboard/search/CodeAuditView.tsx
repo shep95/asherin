@@ -1,13 +1,15 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ShieldAlert, Loader2, FileCode, Sparkles, Shield, Zap,
   Bug, AlertTriangle, ExternalLink, Copy, Check, Wrench,
   Lock, Plug, Syringe, UploadCloud, X, Brain, Workflow, Eye, FileArchive, KeyRound,
+  Download, FileText, FileJson, FileSpreadsheet, GitBranch, History,
 } from "lucide-react";
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok, isIntelMapByokEnabled } from "@/lib/intelMapByok";
 import IntelMapByokPanel from "./IntelMapByokPanel";
+import { exportCSV, exportJSON, exportPDF } from "@/lib/exportEngine";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -65,6 +67,9 @@ const SKIP_DIR = /(^|\/)(node_modules|\.git|dist|build|out|\.next|\.cache|covera
 
 type ScanDepth = "quick" | "standard" | "deep";
 type ScanCategory = "injection" | "auth" | "crypto" | "deps" | "secrets" | "logic";
+type InputMode = "zip" | "github" | "paste";
+type ZerlalPage = "scan" | "history" | "compliance" | "patterns";
+type ScanHistoryEntry = { id: string; target: string; risk: number; files: number; timestamp: string; critical: number; high: number; medium: number; low: number };
 const ALL_CATEGORIES: { id: ScanCategory; label: string }[] = [
   { id: "injection", label: "Injection" },
   { id: "auth", label: "Auth/Session" },
@@ -73,6 +78,26 @@ const ALL_CATEGORIES: { id: ScanCategory; label: string }[] = [
   { id: "secrets", label: "Secrets/Leaks" },
   { id: "logic", label: "Logic Flaws" },
 ];
+
+const normalizeGithubUrl = (url: string) => {
+  if (!url) return "";
+  if (/^https:\/\/raw\.githubusercontent\.com\//i.test(url)) return url;
+  const m = url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/i);
+  return m ? `https://raw.githubusercontent.com/${m[1]}/${m[2]}/${m[3]}/${m[4]}` : "";
+};
+
+const blueprintFindingSignal = (code: string, file: string, agent: string) => {
+  const fileChunk = code.includes(`FILE: ${file}`)
+    ? code.split(`FILE: ${file}`).slice(1).join("\n").slice(0, 12000)
+    : code.slice(0, 12000);
+  const hay = fileChunk.toLowerCase();
+  const probes = agent.includes("Injection") ? [/eval\(/, /innerhtml/, /execute\(/, /raw\(/, /select .*\$\{/, /exec\(/]
+    : agent.includes("Auth") ? [/localstorage/, /sessionstorage/, /jwt/, /admin/, /role/, /password/]
+    : agent.includes("Crypto") ? [/md5/, /sha1/, /rsa/, /des/, /math\.random/, /secret/, /private[_-]?key/]
+    : agent.includes("Deps") ? [/package\.json/, /import /, /require\(/, /from "/, /from '/]
+    : [/todo/, /fixme/, /catch \{/, /settimeout/, /promise/, /async/, /await/];
+  return probes.reduce((n, rx) => n + (rx.test(hay) ? 1 : 0), 0);
+};
 
 const ZerlalView = () => {
   const [filename, setFilename] = useState<string>("");
@@ -92,12 +117,81 @@ const ZerlalView = () => {
   const [liveLog, setLiveLog] = useState<{ agent: string; file: string; findings: number; ts: number }[]>([]);
   const [byokOpen, setByokOpen] = useState(false);
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
+  const [inputMode, setInputMode] = useState<InputMode>("zip");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [activePage, setActivePage] = useState<ZerlalPage>("scan");
+  const [scanStartedAt, setScanStartedAt] = useState<string | null>(null);
+  const [scanCompletedAt, setScanCompletedAt] = useState<string | null>(null);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("zerlal_scan_history");
+      if (raw) setScanHistory(JSON.parse(raw));
+    } catch { /* ignore malformed local history */ }
+  }, []);
+
+  const fileCount = useMemo(() => {
+    if (zipFileCount > 0) return zipFileCount;
+    if (!code.trim()) return 0;
+    const markers = code.match(/\/\* ───── FILE: .*? ───── \*\//g);
+    return markers?.length || 1;
+  }, [code, zipFileCount]);
+
+  const persistHistory = useCallback((bp: Blueprint) => {
+    const counts = countSeverities(bp);
+    const entry: ScanHistoryEntry = {
+      id: `${Date.now()}`,
+      target: bp.target || filename || "target",
+      risk: computeRiskScore(bp),
+      files: fileCount || 1,
+      timestamp: new Date().toISOString(),
+      critical: counts.critical,
+      high: counts.high,
+      medium: counts.med,
+      low: counts.low,
+    };
+    setScanHistory(prev => {
+      const next = [entry, ...prev].slice(0, 25);
+      localStorage.setItem("zerlal_scan_history", JSON.stringify(next));
+      return next;
+    });
+  }, [fileCount, filename]);
 
   const isZip = (file: File) =>
     file.name.toLowerCase().endsWith(".zip") ||
     file.type === "application/zip" ||
     file.type === "application/x-zip-compressed";
+
+  const importGithubTarget = useCallback(async () => {
+    const rawUrl = normalizeGithubUrl(githubUrl.trim());
+    if (!rawUrl) {
+      setError("Paste a public GitHub raw/blob file URL first");
+      return;
+    }
+    setError(null);
+    setProgress(8);
+    setProgressLabel("Fetching GitHub source…");
+    try {
+      const resp = await fetch(rawUrl);
+      if (!resp.ok) throw new Error(`GitHub fetch failed (${resp.status})`);
+      const text = await resp.text();
+      if (!text.trim()) throw new Error("GitHub file returned empty content");
+      if (text.length > MAX_COMBINED_CODE) throw new Error("GitHub file exceeds 500KB scan bundle limit");
+      setCode(text);
+      setFilename(rawUrl.split("/").pop() || "github-source");
+      setByteSize(new TextEncoder().encode(text).length);
+      setZipFileCount(0);
+      setBlueprint(null);
+      setProgress(100);
+      setProgressLabel("GitHub source ready");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not import GitHub source");
+    } finally {
+      setTimeout(() => { setProgress(0); setProgressLabel(""); }, 800);
+    }
+  }, [githubUrl]);
 
   const handleZip = useCallback(async (file: File) => {
     if (file.size > MAX_ZIP_BYTES) {
@@ -183,6 +277,8 @@ const ZerlalView = () => {
     setError(null);
     setBlueprint(null);
     setLiveLog([]);
+    setScanStartedAt(new Date().toISOString());
+    setScanCompletedAt(null);
     setProgress(5);
     setProgressLabel("Dispatching to ZERLAL engine…");
 
@@ -193,7 +289,8 @@ const ZerlalView = () => {
     const liveTick = setInterval(() => {
       const f = fileList[fIdx % fileList.length];
       const a = agents[aIdx % agents.length];
-      setLiveLog(prev => [{ agent: a, file: f, findings: Math.floor(Math.random() * 3), ts: Date.now() }, ...prev].slice(0, 12));
+        const observed = blueprintFindingSignal(code, f, a);
+        setLiveLog(prev => [{ agent: a, file: f, findings: observed, ts: Date.now() }, ...prev].slice(0, 12));
       fIdx++; aIdx++;
     }, 600);
 
@@ -220,7 +317,10 @@ const ZerlalView = () => {
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
       setProgress(100);
       setProgressLabel("Complete");
-      setBlueprint(data.blueprint as Blueprint);
+      const bp = data.blueprint as Blueprint;
+      setBlueprint(bp);
+      setScanCompletedAt(new Date().toISOString());
+      persistHistory(bp);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Audit failed";
       setError(msg);
@@ -230,7 +330,7 @@ const ZerlalView = () => {
       setAuditing(false);
       setTimeout(() => { setProgress(0); setProgressLabel(""); }, 600);
     }
-  }, [code, filename, scanDepth, scanCategories]);
+  }, [code, filename, scanDepth, scanCategories, persistHistory]);
 
   const handleCopy = useCallback(() => {
     if (!blueprint) return;
@@ -253,6 +353,22 @@ const ZerlalView = () => {
 
   return (
     <div className="w-full animate-fade-in space-y-4">
+      <ZerlalTopNav active={activePage} onChange={setActivePage} />
+      {activePage !== "scan" && (
+        <ZerlalIntelPage page={activePage} history={scanHistory} blueprint={blueprint} />
+      )}
+      {activePage === "scan" && (
+        <>
+      <ZerlalDashboardHeader
+        blueprint={blueprint}
+        auditing={auditing}
+        progress={progress}
+        progressLabel={progressLabel}
+        liveLog={liveLog}
+        fileCount={fileCount}
+        scanStartedAt={scanStartedAt}
+        scanCompletedAt={scanCompletedAt}
+      />
       {/* Hero / Input */}
       <div className="rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/[0.04] via-card/30 to-card/10 backdrop-blur-xl px-5 py-4">
         <div className="flex items-center gap-3 mb-2">
@@ -299,50 +415,70 @@ const ZerlalView = () => {
           </span>
         </div>
 
-        <div
-          onDrop={onDrop}
-          onDragOver={(e) => e.preventDefault()}
-          className="mt-3 rounded-xl border border-dashed border-border/30 bg-background/30 hover:bg-background/40 transition-colors px-4 py-5"
-        >
-          {!filename ? (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-foreground transition-colors"
-              type="button"
+        <div className="mt-3 rounded-xl border border-border/20 bg-background/25 px-3 py-3">
+          <div className="flex flex-wrap items-center gap-1 mb-3">
+            {[
+              { id: "zip" as const, label: "ZIP Upload", icon: FileArchive },
+              { id: "github" as const, label: "GitHub Link", icon: GitBranch },
+              { id: "paste" as const, label: "Paste Code", icon: FileCode },
+            ].map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setInputMode(m.id)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-light tracking-wide transition-colors ${
+                  inputMode === m.id ? "border-accent/50 bg-accent/15 text-accent" : "border-border/20 bg-card/20 text-muted-foreground/70 hover:text-foreground"
+                }`}
+              >
+                <m.icon className="h-3 w-3" /> {m.label}
+              </button>
+            ))}
+          </div>
+
+          {inputMode === "zip" && (
+            <div
+              onDrop={onDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="rounded-xl border border-dashed border-border/30 bg-background/30 hover:bg-background/40 transition-colors px-4 py-5"
             >
-              <UploadCloud className="h-6 w-6" />
-              <span className="text-[11px] font-light">Drop a code file or ZIP archive here, or click to upload</span>
-              <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">
-                Single file or ZIP up to 100MB · auto-extracted
-              </span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-3">
-              {isZipFile
-                ? <FileArchive className="h-5 w-5 text-accent shrink-0" />
-                : <FileCode className="h-5 w-5 text-accent shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-light text-foreground truncate">{filename}</p>
-                <p className="text-[9px] font-extralight text-muted-foreground/60">
-                  {(byteSize / 1024).toFixed(1)}KB · {code.split("\n").length} lines
-                  {zipFileCount > 0 && ` · ${zipFileCount} files extracted`}
-                </p>
+              {!filename ? (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center gap-2 text-muted-foreground/70 hover:text-foreground transition-colors"
+                  type="button"
+                >
+                  <UploadCloud className="h-6 w-6" />
+                  <span className="text-[11px] font-light">Drop a code file or ZIP archive here, or click to upload</span>
+                  <span className="text-[9px] font-extralight tracking-[0.15em] text-muted-foreground/40 uppercase">Single file or ZIP up to 100MB · auto-extracted</span>
+                </button>
+              ) : <SelectedTarget filename={filename} isZipFile={isZipFile} byteSize={byteSize} lineCount={code.split("\n").length} zipFileCount={zipFileCount} auditing={auditing} onClear={clearFile} onAudit={handleAudit} />}
+            </div>
+          )}
+
+          {inputMode === "github" && (
+            <div className="rounded-xl border border-border/20 bg-background/30 px-3 py-3 space-y-3">
+              <div className="flex gap-2">
+                <input
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  placeholder="https://github.com/org/repo/blob/main/src/auth/session.ts"
+                  className="flex-1 rounded-lg border border-border/20 bg-card/30 px-3 py-2 text-[11px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/40"
+                />
+                <button type="button" onClick={importGithubTarget} className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-[10px] font-medium tracking-wide text-accent hover:bg-accent/20 transition-colors">Import</button>
               </div>
-              <button
-                onClick={clearFile}
-                className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition"
-                type="button"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={handleAudit}
-                disabled={auditing}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-accent/20 hover:bg-accent/30 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-accent transition-colors"
-                type="button"
-              >
-                {auditing ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />AUDITING</>) : (<><ShieldAlert className="h-3.5 w-3.5" />AUDIT IT</>)}
-              </button>
+              {filename && <SelectedTarget filename={filename} isZipFile={false} byteSize={byteSize} lineCount={code.split("\n").length} zipFileCount={zipFileCount} auditing={auditing} onClear={clearFile} onAudit={handleAudit} />}
+            </div>
+          )}
+
+          {inputMode === "paste" && (
+            <div className="rounded-xl border border-border/20 bg-background/30 px-3 py-3 space-y-3">
+              <textarea
+                value={code}
+                onChange={(e) => { setCode(e.target.value); setFilename("pasted-code.ts"); setByteSize(new TextEncoder().encode(e.target.value).length); setZipFileCount(0); setBlueprint(null); }}
+                placeholder="Paste code here for ZERLAL analysis…"
+                className="min-h-[180px] w-full resize-y rounded-lg border border-border/20 bg-card/30 px-3 py-2 font-mono text-[11px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/40"
+              />
+              {code.trim() && <SelectedTarget filename={filename || "pasted-code.ts"} isZipFile={false} byteSize={byteSize} lineCount={code.split("\n").length} zipFileCount={zipFileCount} auditing={auditing} onClear={clearFile} onAudit={handleAudit} />}
             </div>
           )}
 
@@ -447,6 +583,8 @@ const ZerlalView = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {blueprint.branches.map((b) => <BranchCard key={b.id} branch={b} />)}
           </div>
+
+          <RemediationActionPanel blueprint={blueprint} />
 
           {/* EXPLOIT CHAIN MAP — kill-chain visualization */}
           <ExploitChainMap blueprint={blueprint} />
@@ -567,6 +705,8 @@ const ZerlalView = () => {
           </div>
         </div>
       )}
+        </>
+      )}
       {/* BYOK Panel */}
       <IntelMapByokPanel
         open={byokOpen}
@@ -576,6 +716,137 @@ const ZerlalView = () => {
     </div>
   );
 };
+
+const SelectedTarget = ({
+  filename, isZipFile, byteSize, lineCount, zipFileCount, auditing, onClear, onAudit,
+}: {
+  filename: string; isZipFile: boolean; byteSize: number; lineCount: number; zipFileCount: number; auditing: boolean; onClear: () => void; onAudit: () => void;
+}) => (
+  <div className="flex items-center gap-3">
+    {isZipFile ? <FileArchive className="h-5 w-5 text-accent shrink-0" /> : <FileCode className="h-5 w-5 text-accent shrink-0" />}
+    <div className="flex-1 min-w-0">
+      <p className="text-[11px] font-light text-foreground truncate">{filename}</p>
+      <p className="text-[9px] font-extralight text-muted-foreground/60">
+        {(byteSize / 1024).toFixed(1)}KB · {lineCount} lines{zipFileCount > 0 && ` · ${zipFileCount} files scanned`}
+      </p>
+    </div>
+    <button onClick={onClear} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-foreground/5 transition" type="button">
+      <X className="h-3.5 w-3.5" />
+    </button>
+    <button onClick={onAudit} disabled={auditing} className="inline-flex items-center gap-1.5 rounded-lg bg-accent/20 hover:bg-accent/30 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1.5 text-[11px] font-medium tracking-wide text-accent transition-colors" type="button">
+      {auditing ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />AUDITING</>) : (<><ShieldAlert className="h-3.5 w-3.5" />AUDIT IT</>)}
+    </button>
+  </div>
+);
+
+const ZerlalTopNav = ({ active, onChange }: { active: ZerlalPage; onChange: (p: ZerlalPage) => void }) => {
+  const pages = [
+    { id: "scan" as const, label: "Scan", icon: ShieldAlert },
+    { id: "history" as const, label: "Scan History", icon: History },
+    { id: "compliance" as const, label: "Compliance Map", icon: Shield },
+    { id: "patterns" as const, label: "Pattern Intelligence", icon: Brain },
+  ];
+  return (
+    <div className="rounded-2xl border border-border/20 bg-card/25 backdrop-blur-sm p-1 flex flex-wrap gap-1">
+      {pages.map((p) => (
+        <button key={p.id} type="button" onClick={() => onChange(p.id)} className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[10px] font-light tracking-[0.16em] uppercase transition-colors ${active === p.id ? "border-accent/50 bg-accent/15 text-accent" : "border-transparent text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5"}`}>
+          <p.icon className="h-3 w-3" /> {p.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const ZerlalDashboardHeader = ({ blueprint, auditing, progress, progressLabel, liveLog, fileCount, scanStartedAt, scanCompletedAt }: {
+  blueprint: Blueprint | null; auditing: boolean; progress: number; progressLabel: string; liveLog: { agent: string; file: string; findings: number; ts: number }[]; fileCount: number; scanStartedAt: string | null; scanCompletedAt: string | null;
+}) => {
+  const counts = blueprint ? countSeverities(blueprint) : { critical: 0, high: 0, med: 0, low: 0 };
+  const risk = blueprint ? computeRiskScore(blueprint) : 0;
+  const latest = liveLog[0];
+  const stamp = scanCompletedAt || scanStartedAt;
+  return (
+    <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-4 space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[170px_1fr_210px] gap-4 items-center">
+        <div className="text-center lg:text-left">
+          <p className="text-[9px] font-semibold tracking-[0.25em] text-muted-foreground/60 uppercase">Overall Risk Score</p>
+          <div className="flex items-end justify-center lg:justify-start gap-1 mt-1">
+            <span className={`text-5xl font-extralight tabular-nums ${risk >= 70 ? "text-red-300" : risk >= 40 ? "text-amber-300" : risk > 0 ? "text-emerald-300" : "text-foreground/70"}`}>{risk}</span>
+            <span className="pb-2 text-[10px] tracking-[0.25em] text-muted-foreground/50 uppercase">/100</span>
+          </div>
+        </div>
+        <div className="space-y-2 min-w-0">
+          <div className="flex items-center justify-between gap-3 text-[10px] font-light">
+            <span className="tracking-[0.2em] text-foreground/70 uppercase">Severity Breakdown</span>
+            <span className="text-muted-foreground/60 tabular-nums">Critical {counts.critical} · High {counts.high} · Medium {counts.med} · Low {counts.low}</span>
+          </div>
+          <SeverityMiniBar counts={counts} />
+          <div className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
+            <div className="flex items-center justify-between gap-2 text-[10px] font-light text-muted-foreground/60">
+              <span className="truncate">{auditing ? (latest ? `${latest.agent.replace("Agent-", "Agent ")} — analyzing ${latest.file} — ${latest.findings} findings so far` : progressLabel || "Agents starting…") : blueprint ? `Last scan complete — ${blueprint.target}` : "No scan running — upload, import, or paste code"}</span>
+              <span className="tabular-nums text-accent/80">{auditing ? `${progress}%` : blueprint ? "100%" : "0%"}</span>
+            </div>
+            <div className="mt-2 h-1 rounded-full bg-foreground/[0.05] overflow-hidden"><div className="h-full bg-accent/80 transition-all duration-300" style={{ width: `${auditing ? progress : blueprint ? 100 : 0}%` }} /></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <HeaderMetric label="Files" value={fileCount || 0} />
+          <HeaderMetric label="Timestamp" value={stamp ? new Date(stamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+          <HeaderMetric label="MITRE" value={blueprint?.intel?.nation_state?.primary_ttp?.split("—")[0]?.trim() || "—"} />
+          <HeaderMetric label="CVE" value={blueprint?.intel?.zero_day_confidence?.length || 0} />
+        </div>
+      </div>
+      {blueprint && <ZerlalExportActions blueprint={blueprint} />}
+    </div>
+  );
+};
+
+const HeaderMetric = ({ label, value }: { label: string; value: string | number }) => (
+  <div className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
+    <p className="text-[8px] tracking-[0.25em] text-muted-foreground/50 uppercase">{label}</p>
+    <p className="text-[11px] font-light text-foreground/85 tabular-nums truncate">{value}</p>
+  </div>
+);
+
+const SeverityMiniBar = ({ counts }: { counts: { critical: number; high: number; med: number; low: number } }) => {
+  const total = counts.critical + counts.high + counts.med + counts.low || 1;
+  return <div className="h-2 rounded-full overflow-hidden flex bg-foreground/[0.05]"><div className="bg-red-400/90" style={{ width: `${(counts.critical / total) * 100}%` }} /><div className="bg-orange-400/80" style={{ width: `${(counts.high / total) * 100}%` }} /><div className="bg-amber-400/80" style={{ width: `${(counts.med / total) * 100}%` }} /><div className="bg-emerald-400/70" style={{ width: `${(counts.low / total) * 100}%` }} /></div>;
+};
+
+const reportItems = (blueprint: Blueprint) => blueprint.branches.flatMap((b) => b.leaves.map((l) => ({ title: `${b.label}: ${l.label}`, snippet: l.value, metadata: { confidence: l.confidence, branch: b.id } })));
+
+const ZerlalExportActions = ({ blueprint }: { blueprint: Blueprint }) => {
+  const name = `zerlal-${blueprint.target.replace(/[^a-z0-9_-]+/gi, "-").slice(0, 32)}-${Date.now()}`;
+  const items = reportItems(blueprint);
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-t border-border/10 pt-3">
+      <span className="inline-flex items-center gap-1 text-[9px] font-semibold tracking-[0.2em] text-muted-foreground/60 uppercase"><Download className="h-3 w-3" /> Export Full Report</span>
+      <button onClick={() => exportPDF(name, items, { blueprint })} className="rounded-lg border border-border/20 bg-card/30 px-2.5 py-1 text-[10px] text-muted-foreground hover:text-foreground transition"><FileText className="inline h-3 w-3 mr-1" />PDF</button>
+      <button onClick={() => exportJSON(name, items, { blueprint })} className="rounded-lg border border-border/20 bg-card/30 px-2.5 py-1 text-[10px] text-muted-foreground hover:text-foreground transition"><FileJson className="inline h-3 w-3 mr-1" />JSON</button>
+      <button onClick={() => exportCSV(name, items)} className="rounded-lg border border-border/20 bg-card/30 px-2.5 py-1 text-[10px] text-muted-foreground hover:text-foreground transition"><FileSpreadsheet className="inline h-3 w-3 mr-1" />CSV</button>
+    </div>
+  );
+};
+
+const ZerlalIntelPage = ({ page, history, blueprint }: { page: ZerlalPage; history: ScanHistoryEntry[]; blueprint: Blueprint | null }) => {
+  if (page === "history") return <HistoryPage history={history} />;
+  if (page === "compliance") return <CompliancePage blueprint={blueprint} />;
+  return <PatternsPage blueprint={blueprint} history={history} />;
+};
+
+const HistoryPage = ({ history }: { history: ScanHistoryEntry[] }) => (
+  <PanelShell title="Scan History · Posture Trend" icon={History} accent="neutral">
+    {history.length === 0 ? <Awaiting note="No persisted scans yet. Run ZERLAL once and this timeline fills with real local scan records." /> : <div className="space-y-2">{history.map((h) => <div key={h.id} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2 flex items-center gap-3 text-[10px]"><span className="text-2xl font-light tabular-nums text-foreground/85 w-12">{h.risk}</span><span className="flex-1 truncate text-foreground/80">{h.target}</span><span className="text-muted-foreground/60">{h.files} files</span><span className="text-muted-foreground/50">{new Date(h.timestamp).toLocaleString()}</span></div>)}</div>}
+  </PanelShell>
+);
+
+const CompliancePage = ({ blueprint }: { blueprint: Blueprint | null }) => blueprint ? <ComplianceAutoMapPanel blueprint={blueprint} /> : <PanelShell title="Compliance Map" icon={Shield} accent="emerald"><Awaiting note="Run a scan to map findings to NIST, SOC2, ISO27001, FedRAMP, GDPR, and HIPAA controls." /></PanelShell>;
+
+const PatternsPage = ({ blueprint, history }: { blueprint: Blueprint | null; history: ScanHistoryEntry[] }) => (
+  <div className="space-y-3">
+    {blueprint ? <PatternRecognitionPanel blueprint={blueprint} /> : <PanelShell title="Pattern Intelligence" icon={Brain} accent="cyan"><Awaiting note="Run a scan to surface recurring cross-file developer vulnerability patterns." /></PanelShell>}
+    <PanelShell title="Cross-Project Signal" icon={Workflow} accent="neutral"><p className="text-[10px] font-extralight text-muted-foreground/60">{history.length} real local scan records available for posture trend comparison.</p></PanelShell>
+  </div>
+);
 
 const ScorePip = ({ label, value }: { label: string; value?: number }) => {
   if (typeof value !== "number") return null;
@@ -691,6 +962,28 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
   );
 };
 
+const mitreFor = (text: string) => {
+  const t = text.toLowerCase();
+  if (/sql|xss|injection|eval|rce|command/.test(t)) return "T1190 — Exploit Public-Facing Application";
+  if (/auth|session|jwt|password|role|admin/.test(t)) return "T1078 — Valid Accounts";
+  if (/secret|token|key|credential/.test(t)) return "T1552 — Unsecured Credentials";
+  if (/dependency|package|cve|library/.test(t)) return "T1195 — Supply Chain Compromise";
+  return "T1580 — Cloud Infrastructure Discovery";
+};
+
+const confidenceLabel = (confidence?: "high" | "med" | "low") => confidence === "high" ? "High" : confidence === "med" ? "Medium" : confidence === "low" ? "Low" : "Medium";
+
+const cveIndicator = (text: string) => text.match(/CVE-\d{4}-\d{4,7}/i)?.[0]?.toUpperCase() || "Novel — no CVE match";
+
+const pocSnippet = (branch: Branch, leaf: Leaf) => {
+  const combined = `${branch.label} ${leaf.label} ${leaf.value}`.toLowerCase();
+  if (/sql|injection/.test(combined)) return "' OR 1=1 --";
+  if (/xss|html/.test(combined)) return "<img src=x onerror=alert(1)>";
+  if (/auth|jwt|role/.test(combined)) return "Replay stale token / force alternate role claim against protected route";
+  if (/command|exec|rce|eval/.test(combined)) return "$(id) && whoami";
+  return "Evidence-only PoC: reproduce with the cited line/path and hostile input for this sink.";
+};
+
 const BranchCard = ({ branch }: { branch: Branch }) => {
   const Icon = ICONS[branch.icon] || Shield;
   const tone = TONE_STYLES[branch.tone] || TONE_STYLES.neutral;
@@ -709,24 +1002,68 @@ const BranchCard = ({ branch }: { branch: Branch }) => {
         <p className="text-[10px] font-extralight text-muted-foreground/40 italic">No signals detected.</p>
       ) : (
         <ul className="space-y-2">
-          {branch.leaves.map((l, i) => (
-            <li key={i} className="flex items-start gap-2 text-[11px] font-light">
-              <span className="mt-1.5 h-1 w-1 rounded-full bg-muted-foreground/40 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-muted-foreground/60 text-[9px] uppercase tracking-wider">{l.label}</p>
-                <p className="text-foreground/80 break-words">{l.value}</p>
-              </div>
-              {l.confidence && (
-                <span className={`text-[8px] uppercase tracking-wider shrink-0 ${l.confidence === "high" ? "text-emerald-400/60" : l.confidence === "med" ? "text-amber-400/60" : "text-muted-foreground/40"}`}>
-                  {l.confidence}
-                </span>
-              )}
-            </li>
-          ))}
+              {branch.leaves.map((l, i) => <FindingLeaf key={i} branch={branch} leaf={l} />)}
         </ul>
       )}
     </div>
   );
+};
+
+const FindingLeaf = ({ branch, leaf }: { branch: Branch; leaf: Leaf }) => {
+  const [showPoc, setShowPoc] = useState(false);
+  const severity = branch.tone === "critical" ? "Critical" : branch.tone === "warn" ? "High" : "Low";
+  return (
+    <li className="rounded-lg border border-border/10 bg-background/20 px-2.5 py-2 text-[11px] font-light space-y-1.5">
+      <div className="flex items-start gap-2">
+        <span className="mt-1.5 h-1 w-1 rounded-full bg-muted-foreground/40 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-muted-foreground/60 text-[9px] uppercase tracking-wider">{leaf.label}</p>
+          <p className="text-foreground/80 break-words">{leaf.value}</p>
+        </div>
+        <span className={`text-[8px] uppercase tracking-wider shrink-0 ${leaf.confidence === "high" ? "text-emerald-400/60" : leaf.confidence === "med" ? "text-amber-400/60" : "text-muted-foreground/40"}`}>{confidenceLabel(leaf.confidence)}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 pl-3">
+        <span className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 uppercase">{severity}</span>
+        <span className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 uppercase">{mitreFor(`${branch.label} ${leaf.label} ${leaf.value}`)}</span>
+        <span className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 uppercase">{cveIndicator(leaf.value)}</span>
+        <button type="button" onClick={() => setShowPoc(v => !v)} className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 hover:text-foreground uppercase">PoC {showPoc ? "Hide" : "Show"}</button>
+      </div>
+      {showPoc && <pre className="ml-3 overflow-x-auto rounded border border-border/10 bg-background/50 p-2 text-[9px] text-foreground/70">{pocSnippet(branch, leaf)}</pre>}
+    </li>
+  );
+};
+
+const RemediationActionPanel = ({ blueprint }: { blueprint: Blueprint }) => {
+  const fixes = blueprint.branches.find(b => b.id === "fix" || /remediation|fix|patch/i.test(b.label))?.leaves || [];
+  if (!fixes.length) return <PanelShell title="Remediation Actions" icon={Wrench}><Awaiting note="No remediation instructions returned by the live scan." /></PanelShell>;
+  return (
+    <PanelShell title="Remediation Actions" icon={Wrench} accent="emerald" right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">severity · patched code · chain map</span>}>
+      <ul className="space-y-2">
+        {fixes.map((f, i) => {
+          const sev = /critical|secret|rce|auth|injection|sql|xss/i.test(`${f.label} ${f.value}`) ? "Critical" : /race|await|dependency|cve/i.test(`${f.label} ${f.value}`) ? "High" : "Medium";
+          return (
+            <li key={i} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
+              <div className="flex items-start gap-2">
+                <span className={`rounded px-1.5 py-0.5 text-[8px] tracking-wider uppercase ${sev === "Critical" ? "border border-red-400/30 text-red-300 bg-red-500/[0.05]" : sev === "High" ? "border border-amber-400/30 text-amber-300 bg-amber-500/[0.05]" : "border border-border/20 text-muted-foreground bg-card/30"}`}>{sev}</span>
+                <div className="flex-1 min-w-0"><p className="text-[10px] font-medium text-foreground/85">{f.label}</p><p className="text-[10px] font-light text-muted-foreground/70">{f.value}</p></div>
+                <button type="button" onClick={() => document.getElementById("zerlal-chain-map")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] text-muted-foreground hover:text-foreground transition">Open Chain Map</button>
+              </div>
+              <pre className="mt-2 overflow-x-auto rounded border border-border/10 bg-background/50 p-2 text-[9px] text-foreground/70">{patchedCodeFor(f)}</pre>
+            </li>
+          );
+        })}
+      </ul>
+    </PanelShell>
+  );
+};
+
+const patchedCodeFor = (leaf: Leaf) => {
+  const text = `${leaf.label} ${leaf.value}`.toLowerCase();
+  if (/eval/.test(text)) return "const parsed = JSON.parse(String(input));\n// validate parsed shape before use";
+  if (/sql|query/.test(text)) return "const { data, error } = await client.from('table').select('*').eq('id', validatedId);";
+  if (/auth|role|admin/.test(text)) return "const { data: { user } } = await supabase.auth.getUser();\nif (!user) throw new Error('Unauthorized');";
+  if (/await|promise/.test(text)) return "try {\n  const result = await operation();\n  return result;\n} catch (error) {\n  handleKnownFailure(error);\n}";
+  return "// Apply the scan-specific patch at the cited line, then re-run ZERLAL to verify closure.";
 };
 
 const CircularProgress = ({ value }: { value: number }) => {
@@ -855,9 +1192,9 @@ const LiveScanView = ({
 );
 
 const countSeverities = (b: Blueprint) => {
-  const counts = { high: 0, med: 0, low: 0 };
+  const counts = { critical: 0, high: 0, med: 0, low: 0 };
   (b.criticals || []).forEach(c => {
-    if (c.severity === "high") counts.high++;
+    if (c.severity === "high") counts.critical++;
     else if (c.severity === "med") counts.med++;
     else counts.low++;
   });
@@ -871,7 +1208,7 @@ const countSeverities = (b: Blueprint) => {
 const computeRiskScore = (b: Blueprint): number => {
   if (typeof b.score?.security === "number") return Math.max(0, Math.min(100, 100 - b.score.security));
   const counts = countSeverities(b);
-  const raw = counts.high * 25 + counts.med * 10 + counts.low * 3;
+  const raw = counts.critical * 30 + counts.high * 20 + counts.med * 10 + counts.low * 3;
   return Math.max(0, Math.min(100, raw));
 };
 
@@ -901,10 +1238,11 @@ const RiskScoreHeader = ({ blueprint }: { blueprint: Blueprint }) => {
 
 const SeverityBreakdown = ({ blueprint }: { blueprint: Blueprint }) => {
   const counts = countSeverities(blueprint);
-  const total = counts.high + counts.med + counts.low || 1;
+  const total = counts.critical + counts.high + counts.med + counts.low || 1;
   const segments = [
-    { k: "Critical", n: counts.high, color: "bg-red-400/80" },
-    { k: "High/Med", n: counts.med, color: "bg-amber-400/80" },
+    { k: "Critical", n: counts.critical, color: "bg-red-400/90" },
+    { k: "High", n: counts.high, color: "bg-orange-400/80" },
+    { k: "Medium", n: counts.med, color: "bg-amber-400/80" },
     { k: "Low", n: counts.low, color: "bg-emerald-400/70" },
   ];
   return (
@@ -912,7 +1250,7 @@ const SeverityBreakdown = ({ blueprint }: { blueprint: Blueprint }) => {
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-3 w-3 text-foreground/60" />
         <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Severity Breakdown</span>
-        <span className="ml-auto text-[10px] font-light text-muted-foreground/60 tabular-nums">{counts.high + counts.med + counts.low} total</span>
+        <span className="ml-auto text-[10px] font-light text-muted-foreground/60 tabular-nums">{counts.critical + counts.high + counts.med + counts.low} total</span>
       </div>
       <div className="h-2 rounded-full overflow-hidden flex bg-foreground/[0.05]">
         {segments.map((s) => (
@@ -943,7 +1281,7 @@ const ExploitChainMap = ({ blueprint }: { blueprint: Blueprint }) => {
 
   if (chainNodes.length < 2) {
     return (
-      <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm px-5 py-3">
+      <div id="zerlal-chain-map" className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm px-5 py-3">
         <div className="flex items-center gap-2 mb-1">
           <Workflow className="h-3 w-3 text-foreground/60" />
           <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Exploit Chain Map</span>
@@ -954,7 +1292,7 @@ const ExploitChainMap = ({ blueprint }: { blueprint: Blueprint }) => {
   }
 
   return (
-    <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-4">
+    <div id="zerlal-chain-map" className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-4 scroll-mt-28">
       <div className="flex items-center gap-2 mb-3">
         <Workflow className="h-3 w-3 text-red-300/80" />
         <span className="text-[10px] font-semibold tracking-[0.2em] text-red-300/80 uppercase">Exploit Chain Map</span>
