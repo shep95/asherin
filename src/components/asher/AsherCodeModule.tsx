@@ -1853,6 +1853,19 @@ try {
               >
                 <Eye className="h-3 w-3" /><span className="hidden sm:inline">Preview</span>
               </button>
+              <button
+                onClick={() => setViewMode("workflow")}
+                title="Workflow Map · agents, file tree, timeline"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "workflow" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Network className="h-3 w-3" />
+                <span className="hidden sm:inline">Workflow</span>
+                {swarmAgents.filter(a => a.status === "working").length > 0 && (
+                  <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-foreground/20 px-1 text-[8px] font-mono text-foreground/90">
+                    {swarmAgents.filter(a => a.status === "working").length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
