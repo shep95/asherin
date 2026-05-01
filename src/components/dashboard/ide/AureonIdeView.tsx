@@ -155,17 +155,6 @@ const AureonIdeView = () => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Terminal output for AI context (also auto-detects errors → Bug Doctor)
-  const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
-  const handleTerminalOutput = useCallback((output: string) => {
-    setTerminalOutput(prev => [...prev.slice(-20), output]);
-    // Auto-trip Bug Doctor on detected runtime errors
-    if (/^(error|uncaught|unhandled|exception|traceback|panic|fatal)/i.test(output) ||
-        /\b[A-Z][a-z]+Error: /.test(output) || /Cannot read propert/i.test(output)) {
-      if (!bugDoctorOpen) { setBugDoctorMsg(output.slice(0, 600)); setBugDoctorOpen(true); }
-    }
-  }, [bugDoctorOpen]);
-
   // ── Pro tools state (shared IDE upgrade pack) ──
   const [historyOpen, setHistoryOpen] = useState(false);
   const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
@@ -175,6 +164,17 @@ const AureonIdeView = () => {
   const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
   const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
   const [chatDraft, setChatDraft] = useState("");
+
+  // Terminal output for AI context (also auto-detects errors → Bug Doctor)
+  const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
+  const handleTerminalOutput = useCallback((output: string) => {
+    setTerminalOutput(prev => [...prev.slice(-20), output]);
+    if (/^(error|uncaught|unhandled|exception|traceback|panic|fatal)/i.test(output) ||
+        /\b[A-Z][a-z]+Error: /.test(output) || /Cannot read propert/i.test(output)) {
+      if (!bugDoctorOpen) { setBugDoctorMsg(output.slice(0, 600)); setBugDoctorOpen(true); }
+    }
+  }, [bugDoctorOpen]);
+
   const routeDecision: RoutingDecision = useMemo(
     () => routeTask(chatDraft || (chatMessages[chatMessages.length - 1]?.content ?? ""), modelOverride ?? undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps
