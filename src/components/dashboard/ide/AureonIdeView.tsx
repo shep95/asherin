@@ -564,6 +564,18 @@ const AureonIdeView = () => {
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           </button>
 
+          {/* Pro Tools — shared IDE upgrade pack */}
+          <button onClick={() => setTemplateOpen(true)} title="Scaffold from natural language (Ctrl+Shift+P)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
+            <Wand2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => setHistoryOpen(true)} disabled={!activeSessionId || !activeFileId} title="Version history (Ctrl+Shift+H)" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-30">
+            <History className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => { setBugDoctorMsg(terminalOutput.slice(-5).join("\n") || ""); setBugDoctorOpen(true); }} title="Bug Doctor — explain last error" className="p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors">
+            <Stethoscope className="h-3.5 w-3.5" />
+          </button>
+          <IdeModelRouterBadge decision={routeDecision} onOverride={setModelOverride} isOverridden={!!modelOverride} />
+
           {/* AI Chat toggle */}
           <button
             onClick={() => setRightOpen(!rightOpen)}
@@ -573,6 +585,7 @@ const AureonIdeView = () => {
             <Sparkles className="h-3.5 w-3.5" />
             <span className="hidden lg:inline">AI Chat</span>
           </button>
+
 
           {/* More menu — everything else tucked away */}
           <DropdownMenu>
