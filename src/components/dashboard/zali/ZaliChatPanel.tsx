@@ -190,9 +190,12 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
 
   return (
     <div className="flex flex-col h-full bg-background/40">
-      {/* Top bar with mode/depth */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-border/15 hidden md:flex items-center justify-between gap-2">
-        <ModeSelector active={mode} onChange={onModeChange} />
+      {/* Compact top bar — depth + download only */}
+      <div className="flex-shrink-0 px-3 py-2 border-b border-border/15 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-foreground/40 text-[10px]">◈</span>
+          <span className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/70">Conversation</span>
+        </div>
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
             <button onClick={downloadConversation} className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground transition-colors" title="Download conversation">
@@ -202,12 +205,6 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
           <ContextHealthIndicator messageCount={messages.length} />
           <DepthSelector active={depth} onChange={onDepthChange} />
         </div>
-      </div>
-
-      {/* Mobile compact mode/depth bar */}
-      <div className="flex-shrink-0 px-3 py-2 border-b border-border/15 flex md:hidden items-center justify-between gap-2">
-        <ModeSelector active={mode} onChange={onModeChange} />
-        <DepthSelector active={depth} onChange={onDepthChange} />
       </div>
 
       {/* Messages */}
