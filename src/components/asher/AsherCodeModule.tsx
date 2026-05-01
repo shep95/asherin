@@ -1275,7 +1275,8 @@ try {
     if (!err) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err, ...aureon });
       const u: ChatMsg = { role: "user", content: `Fix: ${err}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat(c => [...c, u, a]);
