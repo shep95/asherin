@@ -494,11 +494,8 @@ serve(async (req) => {
         }
       }
 
-      // Admin bypass: append Gemini if admin and no calls resolved
-      if (!calls.length && isAdmin) {
-        const adminKey = Deno.env.get("GEMINI_API_KEY");
-        if (adminKey) { calls.push({ provider: "google", model: "gemini-2.5-pro", apiKey: adminKey }); sources.push("admin"); }
-      }
+      // Admin bypass intentionally removed — even admin must provide BYOK keys
+      // for orchestrate mode in Asher IDE / Aureon IDE.
 
       if (!calls.length) {
         return new Response(
