@@ -237,9 +237,9 @@ const ZerlalView = () => {
             <ShieldAlert className="h-4 w-4 text-accent" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-light tracking-wide text-foreground">Aureon Security Audit</h2>
+            <h2 className="text-sm font-light tracking-wide text-foreground">ZERLAL · Security Intelligence Audit</h2>
             <p className="text-[10px] font-extralight text-muted-foreground/70">
-              Drop any code file (≤100KB). Detect leaks, broken code, latent failures, and remediation paths.
+              Drop a code file or ZIP archive (≤100MB). Multi-agent forensic scan with exploit-chain mapping.
             </p>
           </div>
           <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.15em] text-emerald-200/70 uppercase shrink-0">
@@ -321,34 +321,51 @@ const ZerlalView = () => {
 
         {error && <p className="mt-2 text-[10px] font-light text-red-400/80">{error}</p>}
 
+        {/* SCAN CONFIGURATION PANEL */}
+        <ScanConfigBar
+          depth={scanDepth}
+          onDepthChange={setScanDepth}
+          categories={scanCategories}
+          onToggleCategory={(c) => {
+            setScanCategories(prev => {
+              const next = new Set(prev);
+              if (next.has(c)) next.delete(c); else next.add(c);
+              return next;
+            });
+          }}
+        />
+
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-extralight tracking-[0.12em] text-muted-foreground/40 uppercase">
           <span className="inline-flex items-center gap-1"><Shield className="h-2.5 w-2.5" /> Leak detection</span>
           <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
           <span className="inline-flex items-center gap-1"><Bug className="h-2.5 w-2.5" /> Broken code</span>
           <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-          <span className="inline-flex items-center gap-1"><Wrench className="h-2.5 w-2.5" /> Fix paths</span>
+          <span className="inline-flex items-center gap-1"><Workflow className="h-2.5 w-2.5" /> Exploit chains</span>
           <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
-          <span className="inline-flex items-center gap-1"><FileArchive className="h-2.5 w-2.5" /> ZIP supported</span>
+          <span className="inline-flex items-center gap-1"><Brain className="h-2.5 w-2.5" /> Pattern recognition</span>
+          <span className="h-1 w-1 rounded-full bg-muted-foreground/20" />
+          <span className="inline-flex items-center gap-1"><FileArchive className="h-2.5 w-2.5" /> SBOM</span>
         </div>
       </div>
 
-      {/* Loading — circular progress */}
+      {/* LIVE SCAN VIEW — agent activity feed */}
       {auditing && (
-        <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-10 flex flex-col items-center justify-center gap-4">
-          <CircularProgress value={progress} />
-          <p className="text-[10px] font-extralight tracking-[0.2em] text-muted-foreground/70 uppercase text-center">
-            {progressLabel || `Auditing ${filename || "target"}…`}
-          </p>
-        </div>
+        <LiveScanView progress={progress} progressLabel={progressLabel} liveLog={liveLog} filename={filename} />
       )}
 
       {/* Visual Blueprint */}
       {blueprint && !auditing && (
         <div className="space-y-4 animate-fade-in">
-          {/* Header bar */}
+          {/* RISK SCORE HEADER — prominent 0–100 posture score */}
+          <RiskScoreHeader blueprint={blueprint} />
+
+          {/* SEVERITY BREAKDOWN BAR */}
+          <SeverityBreakdown blueprint={blueprint} />
+
+          {/* Audit Map header bar */}
           <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-sm px-5 py-3 flex items-center gap-3 flex-wrap">
             <ShieldAlert className="h-3.5 w-3.5 text-accent shrink-0" />
-            <span className="text-[10px] font-semibold tracking-[0.2em] text-accent/80 uppercase">Audit Map</span>
+            <span className="text-[10px] font-semibold tracking-[0.2em] text-accent/80 uppercase">ZERLAL Audit Map</span>
             <span className="text-[11px] font-light text-foreground/80 truncate">{blueprint.target}</span>
             <div className="ml-auto flex items-center gap-3 text-[10px] font-light text-muted-foreground/60">
               {blueprint.score && (
