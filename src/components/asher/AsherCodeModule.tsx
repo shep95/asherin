@@ -22,6 +22,7 @@ import {
   IdeFuzzyFinder,
   IdeApprovalGate,
   IdeModelRouterBadge,
+  AnimatedOrbBackground,
   type PlannedChange,
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, type IdeModelId } from "@/lib/ide";
