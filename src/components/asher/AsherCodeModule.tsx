@@ -329,6 +329,7 @@ export default function AsherCodeModule() {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
           agentFileRef.current.set(a.id, a.file);
           fileLocksRef.current.add(a.file);
+          setFixBugsPending(false);
           const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
           setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: "spawn", file: a.file, pass: a.pass, issueCount: a.issueCount }]);
           setFileWorkflowStats((prev) => {
