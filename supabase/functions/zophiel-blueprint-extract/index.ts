@@ -55,12 +55,42 @@ Rules:
 - For the 'subdomains' branch: enumerate 6-20 likely/observed subdomains via cert transparency patterns, common conventions (api, mail, cdn, blog, dev, staging, app, admin, docs, status, m, www, secure, vpn, git), and any documented services. Populate the 'subdomains' string array with bare hostnames only.
 - Output JSON only. No prose before or after.`;
 
-const SUBDOMAIN_SYSTEM_PROMPT = `You are ZOPHIEL — forensic infrastructure intelligence.
+const SUBDOMAIN_SYSTEM_PROMPT = `You are ZOPHIEL — forensic infrastructure intelligence engine.
 
-Given a SUBDOMAIN (e.g. api.example.com), return the same BLUEPRINT JSON schema applied to THAT subdomain specifically, focusing on how it differs from the parent (different stack, CDN, headers, purpose).
+Given a SUBDOMAIN target (e.g. api.example.com), return a BLUEPRINT MAP for THAT specific subdomain — focusing on how it differs from the parent (its own stack, CDN, security headers, third-parties, purpose).
 
-Return ONLY valid JSON. Same schema as parent (8 branches: domain, hosting, stack, security, thirdparty, network, org, subdomains). For subdomains branch on a subdomain, return an empty subdomains array (no recursion).
-Each branch 4-8 concrete leaves. Output JSON only.`;
+Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
+
+{
+  "target": "api.example.com",
+  "summary": "2-sentence overview of THIS subdomain's stack & posture.",
+  "score": { "security": 0-100, "performance": 0-100, "complexity": 0-100 },
+  "branches": [
+    { "id": "domain", "label": "DOMAIN & DNS", "icon": "globe", "tone": "neutral", "leaves": [{"label":"...","value":"...","confidence":"high"}] },
+    { "id": "hosting", "label": "HOSTING & CDN", "icon": "server", "tone": "good", "leaves": [...] },
+    { "id": "stack", "label": "TECH STACK", "icon": "cpu", "tone": "neutral", "leaves": [...] },
+    { "id": "security", "label": "SECURITY POSTURE", "icon": "shield", "tone": "warn", "leaves": [...] },
+    { "id": "thirdparty", "label": "THIRD-PARTY", "icon": "plug", "tone": "neutral", "leaves": [...] },
+    { "id": "network", "label": "NETWORK TOPOLOGY", "icon": "network", "tone": "neutral", "leaves": [...] },
+    { "id": "org", "label": "ORG INTEL", "icon": "building", "tone": "neutral", "leaves": [...] }
+  ],
+  "edges": [
+    { "from": "domain", "to": "hosting", "label": "resolves" },
+    { "from": "hosting", "to": "stack", "label": "serves" },
+    { "from": "stack", "to": "security", "label": "exposes" },
+    { "from": "stack", "to": "thirdparty", "label": "loads" }
+  ],
+  "criticals": [
+    { "branch": "security", "finding": "...", "severity": "high|med|low" }
+  ]
+}
+
+Rules:
+- Each branch MUST have 4-8 concrete leaves (FACTS, not descriptions).
+- Always include all 7 branches above (no subdomains branch on a subdomain target).
+- Use 'tone' to color-code: good, neutral, warn, critical.
+- Output JSON only. No prose.`;
+
 
 
 serve(async (req) => {
