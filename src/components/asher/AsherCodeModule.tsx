@@ -198,6 +198,15 @@ export default function AsherCodeModule() {
           setBugDoctorMsg(composed);
           setBugDoctorOpen(true);
         }
+        if (d.__asherPreviewErrorSilent && autoDebugRef.current && activeProjectRef.current) {
+          void zqEnqueue({
+            kind: "autofix",
+            payload: { projectRef: activeProjectRef.current.id },
+            surface: "asher_ide",
+            projectRef: activeProjectRef.current.id,
+            ownerUserId: user?.id,
+          });
+        }
       }
     }
     window.addEventListener("message", onMsg);
