@@ -740,7 +740,7 @@ export default function AsherCodeModule() {
               <div
                 className={`relative min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}
                 style={{
-                  backgroundImage: `url(${wallpaperAureon})`,
+                  backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${wallpaperAureon})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   backgroundRepeat: "no-repeat",
