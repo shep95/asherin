@@ -58,18 +58,46 @@ interface ProviderCall {
 }
 
 // ── Provider routing ──────────────────────────────────────────────
+// ── Build the active system prompt: AUREON CODE base + active persona + active brain.
+// This makes Asher Code inherit the same brain/persona stack the rest of Aureon uses.
+function buildSystemPrompt(payload: any): string {
+  const parts: string[] = [ASHER_CODE_SYSTEM_PROMPT];
+  const persona = (payload?.personaSystemPrompt || "").toString().trim();
+  const brain = payload?.brainContext || null;
+  if (persona) {
+    parts.push(`\n## ACTIVE AUREON PERSONALITY (inherit silently)\n${persona.slice(0, 12000)}`);
+  }
+  if (brain && typeof brain === "object") {
+    const brainPrompt = (brain.prompt || "").toString().trim();
+    if (brainPrompt) {
+      parts.push(`\n## ACTIVE AUREON BRAIN — SYSTEM PROMPT\n${brainPrompt.slice(0, 12000)}`);
+    }
+    const fileContents = Array.isArray(brain.fileContents) ? brain.fileContents : [];
+    if (fileContents.length) {
+      const filesBlock = fileContents
+        .map((f: { name?: string; content?: string }) => `FILE: ${f?.name || "unnamed"}\n${(f?.content || "").slice(0, 40000)}`)
+        .join("\n\n---\n\n");
+      parts.push(`\n## ACTIVE AUREON BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
+    }
+  }
+  parts.push(`\n## CONTEXT MERGE RULES\n- Apply the active persona and brain context as your operating mindset.\n- The AUREON CODE engineering directives above always win on code quality, security, and output format.\n- Never mention persona/brain mechanics in your output. Just embody them.`);
+  return parts.join("\n");
+}
+
+// ── Provider routing ──────────────────────────────────────────────
 async function callOpenAICompatible(
   baseUrl: string,
   apiKey: string,
   model: string,
   messages: ChatMessage[],
+  systemPrompt: string,
   maxTokens = 4096,
 ): Promise<string> {
   // Newer OpenAI models (gpt-5, o1, o3, etc.) require `max_completion_tokens` and reject custom `temperature`.
   const isNewOpenAI = /^(gpt-5|o1|o3|o4)/i.test(model);
   const body: Record<string, unknown> = {
     model,
-    messages: [{ role: "system", content: ASHER_CODE_SYSTEM_PROMPT }, ...messages],
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
   };
   if (isNewOpenAI) {
     body.max_completion_tokens = maxTokens;
@@ -82,7 +110,6 @@ async function callOpenAICompatible(
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify(body),
   });
-  // Fallback: if provider rejects max_tokens, retry with max_completion_tokens (and drop temperature)
   if (!resp.ok) {
     const errText = await resp.text();
     if (/max_completion_tokens/i.test(errText) && "max_tokens" in body) {
@@ -103,7 +130,7 @@ async function callOpenAICompatible(
   return data.choices?.[0]?.message?.content || "(empty response)";
 }
 
-async function callGemini(apiKey: string, model: string, messages: ChatMessage[], maxTokens = 4096): Promise<string> {
+async function callGemini(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<string> {
   const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
@@ -114,7 +141,7 @@ async function callGemini(apiKey: string, model: string, messages: ChatMessage[]
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: ASHER_CODE_SYSTEM_PROMPT }] },
+        systemInstruction: { parts: [{ text: systemPrompt }] },
         contents,
         generationConfig: { temperature: 0.4, maxOutputTokens: maxTokens },
       }),
@@ -125,7 +152,7 @@ async function callGemini(apiKey: string, model: string, messages: ChatMessage[]
   return data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "(empty)";
 }
 
-async function callAnthropic(apiKey: string, model: string, messages: ChatMessage[], maxTokens = 4096): Promise<string> {
+async function callAnthropic(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<string> {
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -135,7 +162,7 @@ async function callAnthropic(apiKey: string, model: string, messages: ChatMessag
     },
     body: JSON.stringify({
       model,
-      system: ASHER_CODE_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: messages.filter((m) => m.role !== "system"),
       max_tokens: maxTokens,
       temperature: 0.4,
@@ -146,26 +173,26 @@ async function callAnthropic(apiKey: string, model: string, messages: ChatMessag
   return data.content?.[0]?.text || "(empty)";
 }
 
-async function dispatch(p: ProviderCall, messages: ChatMessage[], maxTokens = 4096): Promise<string> {
+async function dispatch(p: ProviderCall, messages: ChatMessage[], systemPrompt: string, maxTokens = 4096): Promise<string> {
   switch (p.provider) {
     case "google":
-      return callGemini(p.apiKey, p.model, messages, maxTokens);
+      return callGemini(p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "anthropic":
-      return callAnthropic(p.apiKey, p.model, messages, maxTokens);
+      return callAnthropic(p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "openai":
-      return callOpenAICompatible("https://api.openai.com/v1", p.apiKey, p.model, messages, maxTokens);
+      return callOpenAICompatible("https://api.openai.com/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "xai":
-      return callOpenAICompatible("https://api.x.ai/v1", p.apiKey, p.model, messages, maxTokens);
+      return callOpenAICompatible("https://api.x.ai/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "mistral":
-      return callOpenAICompatible("https://api.mistral.ai/v1", p.apiKey, p.model, messages, maxTokens);
+      return callOpenAICompatible("https://api.mistral.ai/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "deepseek":
-      return callOpenAICompatible("https://api.deepseek.com/v1", p.apiKey, p.model, messages, maxTokens);
+      return callOpenAICompatible("https://api.deepseek.com/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "perplexity":
-      return callOpenAICompatible("https://api.perplexity.ai", p.apiKey, p.model, messages, maxTokens);
+      return callOpenAICompatible("https://api.perplexity.ai", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "venice":
-      return callOpenAICompatible("https://api.venice.ai/api/v1", p.apiKey, p.model, messages, maxTokens);
+      return callOpenAICompatible("https://api.venice.ai/api/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     case "meta":
-      return callOpenAICompatible("https://api.together.xyz/v1", p.apiKey, p.model, messages, maxTokens);
+      return callOpenAICompatible("https://api.together.xyz/v1", p.apiKey, p.model, messages, systemPrompt, maxTokens);
     default:
       throw new Error(`Unsupported provider: ${p.provider}`);
   }
