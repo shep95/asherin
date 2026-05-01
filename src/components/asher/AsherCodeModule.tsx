@@ -546,8 +546,26 @@ export default function AsherCodeModule() {
     }
     if (!explained) throw lastErr ?? new Error("explainError failed");
 
-    const corrected = explained.correctedCode?.trim();
-    if (!corrected || corrected === current.trim()) return false;
+    let corrected = explained.correctedCode?.trim();
+    // ── Retry if AI returned no correctedCode ──
+    // The first pass sometimes returns explanation-only (no rewrite). Force a
+    // second pass with an explicit "rewrite the file" prompt before giving up.
+    if (!corrected || corrected === current.trim()) {
+      try {
+        const forced = await explainError(
+          `${diagnostic}\n\n[REWRITE REQUIRED] Output the COMPLETE corrected file in correctedCode. Do not skip.`,
+          current,
+        );
+        const c2 = forced.correctedCode?.trim();
+        if (c2 && c2 !== current.trim()) corrected = c2;
+      } catch {
+        // fall through — return false below
+      }
+    }
+    if (!corrected || corrected === current.trim()) {
+      console.warn(`[swarm-agent] no corrected code produced for ${file.name}`);
+      return false;
+    }
     // Strict file-id scoping: only mutate the file this agent owns.
     applyProjectFileContent(file.id, corrected, true);
     toast.success(`Auto-applied debugger fix → ${file.name}`);
