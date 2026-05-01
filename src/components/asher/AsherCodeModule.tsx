@@ -769,11 +769,10 @@ export default function AsherCodeModule() {
     let mountTarget: string | null = null;
     const jsxBlocks = jsxFiles.map(f => {
       const raw = dirty[f.id] ?? f.content;
-      const { code, defaultExport, namedComponents } = stripModuleSyntax(raw);
-      // Last file's default export wins (or last named component as fallback)
+      const { defaultExport, namedComponents } = stripModuleSyntax(raw);
       if (defaultExport) mountTarget = defaultExport;
       else if (namedComponents.length) mountTarget = namedComponents[namedComponents.length - 1];
-      return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.path} */\n${code}\n</script>`;
+      return compileScriptTag(f.path, raw);
     }).join("\n");
     const jsBlocks = jsFiles.map(f => compileScriptTag(f.path, dirty[f.id] ?? f.content)).join("\n");
     // Detect whether the user already mounts something (ReactDOM.render / createRoot).
