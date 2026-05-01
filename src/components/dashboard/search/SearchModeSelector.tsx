@@ -6,7 +6,7 @@ const modes: { id: SearchMode; label: string; icon: React.ReactNode; accent?: bo
   { id: "deep", label: "Deep Search", icon: <Brain className="h-3.5 w-3.5" />, accent: true },
   { id: "imagine", label: "Imagine", icon: <ImageIcon className="h-3.5 w-3.5" />, accent: true },
   { id: "extract", label: "Link Extract", icon: <Crosshair className="h-3.5 w-3.5" />, accent: true },
-  { id: "audit", label: "Code Audit", icon: <ShieldAlert className="h-3.5 w-3.5" />, accent: true },
+  { id: "audit", label: "ZERLAL", icon: <ShieldAlert className="h-3.5 w-3.5" />, accent: true },
   { id: "face", label: "Face Recognition", icon: <Scan className="h-3.5 w-3.5" />, accent: true },
   { id: "news", label: "News", icon: <Newspaper className="h-3.5 w-3.5" /> },
   { id: "academic", label: "Academic", icon: <GraduationCap className="h-3.5 w-3.5" /> },

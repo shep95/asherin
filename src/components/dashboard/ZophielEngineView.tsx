@@ -20,7 +20,7 @@ import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
-const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
+const ZerlalView = lazy(() => import("./zerlal/ZerlalView"));
 const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -432,10 +432,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
-              {/* Code Audit — security blueprint of uploaded code file */}
+              {/* ZERLAL — full security intelligence suite (formerly Code Audit) */}
               {mode === "audit" && (
                 <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
-                  <CodeAuditView />
+                  <ZerlalView />
                 </Suspense>
               )}
 
@@ -508,7 +508,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                               : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
                           }`}
                           title={byokActive
-                            ? "Your AI key is active across all Zophiel tabs (Search, Deep Search, Intel Map, Intel Suite, Code Audit, Link Extract)"
+                            ? "Your AI key is active across all Zophiel tabs (Search, Deep Search, Intel Map, Intel Suite, ZERLAL, Link Extract)"
                             : "Use your own AI key across every Zophiel tab — skips the queue"}
                         >
                           <Zap className="h-3.5 w-3.5" />
