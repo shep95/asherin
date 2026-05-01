@@ -149,6 +149,7 @@ const AureonIdeView = () => {
   const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("aureonIde.autopilotZanoem") === "1");
   const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("aureonIde.autoDebug") !== "0");       // default ON
   const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("aureonIde.autoUiDebug") !== "0"); // default ON
+  const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("aureonIde.autoApprove") !== "0"); // default ON
   const [decisionLogOpen, setDecisionLogOpen] = useState(false);
   const autopilotRoundsRef = useRef(0);
   const AUTOPILOT_MAX_ROUNDS = 6;
@@ -156,6 +157,7 @@ const AureonIdeView = () => {
   useEffect(() => { localStorage.setItem("aureonIde.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
   useEffect(() => { localStorage.setItem("aureonIde.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
   useEffect(() => { localStorage.setItem("aureonIde.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
+  useEffect(() => { localStorage.setItem("aureonIde.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
 
   // Refs for offline queue handlers (run outside React's render cycle)
   const filesRefAureon = useRef(files);
@@ -237,6 +239,15 @@ const AureonIdeView = () => {
   const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
   const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
   const [chatDraft, setChatDraft] = useState("");
+
+  // Auto-Approve: when enabled, any pending approval gate is auto-accepted instantly.
+  useEffect(() => {
+    if (autoApprove && approval) {
+      const a = approval;
+      setApproval(null);
+      a.resolve(true);
+    }
+  }, [autoApprove, approval]);
 
   // Terminal output for AI context (also auto-detects errors → Bug Doctor)
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -669,6 +680,13 @@ const AureonIdeView = () => {
       >
         <input type="checkbox" checked={autoUiDebug} onChange={(e) => setAutoUiDebug(e.target.checked)} disabled={!autopilotZanoem} className="accent-foreground h-2.5 w-2.5" />
         <Eye className="h-2.5 w-2.5" /> Auto UI Debug
+      </label>
+      <label
+        title="Auto Approve: skip every approval prompt and auto-accept all planned changes instantly."
+        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoApprove ? "text-foreground" : "text-muted-foreground/70"}`}
+      >
+        <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
+        <Zap className="h-2.5 w-2.5" /> Auto Approve
       </label>
       <button
         onClick={() => setDecisionLogOpen(true)}
