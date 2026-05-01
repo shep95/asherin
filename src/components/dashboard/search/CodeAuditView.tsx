@@ -858,100 +858,223 @@ const ScorePip = ({ label, value }: { label: string; value?: number }) => {
   );
 };
 
-const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
+/**
+ * GaythropicMythosModel — replaces the legacy Palantir-style radial web diagram.
+ *
+ * Mythos framework (rival to Anthropic's "Constitution"):
+ *   - APEX  : the artifact under audit (the "Aeon")
+ *   - PANTHEONS : three mythos strata grouped by severity tone
+ *       · Wrathful Pantheon  (critical findings)  — top stratum
+ *       · Twilight Pantheon  (warn findings)      — middle stratum
+ *       · Verdant Pantheon   (good / neutral)     — lower stratum
+ *   - GLYPH LINES : ley-line edges between branches (from blueprint.edges)
+ *   - SIGILS : per-branch nodes carry their icon + signal count
+ */
+const GaythropicMythosModel = ({ blueprint }: { blueprint: Blueprint }) => {
   const branches = blueprint.branches;
-  const n = branches.length;
-  const cx = 400, cy = 220;
-  const rx = 320, ry = 170;
+
+  // Stratify branches into the three mythos pantheons by tone.
+  const wrathful = branches.filter((b) => b.tone === "critical");
+  const twilight = branches.filter((b) => b.tone === "warn");
+  const verdant = branches.filter((b) => b.tone === "good" || (!b.tone));
+
+  const W = 800, H = 480;
+  const apexY = 56;
+  const apexX = W / 2;
+  // y-positions for the three strata
+  const stratY = { wrathful: 168, twilight: 280, verdant: 392 };
+
+  const layoutRow = (items: typeof branches, y: number) => {
+    if (items.length === 0) return [] as Array<{ id: string; x: number; y: number }>;
+    const margin = 80;
+    const usable = W - margin * 2;
+    const step = items.length === 1 ? 0 : usable / (items.length - 1);
+    return items.map((b, i) => ({
+      id: b.id,
+      x: items.length === 1 ? W / 2 : margin + i * step,
+      y,
+    }));
+  };
 
   const positions: Record<string, { x: number; y: number }> = {};
-  branches.forEach((b, i) => {
-    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    positions[b.id] = { x: cx + Math.cos(angle) * rx, y: cy + Math.sin(angle) * ry };
-  });
+  [...layoutRow(wrathful, stratY.wrathful),
+   ...layoutRow(twilight, stratY.twilight),
+   ...layoutRow(verdant, stratY.verdant)
+  ].forEach((p) => { positions[p.id] = { x: p.x, y: p.y }; });
 
   return (
     <div className="rounded-2xl border border-border/15 bg-gradient-to-br from-card/20 via-card/10 to-background/0 backdrop-blur-sm p-2 overflow-hidden">
-      <svg viewBox="0 0 800 440" className="w-full h-auto" style={{ maxHeight: 480 }}>
-        <defs>
-          <radialGradient id="auditCenterGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
-          </radialGradient>
-          <pattern id="auditGridP" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(var(--border))" strokeOpacity="0.08" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect x="0" y="0" width="800" height="440" fill="url(#auditGridP)" />
-        <circle cx={cx} cy={cy} r="120" fill="url(#auditCenterGlow)" />
+      {/* Mythos legend */}
+      <div className="px-3 pt-2 pb-1 flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-foreground/60 text-[10px]">◈</span>
+          <span className="text-[10px] font-light tracking-[0.3em] uppercase text-muted-foreground/80">
+            Gaythropic Mythos Model
+          </span>
+          <span className="text-[9px] font-light tracking-[0.25em] uppercase text-muted-foreground/40 hidden sm:inline">
+            · rival of Anthropic
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-[9px] tracking-[0.2em] uppercase">
+          <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-red-400/70" /><span className="text-muted-foreground/70">Wrathful</span></span>
+          <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-amber-400/70" /><span className="text-muted-foreground/70">Twilight</span></span>
+          <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70" /><span className="text-muted-foreground/70">Verdant</span></span>
+        </div>
+      </div>
 
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" style={{ maxHeight: 520 }}>
+        <defs>
+          <radialGradient id="mythosApexGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
+          </radialGradient>
+          <pattern id="mythosGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(var(--border))" strokeOpacity="0.06" strokeWidth="0.5" />
+          </pattern>
+          <linearGradient id="stratumWrath" x1="0" x2="1">
+            <stop offset="0%" stopColor="rgb(248 113 113)" stopOpacity="0" />
+            <stop offset="50%" stopColor="rgb(248 113 113)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="rgb(248 113 113)" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="stratumTwilight" x1="0" x2="1">
+            <stop offset="0%" stopColor="rgb(251 191 36)" stopOpacity="0" />
+            <stop offset="50%" stopColor="rgb(251 191 36)" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="rgb(251 191 36)" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="stratumVerdant" x1="0" x2="1">
+            <stop offset="0%" stopColor="rgb(52 211 153)" stopOpacity="0" />
+            <stop offset="50%" stopColor="rgb(52 211 153)" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="rgb(52 211 153)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        <rect x="0" y="0" width={W} height={H} fill="url(#mythosGrid)" />
+
+        {/* Stratum bands — mythos pantheons */}
+        <rect x="0" y={stratY.wrathful - 30} width={W} height="60" fill="url(#stratumWrath)" />
+        <rect x="0" y={stratY.twilight - 30} width={W} height="60" fill="url(#stratumTwilight)" />
+        <rect x="0" y={stratY.verdant - 30} width={W} height="60" fill="url(#stratumVerdant)" />
+
+        {/* Stratum labels (left rail) */}
+        <text x="14" y={stratY.wrathful + 4} className="fill-muted-foreground" fontSize="8" fontWeight="300" letterSpacing="3">WRATHFUL</text>
+        <text x="14" y={stratY.twilight + 4} className="fill-muted-foreground" fontSize="8" fontWeight="300" letterSpacing="3">TWILIGHT</text>
+        <text x="14" y={stratY.verdant + 4} className="fill-muted-foreground" fontSize="8" fontWeight="300" letterSpacing="3">VERDANT</text>
+
+        {/* Apex glow */}
+        <circle cx={apexX} cy={apexY} r="80" fill="url(#mythosApexGlow)" />
+
+        {/* Descending mythos lines: APEX → each branch sigil */}
+        {branches.map((b) => {
+          const p = positions[b.id];
+          if (!p) return null;
+          const stroke =
+            b.tone === "critical" ? "rgb(248 113 113 / 0.45)" :
+            b.tone === "warn" ? "rgb(251 191 36 / 0.4)" :
+            b.tone === "good" ? "rgb(52 211 153 / 0.35)" :
+            "hsl(var(--muted-foreground) / 0.25)";
+          // gentle bezier descent — the "ley line"
+          const c1x = apexX, c1y = (apexY + p.y) / 2;
+          const c2x = p.x, c2y = (apexY + p.y) / 2;
+          return (
+            <path
+              key={`ley-${b.id}`}
+              d={`M ${apexX} ${apexY + 32} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p.x} ${p.y - 24}`}
+              fill="none"
+              stroke={stroke}
+              strokeWidth="1"
+              strokeDasharray="2 5"
+              strokeLinecap="round"
+            />
+          );
+        })}
+
+        {/* Cross-branch glyph edges (preserved from blueprint.edges) */}
         {blueprint.edges?.map((e, i) => {
           const from = positions[e.from];
           const to = positions[e.to];
           if (!from || !to) return null;
           const mx = (from.x + to.x) / 2;
-          const my = (from.y + to.y) / 2 - 20;
+          const my = Math.min(from.y, to.y) - 24;
           return (
-            <g key={`e-${i}`}>
-              <path
-                d={`M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`}
-                fill="none"
-                stroke="hsl(var(--accent))"
-                strokeOpacity="0.18"
-                strokeWidth="1"
-                strokeDasharray="3 4"
-              />
-            </g>
+            <path
+              key={`edge-${i}`}
+              d={`M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`}
+              fill="none"
+              stroke="hsl(var(--foreground))"
+              strokeOpacity="0.12"
+              strokeWidth="0.8"
+              strokeDasharray="1 4"
+            />
           );
         })}
 
-        {branches.map((b) => {
-          const p = positions[b.id];
-          const stroke =
-            b.tone === "good" ? "rgb(52 211 153 / 0.4)" :
-            b.tone === "warn" ? "rgb(251 191 36 / 0.4)" :
-            b.tone === "critical" ? "rgb(248 113 113 / 0.5)" :
-            "hsl(var(--muted-foreground) / 0.25)";
-          return (
-            <line key={`s-${b.id}`} x1={cx} y1={cy} x2={p.x} y2={p.y}
-              stroke={stroke} strokeWidth="1.2" />
-          );
-        })}
-
+        {/* APEX — the Aeon (artifact under audit) */}
         <g>
-          <circle cx={cx} cy={cy} r="38" fill="hsl(var(--background))" stroke="hsl(var(--accent))" strokeOpacity="0.5" strokeWidth="1.2" />
-          <circle cx={cx} cy={cy} r="48" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="2 4" />
-          <text x={cx} y={cy - 4} textAnchor="middle" className="fill-foreground" fontSize="10" fontWeight="500" letterSpacing="2">FILE</text>
-          <text x={cx} y={cy + 10} textAnchor="middle" className="fill-muted-foreground" fontSize="9" fontWeight="300">
-            {blueprint.target.length > 22 ? blueprint.target.slice(0, 20) + "…" : blueprint.target}
+          <polygon
+            points={`${apexX},${apexY - 30} ${apexX + 28},${apexY + 18} ${apexX - 28},${apexY + 18}`}
+            fill="hsl(var(--background))"
+            stroke="hsl(var(--foreground))"
+            strokeOpacity="0.55"
+            strokeWidth="1.2"
+          />
+          <polygon
+            points={`${apexX},${apexY - 40} ${apexX + 38},${apexY + 24} ${apexX - 38},${apexY + 24}`}
+            fill="none"
+            stroke="hsl(var(--foreground))"
+            strokeOpacity="0.15"
+            strokeWidth="0.8"
+            strokeDasharray="2 4"
+          />
+          <text x={apexX} y={apexY - 4} textAnchor="middle" className="fill-foreground" fontSize="9" fontWeight="500" letterSpacing="3">AEON</text>
+          <text x={apexX} y={apexY + 10} textAnchor="middle" className="fill-muted-foreground" fontSize="8" fontWeight="300">
+            {blueprint.target.length > 24 ? blueprint.target.slice(0, 22) + "…" : blueprint.target}
           </text>
         </g>
 
+        {/* Sigils — branch nodes as hexagonal mythos crests */}
         {branches.map((b) => {
           const p = positions[b.id];
+          if (!p) return null;
           const Icon = ICONS[b.icon] || Shield;
           const fill =
-            b.tone === "good" ? "rgb(16 185 129 / 0.12)" :
+            b.tone === "critical" ? "rgb(239 68 68 / 0.14)" :
             b.tone === "warn" ? "rgb(245 158 11 / 0.12)" :
-            b.tone === "critical" ? "rgb(239 68 68 / 0.15)" :
+            b.tone === "good" ? "rgb(16 185 129 / 0.12)" :
             "hsl(var(--card) / 0.6)";
           const stroke =
-            b.tone === "good" ? "rgb(52 211 153 / 0.5)" :
-            b.tone === "warn" ? "rgb(251 191 36 / 0.5)" :
             b.tone === "critical" ? "rgb(248 113 113 / 0.6)" :
+            b.tone === "warn" ? "rgb(251 191 36 / 0.55)" :
+            b.tone === "good" ? "rgb(52 211 153 / 0.5)" :
             "hsl(var(--border))";
+          const r = 26;
+          // hexagon vertices around (p.x, p.y)
+          const hex = Array.from({ length: 6 }, (_, k) => {
+            const a = (Math.PI / 3) * k - Math.PI / 2;
+            return `${p.x + Math.cos(a) * r},${p.y + Math.sin(a) * r}`;
+          }).join(" ");
           return (
-            <g key={`n-${b.id}`}>
-              <circle cx={p.x} cy={p.y} r="28" fill={fill} stroke={stroke} strokeWidth="1.2" />
-              <foreignObject x={p.x - 9} y={p.y - 18} width="18" height="18">
+            <g key={`sigil-${b.id}`}>
+              <polygon points={hex} fill={fill} stroke={stroke} strokeWidth="1.2" />
+              <polygon
+                points={Array.from({ length: 6 }, (_, k) => {
+                  const a = (Math.PI / 3) * k - Math.PI / 2;
+                  return `${p.x + Math.cos(a) * (r + 6)},${p.y + Math.sin(a) * (r + 6)}`;
+                }).join(" ")}
+                fill="none"
+                stroke={stroke}
+                strokeOpacity="0.35"
+                strokeWidth="0.6"
+                strokeDasharray="1 3"
+              />
+              <foreignObject x={p.x - 9} y={p.y - 16} width="18" height="18">
                 <div className="w-full h-full flex items-center justify-center">
-                  <Icon className="h-3.5 w-3.5 text-foreground/80" />
+                  <Icon className="h-3.5 w-3.5 text-foreground/85" />
                 </div>
               </foreignObject>
               <text x={p.x} y={p.y + 8} textAnchor="middle" className="fill-foreground" fontSize="8" fontWeight="500" letterSpacing="1.5">
                 {b.label.split(" ")[0]}
               </text>
-              <text x={p.x} y={p.y + 44} textAnchor="middle" className="fill-muted-foreground" fontSize="8" fontWeight="300" letterSpacing="0.5">
+              <text x={p.x} y={p.y + 42} textAnchor="middle" className="fill-muted-foreground" fontSize="8" fontWeight="300" letterSpacing="0.5">
                 {b.leaves.length} signals
               </text>
             </g>
