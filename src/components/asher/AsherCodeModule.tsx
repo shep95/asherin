@@ -63,6 +63,16 @@ export default function AsherCodeModule() {
   const [model, setModel] = useState(() => localStorage.getItem("asherCode.model") || "claude-sonnet-4-5");
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("asherCode.apiKey") || "");
 
+  // ── Shared IDE upgrade pack state ──
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [bugDoctorOpen, setBugDoctorOpen] = useState(false);
+  const [bugDoctorMsg, setBugDoctorMsg] = useState("");
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [fuzzyOpen, setFuzzyOpen] = useState(false);
+  const [approval, setApproval] = useState<{ title: string; changes: PlannedChange[]; resolve: (ok: boolean) => void } | null>(null);
+  const [modelOverride, setModelOverride] = useState<IdeModelId | null>(null);
+  const routeDecision = useMemo(() => routeTask(chatInput || "", modelOverride ?? undefined), [chatInput, modelOverride]);
+
   useEffect(() => { localStorage.setItem("asherCode.provider", provider); }, [provider]);
   useEffect(() => { localStorage.setItem("asherCode.model", model); }, [model]);
   useEffect(() => { localStorage.setItem("asherCode.apiKey", apiKey); }, [apiKey]);
