@@ -580,6 +580,11 @@ export default function AsherCodeModule() {
       }
     }
     if (!corrected || corrected === current.trim()) {
+      // Scan-all clean file: not a defect, not a failure.
+      if (ownIssues.length === 0) {
+        console.info(`[swarm-agent] ${file.name} passed logic audit (no changes needed)`);
+        return true;
+      }
       console.warn(`[swarm-agent] no corrected code produced for ${file.name}`);
       return false;
     }
