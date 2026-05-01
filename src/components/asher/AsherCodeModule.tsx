@@ -1223,6 +1223,9 @@ try {
     // "fix every bug" auto-dispatch to the swarm / ZANOEM autopilot
     // — the user does NOT need to be on a specific file.
     const goal = routeGoal(chatInput);
+    // Auto-approved plan strip — visible immediately so the user sees
+    // exactly what the agent is about to do, with checkmarks ticking.
+    startPlan(chatInput, goal.intent, { activeFileName: activeFile?.path, projectName: activeProject?.name });
     if (goal.intent === "swarm_fix" && chatInput.trim()) {
       if (!activeProject) {
         toast.error("Open a project first so the swarm has something to scan");
