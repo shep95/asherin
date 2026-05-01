@@ -1260,7 +1260,8 @@ try {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language, ...aureon });
       const u: ChatMsg = { role: "user", content: `Explain ${activeFile.path}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat(c => [...c, u, a]);
