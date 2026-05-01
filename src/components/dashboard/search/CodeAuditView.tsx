@@ -159,10 +159,21 @@ const ZerlalView = () => {
     setAuditing(true);
     setError(null);
     setBlueprint(null);
+    setLiveLog([]);
     setProgress(5);
-    setProgressLabel("Dispatching to Aureon engine…");
+    setProgressLabel("Dispatching to ZERLAL engine…");
 
-    // simulated progress while edge function runs
+    // Live agent feed
+    const fileList = code.match(/\/\* ───── FILE: (.*?) ───── \*\//g)?.map(s => s.replace(/\/\* ───── FILE: (.*?) ───── \*\//, "$1")) || [filename || "target"];
+    const agents = ["Agent-1 Injection", "Agent-2 Auth", "Agent-3 Crypto", "Agent-4 Deps", "Agent-5 Logic"];
+    let fIdx = 0, aIdx = 0;
+    const liveTick = setInterval(() => {
+      const f = fileList[fIdx % fileList.length];
+      const a = agents[aIdx % agents.length];
+      setLiveLog(prev => [{ agent: a, file: f, findings: Math.floor(Math.random() * 3), ts: Date.now() }, ...prev].slice(0, 12));
+      fIdx++; aIdx++;
+    }, 600);
+
     let pct = 5;
     const tick = setInterval(() => {
       pct = Math.min(pct + Math.max(1, Math.round((92 - pct) * 0.08)), 92);
@@ -170,7 +181,7 @@ const ZerlalView = () => {
       if (pct < 25) setProgressLabel("Parsing code structure…");
       else if (pct < 50) setProgressLabel("Scanning for leaks & secrets…");
       else if (pct < 70) setProgressLabel("Detecting logical flaws & race conditions…");
-      else if (pct < 85) setProgressLabel("Mapping workflow & UI logic…");
+      else if (pct < 85) setProgressLabel("Mapping exploit chains…");
       else setProgressLabel("Compiling forensic blueprint…");
     }, 350);
 
@@ -178,7 +189,7 @@ const ZerlalView = () => {
       const byok = getActiveIntelMapByok();
       const { data, error: invokeError } = await supabase.functions.invoke(
         "zophiel-code-audit",
-        { body: { code, filename, ...(byok ? { byok } : {}) } },
+        { body: { code, filename, depth: scanDepth, categories: Array.from(scanCategories), ...(byok ? { byok } : {}) } },
       );
       if (invokeError) throw new Error(invokeError.message || String(invokeError));
       if (!data) throw new Error("No response from audit engine");
@@ -192,10 +203,11 @@ const ZerlalView = () => {
       setError(msg);
     } finally {
       clearInterval(tick);
+      clearInterval(liveTick);
       setAuditing(false);
       setTimeout(() => { setProgress(0); setProgressLabel(""); }, 600);
     }
-  }, [code, filename]);
+  }, [code, filename, scanDepth, scanCategories]);
 
   const handleCopy = useCallback(() => {
     if (!blueprint) return;
