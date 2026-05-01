@@ -508,14 +508,11 @@ export default function AsherCodeModule() {
   }
 
   async function applyDebuggerFix(file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) {
-    // ── PER-FILE ISOLATION GUARD ──
-    // Each agent owns exactly one file. Refuse to write if another agent is
-    // already mid-flight on the same file (defensive — one-agent-per-file is
-    // also enforced upstream by the dispatcher).
-    if (fileLocksRef.current.has(file.name)) {
-      // Another agent is already working this exact path; skip silently.
-      return false;
-    }
+    // ── PER-FILE ISOLATION ──
+    // The dispatcher already spawns one agent per target file per pass. Do not
+    // reject here based on fileLocksRef: onAgentSpawn marks the same file as
+    // locked for UI/status purposes before this function runs, so checking that
+    // lock here caused every agent to fail against its own lock.
     // Only act on issues that belong to THIS file. Strip cross-file noise so
     // the agent stays surgical and never accidentally rewrites a sibling.
     const ownIssues = issues.filter((i) => i.file === file.name);
