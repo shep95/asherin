@@ -172,7 +172,7 @@ export default function AsherCodeModule() {
       if (!autopilotZanoemRef.current) return;
       const result = await autoFixUntilClean({
         files: () => filesRef.current.map<AutoFixFile>((f) => ({
-          id: f.id, name: f.path || f.name || "file", content: f.content, language: f.language,
+          id: f.id, name: f.path, content: f.content, language: f.language,
         })),
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 6,
