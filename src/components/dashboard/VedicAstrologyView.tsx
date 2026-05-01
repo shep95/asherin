@@ -568,7 +568,10 @@ const VedicAstrologyView = () => {
 
         {tab === "mine" && (
         <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
-
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="space-y-1">
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth date</span>
+              <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             </label>
             <label className="space-y-1">
               <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth time (local)</span>
