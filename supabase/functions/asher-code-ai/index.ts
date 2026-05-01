@@ -1,7 +1,7 @@
 // ASHER CODE AI — Coding assistant for the Asher Code IDE.
 // • Modes: chat | inline | generate | explain | fix
 // • Auth: requires Asher user JWT
-// • Keys: user BYOK (from body OR user_api_keys table) OR admin Gemini bypass for ashernewtonx@gmail.com
+// • Keys: user BYOK only (from body OR user_api_keys table). NO admin bypass — admin must BYOK too.
 // • Never falls back to Lovable AI Gateway. Per project rule: Asher Dashboard AI is GEMINI-or-BYOK only.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
