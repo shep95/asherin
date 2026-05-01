@@ -734,6 +734,13 @@ export default function AsherCodeModule() {
             </div>
           </div>
 
+          {/* Live validator badge — visible when a file is open */}
+          {activeFile && activeContent && (
+            <div className="px-2 py-1 border-b border-border/15 bg-card/5">
+              <IdeValidatorBadge content={activeContent} language={activeFile.language || "tsx"} />
+            </div>
+          )}
+
           {/* Editor + preview — controlled by viewMode (code | split | preview) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
             {viewMode !== "preview" && (
