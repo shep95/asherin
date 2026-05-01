@@ -18,6 +18,7 @@ import {
   IdeFuzzyFinder,
   IdeApprovalGate,
   IdeModelRouterBadge,
+  IdeValidatorBadge,
   type PlannedChange,
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
@@ -684,7 +685,16 @@ const AureonIdeView = () => {
           <ResizablePanel defaultSize={rightOpen ? 58 : 82} minSize={30} className="overflow-hidden">
             <ResizablePanelGroup direction="vertical" className="h-full">
               <ResizablePanel defaultSize={bottomOpen ? 70 : 100} minSize={20} className="overflow-hidden">
-                {centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />}
+                <div className="flex flex-col h-full">
+                  {centerTab === "code" && activeFile?.content && (
+                    <div className="px-2 py-1 border-b border-border/15 bg-card/5">
+                      <IdeValidatorBadge content={activeFile.content} language={getLanguage(activeFile.name)} />
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-hidden">
+                    {centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />}
+                  </div>
+                </div>
               </ResizablePanel>
 
               {/* Terminal (only when open) */}
