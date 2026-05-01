@@ -154,7 +154,7 @@ export async function logDecision(input: LogDecisionInput): Promise<string | nul
       conversation_ref: input.conversationRef ?? null,
       round: input.round,
       trigger_excerpt: input.triggerText.slice(0, 4000),
-      options: options as unknown as Record<string, unknown>,
+      options: options as any,
       chosen_option: chosen,
       rationale,
       reply_sent: input.replySent.slice(0, 4000),
