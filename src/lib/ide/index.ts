@@ -5,3 +5,4 @@ export * from "./versionHistory";
 export * from "./modelRouter";
 export * from "./templates";
 export * from "./errorExplainer";
+export * from "./codeAnimator";
