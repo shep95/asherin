@@ -1876,9 +1876,18 @@ try {
             </div>
           )}
 
-          {/* Editor + preview — controlled by viewMode (code | split | preview) */}
+          {/* Editor + preview + workflow — controlled by viewMode (code | split | preview | workflow) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
-            {viewMode !== "preview" && (
+            {viewMode === "workflow" ? (
+              <div className="w-full flex-1 min-w-0 min-h-[200px]">
+                <AsherWorkflowMap
+                  liveAgents={swarmAgents}
+                  events={workflowEvents}
+                  fileStats={Object.values(fileWorkflowStats)}
+                />
+              </div>
+            ) : null}
+            {viewMode !== "preview" && viewMode !== "workflow" && (
               <div
                 className={`relative min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}
                 style={{
