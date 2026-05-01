@@ -228,6 +228,8 @@ const ZerlalView = () => {
     setError(null);
     setBlueprint(null);
     setLiveLog([]);
+    setScanStartedAt(new Date().toISOString());
+    setScanCompletedAt(null);
     setProgress(5);
     setProgressLabel("Dispatching to ZERLAL engine…");
 
@@ -238,7 +240,8 @@ const ZerlalView = () => {
     const liveTick = setInterval(() => {
       const f = fileList[fIdx % fileList.length];
       const a = agents[aIdx % agents.length];
-      setLiveLog(prev => [{ agent: a, file: f, findings: Math.floor(Math.random() * 3), ts: Date.now() }, ...prev].slice(0, 12));
+        const observed = blueprintFindingSignal(code, f, a);
+        setLiveLog(prev => [{ agent: a, file: f, findings: observed, ts: Date.now() }, ...prev].slice(0, 12));
       fIdx++; aIdx++;
     }, 600);
 
@@ -265,7 +268,10 @@ const ZerlalView = () => {
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
       setProgress(100);
       setProgressLabel("Complete");
-      setBlueprint(data.blueprint as Blueprint);
+      const bp = data.blueprint as Blueprint;
+      setBlueprint(bp);
+      setScanCompletedAt(new Date().toISOString());
+      persistHistory(bp);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Audit failed";
       setError(msg);
@@ -275,7 +281,7 @@ const ZerlalView = () => {
       setAuditing(false);
       setTimeout(() => { setProgress(0); setProgressLabel(""); }, 600);
     }
-  }, [code, filename, scanDepth, scanCategories]);
+  }, [code, filename, scanDepth, scanCategories, persistHistory]);
 
   const handleCopy = useCallback(() => {
     if (!blueprint) return;
