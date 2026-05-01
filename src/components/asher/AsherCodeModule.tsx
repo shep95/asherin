@@ -1297,7 +1297,8 @@ try {
     if (!desc) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language, ...aureon });
       const code = extractCodeBlock(r.reply || "");
       animateApply(activeFile.id, code);
       const u: ChatMsg = { role: "user", content: `Generate: ${desc}` };
