@@ -1313,7 +1313,8 @@ try {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "tests", byok: byok(), code: activeContent, language: activeFile.language, framework: "vitest" });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "tests", byok: byok(), code: activeContent, language: activeFile.language, framework: "vitest", ...aureon });
       const code = extractCodeBlock(r.reply || "");
       // Create a sibling test file
       const base = activeFile.path.replace(/\.(tsx?|jsx?|py)$/, "");
