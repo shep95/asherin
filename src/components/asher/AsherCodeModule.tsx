@@ -40,8 +40,59 @@ import { validateFiles, validateCode } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
+import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
+
+// Load active Aureon persona + brain (mirrors Aureon Chat / ZALI). Result is spread into every
+// asher-code-ai call so Asher IDE inherits the same coding brain stack as the rest of the dashboard.
+async function loadAureonContext(): Promise<{
+  personaSystemPrompt: string | null;
+  brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null;
+}> {
+  let personaSystemPrompt: string | null = null;
+  let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
+  try {
+    const personaId = localStorage.getItem("aureon_active_persona_id");
+    if (personaId) {
+      const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
+      const activePersona = customPersonas.find((p: any) => p.id === personaId)
+        || builtInPersonas.find((p) => p.id === personaId);
+      personaSystemPrompt = activePersona?.systemPrompt || null;
+    }
+  } catch { /* ignore */ }
+  try {
+    const activeBrainId = localStorage.getItem("aureon_active_brain_id");
+    if (activeBrainId) {
+      const { data: brain } = await supabase
+        .from("brains")
+        .select("system_prompt, file_ids")
+        .eq("id", activeBrainId)
+        .single();
+      if (brain) {
+        const fileContents: { name: string; content: string }[] = [];
+        if (brain.file_ids?.length) {
+          const { data: files } = await supabase
+            .from("library_files")
+            .select("file_name, storage_path, file_type")
+            .in("id", brain.file_ids);
+          if (files) {
+            for (const f of files) {
+              const isText = !f.file_type.startsWith("image/")
+                && !f.file_type.startsWith("video/")
+                && !f.file_type.startsWith("audio/");
+              if (!isText) continue;
+              const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
+              if (blob) fileContents.push({ name: f.file_name, content: (await blob.text()).slice(0, 80000) });
+            }
+          }
+        }
+        brainContext = { prompt: brain.system_prompt || "", fileContents };
+      }
+    }
+  } catch (e) { console.error("Asher Code: failed to load Aureon brain context:", e); }
+  return { personaSystemPrompt, brainContext };
+}
 
 export default function AsherCodeModule() {
   const { user } = useAuth();
@@ -897,7 +948,8 @@ try {
     setAiBusy(true);
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments } as any);
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments, ...aureon } as any);
       const assistantMsg: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat([...next, assistantMsg]);
       void persistChatMessages([userMsg, assistantMsg]);
@@ -1208,7 +1260,8 @@ try {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language, ...aureon });
       const u: ChatMsg = { role: "user", content: `Explain ${activeFile.path}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat(c => [...c, u, a]);
@@ -1222,7 +1275,8 @@ try {
     if (!err) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err, ...aureon });
       const u: ChatMsg = { role: "user", content: `Fix: ${err}` };
       const a: ChatMsg = { role: "assistant", content: r.reply || "" };
       setChat(c => [...c, u, a]);
@@ -1243,7 +1297,8 @@ try {
     if (!desc) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language, ...aureon });
       const code = extractCodeBlock(r.reply || "");
       animateApply(activeFile.id, code);
       const u: ChatMsg = { role: "user", content: `Generate: ${desc}` };
@@ -1258,7 +1313,8 @@ try {
     if (!activeFile) return;
     setAiBusy(true);
     try {
-      const r = await callAsherCodeAi({ mode: "tests", byok: byok(), code: activeContent, language: activeFile.language, framework: "vitest" });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "tests", byok: byok(), code: activeContent, language: activeFile.language, framework: "vitest", ...aureon });
       const code = extractCodeBlock(r.reply || "");
       // Create a sibling test file
       const base = activeFile.path.replace(/\.(tsx?|jsx?|py)$/, "");
@@ -1284,7 +1340,8 @@ try {
     setAiBusy(true);
     try {
       const projectFiles = files.map(f => ({ path: f.path, content: dirty[f.id] ?? f.content }));
-      const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles });
+      const aureon = await loadAureonContext();
+      const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles, ...aureon });
       const plan = extractJsonBlock<EditPlan>(r.reply || "");
       if (!plan?.edits?.length) { toast.error("AI did not return a valid edit plan"); return; }
       if (autoApprove) {
@@ -1341,12 +1398,14 @@ try {
         .map(p => ({ provider: p.id, model: p.models[0].id, apiKey: undefined as any }));
       const byoks = [{ provider, model, apiKey: apiKey || undefined }, ...others];
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({
         mode: "orchestrate",
         subMode: "chat",
         byoks,
         messages: [...chat, { role: "user", content: chatInput }],
         contextFiles: ctx,
+        ...aureon,
       });
       setChatInput("");
       setOrchResult(r);
@@ -1366,6 +1425,7 @@ try {
     if (!targets.length) { toast.info("No `// AI: ...` prompts found in this file"); return; }
     setAiBusy(true);
     try {
+      const aureon = await loadAureonContext();
       const newLines = [...lines];
       // Process bottom-up so indices stay stable
       for (const t of [...targets].reverse()) {
@@ -1378,6 +1438,7 @@ try {
           language: activeFile.language,
           before: `${before}\n// REQUEST: ${t.prompt}\n`,
           after,
+          ...aureon,
         });
         const completion = (r.reply || "").trim().replace(/^```[\w]*\n?|\n?```$/g, "");
         const indented = completion.split("\n").map(l => t.indent + l).join("\n");
