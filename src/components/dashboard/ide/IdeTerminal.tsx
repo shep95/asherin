@@ -356,106 +356,64 @@ AI
       return;
     }
 
-    // npm commands
-    if (base === "npm") {
-      const sub = args[1] ?? "";
-      if (sub === "install" || sub === "i") {
-        const pkg = args[2];
-        if (pkg) {
-          addLine(tid, "system", `Installing ${pkg}...`);
-          setTimeout(() => addLine(tid, "output", `added 1 package in 1.2s\n\n+ ${pkg}@latest\nadded 1 package, removed 0, changed 0 (audited 142 packages in 1.2s)`), 800);
-        } else {
-          addLine(tid, "system", "Installing dependencies...");
-          setTimeout(() => addLine(tid, "output", "added 142 packages in 3.4s\n\n142 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities"), 1500);
-        }
-        return;
-      }
-      if (sub === "run") {
-        const script = args[2] ?? "";
-        if (script === "dev") {
-          addLine(tid, "system", "Starting development server...");
-          setTimeout(() => addLine(tid, "output", `  VITE v5.4.0  ready in 340ms\n\n  ➜  Local:   http://localhost:5173/\n  ➜  Network: http://192.168.1.42:5173/\n  ➜  press h + enter to show help`), 600);
-        } else if (script === "build") {
-          addLine(tid, "system", "Building for production...");
-          setTimeout(() => addLine(tid, "output", `vite v5.4.0 building for production...\n✓ 127 modules transformed.\ndist/index.html          0.46 kB │ gzip: 0.30 kB\ndist/assets/index.css    8.12 kB │ gzip: 2.41 kB\ndist/assets/index.js   142.67 kB │ gzip: 45.23 kB\n✓ built in 2.1s`), 1200);
-        } else if (script === "test") {
-          addLine(tid, "system", "Running tests...");
-          setTimeout(() => addLine(tid, "output", `✓ src/App.test.tsx (2 tests) 45ms\n✓ src/utils.test.ts (5 tests) 12ms\n\nTest Files  2 passed (2)\n     Tests  7 passed (7)\n  Duration  1.23s`), 1000);
-        } else {
-          addLine(tid, "error", `Missing script: "${script}"\n\nAvailable scripts:\n  dev    - Start development server\n  build  - Build for production\n  test   - Run tests`);
-        }
-        return;
-      }
-      if (sub === "test") {
-        addLine(tid, "system", "Running tests...");
-        setTimeout(() => addLine(tid, "output", `✓ All tests passed (7/7) in 1.23s`), 800);
-        return;
-      }
-      addLine(tid, "error", `npm: unknown command "${sub}". Try: install, run, test`);
+    // npm / npx / node — browser sandbox cannot run Node.js processes.
+    // Be honest instead of simulating output.
+    if (base === "npm" || base === "npx" || base === "node" || base === "yarn" || base === "pnpm" || base === "bun") {
+      addLine(tid, "error", `${base}: not available in browser sandbox. Node.js processes cannot execute here.\n→ Use the Workspace preview to run your project, or connect to GitHub via the Git panel and run locally.`);
       return;
     }
 
-    // npx
-    if (base === "npx") {
-      addLine(tid, "system", `Executing: ${args.slice(1).join(" ")}...`);
-      setTimeout(() => addLine(tid, "output", "Done."), 500);
-      return;
-    }
-
-    // node
-    if (base === "node") {
-      if (!args[1]) { addLine(tid, "system", "Node.js v20.11.0 REPL (type .exit to quit)"); return; }
-      addLine(tid, "system", `Running ${args[1]}...`);
-      const resolved = resolvePath(term.cwd, args[1]);
-      const node = findAtPath(files, resolved.split("/"));
-      if (!node) { addLine(tid, "error", `Cannot find module '${args[1]}'`); return; }
-      addLine(tid, "output", `[Executed ${args[1]}] — output simulated in sandbox`);
-      return;
-    }
-
-    // git commands
+    // git — defer to the real GitHub integration in the Git panel (uses real GitHub API + PAT).
     if (base === "git") {
-      const sub = args[1] ?? "";
-      if (sub === "status") {
-        const allFiles = flatFiles(files);
-        addLine(tid, "output", `On branch main\nYour branch is up to date with 'origin/main'.\n\nChanges not staged for commit:\n${allFiles.filter(f => f.file.type === "file").slice(0, 5).map(f => `  modified: ${f.path}`).join("\n")}\n\nno changes added to commit`);
-      } else if (sub === "log") {
-        addLine(tid, "output", `commit a1b2c3d (HEAD -> main)\nAuthor: aureon-dev <dev@aureon.app>\nDate:   ${new Date().toUTCString()}\n\n    Initial commit\n\ncommit e4f5g6h\nAuthor: aureon-dev <dev@aureon.app>\nDate:   ${new Date(Date.now() - 86400000).toUTCString()}\n\n    Project setup`);
-      } else if (sub === "branch") {
-        addLine(tid, "output", `* main\n  develop\n  feature/auth`);
-      } else if (sub === "diff") {
-        addLine(tid, "output", `diff --git a/src/App.tsx b/src/App.tsx\n--- a/src/App.tsx\n+++ b/src/App.tsx\n@@ -1,4 +1,4 @@\n-import React from "react";\n+import React, { useState } from "react";`);
-      } else if (sub === "init") {
-        addLine(tid, "output", `Initialized empty Git repository in /project/.git/`);
-      } else if (sub === "add") {
-        addLine(tid, "output", `Added ${args[2] ?? "."} to staging`);
-      } else if (sub === "commit") {
-        addLine(tid, "output", `[main a1b2c3d] ${args.slice(3).join(" ") || "update"}\n 1 file changed, 1 insertion(+)`);
-      } else {
-        addLine(tid, "error", `git: '${sub}' is not a git command. Try: status, log, branch, diff, init, add, commit`);
-      }
+      addLine(tid, "system", `git: open the Git panel (sidebar) for live GitHub operations — clone, commit, push, pull are wired to the real GitHub API.`);
       return;
     }
 
-    // curl
+    // curl — REAL HTTP request via fetch
     if (base === "curl") {
       const url = args[1] ?? "";
       if (!url) { addLine(tid, "error", "curl: missing URL"); return; }
-      addLine(tid, "system", `Fetching ${url}...`);
-      setTimeout(() => addLine(tid, "output", `HTTP/1.1 200 OK\nContent-Type: application/json\n\n{"status":"ok","message":"Response simulated in sandbox"}`), 600);
+      let target = url;
+      if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
+      addLine(tid, "system", `→ GET ${target}`);
+      const t0 = performance.now();
+      (async () => {
+        try {
+          const res = await fetch(target, { method: "GET", mode: "cors" });
+          const dt = (performance.now() - t0).toFixed(0);
+          const ct = res.headers.get("content-type") ?? "";
+          let body = "";
+          try { body = await res.text(); } catch { body = "(unreadable body)"; }
+          if (body.length > 4000) body = body.slice(0, 4000) + `\n…(truncated, ${body.length} bytes total)`;
+          const headerLines: string[] = [];
+          res.headers.forEach((v, k) => headerLines.push(`${k}: ${v}`));
+          addLine(tid, "output", `HTTP/1.1 ${res.status} ${res.statusText} (${dt}ms)\n${headerLines.join("\n")}\n\n${body}`);
+        } catch (e: any) {
+          addLine(tid, "error", `curl: ${e?.message || "request failed"} (CORS may block cross-origin requests from the browser)`);
+        }
+      })();
       return;
     }
 
-    // ping
+    // ping — real reachability test (HTTP HEAD timing; ICMP unavailable in browsers)
     if (base === "ping") {
       const host = args[1] ?? "localhost";
-      addLine(tid, "system", `PING ${host}`);
+      const target = /^https?:\/\//i.test(host) ? host : `https://${host}`;
+      addLine(tid, "system", `PING ${host} (HTTP reachability — ICMP unsupported in browser)`);
       let count = 0;
-      const interval = setInterval(() => {
+      const interval = setInterval(async () => {
         count++;
-        addLine(tid, "output", `64 bytes from ${host}: icmp_seq=${count} ttl=64 time=${(Math.random() * 20 + 5).toFixed(1)} ms`);
-        if (count >= 4) { clearInterval(interval); addLine(tid, "output", `\n--- ${host} ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss`); }
-      }, 400);
+        const seq = count;
+        const t0 = performance.now();
+        try {
+          await fetch(target, { method: "HEAD", mode: "no-cors", cache: "no-store" });
+          const dt = (performance.now() - t0).toFixed(1);
+          addLine(tid, "output", `reply from ${host}: seq=${seq} time=${dt} ms`);
+        } catch (e: any) {
+          addLine(tid, "error", `request to ${host}: seq=${seq} failed (${e?.message || "unreachable"})`);
+        }
+        if (seq >= 4) { clearInterval(interval); addLine(tid, "output", `\n--- ${host} statistics ---\n4 probes sent`); }
+      }, 600);
       return;
     }
 
