@@ -149,6 +149,7 @@ const AureonIdeView = () => {
   const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("aureonIde.autopilotZanoem") === "1");
   const [autoDebug, setAutoDebug] = useState(() => localStorage.getItem("aureonIde.autoDebug") !== "0");       // default ON
   const [autoUiDebug, setAutoUiDebug] = useState(() => localStorage.getItem("aureonIde.autoUiDebug") !== "0"); // default ON
+  const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("aureonIde.autoApprove") !== "0"); // default ON
   const [decisionLogOpen, setDecisionLogOpen] = useState(false);
   const autopilotRoundsRef = useRef(0);
   const AUTOPILOT_MAX_ROUNDS = 6;
@@ -156,6 +157,7 @@ const AureonIdeView = () => {
   useEffect(() => { localStorage.setItem("aureonIde.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
   useEffect(() => { localStorage.setItem("aureonIde.autoDebug", autoDebug ? "1" : "0"); }, [autoDebug]);
   useEffect(() => { localStorage.setItem("aureonIde.autoUiDebug", autoUiDebug ? "1" : "0"); }, [autoUiDebug]);
+  useEffect(() => { localStorage.setItem("aureonIde.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
 
   // Refs for offline queue handlers (run outside React's render cycle)
   const filesRefAureon = useRef(files);
