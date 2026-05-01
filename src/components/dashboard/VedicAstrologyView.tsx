@@ -501,6 +501,31 @@ const VedicAstrologyView = () => {
     return lines.join("\n");
   }, [chart, ascRashi, moonPlanet, moonNak, currentDasha, dashaTimeline, birthDate, birthTime, tzOffset, cityQuery, lat, lon]);
 
+  // Reset Asher-extracted timeline markers when active chart changes
+  useEffect(() => { setAsherDates([]); }, [chartKey]);
+
+  // Compute marker positions across the full Vimshottari span (for the timeline strip)
+  const timelineSpan = useMemo(() => {
+    if (dashaTimeline.length === 0) return null;
+    const start = dashaTimeline[0].start.getTime();
+    const end = dashaTimeline[dashaTimeline.length - 1].end.getTime();
+    return { start, end, span: end - start };
+  }, [dashaTimeline]);
+
+  const asherMarkers = useMemo(() => {
+    if (!timelineSpan) return [];
+    return asherDates
+      .map((d) => {
+        const t = new Date(`${d}T12:00:00Z`).getTime();
+        if (Number.isNaN(t)) return null;
+        const pct = ((t - timelineSpan.start) / timelineSpan.span) * 100;
+        return { date: d, pct: Math.max(0, Math.min(100, pct)), inRange: pct >= 0 && pct <= 100 };
+      })
+      .filter((m): m is { date: string; pct: number; inRange: boolean } => m !== null);
+  }, [asherDates, timelineSpan]);
+
+  const asherDateSet = useMemo(() => new Set(asherDates), [asherDates]);
+
 
   return (
     <div
