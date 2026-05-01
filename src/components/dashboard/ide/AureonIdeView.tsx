@@ -23,6 +23,7 @@ import {
   type PlannedChange,
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
+import { callAsherCodeAi, extractCodeBlock } from "@/lib/asherCode/aiClient";
 import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -177,6 +178,67 @@ const AureonIdeView = () => {
   useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
   useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
 
+  const activeByok = useCallback(() => {
+    try {
+      const cached = localStorage.getItem("aureon_byok_active");
+      const parsed = cached ? JSON.parse(cached) : null;
+      if (parsed?.provider && parsed.provider !== "default" && parsed?.model) {
+        return { provider: parsed.provider, model: parsed.model };
+      }
+    } catch { /* ignore */ }
+    return { provider: "google", model: "gemini-2.5-flash" };
+  }, []);
+
+  const applyAureonDebuggerFix = useCallback(async (file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) => {
+    const ownIssues = issues.filter((i) => i.file === file.name);
+    if (ownIssues.length === 0) return false;
+
+    const flat = flattenFiles(filesRefAureon.current);
+    const live = flat.find((f) => f.id === file.id || f.name === file.name);
+    const current = live?.content ?? file.content;
+    const diagnostic = ownIssues.map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+
+    let corrected: string | undefined;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const response = await callAsherCodeAi({ mode: "fix", byok: activeByok(), code: current, language: file.language, error: diagnostic });
+        corrected = extractCodeBlock(response.reply || "").trim();
+        if (corrected && corrected !== current.trim()) break;
+        const forced = await callAsherCodeAi({
+          mode: "fix",
+          byok: activeByok(),
+          code: current,
+          language: file.language,
+          error: `${diagnostic}\n\n[REWRITE REQUIRED] Return ONLY the COMPLETE corrected file inside one fenced code block. Do not skip.`,
+        });
+        corrected = extractCodeBlock(forced.reply || "").trim();
+        if (corrected && corrected !== current.trim()) break;
+        return false;
+      } catch (e: any) {
+        lastErr = e;
+        const msg = String(e?.message || e || "");
+        if (!/429|rate.?limit|quota|too.?many.?requests/i.test(msg) || attempt === 3) throw e;
+        await new Promise((r) => setTimeout(r, (2 ** attempt) * 1000 + Math.floor(Math.random() * 600)));
+      }
+    }
+    if (!corrected || corrected === current.trim()) throw lastErr ?? new Error("No corrected code produced");
+
+    const updateInTree = (nodes: IdeFile[]): IdeFile[] =>
+      nodes.map((n) => {
+        if (n.id === file.id || n.name === file.name) return { ...n, content: corrected };
+        if (n.children) return { ...n, children: updateInTree(n.children) };
+        return n;
+      });
+    setFiles((prev) => {
+      const next = updateInTree(prev);
+      filesRefAureon.current = next;
+      return next;
+    });
+    toast({ title: "Auto-applied debugger fix", description: file.name });
+    return true;
+  }, [activeByok, toast]);
+
   // ── ZANOEM offline autopilot worker (cross-IDE) ──
   // Drains persisted jobs even if the user closes the tab / loses wifi.
   // Vision jobs are best-effort here (Aureon's preview iframe is owned by
@@ -192,16 +254,20 @@ const AureonIdeView = () => {
 
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
       if (!autopilotZanoemRef.current || !autoDebugRef.current) return;
-      const flat: AutoFixFile[] = [];
-      const walk = (nodes: IdeFile[]) => {
+      const collectFlat = (): AutoFixFile[] => {
+        const flat: AutoFixFile[] = [];
+        const walk = (nodes: IdeFile[]) => {
         for (const n of nodes) {
           if (n.children) walk(n.children);
           else flat.push({ id: n.id, name: n.name, content: n.content || "", language: getLanguage(n.name) });
         }
       };
-      walk(filesRefAureon.current);
+        walk(filesRefAureon.current);
+        return flat;
+      };
       const result = await autoFixUntilClean({
-        files: () => flat,
+        files: collectFlat,
+        applyFileFix: applyAureonDebuggerFix,
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 6,
         swarmConcurrency: 2,
@@ -251,7 +317,7 @@ const AureonIdeView = () => {
       else console.info("[zanoem] Aureon validator stopped:", result.finalErrorCount, "error(s) remain");
     });
     zqStart({ intervalMs: 2500 });
-  }, [toast]);
+  }, [applyAureonDebuggerFix, toast]);
 
   // Panel state — simplified defaults
   const [leftOpen, setLeftOpen] = useState(!isMobile);
