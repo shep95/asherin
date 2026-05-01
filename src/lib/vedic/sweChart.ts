@@ -16,6 +16,8 @@ export interface SweVedicChart {
   ayanamsa: number;
   jd: number;
   birthUtc: Date;
+  dashaBirthUtc: Date;
+  dashaMoonSid: number;
 }
 
 interface ChartInput {
@@ -61,12 +63,17 @@ export async function calculateSweVedicChart(input: ChartInput): Promise<SweVedi
   const localDecimalHours = hour + minute / 60;
   const utHours = localDecimalHours - input.tzOffset;
   const birthUtc = new Date(Date.UTC(year, month - 1, day, hour, minute) - input.tzOffset * 3_600_000);
+  const bishopDashaOffset = Math.trunc(input.tzOffset);
+  const dashaUtHours = localDecimalHours - bishopDashaOffset;
+  const dashaBirthUtc = new Date(Date.UTC(year, month - 1, day, hour, minute) - bishopDashaOffset * 3_600_000);
 
   const jd = swe.swe_julday(year, month, day, utHours, swe.SE_GREG_CAL);
+  const dashaJd = swe.swe_julday(year, month, day, dashaUtHours, swe.SE_GREG_CAL);
   swe.swe_set_sid_mode(swe.SE_SIDM_LAHIRI, 0, 0);
   swe.swe_set_topo(input.lon, input.lat, 0);
 
   const siderealFlag = swe.SEFLG_SIDEREAL | swe.SEFLG_SPEED | swe.SEFLG_TOPOCTR;
+  const dashaMoonSid = norm360(swe.swe_calc_ut(dashaJd, 1, siderealFlag)[0]);
   const planets: SweVedicPlanet[] = PLANET_DEFS.map((def) => {
     const pos = swe.swe_calc_ut(jd, def.id, siderealFlag);
     const speed = pos[3] || 0;
@@ -96,5 +103,5 @@ export async function calculateSweVedicChart(input: ChartInput): Promise<SweVedi
   const ascSign = Math.floor(ascendant / 30);
   const houses = Array.from({ length: 12 }, (_, index) => ((ascSign + index) % 12) * 30);
 
-  return { planets, ascendant, houses, ayanamsa, jd, birthUtc };
+  return { planets, ascendant, houses, ayanamsa, jd, birthUtc, dashaBirthUtc, dashaMoonSid };
 }
