@@ -5,9 +5,10 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope, GitBranch, Download, ArrowDown,
+  History, Stethoscope, GitBranch, Download, ArrowDown, Network,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
+import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat } from "./AsherWorkflowMap";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
