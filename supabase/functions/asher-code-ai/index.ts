@@ -58,6 +58,33 @@ interface ProviderCall {
 }
 
 // ── Provider routing ──────────────────────────────────────────────
+// Hard token-budget guard. OpenAI gpt-5* TPM is ~400k tokens/min.
+// We budget ~150k input tokens (≈ 600k chars) so user prompt + response
+// + persona + brain + context never exceed provider limits.
+const MAX_TOTAL_INPUT_CHARS = 600_000;             // ~150k tokens
+const MAX_BRAIN_FILES_TOTAL_CHARS = 200_000;       // ~50k tokens for brain knowledge
+const MAX_BRAIN_FILE_CHARS = 20_000;               // per-file cap (was 40k — halved)
+const MAX_CONTEXT_FILES_TOTAL_CHARS = 200_000;     // shared cap for project context files
+
+function clampJoin(
+  items: Array<{ header: string; body: string }>,
+  perItemCap: number,
+  totalCap: number,
+  separator = "\n\n---\n\n",
+): string {
+  let used = 0;
+  const out: string[] = [];
+  for (const it of items) {
+    const remaining = totalCap - used;
+    if (remaining <= 200) break; // not worth including a sliver
+    const body = (it.body || "").slice(0, Math.min(perItemCap, remaining));
+    const chunk = `${it.header}\n${body}`;
+    out.push(chunk);
+    used += chunk.length + separator.length;
+  }
+  return out.join(separator);
+}
+
 // ── Build the active system prompt: AUREON CODE base + active persona + active brain.
 // This makes Asher Code inherit the same brain/persona stack the rest of Aureon uses.
 function buildSystemPrompt(payload: any): string {
@@ -74,10 +101,15 @@ function buildSystemPrompt(payload: any): string {
     }
     const fileContents = Array.isArray(brain.fileContents) ? brain.fileContents : [];
     if (fileContents.length) {
-      const filesBlock = fileContents
-        .map((f: { name?: string; content?: string }) => `FILE: ${f?.name || "unnamed"}\n${(f?.content || "").slice(0, 40000)}`)
-        .join("\n\n---\n\n");
-      parts.push(`\n## ACTIVE AUREON BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
+      const filesBlock = clampJoin(
+        fileContents.map((f: { name?: string; content?: string }) => ({
+          header: `FILE: ${f?.name || "unnamed"}`,
+          body: f?.content || "",
+        })),
+        MAX_BRAIN_FILE_CHARS,
+        MAX_BRAIN_FILES_TOTAL_CHARS,
+      );
+      if (filesBlock) parts.push(`\n## ACTIVE AUREON BRAIN — KNOWLEDGE FILES\n${filesBlock}`);
     }
   }
   parts.push(`\n## CONTEXT MERGE RULES\n- Apply the active persona and brain context as your operating mindset.\n- The AUREON CODE engineering directives above always win on code quality, security, and output format.\n- Never mention persona/brain mechanics in your output. Just embody them.`);
@@ -224,9 +256,14 @@ function rankCodebaseFiles(
 
 // ── Mode prompt builders ──────────────────────────────────────────
 function buildPrompt(mode: string, payload: any): ChatMessage[] {
-  const ctxFiles = payload.contextFiles
+  const ctxFiles = payload.contextFiles && payload.contextFiles.length
     ? "\n\nPROJECT FILES (context):\n" +
-      payload.contextFiles.map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 3000)}`).join("\n\n")
+      clampJoin(
+        payload.contextFiles.map((f: any) => ({ header: `--- ${f.path} ---`, body: String(f.content || "") })),
+        3000,
+        MAX_CONTEXT_FILES_TOTAL_CHARS,
+        "\n\n",
+      )
     : "";
 
   switch (mode) {
@@ -330,9 +367,12 @@ Return ONLY the test file in a single fenced code block. One short paragraph aft
     }
     case "edit_plan": {
       // Multi-file edit planner — returns structured JSON plan
-      const fileBlock = (payload.contextFiles || [])
-        .map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 4000)}`)
-        .join("\n\n");
+      const fileBlock = clampJoin(
+        (payload.contextFiles || []).map((f: any) => ({ header: `--- ${f.path} ---`, body: String(f.content || "") })),
+        4000,
+        MAX_CONTEXT_FILES_TOTAL_CHARS,
+        "\n\n",
+      );
       return [
         {
           role: "user",
@@ -370,10 +410,20 @@ CRITICAL:
         const lastUser = [...msgs].reverse().find((m) => m.role === "user")?.content || "";
         const ranked = rankCodebaseFiles(lastUser, payload.codebase, 6);
         ctxBlock = "\n\nRELEVANT PROJECT FILES (ranked by relevance):\n" +
-          ranked.map((f) => `--- ${f.path} (relevance: ${f.score}) ---\n${f.content.slice(0, 3500)}`).join("\n\n");
+          clampJoin(
+            ranked.map((f) => ({ header: `--- ${f.path} (relevance: ${f.score}) ---`, body: String(f.content || "") })),
+            3500,
+            MAX_CONTEXT_FILES_TOTAL_CHARS,
+            "\n\n",
+          );
       } else if (payload.contextFiles) {
         ctxBlock = "\n\nPROJECT FILES (context):\n" +
-          payload.contextFiles.map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 3000)}`).join("\n\n");
+          clampJoin(
+            payload.contextFiles.map((f: any) => ({ header: `--- ${f.path} ---`, body: String(f.content || "") })),
+            3000,
+            MAX_CONTEXT_FILES_TOTAL_CHARS,
+            "\n\n",
+          );
       }
       if (ctxBlock && msgs.length > 0) {
         const last = msgs[msgs.length - 1];
@@ -557,8 +607,28 @@ serve(async (req) => {
     const maxTokens = mode === "inline" ? 256 : 4096;
     const runtimeSystem = buildSystemPrompt(payload);
 
+    // ── Final global token-budget guard ──
+    // Even after per-section caps, defend against pathological payloads
+    // (e.g. 50 brain files × 20k chars). Trim oldest user/assistant turns
+    // first, then truncate the system prompt as a last resort.
+    const totalChars = (s: string) => s.length;
+    let totalSize = totalChars(runtimeSystem) + messages.reduce((n, m) => n + totalChars(m.content), 0);
+    let trimmedSystem = runtimeSystem;
+    const trimmedMessages = [...messages];
+    while (totalSize > MAX_TOTAL_INPUT_CHARS && trimmedMessages.length > 1) {
+      // Drop the oldest non-final message (preserve last user turn — that's the actual request)
+      const dropped = trimmedMessages.shift()!;
+      totalSize -= totalChars(dropped.content);
+    }
+    if (totalSize > MAX_TOTAL_INPUT_CHARS) {
+      // Hard truncate system prompt tail (keeps the AUREON CODE base directives intact at the head)
+      const overflow = totalSize - MAX_TOTAL_INPUT_CHARS;
+      trimmedSystem = trimmedSystem.slice(0, Math.max(8000, trimmedSystem.length - overflow - 1000)) +
+        "\n\n[…context truncated to fit token budget…]";
+    }
+
     try {
-      const reply = await dispatch(providerCall, messages, runtimeSystem, maxTokens);
+      const reply = await dispatch(providerCall, trimmedMessages, trimmedSystem, maxTokens);
       return new Response(
         JSON.stringify({
           reply,
@@ -570,9 +640,20 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } catch (e) {
+      const msg = e instanceof Error ? e.message : "Provider call failed";
+      // Surface friendly token / rate-limit errors instead of opaque 502
+      const isTokenLimit = /tokens per min|TPM|Request too large|context length|maximum context/i.test(msg);
+      const isRateLimit = /\b429\b|rate limit/i.test(msg);
       return new Response(
-        JSON.stringify({ error: e instanceof Error ? e.message : "Provider call failed" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: isTokenLimit
+            ? "Your request is too large for this model. Trim brain knowledge files, attached context, or pick a smaller scope."
+            : isRateLimit
+              ? "The model is rate-limited right now. Wait a few seconds and retry, or switch provider."
+              : msg,
+          rawError: msg,
+        }),
+        { status: isRateLimit ? 429 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
   } catch (e) {
