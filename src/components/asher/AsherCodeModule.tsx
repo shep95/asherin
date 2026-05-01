@@ -1544,6 +1544,32 @@ export default function AsherCodeModule() {
               />
               <Zap className="h-2.5 w-2.5" /> You Decide ZANOEM
             </label>
+            <label
+              title="Auto Debug: when autopilot is on, ZANOEM keeps re-running the validator + Bug Doctor in the background until the codebase has zero errors (max 6 passes)."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={autoDebug}
+                onChange={(e) => setAutoDebug(e.target.checked)}
+                disabled={!autopilotZanoem}
+                className="accent-foreground h-2.5 w-2.5"
+              />
+              <Bug className="h-2.5 w-2.5" /> Auto Debug
+            </label>
+            <label
+              title="Auto UI Debug: ZANOEM screenshots the live preview and uses vision to verify the rendered UI matches what was just built. Mismatches are auto-patched."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoUiDebug ? "text-foreground" : "text-muted-foreground/70"} ${!autopilotZanoem ? "opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={autoUiDebug}
+                onChange={(e) => setAutoUiDebug(e.target.checked)}
+                disabled={!autopilotZanoem}
+                className="accent-foreground h-2.5 w-2.5"
+              />
+              <Eye className="h-2.5 w-2.5" /> Auto UI Debug
+            </label>
           </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
             <input ref={fileInputRef} type="file" multiple accept="image/*,.zip,.txt,.md,.json,.csv,.py,.js,.ts,.tsx,.jsx,.html,.css" onChange={handleFileUpload} className="hidden" />
