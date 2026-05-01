@@ -402,7 +402,11 @@ export default function AsherCodeModule() {
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
 
   function applyProjectFileContent(fileId: string, content: string, persist = false) {
-    setDirty(d => ({ ...d, [fileId]: content }));
+    setDirty(d => {
+      const next = { ...d, [fileId]: content };
+      if (persist) delete next[fileId];
+      return next;
+    });
     setFiles(fs => fs.map(f => f.id === fileId ? { ...f, content } : f));
     filesRef.current = filesRef.current.map(f => f.id === fileId ? { ...f, content } : f);
     if (persist) void supabase.from("asher_code_files").update({ content }).eq("id", fileId);
