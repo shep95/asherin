@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Calendar, FolderOpen, Loader2, MapPin, Moon, Save, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, Calendar, FolderOpen, Globe2, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, User2 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
   getNakshatraFromDeg,
@@ -12,8 +12,10 @@ import { houseFromAsc } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
 import { resolveBirthTimezone } from "@/lib/vedic/timezoneLookup";
+import { COUNTRY_CHARTS, type CountryFoundation } from "@/data/vedic/countryCharts";
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
+import AsherChatPanel from "./vedic/AsherChatPanel";
 
 interface SavedChart {
   id: string;
