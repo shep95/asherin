@@ -210,6 +210,25 @@ export default function AsherCodeModule() {
     return () => clearTimeout(t);
   }, [activeContent, activeFile, activeProject]);
 
+  // Pain Point #6/#12: 30s autosave loop + crash-recovery check on project open.
+  useEffect(() => {
+    if (!activeProject) return;
+    const sid = `asher::${activeProject.id}`;
+    // Recovery check: only prompt if snapshot newer than 60s and we haven't shown yet
+    const snap = readAutoSave(sid);
+    const age = getAutoSaveAge(sid);
+    if (snap && age != null && age < 24 * 3600_000 && snap.files.length > 0) {
+      setRecoverySnap(snap); setRecoveryAge(age); setRecoveryOpen(true);
+    }
+    const dispose = startAutoSaveLoop(sid, () => ({
+      files: files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content, language: f.language })),
+      activeFileId,
+      savedAt: Date.now(),
+    }));
+    return dispose;
+  }, [activeProject?.id]);
+
+
   // Scaffold from natural-language template launcher
   async function handleScaffold(result: { kind: string; name: string; files: { path: string; content: string; language: string }[]; primary: string }) {
     if (!activeProject) return;
