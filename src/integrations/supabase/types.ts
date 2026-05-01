@@ -869,6 +869,41 @@ export type Database = {
           },
         ]
       }
+      asher_code_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          owner_id: string
+          project_id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          owner_id: string
+          project_id: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          owner_id?: string
+          project_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asher_code_chat_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "asher_code_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asher_code_files: {
         Row: {
           content: string
