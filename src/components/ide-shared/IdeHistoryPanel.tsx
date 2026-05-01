@@ -56,7 +56,7 @@ export default function IdeHistoryPanel({ scope, projectId, fileId, filePath, op
               <li key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-card/40 group">
                 <Clock className="size-3 opacity-40" />
                 <span className="text-[10px] opacity-80 flex-1 truncate">
-                  {s.label ? <span className="text-emerald-400/80 mr-1.5">[{s.label}]</span> : null}
+                  {s.label ? <span className="text-foreground/80 mr-1.5">[{s.label}]</span> : null}
                   {ago(s.createdAt)} · {s.bytes} bytes
                 </span>
                 <button

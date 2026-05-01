@@ -32,7 +32,7 @@ export default function IdeErrorExplainer({ open, message, contextCode, onClose,
       <div className="w-[640px] max-w-full max-h-[80vh] rounded-lg border border-border/30 bg-card/95 shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
         <header className="flex items-center justify-between px-4 py-3 border-b border-border/20">
           <div className="flex items-center gap-2">
-            <Stethoscope className="size-3.5 text-amber-400/80" />
+            <Stethoscope className="size-3.5 text-muted-foreground/80" />
             <h3 className="text-[11px] font-light tracking-wide uppercase">Bug Doctor</h3>
             {data?.source === "local" && <span className="text-[9px] px-1.5 py-0.5 rounded border border-border/30 opacity-60">instant</span>}
             {data?.source === "ai" && <span className="text-[9px] px-1.5 py-0.5 rounded border border-border/30 opacity-60">AI</span>}
@@ -41,9 +41,9 @@ export default function IdeErrorExplainer({ open, message, contextCode, onClose,
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          <div className="rounded border border-rose-500/30 bg-rose-500/5 px-3 py-2">
-            <div className="text-[9px] uppercase tracking-wider text-rose-400/70 mb-1">Error</div>
-            <pre className="text-[11px] text-rose-200/90 whitespace-pre-wrap font-mono leading-relaxed">{message}</pre>
+          <div className="rounded border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <div className="text-[9px] uppercase tracking-wider text-destructive/70 mb-1">Error</div>
+            <pre className="text-[11px] text-destructive/90 whitespace-pre-wrap font-mono leading-relaxed">{message}</pre>
           </div>
 
           {loading && (
@@ -74,7 +74,7 @@ export default function IdeErrorExplainer({ open, message, contextCode, onClose,
                       <li key={i} className="rounded border border-border/30 bg-card/40 p-2.5">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <div className="text-[11px] font-medium flex items-center gap-1.5">
-                            <Wand2 className="size-3 text-emerald-400/70" /> {f.title}
+                            <Wand2 className="size-3 text-foreground/70" /> {f.title}
                           </div>
                           {f.code && (
                             <div className="flex gap-1">
@@ -88,7 +88,7 @@ export default function IdeErrorExplainer({ open, message, contextCode, onClose,
                               {onApplyFix && (
                                 <button
                                   onClick={() => { onApplyFix(f.code!); onClose(); }}
-                                  className="text-[9px] px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                                  className="text-[9px] px-2 py-0.5 rounded border border-foreground/40 bg-foreground/10 text-foreground hover:bg-foreground/20"
                                 >
                                   Apply
                                 </button>

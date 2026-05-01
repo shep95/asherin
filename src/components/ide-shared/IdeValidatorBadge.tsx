@@ -28,10 +28,10 @@ export default function IdeValidatorBadge({ content, language = "tsx", collapsib
   const tone = ok ? (confidence >= 90 ? "ok" : "warn") : "err";
   const Icon = tone === "ok" ? Check : tone === "warn" ? AlertTriangle : XCircle;
   const toneCls = tone === "ok"
-    ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400/90"
+    ? "border-foreground/30 bg-foreground/5 text-foreground/90"
     : tone === "warn"
-      ? "border-amber-500/30 bg-amber-500/5 text-amber-400/90"
-      : "border-rose-500/30 bg-rose-500/5 text-rose-400/90";
+      ? "border-foreground/30 bg-foreground/5 text-muted-foreground/90"
+      : "border-destructive/30 bg-destructive/5 text-destructive/90";
 
   return (
     <div className={`rounded-md border ${toneCls} text-[10px] font-light ${className}`}>

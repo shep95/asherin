@@ -32,7 +32,7 @@ export default function IdeModelRouterBadge({ decision, onOverride, isOverridden
       >
         <Cpu className="size-2.5 opacity-60" />
         <span className="opacity-90">{label}</span>
-        {isOverridden && <span className="text-amber-400/70">·manual</span>}
+        {isOverridden && <span className="text-muted-foreground/70">·manual</span>}
         <ChevronDown className="size-2.5 opacity-50" />
       </button>
       {open && (
@@ -42,7 +42,7 @@ export default function IdeModelRouterBadge({ decision, onOverride, isOverridden
           </div>
           <button
             onClick={() => { onOverride(null); setOpen(false); }}
-            className={`w-full text-left px-2.5 py-1.5 text-[10px] hover:bg-card/60 flex items-center justify-between ${!isOverridden ? "text-emerald-400/90" : ""}`}
+            className={`w-full text-left px-2.5 py-1.5 text-[10px] hover:bg-card/60 flex items-center justify-between ${!isOverridden ? "text-foreground/90" : ""}`}
           >
             <span>Auto-route</span>
             {!isOverridden && <span className="text-[9px]">●</span>}
@@ -52,7 +52,7 @@ export default function IdeModelRouterBadge({ decision, onOverride, isOverridden
             <button
               key={m.id}
               onClick={() => { onOverride(m.id); setOpen(false); }}
-              className={`w-full text-left px-2.5 py-1.5 text-[10px] hover:bg-card/60 flex items-center justify-between ${isOverridden && decision.model === m.id ? "text-emerald-400/90" : ""}`}
+              className={`w-full text-left px-2.5 py-1.5 text-[10px] hover:bg-card/60 flex items-center justify-between ${isOverridden && decision.model === m.id ? "text-foreground/90" : ""}`}
             >
               <span>{m.label}</span>
               {isOverridden && decision.model === m.id && <span className="text-[9px]">●</span>}
