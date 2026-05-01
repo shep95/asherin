@@ -330,6 +330,8 @@ export default function AsherCodeModule() {
         },
         maxPasses: 6,
         swarmConcurrency: 2,
+        perAgentDelayMs: 1000,
+        scanAllFiles: true,
         shouldPause: () => swarmPausedRef.current,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
