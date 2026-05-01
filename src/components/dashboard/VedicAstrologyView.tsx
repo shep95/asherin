@@ -825,6 +825,7 @@ const VedicAstrologyView = () => {
         chartKey={chartKey}
         chartLabel={chartLabel}
         chartContext={chartContext}
+        onDatesExtracted={(dates) => setAsherDates((prev) => Array.from(new Set([...prev, ...dates])).sort())}
       />
     </div>
   );
