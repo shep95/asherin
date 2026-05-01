@@ -5,7 +5,7 @@ import { tierHasFeature, VIEW_FEATURE_MAP } from "@/config/subscriptionPlans";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Plus, Search, LogOut, Zap,
-  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield,
+  FolderOpen, Layers, Brain, BarChart3, Settings, X, Menu, CreditCard, ShieldCheck, Database, Download, MessageSquare, ChevronDown, Crosshair, Newspaper, Code2, Users, FileText, Globe, Puzzle, Activity, ClipboardList, Archive, ArchiveRestore, Trash2 as Trash2Icon, Pencil, MessagesSquare, Terminal, Sparkles, Lock as LockIcon, Shield, Moon,
 } from "lucide-react";
 import type { Conversation, DashboardView, Persona, ChatMode, Message } from "./types";
 import PersonaSelector from "./PersonaSelector";
@@ -126,6 +126,7 @@ const navGroups: NavGroup[] = [
       { id: "self-access", icon: FileText, label: "Self-Access Learning" },
       { id: "bug-reports" as DashboardView, icon: ClipboardList, label: "Bug Reports" },
       { id: "stats", icon: BarChart3, label: "My Stats" },
+      { id: "vedic-astrology" as DashboardView, icon: Moon, label: "Vedic Astrology" },
       { id: "subscription", icon: CreditCard, label: "Subscription" },
       { id: "settings", icon: Settings, label: "Settings" },
     ],
