@@ -705,13 +705,16 @@ const VedicAstrologyView = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-2 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
             <input value={chartName} onChange={(e) => setChartName(e.target.value)} placeholder="Name this chart…" className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             <button onClick={() => void saveChart()} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save Named Chart
             </button>
             <button onClick={() => setShowSaved((v) => !v)} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition">
               <FolderOpen className="h-3.5 w-3.5" /> Saved ({savedCharts.length})
+            </button>
+            <button onClick={() => setShowCompat((v) => !v)} disabled={!chart} className="inline-flex items-center justify-center gap-2 rounded-md border border-border/30 bg-background/40 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-40">
+              <Heart className="h-3.5 w-3.5" /> Compatibility
             </button>
           </div>
 
