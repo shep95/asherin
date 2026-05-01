@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Moon, Sparkles, MapPin } from "lucide-react";
+import { Loader2, Moon, Sparkles, MapPin, Save, Trash2, BookOpen, Calendar } from "lucide-react";
 import * as Astronomy from "astronomy-engine";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
@@ -8,6 +8,11 @@ import {
   getNakshatraFromDeg,
   getRashiFromDeg,
 } from "@/data/nakshatraData";
+import { supabase } from "@/integrations/supabase/client";
+import { computeMahadasha, findCurrentDasha, type MahadashaPeriod } from "@/lib/vedic/dasha";
+import { computeDignity, houseFromAsc, type PlanetName } from "@/lib/vedic/dignities";
+import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
+import { toast } from "sonner";
 
 /**
  * VEDIC ASTROLOGY — Sidereal natal chart (Lahiri ayanamsa).
