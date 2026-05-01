@@ -495,7 +495,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                               ? "border-accent/40 bg-accent/15 text-accent"
                               : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
                           }`}
-                          title="Build Palantir-style intelligence map from these results"
+                          title="Project these results through the Gaythropic Mythos model — rival of Anthropic"
                         >
                           <Network className="h-3.5 w-3.5" />
                           {intelMapOpen ? "Close Map" : "Intel Map"}
