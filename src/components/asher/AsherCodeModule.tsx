@@ -963,8 +963,29 @@ export default function AsherCodeModule() {
         {/* File tree — collapsible */}
         {showFiles && (
           <aside className="w-44 sm:w-52 lg:w-56 flex-shrink-0 border-r border-border/15 bg-card/10 overflow-y-auto">
+            {/* Branches */}
+            <div className="border-b border-border/15 bg-card/20">
+              <div className="flex items-center justify-between px-3 py-2 sticky top-0 bg-card/40 backdrop-blur-md">
+                <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase flex items-center gap-1.5"><GitBranch className="h-3 w-3" /> Branches</span>
+                <button onClick={createBranch} className="text-muted-foreground hover:text-foreground" title="New branch from current"><Plus className="h-3 w-3" /></button>
+              </div>
+              <div
+                onClick={() => switchBranch(null)}
+                className={`group flex items-center justify-between px-3 py-1.5 text-[11px] font-light cursor-pointer hover:bg-foreground/5 ${activeBranchId === null ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}
+              >
+                <span className="truncate flex items-center gap-1.5"><GitBranch className="h-3 w-3 flex-shrink-0" />main</span>
+              </div>
+              {branches.map(b => (
+                <div key={b.id}
+                  onClick={() => switchBranch(b.id)}
+                  className={`group flex items-center justify-between px-3 py-1.5 text-[11px] font-light cursor-pointer hover:bg-foreground/5 ${activeBranchId === b.id ? "bg-foreground/10 text-foreground" : "text-muted-foreground"}`}>
+                  <span className="truncate flex items-center gap-1.5 pl-3 border-l border-border/30"><GitBranch className="h-3 w-3 flex-shrink-0" />{b.name}</span>
+                  <button onClick={(e) => { e.stopPropagation(); void deleteBranch(b.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"><X className="h-3 w-3" /></button>
+                </div>
+              ))}
+            </div>
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/15 sticky top-0 bg-card/40 backdrop-blur-md">
-              <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Files</span>
+              <span className="text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase">Files {activeBranchId && <span className="text-foreground/60">· {branches.find(b=>b.id===activeBranchId)?.name}</span>}</span>
               <button onClick={addFile} className="text-muted-foreground hover:text-foreground" title="Add file"><FolderPlus className="h-3 w-3" /></button>
             </div>
             {files.map(f => (
