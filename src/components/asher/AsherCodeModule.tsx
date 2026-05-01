@@ -722,6 +722,10 @@ export default function AsherCodeModule() {
       // Auto-write any code blocks tagged with file paths into the project
       const created = await materializeZanoemCodeBlocks(assistantText);
       if (created > 0) toast.success(`ZANOEM created ${created} file${created === 1 ? "" : "s"}`);
+      // Track latest "intent" + assistant text so the offline vision worker
+      // can verify the rendered UI even if the user closes the tab.
+      if (!isAutopilotTurn) lastIntentRef.current = composed;
+      lastAssistantRef.current = assistantText;
       // ── AUTOPILOT: log this turn's decision (if we're inside one) ──
       // If THIS response is the answer to the previous autopilot question,
       // record what was asked + what ZANOEM picked.
@@ -751,6 +755,38 @@ export default function AsherCodeModule() {
         toast.success(`ZANOEM autopilot complete (${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"})`);
         autopilotRoundsRef.current = 0;
         autopilotTriggerRef.current = "";
+      }
+      // ── Autonomous: enqueue vision verify + auto-fix when this turn
+      // produced concrete output (created files OR an autopilot finish).
+      // Guarded so we don't recursively enqueue inside an active autopilot turn.
+      if (autopilotZanoem && !autopilotEnqueueGuardRef.current && (created > 0 || (isAutopilotTurn && !needsHumanDecision(assistantText)))) {
+        autopilotEnqueueGuardRef.current = true;
+        try {
+          if (created > 0) {
+            await zqEnqueue({
+              kind: "autofix",
+              payload: { projectRef: activeProject.id },
+              surface: "asher_ide",
+              projectRef: activeProject.id,
+              ownerUserId: user.id,
+            });
+          }
+          await zqEnqueue({
+            kind: "vision",
+            payload: {
+              intent: lastIntentRef.current || composed,
+              recentAssistant: assistantText,
+              projectRef: activeProject.id,
+            },
+            surface: "asher_ide",
+            projectRef: activeProject.id,
+            ownerUserId: user.id,
+          });
+        } finally {
+          // Release a tick later so back-to-back enqueues from a single
+          // autopilot chain only fire once.
+          setTimeout(() => { autopilotEnqueueGuardRef.current = false; }, 2000);
+        }
       }
     } catch (e: any) {
       const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
