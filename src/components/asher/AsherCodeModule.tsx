@@ -267,19 +267,30 @@ export default function AsherCodeModule() {
 
   async function openProject(p: AsherCodeProject) {
     setActiveProject(p);
-    const { data, error } = await supabase
-      .from("asher_code_files")
-      .select("*")
-      .eq("project_id", p.id)
-      .order("path");
-    if (error) { toast.error(error.message); return; }
-    const fs = (data || []) as AsherCodeFile[];
+    const [filesRes, chatRes] = await Promise.all([
+      supabase.from("asher_code_files").select("*").eq("project_id", p.id).order("path"),
+      supabase.from("asher_code_chat_messages").select("role,content").eq("project_id", p.id).order("created_at", { ascending: true }),
+    ]);
+    if (filesRes.error) { toast.error(filesRes.error.message); return; }
+    const fs = (filesRes.data || []) as AsherCodeFile[];
     setFiles(fs);
     setOpenTabs(fs.length ? [fs[0].id] : []);
     setActiveFileId(fs[0]?.id || null);
     setDirty({});
-    setChat([]);
+    if (chatRes.error) {
+      setChat([]);
+    } else {
+      setChat(((chatRes.data as any[]) || []).map((m) => ({ role: m.role as "user" | "assistant", content: m.content })));
+    }
   }
+
+  async function persistChatMessages(msgs: ChatMsg[]) {
+    if (!user || !activeProject || msgs.length === 0) return;
+    const rows = msgs.map((m) => ({ project_id: activeProject.id, owner_id: user.id, role: m.role, content: m.content }));
+    const { error } = await supabase.from("asher_code_chat_messages").insert(rows);
+    if (error) console.warn("[asher-code] chat persist failed:", error.message);
+  }
+
 
   async function createProject(name: string) {
     if (!user) return;
