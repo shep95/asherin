@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus } from "lucide-react";
+import { Code2, PanelLeftClose, PanelLeftOpen, Globe, FileCode, FolderKanban, Save, Loader2, Download, Search, Terminal as TerminalIcon, Sparkles, ChevronDown, ChevronUp, MoreHorizontal, Plus, Network } from "lucide-react";
+import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat, type SwarmAgent } from "@/components/asher/AsherWorkflowMap";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import IdeFileTree, { type IdeFile, getLanguage } from "./IdeFileTree";
 import IdeCodeEditor from "./IdeCodeEditor";
@@ -46,7 +47,7 @@ interface ChatMsg {
   timestamp: Date;
 }
 
-type CenterTab = "code" | "preview";
+type CenterTab = "code" | "preview" | "workflow";
 type MobilePanel = "explorer" | "editor" | "chat" | "terminal";
 type LeftTab = "files" | "search" | "sessions" | "git";
 
@@ -203,10 +204,48 @@ const AureonIdeView = () => {
         files: () => flat,
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 6,
+        swarmConcurrency: 6,
+        onAgentSpawn: (a) => {
+          setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
+          agentFileRef.current.set(a.id, a.file);
+          fileLocksRef.current.add(a.file);
+          const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+          setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: "spawn", file: a.file, pass: a.pass, issueCount: a.issueCount }]);
+          setFileWorkflowStats((prev) => {
+            const cur = prev[a.file] ?? { path: a.file, attempts: 0, successes: 0, failures: 0, lastStatus: "working" as const, lastTs: Date.now() };
+            return { ...prev, [a.file]: { ...cur, attempts: cur.attempts + 1, lastStatus: "working", lastTs: Date.now() } };
+          });
+        },
+        onAgentDone: (id, success) => {
+          const file = agentFileRef.current.get(id);
+          setSwarmAgents((prev) => prev.map((a) => a.id === id ? { ...a, status: success ? "done" : "failed" } : a));
+          if (file) {
+            fileLocksRef.current.delete(file);
+            const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+            setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: success ? "done" : "failed", file }]);
+            setFileWorkflowStats((prev) => {
+              const cur = prev[file];
+              if (!cur) return prev;
+              return { ...prev, [file]: { ...cur, successes: cur.successes + (success ? 1 : 0), failures: cur.failures + (success ? 0 : 1), lastStatus: success ? "done" : "failed", lastTs: Date.now() } };
+            });
+          }
+          setTimeout(() => {
+            setSwarmAgents((prev) => prev.filter((a) => a.id !== id));
+            agentFileRef.current.delete(id);
+          }, 1200);
+        },
         onProgress: (pass, n) => {
-          if (n > 0) toast({ title: `ZANOEM Auto-Fix pass ${pass}`, description: `${n} error${n === 1 ? "" : "s"}` });
+          if (n > 0) {
+            toast({ title: `ZANOEM Auto-Fix pass ${pass}`, description: `Spawning ${n} agent${n === 1 ? "" : "s"}` });
+            const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+            setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: "pass", pass, issueCount: n }]);
+          }
         },
       });
+      // Hard-clear stragglers when the loop ends.
+      setSwarmAgents([]);
+      fileLocksRef.current.clear();
+      agentFileRef.current.clear();
       if (result.clean) toast({ title: "ZANOEM Auto-Fix: clean", description: `${result.passes} pass${result.passes === 1 ? "" : "es"}` });
       else console.info("[zanoem] Aureon validator stopped:", result.finalErrorCount, "error(s) remain");
     });
@@ -218,6 +257,14 @@ const AureonIdeView = () => {
   const [rightOpen, setRightOpen] = useState(false); // AI chat hidden by default
   const [bottomOpen, setBottomOpen] = useState(false); // Terminal hidden by default
   const [centerTab, setCenterTab] = useState<CenterTab>("code");
+
+  // ── SWARM / WORKFLOW MAP STATE (ported from Asher IDE) ──────────────
+  // Live registry of per-issue debugger agents. One agent per file.
+  const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
+  const [workflowEvents, setWorkflowEvents] = useState<WorkflowEvent[]>([]);
+  const [fileWorkflowStats, setFileWorkflowStats] = useState<Record<string, FileWorkflowStat>>({});
+  const fileLocksRef = useRef<Set<string>>(new Set());
+  const agentFileRef = useRef<Map<string, string>>(new Map());
   const [quickOpenOpen, setQuickOpenOpen] = useState(false);
   const [leftTab, setLeftTab] = useState<LeftTab>("files");
 
@@ -719,7 +766,13 @@ const AureonIdeView = () => {
             : leftTab === "search" ? <IdeSearchPanel files={files} onOpenFile={selectFile} />
             : <IdeFileTree files={files} activeFileId={activeFileId} onSelectFile={selectFile} onCreateFile={createFile} onDeleteFile={deleteFile} onRenameFile={renameFile} onMoveFile={moveFile} />
           )}
-          {mobilePanel === "editor" && (centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />)}
+          {mobilePanel === "editor" && (
+            centerTab === "workflow"
+              ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
+              : centerTab === "code"
+                ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+                : <IdePreviewPanel files={files} />
+          )}
           {mobilePanel === "chat" && (
             <div className="flex flex-col h-full">
               {zanoemToggleBar}
@@ -733,12 +786,12 @@ const AureonIdeView = () => {
         <div className="flex items-center border-t border-border/20 bg-card/20 flex-shrink-0">
           {([
             { id: "explorer" as MobilePanel, icon: FolderKanban, label: "Files" },
-            { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : "Code" },
+            { id: "editor" as MobilePanel, icon: FileCode, label: centerTab === "preview" ? "Preview" : centerTab === "workflow" ? "Workflow" : "Code" },
             { id: "chat" as MobilePanel, icon: Sparkles, label: "AI" },
             { id: "terminal" as MobilePanel, icon: TerminalIcon, label: "Terminal" },
           ]).map(tab => (
             <button key={tab.id}
-              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : "code"); else setMobilePanel(tab.id); }}
+              onClick={() => { if (tab.id === "editor" && mobilePanel === "editor") setCenterTab(t => t === "code" ? "preview" : t === "preview" ? "workflow" : "code"); else setMobilePanel(tab.id); }}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-light transition-colors ${mobilePanel === tab.id ? "text-accent" : "text-muted-foreground/50"}`}
             >
               <tab.icon className="h-4 w-4" />
@@ -784,6 +837,18 @@ const AureonIdeView = () => {
             </button>
             <button onClick={() => setCenterTab("preview")} className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors ${centerTab === "preview" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}>
               <Globe className="h-3 w-3" /> Preview
+            </button>
+            <button
+              onClick={() => setCenterTab("workflow")}
+              title="Workflow Map · agents, file tree, timeline"
+              className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors ${centerTab === "workflow" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}
+            >
+              <Network className="h-3 w-3" /> Workflow
+              {swarmAgents.filter(a => a.status === "working").length > 0 && (
+                <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-accent/30 px-1 text-[8px] font-mono text-accent">
+                  {swarmAgents.filter(a => a.status === "working").length}
+                </span>
+              )}
             </button>
           </div>
 
@@ -899,7 +964,11 @@ const AureonIdeView = () => {
                     </div>
                   )}
                   <div className="flex-1 overflow-hidden">
-                    {centerTab === "code" ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} /> : <IdePreviewPanel files={files} />}
+                    {centerTab === "workflow"
+                      ? <AsherWorkflowMap liveAgents={swarmAgents} events={workflowEvents} fileStats={Object.values(fileWorkflowStats)} />
+                      : centerTab === "code"
+                        ? <IdeCodeEditor openFiles={openFiles} activeFileId={activeFileId} onSelectTab={setActiveFileId} onCloseTab={closeTab} onContentChange={updateContent} />
+                        : <IdePreviewPanel files={files} />}
                   </div>
                 </div>
               </ResizablePanel>
