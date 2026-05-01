@@ -10,6 +10,8 @@ export interface ExplainedError {
   plainEnglish: string;
   rootCause: string;
   fixes: { title: string; code?: string; description: string }[];
+  /** Full corrected version of the provided contextCode, ready to overwrite the file. */
+  correctedCode?: string;
   source: "local" | "ai";
 }
 
@@ -116,8 +118,8 @@ export async function explainError(message: string, contextCode?: string): Promi
     const { data, error } = await supabase.functions.invoke("zali-chat", {
       body: {
         messages: [
-          { role: "system", content: "You explain runtime/build errors to developers. Reply with strict JSON: {\"plainEnglish\":string,\"rootCause\":string,\"fixes\":[{\"title\":string,\"description\":string,\"code\":string?}]}. Keep each field under 220 chars. No markdown, no preamble." },
-          { role: "user", content: `Error: ${message}${contextCode ? `\n\nRelevant code:\n${contextCode.slice(0, 2000)}` : ""}` },
+          { role: "system", content: "You explain runtime/build errors to developers AND produce a fully corrected version of the file. Reply with strict JSON: {\"plainEnglish\":string,\"rootCause\":string,\"fixes\":[{\"title\":string,\"description\":string,\"code\":string?}],\"correctedCode\":string}. \"correctedCode\" MUST be the COMPLETE corrected file contents (not a diff, no markdown fences) that resolves the error while preserving everything else exactly. If no contextCode was provided, set correctedCode to an empty string. Keep plainEnglish/rootCause/fix entries under 240 chars. No markdown, no preamble." },
+          { role: "user", content: `Error: ${message}${contextCode ? `\n\nFull current file:\n${contextCode.slice(0, 8000)}` : ""}` },
         ],
         responseMode: "json",
       },
@@ -126,6 +128,8 @@ export async function explainError(message: string, contextCode?: string): Promi
     const text = typeof data === "string" ? data : (data?.content ?? data?.message ?? "");
     const parsed = parseJsonLoose(text);
     if (parsed) {
+      const correctedRaw = typeof parsed.correctedCode === "string" ? parsed.correctedCode : "";
+      const corrected = correctedRaw.replace(/^```[a-zA-Z]*\n?/, "").replace(/\n?```$/, "").trim();
       return {
         rawMessage: message,
         source: "ai",
@@ -136,6 +140,7 @@ export async function explainError(message: string, contextCode?: string): Promi
           description: String(f.description ?? ""),
           code: f.code ? String(f.code) : undefined,
         })) : [],
+        correctedCode: corrected && corrected !== contextCode?.trim() ? corrected : undefined,
       };
     }
   } catch {
