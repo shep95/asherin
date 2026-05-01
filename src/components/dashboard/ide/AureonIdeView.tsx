@@ -687,6 +687,7 @@ const AureonIdeView = () => {
       >
         <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
         <Zap className="h-2.5 w-2.5" /> Auto Approve
+      </label>
       <button
         onClick={() => setDecisionLogOpen(true)}
         title="ZANOEM Decision Log — review or override every choice the autopilot made."
