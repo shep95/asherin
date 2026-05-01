@@ -29,7 +29,7 @@ const ZaliSpecsPanel = ({ project }: Props) => {
     if (Object.keys(data).length === 0) {
       return (
         <div className="rounded-xl border border-border/10 bg-card/20 p-3 sm:p-4">
-          <p className="text-[10px] text-muted-foreground/40">{label} will populate as ZALI processes your design</p>
+          <p className="text-[10px] text-muted-foreground/40">{label} will populate as ZANOEM processes your design</p>
         </div>
       );
     }

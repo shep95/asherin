@@ -419,7 +419,7 @@ const AsherZaliModule = () => {
       <div className="flex h-full items-center justify-center bg-background">
         <Loader2 className="h-4 w-4 animate-spin text-foreground/40" strokeWidth={1.2} />
         <span className="ml-3 text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground/80">
-          Booting ZALI ◈ Design Intelligence
+          Booting ZANOEM ◈ Design Intelligence
         </span>
       </div>
     );
@@ -435,7 +435,7 @@ const AsherZaliModule = () => {
             <span className="text-foreground/70 text-base leading-none select-none">◈</span>
             <div className="min-w-0">
               <div className="flex items-baseline gap-2">
-                <h1 className="text-[13px] font-light tracking-[0.25em] uppercase text-foreground truncate">ZALI</h1>
+                <h1 className="text-[13px] font-light tracking-[0.25em] uppercase text-foreground truncate">ZANOEM</h1>
                 <span className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/60 hidden sm:inline">
                   Design Intelligence
                 </span>
@@ -592,7 +592,7 @@ const AsherZaliModule = () => {
             <div className="px-3 py-2 border-b border-border/10 flex items-center gap-2">
               <span className="text-foreground/50 text-xs">◈</span>
               <span className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/80">
-                ZALI Conversation
+                ZANOEM Conversation
               </span>
               {isStreaming && (
                 <span className="ml-auto flex items-center gap-1.5">
@@ -628,7 +628,7 @@ const AsherZaliModule = () => {
               <div className="flex items-center gap-2">
                 <span className="text-foreground/60 text-xs">◈</span>
                 <h3 className="text-[10px] font-light tracking-[0.3em] uppercase text-muted-foreground">
-                  ZALI Conversation
+                  ZANOEM Conversation
                 </h3>
               </div>
               <button

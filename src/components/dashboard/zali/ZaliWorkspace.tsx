@@ -203,7 +203,7 @@ const ZaliWorkspace = ({ project, autoBuild, modelPrompt, codeFiles = [] }: Prop
                       AWAITING DESIGN DATA
                     </p>
                     <p className="text-[7px] sm:text-[9px] text-muted-foreground/30">
-                      Answer ZALI's questions to generate
+                      Answer ZANOEM's questions to generate
                     </p>
                   </div>
                 </div>

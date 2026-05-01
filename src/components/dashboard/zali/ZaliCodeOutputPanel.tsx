@@ -116,7 +116,7 @@ const ZaliCodeOutputPanel = ({ codeFiles, projectName, projectType }: Props) => 
         </div>
         <div className="text-center">
           <p className="text-xs font-light text-foreground">Code generation ready</p>
-          <p className="text-[10px] text-muted-foreground/40 mt-1">Answer ZALI's questions to generate your software architecture</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-1">Answer ZANOEM's questions to generate your software architecture</p>
         </div>
       </div>
     );

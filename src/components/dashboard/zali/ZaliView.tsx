@@ -527,7 +527,7 @@ const ZaliView = () => {
           <div className="flex items-center gap-2 sm:gap-3">
             <Atom className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
             <div>
-              <h1 className="text-sm sm:text-lg font-extralight tracking-wide text-foreground">ZALI</h1>
+              <h1 className="text-sm sm:text-lg font-extralight tracking-wide text-foreground">ZANOEM</h1>
               <p className="text-[9px] sm:text-[10px] font-extralight tracking-[0.15em] text-muted-foreground/60 uppercase hidden sm:block">
                 Design Intelligence Lab
               </p>
