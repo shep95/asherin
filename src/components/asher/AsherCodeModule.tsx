@@ -1061,8 +1061,8 @@ export default function AsherCodeModule() {
               ))}
             </div>
           )}
-          {/* Auto-approve + Animation toggles */}
-          <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5">
+          {/* Auto-approve + Animation + ZALI toggles */}
+          <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
               <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               <Zap className="h-2.5 w-2.5" /> Auto-Apply
@@ -1070,6 +1070,13 @@ export default function AsherCodeModule() {
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
               <input type="checkbox" checked={animateInsertion} onChange={(e) => setAnimateInsertion(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               Type-Anim
+            </label>
+            <label
+              title="ZALI Mode: design brand-new software from first principles. Auto-creates files from generated code blocks. Uses Aureon engine — no BYOK key needed."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zaliMode ? "text-foreground" : "text-muted-foreground/70"}`}
+            >
+              <input type="checkbox" checked={zaliMode} onChange={(e) => setZaliMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
+              <Brain className="h-2.5 w-2.5" /> ZALI
             </label>
           </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
