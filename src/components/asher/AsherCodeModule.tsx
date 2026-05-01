@@ -477,19 +477,37 @@ export default function AsherCodeModule() {
     if (activeFileId === id) setActiveFileId(openTabs.find(x => x !== id) || null);
   }
 
-  // Build live preview srcdoc — concatenates all HTML/JS/CSS files (best-effort)
+  // Build live preview srcdoc — concatenates HTML/JS/CSS files. If no index.html
+  // exists, auto-synthesizes one from CSS + JS/JSX/TSX so ZALI-generated projects
+  // still render in the preview pane.
   const previewSrcDoc = useMemo(() => {
     const html = files.find(f => f.path.endsWith("index.html"));
-    if (!html) return "<html><body style='background:#0a0a0a;color:#888;font-family:monospace;padding:2rem'>No <code>index.html</code> in this project — preview is HTML-based.</body></html>";
-    let content = (dirty[html.id] ?? html.content);
-    // Inline external scripts/styles referenced by relative path
-    for (const f of files) {
-      if (f.id === html.id) continue;
-      const c = dirty[f.id] ?? f.content;
-      content = content.replace(`<script src="${f.path}"></script>`, `<script>${c}</script>`);
-      content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
+    if (html) {
+      let content = (dirty[html.id] ?? html.content);
+      for (const f of files) {
+        if (f.id === html.id) continue;
+        const c = dirty[f.id] ?? f.content;
+        content = content.replace(`<script src="${f.path}"></script>`, `<script>${c}</script>`);
+        content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
+      }
+      return content;
     }
-    return content;
+    // Auto-synth path
+    const css = files.filter(f => f.path.endsWith(".css")).map(f => dirty[f.id] ?? f.content).join("\n");
+    const jsxFiles = files.filter(f => /\.(jsx|tsx)$/.test(f.path));
+    const jsFiles = files.filter(f => /\.(m?js)$/.test(f.path) && !/\.(jsx|tsx)$/.test(f.path));
+    const hasReact = jsxFiles.length > 0 || files.some(f => /from ['"]react['"]/.test(dirty[f.id] ?? f.content));
+    if (jsxFiles.length === 0 && jsFiles.length === 0 && css.length === 0) {
+      return `<html><body style="background:#0a0a0a;color:#888;font-family:monospace;padding:2rem">No <code>index.html</code> in this project — and no JS/CSS to auto-render.</body></html>`;
+    }
+    const jsxBlocks = jsxFiles.map(f => `<script type="text/babel" data-presets="env,react,typescript" data-type="module">\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    const reactCdn = hasReact
+      ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`
+      : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}</body></html>`;
   }, [files, dirty]);
 
   function runPreview() { setPreviewKey(k => k + 1); }
@@ -624,22 +642,47 @@ export default function AsherCodeModule() {
     if (!activeProject) return 0;
     type Hit = { path: string; content: string; language: string };
     const hits: Hit[] = [];
-    // Pattern A: fenced block with path on info line
-    const fence = /```([a-zA-Z0-9+#_-]*)\s+([^\s`][^\n`]*?\.[a-zA-Z0-9]+)\s*\n([\s\S]*?)```/g;
+    const seen = new Set<string>();
+    const push = (path: string, content: string, lang?: string) => {
+      const p = path.trim().replace(/^[./\\]+/, "");
+      if (!p || seen.has(p)) return;
+      seen.add(p);
+      const ext = (p.split(".").pop() || "txt").toLowerCase();
+      const langGuess = lang || ({ js:"javascript", mjs:"javascript", cjs:"javascript", jsx:"javascript", ts:"typescript", tsx:"typescript", py:"python", html:"html", htm:"html", css:"css", json:"json", md:"markdown", sh:"shell", yml:"yaml", yaml:"yaml" } as any)[ext] || ext;
+      hits.push({ path: p, content: content.replace(/\s+$/, ""), language: langGuess });
+    };
+
+    // Pattern A: ```lang path/to/file.ext  (path on the fence info line)
+    const fenceWithPath = /```([a-zA-Z0-9+#_-]*)[ \t]+([^\s`][^\n`]*?\.[a-zA-Z0-9]+)[ \t]*\n([\s\S]*?)```/g;
     let m: RegExpExecArray | null;
-    while ((m = fence.exec(text)) !== null) {
-      hits.push({ language: (m[1] || "plaintext").toLowerCase(), path: m[2].trim(), content: m[3] });
-    }
-    // Pattern B: <code_output path="..."> blocks
+    while ((m = fenceWithPath.exec(text)) !== null) push(m[2], m[3], (m[1] || "").toLowerCase());
+
+    // Pattern B: <code_output path="..."> ... </code_output>
     const tag = /<code_output[^>]*path=["']([^"']+)["'][^>]*>([\s\S]*?)<\/code_output>/gi;
     while ((m = tag.exec(text)) !== null) {
-      const path = m[1].trim();
       let body = m[2].trim();
       const inner = body.match(/```[a-zA-Z0-9+#_-]*\s*\n([\s\S]*?)```/);
       if (inner) body = inner[1];
-      const ext = path.split(".").pop() || "txt";
-      hits.push({ language: ext, path, content: body });
+      push(m[1], body);
     }
+
+    // Pattern C: header line followed by fenced block. Picks up:
+    //   **path/to/file.ext**\n```js\n...```
+    //   ### path/to/file.ext\n```js\n...```
+    //   `path/to/file.ext`\n```js\n...```
+    //   File: path/to/file.ext\n```js\n...```
+    //   // File: path/to/file.ext\n```js\n...```
+    const headerThenFence = /(?:^|\n)[ \t]*(?:[#>*\-`]+[ \t]*)?(?:(?:\/\/|#)[ \t]*)?(?:File|Path|FILE|PATH)?\s*[:\-]?\s*[`*"']?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)[`*"']?[ \t]*\*?\*?[ \t]*\n+```([a-zA-Z0-9+#_-]*)[ \t]*\n([\s\S]*?)```/g;
+    while ((m = headerThenFence.exec(text)) !== null) push(m[1], m[3], (m[2] || "").toLowerCase());
+
+    // Pattern D: fenced block whose FIRST line is a comment with the path:
+    //   ```js
+    //   // path/to/file.ext
+    //   ...code...
+    //   ```
+    const fenceCommentPath = /```([a-zA-Z0-9+#_-]*)\s*\n[ \t]*(?:\/\/|#|--)[ \t]*([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)[ \t]*\n([\s\S]*?)```/g;
+    while ((m = fenceCommentPath.exec(text)) !== null) push(m[2], m[3], (m[1] || "").toLowerCase());
+
     if (hits.length === 0) return 0;
     let count = 0;
     for (const h of hits) {
