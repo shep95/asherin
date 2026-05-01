@@ -44,6 +44,24 @@ const LinkExtractView = () => {
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [subStates, setSubStates] = useState<Record<string, SubState>>({});
+
+  const fetchSubdomainBlueprint = useCallback(async (host: string) => {
+    setSubStates((s) => ({ ...s, [host]: { loading: true } }));
+    try {
+      const byok = getActiveIntelMapByok();
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        "zophiel-blueprint-extract",
+        { body: { url: `https://${host}`, mode: "subdomain", ...(byok ? { byok } : {}) } },
+      );
+      if (invokeError) throw new Error(invokeError.message || String(invokeError));
+      if (data?.error) throw new Error(data.error);
+      if (!data?.blueprint?.branches?.length) throw new Error("Empty blueprint");
+      setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: data.blueprint as Blueprint } }));
+    } catch (err: any) {
+      setSubStates((s) => ({ ...s, [host]: { loading: false, error: err.message || "Failed" } }));
+    }
+  }, []);
 
   const normalizeUrl = (raw: string): string => {
     const trimmed = raw.trim();
