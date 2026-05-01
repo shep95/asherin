@@ -156,6 +156,12 @@ export default function AsherCodeModule() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     requestAnimationFrame(() => { chatAutoScrollingRef.current = false; });
   }, [chat, chatScrolledUp]);
+  // ── SWARM AGENTS ─────────────────────────────────────────────
+  // Live registry of per-issue debugger agents. One agent per file
+  // currently being patched. Agents fade out 1.2s after they finish
+  // so the user sees the swarm dissolve in real time.
+  type SwarmAgent = { id: string; file: string; issueCount: number; pass: number; status: "working" | "done" | "failed" };
+  const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
   const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
