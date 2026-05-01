@@ -32,7 +32,7 @@ import {
   type IdeCommand,
 } from "@/components/ide-shared";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
-import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
