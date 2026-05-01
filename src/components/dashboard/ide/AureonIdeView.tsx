@@ -740,14 +740,14 @@ const AureonIdeView = () => {
         filePath={activeFile?.name ?? ""}
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
-        onRestore={(content) => activeFileId && updateContent(activeFileId, content)}
+        onRestore={(content) => activeFileId && aiWriteContent(activeFileId, content)}
       />
       <IdeErrorExplainer
         open={bugDoctorOpen}
         message={bugDoctorMsg}
         contextCode={activeFile?.content}
         onClose={() => setBugDoctorOpen(false)}
-        onApplyFix={(code) => activeFileId && updateContent(activeFileId, code)}
+        onApplyFix={(code) => activeFileId && aiWriteContent(activeFileId, code)}
       />
       {approval && (
         <IdeApprovalGate
