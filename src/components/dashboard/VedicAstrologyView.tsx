@@ -11,6 +11,7 @@ import { computeMahadasha, findCurrentDasha } from "@/lib/vedic/dasha";
 import { houseFromAsc } from "@/lib/vedic/dignities";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from "@/lib/vedic/sweChart";
+import { resolveBirthTimezone } from "@/lib/vedic/timezoneLookup";
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 
@@ -108,6 +109,9 @@ const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("12:00");
   const [tzOffset, setTzOffset] = useState("0");
+  const [tzZoneName, setTzZoneName] = useState<string | null>(null);
+  const [tzAuto, setTzAuto] = useState(true);
+  const [tzResolving, setTzResolving] = useState(false);
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
   const [cityQuery, setCityQuery] = useState("");
@@ -123,6 +127,7 @@ const VedicAstrologyView = () => {
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const tzDebounceRef = useRef<number | null>(null);
 
   const loadSavedCharts = async () => {
     const { data: auth } = await supabase.auth.getUser();
@@ -190,6 +195,28 @@ const VedicAstrologyView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cityQuery]);
 
+  // Auto-resolve birth-location timezone whenever lat/lon/date/time change.
+  useEffect(() => {
+    if (!tzAuto) return;
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    if (!birthDate || Number.isNaN(latNum) || Number.isNaN(lonNum)) return;
+    if (tzDebounceRef.current) window.clearTimeout(tzDebounceRef.current);
+    tzDebounceRef.current = window.setTimeout(async () => {
+      setTzResolving(true);
+      try {
+        const r = await resolveBirthTimezone(latNum, lonNum, birthDate, birthTime || "12:00");
+        setTzOffset(String(r.offsetHours));
+        setTzZoneName(r.ianaName);
+      } finally {
+        setTzResolving(false);
+      }
+    }, 300);
+    return () => {
+      if (tzDebounceRef.current) window.clearTimeout(tzDebounceRef.current);
+    };
+  }, [lat, lon, birthDate, birthTime, tzAuto]);
+
   const computeAndSetChart = async (input?: Partial<{ birthDate: string; birthTime: string; tzOffset: string; lat: string; lon: string }>) => {
     const bd = input?.birthDate ?? birthDate;
     const bt = input?.birthTime ?? birthTime;
@@ -255,9 +282,11 @@ const VedicAstrologyView = () => {
   };
 
   const loadChart = async (saved: SavedChart) => {
+    setTzAuto(false); // honor the saved offset exactly
     setBirthDate(saved.birth_date);
     setBirthTime(saved.birth_time);
     setTzOffset(String(saved.tz_offset));
+    setTzZoneName(null);
     setLat(String(saved.latitude));
     setLon(String(saved.longitude));
     setCityQuery(saved.city_label ?? "");
@@ -348,8 +377,30 @@ const VedicAstrologyView = () => {
               <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
             </label>
             <label className="space-y-1">
-              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">UTC offset (hrs)</span>
-              <input type="number" step="0.5" value={tzOffset} onChange={(e) => setTzOffset(e.target.value)} placeholder="IST = 5.5" className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
+              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider flex items-center justify-between gap-2">
+                <span>
+                  UTC offset {tzAuto ? "(auto)" : "(manual)"}
+                  {tzResolving && <Loader2 className="inline h-2.5 w-2.5 ml-1 animate-spin" />}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTzAuto((v) => !v)}
+                  className="text-[9px] text-muted-foreground/60 hover:text-foreground transition normal-case tracking-normal"
+                >
+                  {tzAuto ? "override" : "auto"}
+                </button>
+              </span>
+              <input
+                type="number"
+                step="0.25"
+                value={tzOffset}
+                onChange={(e) => { setTzAuto(false); setTzOffset(e.target.value); }}
+                placeholder="auto from city"
+                className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
+              />
+              {tzZoneName && tzAuto && (
+                <span className="block text-[9px] text-muted-foreground/60 tracking-wider truncate">{tzZoneName}</span>
+              )}
             </label>
           </div>
 
