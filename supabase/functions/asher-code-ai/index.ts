@@ -410,10 +410,20 @@ CRITICAL:
         const lastUser = [...msgs].reverse().find((m) => m.role === "user")?.content || "";
         const ranked = rankCodebaseFiles(lastUser, payload.codebase, 6);
         ctxBlock = "\n\nRELEVANT PROJECT FILES (ranked by relevance):\n" +
-          ranked.map((f) => `--- ${f.path} (relevance: ${f.score}) ---\n${f.content.slice(0, 3500)}`).join("\n\n");
+          clampJoin(
+            ranked.map((f) => ({ header: `--- ${f.path} (relevance: ${f.score}) ---`, body: String(f.content || "") })),
+            3500,
+            MAX_CONTEXT_FILES_TOTAL_CHARS,
+            "\n\n",
+          );
       } else if (payload.contextFiles) {
         ctxBlock = "\n\nPROJECT FILES (context):\n" +
-          payload.contextFiles.map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 3000)}`).join("\n\n");
+          clampJoin(
+            payload.contextFiles.map((f: any) => ({ header: `--- ${f.path} ---`, body: String(f.content || "") })),
+            3000,
+            MAX_CONTEXT_FILES_TOTAL_CHARS,
+            "\n\n",
+          );
       }
       if (ctxBlock && msgs.length > 0) {
         const last = msgs[msgs.length - 1];
