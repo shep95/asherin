@@ -459,7 +459,7 @@ export default function AsherCodeModule() {
     const lang = ({ js:"javascript", ts:"typescript", tsx:"typescript", jsx:"javascript", py:"python", html:"html", css:"css", json:"json", md:"markdown" } as any)[ext] || "plaintext";
     const { data, error } = await supabase
       .from("asher_code_files")
-      .insert({ project_id: activeProject.id, path, content: "", language: lang })
+      .insert({ project_id: activeProject.id, branch_id: activeBranchId, path, content: "", language: lang })
       .select().single();
     if (error || !data) { toast.error(error?.message || "create failed"); return; }
     const f = data as AsherCodeFile;
