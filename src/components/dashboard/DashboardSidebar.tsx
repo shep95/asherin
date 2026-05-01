@@ -90,7 +90,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Creation",
     items: [
-      { id: "zali", icon: Zap, label: "ZALI Design Lab", access: "pro" },
+      { id: "zali", icon: Zap, label: "ZANOEM Design Lab", access: "pro" },
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "imagine-to-code", icon: Code2, label: "Imagine To Code" },
       { id: "vibe-imager" as DashboardView, icon: Sparkles, label: "Vibe Imager" },

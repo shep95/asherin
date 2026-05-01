@@ -45,7 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Creation",
     items: [
-      { id: "zali", icon: Zap, label: "ZALI Design Lab", pro: true },
+      { id: "zali", icon: Zap, label: "ZANOEM Design Lab", pro: true },
       { id: "ide", icon: Terminal, label: "AUREON IDE" },
       { id: "i2c", icon: Code2, label: "Imagine To Code" },
       { id: "vibe-img", icon: Sparkles, label: "Vibe Imager" },
@@ -409,7 +409,7 @@ function ZaliMock() {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 pb-3 border-b border-border/10">
         <Zap className="h-4 w-4 text-violet-400/70" />
-        <span className="text-xs font-light tracking-wider text-foreground">ZALI DESIGN LAB</span>
+        <span className="text-xs font-light tracking-wider text-foreground">ZANOEM DESIGN LAB</span>
       </div>
       {/* Workspace tabs */}
       <div className="flex items-center gap-1 py-2 border-b border-border/10">

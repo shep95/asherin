@@ -27,7 +27,7 @@ const features = [
   { name: "Predictive Intelligence", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Daily Intelligence Briefings", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Security Dashboard", chat: false, aureon: false, pro: true, lifetime: true },
-  { name: "ZALI Design Lab", chat: false, aureon: false, pro: true, lifetime: true },
+  { name: "ZANOEM Design Lab", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Video Intelligence", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Intelligence Notebooks", chat: false, aureon: false, pro: true, lifetime: true },
   { name: "Cross Live Vision", chat: false, aureon: false, pro: true, lifetime: true },

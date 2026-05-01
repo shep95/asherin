@@ -99,7 +99,7 @@ const PRO_FEATURE_GROUPS = [
       { name: "Imagine To Code", desc: "Pixel art & SVG editor with AUREON AI design partner.", link: "/feature/imagine-to-code" },
       { name: "Vibe Video", desc: "AI video generation — create videos from text prompts or edit existing footage.", link: "/feature/vibe-video" },
       { name: "Video Intelligence", desc: "Behavioral and deception analysis from video uploads.", link: "/feature/video-intelligence" },
-      { name: "ZALI Design Lab", desc: "3D product design intelligence with material analysis and simulation.", link: "/feature/zali" },
+      { name: "ZANOEM Design Lab", desc: "3D product design intelligence with material analysis and simulation.", link: "/feature/zali" },
     ],
   },
   {

@@ -145,7 +145,7 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },
-    { id: "zali",      label: "ZALI Design",     icon: Wrench,   sub: "Live" },
+    { id: "zali",      label: "ZANOEM Design",     icon: Wrench,   sub: "Live" },
     { id: "whiteboard",label: "Whiteboard",      icon: PenSquare, sub: "Live" },
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
     { id: "theater",   label: "Theater Brief",   icon: FileText },

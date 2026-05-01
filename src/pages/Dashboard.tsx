@@ -1269,7 +1269,7 @@ const Dashboard = () => {
 
     switch (activeView) {
       case "search": return gatedView("search", ZophielEngineView, "Zophiel Engine", "The privacy-first search intelligence engine with source credibility tiers. Available on all paid plans.");
-      case "zali": return gatedView("zali", ZaliView, "ZALI Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
+      case "zali": return gatedView("zali", ZaliView, "ZANOEM Design Lab", "Universal Design Intelligence — first-principles design from atoms to universes with cross-domain AI agents. Available on Pro plans.");
       case "community": return gatedView("community", CommunityView, "Community", "Join the community — ask questions, make requests, and vote on future features. Available on Pro plans.");
       case "azplen": return gatedView("azplen", AzplenView, "Azplen Intelligence", "The full data intelligence platform — ingest, analyze, branch, and visualize any dataset with AI. Available on Pro plans.");
       case "elion": return gatedView("elion", ElionView, "Elion / Zohar Toolkit", "Forensic-grade OSINT toolkit — 20+ DeepDive phases, HiveMind orchestration, Ghost Mode, and identity recon. Available on Pro plans.");
