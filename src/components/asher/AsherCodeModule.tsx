@@ -675,9 +675,12 @@ export default function AsherCodeModule() {
     };
 
     const compileScriptTag = (path: string, source: string) => {
-      const { code } = stripModuleSyntax(source);
+      const { code, defaultExport, namedComponents } = stripModuleSyntax(source);
       const filename = path.replace(/"/g, "&quot;");
-      return `<script type="application/x-asher-source" data-filename="${filename}">\n${code.replace(/<\/script/gi, "<\\/script")}\n</script>`;
+      const globals = Array.from(new Set([defaultExport, ...namedComponents].filter(Boolean)))
+        .map((name) => `try{if(typeof ${name}!=="undefined")window.${name}=${name};}catch(e){}`)
+        .join("\n");
+      return `<script type="application/x-asher-source" data-filename="${filename}">\n${`${code}\n${globals}`.replace(/<\/script/gi, "<\\/script")}\n</script>`;
     };
 
     const sourceRunner = `<script>
@@ -764,8 +767,8 @@ export default function AsherCodeModule() {
 try {
   const __el = document.getElementById('root') || document.getElementById('app');
   if (__el && typeof ${mountTarget} !== 'undefined') {
-    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(${mountTarget})); }
-    else { ReactDOM.render(React.createElement(${mountTarget}), __el); }
+    if (ReactDOM.createRoot) { ReactDOM.createRoot(__el).render(React.createElement(window.${mountTarget} || ${mountTarget})); }
+    else { ReactDOM.render(React.createElement(window.${mountTarget} || ${mountTarget}), __el); }
   } else if (!__el) {
     document.body.innerHTML = '<pre style="color:#f88;font-family:monospace;padding:1rem">Auto-mount failed: no #root or #app element.</pre>';
   } else {
