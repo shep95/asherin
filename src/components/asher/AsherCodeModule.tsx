@@ -327,8 +327,11 @@ export default function AsherCodeModule() {
       const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err });
       setChat(c => [...c, { role: "user", content: `Fix: ${err}` }, { role: "assistant", content: r.reply || "" }]);
       const fixed = extractCodeBlock(r.reply || "");
-      if (fixed && confirm("Replace file content with fixed version?")) {
-        setDirty(d => ({ ...d, [activeFile.id]: fixed }));
+      if (fixed) {
+        if (autoApprove || confirm("Replace file content with fixed version?")) {
+          animateApply(activeFile.id, fixed);
+          if (autoApprove) toast.success("Fix applied — undo via Ctrl+Z in editor");
+        }
       }
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
