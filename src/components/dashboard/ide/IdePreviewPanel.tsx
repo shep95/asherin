@@ -113,6 +113,30 @@ try {
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`
     : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>` : "");
 
+  // Shim hooks + Next.js / common framework imports as globals so stripped
+  // `import { useState } from 'react'` / `import { useRouter } from 'next/router'`
+  // don't leave undefined identifiers. Also surface runtime errors in the iframe body.
+  const shim = hasReact ? `<script>
+(function(){
+  try {
+    var R = window.React || {};
+    ['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){ if (R[k] && typeof window[k]==='undefined') window[k]=R[k]; });
+    if (window.ReactDOM && typeof window.createRoot==='undefined') window.createRoot = window.ReactDOM.createRoot;
+    if (typeof window.useRouter==='undefined') window.useRouter = function(){ return { push:function(){}, replace:function(){}, back:function(){}, query:{}, pathname:'/', asPath:'/' }; };
+    if (typeof window.dynamic==='undefined') window.dynamic = function(){ return function(){ return null; }; };
+    if (typeof window.toast==='undefined') { var t=function(m){ console.log('[toast]',m); }; t.success=t; t.error=t; t.loading=t; t.dismiss=function(){}; window.toast=t; }
+    if (typeof window.useAuth==='undefined') window.useAuth = function(){ return { user:null, loading:false, signIn:function(){}, signOut:function(){} }; };
+  } catch(e){}
+})();
+window.addEventListener('error', function(ev){
+  var msg = (ev && ev.error && ev.error.stack) ? ev.error.stack : (ev && ev.message ? ev.message : String(ev));
+  var pre = document.createElement('pre');
+  pre.style.cssText='color:#f88;background:#1a0a0a;font-family:ui-monospace,monospace;padding:1rem;white-space:pre-wrap;font-size:12px;margin:0';
+  pre.textContent='Preview error: '+msg;
+  document.body.appendChild(pre);
+});
+<\/script>` : "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -121,6 +145,7 @@ try {
   <title>Preview</title>
   <script src="https://cdn.tailwindcss.com"><\/script>
   ${reactCdn}
+  ${shim}
   <style>
     body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; }
     ${allCss}
