@@ -320,7 +320,7 @@ const VedicAstrologyView = () => {
         </div>
 
         {/* Input panel */}
-        <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-5 space-y-4">
+        <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="space-y-1">
               <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth date</span>
@@ -419,13 +419,13 @@ const VedicAstrologyView = () => {
         {/* Chart output */}
         {chart && (
           <div className="grid grid-cols-1 lg:grid-cols-[auto_1fr] gap-6">
-            <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4 flex justify-center">
+            <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4 flex justify-center">
               <VedicWheel ascendant={chart.ascendant} planets={chart.planets} />
             </div>
 
             <div className="space-y-4">
               {ascRashi && (
-                <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
+                <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4">
                   <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">
                     Ascendant (Lagna)
                   </div>
@@ -439,7 +439,7 @@ const VedicAstrologyView = () => {
               )}
 
               {moonPlanet && moonNak && (
-                <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
+                <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4">
                   <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-2">
                     Moon Nakshatra
                   </div>
@@ -456,7 +456,7 @@ const VedicAstrologyView = () => {
                 </div>
               )}
 
-              <div className="rounded-xl border border-border/20 bg-card/20 backdrop-blur-sm p-4">
+              <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-4">
                 <div className="text-[10px] font-light text-muted-foreground uppercase tracking-wider mb-3">
                   Planetary Positions (Sidereal · Lahiri)
                 </div>
@@ -493,7 +493,7 @@ const VedicAstrologyView = () => {
         )}
 
         {!chart && (
-          <div className="rounded-xl border border-dashed border-border/20 bg-card/10 p-10 text-center">
+          <div className="rounded-xl border border-dashed border-border/30 bg-background/40 backdrop-blur-xl p-10 text-center">
             <Moon className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground font-light">
               Enter birth details and generate your sidereal Vedic chart.
