@@ -1419,7 +1419,7 @@ ${loopInstructions}`;
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-border/20 bg-accent/5">
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-light tracking-[0.2em] uppercase text-accent/70 border border-accent/20 rounded-lg px-1.5 py-0.5">Beta</span>
-          <span className="text-[10px] font-light text-muted-foreground/50 tracking-wide">Created by ZALI Software</span>
+          <span className="text-[10px] font-light text-muted-foreground/50 tracking-wide">Created by ZANOEM Software</span>
         </div>
         <div className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/30">Imagine to Code</div>
       </div>
