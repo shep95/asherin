@@ -42,7 +42,7 @@ export default function AsherCodeDevOps({ projectId, previewIframe, onClose, fil
   const [tab, setTab] = useState<DevTab>("zerlal");
 
   return (
-    <div className="border-t border-border/15 bg-card/30 backdrop-blur-md flex flex-col h-64 sm:h-72 lg:h-80 flex-shrink-0">
+    <div className="border-t border-border/15 bg-card/30 backdrop-blur-md flex flex-col h-80 sm:h-96 lg:h-[28rem] xl:h-[32rem] flex-shrink-0 resize-y overflow-hidden min-h-[16rem] max-h-[80vh]">
       <div className="flex items-center justify-between border-b border-border/15 px-2">
         <div className="flex overflow-x-auto">
           {TABS.map(t => {
