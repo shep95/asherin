@@ -22,7 +22,7 @@ import {
   IdeValidatorBadge,
   type PlannedChange,
 } from "@/components/ide-shared";
-import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
+import { snapshotIfChanged, routeTask, animateInsert, animateReplace, explainError, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { History, Stethoscope, Wand2, Cpu, Brain, Zap, Bug, Eye, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { startQueueWorker as zqStart, registerHandler as zqRegister, enqueue as zqEnqueue, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -176,6 +176,40 @@ const AureonIdeView = () => {
   useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
   useEffect(() => { autoDebugRef.current = autoDebug; }, [autoDebug]);
   useEffect(() => { autoUiDebugRef.current = autoUiDebug; }, [autoUiDebug]);
+
+  const applyAureonDebuggerFix = useCallback(async (file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) => {
+    const ownIssues = issues.filter((i) => i.file === file.name);
+    if (ownIssues.length === 0) return false;
+
+    const flat = flattenFiles(filesRefAureon.current);
+    const live = flat.find((f) => f.id === file.id || f.name === file.name);
+    const current = live?.content ?? file.content;
+    const diagnostic = ownIssues.map((e) => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+
+    let corrected: string | undefined;
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const explained = await explainError(diagnostic, current);
+        corrected = explained.correctedCode?.trim();
+        if (corrected && corrected !== current.trim()) break;
+        const forced = await explainError(`${diagnostic}\n\n[REWRITE REQUIRED] Output the COMPLETE corrected file in correctedCode. Do not skip.`, current);
+        corrected = forced.correctedCode?.trim();
+        if (corrected && corrected !== current.trim()) break;
+        return false;
+      } catch (e: any) {
+        lastErr = e;
+        const msg = String(e?.message || e || "");
+        if (!/429|rate.?limit|quota|too.?many.?requests/i.test(msg) || attempt === 3) throw e;
+        await new Promise((r) => setTimeout(r, (2 ** attempt) * 1000 + Math.floor(Math.random() * 600)));
+      }
+    }
+    if (!corrected || corrected === current.trim()) throw lastErr ?? new Error("No corrected code produced");
+
+    setFiles((prev) => updateFileContent(prev, file.id, corrected));
+    toast({ title: "Auto-applied debugger fix", description: file.name });
+    return true;
+  }, [toast]);
 
   // ── ZANOEM offline autopilot worker (cross-IDE) ──
   // Drains persisted jobs even if the user closes the tab / loses wifi.
