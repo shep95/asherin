@@ -5,9 +5,10 @@ import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap, Columns2,
-  History, Stethoscope, GitBranch, Download, ArrowDown,
+  History, Stethoscope, GitBranch, Download, ArrowDown, Network,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
+import AsherWorkflowMap, { type WorkflowEvent, type FileWorkflowStat } from "./AsherWorkflowMap";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -162,6 +163,17 @@ export default function AsherCodeModule() {
   // so the user sees the swarm dissolve in real time.
   type SwarmAgent = { id: string; file: string; issueCount: number; pass: number; status: "working" | "done" | "failed" };
   const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
+  // Workflow Map state — persists agent history so the Workflow tab still shows
+  // the run after individual agent pills have dissolved from the chat overlay.
+  const [workflowEvents, setWorkflowEvents] = useState<WorkflowEvent[]>([]);
+  const [fileWorkflowStats, setFileWorkflowStats] = useState<Record<string, FileWorkflowStat>>({});
+  // Per-file lock — prevents two agents from ever writing to the SAME file at
+  // the same time (defensive: the dispatcher already gives one agent per file
+  // per pass, but overlapping passes or manual triggers could collide).
+  const fileLocksRef = useRef<Set<string>>(new Set());
+  // Map agent.id → file path so onAgentDone can record stats / release locks
+  // even if the agent record has already been removed from swarmAgents.
+  const agentFileRef = useRef<Map<string, string>>(new Map());
   const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
@@ -170,7 +182,7 @@ export default function AsherCodeModule() {
   const [orchestrateMode, setOrchestrateMode] = useState(() => localStorage.getItem("asherCode.orchestrate") === "1");
   const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
-  const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
+  const [viewMode, setViewMode] = useState<"code" | "split" | "preview" | "workflow">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
   const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("asherCode.autopilotZanoem") === "1");
@@ -312,20 +324,46 @@ export default function AsherCodeModule() {
         swarmConcurrency: 6,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
+          agentFileRef.current.set(a.id, a.file);
+          fileLocksRef.current.add(a.file);
+          const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+          setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: "spawn", file: a.file, pass: a.pass, issueCount: a.issueCount }]);
+          setFileWorkflowStats((prev) => {
+            const cur = prev[a.file] ?? { path: a.file, attempts: 0, successes: 0, failures: 0, lastStatus: "working" as const, lastTs: Date.now() };
+            return { ...prev, [a.file]: { ...cur, attempts: cur.attempts + 1, lastStatus: "working", lastTs: Date.now() } };
+          });
         },
         onAgentDone: (id, success) => {
+          const file = agentFileRef.current.get(id);
           setSwarmAgents((prev) => prev.map((a) => a.id === id ? { ...a, status: success ? "done" : "failed" } : a));
+          if (file) {
+            fileLocksRef.current.delete(file);
+            const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+            setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: success ? "done" : "failed", file }]);
+            setFileWorkflowStats((prev) => {
+              const cur = prev[file];
+              if (!cur) return prev;
+              return { ...prev, [file]: { ...cur, successes: cur.successes + (success ? 1 : 0), failures: cur.failures + (success ? 0 : 1), lastStatus: success ? "done" : "failed", lastTs: Date.now() } };
+            });
+          }
           // Tear down this agent ~1.2s after completion so the swarm visibly dissolves.
           setTimeout(() => {
             setSwarmAgents((prev) => prev.filter((a) => a.id !== id));
+            agentFileRef.current.delete(id);
           }, 1200);
         },
         onProgress: (pass, n) => {
-          if (n > 0) toast.message(`◈ Swarm pass ${pass}: spawning ${n} agent${n === 1 ? "" : "s"}`);
+          if (n > 0) {
+            toast.message(`◈ Swarm pass ${pass}: spawning ${n} agent${n === 1 ? "" : "s"}`);
+            const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+            setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: "pass", pass, issueCount: n }]);
+          }
         },
       });
       // Hard-clear any stragglers (e.g. timeouts) when the whole loop exits.
       setSwarmAgents([]);
+      fileLocksRef.current.clear();
+      agentFileRef.current.clear();
       if (result.clean) toast.success(`ZANOEM Auto-Fix: clean (${result.passes} pass${result.passes === 1 ? "" : "es"})`);
       else toast.warning(`ZANOEM Auto-Fix stopped: ${result.finalErrorCount} error(s) remain after ${result.passes} pass(es)`);
     });
@@ -460,11 +498,24 @@ export default function AsherCodeModule() {
   }
 
   async function applyDebuggerFix(file: AutoFixFile, issues: { file: string; line?: number; message: string }[]) {
+    // ── PER-FILE ISOLATION GUARD ──
+    // Each agent owns exactly one file. Refuse to write if another agent is
+    // already mid-flight on the same file (defensive — one-agent-per-file is
+    // also enforced upstream by the dispatcher).
+    if (fileLocksRef.current.has(file.name)) {
+      // Another agent is already working this exact path; skip silently.
+      return false;
+    }
+    // Only act on issues that belong to THIS file. Strip cross-file noise so
+    // the agent stays surgical and never accidentally rewrites a sibling.
+    const ownIssues = issues.filter((i) => i.file === file.name);
+    if (ownIssues.length === 0) return false;
     const current = filesRef.current.find(f => f.id === file.id)?.content ?? file.content;
-    const diagnostic = issues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+    const diagnostic = ownIssues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
     const explained = await explainError(diagnostic || lastPreviewErrorRef.current, current);
     const corrected = explained.correctedCode?.trim();
     if (!corrected || corrected === current.trim()) return false;
+    // Strict file-id scoping: only mutate the file this agent owns.
     applyProjectFileContent(file.id, corrected, true);
     toast.success(`Auto-applied debugger fix → ${file.name}`);
     return true;
@@ -1802,6 +1853,19 @@ try {
               >
                 <Eye className="h-3 w-3" /><span className="hidden sm:inline">Preview</span>
               </button>
+              <button
+                onClick={() => setViewMode("workflow")}
+                title="Workflow Map · agents, file tree, timeline"
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[9px] font-light tracking-[0.2em] uppercase transition ${viewMode === "workflow" ? "bg-foreground/15 text-foreground border border-foreground/30" : "text-muted-foreground/70 hover:text-foreground border border-transparent"}`}
+              >
+                <Network className="h-3 w-3" />
+                <span className="hidden sm:inline">Workflow</span>
+                {swarmAgents.filter(a => a.status === "working").length > 0 && (
+                  <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-foreground/20 px-1 text-[8px] font-mono text-foreground/90">
+                    {swarmAgents.filter(a => a.status === "working").length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -1812,9 +1876,18 @@ try {
             </div>
           )}
 
-          {/* Editor + preview — controlled by viewMode (code | split | preview) */}
+          {/* Editor + preview + workflow — controlled by viewMode (code | split | preview | workflow) */}
           <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
-            {viewMode !== "preview" && (
+            {viewMode === "workflow" ? (
+              <div className="w-full flex-1 min-w-0 min-h-[200px]">
+                <AsherWorkflowMap
+                  liveAgents={swarmAgents}
+                  events={workflowEvents}
+                  fileStats={Object.values(fileWorkflowStats)}
+                />
+              </div>
+            ) : null}
+            {viewMode !== "preview" && viewMode !== "workflow" && (
               <div
                 className={`relative min-w-0 min-h-[200px] ${viewMode === "split" ? "flex-1" : "w-full flex-1"}`}
                 style={{
@@ -1860,7 +1933,7 @@ try {
                 )}
               </div>
             )}
-            {viewMode !== "code" && (
+            {viewMode !== "code" && viewMode !== "workflow" && (
               <div className={`${viewMode === "preview" ? "w-full flex-1" : "w-full lg:w-2/5 lg:min-w-[280px]"} border-t lg:border-t-0 ${viewMode === "split" ? "lg:border-l" : ""} border-border/15 bg-card/5 flex flex-col min-h-[200px]`}>
                 <div className="px-3 py-1.5 border-b border-border/15 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase flex items-center justify-between">
                   <span>Preview</span>
