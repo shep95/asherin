@@ -256,9 +256,14 @@ function rankCodebaseFiles(
 
 // ── Mode prompt builders ──────────────────────────────────────────
 function buildPrompt(mode: string, payload: any): ChatMessage[] {
-  const ctxFiles = payload.contextFiles
+  const ctxFiles = payload.contextFiles && payload.contextFiles.length
     ? "\n\nPROJECT FILES (context):\n" +
-      payload.contextFiles.map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 3000)}`).join("\n\n")
+      clampJoin(
+        payload.contextFiles.map((f: any) => ({ header: `--- ${f.path} ---`, body: String(f.content || "") })),
+        3000,
+        MAX_CONTEXT_FILES_TOTAL_CHARS,
+        "\n\n",
+      )
     : "";
 
   switch (mode) {
