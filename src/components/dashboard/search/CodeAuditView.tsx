@@ -1192,9 +1192,9 @@ const LiveScanView = ({
 );
 
 const countSeverities = (b: Blueprint) => {
-  const counts = { high: 0, med: 0, low: 0 };
+  const counts = { critical: 0, high: 0, med: 0, low: 0 };
   (b.criticals || []).forEach(c => {
-    if (c.severity === "high") counts.high++;
+    if (c.severity === "high") counts.critical++;
     else if (c.severity === "med") counts.med++;
     else counts.low++;
   });
@@ -1208,7 +1208,7 @@ const countSeverities = (b: Blueprint) => {
 const computeRiskScore = (b: Blueprint): number => {
   if (typeof b.score?.security === "number") return Math.max(0, Math.min(100, 100 - b.score.security));
   const counts = countSeverities(b);
-  const raw = counts.high * 25 + counts.med * 10 + counts.low * 3;
+  const raw = counts.critical * 30 + counts.high * 20 + counts.med * 10 + counts.low * 3;
   return Math.max(0, Math.min(100, raw));
 };
 
@@ -1238,10 +1238,11 @@ const RiskScoreHeader = ({ blueprint }: { blueprint: Blueprint }) => {
 
 const SeverityBreakdown = ({ blueprint }: { blueprint: Blueprint }) => {
   const counts = countSeverities(blueprint);
-  const total = counts.high + counts.med + counts.low || 1;
+  const total = counts.critical + counts.high + counts.med + counts.low || 1;
   const segments = [
-    { k: "Critical", n: counts.high, color: "bg-red-400/80" },
-    { k: "High/Med", n: counts.med, color: "bg-amber-400/80" },
+    { k: "Critical", n: counts.critical, color: "bg-red-400/90" },
+    { k: "High", n: counts.high, color: "bg-orange-400/80" },
+    { k: "Medium", n: counts.med, color: "bg-amber-400/80" },
     { k: "Low", n: counts.low, color: "bg-emerald-400/70" },
   ];
   return (
@@ -1249,7 +1250,7 @@ const SeverityBreakdown = ({ blueprint }: { blueprint: Blueprint }) => {
       <div className="flex items-center gap-2">
         <AlertTriangle className="h-3 w-3 text-foreground/60" />
         <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Severity Breakdown</span>
-        <span className="ml-auto text-[10px] font-light text-muted-foreground/60 tabular-nums">{counts.high + counts.med + counts.low} total</span>
+        <span className="ml-auto text-[10px] font-light text-muted-foreground/60 tabular-nums">{counts.critical + counts.high + counts.med + counts.low} total</span>
       </div>
       <div className="h-2 rounded-full overflow-hidden flex bg-foreground/[0.05]">
         {segments.map((s) => (
