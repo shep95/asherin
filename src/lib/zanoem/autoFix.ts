@@ -42,6 +42,15 @@ interface AutoFixOptions {
   // Max parallel agents (default 6) so we don't slam BYOK provider
   // rate limits when 30 files all break at once.
   swarmConcurrency?: number;
+  // ── QUEUE THROTTLE ─────────────────────────────────────────────
+  // Minimum gap (ms) between agent spawns. Acts as a token-bucket so
+  // we don't fire 30 Gemini calls in the same 100ms window. Default 800ms.
+  perAgentDelayMs?: number;
+  // ── SCAN-ALL MODE ──────────────────────────────────────────────
+  // When true, every file gets an agent each pass (not just files
+  // flagged by the validator). Use this to audit bugs AND logic
+  // across the entire project / zip package.
+  scanAllFiles?: boolean;
   // ── PAUSE / ABORT CONTROLS ─────────────────────────────────────
   // Polled between agents and between passes. If `shouldPause()` returns
   // true, the loop sleeps in 250ms ticks until it returns false. If
