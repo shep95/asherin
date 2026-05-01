@@ -563,9 +563,10 @@ serve(async (req) => {
     }
 
     const maxTokens = mode === "inline" ? 256 : 4096;
+    const runtimeSystem = buildSystemPrompt(payload);
 
     try {
-      const reply = await dispatch(providerCall, messages, maxTokens);
+      const reply = await dispatch(providerCall, messages, runtimeSystem, maxTokens);
       return new Response(
         JSON.stringify({
           reply,
