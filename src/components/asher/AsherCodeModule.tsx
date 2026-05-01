@@ -1304,7 +1304,7 @@ try {
       const errMsg: ChatMsg = { role: "assistant", content: "**Error:** " + (e.message || "AI call failed") };
       setChat([...next, errMsg]);
       void persistChatMessages([userMsg, errMsg]);
-    } finally { setAiBusy(false); }
+    } finally { setAiBusy(false); completePlan(); }
   }
 
   // Decision detection / autopilot reply now live in src/lib/zanoem/decisionLog.ts.
