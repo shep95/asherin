@@ -265,12 +265,16 @@ export default function AsherCodeModule() {
     });
 
     zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
-      if (!autopilotZanoemRef.current || !autoDebugRef.current) return;         // gated by Auto Debug
+      if (!autoDebugRef.current) return;         // gated by Auto Debug
       const result = await autoFixUntilClean({
         files: () => filesRef.current.map<AutoFixFile>((f) => ({
           id: f.id, name: f.path, content: f.content, language: f.language,
         })),
-        runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
+        applyFileFix: applyDebuggerFix,
+        runZanoemTurn: async (prompt) => {
+          if (!sendZanoemTurnRef.current) throw new Error("Auto-fix dispatcher is not ready");
+          await sendZanoemTurnRef.current(prompt);
+        },
         maxPasses: 6,
         onProgress: (pass, n) => {
           if (n > 0) toast.message(`ZANOEM Auto-Fix pass ${pass}: ${n} error${n === 1 ? "" : "s"}`);
