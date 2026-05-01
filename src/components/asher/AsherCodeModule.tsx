@@ -17,6 +17,7 @@ import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, typ
 import { routeGoal } from "@/lib/asherCode/goalRouter";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
+import { AsherCodePlanStepsView } from "./AsherCodePlanSteps";
 import {
   IdeHistoryPanel,
   IdeErrorExplainer,
@@ -131,6 +132,48 @@ export default function AsherCodeModule() {
   const [showPublish, setShowPublish] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [chat, setChat] = useState<ChatMsg[]>([]);
+  // ── Auto-approved plan / todo strip ──────────────────────────
+  // Each new user message generates a small checklist of steps
+  // that auto-tick as the agent works. Mirrors the Lovable agent.
+  const [activePlan, setActivePlan] = useState<import("./AsherCodePlanSteps").AsherCodePlan | null>(null);
+  const planTimerRef = useRef<number | null>(null);
+  const stopPlanTicker = useCallback(() => {
+    if (planTimerRef.current != null) { window.clearInterval(planTimerRef.current); planTimerRef.current = null; }
+  }, []);
+  const startPlan = useCallback((prompt: string, intent: "swarm_fix" | "build_all" | "edit_file" | "chat", ctx: { activeFileName?: string; projectName?: string }) => {
+    // Lazy import to avoid circular concerns at module init
+    const { generatePlanSteps } = require("./AsherCodePlanSteps") as typeof import("./AsherCodePlanSteps");
+    const steps = generatePlanSteps(prompt, intent, ctx);
+    if (!steps.length) return;
+    const plan: import("./AsherCodePlanSteps").AsherCodePlan = {
+      id: Math.random().toString(36).slice(2, 9),
+      prompt, intent, steps: steps.map((s, i) => ({ ...s, status: i === 0 ? "running" : "pending" })),
+      startedAt: Date.now(),
+    };
+    setActivePlan(plan);
+    stopPlanTicker();
+    // Advance one step every ~1.4s while the agent is working. The final
+    // step is held in "running" until completePlan() is called from the
+    // response handler — guarantees the checkmark lands when work lands.
+    planTimerRef.current = window.setInterval(() => {
+      setActivePlan((p) => {
+        if (!p) return p;
+        const idx = p.steps.findIndex((s) => s.status === "running");
+        if (idx < 0 || idx >= p.steps.length - 1) return p;
+        const next = p.steps.map((s, i) =>
+          i === idx ? { ...s, status: "done" as const } :
+          i === idx + 1 ? { ...s, status: "running" as const } : s);
+        return { ...p, steps: next };
+      });
+    }, 1400);
+  }, [stopPlanTicker]);
+  const completePlan = useCallback(() => {
+    stopPlanTicker();
+    setActivePlan((p) => p ? { ...p, steps: p.steps.map((s) => ({ ...s, status: "done" as const })) } : p);
+    // Fade the completed plan out after a moment so the chat stays clean
+    window.setTimeout(() => setActivePlan(null), 4000);
+  }, [stopPlanTicker]);
+  useEffect(() => () => stopPlanTicker(), [stopPlanTicker]);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [chatScrolledUp, setChatScrolledUp] = useState(false);
@@ -1181,6 +1224,9 @@ try {
     // "fix every bug" auto-dispatch to the swarm / ZANOEM autopilot
     // — the user does NOT need to be on a specific file.
     const goal = routeGoal(chatInput);
+    // Auto-approved plan strip — visible immediately so the user sees
+    // exactly what the agent is about to do, with checkmarks ticking.
+    startPlan(chatInput, goal.intent, { activeFileName: activeFile?.path, projectName: activeProject?.name });
     if (goal.intent === "swarm_fix" && chatInput.trim()) {
       if (!activeProject) {
         toast.error("Open a project first so the swarm has something to scan");
@@ -1197,7 +1243,7 @@ try {
         if (!autoDebug) setAutoDebug(true);
         autoDebugRef.current = true;
         setFixBugsPending(true);
-        window.setTimeout(() => setFixBugsPending(false), 12000);
+        window.setTimeout(() => { setFixBugsPending(false); completePlan(); }, 12000);
         toast.message("◈ Goal Router → Swarm Fix", { description: goal.reason });
         void zqEnqueue({
           kind: "autofix",
@@ -1259,7 +1305,7 @@ try {
       const errMsg: ChatMsg = { role: "assistant", content: "**Error:** " + (e.message || "AI call failed") };
       setChat([...next, errMsg]);
       void persistChatMessages([userMsg, errMsg]);
-    } finally { setAiBusy(false); }
+    } finally { setAiBusy(false); completePlan(); }
   }
 
   // Decision detection / autopilot reply now live in src/lib/zanoem/decisionLog.ts.
@@ -1286,6 +1332,11 @@ try {
     setChat(next);
     if (!isAutopilotTurn) { setChatInput(""); setPendingUploads([]); }
     if (!isAutopilotTurn) autopilotRoundsRef.current = 0;
+    // Auto-approved plan strip — surface immediately for ZANOEM turns too
+    if (!isAutopilotTurn && !activePlan) {
+      const goal = routeGoal(composed);
+      startPlan(composed, goal.intent === "chat" ? "build_all" : goal.intent, { activeFileName: activeFile?.path, projectName: activeProject?.name });
+    }
     setAiBusy(true);
     let assistantText = "";
     try {
@@ -1448,7 +1499,7 @@ try {
       setChat([...next, errMsg]);
       void persistChatMessages([userMsg, errMsg]);
       toast.error(e.message || "ZANOEM call failed");
-    } finally { setAiBusy(false); }
+    } finally { setAiBusy(false); if (!isAutopilotTurn) completePlan(); }
   }
 
   // Bind the offline-queue handlers to the live sendChatViaZanoem so they
@@ -2111,7 +2162,7 @@ try {
           </div>
           <div className="relative flex-1 min-h-0 min-w-0">
             <div ref={chatScrollRef} className="absolute inset-0 overflow-y-auto px-3 py-2 space-y-2 min-w-0">
-              {chat.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
+              {chat.length === 0 && !activePlan && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
               {chat.map((m, i) => (
                 <div key={i} className={`rounded-lg px-2.5 py-2 text-[11px] font-light min-w-0 max-w-full overflow-hidden ${m.role === "user" ? "bg-foreground/10 border border-foreground/15" : "bg-card/30 border border-border/15"}`}>
                   {m.role === "assistant"
@@ -2119,6 +2170,7 @@ try {
                     : <p className="whitespace-pre-wrap break-words">{m.content}</p>}
                 </div>
               ))}
+              <AsherCodePlanStepsView plan={activePlan} />
               {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
               <div ref={chatEndRef} />
             </div>
