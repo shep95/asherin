@@ -16,63 +16,21 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
 {
   "target": "domain.tld",
   "summary": "2-sentence executive overview of the stack & posture.",
-  "score": {
-    "security": 0-100,
-    "performance": 0-100,
-    "complexity": 0-100
-  },
+  "score": { "security": 0-100, "performance": 0-100, "complexity": 0-100 },
   "branches": [
-    {
-      "id": "domain",
-      "label": "DOMAIN & DNS",
-      "icon": "globe",
-      "tone": "neutral|good|warn|critical",
+    { "id": "domain", "label": "DOMAIN & DNS", "icon": "globe", "tone": "neutral", "leaves": [...] },
+    { "id": "hosting", "label": "HOSTING & CDN", "icon": "server", "tone": "good", "leaves": [...] },
+    { "id": "stack", "label": "TECH STACK", "icon": "cpu", "tone": "neutral", "leaves": [...] },
+    { "id": "security", "label": "SECURITY POSTURE", "icon": "shield", "tone": "warn", "leaves": [...] },
+    { "id": "thirdparty", "label": "THIRD-PARTY", "icon": "plug", "tone": "neutral", "leaves": [...] },
+    { "id": "network", "label": "NETWORK TOPOLOGY", "icon": "network", "tone": "neutral", "leaves": [...] },
+    { "id": "org", "label": "ORG INTEL", "icon": "building", "tone": "neutral", "leaves": [...] },
+    { "id": "subdomains", "label": "SUBDOMAINS", "icon": "network", "tone": "neutral",
       "leaves": [
-        { "label": "Registrar", "value": "GoDaddy", "confidence": "high|med|low" },
-        { "label": "DNSSEC", "value": "Disabled", "confidence": "high" }
-      ]
-    },
-    {
-      "id": "hosting",
-      "label": "HOSTING & CDN",
-      "icon": "server",
-      "tone": "good",
-      "leaves": [...]
-    },
-    {
-      "id": "stack",
-      "label": "TECH STACK",
-      "icon": "cpu",
-      "tone": "neutral",
-      "leaves": [...]
-    },
-    {
-      "id": "security",
-      "label": "SECURITY POSTURE",
-      "icon": "shield",
-      "tone": "warn",
-      "leaves": [...]
-    },
-    {
-      "id": "thirdparty",
-      "label": "THIRD-PARTY",
-      "icon": "plug",
-      "tone": "neutral",
-      "leaves": [...]
-    },
-    {
-      "id": "network",
-      "label": "NETWORK TOPOLOGY",
-      "icon": "network",
-      "tone": "neutral",
-      "leaves": [...]
-    },
-    {
-      "id": "org",
-      "label": "ORG INTEL",
-      "icon": "building",
-      "tone": "neutral",
-      "leaves": [...]
+        { "label": "api.domain.tld", "value": "REST API gateway", "confidence": "high" },
+        { "label": "mail.domain.tld", "value": "Email infrastructure", "confidence": "med" }
+      ],
+      "subdomains": ["api.domain.tld", "mail.domain.tld", "cdn.domain.tld", "blog.domain.tld"]
     }
   ],
   "edges": [
@@ -81,7 +39,8 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
     { "from": "stack", "to": "thirdparty", "label": "loads" },
     { "from": "stack", "to": "security", "label": "exposes" },
     { "from": "thirdparty", "to": "network", "label": "extends" },
-    { "from": "domain", "to": "org", "label": "owned by" }
+    { "from": "domain", "to": "org", "label": "owned by" },
+    { "from": "domain", "to": "subdomains", "label": "delegates" }
   ],
   "criticals": [
     { "branch": "security", "finding": "CSP allows unsafe-eval", "severity": "high" }
@@ -92,9 +51,17 @@ Rules:
 - Each branch MUST have 4-8 leaves with concrete observed/inferred values.
 - Use 'tone' to color-code branches: good (secure/modern), neutral (standard), warn (gaps), critical (severe).
 - Leaves should be FACTS, not descriptions ("Nginx 1.24" not "uses a web server").
-- Always include all 7 branches.
-- Always include the 6 standard edges above (and add more if relevant).
+- Always include all 8 branches (including subdomains).
+- For the 'subdomains' branch: enumerate 6-20 likely/observed subdomains via cert transparency patterns, common conventions (api, mail, cdn, blog, dev, staging, app, admin, docs, status, m, www, secure, vpn, git), and any documented services. Populate the 'subdomains' string array with bare hostnames only.
 - Output JSON only. No prose before or after.`;
+
+const SUBDOMAIN_SYSTEM_PROMPT = `You are ZOPHIEL — forensic infrastructure intelligence.
+
+Given a SUBDOMAIN (e.g. api.example.com), return the same BLUEPRINT JSON schema applied to THAT subdomain specifically, focusing on how it differs from the parent (different stack, CDN, headers, purpose).
+
+Return ONLY valid JSON. Same schema as parent (8 branches: domain, hosting, stack, security, thirdparty, network, org, subdomains). For subdomains branch on a subdomain, return an empty subdomains array (no recursion).
+Each branch 4-8 concrete leaves. Output JSON only.`;
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -102,13 +69,16 @@ serve(async (req) => {
   }
 
   try {
-    const { url, byok } = await req.json();
+    const { url, byok, mode } = await req.json();
     if (!url || typeof url !== "string") {
       return new Response(JSON.stringify({ error: "url required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const isSubdomainMode = mode === "subdomain";
+    const activeSystemPrompt = isSubdomainMode ? SUBDOMAIN_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const useByok = isValidByok(byok);
     const GEMINI_API_KEY = useByok ? "" : (Deno.env.get("GEMINI_API_KEY_APP") || "");
@@ -119,13 +89,15 @@ serve(async (req) => {
       });
     }
 
-    const userPrompt = `Target URL: ${url}\n\nReturn the JSON blueprint now.`;
+    const userPrompt = isSubdomainMode
+      ? `Subdomain target: ${url}\n\nReturn the JSON blueprint for THIS subdomain now.`
+      : `Target URL: ${url}\n\nReturn the JSON blueprint now (include the subdomains branch with enumerated hostnames).`;
 
     let raw = "";
     let finishReason: string | undefined;
     if (useByok) {
       try {
-        raw = await callByokJsonWithRetry(byok as ZophielByokConfig, SYSTEM_PROMPT, userPrompt, {
+        raw = await callByokJsonWithRetry(byok as ZophielByokConfig, activeSystemPrompt, userPrompt, {
           timeoutMs: 60_000,
           temperature: 0.3,
           maxOutputTokens: 16384,
@@ -146,7 +118,7 @@ serve(async (req) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            systemInstruction: { parts: [{ text: activeSystemPrompt }] },
             contents: [
               { role: "user", parts: [{ text: userPrompt }] },
             ],

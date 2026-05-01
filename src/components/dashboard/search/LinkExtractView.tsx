@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Crosshair, Loader2, Globe, Link2, Sparkles, Shield, Zap,
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
-  Copy, Check,
+  Copy, Check, ChevronRight, ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
@@ -10,7 +10,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
 interface Leaf { label: string; value: string; confidence?: "high" | "med" | "low"; }
-interface Branch { id: string; label: string; icon: string; tone: Tone; leaves: Leaf[]; }
+interface Branch { id: string; label: string; icon: string; tone: Tone; leaves: Leaf[]; subdomains?: string[]; }
 interface Edge { from: string; to: string; label?: string; }
 interface Critical { branch: string; finding: string; severity: "high" | "med" | "low"; }
 interface Blueprint {
@@ -21,6 +21,8 @@ interface Blueprint {
   edges: Edge[];
   criticals?: Critical[];
 }
+
+type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
 
 const ICONS: Record<string, any> = {
   globe: Globe, server: Server, cpu: Cpu, shield: Shield,
@@ -42,6 +44,24 @@ const LinkExtractView = () => {
   const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [subStates, setSubStates] = useState<Record<string, SubState>>({});
+
+  const fetchSubdomainBlueprint = useCallback(async (host: string) => {
+    setSubStates((s) => ({ ...s, [host]: { loading: true } }));
+    try {
+      const byok = getActiveIntelMapByok();
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        "zophiel-blueprint-extract",
+        { body: { url: `https://${host}`, mode: "subdomain", ...(byok ? { byok } : {}) } },
+      );
+      if (invokeError) throw new Error(invokeError.message || String(invokeError));
+      if (data?.error) throw new Error(data.error);
+      if (!data?.blueprint?.branches?.length) throw new Error("Empty blueprint");
+      setSubStates((s) => ({ ...s, [host]: { loading: false, blueprint: data.blueprint as Blueprint } }));
+    } catch (err: any) {
+      setSubStates((s) => ({ ...s, [host]: { loading: false, error: err.message || "Failed" } }));
+    }
+  }, []);
 
   const normalizeUrl = (raw: string): string => {
     const trimmed = raw.trim();
@@ -61,6 +81,7 @@ const LinkExtractView = () => {
     setExtracting(true);
     setError(null);
     setBlueprint(null);
+    setSubStates({});
 
     try {
       const byok = getActiveIntelMapByok();
@@ -189,7 +210,14 @@ const LinkExtractView = () => {
 
           {/* Branches grid (the tree leaves) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {blueprint.branches.map((b) => <BranchCard key={b.id} branch={b} />)}
+            {blueprint.branches.map((b) => (
+              <BranchCard
+                key={b.id}
+                branch={b}
+                subStates={subStates}
+                onFetchSubdomain={fetchSubdomainBlueprint}
+              />
+            ))}
           </div>
 
           {/* Criticals strip */}
@@ -349,30 +377,172 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
 };
 
 // ─── Branch Card (the "tree" leaves) ─────────────────────────────────────────
-const BranchCard = ({ branch }: { branch: Branch }) => {
+const BranchCard = ({
+  branch,
+  subStates,
+  onFetchSubdomain,
+}: {
+  branch: Branch;
+  subStates: Record<string, SubState>;
+  onFetchSubdomain: (host: string) => void;
+}) => {
   const Icon = ICONS[branch.icon] || Globe;
   const tone = TONE_STYLES[branch.tone] || TONE_STYLES.neutral;
+  const isSubdomainBranch =
+    branch.id === "subdomains" && Array.isArray(branch.subdomains) && branch.subdomains.length > 0;
+  const colSpanClass = isSubdomainBranch ? "md:col-span-2 lg:col-span-3" : "";
+
   return (
-    <div className={`rounded-2xl border ${tone.ring} bg-card/30 backdrop-blur-sm p-4 ${tone.glow} transition-all hover:bg-card/40`}>
+    <div className={`rounded-2xl border ${tone.ring} bg-card/30 backdrop-blur-sm p-4 ${tone.glow} transition-all hover:bg-card/40 ${colSpanClass}`}>
       <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/10">
         <div className="h-7 w-7 rounded-lg bg-background/40 border border-border/20 flex items-center justify-center shrink-0">
           <Icon className="h-3.5 w-3.5 text-foreground/70" />
         </div>
         <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/80 uppercase truncate flex-1">
           {branch.label}
+          {isSubdomainBranch && (
+            <span className="ml-2 text-muted-foreground/50 font-light tracking-wider">
+              {branch.subdomains!.length} mapped
+            </span>
+          )}
         </span>
         <span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
       </div>
 
       {/* Tree leaves */}
       <ul className="space-y-1.5 relative pl-3">
-        {/* Vertical trunk */}
         <span className="absolute left-0 top-1 bottom-1 w-px bg-border/20" />
         {branch.leaves.map((leaf, i) => (
           <li key={i} className="relative flex items-baseline gap-2 text-[11px]">
-            {/* Branch dash */}
             <span className="absolute -left-3 top-2 h-px w-2 bg-border/20" />
             <span className="font-extralight text-muted-foreground/60 tracking-wide truncate min-w-0 max-w-[50%]">
+              {leaf.label}
+            </span>
+            <span className="flex-1 border-b border-dotted border-border/15 mb-0.5 mx-1" />
+            <span className="font-light text-foreground/90 truncate text-right max-w-[55%]" title={leaf.value}>
+              {leaf.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Subdomain expandable branches */}
+      {isSubdomainBranch && (
+        <div className="mt-4 pt-3 border-t border-border/10 space-y-1.5">
+          <div className="text-[9px] font-semibold tracking-[0.2em] text-muted-foreground/50 uppercase mb-2">
+            Branch Intelligence — click to expand
+          </div>
+          {branch.subdomains!.map((host) => (
+            <SubdomainRow
+              key={host}
+              host={host}
+              state={subStates[host]}
+              onFetch={() => onFetchSubdomain(host)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Subdomain expandable row ────────────────────────────────────────────────
+const SubdomainRow = ({
+  host,
+  state,
+  onFetch,
+}: {
+  host: string;
+  state?: SubState;
+  onFetch: () => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const handleToggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !state) onFetch();
+  };
+
+  return (
+    <div className="rounded-lg border border-border/15 bg-background/30">
+      <button
+        onClick={handleToggle}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-foreground/[0.03] transition-colors rounded-lg"
+      >
+        {open ? (
+          <ChevronDown className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+        ) : (
+          <ChevronRight className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+        )}
+        <Network className="h-3 w-3 text-accent/70 shrink-0" />
+        <span className="text-[11px] font-light text-foreground/85 truncate flex-1">{host}</span>
+        {state?.loading && <Loader2 className="h-3 w-3 animate-spin text-accent" />}
+        {state?.error && <span className="text-[9px] text-red-400/80 uppercase tracking-wider">err</span>}
+        {state?.blueprint && (
+          <span className="text-[9px] text-emerald-400/70 uppercase tracking-wider">live</span>
+        )}
+      </button>
+
+      {open && state?.error && (
+        <div className="px-3 pb-2 text-[10px] text-red-400/70">{state.error}</div>
+      )}
+
+      {open && state?.blueprint && (
+        <div className="p-3 border-t border-border/10 space-y-3">
+          {state.blueprint.summary && (
+            <div className="text-[10px] font-extralight leading-relaxed text-muted-foreground/75">
+              {state.blueprint.summary}
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {state.blueprint.branches
+              .filter((b) => b.id !== "subdomains")
+              .map((b) => (
+                <NestedBranch key={b.id} branch={b} />
+              ))}
+          </div>
+          {state.blueprint.criticals && state.blueprint.criticals.length > 0 && (
+            <div className="rounded-lg border border-red-400/20 bg-red-500/[0.03] px-3 py-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <AlertTriangle className="h-2.5 w-2.5 text-red-400/80" />
+                <span className="text-[9px] font-semibold tracking-[0.2em] text-red-300/80 uppercase">
+                  Criticals
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {state.blueprint.criticals.map((c, i) => (
+                  <li key={i} className="text-[10px] font-light text-foreground/80 flex items-start gap-2">
+                    <span className={`mt-1 h-1 w-1 rounded-full shrink-0 ${c.severity === "high" ? "bg-red-400" : c.severity === "med" ? "bg-amber-400" : "bg-muted-foreground"}`} />
+                    <span className="text-muted-foreground/50 uppercase tracking-wider text-[8px] mt-0.5">{c.branch}</span>
+                    <span className="flex-1">{c.finding}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Nested branch (compact, for inside subdomain expansion) ────────────────
+const NestedBranch = ({ branch }: { branch: Branch }) => {
+  const Icon = ICONS[branch.icon] || Globe;
+  const tone = TONE_STYLES[branch.tone] || TONE_STYLES.neutral;
+  return (
+    <div className={`rounded-lg border ${tone.ring} bg-card/20 p-2.5`}>
+      <div className="flex items-center gap-1.5 mb-2 pb-1.5 border-b border-border/10">
+        <Icon className="h-3 w-3 text-foreground/70" />
+        <span className="text-[9px] font-semibold tracking-[0.18em] text-foreground/80 uppercase truncate flex-1">
+          {branch.label}
+        </span>
+        <span className={`h-1 w-1 rounded-full ${tone.dot}`} />
+      </div>
+      <ul className="space-y-1">
+        {branch.leaves.map((leaf, i) => (
+          <li key={i} className="flex items-baseline gap-2 text-[10px]">
+            <span className="font-extralight text-muted-foreground/60 tracking-wide truncate max-w-[45%]">
               {leaf.label}
             </span>
             <span className="flex-1 border-b border-dotted border-border/15 mb-0.5 mx-1" />
@@ -385,5 +555,6 @@ const BranchCard = ({ branch }: { branch: Branch }) => {
     </div>
   );
 };
+
 
 export default LinkExtractView;
