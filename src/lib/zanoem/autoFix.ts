@@ -73,7 +73,20 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
     return errs;
   };
 
+  // Helper: block while paused, return true if we should abort.
+  const waitWhilePaused = async (): Promise<boolean> => {
+    while (opts.shouldPause?.()) {
+      if (opts.shouldAbort?.()) return true;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return !!opts.shouldAbort?.();
+  };
+
   for (let pass = 1; pass <= max; pass++) {
+    if (await waitWhilePaused()) {
+      const finalErrors = collect().length;
+      return { passes: pass - 1, finalErrorCount: finalErrors, clean: finalErrors === 0, aborted: true, history };
+    }
     const errors = collect();
     opts.onProgress?.(pass, errors.length);
     history.push({
