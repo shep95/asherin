@@ -2161,7 +2161,7 @@ try {
           </div>
           <div className="relative flex-1 min-h-0 min-w-0">
             <div ref={chatScrollRef} className="absolute inset-0 overflow-y-auto px-3 py-2 space-y-2 min-w-0">
-              {chat.length === 0 && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
+              {chat.length === 0 && !activePlan && <p className="text-[10px] text-muted-foreground/50 italic">Ask anything about your code. Senior Principal Engineer persona, BYOK only.</p>}
               {chat.map((m, i) => (
                 <div key={i} className={`rounded-lg px-2.5 py-2 text-[11px] font-light min-w-0 max-w-full overflow-hidden ${m.role === "user" ? "bg-foreground/10 border border-foreground/15" : "bg-card/30 border border-border/15"}`}>
                   {m.role === "assistant"
@@ -2169,6 +2169,7 @@ try {
                     : <p className="whitespace-pre-wrap break-words">{m.content}</p>}
                 </div>
               ))}
+              <AsherCodePlanStepsView plan={activePlan} />
               {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
               <div ref={chatEndRef} />
             </div>
