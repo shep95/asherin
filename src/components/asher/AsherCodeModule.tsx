@@ -518,9 +518,13 @@ export default function AsherCodeModule() {
     // Only act on issues that belong to THIS file. Strip cross-file noise so
     // the agent stays surgical and never accidentally rewrites a sibling.
     const ownIssues = issues.filter((i) => i.file === file.name);
-    if (ownIssues.length === 0) return false;
     const current = filesRef.current.find(f => f.id === file.id)?.content ?? file.content;
-    const diagnostic = ownIssues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n");
+    // Scan-all mode: when there are no validator errors for this file we still
+    // run a LOGIC audit pass (bugs, dead code, unhandled edge cases, async
+    // races, etc.) so every file in the zip gets reviewed.
+    const diagnostic = ownIssues.length > 0
+      ? ownIssues.map(e => `${e.file}:${e.line ?? "?"} — ${e.message}`).join("\n")
+      : `[LOGIC AUDIT] No validator errors in ${file.name}. Review the entire file for: latent bugs, race conditions, unhandled errors, off-by-one errors, missing null checks, dead code, security flaws, and broken logic. If the file is already correct, return it UNCHANGED. Only rewrite if you find a real defect.`;
 
     // ── 429-aware retry with exponential backoff + jitter ──
     // The AI gateway throws 429 when too many agents fire at once. Instead of
