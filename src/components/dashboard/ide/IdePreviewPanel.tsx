@@ -74,7 +74,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
       if (/\.(tsx?|jsx?|mjs)$/.test(f.name)) {
         const compiled = compileScriptTag(f.name, f.content ?? "");
         const escapedName = f.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./)?${escapedName}["']([^>]*)><\\/script>`, "g");
+        const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${escapedName}["']([^>]*)><\\/script>`, "g");
         if (scriptRef.test(content)) {
           content = content.replace(scriptRef, compiled);
           needsHtmlCompiler = true;
@@ -83,7 +83,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
       }
     }
     if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
-      const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`;
+      const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script><script>try{var R=window.React||{};['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){if(R[k]&&typeof window[k]==='undefined')window[k]=R[k];});if(window.ReactDOM&&typeof window.createRoot==='undefined')window.createRoot=window.ReactDOM.createRoot;}catch(e){}</script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`;
       content = content.includes("</head>") ? content.replace("</head>", `${runtime}</head>`) : runtime + content;
     }
     return content;
