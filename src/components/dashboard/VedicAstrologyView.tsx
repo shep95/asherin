@@ -391,7 +391,7 @@ const VedicAstrologyView = () => {
                 className="flex-1 rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40"
               />
               <button
-                onClick={searchCity}
+                onClick={() => searchCity()}
                 disabled={searching}
                 className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition disabled:opacity-50"
               >
