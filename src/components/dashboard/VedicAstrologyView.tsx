@@ -305,7 +305,7 @@ const VedicAstrologyView = () => {
     if (!chart) return null;
     const placements: PlacementInput[] = chart.planets.map((planet) => ({
       name: planet.name,
-      house: houseFromAsc(chart.ascendant, planet.sid),
+      house: houseFromAsc(planet.sid, chart.ascendant),
       signIndex: Math.floor(planet.sid / 30),
       nakIndex: Math.floor(planet.sid / (360 / 27)),
       retrograde: planet.retrograde,
@@ -446,7 +446,7 @@ const VedicAstrologyView = () => {
                       <div key={p.name} className="grid grid-cols-[20px_70px_1fr_auto] items-center gap-3 text-xs font-light">
                         <span className="text-foreground/70">{p.symbol}</span>
                         <span className="text-foreground">{p.name}{p.retrograde && <span className="text-muted-foreground"> ʀ</span>}</span>
-                        <span className="text-muted-foreground">House {houseFromAsc(chart.ascendant, p.sid)} · {r.name} · {n.nakshatra.name} (Pada {n.pada})</span>
+                        <span className="text-muted-foreground">House {houseFromAsc(p.sid, chart.ascendant)} · {r.name} · {n.nakshatra.name} (Pada {n.pada})</span>
                         <span className="text-muted-foreground/70 tabular-nums">{fmtDeg(p.sid % 30)}</span>
                       </div>
                     );
