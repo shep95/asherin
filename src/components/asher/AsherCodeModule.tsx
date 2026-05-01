@@ -397,7 +397,12 @@ export default function AsherCodeModule() {
       const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles });
       const plan = extractJsonBlock<EditPlan>(r.reply || "");
       if (!plan?.edits?.length) { toast.error("AI did not return a valid edit plan"); return; }
-      setEditPlan(plan);
+      if (autoApprove) {
+        applyEditPlan(plan.edits.map(e => e.path), plan);
+        toast.success(`Auto-applied ${plan.edits.length} edits — review/undo in editor`);
+      } else {
+        setEditPlan(plan);
+      }
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
 
