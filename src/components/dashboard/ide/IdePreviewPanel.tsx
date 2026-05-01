@@ -76,7 +76,7 @@ function buildPreviewHtml(files: IdeFile[]): string {
         const escapedName = f.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./|/)?${escapedName}["']([^>]*)><\\/script>`, "g");
         if (scriptRef.test(content)) {
-          content = content.replace(scriptRef, compiled);
+          content = content.replace(scriptRef, () => compiled);
           needsHtmlCompiler = true;
           if (/\.(tsx|jsx|js)$/.test(f.name) || /from ['"]react['"]/.test(f.content ?? "") || /React/.test(f.content ?? "")) needsHtmlReact = true;
         }
