@@ -676,8 +676,36 @@ export default function AsherCodeModule() {
 
     const compileScriptTag = (path: string, source: string) => {
       const { code } = stripModuleSyntax(source);
-      return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${path} */\n${code.replace(/<\/script/gi, "<\\/script")}\n</script>`;
+      const filename = path.replace(/"/g, "&quot;");
+      return `<script type="application/x-asher-source" data-filename="${filename}">\n${code.replace(/<\/script/gi, "<\\/script")}\n</script>`;
     };
+
+    const sourceRunner = `<script>
+(function(){
+  function showPreviewError(label, err){
+    var msg = err && err.stack ? err.stack : (err && err.message ? err.message : String(err));
+    var pre = document.createElement('pre');
+    pre.style.cssText='color:#f88;background:#1a0a0a;font-family:ui-monospace,monospace;padding:1rem;white-space:pre-wrap;font-size:12px;margin:0';
+    pre.textContent=label + ': ' + msg;
+    document.body.appendChild(pre);
+  }
+  try {
+    if (!window.Babel) { showPreviewError('Preview compiler missing', 'Babel runtime did not load'); return; }
+    var nodes = document.querySelectorAll('script[type="application/x-asher-source"]');
+    Array.prototype.forEach.call(nodes, function(node){
+      var filename = node.getAttribute('data-filename') || 'preview.tsx';
+      try {
+        var compiled = Babel.transform(node.textContent || '', {
+          filename: filename,
+          sourceType: 'script',
+          presets: [['env', { modules: false }], ['react', { runtime: 'classic' }], ['typescript', { allExtensions: true, isTSX: true }]]
+        }).code;
+        (0, eval)(compiled + '\n//# sourceURL=' + filename);
+      } catch (e) { showPreviewError('Preview compile/runtime error in ' + filename, e); }
+    });
+  } catch(e) { showPreviewError('Preview runner error', e); }
+})();
+</script>`;
 
     const html = files.find(f => f.path.endsWith("index.html"));
     if (html) {
@@ -702,6 +730,9 @@ export default function AsherCodeModule() {
       if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
         const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script><script>try{var R=window.React||{};['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','useLayoutEffect','createContext','forwardRef','memo','Fragment','Suspense','lazy','createElement'].forEach(function(k){if(R[k]&&typeof window[k]==='undefined')window[k]=R[k];});if(window.ReactDOM&&typeof window.createRoot==='undefined')window.createRoot=window.ReactDOM.createRoot;}catch(e){}</script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`;
         content = content.includes("</head>") ? content.replace("</head>", `${runtime}</head>`) : runtime + content;
+      }
+      if (needsHtmlCompiler) {
+        content = content.includes("</body>") ? content.replace("</body>", `${sourceRunner}</body>`) : content + sourceRunner;
       }
       return content;
     }
@@ -729,7 +760,7 @@ export default function AsherCodeModule() {
       return /ReactDOM\.render\s*\(/.test(c) || /createRoot\s*\([^)]*\)\s*\.render\s*\(/.test(c);
     });
     const autoMount = (hasReact && mountTarget && !userMountsItself)
-      ? `<script type="text/babel" data-presets="env,react,typescript">
+      ? `<script>
 try {
   const __el = document.getElementById('root') || document.getElementById('app');
   if (__el && typeof ${mountTarget} !== 'undefined') {
@@ -781,7 +812,7 @@ window.addEventListener('error', function(ev){
   document.body.appendChild(pre);
 });
 </script>` : "";
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}${shim}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}${autoMount}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title>${reactCdn}${shim}<style>${css}</style></head><body><div id="root"></div><div id="app"></div>${jsxBlocks}${jsBlocks}${sourceRunner}${autoMount}</body></html>`;
   }, [files, dirty]);
 
   function runPreview() { setPreviewKey(k => k + 1); }
