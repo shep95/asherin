@@ -34,6 +34,9 @@ import {
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSave, getAutoSaveAge, startAutoSaveLoop, clearAutoSave, type IdeModelId, type AutoSaveSnapshot } from "@/lib/ide";
 import { toast } from "sonner";
+import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
+import ZanoemDecisionLog from "./ZanoemDecisionLog";
+import { validateFiles } from "@/lib/ide";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
@@ -576,44 +579,11 @@ export default function AsherCodeModule() {
     } finally { setAiBusy(false); }
   }
 
-  // Detect whether ZANOEM's response is asking the human to make a choice,
-  // confirm a decision, or pick between recommendations.
-  function needsHumanDecision(text: string): boolean {
-    if (!text) return false;
-    const t = text.trim();
-    // Strip out fenced code blocks so questions inside code are ignored
-    const stripped = t.replace(/```[\s\S]*?```/g, "");
-    if (!stripped.trim()) return false;
-    const lower = stripped.toLowerCase();
-    // Direct question marks at end of lines
-    if (/\?\s*$/m.test(stripped)) return true;
-    // Common decision-prompt phrases
-    const cues = [
-      "would you like", "do you want", "should i", "shall i",
-      "which option", "which one", "which approach", "which would you",
-      "let me know", "your preference", "your choice", "your call",
-      "please confirm", "please choose", "please pick", "please select",
-      "option a", "option 1", "recommendation:", "recommendations:",
-      "which do you prefer", "what would you like", "what do you want",
-      "next steps?", "proceed?", "continue?", "ready to proceed",
-    ];
-    return cues.some((c) => lower.includes(c));
-  }
-
-  function buildAutopilotReply(round: number, max: number): string {
-    return [
-      `[YOU DECIDE ZANOEM — autopilot round ${round}/${max}]`,
-      "",
-      "Decide on my behalf. Pick the best option from the recommendations and proceed.",
-      "Rules:",
-      "- Make every decision yourself using first-principles reasoning.",
-      "- Choose the most production-ready, secure, and maintainable path.",
-      "- Do NOT ask me any more questions in this round.",
-      "- Continue building / writing / fixing the code until the task is complete.",
-      "- When you generate code, tag each block with its file path on the fence line (e.g. ```ts src/foo.ts) so files are auto-created.",
-      "- If the project is functionally complete, say 'AUTOPILOT COMPLETE' and stop asking questions.",
-    ].join("\n");
-  }
+  // Decision detection / autopilot reply now live in src/lib/zanoem/decisionLog.ts.
+  const needsHumanDecision = zanoemNeedsDecision;
+  const buildAutopilotReply = zanoemBuildReply;
+  // Track the assistant text that triggered the current autopilot turn (used when logging the decision row).
+  const autopilotTriggerRef = useRef<string>("");
 
   // ── ZANOEM Mode: First-Principles Software Architect ──
   // Routes chat through zali-chat (Gemini, no BYOK required) for inventing
@@ -692,9 +662,25 @@ export default function AsherCodeModule() {
       // Auto-write any code blocks tagged with file paths into the project
       const created = await materializeZanoemCodeBlocks(assistantText);
       if (created > 0) toast.success(`ZANOEM created ${created} file${created === 1 ? "" : "s"}`);
-      // ── AUTOPILOT: ZANOEM decides on the human's behalf ──
+      // ── AUTOPILOT: log this turn's decision (if we're inside one) ──
+      // If THIS response is the answer to the previous autopilot question,
+      // record what was asked + what ZANOEM picked.
+      if (isAutopilotTurn && autopilotTriggerRef.current) {
+        void zanoemLogDecision({
+          surface: "asher_ide",
+          projectRef: activeProject.id,
+          conversationRef: activeProject.id,
+          round: autopilotRoundsRef.current,
+          triggerText: autopilotTriggerRef.current,
+          replySent: composed,
+          responseText: assistantText,
+        });
+        autopilotTriggerRef.current = "";
+      }
+      // ── AUTOPILOT: ZANOEM decides on the human's behalf for the NEXT turn ──
       if (autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && needsHumanDecision(assistantText)) {
         autopilotRoundsRef.current += 1;
+        autopilotTriggerRef.current = assistantText;  // remember what triggered it
         const autoReply = buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
         setAiBusy(false);
         // Tiny delay so UI flushes the streamed message before the next turn starts
@@ -704,6 +690,7 @@ export default function AsherCodeModule() {
       if (isAutopilotTurn && !needsHumanDecision(assistantText)) {
         toast.success(`ZANOEM autopilot complete (${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"})`);
         autopilotRoundsRef.current = 0;
+        autopilotTriggerRef.current = "";
       }
     } catch (e: any) {
       const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };

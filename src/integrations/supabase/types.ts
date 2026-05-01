@@ -6889,6 +6889,63 @@ export type Database = {
         }
         Relationships: []
       }
+      zanoem_autopilot_decisions: {
+        Row: {
+          chosen_option: string | null
+          conversation_ref: string | null
+          created_at: string
+          id: string
+          options: Json
+          overridden_at: string | null
+          override_choice: string | null
+          project_ref: string | null
+          rationale: string | null
+          reply_sent: string | null
+          round: number
+          status: string
+          surface: string
+          trigger_excerpt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chosen_option?: string | null
+          conversation_ref?: string | null
+          created_at?: string
+          id?: string
+          options?: Json
+          overridden_at?: string | null
+          override_choice?: string | null
+          project_ref?: string | null
+          rationale?: string | null
+          reply_sent?: string | null
+          round?: number
+          status?: string
+          surface: string
+          trigger_excerpt: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chosen_option?: string | null
+          conversation_ref?: string | null
+          created_at?: string
+          id?: string
+          options?: Json
+          overridden_at?: string | null
+          override_choice?: string | null
+          project_ref?: string | null
+          rationale?: string | null
+          reply_sent?: string | null
+          round?: number
+          status?: string
+          surface?: string
+          trigger_excerpt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       zeeion_sessions: {
         Row: {
           anomalies: Json | null
