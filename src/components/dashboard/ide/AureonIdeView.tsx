@@ -832,6 +832,18 @@ const AureonIdeView = () => {
             <button onClick={() => setCenterTab("preview")} className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors ${centerTab === "preview" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}>
               <Globe className="h-3 w-3" /> Preview
             </button>
+            <button
+              onClick={() => setCenterTab("workflow")}
+              title="Workflow Map · agents, file tree, timeline"
+              className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-light transition-colors ${centerTab === "workflow" ? "bg-accent/20 text-accent" : "text-muted-foreground/50 hover:text-foreground"}`}
+            >
+              <Network className="h-3 w-3" /> Workflow
+              {swarmAgents.filter(a => a.status === "working").length > 0 && (
+                <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-accent/30 px-1 text-[8px] font-mono text-accent">
+                  {swarmAgents.filter(a => a.status === "working").length}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Save */}
