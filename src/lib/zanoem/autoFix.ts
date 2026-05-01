@@ -41,6 +41,13 @@ interface AutoFixOptions {
   // Max parallel agents (default 6) so we don't slam BYOK provider
   // rate limits when 30 files all break at once.
   swarmConcurrency?: number;
+  // ── PAUSE / ABORT CONTROLS ─────────────────────────────────────
+  // Polled between agents and between passes. If `shouldPause()` returns
+  // true, the loop sleeps in 250ms ticks until it returns false. If
+  // `shouldAbort()` returns true, the loop exits immediately and reports
+  // the current state as `aborted: true`.
+  shouldPause?: () => boolean;
+  shouldAbort?: () => boolean;
 }
 
 type FlatErr = { file: string; line?: number; message: string };
