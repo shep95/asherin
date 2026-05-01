@@ -682,14 +682,26 @@ export default function AsherCodeModule() {
     const html = files.find(f => f.path.endsWith("index.html"));
     if (html) {
       let content = (dirty[html.id] ?? html.content);
+      let needsHtmlCompiler = false;
+      let needsHtmlReact = false;
       for (const f of files) {
         if (f.id === html.id) continue;
         const c = dirty[f.id] ?? f.content;
         if (/\.(tsx?|jsx?|mjs)$/.test(f.path)) {
-          content = content.replace(`<script src="${f.path}"></script>`, compileScriptTag(f.path, c));
-          content = content.replace(`<script type="module" src="${f.path}"></script>`, compileScriptTag(f.path, c));
+          const compiled = compileScriptTag(f.path, c);
+          const escapedPath = f.path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const scriptRef = new RegExp(`<script([^>]*)src=["'](?:\\./)?${escapedPath}["']([^>]*)><\\/script>`, "g");
+          if (scriptRef.test(content)) {
+            content = content.replace(scriptRef, compiled);
+            needsHtmlCompiler = true;
+            if (/\.(tsx|jsx)$/.test(f.path) || /from ['"]react['"]/.test(c)) needsHtmlReact = true;
+          }
         }
         content = content.replace(`<link rel="stylesheet" href="${f.path}">`, `<style>${c}</style>`);
+      }
+      if (needsHtmlCompiler && !/babel\.min\.js/.test(content)) {
+        const runtime = `${needsHtmlReact ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>` : ""}<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`;
+        content = content.includes("</head>") ? content.replace("</head>", `${runtime}</head>`) : runtime + content;
       }
       return content;
     }
