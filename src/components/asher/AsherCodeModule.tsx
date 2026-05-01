@@ -1493,7 +1493,7 @@ try {
       setChat([...next, errMsg]);
       void persistChatMessages([userMsg, errMsg]);
       toast.error(e.message || "ZANOEM call failed");
-    } finally { setAiBusy(false); }
+    } finally { setAiBusy(false); if (!isAutopilotTurn) completePlan(); }
   }
 
   // Bind the offline-queue handlers to the live sendChatViaZanoem so they
