@@ -396,6 +396,15 @@ const ZerlalView = () => {
             {blueprint.branches.map((b) => <BranchCard key={b.id} branch={b} />)}
           </div>
 
+          {/* EXPLOIT CHAIN MAP — kill-chain visualization */}
+          <ExploitChainMap blueprint={blueprint} />
+
+          {/* PATTERN RECOGNITION — recurring developer patterns */}
+          <PatternRecognitionPanel blueprint={blueprint} />
+
+          {/* SUPPLY CHAIN / SBOM */}
+          <SbomPanel blueprint={blueprint} />
+
           {/* Criticals strip */}
           {blueprint.criticals && blueprint.criticals.length > 0 && (
             <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-3">
