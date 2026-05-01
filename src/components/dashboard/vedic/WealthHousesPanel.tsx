@@ -127,6 +127,24 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
 
   const detectedYogas = useMemo(() => YOGAS.filter((y) => y.test(houses)), [houses]);
 
+  const housesForReading = useMemo(
+    () => houses.map((h) => ({ house: h.house, planets: h.planets.map((p) => ({ name: p.name, retrograde: p.retrograde })) })),
+    [houses],
+  );
+
+  const readings = useMemo(() => {
+    const map: Record<number, ReturnType<typeof buildHouseReading>> = {};
+    for (const h of houses) {
+      map[h.house] = buildHouseReading(
+        h.house,
+        h.signIndex,
+        h.planets.map((p) => ({ name: p.name, retrograde: p.retrograde })),
+        housesForReading,
+      );
+    }
+    return map;
+  }, [houses, housesForReading]);
+
   return (
     <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
