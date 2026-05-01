@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Crosshair, Loader2, Globe, Link2, Sparkles, Shield, Zap,
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
-  Copy, Check,
+  Copy, Check, ChevronRight, ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
@@ -10,7 +10,7 @@ import { getActiveIntelMapByok } from "@/lib/intelMapByok";
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
 interface Leaf { label: string; value: string; confidence?: "high" | "med" | "low"; }
-interface Branch { id: string; label: string; icon: string; tone: Tone; leaves: Leaf[]; }
+interface Branch { id: string; label: string; icon: string; tone: Tone; leaves: Leaf[]; subdomains?: string[]; }
 interface Edge { from: string; to: string; label?: string; }
 interface Critical { branch: string; finding: string; severity: "high" | "med" | "low"; }
 interface Blueprint {
@@ -21,6 +21,8 @@ interface Blueprint {
   edges: Edge[];
   criticals?: Critical[];
 }
+
+type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
 
 const ICONS: Record<string, any> = {
   globe: Globe, server: Server, cpu: Cpu, shield: Shield,
