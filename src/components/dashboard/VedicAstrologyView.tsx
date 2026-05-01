@@ -974,6 +974,7 @@ const VedicAstrologyView = () => {
                   <DashaNode
                     key={key}
                     period={period}
+                    chart={chart}
                     expandedKey={key}
                     expandedMap={expandedDasha}
                     setExpandedMap={setExpandedDasha}
