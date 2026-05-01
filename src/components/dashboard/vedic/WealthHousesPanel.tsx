@@ -255,20 +255,68 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
                   ))}
                 </div>
               )}
-              {open && (
-                <div className="px-3 pb-3 pt-2 border-t border-border/20 text-[11px] font-light text-muted-foreground/90 space-y-1">
-                  <div><span className="text-muted-foreground/60">Body / Life:</span> {meta.body}</div>
-                  <div><span className="text-muted-foreground/60">Brand:</span> {meta.brand}</div>
-                  <div><span className="text-muted-foreground/60">Archetype:</span> {meta.archetype}</div>
-                  <div><span className="text-muted-foreground/60">Sign ruler:</span> {sign.ruler} · <span className="text-muted-foreground/60">Element:</span> {sign.element}</div>
-                  {h.planets.length > 0 && (
-                    <div className="pt-1">
-                      <span className="text-foreground/70">Activated by:</span>{" "}
-                      {h.planets.map((p) => p.name).join(", ")} — these planets carry their themes into {meta.title.toLowerCase()}.
+              {open && (() => {
+                const r = readings[h.house];
+                return (
+                  <div className="px-3 pb-3 pt-2 border-t border-border/20 text-[11px] font-light text-muted-foreground/90 space-y-3">
+                    {/* Quick frame */}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                      <div><span className="text-muted-foreground/60">Body / Life:</span> {meta.body}</div>
+                      <div><span className="text-muted-foreground/60">Brand:</span> {meta.brand}</div>
+                      <div><span className="text-muted-foreground/60">Archetype:</span> {meta.archetype}</div>
+                      <div><span className="text-muted-foreground/60">Sign ruler:</span> {sign.ruler} · {sign.element}</div>
+                      <div className="col-span-2"><span className="text-muted-foreground/60">House karaka:</span> {r.houseKaraka} · <span className="text-muted-foreground/60">Themes:</span> {r.houseThemes.join(", ")}</div>
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {/* Resident planets — KRS deep readings */}
+                    {r.residents.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="text-[9px] uppercase tracking-[0.2em] text-foreground/60">Resident Planets</div>
+                        {r.residents.map((res) => (
+                          <div key={res.planet} className="rounded border border-border/20 bg-foreground/[0.02] p-2 space-y-1">
+                            <div className="text-foreground/85">
+                              {res.planet}{res.retrograde && <span className="text-muted-foreground/70"> (R)</span>} in House {h.house} ({sign.name})
+                            </div>
+                            <div className="text-muted-foreground/85 leading-relaxed">{res.reading}</div>
+                            <div className="text-muted-foreground/60 text-[10px]">
+                              Aspect → House {res.aspectHouse}: <span className="text-muted-foreground/80">{res.aspectEffect}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded border border-dashed border-border/25 bg-foreground/[0.015] p-2 text-muted-foreground/85 leading-relaxed">
+                        {r.emptyHouseNote}
+                      </div>
+                    )}
+
+                    {/* Conjunctions */}
+                    {r.conjunctions.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="text-[9px] uppercase tracking-[0.2em] text-foreground/60">Conjunctions in this House</div>
+                        {r.conjunctions.map((c) => (
+                          <div key={c.pair.join("-")} className="rounded border border-border/20 bg-foreground/[0.02] p-2">
+                            <div className="text-foreground/85">{c.pair[0]} + {c.pair[1]} — <span className="text-muted-foreground/80">{c.yogaName}</span></div>
+                            <div className="text-muted-foreground/80 leading-relaxed mt-0.5">{c.effect}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Incoming aspects */}
+                    {r.incomingAspects.length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-[9px] uppercase tracking-[0.2em] text-foreground/60">Aspects Coming In</div>
+                        {r.incomingAspects.map((a, i) => (
+                          <div key={i} className="text-muted-foreground/80">
+                            <span className="text-foreground/80">{a.planet}</span> from House {a.fromHouse} — <span className="text-muted-foreground/70">{a.meaning}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
