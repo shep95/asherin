@@ -31,6 +31,16 @@ interface AutoFixOptions {
   applyFileFix?: (file: AutoFixFile, issues: FlatErr[]) => Promise<boolean> | boolean;
   maxPasses?: number;                                  // default 8
   onProgress?: (pass: number, errorCount: number) => void;
+  // ── SWARM HOOKS ────────────────────────────────────────────────
+  // Called when an agent is spawned for a file. Returns an agent id
+  // the consumer can use to render a live swarm panel. The swarm
+  // dispatcher will call `onAgentDone(id, success)` when the agent
+  // finishes so the UI can fade it out.
+  onAgentSpawn?: (agent: { id: string; file: string; issueCount: number; pass: number }) => void;
+  onAgentDone?: (id: string, success: boolean) => void;
+  // Max parallel agents (default 6) so we don't slam BYOK provider
+  // rate limits when 30 files all break at once.
+  swarmConcurrency?: number;
 }
 
 type FlatErr = { file: string; line?: number; message: string };
@@ -38,6 +48,7 @@ type FlatErr = { file: string; line?: number; message: string };
 /** Wait until there are no validator errors, or we've burned all passes. */
 export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixResult> {
   const max = opts.maxPasses ?? 8;
+  const concurrency = Math.max(1, opts.swarmConcurrency ?? 6);
   const history: AutoFixResult["history"] = [];
 
   const collect = (): FlatErr[] => {
@@ -67,13 +78,44 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
     }
 
     if (opts.applyFileFix) {
-      let applied = 0;
-      for (const f of opts.files()) {
-        const fileErrors = errors.filter((e) => e.file === f.name);
-        if (fileErrors.length && await opts.applyFileFix(f, fileErrors)) applied++;
-      }
-      if (applied > 0) continue;
+      // ── SWARM DISPATCH ──────────────────────────────────────────
+      // Spawn one agent per broken file, run them in parallel (capped
+      // by `concurrency`), then tear the swarm down at the end of the
+      // pass. Each agent owns ONE file end-to-end so failures are
+      // isolated.
+      const targets = opts.files()
+        .map((f) => ({ file: f, issues: errors.filter((e) => e.file === f.name) }))
+        .filter((t) => t.issues.length > 0);
+
+      let appliedTotal = 0;
+      // Simple pool: kick off `concurrency` workers, each pulls the
+      // next target until the queue drains.
+      let cursor = 0;
+      const next = () => (cursor < targets.length ? targets[cursor++] : null);
+      const worker = async () => {
+        while (true) {
+          const t = next();
+          if (!t) return;
+          const agentId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+            ? crypto.randomUUID()
+            : `agent_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          opts.onAgentSpawn?.({ id: agentId, file: t.file.name, issueCount: t.issues.length, pass });
+          let ok = false;
+          try {
+            ok = !!(await opts.applyFileFix!(t.file, t.issues));
+          } catch (e) {
+            console.warn("[swarm-agent] failed on", t.file.name, e);
+            ok = false;
+          } finally {
+            opts.onAgentDone?.(agentId, ok);
+          }
+          if (ok) appliedTotal++;
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => worker()));
+      if (appliedTotal > 0) continue;
     }
+
 
     // Build a structured fix prompt for ZANOEM.
     const grouped: Record<string, string[]> = {};

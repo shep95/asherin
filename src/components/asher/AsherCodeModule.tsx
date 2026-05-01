@@ -156,6 +156,12 @@ export default function AsherCodeModule() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     requestAnimationFrame(() => { chatAutoScrollingRef.current = false; });
   }, [chat, chatScrolledUp]);
+  // ── SWARM AGENTS ─────────────────────────────────────────────
+  // Live registry of per-issue debugger agents. One agent per file
+  // currently being patched. Agents fade out 1.2s after they finish
+  // so the user sees the swarm dissolve in real time.
+  type SwarmAgent = { id: string; file: string; issueCount: number; pass: number; status: "working" | "done" | "failed" };
+  const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([]);
   const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
@@ -303,10 +309,23 @@ export default function AsherCodeModule() {
           await sendZanoemTurnRef.current(prompt);
         },
         maxPasses: 6,
+        swarmConcurrency: 6,
+        onAgentSpawn: (a) => {
+          setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
+        },
+        onAgentDone: (id, success) => {
+          setSwarmAgents((prev) => prev.map((a) => a.id === id ? { ...a, status: success ? "done" : "failed" } : a));
+          // Tear down this agent ~1.2s after completion so the swarm visibly dissolves.
+          setTimeout(() => {
+            setSwarmAgents((prev) => prev.filter((a) => a.id !== id));
+          }, 1200);
+        },
         onProgress: (pass, n) => {
-          if (n > 0) toast.message(`ZANOEM Auto-Fix pass ${pass}: ${n} error${n === 1 ? "" : "s"}`);
+          if (n > 0) toast.message(`◈ Swarm pass ${pass}: spawning ${n} agent${n === 1 ? "" : "s"}`);
         },
       });
+      // Hard-clear any stragglers (e.g. timeouts) when the whole loop exits.
+      setSwarmAgents([]);
       if (result.clean) toast.success(`ZANOEM Auto-Fix: clean (${result.passes} pass${result.passes === 1 ? "" : "es"})`);
       else toast.warning(`ZANOEM Auto-Fix stopped: ${result.finalErrorCount} error(s) remain after ${result.passes} pass(es)`);
     });
@@ -1900,6 +1919,40 @@ try {
                 <ArrowDown className="h-3 w-3" />
                 {aiBusy ? "Asher is still writing — Jump to present" : "Jump to present"}
               </button>
+            )}
+            {/* ── SWARM PANEL ─────────────────────────────────────
+                One pill per live debugger agent. Pills appear when
+                spawned and fade out 1.2s after their fix lands. */}
+            {swarmAgents.length > 0 && (
+              <div className="absolute top-2 right-2 z-30 flex flex-col gap-1 max-w-[60%] animate-fade-in">
+                <div className="flex items-center gap-1.5 text-[9px] font-light tracking-[0.2em] uppercase text-foreground/80 px-2 py-1 rounded border border-border/30 bg-card/90 backdrop-blur-xl shadow-lg">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-foreground/60 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-foreground" />
+                  </span>
+                  ◈ Swarm · {swarmAgents.filter(a => a.status === "working").length} active · {swarmAgents.length} total
+                </div>
+                <div className="flex flex-col gap-0.5 max-h-[180px] overflow-y-auto">
+                  {swarmAgents.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono border backdrop-blur-xl shadow-sm transition-opacity ${
+                        a.status === "working"
+                          ? "bg-card/85 border-border/30 text-foreground/85"
+                          : a.status === "done"
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300/90 opacity-70"
+                          : "bg-destructive/10 border-destructive/30 text-destructive/90 opacity-70"
+                      }`}
+                    >
+                      {a.status === "working" ? <Loader2 className="h-2.5 w-2.5 animate-spin shrink-0" /> :
+                       a.status === "done" ? <span className="text-[10px] leading-none">◉</span> :
+                       <X className="h-2.5 w-2.5 shrink-0" />}
+                      <span className="truncate">{a.file.split("/").pop()}</span>
+                      <span className="opacity-50 shrink-0">· {a.issueCount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
           {/* Pending uploads chips */}
