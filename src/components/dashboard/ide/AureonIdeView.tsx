@@ -18,6 +18,7 @@ import {
   IdeFuzzyFinder,
   IdeApprovalGate,
   IdeModelRouterBadge,
+  IdeValidatorBadge,
   type PlannedChange,
 } from "@/components/ide-shared";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
