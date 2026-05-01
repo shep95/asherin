@@ -367,9 +367,12 @@ Return ONLY the test file in a single fenced code block. One short paragraph aft
     }
     case "edit_plan": {
       // Multi-file edit planner — returns structured JSON plan
-      const fileBlock = (payload.contextFiles || [])
-        .map((f: any) => `--- ${f.path} ---\n${f.content.slice(0, 4000)}`)
-        .join("\n\n");
+      const fileBlock = clampJoin(
+        (payload.contextFiles || []).map((f: any) => ({ header: `--- ${f.path} ---`, body: String(f.content || "") })),
+        4000,
+        MAX_CONTEXT_FILES_TOTAL_CHARS,
+        "\n\n",
+      );
       return [
         {
           role: "user",
