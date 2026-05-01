@@ -1,0 +1,7 @@
+// Public surface for the IDE upgrade pack — used by both Aureon IDE and Asher IDE.
+export * from "./codeValidator";
+export * from "./projectIndex";
+export * from "./versionHistory";
+export * from "./modelRouter";
+export * from "./templates";
+export * from "./errorExplainer";
