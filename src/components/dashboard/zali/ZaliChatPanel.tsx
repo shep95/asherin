@@ -14,6 +14,7 @@ import CodeFilePreview from "../CodeFilePreview";
 import FollowUpSuggestions from "../FollowUpSuggestions";
 import ScrollIntelligence from "../ScrollIntelligence";
 import ZaliQuestionOptions, { parseQuestionOptions } from "./ZaliQuestionOptions";
+import { sanitizeZanoemAssistantContent } from "./zanoemOutput";
 
 const SOFTWARE_TYPES = ["software", "app", "web", "mobile", "api", "saas", "backend", "frontend", "fullstack", "full-stack", "service", "microservice", "platform", "dashboard", "cli", "library", "plugin", "extension", "bot", "automation", "script", "code"];
 
@@ -150,12 +151,6 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
   const { subscribed, loading: subLoading } = useSubscription();
   const { isAdmin } = useAccess();
 
-  // Strip fenced code blocks from chat display — code is rendered in workspace.
-  const stripCodeBlocks = (raw: string): { text: string; codeCount: number } => {
-    let count = 0;
-    const cleaned = raw.replace(/```[\w.+-]*\n[\s\S]*?```/g, () => { count++; return ""; }).replace(/\n{3,}/g, "\n\n").trim();
-    return { text: cleaned, codeCount: count };
-  };
   // Avoid lint warnings for now-removed pieces while preserving prop API
   void onModeChange; void mode; void onCalibrationFeedback;
 
@@ -259,7 +254,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
                   ) : msg.role === "assistant" ? (
                     (() => {
                       const { cleanContent, options } = parseQuestionOptions(msg.content);
-                      const { text: stripped, codeCount } = stripCodeBlocks(cleanContent);
+                      const { text: stripped, codeCount } = sanitizeZanoemAssistantContent(cleanContent);
                       const isLastAssistant = msg === lastMsg && !isStreaming;
                       return (
                         <>
