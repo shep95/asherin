@@ -155,7 +155,7 @@ export default function AsherCodeModule() {
     chatAutoScrollingRef.current = true;
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     requestAnimationFrame(() => { chatAutoScrollingRef.current = false; });
-  }, [chat, aiBusy, chatScrolledUp]);
+  }, [chat, chatScrolledUp]);
   const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
