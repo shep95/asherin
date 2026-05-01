@@ -1398,12 +1398,14 @@ try {
         .map(p => ({ provider: p.id, model: p.models[0].id, apiKey: undefined as any }));
       const byoks = [{ provider, model, apiKey: apiKey || undefined }, ...others];
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
+      const aureon = await loadAureonContext();
       const r = await callAsherCodeAi({
         mode: "orchestrate",
         subMode: "chat",
         byoks,
         messages: [...chat, { role: "user", content: chatInput }],
         contextFiles: ctx,
+        ...aureon,
       });
       setChatInput("");
       setOrchResult(r);
