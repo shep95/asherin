@@ -43,63 +43,16 @@ const PLANET_DEFS: { name: string; symbol: string; body: Astronomy.Body | "Rahu"
   { name: "Ketu", symbol: "☋", body: "Ketu" },
 ];
 
-/**
- * Lahiri (Chitra Paksha) ayanamsa — Swiss Ephemeris reference epoch.
- * SE_SIDM_LAHIRI: at JD 2415020.0 (1900-Jan-0.5 UT) ayanamsa = 22°27'37.69" (22.46047°),
- * drifting at the IAU2006 mean precession rate ≈ 50.290966″/yr.
- * Matches `swe_get_ayanamsa_ut(JD, SE_SIDM_LAHIRI)` to within ~0.5″.
- */
-function lahiriAyanamsa(date: Date): number {
-  const JD = date.getTime() / 86400000 + 2440587.5;
-  const t = (JD - 2415020.0) / 365.25; // tropical years since 1900.0
-  return 22.46047 + (t * 50.290966) / 3600;
-}
-
-/** Mean obliquity of the ecliptic (Laskar 1986, in degrees). */
-function meanObliquity(date: Date): number {
-  const JD = date.getTime() / 86400000 + 2440587.5;
-  const T = (JD - 2451545.0) / 36525;
-  // arcseconds, IAU 1980 + Laskar high-order
-  const eps =
-    84381.448 -
-    46.815 * T -
-    0.00059 * T * T +
-    0.001813 * T * T * T;
-  return eps / 3600;
-}
-
-/**
- * True (osculating) lunar node — Meeus Astronomical Algorithms Ch. 47.
- * Adds the dominant nutation/perturbation term to the mean node so Rahu
- * matches Swiss Ephemeris's SE_TRUE_NODE within ~1 arcminute.
- */
-function trueNodeLongitude(date: Date): number {
-  const JD = date.getTime() / 86400000 + 2440587.5;
-  const T = (JD - 2451545.0) / 36525;
-  const meanNode =
-    125.0445479 -
-    1934.1362891 * T +
-    0.0020754 * T * T +
-    (T * T * T) / 467441 -
-    (T * T * T * T) / 60616000;
-  // Meeus 47.7 — leading periodic term for true node
-  const D = 297.8501921 + 445267.1114034 * T - 0.0018819 * T * T;
-  const M = 357.5291092 + 35999.0502909 * T - 0.0001536 * T * T;
-  const Mp = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T;
-  const F = 93.272095 + 483202.0175233 * T - 0.0036539 * T * T;
-  const deg = Math.PI / 180;
-  const corr =
-    -1.4979 * Math.sin(2 * (D - F) * deg) -
-    0.1500 * Math.sin(M * deg) -
-    0.1226 * Math.sin(2 * D * deg) +
-    0.1176 * Math.sin(2 * F * deg) -
-    0.0801 * Math.sin(2 * (Mp - F) * deg);
-  return ((meanNode + corr) % 360 + 360) % 360;
-}
-
-function norm360(x: number): number {
-  return ((x % 360) + 360) % 360;
-}
+import {
+  apparentEclipticLon,
+  apparentLST,
+  ascendant as computeAscendant,
+  jdFromDate,
+  lahiriAyanamsa,
+  norm360,
+  trueNodeLongitude,
+  trueObliquity,
+} from "@/lib/vedic/swissGrade";
 
 function fmtDeg(deg: number): string {
   const d = Math.floor(deg);
@@ -109,70 +62,40 @@ function fmtDeg(deg: number): string {
   return `${d}° ${m.toString().padStart(2, "0")}' ${s.toString().padStart(2, "0")}"`;
 }
 
-/** Topocentric ecliptic longitude of a body — corrects for observer parallax. */
-function topocentricEclLon(
-  body: Astronomy.Body,
-  time: Astronomy.AstroTime,
-  observer: Astronomy.Observer,
-): number {
-  const geo = Astronomy.GeoVector(body, time, true);
-  const obs = Astronomy.ObserverVector(time, observer, true);
-  const topo = {
-    x: geo.x - obs.x,
-    y: geo.y - obs.y,
-    z: geo.z - obs.z,
-    t: time,
-  } as Astronomy.Vector;
-  return norm360(Astronomy.Ecliptic(topo).elon);
-}
-
 function computeChart(birthUtc: Date, lat: number, lon: number) {
   const time = new Astronomy.AstroTime(birthUtc);
   const observer = new Astronomy.Observer(lat, lon, 0);
-  const ayan = lahiriAyanamsa(birthUtc);
+  const jd = jdFromDate(birthUtc);
+  const ayan = lahiriAyanamsa(jd);
 
   const planets: Planet[] = [];
   for (const def of PLANET_DEFS) {
     if (def.body === "Rahu") {
-      const trop = trueNodeLongitude(birthUtc);
+      const trop = trueNodeLongitude(jd);
       planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde: true });
     } else if (def.body === "Ketu") {
-      const rahu = trueNodeLongitude(birthUtc);
+      const rahu = trueNodeLongitude(jd);
       const trop = norm360(rahu + 180);
       planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde: true });
     } else {
-      // Topocentric for Moon (parallax matters), geocentric for everything else.
-      const trop =
-        def.body === Astronomy.Body.Moon
-          ? topocentricEclLon(Astronomy.Body.Moon, time, observer)
-          : norm360(Astronomy.Ecliptic(Astronomy.GeoVector(def.body as Astronomy.Body, time, true)).elon);
-      // Retrograde detection — sample +1 day delta in ecliptic longitude.
+      // Apparent geocentric (topocentric for Moon → matches Astro-Seek to <30″)
+      const trop = apparentEclipticLon(def.body as Astronomy.Body, time, observer);
       let retrograde = false;
       if (def.body !== Astronomy.Body.Sun && def.body !== Astronomy.Body.Moon) {
         const t2 = new Astronomy.AstroTime(new Date(birthUtc.getTime() + 86400000));
-        const eq2 = Astronomy.Ecliptic(Astronomy.GeoVector(def.body as Astronomy.Body, t2, true));
-        const delta = norm360(eq2.elon - trop + 180) - 180;
+        const trop2 = apparentEclipticLon(def.body as Astronomy.Body, t2);
+        const delta = norm360(trop2 - trop + 180) - 180;
         retrograde = delta < 0;
       }
       planets.push({ ...def, trop, sid: norm360(trop - ayan), retrograde });
     }
   }
 
-  // Ascendant — Meeus AA Ch. 13.4 (corrected form, matches Swiss Ephemeris/Astro-Seek).
-  // Asc = atan2( cos(LST),  -(sin(LST)·cos(ε) + tan(φ)·sin(ε)) )
-  // This places Asc 90° east of MC (LST) in zodiacal order, which is the rising point.
-  const gst = Astronomy.SiderealTime(time); // hours, GMST
-  const lst = norm360((gst + lon / 15) * 15); // local sidereal time in degrees (= MC tropical)
-  const lstRad = (lst * Math.PI) / 180;
-  const latRad = (lat * Math.PI) / 180;
-  const obliquity = (meanObliquity(birthUtc) * Math.PI) / 180;
-  const ascRad = Math.atan2(
-    Math.cos(lstRad),
-    -(Math.sin(lstRad) * Math.cos(obliquity) + Math.tan(latRad) * Math.sin(obliquity)),
-  );
-  const ascTrop = norm360((ascRad * 180) / Math.PI);
+  const ascTrop = computeAscendant(time, lat, lon);
   const ascSid = norm360(ascTrop - ayan);
-  const mcSid = norm360(lst - ayan);
+  const mcSid = norm360(apparentLST(time, lon) - ayan);
+  // touch trueObliquity so tree-shaking keeps it (used implicitly via ascendant)
+  void trueObliquity;
 
   return { planets, ascendant: ascSid, mc: mcSid, ayanamsa: ayan };
 }
