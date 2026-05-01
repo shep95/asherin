@@ -525,11 +525,50 @@ const VedicAstrologyView = () => {
           </div>
         </div>
 
+        {/* TAB STRIP — My Charts vs Country Charts */}
+        <div className="grid grid-cols-2 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
+          {([
+            { key: "mine" as const, icon: User2, label: "My Charts" },
+            { key: "country" as const, icon: Globe2, label: "Country Charts" },
+          ]).map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`px-4 py-3 flex items-center justify-center gap-2 text-xs uppercase tracking-[0.18em] transition border-r border-border/20 last:border-r-0 ${tab === key ? "text-foreground bg-foreground/[0.06]" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Icon className="h-3.5 w-3.5" /> {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "country" && (
+          <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
+            <div className="flex items-center gap-2 border-b border-border/15 pb-3">
+              <Globe2 className="h-4 w-4 text-foreground/70" />
+              <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Global Foundation Charts</h3>
+              <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Independence / Constitution moments · sidereal Lahiri</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {COUNTRY_CHARTS.map((c) => (
+                <button
+                  key={c.code}
+                  onClick={() => void loadCountryChart(c)}
+                  className={`text-left rounded-lg border px-3 py-2.5 transition ${activeCountry?.code === c.code ? "border-foreground/40 bg-foreground/[0.05]" : "border-border/25 bg-background/30 hover:border-border/50 hover:bg-foreground/[0.025]"}`}
+                >
+                  <div className="text-sm font-light text-foreground/90 flex items-center gap-1.5">
+                    <span className="text-base leading-none">{c.flag}</span> {c.name}
+                  </div>
+                  <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70 mt-0.5">{c.event}</div>
+                  <div className="text-[10px] text-muted-foreground/70 mt-0.5 tabular-nums">{c.birthDate} · {c.birthTime} · {c.city}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "mine" && (
         <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label className="space-y-1">
-              <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth date</span>
-              <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm text-foreground focus:outline-none focus:border-foreground/40" />
+
             </label>
             <label className="space-y-1">
               <span className="text-[10px] font-light text-muted-foreground uppercase tracking-wider">Birth time (local)</span>
