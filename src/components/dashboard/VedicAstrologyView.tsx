@@ -130,6 +130,7 @@ const VedicAstrologyView = () => {
   const [cityResults, setCityResults] = useState<{ label: string; lat: number; lon: number }[]>([]);
   const [searching, setSearching] = useState(false);
   const [chart, setChart] = useState<SweVedicChart | null>(null);
+  const [expandedDasha, setExpandedDasha] = useState<Record<string, boolean>>({});
   const [loadingChart, setLoadingChart] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
