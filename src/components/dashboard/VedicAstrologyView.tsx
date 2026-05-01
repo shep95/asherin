@@ -44,11 +44,13 @@ function fmtDeg(deg: number): string {
 }
 
 function fmtDate(date: Date): string {
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+  // US format: MM/DD/YYYY
+  return date.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
 function fmtDateTime(date: Date): string {
-  return date.toLocaleString(undefined, { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  // US format: MM/DD/YYYY, h:mm AM/PM
+  return date.toLocaleString("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 function fmtDuration(years: number): string {
@@ -434,14 +436,14 @@ const VedicAstrologyView = () => {
     if (currentDasha.maha) {
       const cd = [currentDasha.maha, currentDasha.antar, currentDasha.pratyantar, currentDasha.sookshma, currentDasha.prana]
         .filter(Boolean)
-        .map((p) => `${p!.lord} (${DASHA_LEVEL_LABEL[p!.level]} ends ${p!.end.toISOString().slice(0, 10)})`)
+        .map((p) => `${p!.lord} (${DASHA_LEVEL_LABEL[p!.level]} ends ${fmtDate(p!.end)})`)
         .join(" / ");
       lines.push(`Active Vimshottari path: ${cd}`);
     }
     if (dashaTimeline.length > 0) {
       lines.push("Upcoming Mahadashas:");
       for (const m of dashaTimeline.slice(0, 6)) {
-        lines.push(`  ${m.lord}: ${m.start.toISOString().slice(0, 10)} → ${m.end.toISOString().slice(0, 10)}`);
+        lines.push(`  ${m.lord}: ${fmtDate(m.start)} → ${fmtDate(m.end)}`);
       }
     }
     return lines.join("\n");
