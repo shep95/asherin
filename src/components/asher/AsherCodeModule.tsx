@@ -17,6 +17,7 @@ import { callAsherCodeAi, extractCodeBlock, extractJsonBlock, type EditPlan, typ
 import { routeGoal } from "@/lib/asherCode/goalRouter";
 import EditPlanReview from "./AsherCodeEditPlan";
 import AsherCodeOrchestrationResult from "./AsherCodeOrchestrationResult";
+import { AsherCodePlanStepsView } from "./AsherCodePlanSteps";
 import {
   IdeHistoryPanel,
   IdeErrorExplainer,
