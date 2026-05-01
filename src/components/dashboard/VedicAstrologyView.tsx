@@ -109,6 +109,9 @@ const VedicAstrologyView = () => {
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("12:00");
   const [tzOffset, setTzOffset] = useState("0");
+  const [tzZoneName, setTzZoneName] = useState<string | null>(null);
+  const [tzAuto, setTzAuto] = useState(true);
+  const [tzResolving, setTzResolving] = useState(false);
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
   const [cityQuery, setCityQuery] = useState("");
@@ -124,6 +127,7 @@ const VedicAstrologyView = () => {
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const tzDebounceRef = useRef<number | null>(null);
 
   const loadSavedCharts = async () => {
     const { data: auth } = await supabase.auth.getUser();
