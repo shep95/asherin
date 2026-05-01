@@ -324,16 +324,40 @@ export default function AsherCodeModule() {
         swarmConcurrency: 6,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
+          agentFileRef.current.set(a.id, a.file);
+          fileLocksRef.current.add(a.file);
+          const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+          setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: "spawn", file: a.file, pass: a.pass, issueCount: a.issueCount }]);
+          setFileWorkflowStats((prev) => {
+            const cur = prev[a.file] ?? { path: a.file, attempts: 0, successes: 0, failures: 0, lastStatus: "working" as const, lastTs: Date.now() };
+            return { ...prev, [a.file]: { ...cur, attempts: cur.attempts + 1, lastStatus: "working", lastTs: Date.now() } };
+          });
         },
         onAgentDone: (id, success) => {
+          const file = agentFileRef.current.get(id);
           setSwarmAgents((prev) => prev.map((a) => a.id === id ? { ...a, status: success ? "done" : "failed" } : a));
+          if (file) {
+            fileLocksRef.current.delete(file);
+            const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+            setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: success ? "done" : "failed", file }]);
+            setFileWorkflowStats((prev) => {
+              const cur = prev[file];
+              if (!cur) return prev;
+              return { ...prev, [file]: { ...cur, successes: cur.successes + (success ? 1 : 0), failures: cur.failures + (success ? 0 : 1), lastStatus: success ? "done" : "failed", lastTs: Date.now() } };
+            });
+          }
           // Tear down this agent ~1.2s after completion so the swarm visibly dissolves.
           setTimeout(() => {
             setSwarmAgents((prev) => prev.filter((a) => a.id !== id));
+            agentFileRef.current.delete(id);
           }, 1200);
         },
         onProgress: (pass, n) => {
-          if (n > 0) toast.message(`◈ Swarm pass ${pass}: spawning ${n} agent${n === 1 ? "" : "s"}`);
+          if (n > 0) {
+            toast.message(`◈ Swarm pass ${pass}: spawning ${n} agent${n === 1 ? "" : "s"}`);
+            const evId = (typeof crypto !== "undefined" && "randomUUID" in crypto) ? crypto.randomUUID() : `ev_${Date.now()}_${Math.random()}`;
+            setWorkflowEvents((prev) => [...prev.slice(-499), { id: evId, ts: Date.now(), kind: "pass", pass, issueCount: n }]);
+          }
         },
       });
       // Hard-clear any stragglers (e.g. timeouts) when the whole loop exits.
