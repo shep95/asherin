@@ -1002,24 +1002,68 @@ const BranchCard = ({ branch }: { branch: Branch }) => {
         <p className="text-[10px] font-extralight text-muted-foreground/40 italic">No signals detected.</p>
       ) : (
         <ul className="space-y-2">
-          {branch.leaves.map((l, i) => (
-            <li key={i} className="flex items-start gap-2 text-[11px] font-light">
-              <span className="mt-1.5 h-1 w-1 rounded-full bg-muted-foreground/40 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-muted-foreground/60 text-[9px] uppercase tracking-wider">{l.label}</p>
-                <p className="text-foreground/80 break-words">{l.value}</p>
-              </div>
-              {l.confidence && (
-                <span className={`text-[8px] uppercase tracking-wider shrink-0 ${l.confidence === "high" ? "text-emerald-400/60" : l.confidence === "med" ? "text-amber-400/60" : "text-muted-foreground/40"}`}>
-                  {l.confidence}
-                </span>
-              )}
-            </li>
-          ))}
+              {branch.leaves.map((l, i) => <FindingLeaf key={i} branch={branch} leaf={l} />)}
         </ul>
       )}
     </div>
   );
+};
+
+const FindingLeaf = ({ branch, leaf }: { branch: Branch; leaf: Leaf }) => {
+  const [showPoc, setShowPoc] = useState(false);
+  const severity = branch.tone === "critical" ? "Critical" : branch.tone === "warn" ? "High" : "Low";
+  return (
+    <li className="rounded-lg border border-border/10 bg-background/20 px-2.5 py-2 text-[11px] font-light space-y-1.5">
+      <div className="flex items-start gap-2">
+        <span className="mt-1.5 h-1 w-1 rounded-full bg-muted-foreground/40 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-muted-foreground/60 text-[9px] uppercase tracking-wider">{leaf.label}</p>
+          <p className="text-foreground/80 break-words">{leaf.value}</p>
+        </div>
+        <span className={`text-[8px] uppercase tracking-wider shrink-0 ${leaf.confidence === "high" ? "text-emerald-400/60" : leaf.confidence === "med" ? "text-amber-400/60" : "text-muted-foreground/40"}`}>{confidenceLabel(leaf.confidence)}</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 pl-3">
+        <span className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 uppercase">{severity}</span>
+        <span className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 uppercase">{mitreFor(`${branch.label} ${leaf.label} ${leaf.value}`)}</span>
+        <span className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 uppercase">{cveIndicator(leaf.value)}</span>
+        <button type="button" onClick={() => setShowPoc(v => !v)} className="rounded border border-border/15 bg-card/30 px-1.5 py-0.5 text-[8px] tracking-wider text-muted-foreground/70 hover:text-foreground uppercase">PoC {showPoc ? "Hide" : "Show"}</button>
+      </div>
+      {showPoc && <pre className="ml-3 overflow-x-auto rounded border border-border/10 bg-background/50 p-2 text-[9px] text-foreground/70">{pocSnippet(branch, leaf)}</pre>}
+    </li>
+  );
+};
+
+const RemediationActionPanel = ({ blueprint }: { blueprint: Blueprint }) => {
+  const fixes = blueprint.branches.find(b => b.id === "fix" || /remediation|fix|patch/i.test(b.label))?.leaves || [];
+  if (!fixes.length) return <PanelShell title="Remediation Actions" icon={Wrench}><Awaiting note="No remediation instructions returned by the live scan." /></PanelShell>;
+  return (
+    <PanelShell title="Remediation Actions" icon={Wrench} accent="emerald" right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">severity · patched code · chain map</span>}>
+      <ul className="space-y-2">
+        {fixes.map((f, i) => {
+          const sev = /critical|secret|rce|auth|injection|sql|xss/i.test(`${f.label} ${f.value}`) ? "Critical" : /race|await|dependency|cve/i.test(`${f.label} ${f.value}`) ? "High" : "Medium";
+          return (
+            <li key={i} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
+              <div className="flex items-start gap-2">
+                <span className={`rounded px-1.5 py-0.5 text-[8px] tracking-wider uppercase ${sev === "Critical" ? "border border-red-400/30 text-red-300 bg-red-500/[0.05]" : sev === "High" ? "border border-amber-400/30 text-amber-300 bg-amber-500/[0.05]" : "border border-border/20 text-muted-foreground bg-card/30"}`}>{sev}</span>
+                <div className="flex-1 min-w-0"><p className="text-[10px] font-medium text-foreground/85">{f.label}</p><p className="text-[10px] font-light text-muted-foreground/70">{f.value}</p></div>
+                <button type="button" onClick={() => document.getElementById("zerlal-chain-map")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded border border-border/20 bg-card/30 px-2 py-1 text-[9px] text-muted-foreground hover:text-foreground transition">Open Chain Map</button>
+              </div>
+              <pre className="mt-2 overflow-x-auto rounded border border-border/10 bg-background/50 p-2 text-[9px] text-foreground/70">{patchedCodeFor(f)}</pre>
+            </li>
+          );
+        })}
+      </ul>
+    </PanelShell>
+  );
+};
+
+const patchedCodeFor = (leaf: Leaf) => {
+  const text = `${leaf.label} ${leaf.value}`.toLowerCase();
+  if (/eval/.test(text)) return "const parsed = JSON.parse(String(input));\n// validate parsed shape before use";
+  if (/sql|query/.test(text)) return "const { data, error } = await client.from('table').select('*').eq('id', validatedId);";
+  if (/auth|role|admin/.test(text)) return "const { data: { user } } = await supabase.auth.getUser();\nif (!user) throw new Error('Unauthorized');";
+  if (/await|promise/.test(text)) return "try {\n  const result = await operation();\n  return result;\n} catch (error) {\n  handleKnownFailure(error);\n}";
+  return "// Apply the scan-specific patch at the cited line, then re-run ZERLAL to verify closure.";
 };
 
 const CircularProgress = ({ value }: { value: number }) => {
