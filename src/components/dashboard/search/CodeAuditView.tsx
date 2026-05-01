@@ -147,7 +147,7 @@ const ZerlalView = () => {
       risk: computeRiskScore(bp),
       files: fileCount || 1,
       timestamp: new Date().toISOString(),
-      critical: counts.high,
+      critical: counts.critical,
       high: counts.high,
       medium: counts.med,
       low: counts.low,
@@ -777,7 +777,7 @@ const ZerlalDashboardHeader = ({ blueprint, auditing, progress, progressLabel, l
         <div className="space-y-2 min-w-0">
           <div className="flex items-center justify-between gap-3 text-[10px] font-light">
             <span className="tracking-[0.2em] text-foreground/70 uppercase">Severity Breakdown</span>
-            <span className="text-muted-foreground/60 tabular-nums">Critical {counts.high} · High {counts.high} · Medium {counts.med} · Low {counts.low}</span>
+            <span className="text-muted-foreground/60 tabular-nums">Critical {counts.critical} · High {counts.high} · Medium {counts.med} · Low {counts.low}</span>
           </div>
           <SeverityMiniBar counts={counts} />
           <div className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
@@ -807,9 +807,9 @@ const HeaderMetric = ({ label, value }: { label: string; value: string | number 
   </div>
 );
 
-const SeverityMiniBar = ({ counts }: { counts: { high: number; med: number; low: number } }) => {
-  const total = counts.high + counts.med + counts.low || 1;
-  return <div className="h-2 rounded-full overflow-hidden flex bg-foreground/[0.05]"><div className="bg-red-400/80" style={{ width: `${(counts.high / total) * 100}%` }} /><div className="bg-amber-400/80" style={{ width: `${(counts.med / total) * 100}%` }} /><div className="bg-emerald-400/70" style={{ width: `${(counts.low / total) * 100}%` }} /></div>;
+const SeverityMiniBar = ({ counts }: { counts: { critical: number; high: number; med: number; low: number } }) => {
+  const total = counts.critical + counts.high + counts.med + counts.low || 1;
+  return <div className="h-2 rounded-full overflow-hidden flex bg-foreground/[0.05]"><div className="bg-red-400/90" style={{ width: `${(counts.critical / total) * 100}%` }} /><div className="bg-orange-400/80" style={{ width: `${(counts.high / total) * 100}%` }} /><div className="bg-amber-400/80" style={{ width: `${(counts.med / total) * 100}%` }} /><div className="bg-emerald-400/70" style={{ width: `${(counts.low / total) * 100}%` }} /></div>;
 };
 
 const reportItems = (blueprint: Blueprint) => blueprint.branches.flatMap((b) => b.leaves.map((l) => ({ title: `${b.label}: ${l.label}`, snippet: l.value, metadata: { confidence: l.confidence, branch: b.id } })));
