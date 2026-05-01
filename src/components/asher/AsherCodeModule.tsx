@@ -23,6 +23,7 @@ import {
   IdeApprovalGate,
   IdeModelRouterBadge,
   AnimatedOrbBackground,
+  IdeValidatorBadge,
   type PlannedChange,
 } from "@/components/ide-shared";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
