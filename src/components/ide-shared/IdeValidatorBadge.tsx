@@ -49,8 +49,10 @@ export default function IdeValidatorBadge({ content, language = "tsx", collapsib
         {collapsible && issues.length > 0 && (open ? <ChevronUp className="size-3 opacity-60" /> : <ChevronDown className="size-3 opacity-60" />)}
       </button>
       {open && issues.length > 0 && (
-        <ul className="border-t border-current/10 px-2.5 py-1.5 space-y-0.5">
-          {issues.slice(0, 8).map((i, idx) => (
+        <ul className="border-t border-current/10 px-2.5 py-1.5 space-y-0.5 max-h-[280px] overflow-y-auto">
+          {/* Show ALL issues — earlier cap of 8 caused "10 errors but only 7 visible" mismatch
+              when there were warnings/info mixed in or >8 total issues. */}
+          {issues.map((i, idx) => (
             <li key={idx} className="flex items-start gap-1.5">
               {i.severity === "error" ? <XCircle className="size-2.5 mt-0.5 shrink-0" />
                 : i.severity === "warning" ? <AlertTriangle className="size-2.5 mt-0.5 shrink-0" />
