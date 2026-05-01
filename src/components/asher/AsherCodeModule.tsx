@@ -309,10 +309,23 @@ export default function AsherCodeModule() {
           await sendZanoemTurnRef.current(prompt);
         },
         maxPasses: 6,
+        swarmConcurrency: 6,
+        onAgentSpawn: (a) => {
+          setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
+        },
+        onAgentDone: (id, success) => {
+          setSwarmAgents((prev) => prev.map((a) => a.id === id ? { ...a, status: success ? "done" : "failed" } : a));
+          // Tear down this agent ~1.2s after completion so the swarm visibly dissolves.
+          setTimeout(() => {
+            setSwarmAgents((prev) => prev.filter((a) => a.id !== id));
+          }, 1200);
+        },
         onProgress: (pass, n) => {
-          if (n > 0) toast.message(`ZANOEM Auto-Fix pass ${pass}: ${n} error${n === 1 ? "" : "s"}`);
+          if (n > 0) toast.message(`◈ Swarm pass ${pass}: spawning ${n} agent${n === 1 ? "" : "s"}`);
         },
       });
+      // Hard-clear any stragglers (e.g. timeouts) when the whole loop exits.
+      setSwarmAgents([]);
       if (result.clean) toast.success(`ZANOEM Auto-Fix: clean (${result.passes} pass${result.passes === 1 ? "" : "es"})`);
       else toast.warning(`ZANOEM Auto-Fix stopped: ${result.finalErrorCount} error(s) remain after ${result.passes} pass(es)`);
     });
