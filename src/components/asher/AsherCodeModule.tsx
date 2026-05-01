@@ -131,6 +131,48 @@ export default function AsherCodeModule() {
   const [showPublish, setShowPublish] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [chat, setChat] = useState<ChatMsg[]>([]);
+  // ── Auto-approved plan / todo strip ──────────────────────────
+  // Each new user message generates a small checklist of steps
+  // that auto-tick as the agent works. Mirrors the Lovable agent.
+  const [activePlan, setActivePlan] = useState<import("./AsherCodePlanSteps").AsherCodePlan | null>(null);
+  const planTimerRef = useRef<number | null>(null);
+  const stopPlanTicker = useCallback(() => {
+    if (planTimerRef.current != null) { window.clearInterval(planTimerRef.current); planTimerRef.current = null; }
+  }, []);
+  const startPlan = useCallback((prompt: string, intent: "swarm_fix" | "build_all" | "edit_file" | "chat", ctx: { activeFileName?: string; projectName?: string }) => {
+    // Lazy import to avoid circular concerns at module init
+    const { generatePlanSteps } = require("./AsherCodePlanSteps") as typeof import("./AsherCodePlanSteps");
+    const steps = generatePlanSteps(prompt, intent, ctx);
+    if (!steps.length) return;
+    const plan: import("./AsherCodePlanSteps").AsherCodePlan = {
+      id: Math.random().toString(36).slice(2, 9),
+      prompt, intent, steps: steps.map((s, i) => ({ ...s, status: i === 0 ? "running" : "pending" })),
+      startedAt: Date.now(),
+    };
+    setActivePlan(plan);
+    stopPlanTicker();
+    // Advance one step every ~1.4s while the agent is working. The final
+    // step is held in "running" until completePlan() is called from the
+    // response handler — guarantees the checkmark lands when work lands.
+    planTimerRef.current = window.setInterval(() => {
+      setActivePlan((p) => {
+        if (!p) return p;
+        const idx = p.steps.findIndex((s) => s.status === "running");
+        if (idx < 0 || idx >= p.steps.length - 1) return p;
+        const next = p.steps.map((s, i) =>
+          i === idx ? { ...s, status: "done" as const } :
+          i === idx + 1 ? { ...s, status: "running" as const } : s);
+        return { ...p, steps: next };
+      });
+    }, 1400);
+  }, [stopPlanTicker]);
+  const completePlan = useCallback(() => {
+    stopPlanTicker();
+    setActivePlan((p) => p ? { ...p, steps: p.steps.map((s) => ({ ...s, status: "done" as const })) } : p);
+    // Fade the completed plan out after a moment so the chat stays clean
+    window.setTimeout(() => setActivePlan(null), 4000);
+  }, [stopPlanTicker]);
+  useEffect(() => () => stopPlanTicker(), [stopPlanTicker]);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [chatScrolledUp, setChatScrolledUp] = useState(false);
