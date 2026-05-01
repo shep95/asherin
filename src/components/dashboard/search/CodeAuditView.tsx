@@ -15,6 +15,25 @@ interface Leaf { label: string; value: string; confidence?: "high" | "med" | "lo
 interface Branch { id: string; label: string; icon: string; tone: Tone; leaves: Leaf[]; }
 interface Edge { from: string; to: string; label?: string; }
 interface Critical { branch: string; finding: string; severity: "high" | "med" | "low"; }
+interface Intel {
+  board_score?: { total: number; code: number; supply_chain: number; infra: number; human: number; trend: string; peer_median: number };
+  nation_state?: { primary_ttp: string; groups: { id: string; aka: string; nation: string; sectors: string; rationale: string }[]; active_campaign_note: string };
+  red_team?: { stages: { k: string; reachable: boolean; via: string }[] };
+  quantum_crypto?: { algo: string; status: "vulnerable" | "safe"; evidence: string; recommendation: string }[];
+  ai_generated_code?: { pattern: string; evidence: string; confidence: "high" | "med" | "low" }[];
+  dark_web?: { k: string; v: string }[];
+  ueba?: { k: string; v: string }[];
+  ot_ics?: { k: string; exposed: boolean; evidence: string }[];
+  incident_response?: { armed: boolean; affected_surfaces: number; forensic_artifacts: string; breach_notice_drafts: string[]; triage_tasks: number };
+  siem?: { k: string; status: string; alerts_queued: number }[];
+  cve_pipeline?: { k: string; n: number; active: boolean }[];
+  geopolitical?: { scenario: string; risk: "HIGH" | "MED" | "LOW"; time_to_exploit: string }[];
+  compliance?: { framework: string; violations: number; controls: string[] }[];
+  memory_safety?: { k: string; hit: boolean; evidence: string }[];
+  infra_misconfig?: { k: string; hit: boolean; evidence: string }[];
+  zero_day_confidence?: { branch: string; finding: string; confidence_pct: number; novel: boolean; cve_match: string }[];
+  remediation_sla?: { critical_24h: number; high_72h: number; medium_14d: number; low_30d: number };
+}
 interface Blueprint {
   target: string;
   summary: string;
@@ -22,6 +41,7 @@ interface Blueprint {
   branches: Branch[];
   edges: Edge[];
   criticals?: Critical[];
+  intel?: Intel;
 }
 
 const ICONS: Record<string, typeof Shield> = {
@@ -1041,82 +1061,76 @@ const Stat = ({ k, v, tone = "neutral" }: { k: string; v: string | number; tone?
 
 // ── TIER 1 ────────────────────────────────────────────────────────────────────
 
+const Awaiting = ({ note = "Awaiting live signal — re-run scan with deeper depth." }: { note?: string }) => (
+  <p className="text-[10px] font-extralight text-muted-foreground/40 italic">{note}</p>
+);
+
 const BoardRiskScorePanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const score = Math.min(1000, counts.high * 120 + counts.med * 35 + counts.low * 8 + 50);
-  const trend = score > 600 ? "▲ Elevated" : score > 300 ? "→ Stable" : "▼ Improving";
-  const tone = score > 600 ? "red" : score > 300 ? "amber" : "emerald";
+  const b = blueprint.intel?.board_score;
+  if (!b) return <PanelShell title="Board-Level Cyber Risk Score" icon={Shield}><Awaiting /></PanelShell>;
+  const tone = b.total > 600 ? "red" : b.total > 300 ? "amber" : "emerald";
+  const trendArrow = b.trend === "improving" ? "▼" : b.trend === "elevated" ? "▲" : "→";
   return (
     <PanelShell title="Board-Level Cyber Risk Score" icon={Shield} accent={tone}>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
         <div className="col-span-2">
-          <span className="text-3xl font-light tabular-nums text-foreground/90">{score}</span>
+          <span className="text-3xl font-light tabular-nums text-foreground/90">{b.total}</span>
           <span className="text-[9px] tracking-[0.25em] uppercase text-muted-foreground/50 ml-2">/ 1000</span>
-          <p className="text-[10px] font-extralight text-muted-foreground/60 mt-0.5">{trend} · vs industry peer median 420</p>
+          <p className="text-[10px] font-extralight text-muted-foreground/60 mt-0.5">{trendArrow} {b.trend} · vs peer median {b.peer_median}</p>
         </div>
-        <Stat k="Code" v={Math.min(250, counts.high * 30 + counts.med * 8)} tone="red" />
-        <Stat k="Supply Chain" v={Math.min(250, counts.med * 10)} tone="amber" />
-        <Stat k="Infra" v={Math.min(250, counts.low * 5 + 40)} />
-        <Stat k="Human" v={Math.min(250, 60)} />
+        <Stat k="Code" v={b.code} tone="red" />
+        <Stat k="Supply Chain" v={b.supply_chain} tone="amber" />
+        <Stat k="Infra" v={b.infra} />
+        <Stat k="Human" v={b.human} />
       </div>
     </PanelShell>
   );
 };
 
-const APT_GROUPS = [
-  { id: "APT29", aka: "Cozy Bear", nation: "RU", sectors: "Gov · Tech" },
-  { id: "APT41", aka: "Wicked Panda", nation: "CN", sectors: "Healthcare · Telecom" },
-  { id: "Lazarus", aka: "Hidden Cobra", nation: "KP", sectors: "Finance · Crypto" },
-  { id: "Sandworm", aka: "Voodoo Bear", nation: "RU", sectors: "Energy · Industrial" },
-  { id: "Charming Kitten", aka: "APT35", nation: "IR", sectors: "Defense · Academia" },
-];
-
 const NationStateAttributionPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const txt = allLeavesText(blueprint);
-  const matches = APT_GROUPS.filter((_, i) => i < Math.min(APT_GROUPS.length, Math.max(2, counts.high + 1)));
-  const ttp = matchAny(txt, ["sql", "inject"]) ? "T1190 — Exploit Public-Facing App"
-    : matchAny(txt, ["auth", "session", "token"]) ? "T1078 — Valid Accounts"
-    : "T1059 — Command & Scripting Interpreter";
+  const ns = blueprint.intel?.nation_state;
+  if (!ns) return <PanelShell title="Nation-State Attribution" icon={AlertTriangle}><Awaiting /></PanelShell>;
   return (
-    <PanelShell title="Nation-State Attribution" icon={AlertTriangle} accent="red"
-      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">MITRE ATT&CK · {ttp}</span>}>
-      <ul className="space-y-1.5">
-        {matches.map(g => (
-          <li key={g.id} className="flex items-center gap-2 text-[11px] font-light">
-            <span className="h-1.5 w-1.5 rounded-full bg-red-400/70 shrink-0" />
-            <span className="text-foreground/90 font-medium w-28 truncate">{g.id}</span>
-            <span className="text-muted-foreground/60 truncate flex-1">aka {g.aka} · {g.sectors}</span>
-            <span className="text-[9px] tracking-[0.2em] uppercase text-red-300/70 shrink-0">{g.nation}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-[9px] font-extralight text-muted-foreground/50 mt-2 italic">
-        Active campaigns observed against this vulnerability class within the last 30 days.
-      </p>
+    <PanelShell title="Nation-State Attribution" icon={AlertTriangle} accent={ns.groups.length ? "red" : "neutral"}
+      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase truncate max-w-[200px] inline-block">MITRE · {ns.primary_ttp}</span>}>
+      {ns.groups.length === 0 ? (
+        <Awaiting note="No state-actor toolchain matches this finding class." />
+      ) : (
+        <ul className="space-y-1.5">
+          {ns.groups.map((g, i) => (
+            <li key={i} className="text-[11px] font-light">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400/70 shrink-0" />
+                <span className="text-foreground/90 font-medium w-28 truncate">{g.id}</span>
+                <span className="text-muted-foreground/60 truncate flex-1">aka {g.aka} · {g.sectors}</span>
+                <span className="text-[9px] tracking-[0.2em] uppercase text-red-300/70 shrink-0">{g.nation}</span>
+              </div>
+              {g.rationale && <p className="text-[9px] text-muted-foreground/50 ml-4 mt-0.5 italic">{g.rationale}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {ns.active_campaign_note && <p className="text-[9px] font-extralight text-muted-foreground/50 mt-2 italic">{ns.active_campaign_note}</p>}
     </PanelShell>
   );
 };
 
 const AutonomousRedTeamPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const stages = [
-    { k: "Initial Access", on: counts.high + counts.med > 0 },
-    { k: "Execution", on: counts.high > 0 },
-    { k: "Persistence", on: counts.high > 1 },
-    { k: "Priv Escalation", on: counts.high > 0 },
-    { k: "Lateral Movement", on: counts.high + counts.med > 2 },
-    { k: "Exfiltration", on: counts.high > 1 },
-  ];
+  const rt = blueprint.intel?.red_team;
+  if (!rt || !rt.stages?.length) return <PanelShell title="Autonomous Red Team" icon={Workflow}><Awaiting /></PanelShell>;
+  const reachable = rt.stages.filter(s => s.reachable).length;
   return (
-    <PanelShell title="Autonomous Red Team" icon={Workflow} accent="red"
-      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{stages.filter(s => s.on).length}/{stages.length} stages reachable</span>}>
+    <PanelShell title="Autonomous Red Team" icon={Workflow} accent={reachable > 2 ? "red" : "neutral"}
+      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{reachable}/{rt.stages.length} stages reachable</span>}>
       <ol className="space-y-1">
-        {stages.map((s, i) => (
-          <li key={s.k} className="flex items-center gap-2 text-[10px] font-light">
-            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${s.on ? "bg-red-400" : "bg-muted-foreground/30"}`} />
-            <span className="text-muted-foreground/40 w-4 tabular-nums">{i + 1}.</span>
-            <span className={s.on ? "text-foreground/85" : "text-muted-foreground/40 line-through"}>{s.k}</span>
+        {rt.stages.map((s, i) => (
+          <li key={s.k} className="text-[10px] font-light">
+            <div className="flex items-center gap-2">
+              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${s.reachable ? "bg-red-400" : "bg-muted-foreground/30"}`} />
+              <span className="text-muted-foreground/40 w-4 tabular-nums">{i + 1}.</span>
+              <span className={s.reachable ? "text-foreground/85" : "text-muted-foreground/40 line-through"}>{s.k}</span>
+            </div>
+            {s.reachable && s.via && <p className="text-[9px] text-muted-foreground/50 ml-8 italic">via {s.via}</p>}
           </li>
         ))}
       </ol>
@@ -1125,50 +1139,22 @@ const AutonomousRedTeamPanel = ({ blueprint }: { blueprint: Blueprint }) => {
 };
 
 const QuantumCryptoAuditPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const txt = allLeavesText(blueprint);
-  const findings: { algo: string; status: "vulnerable" | "safe"; recommendation: string }[] = [];
-  if (matchAny(txt, ["rsa", "rsa-2048", "rsa-1024"])) findings.push({ algo: "RSA-2048", status: "vulnerable", recommendation: "Migrate → CRYSTALS-Kyber" });
-  if (matchAny(txt, ["ecdsa", "ecc", "secp256"])) findings.push({ algo: "ECDSA / ECC", status: "vulnerable", recommendation: "Migrate → CRYSTALS-Dilithium" });
-  if (matchAny(txt, ["sha-1", "sha1", "md5"])) findings.push({ algo: "SHA-1 / MD5", status: "vulnerable", recommendation: "Replace with SHA-3 / SHAKE" });
-  if (matchAny(txt, ["aes-256", "aes256"])) findings.push({ algo: "AES-256", status: "safe", recommendation: "Quantum-resistant (Grover-tolerant)" });
-  if (findings.length === 0) findings.push({ algo: "No cryptographic primitives detected", status: "safe", recommendation: "Re-scan with deeper depth to confirm" });
+  const q = blueprint.intel?.quantum_crypto;
+  if (!q) return <PanelShell title="Quantum Cryptography Audit" icon={Lock}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="Quantum Cryptography Audit" icon={Lock} accent="violet"
       right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">NIST PQC roadmap</span>}>
-      <ul className="space-y-1.5">
-        {findings.map((f, i) => (
-          <li key={i} className="flex items-center gap-2 text-[10px] font-light">
-            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${f.status === "vulnerable" ? "bg-red-400" : "bg-emerald-400"}`} />
-            <span className="text-foreground/85 w-32 truncate">{f.algo}</span>
-            <span className="text-muted-foreground/60 truncate flex-1">{f.recommendation}</span>
-            <span className={`text-[9px] tracking-wider uppercase shrink-0 ${f.status === "vulnerable" ? "text-red-300/70" : "text-emerald-300/70"}`}>{f.status}</span>
-          </li>
-        ))}
-      </ul>
-    </PanelShell>
-  );
-};
-
-const AiGeneratedCodeSecurityPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const txt = allLeavesText(blueprint);
-  const patterns = [
-    { p: "Predictable Math.random() seed", on: matchAny(txt, ["math.random", "random()"]) },
-    { p: "Over-trusted user input (no validation)", on: matchAny(txt, ["validation", "sanitiz", "input"]) },
-    { p: "Hardcoded fallback secrets / API keys", on: matchAny(txt, ["api key", "secret", "token", "hardcoded"]) },
-    { p: "Generic try/catch swallowing errors", on: matchAny(txt, ["catch", "swallow", "error"]) },
-    { p: "Outdated library version pattern (LLM training cutoff)", on: matchAny(txt, ["deprecated", "outdated", "old version"]) },
-  ];
-  const hits = patterns.filter(p => p.on);
-  return (
-    <PanelShell title="AI-Generated Code Security" icon={Brain} accent="cyan"
-      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{hits.length} LLM-pattern hits</span>}>
-      {hits.length === 0 ? (
-        <p className="text-[10px] font-extralight text-muted-foreground/50 italic">No LLM-typical insecure patterns detected.</p>
-      ) : (
-        <ul className="space-y-1">
-          {hits.map(h => (
-            <li key={h.p} className="flex items-center gap-2 text-[10px] font-light text-foreground/80">
-              <span className="h-1 w-1 rounded-full bg-cyan-400/70 shrink-0" /> {h.p}
+      {q.length === 0 ? <Awaiting note="No cryptographic primitives detected in scanned code." /> : (
+        <ul className="space-y-1.5">
+          {q.map((f, i) => (
+            <li key={i} className="text-[10px] font-light">
+              <div className="flex items-center gap-2">
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${f.status === "vulnerable" ? "bg-red-400" : "bg-emerald-400"}`} />
+                <span className="text-foreground/85 w-32 truncate">{f.algo}</span>
+                <span className="text-muted-foreground/60 truncate flex-1">→ {f.recommendation}</span>
+                <span className={`text-[9px] tracking-wider uppercase shrink-0 ${f.status === "vulnerable" ? "text-red-300/70" : "text-emerald-300/70"}`}>{f.status}</span>
+              </div>
+              {f.evidence && <p className="text-[9px] text-muted-foreground/50 ml-4 italic">{f.evidence}</p>}
             </li>
           ))}
         </ul>
@@ -1177,136 +1163,141 @@ const AiGeneratedCodeSecurityPanel = ({ blueprint }: { blueprint: Blueprint }) =
   );
 };
 
-// ── TIER 2 ────────────────────────────────────────────────────────────────────
+const AiGeneratedCodeSecurityPanel = ({ blueprint }: { blueprint: Blueprint }) => {
+  const a = blueprint.intel?.ai_generated_code;
+  if (!a) return <PanelShell title="AI-Generated Code Security" icon={Brain}><Awaiting /></PanelShell>;
+  return (
+    <PanelShell title="AI-Generated Code Security" icon={Brain} accent="cyan"
+      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{a.length} LLM-pattern hits</span>}>
+      {a.length === 0 ? <Awaiting note="No LLM-typical insecure patterns detected." /> : (
+        <ul className="space-y-1.5">
+          {a.map((h, i) => (
+            <li key={i} className="text-[10px] font-light">
+              <div className="flex items-center gap-2">
+                <span className="h-1 w-1 rounded-full bg-cyan-400/70 shrink-0" />
+                <span className="text-foreground/85 flex-1">{h.pattern}</span>
+                <span className={`text-[9px] tracking-wider uppercase shrink-0 ${h.confidence === "high" ? "text-cyan-300" : "text-muted-foreground/60"}`}>{h.confidence}</span>
+              </div>
+              {h.evidence && <p className="text-[9px] text-muted-foreground/50 ml-3 italic">{h.evidence}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </PanelShell>
+  );
+};
 
 const DarkWebIntelPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const items = [
-    counts.high > 0 && { k: "Exploit dev chatter", v: "RAID forum thread mentions matching CVE class · 4h ago" },
-    counts.high > 1 && { k: "Source code listing", v: "0 confirmed leaks for this target signature" },
-    { k: "Credential markets", v: "No matching corporate emails on Genesis / 2easy" },
-    counts.med > 0 && { k: "Telegram threat channels", v: "2 mentions of this vulnerability category · 24h" },
-  ].filter(Boolean) as { k: string; v: string }[];
+  const d = blueprint.intel?.dark_web;
+  if (!d) return <PanelShell title="Dark Web Intelligence" icon={Eye}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="Dark Web Intelligence" icon={Eye} accent="violet">
-      <ul className="space-y-1.5">
-        {items.map((it, i) => (
-          <li key={i} className="text-[10px] font-light">
-            <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50">{it.k}</span>
-            <p className="text-foreground/80">{it.v}</p>
-          </li>
-        ))}
-      </ul>
+      {d.length === 0 ? <Awaiting note="No matching dark-web activity in last 30 days." /> : (
+        <ul className="space-y-1.5">
+          {d.map((it, i) => (
+            <li key={i} className="text-[10px] font-light">
+              <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50">{it.k}</span>
+              <p className="text-foreground/80">{it.v}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelShell>
   );
 };
 
 const UebaInsiderThreatPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const events = [
-    counts.high > 0 && { k: "Service account anomaly", v: "API call pattern deviates 3.2σ from baseline" },
-    { k: "Off-hours commit", v: "No commits outside 09:00–22:00 baseline window" },
-    counts.med > 0 && { k: "Privilege escalation attempt", v: "1 detected — non-admin invoking admin RPC" },
-    { k: "Bulk repo download", v: "No bulk-clone events in last 7 days" },
-  ].filter(Boolean) as { k: string; v: string }[];
+  const u = blueprint.intel?.ueba;
+  if (!u) return <PanelShell title="UEBA · Insider Threat" icon={Brain}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="UEBA · Insider Threat" icon={Brain} accent="amber">
-      <ul className="space-y-1.5">
-        {events.map((e, i) => (
-          <li key={i} className="text-[10px] font-light">
-            <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50">{e.k}</span>
-            <p className="text-foreground/80">{e.v}</p>
-          </li>
-        ))}
-      </ul>
+      {u.length === 0 ? <Awaiting note="No anomalies in baseline window." /> : (
+        <ul className="space-y-1.5">
+          {u.map((e, i) => (
+            <li key={i} className="text-[10px] font-light">
+              <span className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50">{e.k}</span>
+              <p className="text-foreground/80">{e.v}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelShell>
   );
 };
 
 const OtIcsScadaPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const txt = allLeavesText(blueprint);
-  const exposures = [
-    { k: "Modbus / TCP", on: matchAny(txt, ["modbus", "502"]) },
-    { k: "DNP3", on: matchAny(txt, ["dnp3", "20000"]) },
-    { k: "OPC-UA", on: matchAny(txt, ["opc-ua", "opc"]) },
-    { k: "PLC firmware refs", on: matchAny(txt, ["plc", "firmware", "ladder"]) },
-    { k: "HMI exposure", on: matchAny(txt, ["hmi", "scada", "rtu"]) },
-  ];
-  const any = exposures.some(e => e.on);
+  const o = blueprint.intel?.ot_ics;
+  if (!o) return <PanelShell title="OT / ICS / SCADA" icon={Plug}><Awaiting /></PanelShell>;
+  const any = o.some(e => e.exposed);
   return (
     <PanelShell title="OT / ICS / SCADA" icon={Plug} accent={any ? "red" : "neutral"}>
-      <ul className="space-y-1">
-        {exposures.map(e => (
-          <li key={e.k} className="flex items-center gap-2 text-[10px] font-light">
-            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${e.on ? "bg-red-400" : "bg-emerald-400/60"}`} />
-            <span className="text-foreground/80 flex-1">{e.k}</span>
-            <span className={`text-[9px] tracking-wider uppercase ${e.on ? "text-red-300/70" : "text-muted-foreground/50"}`}>{e.on ? "exposed" : "clean"}</span>
-          </li>
-        ))}
-      </ul>
-      {!any && <p className="text-[9px] font-extralight text-muted-foreground/50 mt-2 italic">No industrial protocol surface in scanned codebase.</p>}
+      {o.length === 0 ? <Awaiting note="No industrial protocol surface in scanned code." /> : (
+        <ul className="space-y-1">
+          {o.map(e => (
+            <li key={e.k} className="text-[10px] font-light">
+              <div className="flex items-center gap-2">
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${e.exposed ? "bg-red-400" : "bg-emerald-400/60"}`} />
+                <span className="text-foreground/80 flex-1">{e.k}</span>
+                <span className={`text-[9px] tracking-wider uppercase ${e.exposed ? "text-red-300/70" : "text-muted-foreground/50"}`}>{e.exposed ? "exposed" : "clean"}</span>
+              </div>
+              {e.evidence && <p className="text-[9px] text-muted-foreground/50 ml-4 italic">{e.evidence}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelShell>
   );
 };
 
 const IncidentResponseCommandPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const armed = counts.high > 0;
+  const ir = blueprint.intel?.incident_response;
+  if (!ir) return <PanelShell title="Incident Response · Command Center" icon={ShieldAlert}><Awaiting /></PanelShell>;
   return (
-    <PanelShell title="Incident Response · Command Center" icon={ShieldAlert} accent={armed ? "red" : "neutral"}
-      right={<span className={`text-[9px] tracking-[0.2em] uppercase ${armed ? "text-red-300/80" : "text-emerald-300/70"}`}>{armed ? "ARMED" : "STANDBY"}</span>}>
+    <PanelShell title="Incident Response · Command Center" icon={ShieldAlert} accent={ir.armed ? "red" : "neutral"}
+      right={<span className={`text-[9px] tracking-[0.2em] uppercase ${ir.armed ? "text-red-300/80" : "text-emerald-300/70"}`}>{ir.armed ? "ARMED" : "STANDBY"}</span>}>
       <div className="grid grid-cols-2 gap-3">
-        <Stat k="Affected Surfaces" v={blueprint.branches.filter(b => b.tone === "critical").length} tone={armed ? "red" : "neutral"} />
-        <Stat k="Forensic Artifacts" v={armed ? "preserved" : "n/a"} />
-        <Stat k="Breach Notice Draft" v={armed ? "GDPR · SEC · HIPAA ready" : "—"} />
-        <Stat k="Triage Tasks" v={counts.high + counts.med} tone="amber" />
+        <Stat k="Affected Surfaces" v={ir.affected_surfaces} tone={ir.armed ? "red" : "neutral"} />
+        <Stat k="Forensic Artifacts" v={ir.forensic_artifacts} />
+        <Stat k="Breach Notice Drafts" v={ir.breach_notice_drafts.join(" · ") || "—"} />
+        <Stat k="Triage Tasks" v={ir.triage_tasks} tone="amber" />
       </div>
     </PanelShell>
   );
 };
 
 const SiemIntegrationStatusPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const sinks = [
-    { k: "Splunk", status: "connected" },
-    { k: "Microsoft Sentinel", status: "connected" },
-    { k: "CrowdStrike Falcon", status: "ready" },
-    { k: "Elastic SIEM", status: "ready" },
-  ];
+  const s = blueprint.intel?.siem;
+  if (!s) return <PanelShell title="SIEM Integration Status" icon={Plug}><Awaiting /></PanelShell>;
+  const total = s.reduce((a, b) => a + (b.alerts_queued || 0), 0);
   return (
     <PanelShell title="SIEM Integration Status" icon={Plug} accent="cyan"
-      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{counts.high + counts.med} alerts queued</span>}>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {sinks.map(s => (
-          <div key={s.k} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
-            <p className="text-[10px] font-medium text-foreground/85">{s.k}</p>
-            <p className="text-[9px] tracking-wider uppercase text-cyan-300/70">{s.status}</p>
-          </div>
-        ))}
-      </div>
+      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{total} alerts queued</span>}>
+      {s.length === 0 ? <Awaiting /> : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {s.map(sink => (
+            <div key={sink.k} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
+              <p className="text-[10px] font-medium text-foreground/85">{sink.k}</p>
+              <p className="text-[9px] tracking-wider uppercase text-cyan-300/70">{sink.status}</p>
+              {sink.alerts_queued > 0 && <p className="text-[9px] text-muted-foreground/60 tabular-nums">{sink.alerts_queued} queued</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </PanelShell>
   );
 };
 
-// ── TIER 3 ────────────────────────────────────────────────────────────────────
-
 const CvePipelinePanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const stages = [
-    { k: "Discovered", n: counts.high + counts.med, on: true },
-    { k: "CVD Drafted", n: counts.high, on: counts.high > 0 },
-    { k: "Vendor Notified", n: counts.high, on: counts.high > 0 },
-    { k: "90-Day Window", n: counts.high, on: counts.high > 0 },
-    { k: "Filed to NVD", n: 0, on: false },
-  ];
+  const c = blueprint.intel?.cve_pipeline;
+  if (!c || !c.length) return <PanelShell title="CVE Pipeline" icon={FileCode}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="CVE Pipeline" icon={FileCode} accent="amber">
       <ol className="space-y-1">
-        {stages.map((s, i) => (
+        {c.map((s, i) => (
           <li key={s.k} className="flex items-center gap-2 text-[10px] font-light">
-            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${s.on ? "bg-amber-400" : "bg-muted-foreground/30"}`} />
+            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${s.active ? "bg-amber-400" : "bg-muted-foreground/30"}`} />
             <span className="text-muted-foreground/40 w-4 tabular-nums">{i + 1}</span>
-            <span className={`flex-1 ${s.on ? "text-foreground/85" : "text-muted-foreground/40"}`}>{s.k}</span>
+            <span className={`flex-1 ${s.active ? "text-foreground/85" : "text-muted-foreground/40"}`}>{s.k}</span>
             <span className="text-[9px] tabular-nums text-muted-foreground/60">{s.n}</span>
           </li>
         ))}
@@ -1316,147 +1307,132 @@ const CvePipelinePanel = ({ blueprint }: { blueprint: Blueprint }) => {
 };
 
 const GeopoliticalThreatPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const scenarios = [
-    { k: "Ransomware escalation", risk: counts.high > 1 ? "HIGH" : "MED", time: counts.high > 1 ? "≤ 14 days" : "30–60 days" },
-    { k: "Supply-chain compromise", risk: counts.med > 2 ? "HIGH" : "LOW", time: "60–90 days" },
-    { k: "Nation-state targeting", risk: counts.high > 0 ? "MED" : "LOW", time: "90–180 days" },
-  ];
+  const g = blueprint.intel?.geopolitical;
+  if (!g) return <PanelShell title="Geopolitical Threat Modeling" icon={AlertTriangle}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="Geopolitical Threat Modeling" icon={AlertTriangle} accent="red">
-      <ul className="space-y-1.5">
-        {scenarios.map(s => (
-          <li key={s.k} className="flex items-center gap-2 text-[10px] font-light">
-            <span className="text-foreground/85 flex-1 truncate">{s.k}</span>
-            <span className="text-muted-foreground/60">{s.time}</span>
-            <span className={`text-[9px] tracking-wider uppercase ${s.risk === "HIGH" ? "text-red-300/80" : s.risk === "MED" ? "text-amber-300/80" : "text-emerald-300/70"}`}>{s.risk}</span>
-          </li>
-        ))}
-      </ul>
+      {g.length === 0 ? <Awaiting /> : (
+        <ul className="space-y-1.5">
+          {g.map((s, i) => (
+            <li key={i} className="flex items-center gap-2 text-[10px] font-light">
+              <span className="text-foreground/85 flex-1 truncate">{s.scenario}</span>
+              <span className="text-muted-foreground/60">{s.time_to_exploit}</span>
+              <span className={`text-[9px] tracking-wider uppercase ${s.risk === "HIGH" ? "text-red-300/80" : s.risk === "MED" ? "text-amber-300/80" : "text-emerald-300/70"}`}>{s.risk}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelShell>
   );
 };
 
 const ComplianceAutoMapPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
-  const frameworks = [
-    { k: "NIST 800-53", n: counts.high * 3 + counts.med * 2 },
-    { k: "SOC 2", n: counts.high * 2 + counts.med },
-    { k: "ISO 27001", n: counts.high * 2 + counts.med },
-    { k: "FedRAMP", n: counts.high * 2 },
-    { k: "HIPAA", n: counts.high },
-    { k: "PCI-DSS", n: counts.high + counts.med },
-    { k: "GDPR", n: counts.high },
-    { k: "EU CRA", n: counts.high },
-  ];
+  const c = blueprint.intel?.compliance;
+  if (!c) return <PanelShell title="Compliance Auto-Map" icon={Shield}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="Compliance Auto-Map" icon={Shield} accent="emerald"
       right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">control violations per framework</span>}>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {frameworks.map(f => (
-          <div key={f.k} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
-            <p className="text-[10px] font-medium text-foreground/85">{f.k}</p>
-            <p className={`text-base font-light tabular-nums ${f.n > 4 ? "text-red-300" : f.n > 0 ? "text-amber-300" : "text-emerald-300"}`}>{f.n}</p>
-          </div>
-        ))}
-      </div>
+      {c.length === 0 ? <Awaiting /> : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {c.map(f => (
+            <div key={f.framework} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
+              <p className="text-[10px] font-medium text-foreground/85">{f.framework}</p>
+              <p className={`text-base font-light tabular-nums ${f.violations > 4 ? "text-red-300" : f.violations > 0 ? "text-amber-300" : "text-emerald-300"}`}>{f.violations}</p>
+              {f.controls?.length > 0 && (
+                <p className="text-[8px] text-muted-foreground/50 tracking-wider truncate">{f.controls.slice(0, 3).join(" · ")}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </PanelShell>
   );
 };
 
 const MemorySafetyPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const txt = allLeavesText(blueprint);
-  const items = [
-    { k: "Buffer overflow risk", on: matchAny(txt, ["buffer", "overflow", "strcpy", "memcpy"]) },
-    { k: "Use-after-free", on: matchAny(txt, ["use-after-free", "uaf", "dangling"]) },
-    { k: "Race condition / TOCTOU", on: matchAny(txt, ["race", "toctou", "concurrent", "thread"]) },
-    { k: "Integer overflow", on: matchAny(txt, ["integer overflow", "int overflow", "wrap"]) },
-    { k: "Null dereference", on: matchAny(txt, ["null", "nullptr", "undefined"]) },
-  ];
-  const hits = items.filter(i => i.on);
+  const m = blueprint.intel?.memory_safety;
+  if (!m) return <PanelShell title="Memory Safety" icon={Bug}><Awaiting /></PanelShell>;
+  const hits = m.filter(i => i.hit).length;
   return (
-    <PanelShell title="Memory Safety" icon={Bug} accent={hits.length ? "red" : "neutral"}
-      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{hits.length} class{hits.length === 1 ? "" : "es"} hit</span>}>
-      <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
-        {items.map(i => (
-          <li key={i.k} className="flex items-center gap-2 text-[10px] font-light">
-            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${i.on ? "bg-red-400" : "bg-emerald-400/60"}`} />
-            <span className={i.on ? "text-foreground/85" : "text-muted-foreground/50"}>{i.k}</span>
-          </li>
-        ))}
-      </ul>
+    <PanelShell title="Memory Safety" icon={Bug} accent={hits ? "red" : "neutral"}
+      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">{hits} class{hits === 1 ? "" : "es"} hit</span>}>
+      {m.length === 0 ? <Awaiting /> : (
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+          {m.map(i => (
+            <li key={i.k} className="text-[10px] font-light">
+              <div className="flex items-center gap-2">
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${i.hit ? "bg-red-400" : "bg-emerald-400/60"}`} />
+                <span className={i.hit ? "text-foreground/85" : "text-muted-foreground/50"}>{i.k}</span>
+              </div>
+              {i.evidence && <p className="text-[9px] text-muted-foreground/50 ml-4 italic truncate">{i.evidence}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelShell>
   );
 };
 
 const InfraMisconfigPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const txt = allLeavesText(blueprint);
-  const items = [
-    { k: "Exposed admin endpoints", on: matchAny(txt, ["admin", "/admin", "phpmyadmin"]) },
-    { k: "Over-privileged IAM", on: matchAny(txt, ["iam", "policy", "wildcard", "*:*"]) },
-    { k: "Container escape vector", on: matchAny(txt, ["docker", "kubernetes", "privileged", "k8s"]) },
-    { k: "Open S3 bucket / object store", on: matchAny(txt, ["s3", "bucket", "public-read"]) },
-    { k: "Default credentials present", on: matchAny(txt, ["default", "admin:admin", "root:root"]) },
-  ];
+  const i = blueprint.intel?.infra_misconfig;
+  if (!i) return <PanelShell title="Infrastructure Misconfiguration" icon={Wrench}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="Infrastructure Misconfiguration" icon={Wrench} accent="amber">
-      <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
-        {items.map(i => (
-          <li key={i.k} className="flex items-center gap-2 text-[10px] font-light">
-            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${i.on ? "bg-amber-400" : "bg-muted-foreground/30"}`} />
-            <span className={i.on ? "text-foreground/85" : "text-muted-foreground/50"}>{i.k}</span>
-          </li>
-        ))}
-      </ul>
+      {i.length === 0 ? <Awaiting /> : (
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+          {i.map(it => (
+            <li key={it.k} className="text-[10px] font-light">
+              <div className="flex items-center gap-2">
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${it.hit ? "bg-amber-400" : "bg-muted-foreground/30"}`} />
+                <span className={it.hit ? "text-foreground/85" : "text-muted-foreground/50"}>{it.k}</span>
+              </div>
+              {it.evidence && <p className="text-[9px] text-muted-foreground/50 ml-4 italic truncate">{it.evidence}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelShell>
   );
 };
 
 const ZeroDayConfidencePanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const items = (blueprint.criticals || []).slice(0, 6).map((c, i) => {
-    const conf = c.severity === "high" ? 78 + (i % 3) * 4 : c.severity === "med" ? 52 + (i % 3) * 5 : 28;
-    const novel = conf > 70;
-    return { ...c, conf, novel };
-  });
-  if (items.length === 0) {
-    return (
-      <PanelShell title="Zero-Day Confidence" icon={Sparkles} accent="violet">
-        <p className="text-[10px] font-extralight text-muted-foreground/50 italic">No findings to score for novelty.</p>
-      </PanelShell>
-    );
-  }
+  const z = blueprint.intel?.zero_day_confidence;
+  if (!z) return <PanelShell title="Zero-Day Confidence" icon={Sparkles}><Awaiting /></PanelShell>;
   return (
     <PanelShell title="Zero-Day Confidence" icon={Sparkles} accent="violet">
-      <ul className="space-y-1.5">
-        {items.map((it, i) => (
-          <li key={i} className="flex items-center gap-2 text-[10px] font-light">
-            <span className="text-foreground/85 w-32 truncate">{it.branch}</span>
-            <span className="text-muted-foreground/60 truncate flex-1">{it.finding}</span>
-            <span className={`tabular-nums shrink-0 ${it.novel ? "text-violet-300" : "text-muted-foreground/60"}`}>{it.conf}%</span>
-            <span className={`text-[9px] tracking-wider uppercase shrink-0 ${it.novel ? "text-violet-300/80" : "text-muted-foreground/50"}`}>{it.novel ? "novel" : "known CVE class"}</span>
-          </li>
-        ))}
-      </ul>
+      {z.length === 0 ? <Awaiting note="No findings to score for novelty." /> : (
+        <ul className="space-y-1.5">
+          {z.map((it, i) => (
+            <li key={i} className="flex items-center gap-2 text-[10px] font-light">
+              <span className="text-foreground/85 w-28 truncate">{it.branch}</span>
+              <span className="text-muted-foreground/60 truncate flex-1">{it.finding}</span>
+              <span className={`tabular-nums shrink-0 ${it.novel ? "text-violet-300" : "text-muted-foreground/60"}`}>{it.confidence_pct}%</span>
+              <span className={`text-[9px] tracking-wider uppercase shrink-0 truncate max-w-[140px] ${it.novel ? "text-violet-300/80" : "text-muted-foreground/50"}`}>{it.cve_match}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelShell>
   );
 };
 
 const RemediationSlaPanel = ({ blueprint }: { blueprint: Blueprint }) => {
-  const counts = countSeverities(blueprint);
+  const r = blueprint.intel?.remediation_sla;
+  if (!r) return <PanelShell title="Remediation SLA Tracker" icon={Wrench}><Awaiting /></PanelShell>;
   const rows = [
-    { sev: "Critical", n: counts.high, sla: "24h", color: "text-red-300" },
-    { sev: "High", n: Math.floor(counts.med * 0.6), sla: "72h", color: "text-amber-300" },
-    { sev: "Medium", n: Math.ceil(counts.med * 0.4), sla: "14d", color: "text-yellow-200" },
-    { sev: "Low", n: counts.low, sla: "30d", color: "text-emerald-300" },
+    { sev: "Critical", n: r.critical_24h, sla: "24h", color: "text-red-300" },
+    { sev: "High", n: r.high_72h, sla: "72h", color: "text-amber-300" },
+    { sev: "Medium", n: r.medium_14d, sla: "14d", color: "text-yellow-200" },
+    { sev: "Low", n: r.low_30d, sla: "30d", color: "text-emerald-300" },
   ];
   return (
     <PanelShell title="Remediation SLA Tracker" icon={Wrench} accent="amber">
       <div className="grid grid-cols-4 gap-3">
-        {rows.map(r => (
-          <div key={r.sev} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
-            <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50">{r.sev}</p>
-            <p className={`text-lg font-light tabular-nums ${r.color}`}>{r.n}</p>
-            <p className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">SLA {r.sla}</p>
+        {rows.map(row => (
+          <div key={row.sev} className="rounded-lg border border-border/15 bg-background/30 px-3 py-2">
+            <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/50">{row.sev}</p>
+            <p className={`text-lg font-light tabular-nums ${row.color}`}>{row.n}</p>
+            <p className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">SLA {row.sla}</p>
           </div>
         ))}
       </div>
@@ -1465,21 +1441,17 @@ const RemediationSlaPanel = ({ blueprint }: { blueprint: Blueprint }) => {
 };
 
 const ScanHistoryPanel = ({ blueprint }: { blueprint: Blueprint }) => {
+  // Real history requires persistence — not faked. Show only current scan posture.
   const risk = computeRiskScore(blueprint);
-  const points = [risk + 12, risk + 6, risk + 3, risk - 2, risk + 1, risk];
-  const max = Math.max(...points, 1);
   return (
     <PanelShell title="Scan History · Posture Trend" icon={Workflow} accent="neutral"
-      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">last 6 scans</span>}>
-      <div className="flex items-end gap-1.5 h-16">
-        {points.map((p, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <div className="w-full rounded-t bg-foreground/15" style={{ height: `${(p / max) * 100}%` }} />
-            <span className="text-[8px] tabular-nums text-muted-foreground/50">{Math.round(p)}</span>
-          </div>
-        ))}
+      right={<span className="text-[9px] tracking-wider text-muted-foreground/50 uppercase">current scan only</span>}>
+      <div className="flex items-center gap-3">
+        <div className="text-2xl font-light tabular-nums text-foreground/85">{Math.round(risk)}</div>
+        <div className="text-[10px] font-extralight text-muted-foreground/60 flex-1">
+          Posture trend will populate after multiple scans are persisted to your account history.
+        </div>
       </div>
-      <p className="text-[9px] font-extralight text-muted-foreground/50 mt-2 italic">Lower is better. Trend reflects posture improvement over recent scans.</p>
     </PanelShell>
   );
 };
