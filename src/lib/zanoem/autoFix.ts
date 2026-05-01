@@ -115,6 +115,8 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
       const next = () => (cursor < targets.length ? targets[cursor++] : null);
       const worker = async () => {
         while (true) {
+          // Honor pause/abort between agents in the same pass.
+          if (await waitWhilePaused()) return;
           const t = next();
           if (!t) return;
           const agentId = (typeof crypto !== "undefined" && "randomUUID" in crypto)
