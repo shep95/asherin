@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Editor from "@monaco-editor/react";
+import JSZip from "jszip";
 import {
   FileText, FolderPlus, Play, Save, Sparkles, Send, Loader2, Settings, X,
   Plus, Trash2, Upload, Code2, Brain, Wand2, Bug, KeyRound, Layers, FileEdit, FlaskConical, Wrench,
-  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff,
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Eye, EyeOff, Image as ImageIcon, FileArchive, Zap,
 } from "lucide-react";
 import AsherCodeDevOps from "./AsherCodeDevOps";
 import ReactMarkdown from "react-markdown";
@@ -39,6 +40,10 @@ export default function AsherCodeModule() {
   const [showFiles, setShowFiles] = useState(() => localStorage.getItem("asherCode.showFiles") !== "0");
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
+  const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
+  const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
+  const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLIFrameElement>(null);
 
   // BYOK config — stored per-tab in localStorage
@@ -53,8 +58,79 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.showFiles", showFiles ? "1" : "0"); }, [showFiles]);
   useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
+  useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
+  useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
-  // Auto-collapse on small viewports
+  // Line-by-line typing animation for AI-generated content
+  function animateApply(fileId: string, finalContent: string) {
+    if (!animateInsertion) {
+      setDirty(d => ({ ...d, [fileId]: finalContent }));
+      return;
+    }
+    const lines = finalContent.split("\n");
+    let i = 0;
+    setDirty(d => ({ ...d, [fileId]: "" }));
+    const tick = () => {
+      i++;
+      const partial = lines.slice(0, i).join("\n");
+      setDirty(d => ({ ...d, [fileId]: partial }));
+      if (i < lines.length) {
+        // Adaptive: faster on long files
+        const delay = lines.length > 200 ? 4 : lines.length > 80 ? 10 : 18;
+        setTimeout(tick, delay);
+      }
+    };
+    tick();
+  }
+
+  // ── File upload handler (images + ZIP + text) ──────────────────
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+    for (const file of files) {
+      if (file.size > MAX_SIZE) {
+        toast.error(`${file.name} exceeds 100MB limit`);
+        continue;
+      }
+      try {
+        if (file.type.startsWith("image/")) {
+          const dataUrl = await new Promise<string>((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(file);
+          });
+          setPendingUploads(p => [...p, { name: file.name, preview: dataUrl, content: dataUrl, kind: "image" }]);
+          toast.success(`Image attached: ${file.name}`);
+        } else if (file.name.endsWith(".zip") || file.type === "application/zip") {
+          const zip = await JSZip.loadAsync(file);
+          let extracted = "";
+          let count = 0;
+          for (const name of Object.keys(zip.files)) {
+            const entry = zip.files[name];
+            if (entry.dir) continue;
+            if (count >= 60) { extracted += `\n[... ${Object.keys(zip.files).length - count} more files truncated]`; break; }
+            try {
+              const txt = await entry.async("string");
+              if (txt.length > 50000) continue;
+              extracted += `\n\n=== ${name} ===\n${txt}`;
+              count++;
+            } catch {}
+          }
+          setPendingUploads(p => [...p, { name: file.name, content: extracted, kind: "zip" }]);
+          toast.success(`ZIP extracted: ${count} files from ${file.name}`);
+        } else {
+          const txt = await file.text();
+          setPendingUploads(p => [...p, { name: file.name, content: txt, kind: "text" }]);
+          toast.success(`Attached: ${file.name}`);
+        }
+      } catch (err: any) {
+        toast.error(`Failed to read ${file.name}: ${err.message}`);
+      }
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
   useEffect(() => {
     const onResize = () => {
       const w = window.innerWidth;
@@ -218,15 +294,29 @@ export default function AsherCodeModule() {
   }
 
   async function sendChat() {
-    if (!chatInput.trim() || aiBusy) return;
-    const userMsg: ChatMsg = { role: "user", content: chatInput };
+    if ((!chatInput.trim() && pendingUploads.length === 0) || aiBusy) return;
+    // Compose attachments into the user message
+    let composed = chatInput;
+    const imageAttachments: { name: string; dataUrl: string }[] = [];
+    for (const u of pendingUploads) {
+      if (u.kind === "image") {
+        imageAttachments.push({ name: u.name, dataUrl: u.preview! });
+        composed += `\n\n[Attached image: ${u.name}]`;
+      } else if (u.kind === "zip") {
+        composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
+      } else {
+        composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+      }
+    }
+    const userMsg: ChatMsg = { role: "user", content: composed };
     const next = [...chat, userMsg];
     setChat(next);
     setChatInput("");
+    setPendingUploads([]);
     setAiBusy(true);
     try {
       const ctx = activeFile ? [{ path: activeFile.path, content: activeContent }] : [];
-      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx });
+      const r = await callAsherCodeAi({ mode: "chat", byok: byok(), messages: next, contextFiles: ctx, images: imageAttachments } as any);
       setChat([...next, { role: "assistant", content: r.reply || "" }]);
     } catch (e: any) {
       setChat([...next, { role: "assistant", content: "**Error:** " + (e.message || "AI call failed") }]);
@@ -251,8 +341,11 @@ export default function AsherCodeModule() {
       const r = await callAsherCodeAi({ mode: "fix", byok: byok(), code: activeContent, language: activeFile.language, error: err });
       setChat(c => [...c, { role: "user", content: `Fix: ${err}` }, { role: "assistant", content: r.reply || "" }]);
       const fixed = extractCodeBlock(r.reply || "");
-      if (fixed && confirm("Replace file content with fixed version?")) {
-        setDirty(d => ({ ...d, [activeFile.id]: fixed }));
+      if (fixed) {
+        if (autoApprove || confirm("Replace file content with fixed version?")) {
+          animateApply(activeFile.id, fixed);
+          if (autoApprove) toast.success("Fix applied — undo via Ctrl+Z in editor");
+        }
       }
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
@@ -265,7 +358,7 @@ export default function AsherCodeModule() {
     try {
       const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language });
       const code = extractCodeBlock(r.reply || "");
-      setDirty(d => ({ ...d, [activeFile.id]: code }));
+      animateApply(activeFile.id, code);
       setChat(c => [...c, { role: "user", content: `Generate: ${desc}` }, { role: "assistant", content: r.reply || "" }]);
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
@@ -304,23 +397,28 @@ export default function AsherCodeModule() {
       const r = await callAsherCodeAi({ mode: "edit_plan", byok: byok(), instruction, contextFiles: projectFiles });
       const plan = extractJsonBlock<EditPlan>(r.reply || "");
       if (!plan?.edits?.length) { toast.error("AI did not return a valid edit plan"); return; }
-      setEditPlan(plan);
+      if (autoApprove) {
+        applyEditPlan(plan.edits.map(e => e.path), plan);
+        toast.success(`Auto-applied ${plan.edits.length} edits — review/undo in editor`);
+      } else {
+        setEditPlan(plan);
+      }
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
 
-  function applyEditPlan(selectedPaths: string[]) {
-    if (!editPlan || !activeProject) return;
+  function applyEditPlan(selectedPaths: string[], planOverride?: EditPlan) {
+    const planToUse = planOverride || editPlan;
+    if (!planToUse || !activeProject) return;
     let appliedCount = 0;
-    let createdFiles: AsherCodeFile[] = [];
     const newDirty = { ...dirty };
-    for (const edit of editPlan.edits) {
+    for (const edit of planToUse.edits) {
       if (!selectedPaths.includes(edit.path)) continue;
       const existing = files.find(f => f.path === edit.path);
       if (existing) {
-        newDirty[existing.id] = edit.new_content;
+        if (animateInsertion) animateApply(existing.id, edit.new_content);
+        else newDirty[existing.id] = edit.new_content;
         appliedCount++;
       } else {
-        // New file — must persist immediately to get an ID
         void supabase.from("asher_code_files").insert({
           project_id: activeProject.id,
           path: edit.path,
@@ -335,9 +433,9 @@ export default function AsherCodeModule() {
         appliedCount++;
       }
     }
-    setDirty(newDirty);
+    if (!animateInsertion) setDirty(newDirty);
     setEditPlan(null);
-    toast.success(`Staged ${appliedCount} edits — review in editor and Save to commit`);
+    toast.success(`${autoApprove ? "Applied" : "Staged"} ${appliedCount} edits — Save to commit`);
   }
 
   // Multi-model orchestration on the chat input
@@ -600,19 +698,51 @@ export default function AsherCodeModule() {
             ))}
             {aiBusy && <div className="flex items-center gap-2 text-[10px] text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Thinking…</div>}
           </div>
+          {/* Pending uploads chips */}
+          {pendingUploads.length > 0 && (
+            <div className="border-t border-border/15 px-2 py-1.5 flex flex-wrap gap-1 bg-card/20">
+              {pendingUploads.map((u, i) => (
+                <div key={i} className="inline-flex items-center gap-1 rounded border border-border/20 bg-card/40 px-1.5 py-0.5 text-[9px] font-light">
+                  {u.kind === "image" ? <ImageIcon className="h-2.5 w-2.5" /> : u.kind === "zip" ? <FileArchive className="h-2.5 w-2.5" /> : <FileText className="h-2.5 w-2.5" />}
+                  <span className="truncate max-w-[80px]">{u.name}</span>
+                  <button onClick={() => setPendingUploads(p => p.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-red-400"><X className="h-2 w-2" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Auto-approve + Animation toggles */}
+          <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5">
+            <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
+              <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-emerald-500 h-2.5 w-2.5" />
+              <Zap className="h-2.5 w-2.5" /> Auto-Apply
+            </label>
+            <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
+              <input type="checkbox" checked={animateInsertion} onChange={(e) => setAnimateInsertion(e.target.checked)} className="accent-emerald-500 h-2.5 w-2.5" />
+              Type-Anim
+            </label>
+          </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
+            <input ref={fileInputRef} type="file" multiple accept="image/*,.zip,.txt,.md,.json,.csv,.py,.js,.ts,.tsx,.jsx,.html,.css" onChange={handleFileUpload} className="hidden" />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={aiBusy}
+              title="Attach images, ZIPs (up to 100MB), or text files"
+              className="rounded border border-border/20 bg-card/40 px-2 hover:border-foreground/30 disabled:opacity-40"
+            >
+              <Upload className="h-3 w-3" />
+            </button>
             <textarea
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
-              placeholder={apiKey ? "Ask Aureon Code…" : "Add API key in BYOK settings first"}
+              placeholder={apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first"}
               disabled={!apiKey}
               rows={2}
               className="flex-1 resize-none rounded border border-border/20 bg-card/40 px-2 py-1.5 text-[11px] font-light placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none disabled:opacity-40"
             />
             <button
               onClick={() => orchestrateMode ? aiOrchestrate() : sendChat()}
-              disabled={aiBusy || !chatInput.trim() || !apiKey}
+              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || !apiKey}
               title={orchestrateMode ? "Orchestrate across 3 models" : "Send"}
               className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
             >
