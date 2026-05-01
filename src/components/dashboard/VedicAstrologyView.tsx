@@ -563,6 +563,61 @@ const VedicAstrologyView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+  // Lazy-compute Lagna for current leaders alongside country charts.
+  useEffect(() => {
+    if (tab !== "country") return;
+    const missing = COUNTRY_LEADERS.filter((l) => !(l.countryCode in leaderLagnas));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      for (const l of missing) {
+        try {
+          const r = await calculateSweVedicChart({
+            birthDate: l.birthDate, birthTime: l.birthTime,
+            tzOffset: l.tzOffset, lat: l.lat, lon: l.lon,
+          });
+          const sign = rashis[Math.floor(r.ascendant / 30)];
+          updates[l.countryCode] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+        } catch {
+          updates[l.countryCode] = null;
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setLeaderLagnas((prev) => ({ ...prev, ...updates }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const loadLeaderChart = async (l: LeaderRecord) => {
+    setTzAuto(false);
+    setBirthDate(l.birthDate);
+    setBirthTime(l.birthTime);
+    setTzOffset(String(l.tzOffset));
+    setTzZoneName(null);
+    setLat(String(l.lat));
+    setLon(String(l.lon));
+    setCityQuery(`${l.city}`);
+    setError(null);
+    setLoadingChart(true);
+    setActiveCountry(null);
+    setActiveSavedId(null);
+    setActiveName(`${l.name} · ${l.role}`);
+    try {
+      await computeAndSetChart({
+        birthDate: l.birthDate, birthTime: l.birthTime,
+        tzOffset: String(l.tzOffset), lat: String(l.lat), lon: String(l.lon),
+      });
+      setTab("mine");
+      toast.success(`Loaded ${l.name}'s chart${l.timeKnown ? "" : " (noon-chart)"}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
   return (
     <div
       className="h-full overflow-y-auto relative"
