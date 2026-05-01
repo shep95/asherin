@@ -136,10 +136,10 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
       </div>
 
       {/* Wealth Doctrine accordion */}
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.02]">
-        <div className="px-4 py-2.5 flex items-center gap-2 border-b border-amber-500/20">
-          <Coins className="h-3.5 w-3.5 text-amber-500/80" />
-          <span className="text-xs font-light tracking-[0.15em] text-amber-500/90 uppercase">
+      <div className="rounded-lg border border-border/40 bg-foreground/[0.015]">
+        <div className="px-4 py-2.5 flex items-center gap-2 border-b border-border/25">
+          <Coins className="h-3.5 w-3.5 text-foreground/70" />
+          <span className="text-xs font-light tracking-[0.15em] text-foreground/85 uppercase">
             Wealth Doctrine — How Vedic Astrology Reveals Wealth
           </span>
         </div>
@@ -152,7 +152,7 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
             <button
               key={key}
               onClick={() => setSection(section === key ? null : key)}
-              className="px-4 py-2.5 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition border-r border-amber-500/10 last:border-r-0"
+              className="px-4 py-2.5 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition border-r border-border/15 last:border-r-0"
             >
               <Icon className="h-3 w-3" />
               <span className="font-light">{label}</span>
@@ -161,22 +161,22 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
           ))}
         </div>
         {section === "step" && (
-          <div className="px-4 py-3 border-t border-amber-500/10 text-xs text-muted-foreground/90 font-light leading-relaxed space-y-2">
-            <p><span className="text-foreground">1.</span> Identify your <span className="text-amber-500/90">2nd house</span> ({rashis[houses[1].signIndex].name}) — the bank account.</p>
-            <p><span className="text-foreground">2.</span> Locate the <span className="text-amber-500/90">2nd lord</span> ({rashis[houses[1].signIndex].ruler}) — where your money comes from by sign and house.</p>
-            <p><span className="text-foreground">3.</span> Check the <span className="text-amber-500/90">11th house of gains</span> ({rashis[houses[10].signIndex].name}) and its lord ({rashis[houses[10].signIndex].ruler}).</p>
-            <p><span className="text-foreground">4.</span> Examine the <span className="text-amber-500/90">5th (speculation)</span> and <span className="text-amber-500/90">9th (fortune)</span>: {rashis[houses[4].signIndex].name} & {rashis[houses[8].signIndex].name}.</p>
-            <p><span className="text-foreground">5.</span> Look for connections (conjunction / aspect / exchange) between these lords — these are <span className="text-amber-500/90">Dhana Yogas</span>.</p>
+          <div className="px-4 py-3 border-t border-border/15 text-xs text-muted-foreground/90 font-light leading-relaxed space-y-2">
+            <p><span className="text-foreground">1.</span> Identify your <span className="text-foreground/85">2nd house</span> ({rashis[houses[1].signIndex].name}) — the bank account.</p>
+            <p><span className="text-foreground">2.</span> Locate the <span className="text-foreground/85">2nd lord</span> ({rashis[houses[1].signIndex].ruler}) — where your money comes from by sign and house.</p>
+            <p><span className="text-foreground">3.</span> Check the <span className="text-foreground/85">11th house of gains</span> ({rashis[houses[10].signIndex].name}) and its lord ({rashis[houses[10].signIndex].ruler}).</p>
+            <p><span className="text-foreground">4.</span> Examine the <span className="text-foreground/85">5th (speculation)</span> and <span className="text-foreground/85">9th (fortune)</span>: {rashis[houses[4].signIndex].name} & {rashis[houses[8].signIndex].name}.</p>
+            <p><span className="text-foreground">5.</span> Look for connections (conjunction / aspect / exchange) between these lords — these are <span className="text-foreground/85">Dhana Yogas</span>.</p>
           </div>
         )}
         {section === "yogas" && (
-          <div className="px-4 py-3 border-t border-amber-500/10 text-xs space-y-2">
+          <div className="px-4 py-3 border-t border-border/15 text-xs space-y-2">
             {detectedYogas.length === 0 ? (
               <p className="text-muted-foreground/70 font-light italic">No major classical yogas detected in primary set.</p>
             ) : (
               detectedYogas.map((y) => (
                 <div key={y.name} className="flex gap-2">
-                  <Sparkles className="h-3 w-3 text-amber-500/80 mt-0.5 shrink-0" />
+                  <Sparkles className="h-3 w-3 text-foreground/70 mt-0.5 shrink-0" />
                   <div>
                     <span className="text-foreground font-light">{y.name}</span>
                     <span className="text-muted-foreground/80 font-light"> — {y.desc}</span>
@@ -187,10 +187,10 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
           </div>
         )}
         {section === "glossary" && (
-          <div className="px-4 py-3 border-t border-amber-500/10 text-xs grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+          <div className="px-4 py-3 border-t border-border/15 text-xs grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
             {GLOSSARY.map((g) => (
               <div key={g.term}>
-                <span className="text-amber-500/90 font-light">{g.term}</span>
+                <span className="text-foreground/85 font-light">{g.term}</span>
                 <span className="text-muted-foreground/80 font-light"> — {g.def}</span>
               </div>
             ))}
@@ -208,7 +208,7 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
             <div
               key={h.house}
               className={`rounded-lg border bg-background/30 transition cursor-pointer ${
-                open ? "border-amber-500/50 bg-amber-500/[0.03]" : "border-border/25 hover:border-border/50"
+                open ? "border-foreground/40 bg-foreground/[0.04]" : "border-border/25 hover:border-border/50"
               }`}
               onClick={() => setOpenHouse(open ? null : h.house)}
             >
@@ -217,7 +217,7 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
                   <div className="text-[9px] font-light text-muted-foreground/70 uppercase tracking-[0.12em]">
                     House {h.house} · {meta.title}
                   </div>
-                  <div className="text-sm font-light text-amber-500/90 mt-0.5">
+                  <div className="text-sm font-light text-foreground/85 mt-0.5">
                     {sign.symbol} {sign.name} <span className="text-muted-foreground/70">({sign.sanskrit})</span>
                   </div>
                 </div>
@@ -228,9 +228,9 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
                   {h.planets.map((p) => (
                     <span
                       key={p.name}
-                      className="inline-flex items-center gap-1 rounded border border-amber-500/25 bg-amber-500/[0.04] px-1.5 py-0.5 text-[10px] font-light text-foreground/85"
+                      className="inline-flex items-center gap-1 rounded border border-border/30 bg-foreground/[0.04] px-1.5 py-0.5 text-[10px] font-light text-foreground/85"
                     >
-                      <span className="text-amber-500/80">{p.symbol}</span>
+                      <span className="text-foreground/70">{p.symbol}</span>
                       {p.name}{p.retrograde && <span className="text-muted-foreground"> ʀ</span>}
                     </span>
                   ))}
@@ -244,7 +244,7 @@ export default function WealthHousesPanel({ ascendant, planets }: Props) {
                   <div><span className="text-muted-foreground/60">Sign ruler:</span> {sign.ruler} · <span className="text-muted-foreground/60">Element:</span> {sign.element}</div>
                   {h.planets.length > 0 && (
                     <div className="pt-1">
-                      <span className="text-amber-500/80">Activated by:</span>{" "}
+                      <span className="text-foreground/70">Activated by:</span>{" "}
                       {h.planets.map((p) => p.name).join(", ")} — these planets carry their themes into {meta.title.toLowerCase()}.
                     </div>
                   )}
