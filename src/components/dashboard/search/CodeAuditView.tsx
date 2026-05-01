@@ -760,7 +760,7 @@ const ZerlalTopNav = ({ active, onChange }: { active: ZerlalPage; onChange: (p: 
 const ZerlalDashboardHeader = ({ blueprint, auditing, progress, progressLabel, liveLog, fileCount, scanStartedAt, scanCompletedAt }: {
   blueprint: Blueprint | null; auditing: boolean; progress: number; progressLabel: string; liveLog: { agent: string; file: string; findings: number; ts: number }[]; fileCount: number; scanStartedAt: string | null; scanCompletedAt: string | null;
 }) => {
-  const counts = blueprint ? countSeverities(blueprint) : { high: 0, med: 0, low: 0 };
+  const counts = blueprint ? countSeverities(blueprint) : { critical: 0, high: 0, med: 0, low: 0 };
   const risk = blueprint ? computeRiskScore(blueprint) : 0;
   const latest = liveLog[0];
   const stamp = scanCompletedAt || scanStartedAt;
