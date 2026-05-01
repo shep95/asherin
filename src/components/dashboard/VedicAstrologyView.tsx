@@ -804,6 +804,24 @@ const VedicAstrologyView = () => {
           </div>
         )}
       </div>
+
+      {/* Floating ASHER chat trigger */}
+      <button
+        onClick={() => setChatOpen(true)}
+        disabled={!chartKey}
+        className="fixed bottom-6 right-6 z-30 inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-background/80 backdrop-blur-md px-4 py-2.5 text-xs uppercase tracking-[0.18em] text-foreground hover:bg-foreground/10 shadow-[0_8px_28px_rgba(0,0,0,0.5)] disabled:opacity-40 transition"
+        aria-label="Open ASHER AI chat"
+      >
+        <MessageSquare className="h-3.5 w-3.5" /> Ask Asher
+      </button>
+
+      <AsherChatPanel
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        chartKey={chartKey}
+        chartLabel={chartLabel}
+        chartContext={chartContext}
+      />
     </div>
   );
 };
