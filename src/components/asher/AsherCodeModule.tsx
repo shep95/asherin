@@ -1425,6 +1425,7 @@ try {
     if (!targets.length) { toast.info("No `// AI: ...` prompts found in this file"); return; }
     setAiBusy(true);
     try {
+      const aureon = await loadAureonContext();
       const newLines = [...lines];
       // Process bottom-up so indices stay stable
       for (const t of [...targets].reverse()) {
@@ -1437,6 +1438,7 @@ try {
           language: activeFile.language,
           before: `${before}\n// REQUEST: ${t.prompt}\n`,
           after,
+          ...aureon,
         });
         const completion = (r.reply || "").trim().replace(/^```[\w]*\n?|\n?```$/g, "");
         const indented = completion.split("\n").map(l => t.indent + l).join("\n");
