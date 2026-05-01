@@ -14,6 +14,7 @@ import {
   Plus,
   Trash2,
   Check,
+  Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -101,6 +102,11 @@ const AsherZaliModule = () => {
   const [chatMode, setChatMode] = useState<ChatMode>("chat");
   const [chatDepth, setChatDepth] = useState<ResponseDepth>("standard");
   const abortRef = useRef<AbortController | null>(null);
+  const [autopilot, setAutopilot] = useState(() => localStorage.getItem("asherZanoem.autopilot") === "1");
+  const autopilotRoundsRef = useRef(0);
+  const wasStreamingRef = useRef(false);
+  const AUTOPILOT_MAX_ROUNDS = 6;
+  useEffect(() => { localStorage.setItem("asherZanoem.autopilot", autopilot ? "1" : "0"); }, [autopilot]);
   const [autoBuildModel, setAutoBuildModel] = useState(false);
   const [modelPrompt, setModelPrompt] = useState("");
   const [codeFiles, setCodeFiles] = useState<Array<{ filename: string; language: string; content: string }>>([]);
@@ -428,7 +434,73 @@ const AsherZaliModule = () => {
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort();
     setIsStreaming(false);
+    autopilotRoundsRef.current = 0;
   }, []);
+
+  // ── "You Decide ZANOEM" autopilot helpers ──
+  const needsHumanDecision = useCallback((text: string): boolean => {
+    if (!text) return false;
+    const stripped = text.replace(/```[\s\S]*?```/g, "").trim();
+    if (!stripped) return false;
+    const lower = stripped.toLowerCase();
+    if (/\?\s*$/m.test(stripped)) return true;
+    const cues = [
+      "would you like", "do you want", "should i", "shall i",
+      "which option", "which one", "which approach", "which would you",
+      "let me know", "your preference", "your choice", "your call",
+      "please confirm", "please choose", "please pick", "please select",
+      "option a", "option 1", "recommendation:", "recommendations:",
+      "which do you prefer", "what would you like", "what do you want",
+      "next steps?", "proceed?", "continue?", "ready to proceed",
+    ];
+    return cues.some((c) => lower.includes(c));
+  }, []);
+
+  const buildAutopilotReply = useCallback((round: number, max: number): string => [
+    `[YOU DECIDE ZANOEM — autopilot round ${round}/${max}]`,
+    "",
+    "Decide on my behalf. Pick the best option from your recommendations and proceed.",
+    "Rules:",
+    "- Make every decision yourself using first-principles reasoning.",
+    "- Choose the most production-ready, secure, and maintainable path.",
+    "- Do NOT ask me any more questions in this round.",
+    "- Continue building / writing / fixing until the task is complete.",
+    "- If the task is functionally complete, say 'AUTOPILOT COMPLETE' and stop.",
+  ].join("\n"), []);
+
+  // Wrap sendMessage so user-initiated turns reset the autopilot counter.
+  const sendMessageHuman = useCallback((content: string) => {
+    autopilotRoundsRef.current = 0;
+    void sendMessage(content);
+  }, [sendMessage]);
+
+  // Watcher: when streaming finishes, if autopilot is on and ZANOEM asked
+  // a question / made a recommendation, auto-reply on the human's behalf.
+  useEffect(() => {
+    if (wasStreamingRef.current && !isStreaming) {
+      const last = messages[messages.length - 1];
+      if (
+        autopilot &&
+        last?.role === "assistant" &&
+        last.content &&
+        needsHumanDecision(last.content) &&
+        autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS
+      ) {
+        autopilotRoundsRef.current += 1;
+        const reply = buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        const t = setTimeout(() => { void sendMessage(reply); }, 400);
+        wasStreamingRef.current = isStreaming;
+        return () => clearTimeout(t);
+      } else if (autopilotRoundsRef.current > 0) {
+        toast({
+          title: "ZANOEM autopilot complete",
+          description: `${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"} executed`,
+        });
+        autopilotRoundsRef.current = 0;
+      }
+    }
+    wasStreamingRef.current = isStreaming;
+  }, [isStreaming, messages, autopilot, needsHumanDecision, buildAutopilotReply, sendMessage, toast]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -622,11 +694,26 @@ const AsherZaliModule = () => {
             style={{ width: chatWidth }}
             className="border-l border-border/15 bg-card/20 backdrop-blur-sm flex flex-col overflow-hidden"
           >
-            <div className="px-3 py-2 border-b border-border/10 flex items-center gap-2">
+            <div className="px-3 py-2 border-b border-border/10 flex items-center gap-2 flex-wrap">
               <span className="text-foreground/50 text-xs">◈</span>
               <span className="text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/80">
                 ZANOEM Conversation
               </span>
+              <button
+                onClick={() => setAutopilot((v) => !v)}
+                title="You Decide ZANOEM: autopilot. ZANOEM auto-answers its own questions and recommendations on your behalf for up to 6 rounds."
+                className={`ml-2 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[8.5px] font-light tracking-[0.2em] uppercase transition ${
+                  autopilot
+                    ? "border-foreground/40 bg-foreground/15 text-foreground"
+                    : "border-border/30 bg-card/30 text-muted-foreground/70 hover:border-foreground/30"
+                }`}
+              >
+                <Zap className="h-2.5 w-2.5" />
+                You Decide ZANOEM
+                {autopilot && autopilotRoundsRef.current > 0 && (
+                  <span className="ml-1 text-foreground/70">{autopilotRoundsRef.current}/{AUTOPILOT_MAX_ROUNDS}</span>
+                )}
+              </button>
               {isStreaming && (
                 <span className="ml-auto flex items-center gap-1.5">
                   <span className="h-1 w-1 rounded-full bg-foreground/60 animate-pulse" />
@@ -641,7 +728,7 @@ const AsherZaliModule = () => {
                     messages={messages}
                     project={activeProject}
                     isStreaming={isStreaming}
-                    onSend={sendMessage}
+                    onSend={sendMessageHuman}
                     onStop={stopStreaming}
                     mode={chatMode}
                     onModeChange={setChatMode}
@@ -677,7 +764,7 @@ const AsherZaliModule = () => {
                   messages={messages}
                   project={activeProject}
                   isStreaming={isStreaming}
-                  onSend={sendMessage}
+                  onSend={sendMessageHuman}
                   onStop={stopStreaming}
                   mode={chatMode}
                   onModeChange={setChatMode}

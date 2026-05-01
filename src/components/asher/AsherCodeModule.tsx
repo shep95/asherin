@@ -83,6 +83,9 @@ export default function AsherCodeModule() {
   const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
+  const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("asherCode.autopilotZanoem") === "1");
+  const autopilotRoundsRef = useRef(0);
+  const AUTOPILOT_MAX_ROUNDS = 6;
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
@@ -119,6 +122,7 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.viewMode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
   useEffect(() => { localStorage.setItem("asherCode.zanoemMode", zanoemMode ? "1" : "0"); }, [zanoemMode]);
+  useEffect(() => { localStorage.setItem("asherCode.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
 
@@ -572,22 +576,63 @@ export default function AsherCodeModule() {
     } finally { setAiBusy(false); }
   }
 
+  // Detect whether ZANOEM's response is asking the human to make a choice,
+  // confirm a decision, or pick between recommendations.
+  function needsHumanDecision(text: string): boolean {
+    if (!text) return false;
+    const t = text.trim();
+    // Strip out fenced code blocks so questions inside code are ignored
+    const stripped = t.replace(/```[\s\S]*?```/g, "");
+    if (!stripped.trim()) return false;
+    const lower = stripped.toLowerCase();
+    // Direct question marks at end of lines
+    if (/\?\s*$/m.test(stripped)) return true;
+    // Common decision-prompt phrases
+    const cues = [
+      "would you like", "do you want", "should i", "shall i",
+      "which option", "which one", "which approach", "which would you",
+      "let me know", "your preference", "your choice", "your call",
+      "please confirm", "please choose", "please pick", "please select",
+      "option a", "option 1", "recommendation:", "recommendations:",
+      "which do you prefer", "what would you like", "what do you want",
+      "next steps?", "proceed?", "continue?", "ready to proceed",
+    ];
+    return cues.some((c) => lower.includes(c));
+  }
+
+  function buildAutopilotReply(round: number, max: number): string {
+    return [
+      `[YOU DECIDE ZANOEM — autopilot round ${round}/${max}]`,
+      "",
+      "Decide on my behalf. Pick the best option from the recommendations and proceed.",
+      "Rules:",
+      "- Make every decision yourself using first-principles reasoning.",
+      "- Choose the most production-ready, secure, and maintainable path.",
+      "- Do NOT ask me any more questions in this round.",
+      "- Continue building / writing / fixing the code until the task is complete.",
+      "- When you generate code, tag each block with its file path on the fence line (e.g. ```ts src/foo.ts) so files are auto-created.",
+      "- If the project is functionally complete, say 'AUTOPILOT COMPLETE' and stop asking questions.",
+    ].join("\n");
+  }
+
   // ── ZANOEM Mode: First-Principles Software Architect ──
   // Routes chat through zali-chat (Gemini, no BYOK required) for inventing
   // brand-new software from first principles. Auto-extracts ``` code blocks
   // tagged with file paths and writes them into the project as new files.
-  async function sendChatViaZanoem() {
+  async function sendChatViaZanoem(overrideContent?: string, isAutopilotTurn = false) {
     if (!activeProject || !user) { toast.error("Open a project first"); return; }
-    let composed = chatInput;
-    for (const u of pendingUploads) {
-      if (u.kind === "zip") composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
-      else if (u.kind === "text") composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+    let composed = overrideContent ?? chatInput;
+    if (!isAutopilotTurn) {
+      for (const u of pendingUploads) {
+        if (u.kind === "zip") composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
+        else if (u.kind === "text") composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+      }
     }
     const userMsg: ChatMsg = { role: "user", content: composed };
     const next = [...chat, userMsg];
     setChat(next);
-    setChatInput("");
-    setPendingUploads([]);
+    if (!isAutopilotTurn) { setChatInput(""); setPendingUploads([]); }
+    if (!isAutopilotTurn) autopilotRoundsRef.current = 0;
     setAiBusy(true);
     let assistantText = "";
     try {
@@ -647,6 +692,19 @@ export default function AsherCodeModule() {
       // Auto-write any code blocks tagged with file paths into the project
       const created = await materializeZanoemCodeBlocks(assistantText);
       if (created > 0) toast.success(`ZANOEM created ${created} file${created === 1 ? "" : "s"}`);
+      // ── AUTOPILOT: ZANOEM decides on the human's behalf ──
+      if (autopilotZanoem && autopilotRoundsRef.current < AUTOPILOT_MAX_ROUNDS && needsHumanDecision(assistantText)) {
+        autopilotRoundsRef.current += 1;
+        const autoReply = buildAutopilotReply(autopilotRoundsRef.current, AUTOPILOT_MAX_ROUNDS);
+        setAiBusy(false);
+        // Tiny delay so UI flushes the streamed message before the next turn starts
+        setTimeout(() => { void sendChatViaZanoem(autoReply, true); }, 350);
+        return;
+      }
+      if (isAutopilotTurn && !needsHumanDecision(assistantText)) {
+        toast.success(`ZANOEM autopilot complete (${autopilotRoundsRef.current} round${autopilotRoundsRef.current === 1 ? "" : "s"})`);
+        autopilotRoundsRef.current = 0;
+      }
     } catch (e: any) {
       const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
       setChat([...next, errMsg]);
@@ -1315,6 +1373,19 @@ export default function AsherCodeModule() {
             >
               <input type="checkbox" checked={zanoemMode} onChange={(e) => setZanoemMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               <Brain className="h-2.5 w-2.5" /> ZANOEM
+            </label>
+            <label
+              title="You Decide ZANOEM: autopilot. ZANOEM auto-answers its own questions and recommendations on your behalf for up to 6 rounds, picking the best option each time."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autopilotZanoem ? "text-foreground" : "text-muted-foreground/70"} ${!zanoemMode ? "opacity-50" : ""}`}
+            >
+              <input
+                type="checkbox"
+                checked={autopilotZanoem}
+                onChange={(e) => setAutopilotZanoem(e.target.checked)}
+                disabled={!zanoemMode}
+                className="accent-foreground h-2.5 w-2.5"
+              />
+              <Zap className="h-2.5 w-2.5" /> You Decide ZANOEM
             </label>
           </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
