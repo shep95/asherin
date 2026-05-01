@@ -153,13 +153,42 @@ try {
     if (typeof window.useAuth==='undefined') window.useAuth = function(){ return { user:null, loading:false, signIn:function(){}, signOut:function(){} }; };
   } catch(e){}
 })();
-window.addEventListener('error', function(ev){
-  var msg = (ev && ev.error && ev.error.stack) ? ev.error.stack : (ev && ev.message ? ev.message : String(ev));
-  var pre = document.createElement('pre');
-  pre.style.cssText='color:#f88;background:#1a0a0a;font-family:ui-monospace,monospace;padding:1rem;white-space:pre-wrap;font-size:12px;margin:0';
-  pre.textContent='Preview error: '+msg;
-  document.body.appendChild(pre);
-});
+(function(){
+  function classify(msg){
+    msg = String(msg||'');
+    if (/Unexpected token/i.test(msg)) return { kind:'Syntax Error', why:'The code could not be parsed. A bracket, quote, or punctuation is missing or out of place, so the script never starts.' };
+    if (/is not defined|ReferenceError/i.test(msg)) return { kind:'Reference Error', why:'A variable or function is being used before it exists. Likely a missing import, a typo, or an identifier not exposed to the preview.' };
+    if (/Cannot read propert|undefined.*reading|null.*reading/i.test(msg)) return { kind:'Null/Undefined Access', why:'Code is reading a property from null/undefined. Add a guard or fix the data source.' };
+    if (/is not a function/i.test(msg)) return { kind:'Type Error', why:'The value being called is not a function. Check imports or declaration order.' };
+    if (/Failed to fetch|NetworkError|CORS/i.test(msg)) return { kind:'Network Error', why:'A request failed (network/CORS/sandbox). The preview iframe blocks most external calls.' };
+    if (/Maximum update depth|infinite/i.test(msg)) return { kind:'Infinite Loop', why:'A component re-renders endlessly. Check effect dependencies or state updates during render.' };
+    return { kind:'Runtime Error', why:'The script crashed at runtime.' };
+  }
+  function showPopup(msg, src){
+    var info = classify(msg);
+    var existing = document.getElementById('__ide_err_pop'); if (existing) existing.remove();
+    var wrap = document.createElement('div');
+    wrap.id = '__ide_err_pop';
+    wrap.style.cssText='position:fixed;left:12px;bottom:12px;max-width:520px;z-index:2147483647;background:#1a0a0a;border:1px solid #ef4444;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.5);font-family:ui-monospace,monospace;color:#fecaca;font-size:12px;overflow:hidden';
+    wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#2a0d0d;border-bottom:1px solid #ef444466"><div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;box-shadow:0 0 8px #ef4444"></span><strong style="color:#fca5a5">'+info.kind+'</strong></div><div><button id="__ide_err_dbg" style="background:#7f1d1d;color:#fff;border:0;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;margin-right:6px">Send to Bug Doctor</button><button id="__ide_err_x" style="background:transparent;color:#fca5a5;border:0;cursor:pointer;font-size:14px">×</button></div></div><div style="padding:10px"><div style="margin-bottom:6px;line-height:1.4">'+info.why+'</div><pre style="margin:0;padding:8px;background:#0f0505;border:1px solid #ef444433;border-radius:6px;white-space:pre-wrap;max-height:180px;overflow:auto;color:#fca5a5">'+(msg.replace(/[<>&]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}))+'</pre>'+(src?'<div style="margin-top:6px;color:#fda4af;opacity:.8;font-size:11px">'+src+'</div>':'')+'</div>';
+    document.body.appendChild(wrap);
+    document.getElementById('__ide_err_x').onclick = function(){ wrap.remove(); };
+    document.getElementById('__ide_err_dbg').onclick = function(){
+      try { parent.postMessage({ __idePreviewError: true, kind: info.kind, why: info.why, message: msg, source: src }, '*'); } catch(e){}
+      wrap.remove();
+    };
+    try { parent.postMessage({ __idePreviewErrorSilent: true, kind: info.kind, why: info.why, message: msg, source: src }, '*'); } catch(e){}
+  }
+  window.addEventListener('error', function(ev){
+    var msg = (ev && ev.error && ev.error.stack) ? ev.error.stack : (ev && ev.message ? ev.message : String(ev));
+    var src = ev && ev.filename ? (ev.filename+':'+(ev.lineno||'?')+':'+(ev.colno||'?')) : '';
+    showPopup(msg, src);
+  });
+  window.addEventListener('unhandledrejection', function(ev){
+    var r = ev && ev.reason; var msg = (r && r.stack) ? r.stack : (r && r.message ? r.message : String(r));
+    showPopup('Unhandled promise rejection: '+msg, '');
+  });
+})();
 <\/script>` : "";
 
   return `<!DOCTYPE html>
