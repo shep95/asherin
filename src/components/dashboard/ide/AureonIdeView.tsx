@@ -205,6 +205,7 @@ const AureonIdeView = () => {
         runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
         maxPasses: 6,
         swarmConcurrency: 2,
+        shouldPause: () => swarmPausedRef.current,
         onAgentSpawn: (a) => {
           setSwarmAgents((prev) => [...prev, { ...a, status: "working" }]);
           agentFileRef.current.set(a.id, a.file);
