@@ -710,7 +710,10 @@ export default function AsherCodeModule() {
       else if (namedComponents.length) mountTarget = namedComponents[namedComponents.length - 1];
       return `<script type="text/babel" data-presets="env,react,typescript">\n/* ${f.path} */\n${code}\n</script>`;
     }).join("\n");
-    const jsBlocks = jsFiles.map(f => `<script>\n/* ${f.path} */\n${dirty[f.id] ?? f.content}\n</script>`).join("\n");
+    const jsBlocks = jsFiles.map(f => /\.ts$/.test(f.path)
+      ? compileScriptTag(f.path, dirty[f.id] ?? f.content)
+      : `<script>\n/* ${f.path} */\n${(dirty[f.id] ?? f.content).replace(/<\/script/gi, "<\\/script")}\n</script>`
+    ).join("\n");
     // Detect whether the user already mounts something (ReactDOM.render / createRoot).
     const userMountsItself = jsxFiles.concat(jsFiles).some(f => {
       const c = dirty[f.id] ?? f.content;
@@ -735,11 +738,12 @@ try {
       : (hasReact && !userMountsItself
         ? `<script>document.body.insertAdjacentHTML('afterbegin','<pre style=\\'color:#888;font-family:monospace;padding:1rem\\'>No default export or top-level component detected. Add <code>export default MyComponent</code> to render in preview.</pre>')</script>`
         : "");
+    const needsBabel = hasReact || jsxFiles.length > 0 || jsFiles.some(f => /\.ts$/.test(f.path));
     const reactCdn = hasReact
       ? `<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>`
-      : (jsxFiles.length ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
+      : (needsBabel ? `<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>` : "");
     // Shim: expose React hooks + common Next.js / framework imports as globals so that
     // stripped `import { useState } from 'react'` / `import { useRouter } from 'next/router'`
     // statements don't leave undefined identifiers behind. Also captures any Babel compile
