@@ -321,13 +321,13 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
 
       {/* Input — subscription gated */}
       {subLoading ? (
-        <div className="flex-shrink-0 p-3 border-t border-border/20" />
+        <div className="flex-shrink-0 p-3 border-t border-border/15" />
       ) : !subscribed && !isAdmin ? (
-        <div className="flex-shrink-0 border-t border-border/20 bg-card/30 backdrop-blur-md px-3 py-3">
+        <div className="flex-shrink-0 border-t border-border/15 bg-card/30 backdrop-blur-md px-3 py-3">
           <div className="flex items-center justify-between gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-2.5">
             <div className="flex items-center gap-2">
               <Lock className="h-3.5 w-3.5 text-accent shrink-0" />
-              <p className="text-[11px] font-light text-foreground">Subscribe to use ZALI.</p>
+              <p className="text-[11px] font-light text-foreground">Subscribe to use ZANOEM.</p>
             </div>
             <a
               href="/dashboard"
@@ -339,7 +339,7 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
           </div>
         </div>
       ) : (
-        <div className="flex-shrink-0 border-t border-border/20">
+        <div className="flex-shrink-0 border-t border-border/15 bg-card/20 backdrop-blur-sm">
           {/* Generate Code button for software projects */}
           {isSoftwareProject(project) && messages.length > 0 && !isStreaming && (
             <div className="px-2 sm:px-3 pt-2.5 pb-1">
@@ -353,21 +353,21 @@ const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, o
               </button>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="p-2 sm:p-3">
-            <div className="flex items-center gap-2 rounded-xl border border-border/20 bg-card/30 px-3 py-2.5 sm:py-2">
+          <form onSubmit={handleSubmit} className="p-2.5 sm:p-3">
+            <div className="flex items-center gap-2 rounded-xl border border-border/25 bg-background/40 focus-within:border-foreground/30 focus-within:bg-background/60 px-3.5 py-2.5 transition-colors">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={project ? "Describe your design concept..." : "Create a project first"}
+                placeholder={project ? "Message ZANOEM…" : "Create a project first"}
                 disabled={!project || isStreaming}
-                className="flex-1 bg-transparent text-[11px] sm:text-xs font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
+                className="flex-1 bg-transparent text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none disabled:opacity-40"
               />
               {isStreaming ? (
-                <button type="button" onClick={onStop} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors">
+                <button type="button" onClick={onStop} className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors" title="Stop">
                   <Square className="h-3.5 w-3.5" />
                 </button>
               ) : (
-                <button type="submit" disabled={!input.trim() || !project} className="p-1.5 rounded-lg text-accent hover:bg-accent/10 transition-colors disabled:opacity-30">
+                <button type="submit" disabled={!input.trim() || !project} className="p-1.5 rounded-lg text-accent hover:bg-accent/10 transition-colors disabled:opacity-30" title="Send">
                   <Send className="h-3.5 w-3.5" />
                 </button>
               )}
