@@ -344,7 +344,7 @@ export default function AsherCodeModule() {
     try {
       const r = await callAsherCodeAi({ mode: "generate", byok: byok(), description: desc, language: activeFile.language });
       const code = extractCodeBlock(r.reply || "");
-      setDirty(d => ({ ...d, [activeFile.id]: code }));
+      animateApply(activeFile.id, code);
       setChat(c => [...c, { role: "user", content: `Generate: ${desc}` }, { role: "assistant", content: r.reply || "" }]);
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
