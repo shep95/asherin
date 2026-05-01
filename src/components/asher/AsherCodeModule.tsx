@@ -1012,6 +1012,47 @@ export default function AsherCodeModule() {
           onCancel={() => { approval.resolve(false); setApproval(null); }}
         />
       )}
+      <IdeSemanticSearch
+        open={semanticOpen}
+        files={files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content }))}
+        onClose={() => setSemanticOpen(false)}
+        onJump={(fileId) => { if (!openTabs.includes(fileId)) setOpenTabs(t => [...t, fileId]); setActiveFileId(fileId); }}
+      />
+      <IdeProjectGuide
+        open={guideOpen}
+        files={files.map(f => ({ id: f.id, path: f.path, content: dirty[f.id] ?? f.content, language: f.language }))}
+        onClose={() => setGuideOpen(false)}
+      />
+      <IdeCommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        commands={[
+          { id: "save", label: "Save All", shortcut: "Ctrl+S", keywords: ["save", "write", "persist"], run: () => void saveAll() },
+          { id: "fuzzy", label: "Go to File", shortcut: "Ctrl+P", keywords: ["open", "find file", "fuzzy"], run: () => setFuzzyOpen(true) },
+          { id: "semantic", label: "Semantic Search", shortcut: "Ctrl+Shift+F", keywords: ["search", "find", "where"], run: () => setSemanticOpen(true) },
+          { id: "guide", label: "Project Guide — what to work on", shortcut: "Ctrl+G", keywords: ["next", "task", "todo", "guide"], run: () => setGuideOpen(true) },
+          { id: "history", label: "Version History (time machine)", shortcut: "Ctrl+Shift+H", keywords: ["history", "undo", "restore"], run: () => setHistoryOpen(true) },
+          { id: "template", label: "Scaffold from natural language", shortcut: "Ctrl+Shift+P", keywords: ["new", "create", "template", "component"], run: () => setTemplateOpen(true) },
+          { id: "bug", label: "Bug Doctor — explain last error", keywords: ["error", "fix", "debug", "bug"], run: () => { setBugDoctorMsg(""); setBugDoctorOpen(true); } },
+          { id: "preview", label: "Run Preview", keywords: ["run", "preview", "play"], run: () => runPreview() },
+          { id: "settings", label: "Open Settings", keywords: ["config", "settings", "byok", "key"], run: () => setShowSettings(true) },
+        ]}
+      />
+      <IdeRecoveryDialog
+        open={recoveryOpen}
+        ageMs={recoveryAge}
+        fileCount={recoverySnap?.files.length ?? 0}
+        onDiscard={() => { if (activeProject) clearAutoSave(`asher::${activeProject.id}`); setRecoveryOpen(false); }}
+        onRestore={() => {
+          if (!recoverySnap) return setRecoveryOpen(false);
+          const map: Record<string, string> = {};
+          for (const f of recoverySnap.files) map[f.id] = f.content;
+          setDirty(map);
+          if (recoverySnap.activeFileId) setActiveFileId(recoverySnap.activeFileId);
+          setRecoveryOpen(false);
+          toast.success("Restored auto-saved work");
+        }}
+      />
     </div>
   );
 }
