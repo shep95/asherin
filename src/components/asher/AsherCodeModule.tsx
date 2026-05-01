@@ -25,6 +25,7 @@ import {
   AnimatedOrbBackground,
   type PlannedChange,
 } from "@/components/ide-shared";
+import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId } from "@/lib/ide";
 import { toast } from "sonner";
 
