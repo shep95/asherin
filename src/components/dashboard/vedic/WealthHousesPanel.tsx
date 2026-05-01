@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, BookOpen, Sparkles, Coins } from "lucide-react";
 import { rashis } from "@/data/nakshatraData";
+import { buildHouseReading } from "@/lib/vedic/houseReading";
 
 export interface WHPlanet {
   name: string;
