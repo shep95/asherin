@@ -39,6 +39,18 @@ function fmtDate(date: Date): string {
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
 }
 
+function fmtDateTime(date: Date): string {
+  return date.toLocaleString(undefined, { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtDuration(years: number): string {
+  if (years >= 1) return `${years.toFixed(2)} yrs`;
+  const days = years * 365.2425;
+  if (days >= 30) return `${(days / 30.4375).toFixed(1)} mo`;
+  if (days >= 1) return `${days.toFixed(1)} d`;
+  return `${(days * 24).toFixed(1)} h`;
+}
+
 function VedicWheel({
   ascendant,
   planets,
