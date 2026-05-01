@@ -1920,6 +1920,40 @@ try {
                 {aiBusy ? "Asher is still writing — Jump to present" : "Jump to present"}
               </button>
             )}
+            {/* ── SWARM PANEL ─────────────────────────────────────
+                One pill per live debugger agent. Pills appear when
+                spawned and fade out 1.2s after their fix lands. */}
+            {swarmAgents.length > 0 && (
+              <div className="absolute top-2 right-2 z-30 flex flex-col gap-1 max-w-[60%] animate-fade-in">
+                <div className="flex items-center gap-1.5 text-[9px] font-light tracking-[0.2em] uppercase text-foreground/80 px-2 py-1 rounded border border-border/30 bg-card/90 backdrop-blur-xl shadow-lg">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-foreground/60 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-foreground" />
+                  </span>
+                  ◈ Swarm · {swarmAgents.filter(a => a.status === "working").length} active · {swarmAgents.length} total
+                </div>
+                <div className="flex flex-col gap-0.5 max-h-[180px] overflow-y-auto">
+                  {swarmAgents.map((a) => (
+                    <div
+                      key={a.id}
+                      className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono border backdrop-blur-xl shadow-sm transition-opacity ${
+                        a.status === "working"
+                          ? "bg-card/85 border-border/30 text-foreground/85"
+                          : a.status === "done"
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300/90 opacity-70"
+                          : "bg-destructive/10 border-destructive/30 text-destructive/90 opacity-70"
+                      }`}
+                    >
+                      {a.status === "working" ? <Loader2 className="h-2.5 w-2.5 animate-spin shrink-0" /> :
+                       a.status === "done" ? <span className="text-[10px] leading-none">◉</span> :
+                       <X className="h-2.5 w-2.5 shrink-0" />}
+                      <span className="truncate">{a.file.split("/").pop()}</span>
+                      <span className="opacity-50 shrink-0">· {a.issueCount}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           {/* Pending uploads chips */}
           {pendingUploads.length > 0 && (
