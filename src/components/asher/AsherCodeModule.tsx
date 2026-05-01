@@ -746,6 +746,16 @@ export default function AsherCodeModule() {
       // if the export-default rewrite ate the declaration prefix.
       const rxSrc = /(?:^|\n)\s*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:function|const|let|var|class)\s+([A-Z][A-Za-z0-9_]*)/g;
       while ((m = rxSrc.exec(src)) !== null) if (!namedComponents.includes(m[1])) namedComponents.push(m[1]);
+      // Babel/eval may keep `const`, `let`, and `class` declarations lexical instead of
+      // exposing them on window. Rewrite component declarations so preview auto-mount can
+      // resolve them even when the source never manually assigns window.AnalyticsPage.
+      for (const name of namedComponents) {
+        const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        code = code.replace(new RegExp(`(^|\\n)(\\s*)(async\\s+)?function\\s+${esc}\\s*\\(`, "g"), `$1$2var ${name} = window.${name} = $3function ${name}(`);
+        code = code.replace(new RegExp(`(^|\\n)(\\s*)class\\s+${esc}(\\s+extends\\s+)`, "g"), `$1$2var ${name} = window.${name} = class ${name}$3`);
+        code = code.replace(new RegExp(`(^|\\n)(\\s*)class\\s+${esc}(\\s*[{])`, "g"), `$1$2var ${name} = window.${name} = class ${name}$3`);
+        code = code.replace(new RegExp(`(^|\\n)(\\s*)(?:const|let|var)\\s+${esc}(?:\\s*:[^=]+)?\\s*=`, "g"), `$1$2var ${name} = window.${name} =`);
+      }
       return { code, defaultExport, namedComponents };
     };
 
