@@ -141,7 +141,7 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
-    { id: "code",    label: "Asher Code",     icon: Code2,    sub: "IDE" },
+    { id: "code",    label: "Asher IDE",      icon: Code2,    sub: "IDE" },
   ]},
   { id: "intel", label: "Intelligence", items: [
     { id: "azplen",    label: "Azplen Intel",    icon: Database, sub: "Live" },

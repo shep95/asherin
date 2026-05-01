@@ -36,7 +36,7 @@ import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSa
 import { toast } from "sonner";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import ZanoemDecisionLog from "./ZanoemDecisionLog";
-import { validateFiles } from "@/lib/ide";
+import { validateFiles, validateCode } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
@@ -300,6 +300,66 @@ export default function AsherCodeModule() {
 
   const activeFile = useMemo(() => files.find(f => f.id === activeFileId) || null, [files, activeFileId]);
   const activeContent = activeFileId ? (dirty[activeFileId] ?? activeFile?.content ?? "") : "";
+
+  // ── Red-line bug highlighting in Monaco ──
+  // Validator issues become red squigglies (markers) + a red line-background decoration
+  // so error lines are instantly spottable AND consumable by the auto-fix loop.
+  const monacoRef = useRef<any>(null);
+  const editorRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    if (!monaco || !editor || !activeFile) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const result = validateCode(activeContent, activeFile.language);
+    const totalLines = model.getLineCount();
+
+    // 1. Markers (red squigglies + Problems panel)
+    const markers = result.issues.map((iss) => {
+      const line = Math.max(1, Math.min(iss.line, totalLines));
+      const lineLen = model.getLineLength(line) || 1;
+      return {
+        severity: iss.severity === "error"
+          ? monaco.MarkerSeverity.Error
+          : iss.severity === "warning"
+          ? monaco.MarkerSeverity.Warning
+          : monaco.MarkerSeverity.Info,
+        startLineNumber: line,
+        endLineNumber: line,
+        startColumn: 1,
+        endColumn: lineLen + 1,
+        message: `[${iss.rule}] ${iss.message}`,
+        source: "ZANOEM",
+      };
+    });
+    monaco.editor.setModelMarkers(model, "zanoem-validator", markers);
+
+    // 2. Red line-background decorations for error lines (the "highlight in red")
+    const errorDecorations = result.issues
+      .filter((i) => i.severity === "error")
+      .map((iss) => {
+        const line = Math.max(1, Math.min(iss.line, totalLines));
+        return {
+          range: new monaco.Range(line, 1, line, 1),
+          options: {
+            isWholeLine: true,
+            className: "zanoem-error-line",
+            glyphMarginClassName: "zanoem-error-glyph",
+            overviewRuler: {
+              color: "rgba(239,68,68,0.9)",
+              position: monaco.editor.OverviewRulerLane.Full,
+            },
+            minimap: { color: "rgba(239,68,68,0.6)", position: 1 },
+          },
+        };
+      });
+    decorationsRef.current = editor.deltaDecorations(decorationsRef.current, errorDecorations);
+  }, [activeContent, activeFile]);
+
 
   // Auto-snapshot active file (infinite history, IndexedDB)
   useEffect(() => {
@@ -1141,7 +1201,7 @@ export default function AsherCodeModule() {
       <div className="flex h-full w-full flex-col bg-background text-foreground overflow-auto">
         <div className="border-b border-border/15 bg-card/20 px-6 py-4 backdrop-blur-md flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Asher Code</p>
+            <p className="text-[10px] font-light tracking-[0.3em] text-muted-foreground/70 uppercase">Asher IDE</p>
             <h2 className="text-xl font-extralight tracking-wide">Integrated Development Environment</h2>
           </div>
           <div className="flex gap-2">
@@ -1157,7 +1217,7 @@ export default function AsherCodeModule() {
         <div className="p-6 max-w-5xl mx-auto w-full">
           {!apiKey && (
             <div className="mb-4 rounded-lg border border-foreground/20 bg-foreground/5 p-3 text-[11px] text-muted-foreground/80 font-light">
-              Add your own API key in <strong>BYOK</strong> settings. Asher Code never uses platform AI keys for non-admin users.
+              Add your own API key in <strong>BYOK</strong> settings. Asher IDE never uses platform AI keys for non-admin users.
             </div>
           )}
           {projects.length === 0 ? (
@@ -1376,7 +1436,8 @@ export default function AsherCodeModule() {
                       language={activeFile.language}
                       value={activeContent}
                       onChange={(v) => setDirty(d => ({ ...d, [activeFile.id]: v ?? "" }))}
-                      options={{ fontSize: 13, minimap: { enabled: false }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 } }}
+                      onMount={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+                      options={{ fontSize: 13, minimap: { enabled: true }, automaticLayout: true, fontFamily: "ui-monospace, monospace", padding: { top: 12 }, glyphMargin: true }}
                     />
                   </div>
                 ) : (
@@ -1675,7 +1736,7 @@ function BYOKSettings({ onClose, provider, model, apiKey, setProvider, setModel,
           <h3 className="text-sm font-light tracking-[0.2em] uppercase">BYOK — Bring Your Own Key</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
-        <p className="text-[10px] text-muted-foreground/60 mb-3">Asher Code never uses platform AI keys. Your key stays in browser local storage and is sent only to your chosen provider via our edge proxy. Never logged.</p>
+        <p className="text-[10px] text-muted-foreground/60 mb-3">Asher IDE never uses platform AI keys. Your key stays in browser local storage and is sent only to your chosen provider via our edge proxy. Never logged.</p>
         <label className="block text-[9px] font-light tracking-[0.2em] uppercase text-muted-foreground/70">Provider</label>
         <select value={provider} onChange={(e) => { setProvider(e.target.value); const p = ASHER_CODE_PROVIDERS.find(x => x.id === e.target.value); if (p) setModel(p.models[0].id); }} className="mt-1 w-full rounded-md border border-border/20 bg-card/40 px-2 py-1.5 text-xs font-light mb-3 focus:border-foreground/40 focus:outline-none">
           {ASHER_CODE_PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
