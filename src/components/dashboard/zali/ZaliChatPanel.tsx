@@ -107,9 +107,6 @@ const markdownComponents = {
   },
 };
 
-// Code block detection in user messages
-const CODE_BLOCK_RE = /```(\w+)?\n([\s\S]*?)```/g;
-
 function UserMessageContent({ content }: { content: string }) {
   // Clean generate trigger prefix for display
   const displayContent = content.replace("__GENERATE_CODE_NOW__ ", "").replace("__GENERATE_CODE_NOW__", "");
