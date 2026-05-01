@@ -1933,7 +1933,7 @@ try {
                 )}
               </div>
             )}
-            {viewMode !== "code" && (
+            {viewMode !== "code" && viewMode !== "workflow" && (
               <div className={`${viewMode === "preview" ? "w-full flex-1" : "w-full lg:w-2/5 lg:min-w-[280px]"} border-t lg:border-t-0 ${viewMode === "split" ? "lg:border-l" : ""} border-border/15 bg-card/5 flex flex-col min-h-[200px]`}>
                 <div className="px-3 py-1.5 border-b border-border/15 text-[9px] font-light tracking-[0.25em] text-muted-foreground/70 uppercase flex items-center justify-between">
                   <span>Preview</span>
