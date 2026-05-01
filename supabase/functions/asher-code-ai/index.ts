@@ -66,7 +66,25 @@ const MAX_TOTAL_INPUT_CHARS = 280_000;             // ~70k tokens
 const MAX_BRAIN_FILES_TOTAL_CHARS = 80_000;        // ~20k tokens for brain knowledge
 const MAX_BRAIN_FILE_CHARS = 12_000;               // per-file cap
 const MAX_CONTEXT_FILES_TOTAL_CHARS = 100_000;     // shared cap for project context files
-const MAX_CONTEXT_FILES_TOTAL_CHARS = 200_000;     // shared cap for project context files
+
+// Reusable global clamp — applied right before EVERY provider dispatch
+// (single-call AND orchestrate fan-out) so no path can exceed budget.
+function clampPayload(system: string, messages: ChatMessage[]): { system: string; messages: ChatMessage[] } {
+  const len = (s: string) => s.length;
+  let total = len(system) + messages.reduce((n, m) => n + len(m.content), 0);
+  let sys = system;
+  const msgs = [...messages];
+  while (total > MAX_TOTAL_INPUT_CHARS && msgs.length > 1) {
+    const dropped = msgs.shift()!;
+    total -= len(dropped.content);
+  }
+  if (total > MAX_TOTAL_INPUT_CHARS) {
+    const overflow = total - MAX_TOTAL_INPUT_CHARS;
+    sys = sys.slice(0, Math.max(8000, sys.length - overflow - 1000)) +
+      "\n\n[…context truncated to fit token budget…]";
+  }
+  return { system: sys, messages: msgs };
+}
 
 function clampJoin(
   items: Array<{ header: string; body: string }>,
