@@ -19,6 +19,7 @@ import WealthHousesPanel from "./vedic/WealthHousesPanel";
 import AsherChatPanel from "./vedic/AsherChatPanel";
 import GlobalPredictionsTab from "./vedic/GlobalPredictionsTab";
 import CompatibilityPanel from "./vedic/CompatibilityPanel";
+import SwvPanel from "./vedic/SwvPanel";
 
 interface SavedChart {
   id: string;
@@ -894,6 +895,8 @@ const VedicAstrologyView = () => {
         )}
 
         {chart && <WealthHousesPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} />}
+
+        {chart && <SwvPanel ascendant={chart.ascendant} planets={chart.planets.map((p) => ({ name: p.name, symbol: p.symbol, sid: p.sid, retrograde: p.retrograde }))} label={activeName || undefined} />}
 
         {chart && reading && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-4">
