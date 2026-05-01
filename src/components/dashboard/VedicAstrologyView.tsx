@@ -203,6 +203,11 @@ const VedicAstrologyView = () => {
   const [chartName, setChartName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<"mine" | "country">("mine");
+  const [activeCountry, setActiveCountry] = useState<CountryFoundation | null>(null);
+  const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
+  const [activeName, setActiveName] = useState<string>("");
+  const [chatOpen, setChatOpen] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
