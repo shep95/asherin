@@ -576,6 +576,45 @@ export default function AsherCodeModule() {
     } finally { setAiBusy(false); }
   }
 
+  // Detect whether ZANOEM's response is asking the human to make a choice,
+  // confirm a decision, or pick between recommendations.
+  function needsHumanDecision(text: string): boolean {
+    if (!text) return false;
+    const t = text.trim();
+    // Strip out fenced code blocks so questions inside code are ignored
+    const stripped = t.replace(/```[\s\S]*?```/g, "");
+    if (!stripped.trim()) return false;
+    const lower = stripped.toLowerCase();
+    // Direct question marks at end of lines
+    if (/\?\s*$/m.test(stripped)) return true;
+    // Common decision-prompt phrases
+    const cues = [
+      "would you like", "do you want", "should i", "shall i",
+      "which option", "which one", "which approach", "which would you",
+      "let me know", "your preference", "your choice", "your call",
+      "please confirm", "please choose", "please pick", "please select",
+      "option a", "option 1", "recommendation:", "recommendations:",
+      "which do you prefer", "what would you like", "what do you want",
+      "next steps?", "proceed?", "continue?", "ready to proceed",
+    ];
+    return cues.some((c) => lower.includes(c));
+  }
+
+  function buildAutopilotReply(round: number, max: number): string {
+    return [
+      `[YOU DECIDE ZANOEM — autopilot round ${round}/${max}]`,
+      "",
+      "Decide on my behalf. Pick the best option from the recommendations and proceed.",
+      "Rules:",
+      "- Make every decision yourself using first-principles reasoning.",
+      "- Choose the most production-ready, secure, and maintainable path.",
+      "- Do NOT ask me any more questions in this round.",
+      "- Continue building / writing / fixing the code until the task is complete.",
+      "- When you generate code, tag each block with its file path on the fence line (e.g. ```ts src/foo.ts) so files are auto-created.",
+      "- If the project is functionally complete, say 'AUTOPILOT COMPLETE' and stop asking questions.",
+    ].join("\n");
+  }
+
   // ── ZANOEM Mode: First-Principles Software Architect ──
   // Routes chat through zali-chat (Gemini, no BYOK required) for inventing
   // brand-new software from first principles. Auto-extracts ``` code blocks
