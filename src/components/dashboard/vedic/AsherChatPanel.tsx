@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, MessageSquare, Send, StickyNote, Trash2, X } from "lucide-react";
+import { Loader2, MessageSquare, Send, Settings, StickyNote, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -12,27 +12,59 @@ interface Note {
 
 interface Msg { role: "user" | "assistant"; content: string }
 
+type Provider = "lovable" | "gemini" | "openai" | "anthropic";
+
+interface ByokConfig {
+  provider: Provider;
+  model: string;
+  apiKey: string;
+}
+
+const STORAGE_KEY = "asher_vedic_byok_v1";
+const PROVIDER_DEFAULTS: Record<Provider, string> = {
+  lovable: "google/gemini-2.5-flash",
+  gemini: "gemini-2.5-pro",
+  openai: "gpt-4o-mini",
+  anthropic: "claude-3-5-sonnet-20241022",
+};
+const PROVIDER_LABEL: Record<Provider, string> = {
+  lovable: "Lovable AI (default)",
+  gemini: "Google Gemini",
+  openai: "OpenAI",
+  anthropic: "Anthropic Claude",
+};
+
 interface Props {
   open: boolean;
   onClose: () => void;
-  chartKey: string | null;     // stable id (e.g. "user:<uuid>" or "country:US")
-  chartLabel: string;          // human label (e.g. "ASHER (1995-04-12 …)")
-  chartContext: string;        // serialized chart for AI grounding
+  chartKey: string | null;
+  chartLabel: string;
+  chartContext: string;
+  onDatesExtracted?: (dates: string[]) => void;
 }
 
-export default function AsherChatPanel({ open, onClose, chartKey, chartLabel, chartContext }: Props) {
+export default function AsherChatPanel({ open, onClose, chartKey, chartLabel, chartContext, onDatesExtracted }: Props) {
   const [tab, setTab] = useState<"chat" | "notes">("chat");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [byok, setByok] = useState<ByokConfig>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw) as ByokConfig;
+    } catch { /* noop */ }
+    return { provider: "lovable", model: PROVIDER_DEFAULTS.lovable, apiKey: "" };
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Reset thread when active chart changes
-  useEffect(() => {
-    setMessages([]);
-    setInput("");
-  }, [chartKey]);
+  useEffect(() => { setMessages([]); setInput(""); }, [chartKey]);
+
+  const persistByok = (next: ByokConfig) => {
+    setByok(next);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* noop */ }
+  };
 
   const loadNotes = async () => {
     if (!chartKey) { setNotes([]); return; }
@@ -61,13 +93,22 @@ export default function AsherChatPanel({ open, onClose, chartKey, chartLabel, ch
     setInput("");
     setLoading(true);
     try {
+      const byokPayload = byok.provider === "lovable"
+        ? { provider: "lovable", model: byok.model || PROVIDER_DEFAULTS.lovable }
+        : (byok.apiKey.trim().length > 0
+            ? { provider: byok.provider, model: byok.model || PROVIDER_DEFAULTS[byok.provider], apiKey: byok.apiKey.trim() }
+            : null);
+
       const { data, error } = await supabase.functions.invoke("vedic-asher-chat", {
-        body: { messages: next, chartContext, chartLabel },
+        body: { messages: next, chartContext, chartLabel, byok: byokPayload },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       const reply = (data?.reply as string) ?? "(no reply)";
       const note = data?.note as string | null;
+      const dates = (data?.dates as string[] | undefined) ?? [];
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      if (dates.length > 0) onDatesExtracted?.(dates);
       if (note) {
         const { data: auth } = await supabase.auth.getUser();
         if (auth.user) {
@@ -80,7 +121,7 @@ export default function AsherChatPanel({ open, onClose, chartKey, chartLabel, ch
       }
     } catch (e) {
       toast.error((e as Error).message || "Chat failed");
-      setMessages((m) => [...m, { role: "assistant", content: "_Error reaching ASHER._" }]);
+      setMessages((m) => [...m, { role: "assistant", content: "_Error reaching ASHER. Open settings to switch AI provider._" }]);
     } finally {
       setLoading(false);
     }
@@ -107,10 +148,56 @@ export default function AsherChatPanel({ open, onClose, chartKey, chartLabel, ch
               <div className="text-[10px] font-light text-muted-foreground truncate">{chartLabel || "No chart loaded"}</div>
             </div>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close chat">
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowSettings((v) => !v)}
+              className={`p-1.5 rounded-md transition ${showSettings ? "text-foreground bg-foreground/10" : "text-muted-foreground hover:text-foreground"}`}
+              aria-label="AI provider settings"
+              title={`Provider: ${PROVIDER_LABEL[byok.provider]}`}
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1" aria-label="Close chat">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </header>
+
+        {showSettings && (
+          <div className="px-4 py-3 border-b border-border/20 bg-foreground/[0.02] space-y-2.5">
+            <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">AI Provider</div>
+            <select
+              value={byok.provider}
+              onChange={(e) => {
+                const p = e.target.value as Provider;
+                persistByok({ provider: p, model: PROVIDER_DEFAULTS[p], apiKey: byok.apiKey });
+              }}
+              className="w-full rounded-md border border-border/30 bg-background/60 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-foreground/40"
+            >
+              {(Object.keys(PROVIDER_LABEL) as Provider[]).map((p) => (
+                <option key={p} value={p}>{PROVIDER_LABEL[p]}</option>
+              ))}
+            </select>
+            <input
+              value={byok.model}
+              onChange={(e) => persistByok({ ...byok, model: e.target.value })}
+              placeholder={`Model (e.g. ${PROVIDER_DEFAULTS[byok.provider]})`}
+              className="w-full rounded-md border border-border/30 bg-background/60 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-foreground/40"
+            />
+            {byok.provider !== "lovable" && (
+              <input
+                type="password"
+                value={byok.apiKey}
+                onChange={(e) => persistByok({ ...byok, apiKey: e.target.value })}
+                placeholder={`${PROVIDER_LABEL[byok.provider]} API key`}
+                className="w-full rounded-md border border-border/30 bg-background/60 px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-foreground/40"
+              />
+            )}
+            <div className="text-[10px] text-muted-foreground/70 leading-relaxed">
+              Key stored locally in your browser only. Lovable AI uses platform credits — no key needed.
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 border-b border-border/20 text-[10px] uppercase tracking-[0.2em]">
           {(["chat", "notes"] as const).map((t) => (
@@ -133,7 +220,7 @@ export default function AsherChatPanel({ open, onClose, chartKey, chartLabel, ch
               {chartKey && messages.length === 0 && (
                 <div className="text-xs text-muted-foreground font-light leading-relaxed">
                   Ask about <span className="text-foreground/80">your dashas, houses, yogas, wealth indicators, marriage, career,</span> or any planet placement on this chart.
-                  <div className="mt-2 text-muted-foreground/60">Tip: say "this is important" and ASHER will save the insight to Notes.</div>
+                  <div className="mt-2 text-muted-foreground/60">Tip: any dates ASHER mentions get auto-marked on the Vimshottari Timeline.</div>
                 </div>
               )}
               {messages.map((m, i) => (
