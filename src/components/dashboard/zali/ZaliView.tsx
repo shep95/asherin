@@ -9,6 +9,8 @@ import type { ChatMode } from "../types";
 import type { ResponseDepth } from "../DepthSelector";
 import ZaliWorkspace from "./ZaliWorkspace";
 import ZaliChatPanel from "./ZaliChatPanel";
+import { builtInPersonas } from "../PersonaSelector";
+import { extractZanoemCodeFiles } from "./zanoemOutput";
 import ZaliResearchPanel from "./ZaliResearchPanel";
 import ZaliProjectSelector from "./ZaliProjectSelector";
 import ZaliAgentsPanel from "./ZaliAgentsPanel";
@@ -79,6 +81,13 @@ const ZaliView = () => {
   const [autoBuildModel, setAutoBuildModel] = useState(false);
   const [modelPrompt, setModelPrompt] = useState("");
   const [codeFiles, setCodeFiles] = useState<Array<{ filename: string; language: string; content: string }>>([]);
+
+  useEffect(() => {
+    const latestCode = [...messages].reverse().find((m) => m.role === "assistant" && extractZanoemCodeFiles(m.content).length > 0);
+    if (!latestCode) return;
+    const files = extractZanoemCodeFiles(latestCode.content);
+    if (files.length > 0) setCodeFiles(files);
+  }, [messages]);
 
   // Resizable chat panel state
   const [chatWidth, setChatWidth] = useState(() => {
@@ -294,6 +303,37 @@ const ZaliView = () => {
         role: m.role, content: m.content,
       }));
 
+      let personaSystemPrompt: string | null = null;
+      let brainContext: { prompt: string; fileContents: { name: string; content: string }[] } | null = null;
+      try {
+        const personaId = localStorage.getItem("aureon_active_persona_id");
+        const customPersonas = JSON.parse(localStorage.getItem("aureon_custom_personas") || "[]");
+        const activePersona = customPersonas.find((p: any) => p.id === personaId) || builtInPersonas.find((p) => p.id === personaId);
+        personaSystemPrompt = activePersona?.systemPrompt || null;
+      } catch { /* no persona context */ }
+
+      const activeBrainId = localStorage.getItem("aureon_active_brain_id");
+      if (activeBrainId) {
+        try {
+          const { data: brain } = await supabase.from("brains").select("system_prompt, file_ids").eq("id", activeBrainId).single();
+          if (brain) {
+            const fileContents: { name: string; content: string }[] = [];
+            if (brain.file_ids?.length) {
+              const { data: files } = await supabase.from("library_files").select("file_name, storage_path, file_type").in("id", brain.file_ids);
+              if (files) {
+                for (const f of files) {
+                  const isText = !f.file_type.startsWith("image/") && !f.file_type.startsWith("video/") && !f.file_type.startsWith("audio/");
+                  if (!isText) continue;
+                  const { data: blob } = await supabase.storage.from("library").download(f.storage_path);
+                  if (blob) fileContents.push({ name: f.file_name, content: (await blob.text()).slice(0, 80000) });
+                }
+              }
+            }
+            brainContext = { prompt: brain.system_prompt || "", fileContents };
+          }
+        } catch (e) { console.error("Failed to load ZANOEM brain context:", e); }
+      }
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zali-chat`,
         {
@@ -312,6 +352,8 @@ const ZaliView = () => {
               phase: activeProject.phase,
               designType: activeProject.designType,
             },
+            personaSystemPrompt,
+            brainContext,
           }),
           signal: controller.signal,
         }
@@ -356,35 +398,8 @@ const ZaliView = () => {
         role: "assistant", content: fullContent,
       });
 
-      // Parse code_output blocks (structured) — fallback to any fenced code
-      const codeOutputMatches = [...fullContent.matchAll(/```code_output\n([\s\S]*?)```/g)];
-      const allFiles: Array<{ filename: string; language: string; content: string }> = [];
-      if (codeOutputMatches.length > 0) {
-        try {
-          for (const match of codeOutputMatches) {
-            const parsed = JSON.parse(match[1]);
-            if (Array.isArray(parsed.files)) {
-              allFiles.push(...parsed.files);
-            }
-          }
-        } catch (e) {
-          console.error("Failed to parse code_output:", e);
-        }
-      }
-      if (!allFiles.length) {
-        const fenceRe = /```([\w.+-]*)\n([\s\S]*?)```/g;
-        let fm: RegExpExecArray | null;
-        let i = 1;
-        while ((fm = fenceRe.exec(fullContent)) !== null) {
-          const lang = (fm[1] || "").toLowerCase();
-          if (lang === "code_output" || lang === "design_output") continue;
-          const code = fm[2].trimEnd();
-          if (!code.trim()) continue;
-          const ext = lang === "typescript" ? "ts" : lang === "javascript" ? "js" : lang === "python" ? "py" : (lang || "txt");
-          allFiles.push({ filename: `snippet-${i}.${ext}`, language: lang || "text", content: code });
-          i++;
-        }
-      }
+      // Code output always routes into the workspace, never the chat bubble.
+      const allFiles = extractZanoemCodeFiles(fullContent);
       if (allFiles.length > 0) {
         setCodeFiles(allFiles);
         setActiveTab("workspace");

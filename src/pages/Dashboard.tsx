@@ -658,6 +658,14 @@ const Dashboard = () => {
   }, [activeBrainId]);
 
   useEffect(() => {
+    if (personaId) {
+      localStorage.setItem("aureon_active_persona_id", personaId);
+    } else {
+      localStorage.removeItem("aureon_active_persona_id");
+    }
+  }, [personaId]);
+
+  useEffect(() => {
     if (!loaded || conversations.length === 0) return;
     if (!activeConvId || !conversations.some((conversation) => conversation.id === activeConvId)) {
       setActiveConvId(conversations[0].id);
