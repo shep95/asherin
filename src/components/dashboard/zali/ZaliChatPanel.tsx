@@ -145,7 +145,19 @@ function UserMessageContent({ content }: { content: string }) {
 
 const ZaliChatPanel = ({ messages, project, isStreaming, onSend, onStop, mode, onModeChange, depth, onDepthChange, suggestions = [], onCalibrationFeedback }: Props) => {
   const [input, setInput] = useState("");
-  const [decodeId, setDecodeId] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { subscribed, loading: subLoading } = useSubscription();
+  const { isAdmin } = useAccess();
+
+  // Strip fenced code blocks from chat display — code is rendered in workspace.
+  const stripCodeBlocks = (raw: string): { text: string; codeCount: number } => {
+    let count = 0;
+    const cleaned = raw.replace(/```[\w.+-]*\n[\s\S]*?```/g, () => { count++; return ""; }).replace(/\n{3,}/g, "\n\n").trim();
+    return { text: cleaned, codeCount: count };
+  };
+  // Avoid lint warnings for now-removed pieces while preserving prop API
+  void onModeChange; void mode; void onCalibrationFeedback;
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { subscribed, loading: subLoading } = useSubscription();
