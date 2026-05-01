@@ -1243,7 +1243,7 @@ try {
         if (!autoDebug) setAutoDebug(true);
         autoDebugRef.current = true;
         setFixBugsPending(true);
-        window.setTimeout(() => setFixBugsPending(false), 12000);
+        window.setTimeout(() => { setFixBugsPending(false); completePlan(); }, 12000);
         toast.message("◈ Goal Router → Swarm Fix", { description: goal.reason });
         void zqEnqueue({
           kind: "autofix",
