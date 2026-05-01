@@ -681,6 +681,12 @@ const AureonIdeView = () => {
         <input type="checkbox" checked={autoUiDebug} onChange={(e) => setAutoUiDebug(e.target.checked)} disabled={!autopilotZanoem} className="accent-foreground h-2.5 w-2.5" />
         <Eye className="h-2.5 w-2.5" /> Auto UI Debug
       </label>
+      <label
+        title="Auto Approve: skip every approval prompt and auto-accept all planned changes instantly."
+        className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${autoApprove ? "text-foreground" : "text-muted-foreground/70"}`}
+      >
+        <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
+        <Zap className="h-2.5 w-2.5" /> Auto Approve
       <button
         onClick={() => setDecisionLogOpen(true)}
         title="ZANOEM Decision Log — review or override every choice the autopilot made."
