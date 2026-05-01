@@ -20,7 +20,7 @@ import IntelligenceSuitePanel from "./search/intel/IntelligenceSuitePanel";
 
 const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
-const ZerlalView = lazy(() => import("./zerlal/ZerlalView"));
+const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
 const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -432,10 +432,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
-              {/* ZERLAL — full security intelligence suite (formerly Code Audit) */}
+              {/* ZERLAL — security blueprint of uploaded code file */}
               {mode === "audit" && (
                 <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
-                  <ZerlalView />
+                  <CodeAuditView />
                 </Suspense>
               )}
 
