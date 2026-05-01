@@ -1052,7 +1052,28 @@ export default function AsherCodeModule() {
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={() => { setActiveProject(null); setFiles([]); }} className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground hover:text-foreground whitespace-nowrap">← Projects</button>
           <span className="text-muted-foreground/30 hidden sm:inline">/</span>
-          <span className="text-xs font-light truncate max-w-[140px] sm:max-w-none">{activeProject.name}</span>
+          {renamingTitle ? (
+            <input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={commitProjectRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitProjectRename();
+                if (e.key === "Escape") { setRenamingTitle(false); }
+              }}
+              className="text-xs font-light bg-card/60 border border-foreground/30 rounded px-2 py-0.5 outline-none min-w-[160px]"
+            />
+          ) : (
+            <button
+              onDoubleClick={() => { setTitleDraft(activeProject.name); setRenamingTitle(true); }}
+              onClick={(e) => { if (e.detail === 2) return; }}
+              title="Double-click to rename"
+              className="text-xs font-light truncate max-w-[140px] sm:max-w-none hover:text-foreground/90 cursor-text"
+            >
+              {activeProject.name}
+            </button>
+          )}
           {Object.keys(dirty).length > 0 && <span className="text-[9px] text-muted-foreground/80 ml-1 whitespace-nowrap">● {Object.keys(dirty).length} unsaved</span>}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
