@@ -36,7 +36,7 @@ import { snapshotIfChanged, routeTask, animateInsert, animateReplace, readAutoSa
 import { toast } from "sonner";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import ZanoemDecisionLog from "./ZanoemDecisionLog";
-import { validateFiles } from "@/lib/ide";
+import { validateFiles, validateCode } from "@/lib/ide";
 import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
 import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
