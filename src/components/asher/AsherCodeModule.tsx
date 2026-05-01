@@ -50,7 +50,7 @@ export default function AsherCodeModule() {
   const [showPublish, setShowPublish] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [chat, setChat] = useState<ChatMsg[]>([]);
-  const [chatInput, setChatInput] = useState("");
+  const [chatInput, setChatInput] = useState(() => localStorage.getItem("asherCode.draft.__global__") || "");
   const [aiBusy, setAiBusy] = useState(false);
   const [editPlan, setEditPlan] = useState<EditPlan | null>(null);
   const [orchResult, setOrchResult] = useState<CallAsherCodeResult | null>(null);
@@ -60,6 +60,7 @@ export default function AsherCodeModule() {
   const [showPreview, setShowPreview] = useState(() => localStorage.getItem("asherCode.showPreview") !== "0");
   const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
+  const [zaliMode, setZaliMode] = useState(() => localStorage.getItem("asherCode.zaliMode") === "1");
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
@@ -95,8 +96,24 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.showPreview", showPreview ? "1" : "0"); }, [showPreview]);
   useEffect(() => { localStorage.setItem("asherCode.viewMode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("asherCode.showAi", showAi ? "1" : "0"); }, [showAi]);
+  useEffect(() => { localStorage.setItem("asherCode.zaliMode", zaliMode ? "1" : "0"); }, [zaliMode]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
+
+  // ── Draft persistence: survives reloads, crashes, lost wifi ──
+  // Keyed by active project (falls back to a global slot before a project is open).
+  const draftKey = activeProject ? `asherCode.draft.${activeProject.id}` : "asherCode.draft.__global__";
+  // Restore the draft for whichever project just became active.
+  useEffect(() => {
+    const saved = localStorage.getItem(draftKey);
+    setChatInput(saved || "");
+  }, [draftKey]);
+  // Persist every keystroke (cheap; localStorage is sync but tiny strings).
+  useEffect(() => {
+    if (chatInput) localStorage.setItem(draftKey, chatInput);
+    else localStorage.removeItem(draftKey);
+  }, [chatInput, draftKey]);
+
 
   // Word-by-word fade-in / fade-out replace for AI-generated content.
   function animateApply(fileId: string, finalContent: string) {
@@ -412,6 +429,7 @@ export default function AsherCodeModule() {
 
   async function sendChat() {
     if ((!chatInput.trim() && pendingUploads.length === 0) || aiBusy) return;
+    if (zaliMode) return sendChatViaZali();
     // Compose attachments into the user message
     let composed = chatInput;
     const imageAttachments: { name: string; dataUrl: string }[] = [];
@@ -443,6 +461,139 @@ export default function AsherCodeModule() {
       void persistChatMessages([userMsg, errMsg]);
     } finally { setAiBusy(false); }
   }
+
+  // ── ZALI Mode: First-Principles Software Architect ──
+  // Routes chat through zali-chat (Gemini, no BYOK required) for inventing
+  // brand-new software from first principles. Auto-extracts ``` code blocks
+  // tagged with file paths and writes them into the project as new files.
+  async function sendChatViaZali() {
+    if (!activeProject || !user) { toast.error("Open a project first"); return; }
+    let composed = chatInput;
+    for (const u of pendingUploads) {
+      if (u.kind === "zip") composed += `\n\n=== ZIP CONTENTS (${u.name}) ===\n${u.content}`;
+      else if (u.kind === "text") composed += `\n\n=== FILE (${u.name}) ===\n${u.content}`;
+    }
+    const userMsg: ChatMsg = { role: "user", content: composed };
+    const next = [...chat, userMsg];
+    setChat(next);
+    setChatInput("");
+    setPendingUploads([]);
+    setAiBusy(true);
+    let assistantText = "";
+    try {
+      const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zali-chat`;
+      const { data: sess } = await supabase.auth.getSession();
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sess?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          messages: next.map((m) => ({ role: m.role, content: m.content })),
+          mode: "design",
+          projectContext: {
+            name: activeProject.name,
+            description: activeProject.description || "Software project in Aureon Code IDE",
+            designType: "software",
+            phase: "Architecture & Implementation",
+          },
+        }),
+      });
+      if (!resp.ok || !resp.body) {
+        const t = await resp.text().catch(() => "");
+        throw new Error(`ZALI gateway ${resp.status}: ${t.slice(0, 200)}`);
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      // Push placeholder so UI updates as we stream
+      setChat([...next, { role: "assistant", content: "▍" }]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx: number;
+        while ((idx = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, idx).trim();
+          buf = buf.slice(idx + 1);
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(payload);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              assistantText += delta;
+              setChat([...next, { role: "assistant", content: assistantText + "▍" }]);
+            }
+          } catch { /* skip */ }
+        }
+      }
+      const finalMsg: ChatMsg = { role: "assistant", content: assistantText || "(empty response)" };
+      setChat([...next, finalMsg]);
+      void persistChatMessages([userMsg, finalMsg]);
+      // Auto-write any code blocks tagged with file paths into the project
+      const created = await materializeZaliCodeBlocks(assistantText);
+      if (created > 0) toast.success(`ZALI created ${created} file${created === 1 ? "" : "s"}`);
+    } catch (e: any) {
+      const errMsg: ChatMsg = { role: "assistant", content: "**ZALI Error:** " + (e.message || "call failed") };
+      setChat([...next, errMsg]);
+      void persistChatMessages([userMsg, errMsg]);
+      toast.error(e.message || "ZALI call failed");
+    } finally { setAiBusy(false); }
+  }
+
+  // Extract ZALI code blocks and write them as files. Recognises:
+  //   ```lang path/to/file.ext\n...\n```
+  //   <code_output path="..."> ... </code_output>
+  async function materializeZaliCodeBlocks(text: string): Promise<number> {
+    if (!activeProject) return 0;
+    type Hit = { path: string; content: string; language: string };
+    const hits: Hit[] = [];
+    // Pattern A: fenced block with path on info line
+    const fence = /```([a-zA-Z0-9+#_-]*)\s+([^\s`][^\n`]*?\.[a-zA-Z0-9]+)\s*\n([\s\S]*?)```/g;
+    let m: RegExpExecArray | null;
+    while ((m = fence.exec(text)) !== null) {
+      hits.push({ language: (m[1] || "plaintext").toLowerCase(), path: m[2].trim(), content: m[3] });
+    }
+    // Pattern B: <code_output path="..."> blocks
+    const tag = /<code_output[^>]*path=["']([^"']+)["'][^>]*>([\s\S]*?)<\/code_output>/gi;
+    while ((m = tag.exec(text)) !== null) {
+      const path = m[1].trim();
+      let body = m[2].trim();
+      const inner = body.match(/```[a-zA-Z0-9+#_-]*\s*\n([\s\S]*?)```/);
+      if (inner) body = inner[1];
+      const ext = path.split(".").pop() || "txt";
+      hits.push({ language: ext, path, content: body });
+    }
+    if (hits.length === 0) return 0;
+    let count = 0;
+    for (const h of hits) {
+      const existing = files.find((f) => f.path === h.path);
+      if (existing) {
+        const { error } = await supabase.from("asher_code_files").update({ content: h.content }).eq("id", existing.id);
+        if (!error) {
+          setFiles((fs) => fs.map((f) => (f.id === existing.id ? { ...f, content: h.content } : f)));
+          count++;
+        }
+      } else {
+        const { data, error } = await supabase
+          .from("asher_code_files")
+          .insert({ project_id: activeProject.id, path: h.path, content: h.content, language: h.language })
+          .select()
+          .single();
+        if (!error && data) {
+          setFiles((fs) => [...fs, data as AsherCodeFile]);
+          count++;
+        }
+      }
+    }
+    setPreviewKey((k) => k + 1);
+    return count;
+  }
+
 
   async function aiExplain() {
     if (!activeFile) return;
@@ -910,8 +1061,8 @@ export default function AsherCodeModule() {
               ))}
             </div>
           )}
-          {/* Auto-approve + Animation toggles */}
-          <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5">
+          {/* Auto-approve + Animation + ZALI toggles */}
+          <div className="border-t border-border/15 px-2 py-1 flex items-center justify-between gap-2 bg-card/5 flex-wrap">
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
               <input type="checkbox" checked={autoApprove} onChange={(e) => setAutoApprove(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               <Zap className="h-2.5 w-2.5" /> Auto-Apply
@@ -919,6 +1070,13 @@ export default function AsherCodeModule() {
             <label className="flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] text-muted-foreground/70 uppercase cursor-pointer">
               <input type="checkbox" checked={animateInsertion} onChange={(e) => setAnimateInsertion(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
               Type-Anim
+            </label>
+            <label
+              title="ZALI Mode: design brand-new software from first principles. Auto-creates files from generated code blocks. Uses Aureon engine — no BYOK key needed."
+              className={`flex items-center gap-1 text-[8.5px] font-light tracking-[0.15em] uppercase cursor-pointer ${zaliMode ? "text-foreground" : "text-muted-foreground/70"}`}
+            >
+              <input type="checkbox" checked={zaliMode} onChange={(e) => setZaliMode(e.target.checked)} className="accent-foreground h-2.5 w-2.5" />
+              <Brain className="h-2.5 w-2.5" /> ZALI
             </label>
           </div>
           <div className="border-t border-border/15 p-2 flex gap-1">
@@ -935,18 +1093,18 @@ export default function AsherCodeModule() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void sendChat(); } }}
-              placeholder={apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first"}
-              disabled={!apiKey}
+              placeholder={zaliMode ? "ZALI: invent brand-new software from first principles…" : (apiKey ? "Ask Aureon Code… (paste image, ZIP, or describe)" : "Add API key in BYOK settings first")}
+              disabled={!zaliMode && !apiKey}
               rows={2}
               className="flex-1 resize-none rounded border border-border/20 bg-card/40 px-2 py-1.5 text-[11px] font-light placeholder:text-muted-foreground/40 focus:border-foreground/40 focus:outline-none disabled:opacity-40"
             />
             <button
-              onClick={() => orchestrateMode ? aiOrchestrate() : sendChat()}
-              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || !apiKey}
-              title={orchestrateMode ? "Orchestrate across 3 models" : "Send"}
-              className={`rounded border px-2 disabled:opacity-40 ${orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
+              onClick={() => zaliMode ? sendChat() : (orchestrateMode ? aiOrchestrate() : sendChat())}
+              disabled={aiBusy || (!chatInput.trim() && pendingUploads.length === 0) || (!zaliMode && !apiKey)}
+              title={zaliMode ? "ZALI: invent new software from first principles" : (orchestrateMode ? "Orchestrate across 3 models" : "Send")}
+              className={`rounded border px-2 disabled:opacity-40 ${zaliMode ? "border-foreground/40 bg-foreground/15 hover:bg-foreground/25" : orchestrateMode ? "border-foreground/30 bg-foreground/10 hover:bg-foreground/20" : "border-foreground/20 bg-foreground/10 hover:bg-foreground/20"}`}
             >
-              {orchestrateMode ? <Layers className="h-3 w-3 text-foreground" /> : <Send className="h-3 w-3" />}
+              {zaliMode ? <Brain className="h-3 w-3 text-foreground" /> : orchestrateMode ? <Layers className="h-3 w-3 text-foreground" /> : <Send className="h-3 w-3" />}
             </button>
           </div>
         </aside>
