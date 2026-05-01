@@ -513,8 +513,9 @@ serve(async (req) => {
       }
 
       const orchMessages = buildPrompt(payload.subMode || "chat", payload);
+      const orchSystem = buildSystemPrompt(payload);
       const t0 = Date.now();
-      const settled = await Promise.allSettled(calls.map((c) => dispatch(c, orchMessages, 4096)));
+      const settled = await Promise.allSettled(calls.map((c) => dispatch(c, orchMessages, orchSystem, 4096)));
       const responses = settled.map((s, i) => ({
         provider: calls[i].provider,
         model: calls[i].model,
