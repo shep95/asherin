@@ -163,12 +163,22 @@ export async function autoFixUntilClean(opts: AutoFixOptions): Promise<AutoFixRe
         }
       };
       await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => worker()));
-      // In scan-all mode the loop should still terminate when nothing
-      // changed AND no validator errors remain.
-      if (opts.scanAllFiles && appliedTotal === 0 && errors.length === 0) {
+
+      // ── POST-PASS RE-CHECK ──────────────────────────────────────
+      // Re-run the validator immediately. If errors remain, keep looping
+      // (the next pass iteration will re-dispatch agents on the still-broken
+      // files). Only declare victory when the validator returns ZERO errors.
+      const remaining = collect().length;
+      opts.onPassComplete?.(pass, remaining, appliedTotal);
+      if (remaining === 0) {
         return { passes: pass, finalErrorCount: 0, clean: true, history };
       }
-      if (appliedTotal > 0) continue;
+      // Scan-all + nothing changed + nothing left to fix → done.
+      if (opts.scanAllFiles && appliedTotal === 0 && remaining === 0) {
+        return { passes: pass, finalErrorCount: 0, clean: true, history };
+      }
+      // Otherwise: errors remain → loop continues to next pass automatically.
+      if (appliedTotal > 0 || remaining > 0) continue;
     }
 
 
