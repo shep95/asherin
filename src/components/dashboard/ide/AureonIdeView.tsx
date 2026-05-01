@@ -24,6 +24,8 @@ import {
 import { snapshotIfChanged, routeTask, animateInsert, animateReplace, type IdeModelId, type RoutingDecision } from "@/lib/ide";
 import { History, Stethoscope, Wand2, Cpu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { startQueueWorker as zqStart, registerHandler as zqRegister, type QueuedJob } from "@/lib/zanoem/offlineQueue";
+import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -138,6 +140,36 @@ const AureonIdeView = () => {
     historyTimerRef.current = setTimeout(() => pushHistory(files), 1000);
     return () => { if (historyTimerRef.current) clearTimeout(historyTimerRef.current); };
   }, [files, pushHistory]);
+
+  // ── ZANOEM offline autopilot worker (cross-IDE) ──
+  // Keeps draining persisted jobs from Asher IDE / previous sessions even
+  // when the user is on the Aureon IDE tab. Vision jobs without a usable
+  // iframe target are skipped; auto-fix jobs run against the current Aureon
+  // file tree as a best-effort cleanup pass.
+  const filesRefAureon = useRef(files);
+  useEffect(() => { filesRefAureon.current = files; }, [files]);
+  useEffect(() => {
+    zqRegister("vision", async () => { /* no preview iframe surface here */ });
+    zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
+      // Aureon has no ZANOEM chat driver in this view — we can only re-run the
+      // validator and surface a toast; the actual code patch happens in Asher IDE.
+      const flat: AutoFixFile[] = [];
+      const walk = (nodes: IdeFile[]) => {
+        for (const n of nodes) {
+          if (n.children) walk(n.children);
+          else flat.push({ id: n.id, name: n.name, content: n.content || "", language: getLanguage(n.name) });
+        }
+      };
+      walk(filesRefAureon.current);
+      const result = await autoFixUntilClean({
+        files: () => flat,
+        runZanoemTurn: async () => { /* no-op driver in Aureon */ },
+        maxPasses: 1,
+      });
+      if (!result.clean) console.info("[zanoem] Aureon validator:", result.finalErrorCount, "error(s)");
+    });
+    zqStart({ intervalMs: 2500 });
+  }, []);
 
   // Panel state — simplified defaults
   const [leftOpen, setLeftOpen] = useState(!isMobile);

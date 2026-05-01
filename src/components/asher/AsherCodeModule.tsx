@@ -37,6 +37,9 @@ import { toast } from "sonner";
 import { needsHumanDecision as zanoemNeedsDecision, buildAutopilotReply as zanoemBuildReply, logDecision as zanoemLogDecision } from "@/lib/zanoem/decisionLog";
 import ZanoemDecisionLog from "./ZanoemDecisionLog";
 import { validateFiles } from "@/lib/ide";
+import { verifyUiMatchesIntent } from "@/lib/zanoem/visionVerify";
+import { autoFixUntilClean, type AutoFixFile } from "@/lib/zanoem/autoFix";
+import { enqueue as zqEnqueue, registerHandler as zqRegister, startQueueWorker as zqStart, type QueuedJob } from "@/lib/zanoem/offlineQueue";
 
 interface ChatMsg { role: "user" | "assistant"; content: string }
 
@@ -128,6 +131,63 @@ export default function AsherCodeModule() {
   useEffect(() => { localStorage.setItem("asherCode.autopilotZanoem", autopilotZanoem ? "1" : "0"); }, [autopilotZanoem]);
   useEffect(() => { localStorage.setItem("asherCode.autoApprove", autoApprove ? "1" : "0"); }, [autoApprove]);
   useEffect(() => { localStorage.setItem("asherCode.animate", animateInsertion ? "1" : "0"); }, [animateInsertion]);
+
+  // ── Vision + auto-fix + offline queue (autonomous loops) ──
+  // Keep refs to "latest" state so the queue handlers (which run outside React)
+  // always see fresh data, even if the user closes the tab and reopens later.
+  const filesRef = useRef(files);
+  const activeProjectRef = useRef(activeProject);
+  const previewRefForVision = previewRef;
+  const autopilotZanoemRef = useRef(autopilotZanoem);
+  const lastIntentRef = useRef<string>("");
+  const lastAssistantRef = useRef<string>("");
+  const autopilotEnqueueGuardRef = useRef(false);
+  useEffect(() => { filesRef.current = files; }, [files]);
+  useEffect(() => { activeProjectRef.current = activeProject; }, [activeProject]);
+  useEffect(() => { autopilotZanoemRef.current = autopilotZanoem; }, [autopilotZanoem]);
+
+  // We need a stable way for the queue worker to "send a ZANOEM turn".
+  // sendChatViaZanoem isn't defined yet (declared further down), so route
+  // through a ref that we update in a later effect.
+  const sendZanoemTurnRef = useRef<((prompt: string) => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    // Register handlers ONCE per mount.
+    zqRegister("vision", async (job: QueuedJob<{ intent: string; recentAssistant: string; projectRef?: string }>) => {
+      if (!autopilotZanoemRef.current) return;       // user turned autopilot off → skip
+      const verdict = await verifyUiMatchesIntent({
+        intent: job.payload.intent,
+        recentAssistant: job.payload.recentAssistant,
+        iframe: previewRefForVision.current,
+      });
+      if (!verdict.matches && verdict.suggestedFixPrompt && sendZanoemTurnRef.current) {
+        toast.message("ZANOEM Vision: UI mismatch detected — auto-fixing", {
+          description: verdict.mismatches.slice(0, 2).join(" • ") || "patching UI",
+        });
+        await sendZanoemTurnRef.current(verdict.suggestedFixPrompt);
+      }
+    });
+
+    zqRegister("autofix", async (_job: QueuedJob<{ projectRef?: string }>) => {
+      if (!autopilotZanoemRef.current) return;
+      const result = await autoFixUntilClean({
+        files: () => filesRef.current.map<AutoFixFile>((f) => ({
+          id: f.id, name: f.path, content: f.content, language: f.language,
+        })),
+        runZanoemTurn: async (prompt) => { if (sendZanoemTurnRef.current) await sendZanoemTurnRef.current(prompt); },
+        maxPasses: 6,
+        onProgress: (pass, n) => {
+          if (n > 0) toast.message(`ZANOEM Auto-Fix pass ${pass}: ${n} error${n === 1 ? "" : "s"}`);
+        },
+      });
+      if (result.clean) toast.success(`ZANOEM Auto-Fix: clean (${result.passes} pass${result.passes === 1 ? "" : "es"})`);
+      else toast.warning(`ZANOEM Auto-Fix stopped: ${result.finalErrorCount} error(s) remain after ${result.passes} pass(es)`);
+    });
+
+    zqStart({ intervalMs: 2000 });
+    // No teardown — the queue is process-wide & must outlive component unmount
+    // so jobs continue draining if the user navigates between IDE tabs.
+  }, [previewRefForVision]);
 
   // ── Draft persistence: survives reloads, crashes, lost wifi ──
   // Keyed by active project (falls back to a global slot before a project is open).
@@ -662,6 +722,10 @@ export default function AsherCodeModule() {
       // Auto-write any code blocks tagged with file paths into the project
       const created = await materializeZanoemCodeBlocks(assistantText);
       if (created > 0) toast.success(`ZANOEM created ${created} file${created === 1 ? "" : "s"}`);
+      // Track latest "intent" + assistant text so the offline vision worker
+      // can verify the rendered UI even if the user closes the tab.
+      if (!isAutopilotTurn) lastIntentRef.current = composed;
+      lastAssistantRef.current = assistantText;
       // ── AUTOPILOT: log this turn's decision (if we're inside one) ──
       // If THIS response is the answer to the previous autopilot question,
       // record what was asked + what ZANOEM picked.
@@ -692,6 +756,38 @@ export default function AsherCodeModule() {
         autopilotRoundsRef.current = 0;
         autopilotTriggerRef.current = "";
       }
+      // ── Autonomous: enqueue vision verify + auto-fix when this turn
+      // produced concrete output (created files OR an autopilot finish).
+      // Guarded so we don't recursively enqueue inside an active autopilot turn.
+      if (autopilotZanoem && !autopilotEnqueueGuardRef.current && (created > 0 || (isAutopilotTurn && !needsHumanDecision(assistantText)))) {
+        autopilotEnqueueGuardRef.current = true;
+        try {
+          if (created > 0) {
+            await zqEnqueue({
+              kind: "autofix",
+              payload: { projectRef: activeProject.id },
+              surface: "asher_ide",
+              projectRef: activeProject.id,
+              ownerUserId: user.id,
+            });
+          }
+          await zqEnqueue({
+            kind: "vision",
+            payload: {
+              intent: lastIntentRef.current || composed,
+              recentAssistant: assistantText,
+              projectRef: activeProject.id,
+            },
+            surface: "asher_ide",
+            projectRef: activeProject.id,
+            ownerUserId: user.id,
+          });
+        } finally {
+          // Release a tick later so back-to-back enqueues from a single
+          // autopilot chain only fire once.
+          setTimeout(() => { autopilotEnqueueGuardRef.current = false; }, 2000);
+        }
+      }
     } catch (e: any) {
       const errMsg: ChatMsg = { role: "assistant", content: "**ZANOEM Error:** " + (e.message || "call failed") };
       setChat([...next, errMsg]);
@@ -700,6 +796,11 @@ export default function AsherCodeModule() {
     } finally { setAiBusy(false); }
   }
 
+  // Bind the offline-queue handlers to the live sendChatViaZanoem so they
+  // can dispatch autopilot turns while the user is away.
+  useEffect(() => {
+    sendZanoemTurnRef.current = (prompt: string) => sendChatViaZanoem(prompt, true);
+  });
   // Extract ZANOEM code blocks and write them as files.
   // SINGLE ORDERED SCAN: walks fenced ``` blocks in source order. For each
   // block, the path is taken from (in priority order):
