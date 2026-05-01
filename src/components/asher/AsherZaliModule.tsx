@@ -21,6 +21,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { ZaliProject, ZaliMessage, ZaliTab } from "@/components/dashboard/zali/types";
 import type { ChatMode } from "@/components/dashboard/types";
 import type { ResponseDepth } from "@/components/dashboard/DepthSelector";
+import { builtInPersonas } from "@/components/dashboard/PersonaSelector";
+import { extractZanoemCodeFiles } from "@/components/dashboard/zali/zanoemOutput";
 import React from "react";
 
 const ZaliWorkspace = lazy(() => import("@/components/dashboard/zali/ZaliWorkspace"));
@@ -104,6 +106,13 @@ const AsherZaliModule = () => {
   const [codeFiles, setCodeFiles] = useState<Array<{ filename: string; language: string; content: string }>>([]);
   const [showProjectMenu, setShowProjectMenu] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+
+  useEffect(() => {
+    const latestCode = [...messages].reverse().find((m) => m.role === "assistant" && extractZanoemCodeFiles(m.content).length > 0);
+    if (!latestCode) return;
+    const files = extractZanoemCodeFiles(latestCode.content);
+    if (files.length) setCodeFiles(files);
+  }, [messages]);
 
   // Resizable chat width
   const [chatWidth, setChatWidth] = useState(() => {
