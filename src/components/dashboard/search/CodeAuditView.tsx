@@ -584,6 +584,8 @@ const ZerlalView = () => {
             {blueprint.branches.map((b) => <BranchCard key={b.id} branch={b} />)}
           </div>
 
+          <RemediationActionPanel blueprint={blueprint} />
+
           {/* EXPLOIT CHAIN MAP — kill-chain visualization */}
           <ExploitChainMap blueprint={blueprint} />
 
@@ -1212,7 +1214,7 @@ const ExploitChainMap = ({ blueprint }: { blueprint: Blueprint }) => {
 
   if (chainNodes.length < 2) {
     return (
-      <div className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm px-5 py-3">
+      <div id="zerlal-chain-map" className="rounded-2xl border border-border/15 bg-card/20 backdrop-blur-sm px-5 py-3">
         <div className="flex items-center gap-2 mb-1">
           <Workflow className="h-3 w-3 text-foreground/60" />
           <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/70 uppercase">Exploit Chain Map</span>
@@ -1223,7 +1225,7 @@ const ExploitChainMap = ({ blueprint }: { blueprint: Blueprint }) => {
   }
 
   return (
-    <div className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-4">
+    <div id="zerlal-chain-map" className="rounded-2xl border border-red-400/20 bg-red-500/[0.03] backdrop-blur-sm px-5 py-4 scroll-mt-28">
       <div className="flex items-center gap-2 mb-3">
         <Workflow className="h-3 w-3 text-red-300/80" />
         <span className="text-[10px] font-semibold tracking-[0.2em] text-red-300/80 uppercase">Exploit Chain Map</span>
