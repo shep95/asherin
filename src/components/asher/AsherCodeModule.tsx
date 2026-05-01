@@ -83,6 +83,9 @@ export default function AsherCodeModule() {
   const [viewMode, setViewMode] = useState<"code" | "split" | "preview">(() => (localStorage.getItem("asherCode.viewMode") as any) || "split");
   const [showAi, setShowAi] = useState(() => localStorage.getItem("asherCode.showAi") !== "0");
   const [zanoemMode, setZanoemMode] = useState(() => localStorage.getItem("asherCode.zanoemMode") === "1");
+  const [autopilotZanoem, setAutopilotZanoem] = useState(() => localStorage.getItem("asherCode.autopilotZanoem") === "1");
+  const autopilotRoundsRef = useRef(0);
+  const AUTOPILOT_MAX_ROUNDS = 6;
   const [autoApprove, setAutoApprove] = useState(() => localStorage.getItem("asherCode.autoApprove") !== "0");
   const [animateInsertion, setAnimateInsertion] = useState(() => localStorage.getItem("asherCode.animate") !== "0");
   const [pendingUploads, setPendingUploads] = useState<{ name: string; preview?: string; content: string; kind: "image" | "zip" | "text" }[]>([]);
