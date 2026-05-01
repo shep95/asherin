@@ -455,13 +455,6 @@ export default function AsherCodeModule() {
       void persistChatMessages([u, a]);
     } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
   }
-    if (!activeFile) return;
-    setAiBusy(true);
-    try {
-      const r = await callAsherCodeAi({ mode: "explain", byok: byok(), code: activeContent, language: activeFile.language });
-      setChat(c => [...c, { role: "user", content: `Explain ${activeFile.path}` }, { role: "assistant", content: r.reply || "" }]);
-    } catch (e: any) { toast.error(e.message); } finally { setAiBusy(false); }
-  }
 
   async function aiFix() {
     if (!activeFile) return;
