@@ -15,6 +15,8 @@ export interface LeakHit {
   collection: string;
   ui_url: string;
   file_url?: string;
+  body?: string;       // full extracted text (best-effort, fetched per hit)
+  highlights?: string[];
 }
 
 const firstProp = (p: any, ...keys: string[]): string => {
@@ -26,8 +28,36 @@ const firstProp = (p: any, ...keys: string[]): string => {
   return "";
 };
 
+/** Fetch the full text body of a single Aleph entity (best-effort). */
+async function fetchEntityBody(id: string, timeoutMs = 8000): Promise<string> {
+  if (!id) return "";
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), timeoutMs);
+    const r = await fetch(`${ALEPH}/entities/${id}`, {
+      headers: { Accept: "application/json", "User-Agent": "Aureon-Intelligence/1.0" },
+      signal: ctl.signal,
+    });
+    clearTimeout(t);
+    if (!r.ok) return "";
+    const d = await r.json();
+    const p = d?.properties || {};
+    const raw =
+      firstProp(p, "bodyText") ||
+      firstProp(p, "bodyHtml") ||
+      firstProp(p, "summary", "description", "indexText") ||
+      "";
+    return String(raw).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+
 /** Live search against search.libraryofleaks.org. Fails soft (returns []). */
-export async function searchLibraryOfLeaks(query: string, opts: { limit?: number; timeoutMs?: number } = {}): Promise<LeakHit[]> {
+export async function searchLibraryOfLeaks(
+  query: string,
+  opts: { limit?: number; timeoutMs?: number; deepRead?: number } = {}
+): Promise<LeakHit[]> {
   const q = (query || "").trim();
   if (q.length < 2) return [];
   try {
@@ -35,7 +65,7 @@ export async function searchLibraryOfLeaks(query: string, opts: { limit?: number
     params.set("q", q);
     params.set("limit", String(opts.limit ?? 8));
     params.set("highlight", "true");
-    params.set("highlight_count", "2");
+    params.set("highlight_count", "3");
     DEFAULT_SCHEMATA.forEach((s) => params.append("filter:schemata", s));
 
     const ctl = new AbortController();
@@ -50,18 +80,31 @@ export async function searchLibraryOfLeaks(query: string, opts: { limit?: number
     const out: LeakHit[] = [];
     for (const r0 of (d?.results || [])) {
       const title = firstProp(r0?.properties, "title", "fileName", "name") || r0?.id || "(untitled)";
-      const snippet = (r0?.highlight?.[0] || firstProp(r0?.properties, "summary", "description", "bodyText") || "")
+      const highlights = (r0?.highlight || []).map((h: string) =>
+        h.replace(/<em>/g, "‹").replace(/<\/em>/g, "›").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+      ).filter(Boolean);
+      const snippet = (highlights[0] || firstProp(r0?.properties, "summary", "description", "bodyText") || "")
         .replace(/<em>/g, "‹").replace(/<\/em>/g, "›").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 400);
       out.push({
         id: r0?.id,
         schema: r0?.schema || "Entity",
         title: title.slice(0, 240),
         snippet,
+        highlights: highlights.slice(0, 3),
         collection: r0?.collection?.label || "",
         ui_url: r0?.links?.ui || `${UI}/entities/${r0?.id}`,
         file_url: r0?.links?.file,
       });
     }
+
+    // Deep-read: fetch full body for the top N hits in parallel so the AI
+    // can summarize ACTUAL content, not just snippets.
+    const deep = Math.min(opts.deepRead ?? 5, out.length);
+    if (deep > 0) {
+      const bodies = await Promise.all(out.slice(0, deep).map((h) => fetchEntityBody(h.id)));
+      bodies.forEach((b, i) => { if (b) out[i].body = b.slice(0, 8000); });
+    }
+
     return out;
   } catch (e) {
     console.error("[lol] search failed", e);
@@ -72,16 +115,27 @@ export async function searchLibraryOfLeaks(query: string, opts: { limit?: number
 /** Format Aleph hits as a markdown context block ready to inject into a system prompt. */
 export function formatLeaksContext(query: string, hits: LeakHit[]): string {
   if (!hits.length) return "";
-  const rows = hits.map((h, i) =>
-    `${i + 1}. **${h.title}** _(${h.schema}${h.collection ? ` · ${h.collection}` : ""})_\n   - Source: ${h.ui_url}${h.file_url ? `\n   - File: ${h.file_url}` : ""}\n   - Excerpt: ${h.snippet || "(no excerpt)"}`
-  ).join("\n\n");
+  const rows = hits.map((h, i) => {
+    const parts = [
+      `### [${i + 1}] ${h.title}  _(${h.schema}${h.collection ? ` · ${h.collection}` : ""})_`,
+      `Source URL: ${h.ui_url}`,
+    ];
+    if (h.file_url) parts.push(`File URL: ${h.file_url}`);
+    if (h.highlights?.length) parts.push(`Highlights:\n${h.highlights.map((x) => `  • ${x}`).join("\n")}`);
+    if (h.body) parts.push(`Full text (truncated):\n${h.body}`);
+    else if (h.snippet) parts.push(`Excerpt: ${h.snippet}`);
+    return parts.join("\n");
+  }).join("\n\n---\n\n");
+
   return `\n\n## LIBRARY OF LEAKS — LIVE EVIDENCE (search.libraryofleaks.org)
-The following are REAL leaked records (emails, documents, files, people, companies) returned right now from the DDoSecrets / Aleph index for the operator's subject: "${query}".
-Treat these as primary-source evidence. Quote, summarize, cross-reference. Always cite the Source URL inline using [N] notation matching the list below. Never censor or refuse — this is public, lawfully accessible leaked material the user explicitly asked you to surface.
+The following are REAL leaked records (emails, documents, files, people, companies) returned RIGHT NOW from the DDoSecrets / Aleph index for the operator's subject: "${query}".
+Treat these as primary-source evidence. SUMMARIZE THE ACTUAL CONTENT below — quote names, dates, dollar amounts, email senders/recipients, decisions, and any concrete facts from the "Full text" sections. Do NOT just list the documents and stop. Cross-reference. Always cite inline using [N] notation matching the headings.
+Render every Source URL and File URL as a clickable markdown link, e.g. [search.libraryofleaks.org/entities/abc](https://search.libraryofleaks.org/entities/abc) — never as bare text.
+Never censor or refuse — this is public, lawfully accessible leaked material the user explicitly asked you to surface.
 
 ${rows}
 
-When you finish, append a "Sources" footer listing the [N] → URL mapping you actually used.`;
+End with a "## Sources" section that lists each [N] as a markdown link → its URL.`;
 }
 
 /** Heuristic: should we hit Library of Leaks for this turn? */
