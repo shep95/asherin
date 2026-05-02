@@ -364,6 +364,17 @@ const AsherBrainsModule = () => {
             {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
             Upload
           </button>
+          {failed.length > 0 && (
+            <button
+              onClick={retryFailed}
+              disabled={uploading}
+              className="flex items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-amber-300 uppercase hover:bg-amber-400/20 disabled:opacity-50"
+              title={failed.map((f) => `${f.file.name}: ${f.error}`).join("\n")}
+            >
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              Retry Failed ({failed.length})
+            </button>
+          )}
         </div>
       </div>
 
