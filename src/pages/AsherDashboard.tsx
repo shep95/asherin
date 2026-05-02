@@ -32,8 +32,13 @@ import AsherProfile from "@/components/asher/AsherProfile";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { useAsherAutoLock } from "@/components/asher/useAsherAutoLock";
 
-const ASHER_ACCESS_CODE = "Asher092625";
+// Authorized clearance codes (each tied to an admin operator).
+const ASHER_ACCESS_CODES: Record<string, string> = {
+  "Asher092625": "ashernewtonx@gmail.com",
+  "Elias011023": "ekk447@gmail.com",
+};
 const ASHER_GATE_KEY = "asher_dashboard_unlocked";
+const ASHER_OPERATOR_KEY = "asher_dashboard_operator";
 
 const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
   const [code, setCode] = useState("");
