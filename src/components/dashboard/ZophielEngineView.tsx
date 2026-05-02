@@ -351,6 +351,33 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               <SearchModeSelector active={mode} onChange={setMode} />
             </div>
 
+            {/* Scope toggle: Safe / Mix / Dark — applies to standard search modes */}
+            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "deep" && (
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/50">Scope</span>
+                <div className="inline-flex rounded-xl border border-border/30 bg-card/40 backdrop-blur-xl p-0.5">
+                  {([
+                    { id: "safe", label: "Safe Search", hint: "Clearnet only" },
+                    { id: "mix", label: "Mix Search", hint: "Clearnet + dark web" },
+                    { id: "dark", label: "Dark Search", hint: "Onion sources only" },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => { setScope(opt.id); localStorage.setItem("zophiel_scope", opt.id); }}
+                      title={opt.hint}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-light tracking-wide transition-colors ${
+                        scope === opt.id
+                          ? "bg-accent/25 text-accent"
+                          : "text-muted-foreground/60 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
             {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && (
               <form onSubmit={handleSubmit} className="relative">
