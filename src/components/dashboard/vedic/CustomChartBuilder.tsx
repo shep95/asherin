@@ -20,7 +20,7 @@ const SIGN_NAMES_LIST: string[] = rashis.map((r: any) => r.name);
 const PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"] as const;
 type PlanetName = typeof PLANETS[number];
 
-const SIGN_NAMES = rashis; // 12 sidereal sign names from the existing data module
+const SIGN_NAMES_LIST = rashis; // 12 sidereal sign names from the existing data module
 
 const NAK_NAMES = [
   "Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra",
@@ -211,7 +211,7 @@ export default function CustomChartBuilder() {
               onChange={(e) => setAscSign(Number(e.target.value))}
               className="rounded-md border border-border/30 bg-background/40 px-3 py-2 text-xs font-light tracking-wide text-foreground focus:outline-none focus:border-foreground/40"
             >
-              {SIGN_NAMES.map((s, i) => <option key={s} value={i}>{s}</option>)}
+              {SIGN_NAMES_LIST.map((s, i) => <option key={s} value={i}>{s}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
@@ -283,7 +283,7 @@ export default function CustomChartBuilder() {
             >
               <div className="flex items-center justify-between border-b border-border/15 pb-1.5 mb-2">
                 <span className="text-[10px] font-light tracking-[0.2em] text-muted-foreground/70 uppercase">House {h}</span>
-                <span className="text-[10px] font-light text-foreground/80">{SIGN_NAMES[signIdx]}</span>
+                <span className="text-[10px] font-light text-foreground/80">{SIGN_NAMES_LIST[signIdx]}</span>
               </div>
               <div className="space-y-1.5">
                 {planets.length === 0 && (
@@ -343,7 +343,7 @@ export default function CustomChartBuilder() {
                 >
                   <p className="text-xs font-light text-foreground truncate">{c.name}</p>
                   <p className="text-[10px] text-muted-foreground/60">
-                    Lagna {SIGN_NAMES[c.ascendantSignIndex]} · {Object.values(c.houses).reduce((a, b) => a + b.length, 0)} planets
+                    Lagna {SIGN_NAMES_LIST[c.ascendantSignIndex]} · {Object.values(c.houses).reduce((a, b) => a + b.length, 0)} planets
                   </p>
                 </button>
                 <button onClick={() => handleDelete(c.id)} className="text-muted-foreground hover:text-red-400">
