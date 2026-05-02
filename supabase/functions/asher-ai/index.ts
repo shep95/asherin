@@ -143,6 +143,22 @@ serve(async (req) => {
       return toolCallResponse("phone_intel", { phone });
     }
 
+    // ── Library of Leaks (DDoSecrets / Aleph) live grounding ───────────────
+    let leaksBlock = "";
+    try {
+      const userText = latestUserText(cleaned);
+      const { searchLibraryOfLeaks, formatLeaksContext, shouldQueryLeaks, extractLeakSubject } =
+        await import("../_shared/libraryOfLeaks.ts");
+      if (shouldQueryLeaks(userText)) {
+        const subject = extractLeakSubject(userText) || userText.slice(0, 60);
+        console.log("[asher-ai] Library of Leaks lookup:", subject);
+        const hits = await searchLibraryOfLeaks(subject, { limit: 8 });
+        leaksBlock = formatLeaksContext(subject, hits);
+      }
+    } catch (e) {
+      console.error("[asher-ai] Library of Leaks lookup failed:", e);
+    }
+
     // Gemini OpenAI-compatible endpoint — keeps client SSE parser unchanged.
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
@@ -155,7 +171,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "gemini-2.5-flash",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT + brainBlock + ctxBlock },
+            { role: "system", content: SYSTEM_PROMPT + brainBlock + ctxBlock + leaksBlock },
             ...cleaned,
           ],
           tools: TOOLS,
