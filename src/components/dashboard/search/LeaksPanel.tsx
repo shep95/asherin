@@ -450,6 +450,14 @@ const LeaksPanel = () => {
             <button onClick={selectAll} disabled={!results.length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Select page</button>
             <button onClick={clearAll} disabled={!Object.keys(selected).length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Clear ({Object.keys(selected).length})</button>
             <button
+              onClick={() => setDossierOpen(true)}
+              disabled={!results.length}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1 text-[11px] font-light tracking-wide text-accent hover:bg-accent/20 transition-colors disabled:opacity-30"
+              title="Open Intelligence Dossier — scrapes the result set and answers questions in plain English"
+            >
+              <FileSearch className="h-3.5 w-3.5" /> Intel Dossier
+            </button>
+            <button
               onClick={exportZip}
               disabled={(!results.length && !Object.keys(selected).length) || zipping}
               className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1 text-[11px] font-light tracking-wide text-accent hover:bg-accent/25 transition-colors disabled:opacity-30"
