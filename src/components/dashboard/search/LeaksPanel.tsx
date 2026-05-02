@@ -117,7 +117,7 @@ const LeaksPanel = () => {
         manifest.push({ id: r.id, title, schema: r.schema, ui, file_downloaded: downloaded, source: r.collection?.label });
       }
       zip.file("manifest.json", JSON.stringify({ query, exported_at: new Date().toISOString(), count: items.length, items: manifest }, null, 2));
-      zip.file("README.txt", `LIBRARY OF LEAKS EXPORT\nQuery: ${query}\nItems: ${items.length}\nGenerated: ${new Date().toISOString()}\n\nSee manifest.json for index. /files contains downloaded originals where available; /text contains plaintext snapshots.\n`);
+      zip.file("README.txt", `ASHER EYES EXPORT\nQuery: ${query}\nItems: ${items.length}\nGenerated: ${new Date().toISOString()}\n\nSee manifest.json for index. /files contains downloaded originals where available; /text contains plaintext snapshots.\n`);
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -144,9 +144,9 @@ const LeaksPanel = () => {
       <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <FileArchive className="h-5 w-5 text-accent shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-light text-foreground">Library of Leaks</p>
+          <p className="text-xs font-light text-foreground">Asher Eyes</p>
           <p className="text-[10px] font-extralight text-muted-foreground">
-            Direct browse of <span className="font-mono">search.libraryofleaks.org</span> — leaked emails, documents, files, folders, people, companies. No filter, no censorship. Bundle selected items into a downloadable ZIP.
+            Direct browse of the <span className="font-mono">Asher Eyes</span> index — emails, documents, files, folders, people, companies. No filter, no censorship. Bundle selected items into a downloadable ZIP.
           </p>
         </div>
       </div>
@@ -161,7 +161,7 @@ const LeaksPanel = () => {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search leaks (e.g. Aureon AI, Stratfor, Palantir, an email address)…"
+          placeholder="Search Asher Eyes (e.g. Aureon AI, Stratfor, Palantir, an email address)…"
           className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
         />
         <button
@@ -194,7 +194,7 @@ const LeaksPanel = () => {
       {searched && (
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-[10px] font-light text-muted-foreground/50">
-            {loading ? "Searching Aleph…" : `${results.length} shown of ${total.toLocaleString()} total matches`}
+            {loading ? "Searching Asher Eyes…" : `${results.length} shown of ${total.toLocaleString()} total matches`}
           </p>
           <div className="flex items-center gap-2">
             <button onClick={selectAll} disabled={!results.length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Select page</button>
@@ -252,7 +252,7 @@ const LeaksPanel = () => {
                     {snippet && <p className="text-[11px] font-extralight text-muted-foreground/80 mt-1 line-clamp-2">{snippet}</p>}
                     <div className="flex items-center gap-3 mt-1.5">
                       <a href={ui} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-foreground">
-                        <ExternalLink className="h-3 w-3" /> Open in Aleph
+                        <ExternalLink className="h-3 w-3" /> Open source
                       </a>
                       {file && (
                         <a href={file} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-accent/70 hover:text-accent">
@@ -271,7 +271,7 @@ const LeaksPanel = () => {
       {!loading && searched && results.length === 0 && !error && (
         <div className="text-center py-12">
           <FileArchive className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
-          <p className="text-sm font-extralight text-muted-foreground">No leaks matched. Try a broader term or enable more types above.</p>
+          <p className="text-sm font-extralight text-muted-foreground">No results matched. Try a broader term or enable more types above.</p>
         </div>
       )}
     </div>
