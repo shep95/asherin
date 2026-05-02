@@ -182,7 +182,7 @@ const LeaksPanel = () => {
 
   const run = useCallback(async (q: string) => {
     if (!q.trim()) return;
-    setLoading(true); setError(null); setSearched(true); setResults([]); setTotal(0);
+    setLoading(true); setError(null); setSearched(true); setResults([]); setTotal(0); setIntentMatches(null);
     try {
       const params = new URLSearchParams();
       params.set("q", q.trim());
