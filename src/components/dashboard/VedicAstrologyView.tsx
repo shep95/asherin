@@ -563,6 +563,115 @@ const VedicAstrologyView = () => {
     }
   };
 
+  // ── COMPANY CHARTS — lazy lagna compute + loaders (mirrors country logic) ──
+  useEffect(() => {
+    if (tab !== "companies") return;
+    const missing = COMPANY_CHARTS.filter((c) => !(c.symbol in companyLagnas));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      for (const c of missing) {
+        try {
+          const r = await calculateSweVedicChart({
+            birthDate: c.birthDate, birthTime: c.birthTime,
+            tzOffset: c.tzOffset, lat: c.lat, lon: c.lon,
+          });
+          const sign = rashis[Math.floor(r.ascendant / 30)];
+          updates[c.symbol] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+        } catch {
+          updates[c.symbol] = null;
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setCompanyLagnas((prev) => ({ ...prev, ...updates }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "companies") return;
+    const missing = COMPANY_FOUNDERS.filter((f) => !(f.companySymbol in founderLagnas));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const updates: Record<string, { sign: string; sanskrit: string; deg: number } | null> = {};
+      for (const f of missing) {
+        try {
+          const r = await calculateSweVedicChart({
+            birthDate: f.birthDate, birthTime: f.birthTime,
+            tzOffset: f.tzOffset, lat: f.lat, lon: f.lon,
+          });
+          const sign = rashis[Math.floor(r.ascendant / 30)];
+          updates[f.companySymbol] = { sign: sign.name, sanskrit: sign.sanskrit, deg: r.ascendant % 30 };
+        } catch {
+          updates[f.companySymbol] = null;
+        }
+        if (cancelled) return;
+      }
+      if (!cancelled) setFounderLagnas((prev) => ({ ...prev, ...updates }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const loadCompanyChart = async (c: CompanyFoundation) => {
+    setTzAuto(false);
+    setBirthDate(c.birthDate);
+    setBirthTime(c.birthTime);
+    setTzOffset(String(c.tzOffset));
+    setTzZoneName(null);
+    setLat(String(c.lat));
+    setLon(String(c.lon));
+    setCityQuery(c.city);
+    setError(null);
+    setLoadingChart(true);
+    setActiveCountry(null);
+    setActiveSavedId(null);
+    setActiveName(`${c.glyph} ${c.name}`);
+    try {
+      await computeAndSetChart({
+        birthDate: c.birthDate, birthTime: c.birthTime,
+        tzOffset: String(c.tzOffset), lat: String(c.lat), lon: String(c.lon),
+      });
+      setTab("mine");
+      toast.success(`Loaded ${c.name} ${c.event.toLowerCase()} chart${c.timeKnown ? "" : " (noon-chart)"}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
+  const loadFounderChart = async (f: FounderRecord) => {
+    setTzAuto(false);
+    setBirthDate(f.birthDate);
+    setBirthTime(f.birthTime);
+    setTzOffset(String(f.tzOffset));
+    setTzZoneName(null);
+    setLat(String(f.lat));
+    setLon(String(f.lon));
+    setCityQuery(f.city);
+    setError(null);
+    setLoadingChart(true);
+    setActiveCountry(null);
+    setActiveSavedId(null);
+    setActiveName(`${f.name} · ${f.role}`);
+    try {
+      await computeAndSetChart({
+        birthDate: f.birthDate, birthTime: f.birthTime,
+        tzOffset: String(f.tzOffset), lat: String(f.lat), lon: String(f.lon),
+      });
+      setTab("mine");
+      toast.success(`Loaded ${f.name}'s chart${f.timeKnown ? "" : " (noon-chart)"}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingChart(false);
+    }
+  };
+
   return (
     <div
       className="h-full overflow-y-auto relative"
