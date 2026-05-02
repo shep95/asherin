@@ -61,6 +61,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
+  const [scope, setScope] = useState<"safe" | "mix" | "dark">(() => (localStorage.getItem("zophiel_scope") as any) || "safe");
+  const [darkResults, setDarkResults] = useState<{ title: string; link: string; engine: string }[]>([]);
+  const [darkSummary, setDarkSummary] = useState<string>("");
+  const [darkLoading, setDarkLoading] = useState(false);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
   const splitPctRef = useRef(50);
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -168,6 +172,23 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     localStorage.setItem("zophiel_blocked_domains", JSON.stringify(updated));
   };
 
+  const runDarkSweep = useCallback(async (q: string) => {
+    setDarkLoading(true); setDarkResults([]); setDarkSummary("");
+    try {
+      const byok = (await import("@/lib/intelMapByok")).getActiveIntelMapByok();
+      const { data, error } = await supabase.functions.invoke("zophiel-darkweb", {
+        body: { query: q, ...(byok ? { byok } : {}) },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setDarkResults(Array.isArray(data.results) ? data.results : []);
+        setDarkSummary(data.summary || "");
+      }
+    } catch (e) {
+      console.error("[zophiel] dark sweep failed", e);
+    } finally { setDarkLoading(false); }
+  }, []);
+
   const search = useCallback(async (searchQuery?: string) => {
     const q = (searchQuery ?? query).trim();
     if (!q) return;
@@ -198,18 +219,29 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     setDeepSearchQuery(null);
-    setLoading(true);
     setSearched(true);
     setResults([]);
     setGrouped({});
     setInstantAnswer(null);
     setFreshnessAlerts({});
+    setDarkResults([]);
+    setDarkSummary("");
     setShowSuggestions(false);
     setSelectedIndex(-1);
     setQueuedSearch(null);
     saveRecent(q);
 
     const start = performance.now();
+    const wantClearnet = scope === "safe" || scope === "mix";
+    const wantDark = scope === "dark" || scope === "mix";
+
+    if (wantClearnet) setLoading(true);
+    if (wantDark) runDarkSweep(q);
+
+    if (!wantClearnet) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("zophiel-search", {
@@ -235,7 +267,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     } finally {
       setLoading(false);
     }
-  }, [query, mode, filters, operatorOverrides, blockedDomains, recentSearches]);
+  }, [query, mode, filters, operatorOverrides, blockedDomains, recentSearches, scope, runDarkSweep]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -318,6 +350,33 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             <div className="mb-3">
               <SearchModeSelector active={mode} onChange={setMode} />
             </div>
+
+            {/* Scope toggle: Safe / Mix / Dark — applies to standard search modes */}
+            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "deep" && (
+              <div className="mb-3 flex items-center gap-2">
+                <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/50">Scope</span>
+                <div className="inline-flex rounded-xl border border-border/30 bg-card/40 backdrop-blur-xl p-0.5">
+                  {([
+                    { id: "safe", label: "Safe Search", hint: "Clearnet only" },
+                    { id: "mix", label: "Mix Search", hint: "Clearnet + dark web" },
+                    { id: "dark", label: "Dark Search", hint: "Onion sources only" },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => { setScope(opt.id); localStorage.setItem("zophiel_scope", opt.id); }}
+                      title={opt.hint}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-light tracking-wide transition-colors ${
+                        scope === opt.id
+                          ? "bg-accent/25 text-accent"
+                          : "text-muted-foreground/60 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
             {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && (
@@ -457,6 +516,36 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
               {/* Deep Search Panel */}
               {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
+              )}
+
+              {/* Inline Dark Web sweep — shown when scope=mix or dark */}
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && !deepSearchQuery && (scope === "mix" || scope === "dark") && (darkLoading || darkResults.length > 0 || darkSummary) && (
+                <div className="mb-6 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-[0.25em] text-accent/80">Dark Web Sweep</span>
+                    {darkLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                  </div>
+                  {darkSummary && (
+                    <div className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3">
+                      <pre className="whitespace-pre-wrap text-[12px] font-light text-foreground/90 leading-relaxed font-sans">{darkSummary}</pre>
+                    </div>
+                  )}
+                  {darkResults.length > 0 && (
+                    <div className="space-y-1.5">
+                      {darkResults.map((r, i) => (
+                        <div key={r.link + i} className="rounded-xl border border-border/20 bg-card/30 px-3 py-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-light text-foreground truncate">[{i + 1}] {r.title || "(untitled)"}</p>
+                              <p className="text-[10px] font-mono text-muted-foreground/60 truncate">{r.link}</p>
+                            </div>
+                            <span className="text-[9px] uppercase tracking-wider text-accent/70 shrink-0">{r.engine}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Standard search results */}
