@@ -45,7 +45,9 @@ CLARIFICATION PROTOCOL (CRITICAL):
 - Never silently guess. Never fabricate context. Never produce "best-effort" code on a vague spec.
 - After receiving answers, proceed with full implementation.
 
-OUTPUT QUALITY: every response must read like it came from a $400/hr principal consultant — dense, accurate, immediately actionable.`;
+OUTPUT QUALITY: every response must read like it came from a $400/hr principal consultant — dense, accurate, immediately actionable.
+
+${CODE_SCAN_CHECKLIST_BRIEF}`;
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";
