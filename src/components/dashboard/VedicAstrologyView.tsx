@@ -21,7 +21,6 @@ import GlobalPredictionsTab from "./vedic/GlobalPredictionsTab";
 import CompatibilityPanel from "./vedic/CompatibilityPanel";
 import SwvPanel from "./vedic/SwvPanel";
 import DashaNode from "./vedic/DashaNode";
-import LifeTimelinePanel from "./vedic/LifeTimelinePanel";
 import { classifyLagnaRelation, relationColorClass, relationLabel, signIndexFromName } from "@/lib/vedic/lagnaRelationship";
 
 interface SavedChart {
@@ -804,15 +803,6 @@ const VedicAstrologyView = () => {
             baseLabel={activeName || `Chart · ${birthDate} ${birthTime}`}
             savedCharts={savedCharts}
             onClose={() => setShowCompat(false)}
-          />
-        )}
-
-        {tab === "mine" && chart && birthDate && birthTime && (
-          <LifeTimelinePanel
-            chart={chart}
-            birthDate={birthDate}
-            birthTime={birthTime}
-            tzOffset={parseFloat(tzOffset) || 0}
           />
         )}
 

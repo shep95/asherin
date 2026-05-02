@@ -3,7 +3,6 @@ import { Heart, Loader2, Scale, X } from "lucide-react";
 import { compareCharts, chartFromCountry, chartFromSaved, type CompatResult } from "@/lib/vedic/compatibility";
 import { COUNTRY_CHARTS } from "@/data/vedic/countryCharts";
 import type { SweVedicChart } from "@/lib/vedic/sweChart";
-import SynastryPredictions from "./SynastryPredictions";
 
 interface SavedChart {
   id: string;
@@ -34,7 +33,6 @@ export default function CompatibilityPanel({ baseChart, baseLabel, savedCharts, 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CompatResult | null>(null);
   const [otherLabel, setOtherLabel] = useState<string>("");
-  const [otherChart, setOtherChart] = useState<SweVedicChart | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const targetSaved = useMemo(() => savedCharts.find((s) => s.id === targetSavedId), [savedCharts, targetSavedId]);
@@ -58,7 +56,7 @@ export default function CompatibilityPanel({ baseChart, baseLabel, savedCharts, 
           label = targetSaved.name;
         }
         const r = await compareCharts(baseChart, other);
-        if (!cancelled) { setResult(r); setOtherLabel(label); setOtherChart(other); }
+        if (!cancelled) { setResult(r); setOtherLabel(label); }
       } catch (e: any) {
         if (!cancelled) setErr(e?.message ?? "Failed to compute");
       } finally {
@@ -157,16 +155,6 @@ export default function CompatibilityPanel({ baseChart, baseLabel, savedCharts, 
               );
             })}
           </div>
-
-          {/* DETERMINISTIC RELATIONSHIP TIMELINE */}
-          {otherChart && (
-            <SynastryPredictions
-              chartA={baseChart}
-              chartB={otherChart}
-              labelA={baseLabel}
-              labelB={otherLabel}
-            />
-          )}
         </div>
       )}
     </div>
