@@ -4,13 +4,13 @@
 // Active brains from ASHER BRAINS are auto-injected into the system prompt.
 
 import { useEffect, useRef, useState } from "react";
-import { Brain, Send, Loader2, Trash2, Sparkles, ShieldCheck, Database, Lock } from "lucide-react";
+import { Brain, Send, Loader2, Trash2, Sparkles, ShieldCheck, Database, Lock, Network } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
-import { buildBrainContext } from "@/lib/asherBrains";
+import { routeBrainsForPrompt, type SwarmRouteResult } from "@/lib/asherBrainRouter";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Msg {
