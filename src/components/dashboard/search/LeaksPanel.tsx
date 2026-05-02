@@ -556,7 +556,7 @@ const LeaksPanel = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-light text-foreground">Intelligence Dossier</p>
                 <p className="text-[10px] font-extralight text-muted-foreground/70 truncate">
-                  Scraping {Math.min(intentMatches ? Object.keys(intentMatches).length : results.length, 20)} docs · jargon translated to plain English
+                  Scraping {Math.min(intentMatches ? Object.keys(intentMatches).length : results.length, 200)} docs · jargon translated to plain English
                 </p>
               </div>
               <button onClick={() => setDossierOpen(false)} className="p-1 rounded-md hover:bg-foreground/10 text-muted-foreground hover:text-foreground">
