@@ -37,6 +37,8 @@ const firstProp = (p: any, ...keys: string[]): string => {
 };
 
 const LeaksPanel = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.email === ADMIN_EMAIL;
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AlephResult[]>([]);
   const [total, setTotal] = useState(0);
@@ -45,7 +47,82 @@ const LeaksPanel = () => {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, AlephResult>>({});
   const [zipping, setZipping] = useState(false);
+  const [integrating, setIntegrating] = useState(false);
   const [activeSchemata, setActiveSchemata] = useState<Schema[]>(["Pages", "Document", "HyperText", "Email", "PlainText", "Person", "Company"]);
+
+  const detectCategory = (title: string, body: string): "coding" | "general" => {
+    const t = `${title}\n${body}`.toLowerCase();
+    if (/\b(function|const |class |import |def |#include|public static|\.tsx?|\.py|\.js|\.go|\.rs|\.java|\.cpp|github\.com|stack ?overflow|npm |pip |cargo |sdk|api endpoint|regex|sql|terraform|kubernetes|docker)\b/.test(t)) return "coding";
+    return "general";
+  };
+
+  const integrateIntoBrains = async () => {
+    const items = Object.values(selected);
+    if (!items.length || !isAdmin) return;
+    setIntegrating(true);
+    let ok = 0, fail = 0;
+    try {
+      for (const r of items) {
+        try {
+          const title = firstProp(r.properties, "title", "fileName", "name") || r.id;
+          const ui = r.links?.ui || `${UI}/entities/${r.id}`;
+          const fileUrl = r.links?.file;
+          const body = (firstProp(r.properties, "bodyText") || firstProp(r.properties, "bodyHtml") || "")
+            .replace(/<[^>]+>/g, " ");
+          const highlights = (r.highlight || []).map((h) => h.replace(/<[^>]+>/g, "")).join("\n");
+          const category = detectCategory(title, body);
+
+          // Compose canonical text content for the brain
+          const content = [
+            `# ${title}`,
+            `Schema: ${r.schema}`,
+            `Source: ${r.collection?.label || ""} ${r.collection?.publisher ? `(${r.collection.publisher})` : ""}`.trim(),
+            `Source URL: ${ui}`,
+            fileUrl ? `Original File: ${fileUrl}` : "",
+            "",
+            "## Highlights",
+            highlights,
+            "",
+            "## Body",
+            body.slice(0, 200_000),
+          ].filter(Boolean).join("\n").replace(/\u0000/g, "");
+
+          // Upload original file (if any) into asher-brains bucket via proxy
+          let filePath: string | null = null;
+          let fileSize = content.length;
+          if (fileUrl) {
+            try {
+              const fr = await fetch(viaProxy(fileUrl));
+              if (fr.ok) {
+                const blob = await fr.blob();
+                const ext = (firstProp(r.properties, "fileName").match(/\.[a-z0-9]+$/i)?.[0]) || "";
+                const safe = title.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) || r.id;
+                const path = `${user?.id ?? "admin"}/asher-eyes/${Date.now()}_${safe}${ext}`;
+                const up = await supabase.storage.from("asher-brains").upload(path, blob, { upsert: false });
+                if (!up.error) { filePath = path; fileSize = blob.size; }
+              }
+            } catch (e) { console.warn("[asher-eyes→brains] file upload failed", e); }
+          }
+
+          const { error: insErr } = await supabase.from("asher_brains").insert({
+            name: title.slice(0, 200),
+            description: `Asher Eyes · ${r.collection?.label || r.schema}`,
+            category,
+            content,
+            file_name: firstProp(r.properties, "fileName") || `${title}.txt`,
+            file_path: filePath,
+            file_size: fileSize,
+            uploaded_by: user?.id,
+            is_active: true,
+          });
+          if (insErr) { fail++; console.error("[asher-eyes→brains] insert failed", insErr); }
+          else ok++;
+        } catch (e) { fail++; console.error(e); }
+      }
+      toast.success(`Integrated ${ok} item${ok === 1 ? "" : "s"} into ASHER Brains${fail ? ` (${fail} failed)` : ""}`);
+      setSelected({});
+    } finally { setIntegrating(false); }
+  };
 
   const run = useCallback(async (q: string) => {
     if (!q.trim()) return;
