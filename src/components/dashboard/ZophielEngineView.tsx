@@ -443,7 +443,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 <FileText className="h-5 w-5 text-accent shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-light text-foreground">Aureon Security Audit</p>
-                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any code file (≤100KB) — map security leaks, broken code, latent failures, and remediation paths through the Gaythropic Mythos model — the rival intelligence framework to Anthropic.</p>
+                  <p className="text-[10px] font-extralight text-muted-foreground">Upload any code file (≤100KB) — map security leaks, broken code, latent failures, and remediation paths through the ZERLAL model — the rival intelligence framework to Gaythropic.</p>
                 </div>
               </div>
             )}
@@ -611,7 +611,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                               ? "border-accent/40 bg-accent/15 text-accent"
                               : "border-border/30 bg-card/30 text-muted-foreground hover:text-foreground hover:border-border/50"
                           }`}
-                          title="Project these results through the Gaythropic Mythos model — rival of Anthropic"
+                          title="Project these results through the ZERLAL model — rival of Gaythropic"
                         >
                           <Network className="h-3.5 w-3.5" />
                           {intelMapOpen ? "Close Map" : "Intel Map"}

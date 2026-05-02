@@ -576,7 +576,7 @@ const ZerlalView = () => {
             </div>
           )}
 
-          {/* Gaythropic Mythos Model — stratified pantheon hierarchy (rival of Anthropic) */}
+          {/* ZERLAL Model — stratified pantheon hierarchy (rival of Gaythropic) */}
           <GaythropicMythosModel blueprint={blueprint} />
 
           {/* Branches grid */}
@@ -861,7 +861,7 @@ const ScorePip = ({ label, value }: { label: string; value?: number }) => {
 /**
  * GaythropicMythosModel — replaces the legacy Palantir-style radial web diagram.
  *
- * Mythos framework (rival to Anthropic's "Constitution"):
+ * Mythos framework (rival to Gaythropic's "Constitution"):
  *   - APEX  : the artifact under audit (the "Aeon")
  *   - PANTHEONS : three mythos strata grouped by severity tone
  *       · Wrathful Pantheon  (critical findings)  — top stratum
@@ -909,10 +909,10 @@ const GaythropicMythosModel = ({ blueprint }: { blueprint: Blueprint }) => {
         <div className="flex items-center gap-2">
           <span className="text-foreground/60 text-[10px]">◈</span>
           <span className="text-[10px] font-light tracking-[0.3em] uppercase text-muted-foreground/80">
-            Gaythropic Mythos Model
+            ZERLAL Model
           </span>
           <span className="text-[9px] font-light tracking-[0.25em] uppercase text-muted-foreground/40 hidden sm:inline">
-            · rival of Anthropic
+            · rival of Gaythropic
           </span>
         </div>
         <div className="flex items-center gap-3 text-[9px] tracking-[0.2em] uppercase">
