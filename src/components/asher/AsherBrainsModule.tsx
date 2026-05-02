@@ -154,59 +154,91 @@ const AsherBrainsModule = () => {
 
   useEffect(() => { if (unlocked && isAdmin) void refresh(); }, [unlocked, isAdmin, refresh]);
 
+  const [failed, setFailed] = useState<{ file: File; category: AsherBrainCategory; error: string }[]>([]);
+
+  const sanitizeForPg = (s: string) =>
+    s
+      .replace(/\u0000/g, "")
+      .replace(/\\u0000/g, "")
+      // strip ALL backslash-u escape sequences postgres might try to interpret
+      .replace(/\\u[dD][89aAbB][0-9a-fA-F]{2}/g, "")
+      .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+      .replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1")
+      // remove other control chars except \n \r \t
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+
+  const uploadOne = async (file: File, category: AsherBrainCategory, attempt = 1): Promise<{ ok: boolean; error?: string }> => {
+    if (!isSupportedBrainFile(file.name)) return { ok: false, error: "unsupported format" };
+    try {
+      const rawText = await readBrainFile(file);
+      let text = sanitizeForPg(rawText);
+      // On retry, be more aggressive: keep only printable ASCII + newlines
+      if (attempt > 1) {
+        text = text.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
+      }
+      const name = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
+      const filePath = `${user?.id ?? "admin"}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: uploadErr } = await supabase.storage.from("asher-brains").upload(filePath, file, { upsert: false });
+      if (uploadErr) console.warn("brain file storage upload failed:", uploadErr.message);
+
+      const { data: row, error } = await supabase
+        .from("asher_brains")
+        .insert({
+          name,
+          description: `Uploaded ${file.name}`,
+          category,
+          content: text,
+          file_name: file.name,
+          file_path: uploadErr ? null : filePath,
+          file_size: file.size,
+          uploaded_by: user?.id,
+          is_active: true,
+        })
+        .select()
+        .single();
+      if (error) {
+        if (attempt < 3) return uploadOne(file, category, attempt + 1);
+        return { ok: false, error: error.message };
+      }
+      if (row) {
+        setBrains((p) => [row as AsherBrain, ...p]);
+        toast.success(`"${name}" → ${category.toUpperCase()}`);
+        logAsherEvent("module_open", { module: "asher_brain_uploaded", category, size: file.size });
+      }
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: err?.message || "read failed" };
+    }
+  };
+
   const upload = async (files: FileList | File[]) => {
     if (!isAdmin) return;
     const arr = Array.from(files);
     if (!arr.length) return;
     setUploading(true);
+    const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
     for (const file of arr) {
-      try {
-        if (!isSupportedBrainFile(file.name)) {
-          toast.error(`${file.name}: unsupported format`);
-          continue;
-        }
-        const rawText = await readBrainFile(file);
-        // Sanitize: Postgres TEXT rejects \u0000 NULL bytes and unpaired surrogates.
-        const text = rawText
-          .replace(/\u0000/g, "")
-          // strip lone surrogates that break unicode escape parsing
-          .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
-          .replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1");
-        const name = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
-
-        // Upload raw file to private bucket
-        const filePath = `${user?.id ?? "admin"}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        const { error: uploadErr } = await supabase.storage.from("asher-brains").upload(filePath, file, { upsert: false });
-        if (uploadErr) console.warn("brain file storage upload failed:", uploadErr.message);
-
-        const { data: row, error } = await supabase
-          .from("asher_brains")
-          .insert({
-            name,
-            description: `Uploaded ${file.name}`,
-            category: uploadCategory,
-            content: text,
-            file_name: file.name,
-            file_path: uploadErr ? null : filePath,
-            file_size: file.size,
-            uploaded_by: user?.id,
-            is_active: true,
-          })
-          .select()
-          .single();
-        if (error) {
-          toast.error(`Insert failed: ${error.message}`);
-          continue;
-        }
-        if (row) {
-          setBrains((p) => [row as AsherBrain, ...p]);
-          toast.success(`"${name}" → ${uploadCategory.toUpperCase()}`);
-          logAsherEvent("module_open", { module: "asher_brain_uploaded", category: uploadCategory, size: file.size });
-        }
-      } catch (err: any) {
-        toast.error(`${file.name}: ${err?.message || "read failed"}`);
+      const res = await uploadOne(file, uploadCategory);
+      if (!res.ok) {
+        newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
+        toast.error(`${file.name}: ${res.error}`);
       }
     }
+    setFailed((prev) => [...prev, ...newFailed]);
+    setUploading(false);
+  };
+
+  const retryFailed = async () => {
+    if (!failed.length) return;
+    setUploading(true);
+    const stillFailed: typeof failed = [];
+    for (const f of failed) {
+      const res = await uploadOne(f.file, f.category);
+      if (!res.ok) stillFailed.push({ ...f, error: res.error || "unknown" });
+    }
+    setFailed(stillFailed);
+    if (stillFailed.length === 0) toast.success("All failed uploads recovered");
+    else toast.error(`${stillFailed.length} still failed`);
     setUploading(false);
   };
 
@@ -332,6 +364,17 @@ const AsherBrainsModule = () => {
             {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
             Upload
           </button>
+          {failed.length > 0 && (
+            <button
+              onClick={retryFailed}
+              disabled={uploading}
+              className="flex items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-amber-300 uppercase hover:bg-amber-400/20 disabled:opacity-50"
+              title={failed.map((f) => `${f.file.name}: ${f.error}`).join("\n")}
+            >
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              Retry Failed ({failed.length})
+            </button>
+          )}
         </div>
       </div>
 
