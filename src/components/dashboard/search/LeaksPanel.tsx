@@ -170,26 +170,30 @@ const LeaksPanel = () => {
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
       const manifest: any[] = [];
-      for (const r of items) {
+      // Fetch all originals in parallel for speed
+      const fetched = await Promise.all(items.map(async (r) => {
+        const fileUrl = r.links?.file;
+        if (!fileUrl) return null;
+        try {
+          const fr = await fetch(viaProxy(fileUrl));
+          if (fr.ok) return await fr.blob();
+        } catch (err) { console.warn("[asher-eyes] file fetch failed", err); }
+        return null;
+      }));
+
+      items.forEach((r, i) => {
         const title = firstProp(r.properties, "title", "fileName", "name") || r.id;
         const safe = title.replace(/[^a-z0-9._-]+/gi, "_").slice(0, 80) || r.id;
         const ui = r.links?.ui || `${UI}/entities/${r.id}`;
         const fileUrl = r.links?.file;
         const mime = firstProp(r.properties, "mimeType");
         const ext = (firstProp(r.properties, "fileName").match(/\.[a-z0-9]+$/i)?.[0]) || (mime?.includes("pdf") ? ".pdf" : "");
+        const blob = fetched[i];
         let downloaded = false;
-        if (fileUrl) {
-          try {
-            // Direct fetch will fail CORS — go straight through proxy
-            const fr = await fetch(viaProxy(fileUrl));
-            if (fr.ok) {
-              const blob = await fr.blob();
-              zip.folder("files")!.file(`${safe}${ext || ""}`, blob);
-              downloaded = true;
-            }
-          } catch (err) { console.warn("[asher-eyes] file fetch failed", err); }
+        if (blob) {
+          zip.folder("files")!.file(`${safe}${ext || ""}`, blob);
+          downloaded = true;
         }
-        // Always include a text/json snapshot
         const text = [
           `# ${title}`,
           `Schema: ${r.schema}`,
@@ -206,7 +210,7 @@ const LeaksPanel = () => {
         ].filter(Boolean).join("\n");
         zip.folder("text")!.file(`${safe}.txt`, text);
         manifest.push({ id: r.id, title, schema: r.schema, ui, file_downloaded: downloaded, source: r.collection?.label });
-      }
+      });
       zip.file("manifest.json", JSON.stringify({ query, exported_at: new Date().toISOString(), count: items.length, items: manifest }, null, 2));
       zip.file("README.txt", `ASHER EYES EXPORT\nQuery: ${query}\nItems: ${items.length}\nGenerated: ${new Date().toISOString()}\n\nSee manifest.json for index. /files contains downloaded originals where available; /text contains plaintext snapshots.\n`);
       const blob = await zip.generateAsync({ type: "blob" });
