@@ -22,6 +22,7 @@ const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
 const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
 const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
+const DarkWebPanel = lazy(() => import("./search/DarkWebPanel"));
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -114,7 +115,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
 
   // Auto-activate "searched" view when entering Imagine, Extract, Audit, or Face mode (no query needed)
   useEffect(() => {
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" || mode === "darkweb") {
       setSearched(true);
       setShowSuggestions(false);
     }
@@ -181,7 +182,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     // Imagine / Extract / Audit / Face modes — handled by their own panels, do not run text search
-    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face") {
+    if (mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" || mode === "darkweb") {
       setSearched(true);
       setShowSuggestions(false);
       return;
@@ -319,7 +320,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
             </div>
 
             {/* Search bar — hidden in imagine/extract/audit modes (use their own input UI) */}
-            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && (
+            {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && (
               <form onSubmit={handleSubmit} className="relative">
                 <div className={`flex items-center gap-2 rounded-2xl border ${!online ? "border-amber-500/30" : "border-border/30"} bg-card/40 backdrop-blur-xl px-4 py-3 focus-within:border-accent/40 transition-colors`}>
                   {!online && <WifiOff className="h-4 w-4 text-amber-400/60 shrink-0" />}
@@ -410,7 +411,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
         {/* Results */}
         {searched && (
           <div className="flex-1 overflow-y-auto">
-            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" ? "max-w-4xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
+            <div className={`${mode === "imagine" || mode === "extract" || mode === "audit" || mode === "face" || mode === "darkweb" ? "max-w-4xl" : "max-w-2xl"} mx-auto px-3 sm:px-6 pb-8`}>
               {/* Queue Panel */}
               <MessageQueuePanel
                 items={queuedSearch ? [{ id: "zophiel-queued", content: queuedSearch }] : []}
@@ -446,13 +447,20 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Dark Web — Robin (darkgoogle) Tor2Web pipeline */}
+              {mode === "darkweb" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <DarkWebPanel />
+                </Suspense>
+              )}
+
               {/* Deep Search Panel */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
               )}
 
               {/* Standard search results */}
-              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && !deepSearchQuery && (
+              {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && !deepSearchQuery && (
                 <>
                   {/* Meta */}
                   {!loading && results.length > 0 && (
