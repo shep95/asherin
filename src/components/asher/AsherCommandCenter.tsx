@@ -87,8 +87,16 @@ const AsherCommandCenter = () => {
     logAsherEvent("module_open", { module: "asher_command_send", chars: text.length });
 
     try {
-      // Pull active brains (admin only — RLS returns [] for others).
-      const brainContext = await buildBrainContext().catch(() => null);
+      // SWARM ROUTER (Scout): pick only the brains relevant to THIS prompt.
+      // Replaces the old "load every active brain" approach so context stays
+      // surgical and ASHER can scale to hundreds of personality/knowledge files.
+      const recent = messages
+        .filter((m) => m.id !== "welcome")
+        .slice(-4)
+        .map((m) => ({ role: m.role, content: m.content }));
+      const route = await routeBrainsForPrompt(text, { recentMessages: recent }).catch(() => null);
+      setLastRoute(route);
+      const brainContext = route ? { brains: route.brains.map((b) => ({ name: b.name, category: b.category, content: b.content })) } : null;
       const byok = getActiveIntelMapByok();
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
@@ -106,6 +114,7 @@ const AsherCommandCenter = () => {
           ],
           mapContext: { surface: "command_center" },
           brainContext,
+          swarmRoute: route ? { rationale: route.rationale, selectedNames: route.brains.map((b) => b.name) } : null,
         }),
       });
 
