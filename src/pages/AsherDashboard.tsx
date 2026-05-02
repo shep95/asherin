@@ -161,7 +161,7 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
     { id: "zali",      label: "ZANOEM Design",     icon: Wrench,   sub: "Live" },
     { id: "whiteboard",label: "Whiteboard",      icon: PenSquare, sub: "Live" },
     { id: "notebooks", label: "Notebooks",       icon: NotebookPen, sub: "Live" },
-    { id: "vedic",     label: "Vedic Astrology", icon: Moon,      sub: "Sidereal" },
+    { id: "vedic",     label: "Vedic Strategy",  icon: Moon,      sub: "Sidereal" },
     { id: "theater",   label: "Theater Brief",   icon: FileText },
     { id: "targeting", label: "Targeting Aid",   icon: Crosshair },
     { id: "sigint",    label: "SIGINT Fusion",   icon: Radio },
