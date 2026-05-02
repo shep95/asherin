@@ -308,6 +308,7 @@ const AsherDashboard = () => {
           {active === "orgs"      && <AsherOrganizationsModule />}
           {active === "map"       && <IntelligenceMapModule />}
           {active === "command"   && <AsherCommandCenter />}
+          {active === "brains"    && <AsherBrainsModule />}
           {active === "zophiel"   && <AsherZophielModule />}
           {active === "azplen"    && <AsherAzplenModule />}
           {active === "zali"      && <AsherZaliModule />}
