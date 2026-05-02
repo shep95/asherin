@@ -151,6 +151,7 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
   ]},
   { id: "ai", label: "AI & Reasoning", items: [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
+    ...(superOwner ? [{ id: "brains" as AsherTab, label: "ASHER BRAINS", icon: BrainCircuit, sub: "Sealed" }] : []),
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
     { id: "code",    label: "Asher IDE",      icon: Code2,    sub: "IDE" },
