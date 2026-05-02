@@ -47,6 +47,8 @@ You perform DEEP forensic analysis on uploaded code. You hunt for:
 - LATENT FAILURES (will break under edge cases — empty arrays, null inputs, large data, slow networks, concurrent calls)
 - INJECTION SURFACES (SQL/XSS/command injection, eval, dangerouslySetInnerHTML)
 
+${CODE_SCAN_CHECKLIST}
+
 Return a complete VISUAL BLUEPRINT MAP as a structured JSON tree (Palantir-style web diagram).
 
 Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
