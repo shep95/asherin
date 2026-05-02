@@ -47,9 +47,13 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (code === ASHER_ACCESS_CODE) {
-      try { sessionStorage.setItem(ASHER_GATE_KEY, "1"); } catch {}
-      logAsherEvent("passcode_success", {});
+    const operator = ASHER_ACCESS_CODES[code];
+    if (operator) {
+      try {
+        sessionStorage.setItem(ASHER_GATE_KEY, "1");
+        sessionStorage.setItem(ASHER_OPERATOR_KEY, operator);
+      } catch {}
+      logAsherEvent("passcode_success", { operator });
       onUnlock();
     } else {
       logAsherEvent("passcode_failure", { attempted_length: code.length });
