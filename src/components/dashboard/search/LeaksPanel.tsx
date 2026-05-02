@@ -4,8 +4,11 @@
 import { useCallback, useState } from "react";
 import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check } from "lucide-react";
 
+
 const ALEPH = "https://search.libraryofleaks.org/api/2";
 const UI = "https://search.libraryofleaks.org";
+const PROXY = `https://xpgxgzqbtrrrbtjcemci.supabase.co/functions/v1/asher-eyes-proxy?url=`;
+const viaProxy = (u: string) => `${PROXY}${encodeURIComponent(u)}`;
 
 type Schema = "Pages" | "Document" | "HyperText" | "Email" | "PlainText" | "Folder" | "Person" | "Company" | "Table";
 const SCHEMATA: Schema[] = ["Pages", "Document", "HyperText", "Email", "PlainText", "Folder", "Person", "Company", "Table"];
@@ -54,8 +57,13 @@ const LeaksPanel = () => {
       params.set("highlight", "true");
       params.set("highlight_count", "2");
       activeSchemata.forEach((s) => params.append("filter:schemata", s));
-      const r = await fetch(`${ALEPH}/search?${params.toString()}`, { headers: { Accept: "application/json" } });
-      if (!r.ok) throw new Error(`Aleph ${r.status}`);
+      const target = `${ALEPH}/search?${params.toString()}`;
+      let r = await fetch(target, { headers: { Accept: "application/json" } }).catch(() => null as any);
+      if (!r || !r.ok) {
+        // Fallback through edge proxy (CORS bypass)
+        r = await fetch(viaProxy(target));
+      }
+      if (!r.ok) throw new Error(`Asher Eyes ${r.status}`);
       const d = await r.json();
       setResults(Array.isArray(d.results) ? d.results : []);
       setTotal(typeof d.total === "number" ? d.total : 0);
@@ -90,13 +98,14 @@ const LeaksPanel = () => {
         let downloaded = false;
         if (fileUrl) {
           try {
-            const fr = await fetch(fileUrl);
+            // Direct fetch will fail CORS — go straight through proxy
+            const fr = await fetch(viaProxy(fileUrl));
             if (fr.ok) {
               const blob = await fr.blob();
               zip.folder("files")!.file(`${safe}${ext || ""}`, blob);
               downloaded = true;
             }
-          } catch { /* fall back to text */ }
+          } catch (err) { console.warn("[asher-eyes] file fetch failed", err); }
         }
         // Always include a text/json snapshot
         const text = [
