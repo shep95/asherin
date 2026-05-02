@@ -4,13 +4,13 @@
 // Active brains from ASHER BRAINS are auto-injected into the system prompt.
 
 import { useEffect, useRef, useState } from "react";
-import { Brain, Send, Loader2, Trash2, Sparkles, ShieldCheck, Database, Lock } from "lucide-react";
+import { Brain, Send, Loader2, Trash2, Sparkles, ShieldCheck, Database, Lock, Network } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logAsherEvent } from "@/lib/asherAudit";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
-import { buildBrainContext } from "@/lib/asherBrains";
+import { routeBrainsForPrompt, type SwarmRouteResult } from "@/lib/asherBrainRouter";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Msg {
@@ -44,6 +44,7 @@ const AsherCommandCenter = () => {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [activeBrainCount, setActiveBrainCount] = useState<number | null>(null);
+  const [lastRoute, setLastRoute] = useState<SwarmRouteResult | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -86,8 +87,16 @@ const AsherCommandCenter = () => {
     logAsherEvent("module_open", { module: "asher_command_send", chars: text.length });
 
     try {
-      // Pull active brains (admin only — RLS returns [] for others).
-      const brainContext = await buildBrainContext().catch(() => null);
+      // SWARM ROUTER (Scout): pick only the brains relevant to THIS prompt.
+      // Replaces the old "load every active brain" approach so context stays
+      // surgical and ASHER can scale to hundreds of personality/knowledge files.
+      const recent = messages
+        .filter((m) => m.id !== "welcome")
+        .slice(-4)
+        .map((m) => ({ role: m.role, content: m.content }));
+      const route = await routeBrainsForPrompt(text, { recentMessages: recent }).catch(() => null);
+      setLastRoute(route);
+      const brainContext = route ? { brains: route.brains.map((b) => ({ name: b.name, category: b.category, content: b.content })) } : null;
       const byok = getActiveIntelMapByok();
 
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asher-ai`;
@@ -105,6 +114,7 @@ const AsherCommandCenter = () => {
           ],
           mapContext: { surface: "command_center" },
           brainContext,
+          swarmRoute: route ? { rationale: route.rationale, selectedNames: route.brains.map((b) => b.name) } : null,
         }),
       });
 
@@ -181,11 +191,20 @@ const AsherCommandCenter = () => {
         <div className="flex items-center gap-2">
           {activeBrainCount !== null && (
             <span
-              title="Active brains injected into the system prompt"
+              title="Total active brains in vault"
               className="flex items-center gap-1 rounded-md border border-border/20 bg-foreground/5 px-2 py-0.5 text-[9px] font-light tracking-[0.2em] text-muted-foreground uppercase"
             >
               <Database className="h-2.5 w-2.5" strokeWidth={1.8} />
               {activeBrainCount} Brains
+            </span>
+          )}
+          {lastRoute && lastRoute.brains.length > 0 && (
+            <span
+              title={`SWARM ROUTE\n${lastRoute.rationale}\n\nSelected:\n${lastRoute.brains.map((b) => `• ${b.name} [${b.category}] (${b.reason})`).join("\n")}`}
+              className="flex items-center gap-1 rounded-md border border-emerald-400/30 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.2em] text-emerald-300/80 uppercase cursor-help"
+            >
+              <Network className="h-2.5 w-2.5" strokeWidth={1.8} />
+              Swarm · {lastRoute.brains.length}/{lastRoute.totalScanned}
             </span>
           )}
           <span
