@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
