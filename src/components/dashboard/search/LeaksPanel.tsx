@@ -104,7 +104,7 @@ const LeaksPanel = () => {
           `Schema: ${r.schema}`,
           `ID: ${r.id}`,
           `Source: ${r.collection?.label || ""} ${r.collection?.publisher ? `(${r.collection.publisher})` : ""}`,
-          `Aleph URL: ${ui}`,
+          `Source URL: ${ui}`,
           fileUrl ? `File URL: ${fileUrl}` : "",
           "",
           "## Highlights",
