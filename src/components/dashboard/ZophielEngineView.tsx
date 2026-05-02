@@ -61,6 +61,10 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   const [byokActive, setByokActive] = useState<boolean>(() => isIntelMapByokEnabled());
   const [online, setOnline] = useState(navigator.onLine);
   const [queuedSearch, setQueuedSearch] = useState<string | null>(null);
+  const [scope, setScope] = useState<"safe" | "mix" | "dark">(() => (localStorage.getItem("zophiel_scope") as any) || "safe");
+  const [darkResults, setDarkResults] = useState<{ title: string; link: string; engine: string }[]>([]);
+  const [darkSummary, setDarkSummary] = useState<string>("");
+  const [darkLoading, setDarkLoading] = useState(false);
   const [splitPct, setSplitPct] = useState(50); // % width of right panel (map/suite), committed on mouseup
   const splitPctRef = useRef(50);
   const leftPanelRef = useRef<HTMLDivElement>(null);
