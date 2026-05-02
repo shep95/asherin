@@ -133,7 +133,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic"
+  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
