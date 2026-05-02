@@ -3,7 +3,7 @@
 // Bundles selected files + a manifest into a single ZIP for download.
 import { useCallback, useState } from "react";
 import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 
 const ALEPH = "https://search.libraryofleaks.org/api/2";
 const UI = "https://search.libraryofleaks.org";
