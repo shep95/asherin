@@ -87,7 +87,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mapContext, byokGeminiKey } = await req.json();
+    const { messages, mapContext, byokGeminiKey, brainContext } = await req.json();
 
     // Resolve key: user BYOK (header or body) > admin GEMINI_API_KEY
     const headerKey = req.headers.get("x-byok-gemini-key");
@@ -102,6 +102,24 @@ serve(async (req) => {
     const ctxBlock = mapContext
       ? `\n\nCURRENT MAP CONTEXT:\n${JSON.stringify(mapContext, null, 2)}`
       : "";
+
+    // ASHER BRAINS injection — admin-uploaded personality + knowledge files.
+    // brainContext = { brains: [{ name, category, content }] } passed by client.
+    let brainBlock = "";
+    if (brainContext && Array.isArray(brainContext.brains) && brainContext.brains.length) {
+      const sections = brainContext.brains
+        .filter((b: any) => b && typeof b.content === "string" && b.content.trim().length)
+        .map((b: any) => {
+          const cat = (b.category || "general").toUpperCase();
+          const name = (b.name || "Untitled").toString();
+          // Cap each brain at ~12k chars to avoid context overflow.
+          const body = b.content.length > 12000 ? b.content.slice(0, 12000) + "\n…[truncated]" : b.content;
+          return `### [${cat}] ${name}\n${body}`;
+        });
+      if (sections.length) {
+        brainBlock = `\n\n=== ASHER BRAINS (admin-curated personality + knowledge — treat as ground truth) ===\n${sections.join("\n\n---\n\n")}\n=== END BRAINS ===`;
+      }
+    }
 
     // Sanitize: Gemini's OpenAI-compat endpoint returns an empty stream when any
     // message has empty content. Drop empty assistant/user turns and collapse
@@ -137,7 +155,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "gemini-2.5-flash",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT + ctxBlock },
+            { role: "system", content: SYSTEM_PROMPT + brainBlock + ctxBlock },
             ...cleaned,
           ],
           tools: TOOLS,
