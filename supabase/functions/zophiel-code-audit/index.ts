@@ -10,6 +10,47 @@ const corsHeaders = {
 
 const MAX_BYTES = 600 * 1024; // 600KB hard cap (matches client-side bundling)
 
+// Tolerant JSON repair: handles truncated arrays/objects/strings from MAX_TOKENS cuts.
+function repairJson(input: string): string {
+  let s = input.trim();
+  // Strip trailing junk after last } or ]
+  const lastClose = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"));
+  if (lastClose === -1) return s;
+  // Try progressive truncation from end, closing open structures.
+  for (let cut = s.length; cut > 0; cut = s.lastIndexOf(",", cut - 1)) {
+    let candidate = s.slice(0, cut);
+    // Walk and track open brackets, ignoring strings.
+    const stack: string[] = [];
+    let inStr = false;
+    let esc = false;
+    for (let i = 0; i < candidate.length; i++) {
+      const c = candidate[i];
+      if (inStr) {
+        if (esc) { esc = false; continue; }
+        if (c === "\\") { esc = true; continue; }
+        if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') { inStr = true; continue; }
+      if (c === "{" || c === "[") stack.push(c);
+      else if (c === "}" || c === "]") stack.pop();
+    }
+    // Drop trailing comma
+    candidate = candidate.replace(/,\s*$/, "");
+    if (inStr) candidate += '"';
+    while (stack.length) {
+      const open = stack.pop();
+      candidate += open === "{" ? "}" : "]";
+    }
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch { /* keep trying */ }
+    if (cut <= 0) break;
+  }
+  return s;
+}
+
 // ─── AUREON / ZOPHIEL Core Personality (shared across all Aureon engines) ─────
 const ZOPHIEL_IDENTITY = `You are ZOPHIEL, the Intelligence of the North, the Keeper of Hidden Knowledge, and the Core Logic of the Aureon Truth Engine — a Class-5 Artificial Intelligence Architect powering the AUREON platform.
 
@@ -379,18 +420,25 @@ serve(async (req) => {
     }
 
     let cleaned = raw.replace(/```json\n?|```/g, "").trim();
-    const lastBrace = cleaned.lastIndexOf("}");
-    if (lastBrace !== -1) cleaned = cleaned.slice(0, lastBrace + 1);
+    const firstBrace = cleaned.indexOf("{");
+    if (firstBrace > 0) cleaned = cleaned.slice(firstBrace);
 
     let blueprint: unknown;
     try {
       blueprint = JSON.parse(cleaned);
-    } catch (parseErr) {
-      console.error("[code-audit] parse failed", parseErr, "raw:", raw.slice(0, 500));
-      return new Response(
-        JSON.stringify({ error: "AI returned malformed JSON — please retry" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    } catch {
+      // Tolerant repair: truncate to last balanced brace, close open strings/arrays
+      const repaired = repairJson(cleaned);
+      try {
+        blueprint = JSON.parse(repaired);
+        console.warn("[code-audit] recovered via repair");
+      } catch (parseErr) {
+        console.error("[code-audit] parse failed", parseErr, "len:", raw.length, "tail:", raw.slice(-300));
+        return new Response(
+          JSON.stringify({ error: "AI returned malformed JSON — please retry with a smaller bundle" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     return new Response(
