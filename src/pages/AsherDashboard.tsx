@@ -5,6 +5,7 @@ import {
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
   Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
+  BrainCircuit,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
