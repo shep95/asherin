@@ -338,6 +338,55 @@ const LeaksPanel = () => {
         })}
       </div>
 
+      {/* Intent Filter — describe what you actually want, AI picks matching docs */}
+      {searched && results.length > 0 && (
+        <div className="rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" />
+            <p className="text-[11px] font-light text-foreground">Ask Asher Eyes — only show what I actually need</p>
+            {intentMatches && (
+              <button onClick={clearIntent} className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground">
+                <X className="h-3 w-3" /> Clear filter
+              </button>
+            )}
+          </div>
+          <form
+            onSubmit={(e) => { e.preventDefault(); runIntentFilter(); }}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+            <input
+              value={intent}
+              onChange={(e) => setIntent(e.target.value)}
+              placeholder='e.g. "Data that improves coding knowledge or cybersecurity intelligence"'
+              className="flex-1 bg-transparent text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none border-b border-border/20 pb-1 focus:border-accent/40"
+            />
+            <button
+              type="submit"
+              disabled={intentLoading || !intent.trim()}
+              className="rounded-lg bg-accent/20 px-3 py-1 text-[11px] font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-30 inline-flex items-center gap-1.5"
+            >
+              {intentLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              Filter
+            </button>
+          </form>
+          <div className="flex flex-wrap gap-1.5">
+            {INTENT_PRESETS.map((p) => (
+              <button
+                key={p}
+                onClick={() => setIntent(p)}
+                className="px-2 py-0.5 rounded-md text-[10px] font-extralight border border-border/30 bg-card/30 text-muted-foreground/70 hover:text-foreground hover:border-accent/40 transition-colors"
+              >{p}</button>
+            ))}
+          </div>
+          {intentMatches && (
+            <p className="text-[10px] font-extralight text-accent/80">
+              ◈ {Object.keys(intentMatches).length} of {results.length} match · auto-selected · ready to ZIP{isAdmin ? " or integrate into ASHER Brains" : ""}.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Bundle bar */}
       {searched && (
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -383,7 +432,7 @@ const LeaksPanel = () => {
 
       {!loading && results.length > 0 && (
         <div className="space-y-2">
-          {results.map((r) => {
+          {visibleResults.map((r) => {
             const Icon = SCHEMA_ICON[r.schema] || FileText;
             const title = firstProp(r.properties, "title", "fileName", "name") || r.id;
             const ui = r.links?.ui || `${UI}/entities/${r.id}`;
