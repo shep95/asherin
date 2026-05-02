@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Calendar, FolderOpen, Globe2, Heart, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, TrendingUp, User2 } from "lucide-react";
+import { BookOpen, Building2, Calendar, FolderOpen, Globe2, Heart, Loader2, MapPin, MessageSquare, Moon, Save, Sparkles, Trash2, TrendingUp, User2 } from "lucide-react";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 import {
   getNakshatraFromDeg,
@@ -14,6 +14,7 @@ import { calculateSweVedicChart, type SweVedicChart, type SweVedicPlanet } from 
 import { resolveBirthTimezone } from "@/lib/vedic/timezoneLookup";
 import { COUNTRY_CHARTS, type CountryFoundation } from "@/data/vedic/countryCharts";
 import { COUNTRY_LEADERS, getLeaderForCountry, type LeaderRecord } from "@/data/vedic/countryLeaders";
+import { COMPANY_CHARTS, COMPANY_FOUNDERS, getFounderForCompany, type CompanyFoundation, type FounderRecord } from "@/data/vedic/companyCharts";
 import { toast } from "sonner";
 import WealthHousesPanel from "./vedic/WealthHousesPanel";
 import AsherChatPanel from "./vedic/AsherChatPanel";
@@ -148,7 +149,7 @@ const VedicAstrologyView = () => {
   const [chartName, setChartName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"mine" | "country" | "predictions" | "custom">("mine");
+  const [tab, setTab] = useState<"mine" | "country" | "companies" | "predictions" | "custom">("mine");
   const [showCompat, setShowCompat] = useState(false);
   const [activeCountry, setActiveCountry] = useState<CountryFoundation | null>(null);
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
@@ -158,6 +159,8 @@ const VedicAstrologyView = () => {
   const [countryLagnas, setCountryLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
   const [computingLagnas, setComputingLagnas] = useState(false);
   const [leaderLagnas, setLeaderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
+  const [companyLagnas, setCompanyLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
+  const [founderLagnas, setFounderLagnas] = useState<Record<string, { sign: string; sanskrit: string; deg: number } | null>>({});
 
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
