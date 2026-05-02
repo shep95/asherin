@@ -5,6 +5,7 @@
 // • Never falls back to Lovable AI Gateway. Per project rule: Asher Dashboard AI is GEMINI-or-BYOK only.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { CODE_SCAN_CHECKLIST_BRIEF } from "../_shared/codeScanChecklist.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,7 +45,9 @@ CLARIFICATION PROTOCOL (CRITICAL):
 - Never silently guess. Never fabricate context. Never produce "best-effort" code on a vague spec.
 - After receiving answers, proceed with full implementation.
 
-OUTPUT QUALITY: every response must read like it came from a $400/hr principal consultant — dense, accurate, immediately actionable.`;
+OUTPUT QUALITY: every response must read like it came from a $400/hr principal consultant — dense, accurate, immediately actionable.
+
+${CODE_SCAN_CHECKLIST_BRIEF}`;
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";

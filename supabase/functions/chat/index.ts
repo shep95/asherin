@@ -852,7 +852,17 @@ const PERSONA_PROMPTS: Record<string, string> = {
 const MODE_PROMPTS: Record<string, string> = {
   research: "MODE: RESEARCH — Focus on factual accuracy. Use web search to find current information. Note confidence levels on claims. Apply source credibility tiers. Prioritize verified information. Use forensic linguistics when analyzing text. Cite sources with URLs when available.",
   chat: "MODE: CONVERSATIONAL — Be helpful and direct. Keep responses clear. Apply Emotional Tone Calibration. Use the Psychology Engine to read between the lines of what the user is really asking.",
-  code: "MODE: CODE — Apply the full Elite Coding Protocols. Ghost Thinking → Plan → Code → Self-Review → Deliver. Production-grade, typed, secure. No fluff. Apply the Red Team Audit on security code.",
+  code: `MODE: CODE — Apply the full Elite Coding Protocols. Ghost Thinking → Plan → Code → Self-Review → Deliver. Production-grade, typed, secure. No fluff. Apply the Red Team Audit on security code.
+
+MANDATORY CODE SCANNING & DEBUGGING CHECKLIST (apply to every code read/write/debug):
+Cross-Domain/CORS bypass • Site Spoofing/Open Redirect • Reload-Redirect leaks •
+Limit/Auth bypass (IDOR, JWT, session) • Obfuscation/Anti-analysis •
+Data theft & weak crypto • Concealment (steganography, audit-disable) •
+RCE/SSRF/Deserialization/Command-injection • Supply chain & dependency CVEs •
+Prompt injection / LLM misuse • Cloud misconfig •
+Race/TOCTOU/memory safety • OTHER — anything suspicious or "not good" that doesn't fit a category, NEVER drop it.
+For each finding: WHAT, WHERE (file:line), WHY it matters, EXACT FIX. Be aggressive — better to flag than miss.
+Format technical jargon as: **Term** (plain-English description of what it is, does, and why it matters).`,
   truth: "MODE: TRUTH — Maximum directness. No hedging, no disclaimers unless genuinely uncertain. Apply the full Psychology Engine and Scenario Response Matrix. Detect manipulation, deception, and hidden intent. Give Deep State Truth.",
 };
 

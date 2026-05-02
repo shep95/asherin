@@ -32,6 +32,9 @@ const categoryLabels: Record<string, string> = {
   "ai-security": "AI Security",
   "zero-trust": "Zero Trust",
   "ot-ics": "OT/ICS",
+  "cross-domain": "Cross-Domain / Redirect",
+  concealment: "Concealment / Anti-Analysis",
+  other: "Other",
 };
 
 const DashboardScreen = ({ onNavigate, onSelectProject, onSelectFinding, onOpenScan }: DashboardScreenProps) => {

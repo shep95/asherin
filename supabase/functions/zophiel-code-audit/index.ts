@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isValidByok, callByokJsonWithRetry, type ZophielByokConfig } from "../_shared/zophielByokRouter.ts";
+import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +46,8 @@ You perform DEEP forensic analysis on uploaded code. You hunt for:
 - VISUAL/UI LOGIC FLAWS (broken JSX conditions, missing keys in lists, stale closures in hooks, useEffect dep array issues, z-index/layout traps, unhandled loading/error states, accessibility violations)
 - LATENT FAILURES (will break under edge cases — empty arrays, null inputs, large data, slow networks, concurrent calls)
 - INJECTION SURFACES (SQL/XSS/command injection, eval, dangerouslySetInnerHTML)
+
+${CODE_SCAN_CHECKLIST}
 
 Return a complete VISUAL BLUEPRINT MAP as a structured JSON tree (Palantir-style web diagram).
 

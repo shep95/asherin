@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { CODE_SCAN_CHECKLIST } from "../_shared/codeScanChecklist.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -302,6 +303,8 @@ SCAN PROFILE: ${scanProfile || "security-audit"}
 FILE: ${fileName || "multi-file codebase"}
 ${brainsContext ? `\nINTELLIGENCE CONTEXT:\n${brainsContext}\n` : ""}
 
+${CODE_SCAN_CHECKLIST}
+
 SCAN CATEGORIES:
 1. INJECTION (SQL, XSS, command, path traversal, SSRF, template, prompt injection)
 2. AUTH (bypass, IDOR, CSRF, broken sessions, privilege escalation, JWT mishandling)
@@ -313,6 +316,9 @@ SCAN CATEGORIES:
 8. MEMORY-SAFETY (buffer overflow, use-after-free, integer overflow)
 9. AI-SECURITY (prompt injection, insecure output handling, excessive agency)
 10. ZERO-TRUST (implicit trust, missing mTLS, overprivileged accounts)
+11. CROSS-DOMAIN (CORS bypass, SOP bypass, postMessage abuse, site spoofing, open redirect, reload/redirect leaks)
+12. CONCEALMENT (audit-disabling, steganography, obfuscation, anti-analysis)
+13. OTHER (catch-all — anything suspicious, sloppy, non-idiomatic, or "just not good" that doesn't cleanly fit above; NEVER drop a finding because it doesn't have a category)
 
 FOR EACH VULNERABILITY RETURN:
 - severity: "critical"|"high"|"medium"|"low"|"info"
