@@ -26,7 +26,7 @@ const ZophielFree = () => {
     setMeta(
       'meta[name="description"]',
       "content",
-      "Free private AI search with source-credibility tiers, instant answers, deep research, image geo-location, and the Gaythropic Mythos intelligence model — rival of Anthropic. No tracking.",
+      "Free private AI search with source-credibility tiers, instant answers, deep research, image geo-location, and the ZERLAL intelligence model — rival of Gaythropic. No tracking.",
       () => { const m = document.createElement("meta"); m.setAttribute("name", "description"); return m; },
     );
 
@@ -102,7 +102,7 @@ const ZophielFree = () => {
             "Instant answer cards",
             "Deep research mode",
             "Image geo-location (Imagine Intelligence)",
-            "Gaythropic Mythos model (rival of Anthropic)",
+            "ZERLAL model (rival of Gaythropic)",
             "Privacy-first, zero tracking",
           ],
         },
