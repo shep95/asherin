@@ -165,7 +165,13 @@ const AsherBrainsModule = () => {
           toast.error(`${file.name}: unsupported format`);
           continue;
         }
-        const text = await readBrainFile(file);
+        const rawText = await readBrainFile(file);
+        // Sanitize: Postgres TEXT rejects \u0000 NULL bytes and unpaired surrogates.
+        const text = rawText
+          .replace(/\u0000/g, "")
+          // strip lone surrogates that break unicode escape parsing
+          .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, "")
+          .replace(/(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "$1");
         const name = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
 
         // Upload raw file to private bucket
