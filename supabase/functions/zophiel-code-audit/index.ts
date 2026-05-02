@@ -538,9 +538,7 @@ serve(async (req) => {
       );
     }
 
-    let cleaned = raw.replace(/```json\n?|```/g, "").trim();
-    const firstBrace = cleaned.indexOf("{");
-    if (firstBrace > 0) cleaned = cleaned.slice(firstBrace);
+    const cleaned = extractJsonCandidate(raw);
 
     let blueprint: unknown;
     try {
@@ -552,11 +550,8 @@ serve(async (req) => {
         blueprint = JSON.parse(repaired);
         console.warn("[code-audit] recovered via repair");
       } catch (parseErr) {
-        console.error("[code-audit] parse failed", parseErr, "len:", raw.length, "tail:", raw.slice(-300));
-        return new Response(
-          JSON.stringify({ error: "AI returned malformed JSON — please retry with a smaller bundle" }),
-          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        console.error("[code-audit] parse failed; returning deterministic fallback", parseErr, "len:", raw.length, "tail:", raw.slice(-300));
+        blueprint = fallbackBlueprint(code, safeName, raw);
       }
     }
 
