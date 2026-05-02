@@ -2,7 +2,7 @@
 // Asher Dashboard / Zophiel Engine ONLY. No censorship, no filter, no rate limiting beyond Aleph itself.
 // Bundles selected files + a manifest into a single ZIP for download.
 import { useCallback, useState } from "react";
-import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit } from "lucide-react";
+import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit, Filter, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -52,6 +52,59 @@ const LeaksPanel = () => {
   const [zipping, setZipping] = useState(false);
   const [integrating, setIntegrating] = useState(false);
   const [activeSchemata, setActiveSchemata] = useState<Schema[]>(["Pages", "Document", "HyperText", "Email", "PlainText", "Person", "Company"]);
+
+  // ── Intent Filter ────────────────────────────────────────────
+  const [intent, setIntent] = useState("");
+  const [intentLoading, setIntentLoading] = useState(false);
+  const [intentMatches, setIntentMatches] = useState<Record<string, { score: number; reason: string }> | null>(null);
+  const INTENT_PRESETS = [
+    "Data that improves coding knowledge",
+    "Cybersecurity / exploit / vulnerability intelligence",
+    "Internal emails revealing decisions or wrongdoing",
+    "Financial records, contracts, or invoices",
+    "Personal identifiers, credentials, or leaked PII",
+  ];
+
+  const runIntentFilter = async () => {
+    if (!intent.trim() || !results.length) return;
+    setIntentLoading(true);
+    try {
+      const payload = {
+        intent: intent.trim(),
+        items: results.map((r) => ({
+          id: r.id,
+          title: firstProp(r.properties, "title", "fileName", "name") || r.id,
+          schema: r.schema,
+          source: r.collection?.label,
+          snippet: (r.highlight?.[0] || firstProp(r.properties, "summary", "description") || "")
+            .replace(/<[^>]+>/g, "").slice(0, 280),
+        })),
+      };
+      const { data, error: fnErr } = await supabase.functions.invoke("asher-eyes-intent", { body: payload });
+      if (fnErr) throw fnErr;
+      const map: Record<string, { score: number; reason: string }> = {};
+      (data?.matches || []).forEach((m: any) => { if (m?.id) map[m.id] = { score: m.score ?? 0, reason: m.reason || "" }; });
+      setIntentMatches(map);
+      // Auto-select all matches so the user can ZIP/integrate them in one click
+      const next: Record<string, AlephResult> = {};
+      results.forEach((r) => { if (map[r.id]) next[r.id] = r; });
+      setSelected(next);
+      const n = Object.keys(map).length;
+      if (n) toast.success(`${n} of ${results.length} match your intent — auto-selected`);
+      else toast.info("No items matched that intent");
+    } catch (e: any) {
+      toast.error(e?.message || "Intent filter failed");
+    } finally {
+      setIntentLoading(false);
+    }
+  };
+
+  const clearIntent = () => { setIntent(""); setIntentMatches(null); };
+
+  // Visible results = filtered + sorted by score when intent is active
+  const visibleResults = intentMatches
+    ? results.filter((r) => intentMatches[r.id]).sort((a, b) => (intentMatches[b.id]?.score ?? 0) - (intentMatches[a.id]?.score ?? 0))
+    : results;
 
   const detectCategory = (title: string, body: string): "coding" | "general" => {
     const t = `${title}\n${body}`.toLowerCase();
@@ -129,7 +182,7 @@ const LeaksPanel = () => {
 
   const run = useCallback(async (q: string) => {
     if (!q.trim()) return;
-    setLoading(true); setError(null); setSearched(true); setResults([]); setTotal(0);
+    setLoading(true); setError(null); setSearched(true); setResults([]); setTotal(0); setIntentMatches(null);
     try {
       const params = new URLSearchParams();
       params.set("q", q.trim());
@@ -161,33 +214,39 @@ const LeaksPanel = () => {
   };
 
   const exportZip = async () => {
-    const items = Object.values(selected);
-    if (!items.length) return;
+    // If nothing selected, bundle every visible result automatically.
+    const items = Object.values(selected).length ? Object.values(selected) : results;
+    if (!items.length) { toast.error("Run a search first"); return; }
     setZipping(true);
+    toast.info(`Bundling ${items.length} item${items.length === 1 ? "" : "s"} into a ZIP…`);
     try {
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
       const manifest: any[] = [];
-      for (const r of items) {
+      // Fetch all originals in parallel for speed
+      const fetched = await Promise.all(items.map(async (r) => {
+        const fileUrl = r.links?.file;
+        if (!fileUrl) return null;
+        try {
+          const fr = await fetch(viaProxy(fileUrl));
+          if (fr.ok) return await fr.blob();
+        } catch (err) { console.warn("[asher-eyes] file fetch failed", err); }
+        return null;
+      }));
+
+      items.forEach((r, i) => {
         const title = firstProp(r.properties, "title", "fileName", "name") || r.id;
         const safe = title.replace(/[^a-z0-9._-]+/gi, "_").slice(0, 80) || r.id;
         const ui = r.links?.ui || `${UI}/entities/${r.id}`;
         const fileUrl = r.links?.file;
         const mime = firstProp(r.properties, "mimeType");
         const ext = (firstProp(r.properties, "fileName").match(/\.[a-z0-9]+$/i)?.[0]) || (mime?.includes("pdf") ? ".pdf" : "");
+        const blob = fetched[i];
         let downloaded = false;
-        if (fileUrl) {
-          try {
-            // Direct fetch will fail CORS — go straight through proxy
-            const fr = await fetch(viaProxy(fileUrl));
-            if (fr.ok) {
-              const blob = await fr.blob();
-              zip.folder("files")!.file(`${safe}${ext || ""}`, blob);
-              downloaded = true;
-            }
-          } catch (err) { console.warn("[asher-eyes] file fetch failed", err); }
+        if (blob) {
+          zip.folder("files")!.file(`${safe}${ext || ""}`, blob);
+          downloaded = true;
         }
-        // Always include a text/json snapshot
         const text = [
           `# ${title}`,
           `Schema: ${r.schema}`,
@@ -204,7 +263,7 @@ const LeaksPanel = () => {
         ].filter(Boolean).join("\n");
         zip.folder("text")!.file(`${safe}.txt`, text);
         manifest.push({ id: r.id, title, schema: r.schema, ui, file_downloaded: downloaded, source: r.collection?.label });
-      }
+      });
       zip.file("manifest.json", JSON.stringify({ query, exported_at: new Date().toISOString(), count: items.length, items: manifest }, null, 2));
       zip.file("README.txt", `ASHER EYES EXPORT\nQuery: ${query}\nItems: ${items.length}\nGenerated: ${new Date().toISOString()}\n\nSee manifest.json for index. /files contains downloaded originals where available; /text contains plaintext snapshots.\n`);
       const blob = await zip.generateAsync({ type: "blob" });
@@ -279,22 +338,73 @@ const LeaksPanel = () => {
         })}
       </div>
 
+      {/* Intent Filter — describe what you actually want, AI picks matching docs */}
+      {searched && results.length > 0 && (
+        <div className="rounded-2xl border border-border/30 bg-card/40 backdrop-blur-xl p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" />
+            <p className="text-[11px] font-light text-foreground">Ask Asher Eyes — only show what I actually need</p>
+            {intentMatches && (
+              <button onClick={clearIntent} className="ml-auto inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground">
+                <X className="h-3 w-3" /> Clear filter
+              </button>
+            )}
+          </div>
+          <form
+            onSubmit={(e) => { e.preventDefault(); runIntentFilter(); }}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+            <input
+              value={intent}
+              onChange={(e) => setIntent(e.target.value)}
+              placeholder='e.g. "Data that improves coding knowledge or cybersecurity intelligence"'
+              className="flex-1 bg-transparent text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none border-b border-border/20 pb-1 focus:border-accent/40"
+            />
+            <button
+              type="submit"
+              disabled={intentLoading || !intent.trim()}
+              className="rounded-lg bg-accent/20 px-3 py-1 text-[11px] font-light text-accent hover:bg-accent/30 transition-colors disabled:opacity-30 inline-flex items-center gap-1.5"
+            >
+              {intentLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              Filter
+            </button>
+          </form>
+          <div className="flex flex-wrap gap-1.5">
+            {INTENT_PRESETS.map((p) => (
+              <button
+                key={p}
+                onClick={() => setIntent(p)}
+                className="px-2 py-0.5 rounded-md text-[10px] font-extralight border border-border/30 bg-card/30 text-muted-foreground/70 hover:text-foreground hover:border-accent/40 transition-colors"
+              >{p}</button>
+            ))}
+          </div>
+          {intentMatches && (
+            <p className="text-[10px] font-extralight text-accent/80">
+              ◈ {Object.keys(intentMatches).length} of {results.length} match · auto-selected · ready to ZIP{isAdmin ? " or integrate into ASHER Brains" : ""}.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Bundle bar */}
       {searched && (
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-[10px] font-light text-muted-foreground/50">
-            {loading ? "Searching Asher Eyes…" : `${results.length} shown of ${total.toLocaleString()} total matches`}
+            {loading ? "Searching Asher Eyes…" : intentMatches ? `${visibleResults.length} matched of ${results.length} fetched` : `${results.length} shown of ${total.toLocaleString()} total matches`}
           </p>
           <div className="flex items-center gap-2">
             <button onClick={selectAll} disabled={!results.length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Select page</button>
             <button onClick={clearAll} disabled={!Object.keys(selected).length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Clear ({Object.keys(selected).length})</button>
             <button
               onClick={exportZip}
-              disabled={!Object.keys(selected).length || zipping}
+              disabled={(!results.length && !Object.keys(selected).length) || zipping}
               className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1 text-[11px] font-light tracking-wide text-accent hover:bg-accent/25 transition-colors disabled:opacity-30"
             >
               {zipping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Package className="h-3.5 w-3.5" />}
-              Export ZIP ({Object.keys(selected).length})
+              {Object.keys(selected).length
+                ? `Export ZIP (${Object.keys(selected).length})`
+                : `Download All as ZIP (${results.length})`}
             </button>
             {isAdmin && (
               <button
@@ -322,7 +432,7 @@ const LeaksPanel = () => {
 
       {!loading && results.length > 0 && (
         <div className="space-y-2">
-          {results.map((r) => {
+          {visibleResults.map((r) => {
             const Icon = SCHEMA_ICON[r.schema] || FileText;
             const title = firstProp(r.properties, "title", "fileName", "name") || r.id;
             const ui = r.links?.ui || `${UI}/entities/${r.id}`;
