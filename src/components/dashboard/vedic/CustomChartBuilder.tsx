@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { generateReading, type PlacementInput } from "@/lib/vedic/readingEngine";
 import { rashis } from "@/data/nakshatraData";
 
+const SIGN_NAMES_LIST: string[] = rashis.map((r: any) => r.name);
+
 /**
  * Custom Chart Builder — Vedic Strategy
  *
