@@ -2,10 +2,12 @@
 // Asher Dashboard / Zophiel Engine ONLY. No censorship, no filter, no rate limiting beyond Aleph itself.
 // Bundles selected files + a manifest into a single ZIP for download.
 import { useCallback, useState } from "react";
-import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit, Filter, Sparkles, X } from "lucide-react";
+import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit, Filter, Sparkles, X, FileSearch, Send, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const ALEPH = "https://search.libraryofleaks.org/api/2";
@@ -100,6 +102,57 @@ const LeaksPanel = () => {
   };
 
   const clearIntent = () => { setIntent(""); setIntentMatches(null); };
+
+  // ── Dossier Side Panel ───────────────────────────────────────
+  const [dossierOpen, setDossierOpen] = useState(false);
+  const [dossierQ, setDossierQ] = useState("");
+  const [dossierLoading, setDossierLoading] = useState(false);
+  const [dossierThread, setDossierThread] = useState<Array<{ q: string; a: string; sources?: any[]; scraped?: number }>>([]);
+  const DOSSIER_PRESETS = [
+    "Is there anything about cybersecurity flaws in code or software I should look out for?",
+    "Create a long, prompt-engineered checklist of what to find in code and look out for when scanning and debugging software.",
+    "Summarize every leaked credential, API key, or secret found across these documents.",
+    "What internal decisions, cover-ups, or wrongdoing are exposed here?",
+    "Extract every named person, their role, and what they did.",
+  ];
+
+  const askDossier = async (q: string) => {
+    const question = q.trim();
+    if (!question) return;
+    if (!results.length) { toast.error("Run a search first so the dossier has something to scrape."); return; }
+    setDossierLoading(true);
+    setDossierThread((t) => [...t, { q: question, a: "" }]);
+    try {
+      const pool = (intentMatches ? results.filter((r) => intentMatches[r.id]) : results).slice(0, 20);
+      const payload = {
+        question,
+        items: pool.map((r) => ({
+          id: r.id,
+          title: firstProp(r.properties, "title", "fileName", "name") || r.id,
+          schema: r.schema,
+          source: r.collection?.label,
+          ui: r.links?.ui,
+          fileUrl: r.links?.file,
+          snippet: (r.highlight?.[0] || firstProp(r.properties, "summary", "description") || "").replace(/<[^>]+>/g, "").slice(0, 400),
+        })),
+      };
+      const { data, error: fnErr } = await supabase.functions.invoke("asher-eyes-dossier", { body: payload });
+      if (fnErr) throw fnErr;
+      setDossierThread((t) => {
+        const copy = [...t];
+        copy[copy.length - 1] = { q: question, a: data?.answer || "(no answer)", sources: data?.sources, scraped: data?.scraped };
+        return copy;
+      });
+      setDossierQ("");
+    } catch (e: any) {
+      setDossierThread((t) => {
+        const copy = [...t];
+        copy[copy.length - 1] = { q: question, a: `**Error:** ${e?.message || "Dossier query failed"}` };
+        return copy;
+      });
+    } finally { setDossierLoading(false); }
+  };
+
 
   // Visible results = filtered + sorted by score when intent is active
   const visibleResults = intentMatches
@@ -397,6 +450,14 @@ const LeaksPanel = () => {
             <button onClick={selectAll} disabled={!results.length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Select page</button>
             <button onClick={clearAll} disabled={!Object.keys(selected).length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Clear ({Object.keys(selected).length})</button>
             <button
+              onClick={() => setDossierOpen(true)}
+              disabled={!results.length}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1 text-[11px] font-light tracking-wide text-accent hover:bg-accent/20 transition-colors disabled:opacity-30"
+              title="Open Intelligence Dossier — scrapes the result set and answers questions in plain English"
+            >
+              <FileSearch className="h-3.5 w-3.5" /> Intel Dossier
+            </button>
+            <button
               onClick={exportZip}
               disabled={(!results.length && !Object.keys(selected).length) || zipping}
               className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1 text-[11px] font-light tracking-wide text-accent hover:bg-accent/25 transition-colors disabled:opacity-30"
@@ -483,6 +544,88 @@ const LeaksPanel = () => {
           <FileArchive className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
           <p className="text-sm font-extralight text-muted-foreground">No results matched. Try a broader term or enable more types above.</p>
         </div>
+      )}
+
+      {/* ── Intelligence Dossier slide-out ─────────────────────── */}
+      {dossierOpen && (
+        <>
+          <div className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" onClick={() => setDossierOpen(false)} />
+          <aside className="fixed top-0 right-0 z-50 h-full w-full sm:w-[520px] bg-card/95 backdrop-blur-2xl border-l border-border/40 shadow-2xl flex flex-col">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
+              <BookOpen className="h-4 w-4 text-accent" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-light text-foreground">Intelligence Dossier</p>
+                <p className="text-[10px] font-extralight text-muted-foreground/70 truncate">
+                  Scraping {Math.min(intentMatches ? Object.keys(intentMatches).length : results.length, 20)} docs · jargon translated to plain English
+                </p>
+              </div>
+              <button onClick={() => setDossierOpen(false)} className="p-1 rounded-md hover:bg-foreground/10 text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+              {dossierThread.length === 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-light text-muted-foreground">Ask anything about the documents on screen. Try:</p>
+                  {DOSSIER_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => askDossier(p)}
+                      className="w-full text-left text-[11px] font-extralight px-3 py-2 rounded-lg border border-border/30 bg-card/40 text-muted-foreground hover:text-foreground hover:border-accent/40 transition-colors"
+                    >{p}</button>
+                  ))}
+                </div>
+              )}
+              {dossierThread.map((m, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="rounded-lg bg-accent/10 border border-accent/30 px-3 py-2">
+                    <p className="text-[11px] font-light text-accent">{m.q}</p>
+                  </div>
+                  <div className="rounded-lg bg-background/40 border border-border/30 px-3 py-2.5">
+                    {m.a ? (
+                      <div className="prose prose-sm prose-invert max-w-none text-[12px] font-extralight text-foreground/90 [&_a]:text-accent [&_a]:underline [&_strong]:text-foreground [&_strong]:font-light [&_h2]:text-foreground [&_h2]:font-light [&_h2]:text-[13px] [&_h3]:text-foreground [&_h3]:font-light [&_table]:text-[11px] [&_code]:text-accent [&_code]:bg-foreground/10 [&_code]:px-1 [&_code]:rounded">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            a: ({ node, ...p }) => <a {...p} target="_blank" rel="noopener noreferrer" />,
+                          }}
+                        >{m.a}</ReactMarkdown>
+                        {m.scraped !== undefined && (
+                          <p className="text-[9px] text-muted-foreground/50 mt-2">◈ scraped {m.scraped} docs · {m.sources?.length || 0} citations</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Scraping & analyzing…
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form
+              onSubmit={(e) => { e.preventDefault(); askDossier(dossierQ); }}
+              className="border-t border-border/30 p-3 flex items-center gap-2"
+            >
+              <input
+                value={dossierQ}
+                onChange={(e) => setDossierQ(e.target.value)}
+                placeholder="Ask the dossier… (e.g. cybersecurity flaws to look out for)"
+                className="flex-1 bg-background/50 border border-border/30 rounded-lg px-3 py-2 text-[12px] font-light text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent/40"
+                disabled={dossierLoading}
+              />
+              <button
+                type="submit"
+                disabled={dossierLoading || !dossierQ.trim()}
+                className="rounded-lg bg-accent/20 px-3 py-2 text-accent hover:bg-accent/30 transition-colors disabled:opacity-30"
+              >
+                {dossierLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+            </form>
+          </aside>
+        </>
       )}
     </div>
   );
