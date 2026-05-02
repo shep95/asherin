@@ -20,7 +20,7 @@ const SIGN_NAMES_LIST: string[] = rashis.map((r: any) => r.name);
 const PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"] as const;
 type PlanetName = typeof PLANETS[number];
 
-const SIGN_NAMES_LIST = rashis; // 12 sidereal sign names from the existing data module
+// SIGN_NAMES_LIST defined above from rashis
 
 const NAK_NAMES = [
   "Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra",
