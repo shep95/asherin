@@ -44,6 +44,7 @@ const AsherCommandCenter = () => {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [activeBrainCount, setActiveBrainCount] = useState<number | null>(null);
+  const [lastRoute, setLastRoute] = useState<SwarmRouteResult | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
