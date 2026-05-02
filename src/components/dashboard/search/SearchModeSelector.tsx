@@ -9,7 +9,7 @@ const modes: { id: SearchMode; label: string; icon: React.ReactNode; accent?: bo
   { id: "audit", label: "ZERLAL", icon: <ShieldAlert className="h-3.5 w-3.5" />, accent: true },
   { id: "face", label: "Face Recognition", icon: <Scan className="h-3.5 w-3.5" />, accent: true },
   { id: "darkweb", label: "Dark Web", icon: <Skull className="h-3.5 w-3.5" />, accent: true },
-  { id: "leaks", label: "Leaks", icon: <FileArchive className="h-3.5 w-3.5" />, accent: true },
+  { id: "leaks", label: "Asher Search", icon: <FileArchive className="h-3.5 w-3.5" />, accent: true },
   { id: "news", label: "News", icon: <Newspaper className="h-3.5 w-3.5" /> },
   { id: "academic", label: "Academic", icon: <GraduationCap className="h-3.5 w-3.5" /> },
   { id: "code", label: "Code", icon: <Code className="h-3.5 w-3.5" /> },
