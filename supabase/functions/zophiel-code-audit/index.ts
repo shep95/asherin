@@ -10,6 +10,39 @@ const corsHeaders = {
 
 const MAX_BYTES = 600 * 1024; // 600KB hard cap (matches client-side bundling)
 
+type Tone = "neutral" | "good" | "warn" | "critical";
+type Confidence = "high" | "med" | "low";
+
+const REQUIRED_BRANCHES = [
+  { id: "leaks", label: "SECURITY LEAKS", icon: "shield" },
+  { id: "broken", label: "BROKEN CODE", icon: "bug" },
+  { id: "fragile", label: "WILL BREAK", icon: "alert" },
+  { id: "logic", label: "LOGICAL FLAWS", icon: "brain" },
+  { id: "workflow", label: "WORKFLOW & FLOW", icon: "workflow" },
+  { id: "visual", label: "VISUAL / UI LOGIC", icon: "eye" },
+  { id: "injection", label: "INJECTION SURFACE", icon: "syringe" },
+  { id: "auth", label: "AUTH & ACCESS", icon: "lock" },
+  { id: "deps", label: "DEPENDENCY RISK", icon: "plug" },
+  { id: "fix", label: "REMEDIATION PATH", icon: "wrench" },
+];
+
+const STANDARD_EDGES = [
+  { from: "leaks", to: "injection", label: "feeds" },
+  { from: "broken", to: "fragile", label: "cascades" },
+  { from: "logic", to: "broken", label: "produces" },
+  { from: "logic", to: "workflow", label: "corrupts" },
+  { from: "workflow", to: "fragile", label: "destabilizes" },
+  { from: "visual", to: "logic", label: "reflects" },
+  { from: "injection", to: "auth", label: "bypasses" },
+  { from: "deps", to: "leaks", label: "introduces" },
+  { from: "leaks", to: "fix", label: "resolved by" },
+  { from: "broken", to: "fix", label: "patched by" },
+  { from: "fragile", to: "fix", label: "hardened by" },
+  { from: "logic", to: "fix", label: "corrected by" },
+  { from: "workflow", to: "fix", label: "restructured by" },
+  { from: "visual", to: "fix", label: "rewired by" },
+];
+
 // Tolerant JSON repair: handles truncated arrays/objects/strings from MAX_TOKENS cuts.
 function repairJson(input: string): string {
   let s = input.trim();
