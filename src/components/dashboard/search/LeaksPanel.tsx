@@ -2,10 +2,12 @@
 // Asher Dashboard / Zophiel Engine ONLY. No censorship, no filter, no rate limiting beyond Aleph itself.
 // Bundles selected files + a manifest into a single ZIP for download.
 import { useCallback, useState } from "react";
-import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit, Filter, Sparkles, X } from "lucide-react";
+import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit, Filter, Sparkles, X, FileSearch, Send, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const ALEPH = "https://search.libraryofleaks.org/api/2";
