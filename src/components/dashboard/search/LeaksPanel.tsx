@@ -161,9 +161,11 @@ const LeaksPanel = () => {
   };
 
   const exportZip = async () => {
-    const items = Object.values(selected);
-    if (!items.length) return;
+    // If nothing selected, bundle every visible result automatically.
+    const items = Object.values(selected).length ? Object.values(selected) : results;
+    if (!items.length) { toast.error("Run a search first"); return; }
     setZipping(true);
+    toast.info(`Bundling ${items.length} item${items.length === 1 ? "" : "s"} into a ZIP…`);
     try {
       const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
