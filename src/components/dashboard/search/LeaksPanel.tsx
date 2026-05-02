@@ -296,11 +296,13 @@ const LeaksPanel = () => {
             <button onClick={clearAll} disabled={!Object.keys(selected).length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Clear ({Object.keys(selected).length})</button>
             <button
               onClick={exportZip}
-              disabled={!Object.keys(selected).length || zipping}
+              disabled={(!results.length && !Object.keys(selected).length) || zipping}
               className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/15 px-3 py-1 text-[11px] font-light tracking-wide text-accent hover:bg-accent/25 transition-colors disabled:opacity-30"
             >
               {zipping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Package className="h-3.5 w-3.5" />}
-              Export ZIP ({Object.keys(selected).length})
+              {Object.keys(selected).length
+                ? `Export ZIP (${Object.keys(selected).length})`
+                : `Download All as ZIP (${results.length})`}
             </button>
             {isAdmin && (
               <button
