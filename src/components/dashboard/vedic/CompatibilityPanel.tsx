@@ -157,6 +157,16 @@ export default function CompatibilityPanel({ baseChart, baseLabel, savedCharts, 
               );
             })}
           </div>
+
+          {/* DETERMINISTIC RELATIONSHIP TIMELINE */}
+          {otherChart && (
+            <SynastryPredictions
+              chartA={baseChart}
+              chartB={otherChart}
+              labelA={baseLabel}
+              labelB={otherLabel}
+            />
+          )}
         </div>
       )}
     </div>
