@@ -191,11 +191,20 @@ const AsherCommandCenter = () => {
         <div className="flex items-center gap-2">
           {activeBrainCount !== null && (
             <span
-              title="Active brains injected into the system prompt"
+              title="Total active brains in vault"
               className="flex items-center gap-1 rounded-md border border-border/20 bg-foreground/5 px-2 py-0.5 text-[9px] font-light tracking-[0.2em] text-muted-foreground uppercase"
             >
               <Database className="h-2.5 w-2.5" strokeWidth={1.8} />
               {activeBrainCount} Brains
+            </span>
+          )}
+          {lastRoute && lastRoute.brains.length > 0 && (
+            <span
+              title={`SWARM ROUTE\n${lastRoute.rationale}\n\nSelected:\n${lastRoute.brains.map((b) => `• ${b.name} [${b.category}] (${b.reason})`).join("\n")}`}
+              className="flex items-center gap-1 rounded-md border border-emerald-400/30 bg-emerald-400/5 px-2 py-0.5 text-[9px] font-light tracking-[0.2em] text-emerald-300/80 uppercase cursor-help"
+            >
+              <Network className="h-2.5 w-2.5" strokeWidth={1.8} />
+              Swarm · {lastRoute.brains.length}/{lastRoute.totalScanned}
             </span>
           )}
           <span
