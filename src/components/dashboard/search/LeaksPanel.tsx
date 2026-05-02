@@ -2,7 +2,7 @@
 // Asher Dashboard / Zophiel Engine ONLY. No censorship, no filter, no rate limiting beyond Aleph itself.
 // Bundles selected files + a manifest into a single ZIP for download.
 import { useCallback, useState } from "react";
-import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit } from "lucide-react";
+import { Search, Loader2, Download, FileText, ExternalLink, Mail, User, Building2, FolderOpen, FileArchive, Package, Plus, Check, BrainCircuit, Filter, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -52,6 +52,59 @@ const LeaksPanel = () => {
   const [zipping, setZipping] = useState(false);
   const [integrating, setIntegrating] = useState(false);
   const [activeSchemata, setActiveSchemata] = useState<Schema[]>(["Pages", "Document", "HyperText", "Email", "PlainText", "Person", "Company"]);
+
+  // ── Intent Filter ────────────────────────────────────────────
+  const [intent, setIntent] = useState("");
+  const [intentLoading, setIntentLoading] = useState(false);
+  const [intentMatches, setIntentMatches] = useState<Record<string, { score: number; reason: string }> | null>(null);
+  const INTENT_PRESETS = [
+    "Data that improves coding knowledge",
+    "Cybersecurity / exploit / vulnerability intelligence",
+    "Internal emails revealing decisions or wrongdoing",
+    "Financial records, contracts, or invoices",
+    "Personal identifiers, credentials, or leaked PII",
+  ];
+
+  const runIntentFilter = async () => {
+    if (!intent.trim() || !results.length) return;
+    setIntentLoading(true);
+    try {
+      const payload = {
+        intent: intent.trim(),
+        items: results.map((r) => ({
+          id: r.id,
+          title: firstProp(r.properties, "title", "fileName", "name") || r.id,
+          schema: r.schema,
+          source: r.collection?.label,
+          snippet: (r.highlight?.[0] || firstProp(r.properties, "summary", "description") || "")
+            .replace(/<[^>]+>/g, "").slice(0, 280),
+        })),
+      };
+      const { data, error: fnErr } = await supabase.functions.invoke("asher-eyes-intent", { body: payload });
+      if (fnErr) throw fnErr;
+      const map: Record<string, { score: number; reason: string }> = {};
+      (data?.matches || []).forEach((m: any) => { if (m?.id) map[m.id] = { score: m.score ?? 0, reason: m.reason || "" }; });
+      setIntentMatches(map);
+      // Auto-select all matches so the user can ZIP/integrate them in one click
+      const next: Record<string, AlephResult> = {};
+      results.forEach((r) => { if (map[r.id]) next[r.id] = r; });
+      setSelected(next);
+      const n = Object.keys(map).length;
+      if (n) toast.success(`${n} of ${results.length} match your intent — auto-selected`);
+      else toast.info("No items matched that intent");
+    } catch (e: any) {
+      toast.error(e?.message || "Intent filter failed");
+    } finally {
+      setIntentLoading(false);
+    }
+  };
+
+  const clearIntent = () => { setIntent(""); setIntentMatches(null); };
+
+  // Visible results = filtered + sorted by score when intent is active
+  const visibleResults = intentMatches
+    ? results.filter((r) => intentMatches[r.id]).sort((a, b) => (intentMatches[b.id]?.score ?? 0) - (intentMatches[a.id]?.score ?? 0))
+    : results;
 
   const detectCategory = (title: string, body: string): "coding" | "general" => {
     const t = `${title}\n${body}`.toLowerCase();
