@@ -391,7 +391,7 @@ const LeaksPanel = () => {
       {searched && (
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-[10px] font-light text-muted-foreground/50">
-            {loading ? "Searching Asher Eyes…" : `${results.length} shown of ${total.toLocaleString()} total matches`}
+            {loading ? "Searching Asher Eyes…" : intentMatches ? `${visibleResults.length} matched of ${results.length} fetched` : `${results.length} shown of ${total.toLocaleString()} total matches`}
           </p>
           <div className="flex items-center gap-2">
             <button onClick={selectAll} disabled={!results.length} className="text-[10px] px-2 py-1 rounded-md border border-border/30 bg-card/30 text-muted-foreground hover:text-foreground disabled:opacity-30">Select page</button>
