@@ -24,6 +24,7 @@ const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
 const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
 const DarkWebPanel = lazy(() => import("./search/DarkWebPanel"));
 const LeaksPanel = lazy(() => import("./search/LeaksPanel"));
+import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
@@ -316,8 +317,18 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
   // Determine if we should use grouped or flat display
   const hasGroups = Object.keys(grouped).length > 1;
 
+  const isAsher = typeof window !== "undefined" && window.location.pathname.includes("/asher-dashboard");
+
   return (
-    <div className="flex h-full relative">
+    <div
+      className="flex h-full relative"
+      style={isAsher ? {
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url(${wallpaperAureon})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      } : undefined}
+    >
       {/* Filter Sidebar */}
       {searched && (
         <FilterSidebar
