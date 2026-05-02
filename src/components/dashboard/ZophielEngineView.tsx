@@ -172,6 +172,23 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     localStorage.setItem("zophiel_blocked_domains", JSON.stringify(updated));
   };
 
+  const runDarkSweep = useCallback(async (q: string) => {
+    setDarkLoading(true); setDarkResults([]); setDarkSummary("");
+    try {
+      const byok = (await import("@/lib/intelMapByok")).getActiveIntelMapByok();
+      const { data, error } = await supabase.functions.invoke("zophiel-darkweb", {
+        body: { query: q, ...(byok ? { byok } : {}) },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setDarkResults(Array.isArray(data.results) ? data.results : []);
+        setDarkSummary(data.summary || "");
+      }
+    } catch (e) {
+      console.error("[zophiel] dark sweep failed", e);
+    } finally { setDarkLoading(false); }
+  }, []);
+
   const search = useCallback(async (searchQuery?: string) => {
     const q = (searchQuery ?? query).trim();
     if (!q) return;
@@ -202,18 +219,29 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     }
 
     setDeepSearchQuery(null);
-    setLoading(true);
     setSearched(true);
     setResults([]);
     setGrouped({});
     setInstantAnswer(null);
     setFreshnessAlerts({});
+    setDarkResults([]);
+    setDarkSummary("");
     setShowSuggestions(false);
     setSelectedIndex(-1);
     setQueuedSearch(null);
     saveRecent(q);
 
     const start = performance.now();
+    const wantClearnet = scope === "safe" || scope === "mix";
+    const wantDark = scope === "dark" || scope === "mix";
+
+    if (wantClearnet) setLoading(true);
+    if (wantDark) runDarkSweep(q);
+
+    if (!wantClearnet) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("zophiel-search", {
@@ -239,7 +267,7 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
     } finally {
       setLoading(false);
     }
-  }, [query, mode, filters, operatorOverrides, blockedDomains, recentSearches]);
+  }, [query, mode, filters, operatorOverrides, blockedDomains, recentSearches, scope, runDarkSweep]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
