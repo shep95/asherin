@@ -22,6 +22,7 @@ const OracleLocusView = lazy(() => import("./OracleLocusView"));
 const LinkExtractView = lazy(() => import("./search/LinkExtractView"));
 const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
 const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
+const DarkWebPanel = lazy(() => import("./search/DarkWebPanel"));
 
 const CATEGORY_LABELS: Record<string, string> = {
   primary: "Primary Sources",
