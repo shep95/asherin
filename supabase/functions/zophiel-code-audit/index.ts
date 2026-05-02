@@ -379,18 +379,25 @@ serve(async (req) => {
     }
 
     let cleaned = raw.replace(/```json\n?|```/g, "").trim();
-    const lastBrace = cleaned.lastIndexOf("}");
-    if (lastBrace !== -1) cleaned = cleaned.slice(0, lastBrace + 1);
+    const firstBrace = cleaned.indexOf("{");
+    if (firstBrace > 0) cleaned = cleaned.slice(firstBrace);
 
     let blueprint: unknown;
     try {
       blueprint = JSON.parse(cleaned);
-    } catch (parseErr) {
-      console.error("[code-audit] parse failed", parseErr, "raw:", raw.slice(0, 500));
-      return new Response(
-        JSON.stringify({ error: "AI returned malformed JSON — please retry" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    } catch {
+      // Tolerant repair: truncate to last balanced brace, close open strings/arrays
+      const repaired = repairJson(cleaned);
+      try {
+        blueprint = JSON.parse(repaired);
+        console.warn("[code-audit] recovered via repair");
+      } catch (parseErr) {
+        console.error("[code-audit] parse failed", parseErr, "len:", raw.length, "tail:", raw.slice(-300));
+        return new Response(
+          JSON.stringify({ error: "AI returned malformed JSON — please retry with a smaller bundle" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     return new Response(
