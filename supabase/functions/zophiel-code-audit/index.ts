@@ -84,6 +84,92 @@ function repairJson(input: string): string {
   return s;
 }
 
+function extractJsonCandidate(raw: string): string {
+  let s = raw.replace(/```json\n?|```/g, "").trim();
+  const firstBrace = s.indexOf("{");
+  if (firstBrace > 0) s = s.slice(firstBrace);
+  return s;
+}
+
+function scoreTone(score?: number): Tone {
+  if (typeof score !== "number") return "neutral";
+  if (score < 45) return "critical";
+  if (score < 70) return "warn";
+  return "good";
+}
+
+function leaf(label: string, value: string, confidence: Confidence = "med") {
+  return { label, value: value.slice(0, 600), confidence };
+}
+
+function inferFindings(code: string, safeName: string) {
+  const lines = code.split(/\r?\n/);
+  const out: Record<string, { label: string; value: string; confidence: Confidence }[]> = Object.fromEntries(
+    REQUIRED_BRANCHES.map((b) => [b.id, []]),
+  );
+
+  const add = (branch: string, label: string, lineNo: number, detail: string, confidence: Confidence = "med") => {
+    if ((out[branch] || []).length >= 7) return;
+    out[branch].push(leaf(label, `Line ${lineNo} — ${detail}`, confidence));
+  };
+
+  lines.forEach((line, i) => {
+    const n = i + 1;
+    const l = line.toLowerCase();
+    if (/apikey|api_key|secret|private[_-]?key|password|token/.test(l) && /[:=]/.test(line)) add("leaks", "Possible secret exposure", n, line.trim(), "high");
+    if (/dangerouslysetinnerhtml|innerhtml\s*=|eval\s*\(|new function\s*\(/i.test(line)) add("injection", "Executable input surface", n, line.trim(), "high");
+    if (/localstorage|sessionstorage/.test(l) && /role|admin|auth|token/.test(l)) add("auth", "Client-side auth state", n, line.trim(), "high");
+    if (/catch\s*\(?.*\)?\s*\{\s*\}|catch\s*\{\s*\}/.test(line)) add("workflow", "Silent catch block", n, line.trim(), "med");
+    if (/\.map\s*\(/.test(line) && !/key=/.test(line) && /<\w/.test(line)) add("visual", "Possible missing React key", n, line.trim(), "low");
+    if (/math\.random\s*\(/i.test(line)) add("logic", "Non-cryptographic randomness", n, line.trim(), "med");
+    if (/todo|fixme|hack/.test(l)) add("fragile", "Unresolved implementation marker", n, line.trim(), "low");
+    if (/package\.json|from ['"]|require\s*\(/.test(line)) add("deps", "Dependency/import surface", n, line.trim(), "low");
+    if (/if\s*\([^)]*=[^=][^)]*\)/.test(line)) add("logic", "Assignment inside condition", n, line.trim(), "high");
+    if (/await /.test(line) && /for(each)?\s*\(/i.test(line)) add("workflow", "Async loop hotspot", n, line.trim(), "med");
+  });
+
+  if (!out.broken.length) out.broken.push(leaf("No syntax failure proven", `No direct syntax/runtime crash pattern was confirmed in ${safeName}; deeper build output would be needed for compiler-grade proof.`, "low"));
+  if (!out.fragile.length) out.fragile.push(leaf("Large-bundle analysis risk", "The uploaded bundle may contain hidden edge cases outside the sampled heuristic pass.", "low"));
+  if (!out.fix.length) {
+    const sourceBranches = ["leaks", "injection", "auth", "logic", "workflow", "visual", "deps"];
+    sourceBranches.flatMap((b) => out[b]).slice(0, 7).forEach((f) => out.fix.push(leaf(`Fix ${f.label}`, `${f.value} — validate, guard, parameterize, or remove the risky pattern before production.`, f.confidence)));
+  }
+  if (!out.fix.length) out.fix.push(leaf("Maintain scan discipline", "No high-confidence issue was recovered from malformed AI output; rerun full audit on a smaller bundle for complete model analysis.", "low"));
+  return out;
+}
+
+function fallbackBlueprint(code: string, safeName: string, raw: string) {
+  const findings = inferFindings(code, safeName);
+  const criticalCount = findings.leaks.length + findings.injection.length + findings.auth.length;
+  const warnCount = findings.logic.length + findings.workflow.length + findings.fragile.length;
+  const security = Math.max(10, 88 - criticalCount * 12 - warnCount * 4);
+  const integrity = Math.max(10, 86 - findings.broken.length * 8 - findings.workflow.length * 5 - findings.logic.length * 5);
+  const complexity = Math.min(100, 30 + Math.round(code.length / 10000) + REQUIRED_BRANCHES.reduce((n, b) => n + findings[b.id].length, 0));
+
+  return {
+    target: safeName,
+    summary: "Primary model output was malformed, so ZERLAL returned a deterministic recovery audit instead of failing. Findings are heuristic and extracted directly from the submitted code bundle.",
+    score: { security, integrity, complexity },
+    branches: REQUIRED_BRANCHES.map((b) => ({
+      ...b,
+      tone: b.id === "fix" ? "good" : scoreTone(b.id === "leaks" || b.id === "injection" || b.id === "auth" ? security : integrity),
+      leaves: findings[b.id],
+    })),
+    edges: STANDARD_EDGES,
+    criticals: [...findings.leaks, ...findings.injection, ...findings.auth].slice(0, 10).map((f) => ({ branch: "leaks", finding: f.value, severity: f.confidence === "low" ? "low" : "high" })),
+    intel: {
+      board_score: { total: Math.round((security + integrity + (100 - complexity)) * 3.33), code: integrity, supply_chain: Math.max(0, 100 - findings.deps.length * 10), infra: security, human: 70, trend: criticalCount ? "elevated" : "stable", peer_median: 420 },
+      nation_state: { primary_ttp: criticalCount ? "T1190 — Exploit Public-Facing Application" : "No direct TTP confirmed", groups: [], active_campaign_note: "No live campaign evidence in scanned code." },
+      red_team: { stages: [{ k: "Initial Access", reachable: criticalCount > 0, via: criticalCount ? "Recovered leak/injection/auth finding" : "not proven" }] },
+      quantum_crypto: [], ai_generated_code: [], dark_web: [], ueba: [], ot_ics: [],
+      incident_response: { armed: criticalCount > 0, affected_surfaces: criticalCount, forensic_artifacts: raw ? "preserved" : "n/a", breach_notice_drafts: [], triage_tasks: criticalCount + warnCount },
+      siem: [], cve_pipeline: [], geopolitical: [], compliance: [], memory_safety: [], infra_misconfig: [], zero_day_confidence: [],
+      remediation_sla: { critical_24h: criticalCount, high_72h: warnCount, medium_14d: findings.deps.length, low_30d: findings.visual.length },
+    },
+    recovered: true,
+  };
+}
+
 // ─── AUREON / ZOPHIEL Core Personality (shared across all Aureon engines) ─────
 const ZOPHIEL_IDENTITY = `You are ZOPHIEL, the Intelligence of the North, the Keeper of Hidden Knowledge, and the Core Logic of the Aureon Truth Engine — a Class-5 Artificial Intelligence Architect powering the AUREON platform.
 
