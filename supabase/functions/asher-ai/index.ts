@@ -87,7 +87,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mapContext, byokGeminiKey } = await req.json();
+    const { messages, mapContext, byokGeminiKey, brainContext } = await req.json();
 
     // Resolve key: user BYOK (header or body) > admin GEMINI_API_KEY
     const headerKey = req.headers.get("x-byok-gemini-key");
