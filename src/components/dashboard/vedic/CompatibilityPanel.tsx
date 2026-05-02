@@ -3,6 +3,7 @@ import { Heart, Loader2, Scale, X } from "lucide-react";
 import { compareCharts, chartFromCountry, chartFromSaved, type CompatResult } from "@/lib/vedic/compatibility";
 import { COUNTRY_CHARTS } from "@/data/vedic/countryCharts";
 import type { SweVedicChart } from "@/lib/vedic/sweChart";
+import SynastryPredictions from "./SynastryPredictions";
 
 interface SavedChart {
   id: string;
