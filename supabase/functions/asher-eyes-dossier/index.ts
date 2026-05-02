@@ -42,7 +42,7 @@ async function fetchBody(id: string): Promise<string> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const { question, items, deepRead = 12, userKey } = await req.json() as {
+    const { question, items, deepRead, userKey } = await req.json() as {
       question: string;
       items: InItem[];
       deepRead?: number;
@@ -60,21 +60,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Deep-read top N items in parallel for grounding
-    const top = items.slice(0, Math.min(deepRead, 20));
-    const bodies = await Promise.all(top.map(async (it) => {
-      if (it.body && it.body.length > 200) return it.body.slice(0, 8000);
-      return await fetchBody(it.id);
-    }));
+    // Scrape ALL provided items (hard cap 200 to stay within Gemini context).
+    const target = items.slice(0, deepRead ?? Math.min(items.length, 200));
+    const bodies: string[] = new Array(target.length).fill("");
+    const BATCH = 12;
+    for (let i = 0; i < target.length; i += BATCH) {
+      const slice = target.slice(i, i + BATCH);
+      const out = await Promise.all(slice.map(async (it) => {
+        if (it.body && it.body.length > 200) return it.body.slice(0, 8000);
+        return await fetchBody(it.id);
+      }));
+      out.forEach((b, j) => { bodies[i + j] = b; });
+    }
 
-    const dossier = top.map((it, i) => {
+    // Auto-shrink per-doc body so the total prompt stays under Gemini's window.
+    const perDocCap = target.length > 80 ? 2500 : target.length > 40 ? 4000 : target.length > 20 ? 6000 : 8000;
+
+    const dossier = target.map((it, i) => {
       const ui = it.ui || `${UI}/entities/${it.id}`;
       const body = bodies[i] || it.snippet || "";
       return `### [${i + 1}] ${it.title || it.id}
 - Schema: ${it.schema || "?"} · Source: ${it.source || "?"}
 - URL: ${ui}
-- Body: ${body.slice(0, 6000)}`;
+- Body: ${body.slice(0, perDocCap)}`;
     }).join("\n\n");
+
+    const top = target;
 
     const system = `You are ASHER EYES — Intelligence Dossier Analyst.
 You have just scraped ${top.length} documents from a leaks index. Answer the operator's question using ONLY the provided dossier.
