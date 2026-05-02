@@ -34,6 +34,7 @@ export default function CompatibilityPanel({ baseChart, baseLabel, savedCharts, 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CompatResult | null>(null);
   const [otherLabel, setOtherLabel] = useState<string>("");
+  const [otherChart, setOtherChart] = useState<SweVedicChart | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const targetSaved = useMemo(() => savedCharts.find((s) => s.id === targetSavedId), [savedCharts, targetSavedId]);
@@ -57,7 +58,7 @@ export default function CompatibilityPanel({ baseChart, baseLabel, savedCharts, 
           label = targetSaved.name;
         }
         const r = await compareCharts(baseChart, other);
-        if (!cancelled) { setResult(r); setOtherLabel(label); }
+        if (!cancelled) { setResult(r); setOtherLabel(label); setOtherChart(other); }
       } catch (e: any) {
         if (!cancelled) setErr(e?.message ?? "Failed to compute");
       } finally {
