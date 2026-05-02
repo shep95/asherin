@@ -103,6 +103,57 @@ const LeaksPanel = () => {
 
   const clearIntent = () => { setIntent(""); setIntentMatches(null); };
 
+  // ── Dossier Side Panel ───────────────────────────────────────
+  const [dossierOpen, setDossierOpen] = useState(false);
+  const [dossierQ, setDossierQ] = useState("");
+  const [dossierLoading, setDossierLoading] = useState(false);
+  const [dossierThread, setDossierThread] = useState<Array<{ q: string; a: string; sources?: any[]; scraped?: number }>>([]);
+  const DOSSIER_PRESETS = [
+    "Is there anything about cybersecurity flaws in code or software I should look out for?",
+    "Create a long, prompt-engineered checklist of what to find in code and look out for when scanning and debugging software.",
+    "Summarize every leaked credential, API key, or secret found across these documents.",
+    "What internal decisions, cover-ups, or wrongdoing are exposed here?",
+    "Extract every named person, their role, and what they did.",
+  ];
+
+  const askDossier = async (q: string) => {
+    const question = q.trim();
+    if (!question) return;
+    if (!results.length) { toast.error("Run a search first so the dossier has something to scrape."); return; }
+    setDossierLoading(true);
+    setDossierThread((t) => [...t, { q: question, a: "" }]);
+    try {
+      const pool = (intentMatches ? results.filter((r) => intentMatches[r.id]) : results).slice(0, 20);
+      const payload = {
+        question,
+        items: pool.map((r) => ({
+          id: r.id,
+          title: firstProp(r.properties, "title", "fileName", "name") || r.id,
+          schema: r.schema,
+          source: r.collection?.label,
+          ui: r.links?.ui,
+          fileUrl: r.links?.file,
+          snippet: (r.highlight?.[0] || firstProp(r.properties, "summary", "description") || "").replace(/<[^>]+>/g, "").slice(0, 400),
+        })),
+      };
+      const { data, error: fnErr } = await supabase.functions.invoke("asher-eyes-dossier", { body: payload });
+      if (fnErr) throw fnErr;
+      setDossierThread((t) => {
+        const copy = [...t];
+        copy[copy.length - 1] = { q: question, a: data?.answer || "(no answer)", sources: data?.sources, scraped: data?.scraped };
+        return copy;
+      });
+      setDossierQ("");
+    } catch (e: any) {
+      setDossierThread((t) => {
+        const copy = [...t];
+        copy[copy.length - 1] = { q: question, a: `**Error:** ${e?.message || "Dossier query failed"}` };
+        return copy;
+      });
+    } finally { setDossierLoading(false); }
+  };
+
+
   // Visible results = filtered + sorted by score when intent is active
   const visibleResults = intentMatches
     ? results.filter((r) => intentMatches[r.id]).sort((a, b) => (intentMatches[b.id]?.score ?? 0) - (intentMatches[a.id]?.score ?? 0))
