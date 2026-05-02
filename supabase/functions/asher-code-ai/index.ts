@@ -5,6 +5,7 @@
 // • Never falls back to Lovable AI Gateway. Per project rule: Asher Dashboard AI is GEMINI-or-BYOK only.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { CODE_SCAN_CHECKLIST_BRIEF } from "../_shared/codeScanChecklist.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
