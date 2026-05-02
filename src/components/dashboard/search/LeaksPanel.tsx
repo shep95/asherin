@@ -123,7 +123,7 @@ const LeaksPanel = () => {
     setDossierLoading(true);
     setDossierThread((t) => [...t, { q: question, a: "" }]);
     try {
-      const pool = (intentMatches ? results.filter((r) => intentMatches[r.id]) : results).slice(0, 20);
+      const pool = (intentMatches ? results.filter((r) => intentMatches[r.id]) : results).slice(0, 200);
       const payload = {
         question,
         items: pool.map((r) => ({
