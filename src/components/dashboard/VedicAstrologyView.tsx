@@ -697,10 +697,11 @@ const VedicAstrologyView = () => {
         </div>
 
         {/* TAB STRIP — My Charts vs Country Charts */}
-        <div className="grid grid-cols-4 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-5 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
           {([
             { key: "mine" as const, icon: User2, label: "My Charts" },
             { key: "country" as const, icon: Globe2, label: "Country Charts" },
+            { key: "companies" as const, icon: Building2, label: "Company Charts" },
             { key: "predictions" as const, icon: TrendingUp, label: "Global Predictions" },
             { key: "custom" as const, icon: Sparkles, label: "Custom Chart" },
           ]).map(({ key, icon: Icon, label }) => (
@@ -716,6 +717,100 @@ const VedicAstrologyView = () => {
 
         {tab === "predictions" && <GlobalPredictionsTab />}
         {tab === "custom" && <CustomChartBuilder />}
+
+        {tab === "companies" && (
+          <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
+            <div className="flex items-center gap-2 border-b border-border/15 pb-3">
+              <Building2 className="h-4 w-4 text-foreground/70" />
+              <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Company Foundation Charts</h3>
+              <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Incorporation moments + founder natal · sidereal Lahiri</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-[10px] font-light text-muted-foreground/70 -mt-1">
+              <span className="uppercase tracking-[0.15em] text-muted-foreground/50">Founder Lagna vs you:</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#ff4fd8] shadow-[0_0_6px_rgba(255,79,216,0.7)]" /> Soulmate</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Friend</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500" /> Enemy</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-foreground/80" /> Neutral</span>
+              {!chart && <span className="italic text-muted-foreground/50">· generate your chart to activate</span>}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {COMPANY_CHARTS.map((c) => {
+                const lagna = companyLagnas[c.symbol];
+                const founder = getFounderForCompany(c.symbol);
+                const founderLagna = founder ? founderLagnas[c.symbol] : undefined;
+                return (
+                  <div
+                    key={c.symbol}
+                    className="rounded-lg border border-border/25 bg-background/30 hover:border-border/50 hover:bg-foreground/[0.025] transition"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => void loadCompanyChart(c)}
+                      className="w-full text-left px-3 pt-2.5 pb-2"
+                    >
+                      <div className="text-sm font-light text-foreground/90 flex items-center gap-1.5">
+                        <span className="text-foreground/70 leading-none w-4 text-center">{c.glyph}</span>
+                        <span className="truncate">{c.name}</span>
+                        <span className="ml-auto text-[9px] tracking-[0.2em] text-muted-foreground/60 uppercase">{c.symbol}</span>
+                      </div>
+                      <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground/70 mt-0.5">{c.event}</div>
+                      <div className="text-[10px] text-muted-foreground/70 mt-0.5 tabular-nums">{c.birthDate} · {c.city}</div>
+                      <div className="mt-1.5 pt-1.5 border-t border-border/20 text-[10px] flex items-center justify-between">
+                        <span className="text-muted-foreground/60 uppercase tracking-wider text-[9px]">Lagna</span>
+                        {lagna === undefined ? (
+                          <span className="text-muted-foreground/40 italic">…</span>
+                        ) : lagna === null ? (
+                          <span className="text-muted-foreground/40">—</span>
+                        ) : (
+                          <span className="text-foreground/85 font-light">{lagna.sign} <span className="text-muted-foreground/60">· {fmtDeg(lagna.deg)}</span></span>
+                        )}
+                      </div>
+                    </button>
+
+                    {founder && (() => {
+                      const myAscIdx = chart ? Math.floor(chart.ascendant / 30) : -1;
+                      const founderAscIdx = founderLagna ? signIndexFromName(founderLagna.sign) : -1;
+                      const rel = (myAscIdx >= 0 && founderAscIdx >= 0)
+                        ? classifyLagnaRelation(myAscIdx, founderAscIdx)
+                        : "neutral";
+                      const nameColor = relationColorClass(rel);
+                      return (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); void loadFounderChart(founder); }}
+                          className="w-full text-left px-3 pt-2 pb-2.5 border-t border-border/20 hover:bg-foreground/[0.04] transition"
+                          title={chart
+                            ? `${relationLabel(rel)} — relative to your active chart's Lagna`
+                            : (founder.timeKnown ? "Open founder's chart" : "Open noon-chart approximation")}
+                        >
+                          <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">
+                            <User2 className="h-2.5 w-2.5" /> {founder.role}
+                          </div>
+                          <div className={`text-[12px] font-light mt-0.5 truncate underline-offset-2 hover:underline ${nameColor}`}>
+                            {founder.name}
+                          </div>
+                          <div className="mt-1 text-[10px] flex items-center justify-between">
+                            <span className="text-muted-foreground/60 uppercase tracking-wider text-[9px]">Rising</span>
+                            {founderLagna === undefined ? (
+                              <span className="text-muted-foreground/40 italic">…</span>
+                            ) : founderLagna === null ? (
+                              <span className="text-muted-foreground/40">—</span>
+                            ) : (
+                              <span className="text-foreground/85 font-light">
+                                {founderLagna.sign}
+                                {!founder.timeKnown && <span className="text-muted-foreground/50 ml-1">· noon</span>}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })()}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {tab === "country" && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
