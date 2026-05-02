@@ -772,6 +772,51 @@ export type Database = {
         }
         Relationships: []
       }
+      asher_brains: {
+        Row: {
+          category: Database["public"]["Enums"]["asher_brain_category"]
+          content: string
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string | null
+          file_size: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["asher_brain_category"]
+          content?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["asher_brain_category"]
+          content?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       asher_channel_members: {
         Row: {
           added_at: string
@@ -7501,6 +7546,13 @@ export type Database = {
       }
     }
     Enums: {
+      asher_brain_category:
+        | "general"
+        | "map"
+        | "coding"
+        | "personality"
+        | "azplen"
+        | "zali"
       asher_channel_kind: "org" | "department" | "section" | "team" | "shared"
       asher_classification:
         | "UNCLASSIFIED"
@@ -7645,6 +7697,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      asher_brain_category: [
+        "general",
+        "map",
+        "coding",
+        "personality",
+        "azplen",
+        "zali",
+      ],
       asher_channel_kind: ["org", "department", "section", "team", "shared"],
       asher_classification: [
         "UNCLASSIFIED",
