@@ -21,6 +21,7 @@ import GlobalPredictionsTab from "./vedic/GlobalPredictionsTab";
 import CompatibilityPanel from "./vedic/CompatibilityPanel";
 import SwvPanel from "./vedic/SwvPanel";
 import DashaNode from "./vedic/DashaNode";
+import CustomChartBuilder from "./vedic/CustomChartBuilder";
 import { classifyLagnaRelation, relationColorClass, relationLabel, signIndexFromName } from "@/lib/vedic/lagnaRelationship";
 
 interface SavedChart {
@@ -147,7 +148,7 @@ const VedicAstrologyView = () => {
   const [chartName, setChartName] = useState("");
   const [showSaved, setShowSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"mine" | "country" | "predictions">("mine");
+  const [tab, setTab] = useState<"mine" | "country" | "predictions" | "custom">("mine");
   const [showCompat, setShowCompat] = useState(false);
   const [activeCountry, setActiveCountry] = useState<CountryFoundation | null>(null);
   const [activeSavedId, setActiveSavedId] = useState<string | null>(null);
@@ -576,19 +577,20 @@ const VedicAstrologyView = () => {
             <Moon className="h-4 w-4 text-foreground/70" />
           </div>
           <div>
-            <h2 className="text-xl font-extralight tracking-[0.15em] text-foreground uppercase">Vedic Astrology</h2>
+            <h2 className="text-xl font-extralight tracking-[0.15em] text-foreground uppercase">Vedic Strategy</h2>
             <p className="text-[11px] font-light tracking-[0.2em] text-muted-foreground/70 mt-1 uppercase">
-              Swiss Ephemeris · Sidereal Lahiri · Topocentric
+              Swiss Ephemeris · Sidereal Lahiri · Custom Chart Engine
             </p>
           </div>
         </div>
 
         {/* TAB STRIP — My Charts vs Country Charts */}
-        <div className="grid grid-cols-3 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
+        <div className="grid grid-cols-4 rounded-xl border border-border/30 bg-background/40 backdrop-blur-xl overflow-hidden">
           {([
             { key: "mine" as const, icon: User2, label: "My Charts" },
             { key: "country" as const, icon: Globe2, label: "Country Charts" },
             { key: "predictions" as const, icon: TrendingUp, label: "Global Predictions" },
+            { key: "custom" as const, icon: Sparkles, label: "Custom Chart" },
           ]).map(({ key, icon: Icon, label }) => (
             <button
               key={key}
@@ -601,6 +603,7 @@ const VedicAstrologyView = () => {
         </div>
 
         {tab === "predictions" && <GlobalPredictionsTab />}
+        {tab === "custom" && <CustomChartBuilder />}
 
         {tab === "country" && (
           <div className="rounded-xl border border-border/30 bg-background/50 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-5 space-y-3">
