@@ -508,8 +508,17 @@ serve(async (req) => {
       );
     }
 
+    // Guarantee live recon overrides AI guesswork on subdomains
+    if (recon && !isSubdomainMode && Array.isArray(blueprint?.branches)) {
+      const subBranch = blueprint.branches.find((b: { id: string }) => b.id === "subdomains");
+      if (subBranch && recon.subdomains.length) {
+        subBranch.subdomains = recon.subdomains;
+      }
+    }
+    if (recon && blueprint && !blueprint.target) blueprint.target = recon.host;
+
     return new Response(
-      JSON.stringify({ success: true, blueprint }),
+      JSON.stringify({ success: true, blueprint, recon }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
