@@ -37,6 +37,32 @@ interface SecretScan {
   truncated: boolean;
 }
 
+interface ExposedFile { path: string; status: number; size: number; preview?: string; risk: "info" | "warn" | "critical" }
+interface PageIdentity {
+  title: string; description: string; canonical: string;
+  ogTitle: string; ogDescription: string; ogImage: string; twitterCard: string;
+  language: string; generator: string; socialLinks: string[]; schemaOrg: string[];
+}
+interface TechFingerprint {
+  cms: string[]; frameworks: string[]; analytics: string[]; payments: string[];
+  third_party_hosts: string[]; graphql_endpoints: string[]; websocket_endpoints: string[];
+  api_endpoints: string[]; env_vars: string[]; source_maps: string[];
+}
+interface LinkInventory {
+  internal: string[]; external: string[]; admin_paths: string[];
+  document_links: string[]; image_count: number;
+}
+interface SubAudit { host: string; ip?: string; cname?: string; status?: number; server?: string; tech?: string[]; weaknesses: string[]; }
+interface ForensicsBundle {
+  identity: PageIdentity | null;
+  redirect: { hops: Array<{ url: string; status: number }>; finalUrl: string; responseMs: number } | null;
+  tech: TechFingerprint | null;
+  exposed: ExposedFile[];
+  links: LinkInventory | null;
+  archive: { first_seen?: string; last_seen?: string; snapshots?: number } | null;
+  sub_audit: SubAudit[];
+}
+
 type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
 
 const ICONS: Record<string, LucideIcon> = {
