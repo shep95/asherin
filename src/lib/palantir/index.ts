@@ -89,7 +89,7 @@ export class AtlasKV<V = unknown> {
 // ─── hadoop-crypto: AES-256-GCM streaming-style encrypt/decrypt ──────
 export async function aesGcmEncrypt(plaintext: ArrayBuffer | string, password: string): Promise<{ ciphertext: ArrayBuffer; iv: Uint8Array; salt: Uint8Array; }> {
   const enc = new TextEncoder();
-  const data = typeof plaintext === "string" ? enc.encode(plaintext) : new Uint8Array(plaintext);
+  const data = (typeof plaintext === "string" ? enc.encode(plaintext) : new Uint8Array(plaintext)) as BufferSource;
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const baseKey = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
