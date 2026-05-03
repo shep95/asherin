@@ -932,9 +932,10 @@ serve(async (req) => {
       });
     }
 
-    // Live recon + secret scan — pull real, observable facts before AI synthesis
+    // Live recon + secret scan + forensics — pull real, observable facts
     let recon: ReconBundle | null = null;
     let secrets: SecretScan | null = null;
+    let forensics: ForensicsBundle | null = null;
     try {
       const host = extractHostname(url);
       const [r, s] = await Promise.all([
@@ -943,6 +944,11 @@ serve(async (req) => {
       ]);
       recon = r;
       secrets = s;
+      const html = await fetchText(`https://${host}`, 2_000_000).catch(() => null);
+      const headers = recon?.http?.headers || {};
+      forensics = await liveForensics(host, html, headers, recon?.subdomains || []).catch((e) => {
+        console.error("[blueprint] forensics failed", e); return null;
+      });
     } catch (e) {
       console.error("[blueprint] recon failed", e);
     }
