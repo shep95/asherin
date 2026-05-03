@@ -57,6 +57,7 @@ const SUBDOMAIN_BRANCH_META: Record<string, Pick<Branch, "label" | "icon" | "ton
   monitoring: { label: "CHANGE MONITORING", icon: "network", tone: "neutral" },
   remediation: { label: "REMEDIATION ROADMAP", icon: "shield", tone: "good" },
   underground: { label: "UNDERGROUND MENTIONS", icon: "shield", tone: "neutral" },
+  redhawk: { label: "RED HAWK RECON", icon: "network", tone: "warn" },
 };
 
 const toTitle = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
