@@ -186,7 +186,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "gemini-2.5-flash",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT + brainBlock + ctxBlock + leaksBlock },
+            { role: "system", content: SYSTEM_PROMPT + brainBlock + ctxBlock + leaksBlock + archiveBlock },
             ...cleaned,
           ],
           tools: TOOLS,
