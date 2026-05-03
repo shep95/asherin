@@ -369,153 +369,247 @@ const ScorePip = ({ label, value }: { label: string; value?: number }) => {
   );
 };
 
-// ─── Web Diagram (SVG radial, clickable) ─────────────────────────────────────
+// ─── Intelligence Constellation (HUD-grade radial) ──────────────────────────
 const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
   const branches = blueprint.branches;
   const n = branches.length;
-  const cx = 400, cy = 220;
-  const rx = 320, ry = 170;
+  const VW = 900, VH = 560;
+  const cx = VW / 2, cy = VH / 2;
   const [selected, setSelected] = useState<string | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
 
-  const positions: Record<string, { x: number; y: number }> = {};
-  branches.forEach((b, i) => {
-    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    positions[b.id] = { x: cx + Math.cos(angle) * rx, y: cy + Math.sin(angle) * ry };
-  });
+  // Two-ring layout: critical/warn outer, neutral/good inner — feels intelligence-grade
+  const ringFor = (tone: string) => (tone === "critical" || tone === "warn" ? "outer" : "inner");
+  const outer = branches.filter((b) => ringFor(b.tone) === "outer");
+  const inner = branches.filter((b) => ringFor(b.tone) === "inner");
+  const positions: Record<string, { x: number; y: number; ring: "inner" | "outer" }> = {};
+  const place = (arr: Branch[], rx: number, ry: number, ring: "inner" | "outer", phase = 0) => {
+    arr.forEach((b, i) => {
+      const a = (Math.PI * 2 * i) / Math.max(arr.length, 1) - Math.PI / 2 + phase;
+      positions[b.id] = { x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry, ring };
+    });
+  };
+  place(outer, 360, 220, "outer", 0);
+  place(inner, 200, 130, "inner", Math.PI / Math.max(inner.length, 1));
 
   const sel = selected ? branches.find((b) => b.id === selected) : null;
   const glossary = sel ? BRANCH_GLOSSARY[sel.id] : null;
 
+  const toneColor = (t: string) =>
+    t === "good" ? "rgb(110 231 183)" :
+    t === "warn" ? "rgb(251 191 36)" :
+    t === "critical" ? "rgb(248 113 113)" :
+    "rgb(180 180 180)";
+
+  // signal density score (0-100) — drives node radius
+  const maxSignals = Math.max(...branches.map((b) => b.leaves.length), 1);
+  const radiusFor = (b: Branch) => 22 + (b.leaves.length / maxSignals) * 12;
+
   return (
-    <div className="rounded-2xl border border-border/15 bg-gradient-to-br from-card/20 via-card/10 to-background/0 backdrop-blur-sm p-2 overflow-hidden relative">
-      <div className="absolute top-3 left-4 text-[9px] font-extralight tracking-[0.25em] text-muted-foreground/40 uppercase pointer-events-none">
-        Click any node to learn what it means
+    <div className="rounded-2xl border border-border/15 bg-[radial-gradient(ellipse_at_center,hsl(var(--card)/0.35)_0%,hsl(var(--background))_70%)] backdrop-blur-sm overflow-hidden relative">
+      {/* HUD top bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/10 bg-background/40">
+        <div className="flex items-center gap-3 text-[9px] font-mono tracking-[0.25em] text-muted-foreground/60 uppercase">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80 animate-pulse" />
+          <span>ZOPHIEL // CONSTELLATION</span>
+          <span className="text-muted-foreground/30">|</span>
+          <span>TGT {blueprint.target}</span>
+        </div>
+        <div className="flex items-center gap-3 text-[9px] font-mono tracking-[0.25em] text-muted-foreground/40 uppercase">
+          <span>NODES {branches.length}</span>
+          <span>|</span>
+          <span>EDGES {blueprint.edges?.length ?? 0}</span>
+          <span>|</span>
+          <span className="text-foreground/70">CLICK TO INSPECT</span>
+        </div>
       </div>
-      <svg viewBox="0 0 800 440" className="w-full h-auto" style={{ maxHeight: 480 }}>
-        <defs>
-          <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
-          </radialGradient>
-          <pattern id="gridP" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(var(--border))" strokeOpacity="0.08" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect x="0" y="0" width="800" height="440" fill="url(#gridP)" />
-        <circle cx={cx} cy={cy} r="120" fill="url(#centerGlow)" />
 
-        {blueprint.edges?.map((e, i) => {
-          const from = positions[e.from];
-          const to = positions[e.to];
-          if (!from || !to) return null;
-          const mx = (from.x + to.x) / 2;
-          const my = (from.y + to.y) / 2 - 20;
-          const dim = selected && e.from !== selected && e.to !== selected;
-          return (
-            <path key={`e-${i}`}
-              d={`M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`}
-              fill="none"
-              stroke="hsl(var(--accent))"
-              strokeOpacity={dim ? 0.05 : 0.18}
-              strokeWidth="1"
-              strokeDasharray="3 4"
-            />
-          );
-        })}
+      <div className="relative">
+        <svg viewBox={`0 0 ${VW} ${VH}`} className="w-full h-auto" style={{ maxHeight: 560 }}>
+          <defs>
+            <radialGradient id="hudGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.18" />
+              <stop offset="60%" stopColor="hsl(var(--accent))" stopOpacity="0.04" />
+              <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+            </radialGradient>
+            <pattern id="hudGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="hsl(var(--border))" strokeOpacity="0.06" strokeWidth="0.5" />
+            </pattern>
+            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
 
-        {branches.map((b) => {
-          const p = positions[b.id];
-          const stroke =
-            b.tone === "good" ? "rgb(52 211 153 / 0.4)" :
-            b.tone === "warn" ? "rgb(251 191 36 / 0.4)" :
-            b.tone === "critical" ? "rgb(248 113 113 / 0.5)" :
-            "hsl(var(--muted-foreground) / 0.25)";
-          const dim = selected && selected !== b.id;
-          return (
-            <line key={`s-${b.id}`} x1={cx} y1={cy} x2={p.x} y2={p.y}
-              stroke={stroke} strokeOpacity={dim ? 0.15 : 1} strokeWidth="1.2" />
-          );
-        })}
+          <rect x="0" y="0" width={VW} height={VH} fill="url(#hudGrid)" />
 
-        <g onClick={() => setSelected(null)} style={{ cursor: "pointer" }}>
-          <circle cx={cx} cy={cy} r="38" fill="hsl(var(--background))" stroke="hsl(var(--accent))" strokeOpacity="0.5" strokeWidth="1.2" />
-          <circle cx={cx} cy={cy} r="48" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="2 4" />
-          <text x={cx} y={cy - 4} textAnchor="middle" className="fill-foreground" fontSize="10" fontWeight="500" letterSpacing="2">TARGET</text>
-          <text x={cx} y={cy + 10} textAnchor="middle" className="fill-muted-foreground" fontSize="9" fontWeight="300">
-            {blueprint.target.length > 22 ? blueprint.target.slice(0, 20) + "…" : blueprint.target}
-          </text>
-        </g>
+          {/* Crosshair guides */}
+          <line x1={cx} y1="0" x2={cx} y2={VH} stroke="hsl(var(--border))" strokeOpacity="0.08" strokeDasharray="2 6" />
+          <line x1="0" y1={cy} x2={VW} y2={cy} stroke="hsl(var(--border))" strokeOpacity="0.08" strokeDasharray="2 6" />
 
-        {branches.map((b) => {
-          const p = positions[b.id];
-          const Icon = ICONS[b.icon] || Globe;
-          const isSel = selected === b.id;
-          const dim = selected && !isSel;
-          const fill =
-            b.tone === "good" ? "rgb(16 185 129 / 0.12)" :
-            b.tone === "warn" ? "rgb(245 158 11 / 0.12)" :
-            b.tone === "critical" ? "rgb(239 68 68 / 0.15)" :
-            "hsl(var(--card) / 0.6)";
-          const stroke =
-            b.tone === "good" ? "rgb(52 211 153 / 0.5)" :
-            b.tone === "warn" ? "rgb(251 191 36 / 0.5)" :
-            b.tone === "critical" ? "rgb(248 113 113 / 0.6)" :
-            "hsl(var(--border))";
-          return (
-            <g key={`n-${b.id}`}
-              onClick={(ev) => { ev.stopPropagation(); setSelected(isSel ? null : b.id); }}
-              style={{ cursor: "pointer", opacity: dim ? 0.35 : 1, transition: "opacity 200ms" }}
-            >
-              {isSel && (
-                <circle cx={p.x} cy={p.y} r="36" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.6" strokeWidth="1" strokeDasharray="2 3">
-                  <animate attributeName="r" from="32" to="42" dur="1.6s" repeatCount="indefinite" />
-                  <animate attributeName="stroke-opacity" from="0.6" to="0" dur="1.6s" repeatCount="indefinite" />
-                </circle>
-              )}
-              <circle cx={p.x} cy={p.y} r="28" fill={fill} stroke={stroke} strokeWidth={isSel ? 2 : 1.2} />
-              <foreignObject x={p.x - 9} y={p.y - 18} width="18" height="18">
-                <div className="w-full h-full flex items-center justify-center pointer-events-none">
-                  <Icon className="h-3.5 w-3.5 text-foreground/80" />
-                </div>
-              </foreignObject>
-              <text x={p.x} y={p.y + 8} textAnchor="middle" className="fill-foreground pointer-events-none" fontSize="8" fontWeight="500" letterSpacing="1.5">
-                {b.label.split(" ")[0]}
-              </text>
-              <text x={p.x} y={p.y + 44} textAnchor="middle" className="fill-muted-foreground pointer-events-none" fontSize="8" fontWeight="300" letterSpacing="0.5">
-                {b.leaves.length} signals
-              </text>
+          {/* Concentric rings */}
+          {[80, 160, 260, 380].map((r) => (
+            <ellipse key={r} cx={cx} cy={cy} rx={r} ry={r * 0.62}
+              fill="none" stroke="hsl(var(--border))" strokeOpacity="0.07" strokeWidth="0.5" />
+          ))}
+
+          {/* Scanning sweep */}
+          <g opacity="0.35" style={{ transformOrigin: `${cx}px ${cy}px` }}>
+            <line x1={cx} y1={cy} x2={cx + 380} y2={cy} stroke="hsl(var(--accent))" strokeOpacity="0.25" strokeWidth="0.6">
+              <animateTransform attributeName="transform" type="rotate" from={`0 ${cx} ${cy}`} to={`360 ${cx} ${cy}`} dur="14s" repeatCount="indefinite" />
+            </line>
+          </g>
+
+          {/* Corner brackets */}
+          {[
+            [16, 56, 1, 1], [VW - 16, 56, -1, 1],
+            [16, VH - 16, 1, -1], [VW - 16, VH - 16, -1, -1],
+          ].map(([x, y, dx, dy], i) => (
+            <g key={i} stroke="hsl(var(--accent))" strokeOpacity="0.35" strokeWidth="1" fill="none">
+              <path d={`M ${x} ${y} l ${14 * dx} 0 M ${x} ${y} l 0 ${14 * dy}`} />
             </g>
-          );
-        })}
-      </svg>
+          ))}
 
-      {/* Plain-language explainer panel */}
+          {/* Center core glow */}
+          <circle cx={cx} cy={cy} r="160" fill="url(#hudGlow)" />
+
+          {/* Edges */}
+          {blueprint.edges?.map((e, i) => {
+            const from = positions[e.from], to = positions[e.to];
+            if (!from || !to) return null;
+            const active = !selected || e.from === selected || e.to === selected;
+            const hot = hover && (e.from === hover || e.to === hover);
+            return (
+              <line key={`e-${i}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+                stroke="hsl(var(--accent))"
+                strokeOpacity={active ? (hot ? 0.55 : 0.18) : 0.04}
+                strokeWidth={hot ? 1.2 : 0.7}
+                strokeDasharray={hot ? "0" : "1 4"} />
+            );
+          })}
+
+          {/* Spokes from core to nodes */}
+          {branches.map((b) => {
+            const p = positions[b.id];
+            const dim = selected && selected !== b.id;
+            return (
+              <line key={`sp-${b.id}`} x1={cx} y1={cy} x2={p.x} y2={p.y}
+                stroke={toneColor(b.tone)} strokeOpacity={dim ? 0.05 : 0.22} strokeWidth="0.8" />
+            );
+          })}
+
+          {/* Center target */}
+          <g onClick={() => setSelected(null)} style={{ cursor: "pointer" }} filter="url(#softGlow)">
+            <circle cx={cx} cy={cy} r="58" fill="hsl(var(--background))" stroke="hsl(var(--accent))" strokeOpacity="0.55" strokeWidth="1.4" />
+            <circle cx={cx} cy={cy} r="68" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.18" strokeWidth="0.8" strokeDasharray="2 5" />
+            <circle cx={cx} cy={cy} r="78" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.08" strokeWidth="0.6" />
+            <text x={cx} y={cy - 8} textAnchor="middle" className="fill-muted-foreground" fontSize="8" fontWeight="400" letterSpacing="3" fontFamily="monospace">// TARGET</text>
+            <text x={cx} y={cy + 6} textAnchor="middle" className="fill-foreground" fontSize="11" fontWeight="500" letterSpacing="1">
+              {blueprint.target.length > 24 ? blueprint.target.slice(0, 22) + "…" : blueprint.target}
+            </text>
+            <text x={cx} y={cy + 22} textAnchor="middle" className="fill-emerald-400/70" fontSize="7" letterSpacing="2" fontFamily="monospace">● ACTIVE</text>
+          </g>
+
+          {/* Nodes */}
+          {branches.map((b) => {
+            const p = positions[b.id];
+            const Icon = ICONS[b.icon] || Globe;
+            const isSel = selected === b.id;
+            const isHov = hover === b.id;
+            const dim = selected && !isSel;
+            const r = radiusFor(b);
+            const tc = toneColor(b.tone);
+            return (
+              <g key={`n-${b.id}`}
+                onMouseEnter={() => setHover(b.id)}
+                onMouseLeave={() => setHover(null)}
+                onClick={(ev) => { ev.stopPropagation(); setSelected(isSel ? null : b.id); }}
+                style={{ cursor: "pointer", opacity: dim ? 0.3 : 1, transition: "opacity 220ms" }}
+              >
+                {(isSel || isHov) && (
+                  <>
+                    <circle cx={p.x} cy={p.y} r={r + 8} fill="none" stroke={tc} strokeOpacity="0.5" strokeWidth="0.8" strokeDasharray="2 3">
+                      {isSel && <animate attributeName="r" from={r + 4} to={r + 14} dur="1.8s" repeatCount="indefinite" />}
+                      {isSel && <animate attributeName="stroke-opacity" from="0.55" to="0" dur="1.8s" repeatCount="indefinite" />}
+                    </circle>
+                    {/* Tick marks around active node */}
+                    {[0, 90, 180, 270].map((deg) => (
+                      <line key={deg}
+                        x1={p.x + Math.cos((deg * Math.PI) / 180) * (r + 4)}
+                        y1={p.y + Math.sin((deg * Math.PI) / 180) * (r + 4)}
+                        x2={p.x + Math.cos((deg * Math.PI) / 180) * (r + 10)}
+                        y2={p.y + Math.sin((deg * Math.PI) / 180) * (r + 10)}
+                        stroke={tc} strokeOpacity="0.6" strokeWidth="1" />
+                    ))}
+                  </>
+                )}
+                {/* outer halo */}
+                <circle cx={p.x} cy={p.y} r={r + 2} fill={tc} fillOpacity="0.04" />
+                <circle cx={p.x} cy={p.y} r={r} fill="hsl(var(--card) / 0.85)" stroke={tc} strokeOpacity={isSel ? 0.95 : 0.55} strokeWidth={isSel ? 1.6 : 1} />
+                {/* inner divider */}
+                <line x1={p.x - r * 0.7} y1={p.y + 2} x2={p.x + r * 0.7} y2={p.y + 2} stroke={tc} strokeOpacity="0.18" strokeWidth="0.5" />
+
+                <foreignObject x={p.x - 9} y={p.y - r * 0.65} width="18" height="18">
+                  <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                    <Icon className="h-3.5 w-3.5" style={{ color: tc, opacity: 0.85 }} />
+                  </div>
+                </foreignObject>
+                <text x={p.x} y={p.y + r * 0.55} textAnchor="middle" className="fill-foreground/90 pointer-events-none" fontSize="7.5" fontWeight="600" letterSpacing="1.4" fontFamily="monospace">
+                  {b.label.split(" ")[0].slice(0, 10).toUpperCase()}
+                </text>
+                {/* signal HUD label */}
+                <g pointerEvents="none">
+                  <rect x={p.x - 22} y={p.y + r + 6} width="44" height="12" rx="2"
+                    fill="hsl(var(--background) / 0.7)" stroke={tc} strokeOpacity="0.3" strokeWidth="0.5" />
+                  <text x={p.x} y={p.y + r + 14.5} textAnchor="middle" className="fill-muted-foreground/80" fontSize="7" letterSpacing="1.2" fontFamily="monospace">
+                    {String(b.leaves.length).padStart(2, "0")} SIG
+                  </text>
+                </g>
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* HUD bottom strip */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-1.5 border-t border-border/10 bg-background/40 flex items-center justify-between text-[8px] font-mono tracking-[0.25em] text-muted-foreground/40 uppercase pointer-events-none">
+          <span>SCAN: LIVE</span>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1"><span className="h-1 w-1 rounded-full bg-emerald-400/70" />NORMAL</span>
+            <span className="flex items-center gap-1"><span className="h-1 w-1 rounded-full bg-amber-400/70" />ELEVATED</span>
+            <span className="flex items-center gap-1"><span className="h-1 w-1 rounded-full bg-red-400/70" />CRITICAL</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Inspector panel */}
       {sel && (
-        <div className="mt-2 rounded-xl border border-border/20 bg-background/60 backdrop-blur-md p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="border-t border-border/15 bg-background/70 backdrop-blur-md p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-2">
+              <span className="text-[8px] font-mono tracking-[0.3em] text-muted-foreground/40">INSPECT //</span>
               <span className={`h-1.5 w-1.5 rounded-full ${(TONE_STYLES[sel.tone] || TONE_STYLES.neutral).dot}`} />
-              <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/90 uppercase">{sel.label}</span>
-              <span className="text-[9px] font-light tracking-wider text-muted-foreground/50">{sel.leaves.length} signals</span>
+              <span className="text-[10px] font-semibold tracking-[0.25em] text-foreground/95 uppercase">{sel.label}</span>
+              <span className="text-[9px] font-mono tracking-wider text-muted-foreground/50">[{String(sel.leaves.length).padStart(2, "0")} SIGNALS]</span>
             </div>
-            <button onClick={() => setSelected(null)} className="text-[10px] text-muted-foreground/50 hover:text-foreground/80 transition">close</button>
+            <button onClick={() => setSelected(null)} className="text-[9px] font-mono tracking-[0.2em] text-muted-foreground/50 hover:text-foreground/80 transition uppercase">[ esc ]</button>
           </div>
           {glossary ? (
             <div className="space-y-2 text-[11px] font-extralight leading-relaxed">
-              <p className="text-foreground/85"><span className="text-muted-foreground/50 uppercase tracking-wider text-[9px] mr-2">What it is</span>{glossary.plain}</p>
-              <p className="text-foreground/75"><span className="text-muted-foreground/50 uppercase tracking-wider text-[9px] mr-2">Why it matters</span>{glossary.why}</p>
-              <p className="text-muted-foreground/70 italic"><span className="text-muted-foreground/50 uppercase tracking-wider text-[9px] mr-2 not-italic">Like</span>{glossary.example}</p>
+              <p className="text-foreground/85"><span className="text-muted-foreground/40 font-mono uppercase tracking-[0.2em] text-[9px] mr-2">DEF</span>{glossary.plain}</p>
+              <p className="text-foreground/75"><span className="text-muted-foreground/40 font-mono uppercase tracking-[0.2em] text-[9px] mr-2">IMPACT</span>{glossary.why}</p>
+              <p className="text-muted-foreground/70 italic"><span className="text-muted-foreground/40 font-mono uppercase tracking-[0.2em] text-[9px] mr-2 not-italic">ANALOG</span>{glossary.example}</p>
             </div>
           ) : (
             <p className="text-[11px] font-extralight text-muted-foreground/60">No glossary entry — see the branch card below for raw signals.</p>
           )}
           {sel.leaves.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border/10">
-              <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50 mb-1.5">Top signals</div>
+              <div className="text-[8px] font-mono uppercase tracking-[0.25em] text-muted-foreground/40 mb-1.5">// TOP SIGNALS</div>
               <ul className="space-y-1">
                 {sel.leaves.slice(0, 3).map((l, i) => (
                   <li key={i} className="flex items-baseline gap-2 text-[11px]">
-                    <span className="font-extralight text-muted-foreground/60 truncate min-w-0 max-w-[40%]">{l.label}</span>
+                    <span className="font-mono text-muted-foreground/40 text-[8px]">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="font-extralight text-muted-foreground/60 truncate min-w-0 max-w-[35%]">{l.label}</span>
                     <span className="flex-1 border-b border-dotted border-border/15 mb-0.5" />
                     <span className="font-light text-foreground/85 truncate text-right max-w-[55%]" title={l.value}>{l.value}</span>
                   </li>
@@ -528,6 +622,7 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
     </div>
   );
 };
+
 
 
 // ─── Branch Card (the "tree" leaves) ─────────────────────────────────────────
