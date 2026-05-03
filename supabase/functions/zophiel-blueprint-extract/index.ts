@@ -89,6 +89,20 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
       "leaves": [
         { "label": "Forum chatter", "value": "Public-archive mentions of brand/domain (if any)", "confidence": "low" },
         { "label": "Credential dumps", "value": "Check HIBP / breach indices for employee emails", "confidence": "med" }
+      ] },
+    { "id": "redhawk", "label": "RED HAWK RECON", "icon": "network", "tone": "warn",
+      "leaves": [
+        { "label": "Basic Recon", "value": "Site title, IP, web server, CMS detection, Cloudflare presence, robots.txt", "confidence": "high" },
+        { "label": "WHOIS Lookup", "value": "Registrar, registrant org, creation/expiry dates, name servers", "confidence": "high" },
+        { "label": "GeoIP Lookup", "value": "Country, region, city, ASN, ISP for resolved IP", "confidence": "high" },
+        { "label": "Banner Grab", "value": "Server / X-Powered-By / framework banners — recommend stripping", "confidence": "high" },
+        { "label": "DNS Lookup", "value": "A / AAAA / MX / NS / TXT / SOA records inventory", "confidence": "high" },
+        { "label": "Open-Port Surface", "value": "Common ports observable externally (21,22,25,80,110,143,443,465,587,993,995,3306,3389,8080) — close all not in use", "confidence": "med" },
+        { "label": "Reverse-IP & Co-Hosted Domains", "value": "Other sites sharing the same IP (shared-hosting risk)", "confidence": "med" },
+        { "label": "Subdomain Sweep", "value": "Common-name brute pattern (api, mail, dev, staging, admin, vpn, git, docs)", "confidence": "high" },
+        { "label": "CMS / Framework Vuln Class", "value": "If WordPress/Joomla/Drupal: outdated core/plugin classes to patch", "confidence": "med" },
+        { "label": "Crawler Findings", "value": "Internal links, external links, JS files, CSS files, images surface map", "confidence": "med" },
+        { "label": "Honeypot Likelihood", "value": "Heuristic 0-1 score (Shodan-style) for whether peer IPs look like honeypots", "confidence": "low" }
       ] }
   ],
   "edges": [
@@ -108,7 +122,9 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
     { "from": "people", "to": "socialeng", "label": "targeted via" },
     { "from": "attacksurface", "to": "monitoring", "label": "watched by" },
     { "from": "threats", "to": "remediation", "label": "fixed via" },
-    { "from": "leaks", "to": "underground", "label": "surfaces in" }
+    { "from": "leaks", "to": "underground", "label": "surfaces in" },
+    { "from": "domain", "to": "redhawk", "label": "scanned by" },
+    { "from": "redhawk", "to": "attacksurface", "label": "feeds" }
   ],
   "criticals": [
     { "branch": "security", "finding": "CSP allows unsafe-eval", "severity": "high" }
@@ -119,7 +135,8 @@ Rules:
 - Each branch MUST have 4-8 leaves with concrete observed/inferred values.
 - Use 'tone' to color-code branches: good (secure/modern), neutral (standard), warn (gaps), critical (severe).
 - Leaves should be FACTS or DEFENSIVE recommendations ("Nginx 1.24 — upgrade to 1.26"), not vague descriptions.
-- Always include ALL branches above (16 total: domain, hosting, stack, security, thirdparty, network, org, subdomains, threats, leaks, people, history, attacksurface, peers, socialeng, monitoring, remediation, underground).
+- Always include ALL branches above (19 total: domain, hosting, stack, security, thirdparty, network, org, subdomains, threats, leaks, people, history, attacksurface, peers, socialeng, monitoring, remediation, underground, redhawk).
+- For 'redhawk': emulate the RED HAWK recon toolkit (Tuhinshubhra/RED_HAWK) — provide Basic Recon, WHOIS, GeoIP, Banner Grab, DNS, Open-Port surface, Reverse-IP/Co-Hosted, Subdomain Sweep, CMS vuln class, Crawler findings, and Honeypot likelihood. Frame as defensive audit only.
 - For 'threats': cross-reference detected versions against known CVE patterns; cite CVE IDs where confident, otherwise say "no known public CVE for this version".
 - For 'leaks': describe the EXPOSURE SURFACE (where leaks typically occur for this stack) and remediation — DO NOT fabricate specific leaked credentials.
 - For 'people': inferable email patterns and public LinkedIn footprint only — never invent named individuals or personal data.
