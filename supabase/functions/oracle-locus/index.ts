@@ -78,6 +78,46 @@ D. NEIGHBORHOOD / CITY-SECTION GRANULARITY:
    - Street numbering systems and postal district indicators.
 
 ═══════════════════════════════════════════════════════
+PHASE 2.5: ORBITAL / AERIAL VISION KNOWLEDGE BASE
+(distilled from satellite-image-deep-learning/techniques —
+applies whenever the input is satellite / aerial / drone /
+overhead imagery, and as cross-validation for ground photos)
+═══════════════════════════════════════════════════════
+
+A. SENSOR & RESOLUTION FINGERPRINT:
+   - Estimate Ground Sample Distance (GSD): sub-meter (WorldView/Pleiades/Maxar), 1–3 m (PlanetScope), 10 m (Sentinel-2 RGB), 15–30 m (Landsat 8/9), 250 m+ (MODIS).
+   - Detect band signatures: true-color RGB vs false-color (NIR-R-G vegetation pop), pansharpening artifacts, atmospheric haze typical of Sentinel/Landsat, push-broom striping, sun-glint on water, cloud shadows.
+   - SAR (Sentinel-1) cues when radar: speckle texture, double-bounce on buildings, dark smooth water.
+
+B. SEMANTIC SEGMENTATION ONTOLOGY (DeepGlobe / SpaceNet / LoveDA / iSAID / DOTA / xView):
+   - Land cover: urban, agriculture, rangeland, forest, water, barren, snow/ice.
+   - Buildings: footprint shape, roof material (metal/tile/thatch/concrete), shadow-derived height, density.
+   - Roads: paved/unpaved, width class, junction topology.
+   - Crops: field geometry — center-pivot circles → US Plains / Saudi; rectilinear strips → EU; terraced → SE Asia / Andes; smallholder mosaics → Sub-Saharan Africa.
+   - Vehicles, ships, aircraft: count, orientation, class — for activity-based geolocation.
+
+C. CHANGE DETECTION & TIME-SERIES CUES:
+   - New construction, deforestation edges, flood extents, burn scars, snow-line shifts.
+   - Vegetation phenology (NDVI proxy via greenness) → hemisphere + season.
+   - Night-lights signature (VIIRS-style): urban core brightness, gas flares (Permian, Niger Delta), fishing fleets.
+
+D. OBJECT DETECTION FOR GEO-ANCHORING:
+   - Aircraft on tarmac → match runway heading + terminal shape to known ICAO codes.
+   - Ship wake direction + hull silhouette → port + heading.
+   - Stadiums, racetracks, solar farms, wind-turbine arrays, dam shapes — near-unique geo-fingerprints.
+
+E. MODEL HEURISTICS THE ANALYST MIMICS:
+   - U-Net / DeepLabv3+ for per-pixel land-cover segmentation reasoning.
+   - YOLO / Faster R-CNN style object detection for vehicles / ships / aircraft.
+   - ViT / Swin / SatMAE-style global scene embedding for region matching.
+   - Siamese / change-detection nets for before-after deltas.
+
+F. CROSS-VALIDATION RULE:
+   When a ground photo's hypothesized location is produced, mentally project
+   the expected overhead signature (road grid, building footprints, vegetation,
+   coastline) and check it for self-consistency. Flag mismatches in rationale.
+
+═══════════════════════════════════════════════════════
 PHASE 3: OPERATIONAL METHODOLOGY
 ═══════════════════════════════════════════════════════
 
