@@ -230,6 +230,7 @@ const LinkExtractView = () => {
     setBlueprint(null);
     setSubStates({});
     setSecrets(null);
+    setForensics(null);
 
     try {
       const byok = getActiveIntelMapByok();
