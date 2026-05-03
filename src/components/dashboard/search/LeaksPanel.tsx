@@ -396,7 +396,7 @@ const LeaksPanel = () => {
         <div className="flex-1 min-w-0">
           <p className="text-xs font-light text-foreground">Asher Archives</p>
           <p className="text-[10px] font-extralight text-muted-foreground">
-            Unified browse of the <span className="font-mono">Asher Eyes</span> leaks index plus the <a href="https://archive.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent">Internet Archive</a> — emails, documents, files, books, papers, audio &amp; video. No filter, no censorship. Bundle anything into a downloadable ZIP.
+            Unified deep browse of the <span className="font-mono">Asher Eyes</span> leaks index plus the Asher Archives mirror — emails, documents, files, books, papers, audio &amp; video. No filter, no censorship. Bundle anything into a downloadable ZIP.
           </p>
         </div>
       </div>
