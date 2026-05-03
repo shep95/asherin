@@ -300,7 +300,7 @@ const LeaksPanel = () => {
       setResults(merged);
       setTotal(totalCount);
       if (alephRes.status === "rejected" && iaRes.status === "rejected") {
-        setError("Both Asher Eyes and Internet Archive failed");
+        setError("Asher Archives lookup failed");
       }
     } catch (e: any) {
       setError(e?.message || "Search failed");
