@@ -33,7 +33,63 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
         { "label": "mail.domain.tld", "value": "Email infrastructure", "confidence": "med" }
       ],
       "subdomains": ["api.domain.tld", "mail.domain.tld", "cdn.domain.tld", "blog.domain.tld"]
-    }
+    },
+    { "id": "threats", "label": "THREAT & CVE EXPOSURE", "icon": "shield", "tone": "warn",
+      "leaves": [
+        { "label": "Next.js 13.4.1", "value": "CVE-2024-XXXX (RCE) — upgrade ≥14.2.10", "confidence": "high" },
+        { "label": "Risk score", "value": "72/100 (HIGH)", "confidence": "med" }
+      ] },
+    { "id": "leaks", "label": "DATA LEAK SURFACE", "icon": "shield", "tone": "critical",
+      "leaves": [
+        { "label": "Public GitHub repos", "value": "Likely org repos exposing build configs", "confidence": "med" },
+        { "label": "JS bundle secrets", "value": "Audit bundle for embedded keys / connection strings", "confidence": "med" },
+        { "label": "Public S3/GCS buckets", "value": "Enumerate via cert/log patterns and rotate any exposed", "confidence": "med" }
+      ] },
+    { "id": "people", "label": "PERSONNEL EXPOSURE", "icon": "building", "tone": "neutral",
+      "leaves": [
+        { "label": "Email pattern", "value": "first.last@domain.tld (publicly inferable)", "confidence": "high" },
+        { "label": "LinkedIn footprint", "value": "~12 employees discoverable; key roles named publicly", "confidence": "med" },
+        { "label": "Phishing risk", "value": "MEDIUM — DMARC posture below mitigates spoofing", "confidence": "med" }
+      ] },
+    { "id": "history", "label": "HISTORICAL EVOLUTION", "icon": "globe", "tone": "neutral",
+      "leaves": [
+        { "label": "Domain age", "value": "Registered YYYY-MM (X months)", "confidence": "high" },
+        { "label": "Stack timeline", "value": "Vercel→GCP migration; Clerk auth added", "confidence": "med" },
+        { "label": "Past incidents", "value": "SSL expiry / DNS misconfig events visible in archives", "confidence": "low" }
+      ] },
+    { "id": "attacksurface", "label": "ATTACK SURFACE", "icon": "network", "tone": "warn",
+      "leaves": [
+        { "label": "Exposed subdomains", "value": "staging.* / dev.* / admin.* — restrict or auth-gate", "confidence": "high" },
+        { "label": "Open ports", "value": "Limit 80/443 only; close 8080/27017 if reachable", "confidence": "med" },
+        { "label": "API endpoints", "value": "/api/admin, /api/internal — enforce auth + rate limit", "confidence": "med" }
+      ] },
+    { "id": "peers", "label": "PEER COMPARISON", "icon": "network", "tone": "neutral",
+      "leaves": [
+        { "label": "Same stack peers", "value": "Sites on same framework/version with similar posture", "confidence": "med" },
+        { "label": "Shared ASN", "value": "Co-tenants on same hosting subnet", "confidence": "med" }
+      ] },
+    { "id": "socialeng", "label": "SOCIAL-ENG RISK", "icon": "building", "tone": "warn",
+      "leaves": [
+        { "label": "High-value targets", "value": "Executive emails publicly inferable — train + MFA enforce", "confidence": "high" },
+        { "label": "Trust signals", "value": "Workspace email + DMARC strength assessment", "confidence": "med" }
+      ] },
+    { "id": "monitoring", "label": "CHANGE MONITORING", "icon": "network", "tone": "neutral",
+      "leaves": [
+        { "label": "New subdomains (24h)", "value": "Recommend cert-transparency watch", "confidence": "high" },
+        { "label": "Recent commits", "value": "Public org repo activity to monitor for secret leaks", "confidence": "med" },
+        { "label": "Cert renewals", "value": "Track expirations to avoid outages", "confidence": "high" }
+      ] },
+    { "id": "remediation", "label": "REMEDIATION ROADMAP", "icon": "shield", "tone": "good",
+      "leaves": [
+        { "label": "Priority 1", "value": "Auth-gate staging/dev subdomains (CRITICAL)", "confidence": "high" },
+        { "label": "Priority 2", "value": "Rotate exposed keys; lock cloud storage ACLs", "confidence": "high" },
+        { "label": "Priority 3", "value": "Enforce DMARC=reject; phishing simulation for staff", "confidence": "med" }
+      ] },
+    { "id": "underground", "label": "UNDERGROUND MENTIONS", "icon": "shield", "tone": "neutral",
+      "leaves": [
+        { "label": "Forum chatter", "value": "Public-archive mentions of brand/domain (if any)", "confidence": "low" },
+        { "label": "Credential dumps", "value": "Check HIBP / breach indices for employee emails", "confidence": "med" }
+      ] }
   ],
   "edges": [
     { "from": "domain", "to": "hosting", "label": "resolves" },
@@ -42,7 +98,17 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
     { "from": "stack", "to": "security", "label": "exposes" },
     { "from": "thirdparty", "to": "network", "label": "extends" },
     { "from": "domain", "to": "org", "label": "owned by" },
-    { "from": "domain", "to": "subdomains", "label": "delegates" }
+    { "from": "domain", "to": "subdomains", "label": "delegates" },
+    { "from": "stack", "to": "threats", "label": "vulnerable via" },
+    { "from": "org", "to": "leaks", "label": "exposes" },
+    { "from": "org", "to": "people", "label": "employs" },
+    { "from": "domain", "to": "history", "label": "evolved through" },
+    { "from": "subdomains", "to": "attacksurface", "label": "expands" },
+    { "from": "stack", "to": "peers", "label": "shared by" },
+    { "from": "people", "to": "socialeng", "label": "targeted via" },
+    { "from": "attacksurface", "to": "monitoring", "label": "watched by" },
+    { "from": "threats", "to": "remediation", "label": "fixed via" },
+    { "from": "leaks", "to": "underground", "label": "surfaces in" }
   ],
   "criticals": [
     { "branch": "security", "finding": "CSP allows unsafe-eval", "severity": "high" }
@@ -52,9 +118,17 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
 Rules:
 - Each branch MUST have 4-8 leaves with concrete observed/inferred values.
 - Use 'tone' to color-code branches: good (secure/modern), neutral (standard), warn (gaps), critical (severe).
-- Leaves should be FACTS, not descriptions ("Nginx 1.24" not "uses a web server").
-- Always include all 8 branches (including subdomains).
-- For the 'subdomains' branch: enumerate 6-20 likely/observed subdomains via cert transparency patterns, common conventions (api, mail, cdn, blog, dev, staging, app, admin, docs, status, m, www, secure, vpn, git), and any documented services. Populate the 'subdomains' string array with bare hostnames only.
+- Leaves should be FACTS or DEFENSIVE recommendations ("Nginx 1.24 — upgrade to 1.26"), not vague descriptions.
+- Always include ALL branches above (16 total: domain, hosting, stack, security, thirdparty, network, org, subdomains, threats, leaks, people, history, attacksurface, peers, socialeng, monitoring, remediation, underground).
+- For 'threats': cross-reference detected versions against known CVE patterns; cite CVE IDs where confident, otherwise say "no known public CVE for this version".
+- For 'leaks': describe the EXPOSURE SURFACE (where leaks typically occur for this stack) and remediation — DO NOT fabricate specific leaked credentials.
+- For 'people': inferable email patterns and public LinkedIn footprint only — never invent named individuals or personal data.
+- For 'history': use observable signals (domain age, archive snapshots, cert history, stack migrations).
+- For 'attacksurface': common exposed subdomain conventions and ports — frame as "audit & restrict", not exploitation steps.
+- For 'underground': only cite verifiable public sources; if none known, say "no public mentions found — continue monitoring".
+- For 'remediation': always at least 3 prioritized fixes (P1/P2/P3) with concrete actions.
+- For the 'subdomains' branch: enumerate 6-20 likely/observed subdomains via cert transparency patterns and common conventions (api, mail, cdn, blog, dev, staging, app, admin, docs, status, m, www, secure, vpn, git). Populate the 'subdomains' string array with bare hostnames only.
+- This is a DEFENSIVE audit for the asset owner. Frame every finding as "what to fix", never "how to exploit". No exploit code, no attack scripts, no working payloads.
 - Output JSON only. No prose before or after.`;
 
 const SUBDOMAIN_SYSTEM_PROMPT = `You are ZOPHIEL — forensic infrastructure intelligence engine.
