@@ -7,6 +7,185 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// ─── LIVE RECON ──────────────────────────────────────────────────────────────
+// Pulls real, observable facts from public no-auth sources so the AI grounds
+// its blueprint on actual data instead of pattern-guessing.
+
+const TIMEOUT_MS = 8000;
+
+async function fetchTimeout(url: string, init?: RequestInit, ms = TIMEOUT_MS): Promise<Response | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    const r = await fetch(url, { ...init, signal: ctrl.signal });
+    clearTimeout(t);
+    return r;
+  } catch { return null; }
+}
+
+function extractHostname(input: string): string {
+  try {
+    const u = new URL(input.startsWith("http") ? input : `https://${input}`);
+    return u.hostname;
+  } catch { return input.replace(/^https?:\/\//, "").split("/")[0]; }
+}
+
+async function dohQuery(name: string, type: string): Promise<string[]> {
+  const r = await fetchTimeout(
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`,
+    { headers: { accept: "application/dns-json" } },
+  );
+  if (!r || !r.ok) return [];
+  const j = await r.json().catch(() => null);
+  if (!j?.Answer) return [];
+  return j.Answer.map((a: { data?: string }) => a.data || "").filter(Boolean);
+}
+
+async function crtshSubdomains(host: string): Promise<string[]> {
+  const root = host.split(".").slice(-2).join(".");
+  const r = await fetchTimeout(`https://crt.sh/?q=%25.${root}&output=json`, {}, 12_000);
+  if (!r || !r.ok) return [];
+  const j = await r.json().catch(() => []);
+  if (!Array.isArray(j)) return [];
+  const set = new Set<string>();
+  for (const row of j) {
+    const names = String(row.name_value || "").split("\n");
+    for (const n of names) {
+      const cleaned = n.trim().toLowerCase().replace(/^\*\./, "");
+      if (cleaned.endsWith(root) && !cleaned.includes(" ")) set.add(cleaned);
+    }
+  }
+  return [...set].slice(0, 80);
+}
+
+async function rdapLookup(host: string): Promise<Record<string, unknown> | null> {
+  const root = host.split(".").slice(-2).join(".");
+  const r = await fetchTimeout(`https://rdap.org/domain/${root}`);
+  if (!r || !r.ok) return null;
+  return await r.json().catch(() => null);
+}
+
+async function geoIp(ip: string): Promise<Record<string, unknown> | null> {
+  const r = await fetchTimeout(`https://ipapi.co/${ip}/json/`);
+  if (!r || !r.ok) return null;
+  return await r.json().catch(() => null);
+}
+
+async function probeHttp(host: string): Promise<{ headers: Record<string, string>; status: number; finalUrl: string } | null> {
+  const r = await fetchTimeout(`https://${host}`, { method: "GET", redirect: "follow" }, 10_000);
+  if (!r) return null;
+  const headers: Record<string, string> = {};
+  r.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+  try { await r.body?.cancel(); } catch { /* ignore */ }
+  return { headers, status: r.status, finalUrl: r.url };
+}
+
+interface ReconBundle {
+  host: string;
+  dns: { A: string[]; AAAA: string[]; MX: string[]; NS: string[]; TXT: string[]; CNAME: string[] };
+  http: { status: number; finalUrl: string; headers: Record<string, string> } | null;
+  geo: Record<string, unknown> | null;
+  rdap: { registrar?: string; created?: string; expires?: string; nameservers?: string[] } | null;
+  subdomains: string[];
+}
+
+async function liveRecon(target: string, opts: { withSubs: boolean }): Promise<ReconBundle> {
+  const host = extractHostname(target);
+  const [A, AAAA, MX, NS, TXT, CNAME, http, subs] = await Promise.all([
+    dohQuery(host, "A"),
+    dohQuery(host, "AAAA"),
+    dohQuery(host, "MX"),
+    dohQuery(host, "NS"),
+    dohQuery(host, "TXT"),
+    dohQuery(host, "CNAME"),
+    probeHttp(host),
+    opts.withSubs ? crtshSubdomains(host) : Promise.resolve([] as string[]),
+  ]);
+
+  const firstIp = A[0];
+  const [geo, rdapRaw] = await Promise.all([
+    firstIp ? geoIp(firstIp) : Promise.resolve(null),
+    rdapLookup(host),
+  ]);
+
+  let rdap: ReconBundle["rdap"] = null;
+  if (rdapRaw) {
+    const events = (rdapRaw as { events?: Array<{ eventAction?: string; eventDate?: string }> }).events || [];
+    const created = events.find((e) => e.eventAction === "registration")?.eventDate;
+    const expires = events.find((e) => e.eventAction === "expiration")?.eventDate;
+    const entities = (rdapRaw as { entities?: Array<{ roles?: string[]; vcardArray?: unknown }> }).entities || [];
+    const registrarEnt = entities.find((e) => e.roles?.includes("registrar"));
+    const registrar = (() => {
+      const v = registrarEnt?.vcardArray as unknown[] | undefined;
+      if (!Array.isArray(v) || v.length < 2) return undefined;
+      const arr = v[1] as Array<unknown[]>;
+      const fn = arr.find((x) => Array.isArray(x) && x[0] === "fn");
+      return fn ? String(fn[3]) : undefined;
+    })();
+    rdap = {
+      registrar,
+      created,
+      expires,
+      nameservers: ((rdapRaw as { nameservers?: Array<{ ldhName?: string }> }).nameservers || [])
+        .map((n) => n.ldhName || "").filter(Boolean),
+    };
+  }
+
+  return { host, dns: { A, AAAA, MX, NS, TXT, CNAME }, http, geo, rdap, subdomains: subs };
+}
+
+function reconToPromptBlock(r: ReconBundle): string {
+  const h = r.http?.headers || {};
+  const securityHdrs = [
+    "strict-transport-security", "content-security-policy", "x-frame-options",
+    "x-content-type-options", "referrer-policy", "permissions-policy",
+    "cross-origin-opener-policy", "cross-origin-resource-policy",
+  ];
+  const presentSec = securityHdrs.filter((k) => h[k]);
+  const missingSec = securityHdrs.filter((k) => !h[k]);
+  const geo = (r.geo || {}) as Record<string, unknown>;
+
+  return `=== LIVE RECON FACTS (ground truth — do not contradict) ===
+HOST: ${r.host}
+DNS:
+  A:     ${r.dns.A.join(", ") || "(none)"}
+  AAAA:  ${r.dns.AAAA.join(", ") || "(none)"}
+  CNAME: ${r.dns.CNAME.join(", ") || "(none)"}
+  MX:    ${r.dns.MX.join(" | ") || "(none)"}
+  NS:    ${r.dns.NS.join(", ") || "(none)"}
+  TXT:   ${r.dns.TXT.slice(0, 8).join(" | ") || "(none)"}
+HTTP:
+  status: ${r.http?.status ?? "unreachable"}
+  finalUrl: ${r.http?.finalUrl ?? "n/a"}
+  server: ${h["server"] ?? "(not disclosed)"}
+  x-powered-by: ${h["x-powered-by"] ?? "(not disclosed)"}
+  via: ${h["via"] ?? "(none)"}
+  cf-ray: ${h["cf-ray"] ?? "(none)"}
+  x-vercel-id: ${h["x-vercel-id"] ?? "(none)"}
+  x-amz-cf-id: ${h["x-amz-cf-id"] ?? "(none)"}
+  content-type: ${h["content-type"] ?? "(none)"}
+  set-cookie present: ${h["set-cookie"] ? "yes" : "no"}
+  security headers PRESENT: ${presentSec.join(", ") || "(none)"}
+  security headers MISSING: ${missingSec.join(", ") || "(all present)"}
+GEOIP (first A):
+  ip: ${geo.ip ?? "n/a"}
+  org: ${geo.org ?? "n/a"}
+  asn: ${geo.asn ?? "n/a"}
+  country: ${geo.country_name ?? "n/a"}
+  region: ${geo.region ?? "n/a"}
+  city: ${geo.city ?? "n/a"}
+RDAP/WHOIS:
+  registrar: ${r.rdap?.registrar ?? "n/a"}
+  created: ${r.rdap?.created ?? "n/a"}
+  expires: ${r.rdap?.expires ?? "n/a"}
+  nameservers: ${r.rdap?.nameservers?.join(", ") ?? "n/a"}
+CERT-TRANSPARENCY SUBDOMAINS (live crt.sh, ${r.subdomains.length} found):
+  ${r.subdomains.slice(0, 60).join("\n  ") || "(none)"}
+=== END RECON FACTS ===
+`;
+}
+
+
 const SYSTEM_PROMPT = `You are ZOPHIEL — a forensic DEFENSIVE intelligence engine for asset owners and authorized security teams.
 
 Purpose: help organizations audit and harden THEIR OWN web assets. Output is a defensive self-assessment blueprint: what an external observer can already infer from public sources, so the owner can fix it.
@@ -232,9 +411,19 @@ serve(async (req) => {
       });
     }
 
+    // Live recon — pull real, observable facts before AI synthesis
+    let recon: ReconBundle | null = null;
+    try {
+      recon = await liveRecon(url, { withSubs: !isSubdomainMode });
+    } catch (e) {
+      console.error("[blueprint] recon failed", e);
+    }
+    const reconBlock = recon ? reconToPromptBlock(recon) : "";
+
     const userPrompt = isSubdomainMode
-      ? `Subdomain target: ${url}\n\nReturn the JSON blueprint for THIS subdomain now.`
-      : `Target URL: ${url}\n\nReturn the JSON blueprint now (include the subdomains branch with enumerated hostnames).`;
+      ? `${reconBlock}\nSubdomain target: ${url}\n\nReturn the JSON blueprint for THIS subdomain now, grounded in the LIVE RECON FACTS above.`
+      : `${reconBlock}\nTarget URL: ${url}\n\nReturn the JSON blueprint now, grounded in the LIVE RECON FACTS above. Populate the 'subdomains' branch using the CERT-TRANSPARENCY SUBDOMAINS list verbatim (do not invent hostnames).`;
+
 
     let raw = "";
     let finishReason: string | undefined;
@@ -319,8 +508,17 @@ serve(async (req) => {
       );
     }
 
+    // Guarantee live recon overrides AI guesswork on subdomains
+    if (recon && !isSubdomainMode && Array.isArray(blueprint?.branches)) {
+      const subBranch = blueprint.branches.find((b: { id: string }) => b.id === "subdomains");
+      if (subBranch && recon.subdomains.length) {
+        subBranch.subdomains = recon.subdomains;
+      }
+    }
+    if (recon && blueprint && !blueprint.target) blueprint.target = recon.host;
+
     return new Response(
-      JSON.stringify({ success: true, blueprint }),
+      JSON.stringify({ success: true, blueprint, recon }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
