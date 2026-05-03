@@ -237,13 +237,24 @@ const LeaksPanel = () => {
     if (!q.trim()) return;
     setLoading(true); setError(null); setSearched(true); setResults([]); setTotal(0); setIntentMatches(null);
     try {
-      const params = new URLSearchParams();
-      params.set("q", q.trim());
-      params.set("limit", "60");
-      params.set("highlight", "true");
-      params.set("highlight_count", "2");
-      // No schema filter — return everything Aleph has, let the AI Intent Filter narrow it.
-      const target = `${ALEPH}/search?${params.toString()}`;
+      // Query all Aleph schemata in parallel, merge results (API requires a schema param)
+      const allSchemaResults: AlephResult[] = [];
+      const schemaFetches = SCHEMATA.map(async (schema) => {
+        const params = new URLSearchParams();
+        params.set("q", q.trim());
+        params.set("limit", "15");
+        params.set("highlight", "true");
+        params.set("highlight_count", "2");
+        params.append("filter:schemata", schema);
+        const target = `${ALEPH}/search?${params.toString()}`;
+        try {
+          let r = await fetch(target, { headers: { Accept: "application/json" } }).catch(() => null as any);
+          if (!r || !r.ok) r = await fetch(viaProxy(target));
+          if (!r.ok) return [];
+          const j = await r.json();
+          return (j?.results || []) as AlephResult[];
+        } catch { return []; }
+      });
 
       // Internet Archive query (parallel)
       const iaParams = new URLSearchParams();
