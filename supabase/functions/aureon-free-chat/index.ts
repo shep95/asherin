@@ -206,7 +206,21 @@ serve(async (req) => {
     }
 
     try {
-      const reply = await routeByok(byok, messages);
+      // ── Internet Archive (archive.org) live grounding ──
+      let groundedMessages = messages;
+      try {
+        const lastUser = [...messages].reverse().find((m) => m.role === "user");
+        const userText = lastUser?.content || "";
+        const { searchArchive, formatArchiveContext, shouldQueryArchive } =
+          await import("../_shared/internetArchive.ts");
+        if (shouldQueryArchive(userText)) {
+          const hits = await searchArchive(userText.slice(0, 200), { limit: 8, deepRead: 2 });
+          const ctx = formatArchiveContext(userText.slice(0, 80), hits);
+          if (ctx) groundedMessages = [{ role: "system", content: ctx }, ...messages];
+        }
+      } catch (e) { console.error("[aureon-free] archive lookup failed", e); }
+
+      const reply = await routeByok(byok, groundedMessages);
       return new Response(
         JSON.stringify({ reply, mode: "byok", remaining: gate.remaining, resetAt: gate.resetAt }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
