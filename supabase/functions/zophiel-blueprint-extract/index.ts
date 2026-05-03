@@ -1452,7 +1452,10 @@ serve(async (req) => {
       secrets = s;
       const html = await fetchText(`https://${host}`, 2_000_000).catch(() => null);
       const headers = recon?.http?.headers || {};
-      forensics = await liveForensics(host, html, headers, recon?.subdomains || []).catch((e) => {
+      const setCookieAll = recon?.http?.setCookieAll || (headers["set-cookie"] ? [headers["set-cookie"]] : []);
+      // Build a small JS corpus from top bundles already discovered by secretScan
+      const jsCorpus = (s?.bundles || []).slice(0, 6).map((b) => b.source).join("\n");
+      forensics = await liveForensics(host, html, headers, recon?.subdomains || [], setCookieAll, jsCorpus).catch((e) => {
         console.error("[blueprint] forensics failed", e); return null;
       });
     } catch (e) {
