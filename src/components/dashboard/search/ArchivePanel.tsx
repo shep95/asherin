@@ -80,9 +80,9 @@ const ArchivePanel = () => {
       <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <Archive className="h-5 w-5 text-accent shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-light text-foreground">Internet Archive</p>
+          <p className="text-xs font-light text-foreground">Asher Archives</p>
           <p className="text-[10px] font-extralight text-muted-foreground">
-            Direct browse of <span className="font-mono">archive.org</span> — books, papers, web captures, audio, and video. Videos play in-page; some items are stream-only and cannot be downloaded.
+            Deep browse of the Asher Archives mirror — books, papers, web captures, audio, and video. Videos play in-page; some items are stream-only and cannot be downloaded.
           </p>
         </div>
       </div>
@@ -96,7 +96,7 @@ const ArchivePanel = () => {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search archive.org (e.g. CIA reading room, Apollo 11 footage, Linux Kernel)…"
+          placeholder="Search Asher Archives (e.g. CIA reading room, Apollo 11 footage, Linux Kernel)…"
           className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
         />
         <button
@@ -126,7 +126,7 @@ const ArchivePanel = () => {
 
       {searched && (
         <p className="text-[10px] font-light text-muted-foreground/50">
-          {loading ? "Searching archive.org…" : `${docs.length} shown of ${total.toLocaleString()} total matches`}
+          {loading ? "Searching Asher Archives…" : `${docs.length} shown of ${total.toLocaleString()} total matches`}
         </p>
       )}
 
@@ -158,7 +158,7 @@ const ArchivePanel = () => {
                     {desc(d) && <p className="text-[11px] font-extralight text-muted-foreground/80 mt-1 line-clamp-2">{desc(d)}</p>}
                     <div className="flex items-center gap-3 mt-1.5">
                       <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-foreground">
-                        <ExternalLink className="h-3 w-3" /> Open on archive.org
+                        <ExternalLink className="h-3 w-3" /> Open record
                       </a>
                       {isAV && (
                         <button

@@ -261,7 +261,7 @@ const LeaksPanel = () => {
         })(),
         (async () => {
           const r = await fetch(iaUrl);
-          if (!r.ok) throw new Error(`Internet Archive ${r.status}`);
+          if (!r.ok) throw new Error(`Asher Archives ${r.status}`);
           return r.json();
         })(),
       ]);
@@ -287,7 +287,7 @@ const LeaksPanel = () => {
             id: `ia:${d.identifier}`,
             schema,
             properties: { title: [d.title || d.identifier], description: [desc], author: [creator], date: [d.date || ""] },
-            collection: { label: `Internet Archive · ${mt}`, publisher: "archive.org" },
+            collection: { label: `Asher Archives · ${mt}`, publisher: "Asher Archives" },
             links: {
               ui: `https://archive.org/details/${d.identifier}`,
               file: mt === "texts" ? `https://archive.org/download/${d.identifier}/${d.identifier}_djvu.txt` : undefined,
@@ -300,7 +300,7 @@ const LeaksPanel = () => {
       setResults(merged);
       setTotal(totalCount);
       if (alephRes.status === "rejected" && iaRes.status === "rejected") {
-        setError("Both Asher Eyes and Internet Archive failed");
+        setError("Asher Archives lookup failed");
       }
     } catch (e: any) {
       setError(e?.message || "Search failed");
@@ -396,7 +396,7 @@ const LeaksPanel = () => {
         <div className="flex-1 min-w-0">
           <p className="text-xs font-light text-foreground">Asher Archives</p>
           <p className="text-[10px] font-extralight text-muted-foreground">
-            Unified browse of the <span className="font-mono">Asher Eyes</span> leaks index plus the <a href="https://archive.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent">Internet Archive</a> — emails, documents, files, books, papers, audio &amp; video. No filter, no censorship. Bundle anything into a downloadable ZIP.
+            Unified deep browse of the <span className="font-mono">Asher Eyes</span> leaks index plus the Asher Archives mirror — emails, documents, files, books, papers, audio &amp; video. No filter, no censorship. Bundle anything into a downloadable ZIP.
           </p>
         </div>
       </div>
@@ -411,7 +411,7 @@ const LeaksPanel = () => {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Asher Archives (leaks + Internet Archive)…"
+          placeholder="Search Asher Archives…"
           className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
         />
         <button
