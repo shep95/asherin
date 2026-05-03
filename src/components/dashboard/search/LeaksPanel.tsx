@@ -244,15 +244,64 @@ const LeaksPanel = () => {
       params.set("highlight_count", "2");
       activeSchemata.forEach((s) => params.append("filter:schemata", s));
       const target = `${ALEPH}/search?${params.toString()}`;
-      let r = await fetch(target, { headers: { Accept: "application/json" } }).catch(() => null as any);
-      if (!r || !r.ok) {
-        // Fallback through edge proxy (CORS bypass)
-        r = await fetch(viaProxy(target));
+
+      // Internet Archive query (parallel)
+      const iaParams = new URLSearchParams();
+      iaParams.set("q", q.trim());
+      ["identifier","title","description","creator","date","mediatype"].forEach((f) => iaParams.append("fl[]", f));
+      iaParams.set("rows", "40"); iaParams.set("page", "1"); iaParams.set("output", "json"); iaParams.set("sort[]", "downloads desc");
+      const iaUrl = `https://archive.org/advancedsearch.php?${iaParams.toString()}`;
+
+      const [alephRes, iaRes] = await Promise.allSettled([
+        (async () => {
+          let r = await fetch(target, { headers: { Accept: "application/json" } }).catch(() => null as any);
+          if (!r || !r.ok) r = await fetch(viaProxy(target));
+          if (!r.ok) throw new Error(`Asher Eyes ${r.status}`);
+          return r.json();
+        })(),
+        (async () => {
+          const r = await fetch(iaUrl);
+          if (!r.ok) throw new Error(`Internet Archive ${r.status}`);
+          return r.json();
+        })(),
+      ]);
+
+      const merged: AlephResult[] = [];
+      let totalCount = 0;
+
+      if (alephRes.status === "fulfilled") {
+        const d = alephRes.value;
+        if (Array.isArray(d.results)) merged.push(...d.results);
+        if (typeof d.total === "number") totalCount += d.total;
       }
-      if (!r.ok) throw new Error(`Asher Eyes ${r.status}`);
-      const d = await r.json();
-      setResults(Array.isArray(d.results) ? d.results : []);
-      setTotal(typeof d.total === "number" ? d.total : 0);
+      if (iaRes.status === "fulfilled") {
+        const docs = iaRes.value?.response?.docs ?? [];
+        const iaTotal = iaRes.value?.response?.numFound ?? docs.length;
+        totalCount += iaTotal;
+        for (const d of docs) {
+          const mt = String(d.mediatype || "texts");
+          const schema = mt === "movies" ? "Pages" : mt === "audio" ? "PlainText" : mt === "image" ? "Pages" : "Document";
+          const desc = Array.isArray(d.description) ? d.description.join(" ") : (d.description || "");
+          const creator = Array.isArray(d.creator) ? d.creator.join(", ") : (d.creator || "");
+          merged.push({
+            id: `ia:${d.identifier}`,
+            schema,
+            properties: { title: [d.title || d.identifier], description: [desc], author: [creator], date: [d.date || ""] },
+            collection: { label: `Internet Archive · ${mt}`, publisher: "archive.org" },
+            links: {
+              ui: `https://archive.org/details/${d.identifier}`,
+              file: mt === "texts" ? `https://archive.org/download/${d.identifier}/${d.identifier}_djvu.txt` : undefined,
+            },
+            highlight: desc ? [desc.slice(0, 280)] : [],
+          });
+        }
+      }
+
+      setResults(merged);
+      setTotal(totalCount);
+      if (alephRes.status === "rejected" && iaRes.status === "rejected") {
+        setError("Both Asher Eyes and Internet Archive failed");
+      }
     } catch (e: any) {
       setError(e?.message || "Search failed");
     } finally { setLoading(false); }
