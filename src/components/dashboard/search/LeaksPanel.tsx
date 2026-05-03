@@ -345,9 +345,9 @@ const LeaksPanel = () => {
       <div className="rounded-2xl border border-accent/30 bg-accent/5 backdrop-blur-xl px-4 py-3 flex items-center gap-3">
         <FileArchive className="h-5 w-5 text-accent shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-light text-foreground">Asher Eyes</p>
+          <p className="text-xs font-light text-foreground">Asher Archives</p>
           <p className="text-[10px] font-extralight text-muted-foreground">
-            Direct browse of the <span className="font-mono">Asher Eyes</span> index — emails, documents, files, folders, people, companies. No filter, no censorship. Bundle selected items into a downloadable ZIP.
+            Unified browse of the <span className="font-mono">Asher Eyes</span> leaks index plus the <a href="https://archive.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-accent">Internet Archive</a> — emails, documents, files, books, papers, audio &amp; video. No filter, no censorship. Bundle anything into a downloadable ZIP.
           </p>
         </div>
       </div>
@@ -362,7 +362,7 @@ const LeaksPanel = () => {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Asher Eyes (e.g. Aureon AI, Stratfor, Palantir, an email address)…"
+          placeholder="Search Asher Archives (leaks + Internet Archive)…"
           className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
         />
         <button
