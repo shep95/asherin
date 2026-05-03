@@ -96,7 +96,7 @@ const ArchivePanel = () => {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search archive.org (e.g. CIA reading room, Apollo 11 footage, Linux Kernel)…"
+          placeholder="Search Asher Archives (e.g. CIA reading room, Apollo 11 footage, Linux Kernel)…"
           className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
         />
         <button
