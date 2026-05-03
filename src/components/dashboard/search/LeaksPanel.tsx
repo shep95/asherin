@@ -423,22 +423,7 @@ const LeaksPanel = () => {
         </button>
       </form>
 
-      {/* Schema filters */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/50 mr-1">Types</span>
-        {SCHEMATA.map((s) => {
-          const on = activeSchemata.includes(s);
-          return (
-            <button
-              key={s}
-              onClick={() => setActiveSchemata((cur) => on ? cur.filter((x) => x !== s) : [...cur, s])}
-              className={`px-2 py-0.5 rounded-md text-[10px] font-light tracking-wide border transition-colors ${
-                on ? "bg-accent/20 border-accent/40 text-accent" : "bg-card/30 border-border/30 text-muted-foreground/60 hover:text-foreground"
-              }`}
-            >{s}</button>
-          );
-        })}
-      </div>
+      {/* Schema filters removed — AI Intent Filter narrows results instead. */}
 
       {/* Intent Filter — describe what you actually want, AI picks matching docs */}
       {searched && results.length > 0 && (
