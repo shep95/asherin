@@ -158,7 +158,7 @@ const ArchivePanel = () => {
                     {desc(d) && <p className="text-[11px] font-extralight text-muted-foreground/80 mt-1 line-clamp-2">{desc(d)}</p>}
                     <div className="flex items-center gap-3 mt-1.5">
                       <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 hover:text-foreground">
-                        <ExternalLink className="h-3 w-3" /> Open on archive.org
+                        <ExternalLink className="h-3 w-3" /> Open record
                       </a>
                       {isAV && (
                         <button
