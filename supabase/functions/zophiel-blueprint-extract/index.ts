@@ -71,13 +71,20 @@ async function geoIp(ip: string): Promise<Record<string, unknown> | null> {
   return await r.json().catch(() => null);
 }
 
-async function probeHttp(host: string): Promise<{ headers: Record<string, string>; status: number; finalUrl: string } | null> {
+async function probeHttp(host: string): Promise<{ headers: Record<string, string>; status: number; finalUrl: string; setCookieAll: string[] } | null> {
   const r = await fetchTimeout(`https://${host}`, { method: "GET", redirect: "follow" }, 10_000);
   if (!r) return null;
   const headers: Record<string, string> = {};
   r.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+  // Capture multiple Set-Cookie headers (Headers.getSetCookie when available)
+  let setCookieAll: string[] = [];
+  try {
+    const gsc = (r.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie;
+    if (typeof gsc === "function") setCookieAll = gsc.call(r.headers) || [];
+    else if (headers["set-cookie"]) setCookieAll = [headers["set-cookie"]];
+  } catch { /* */ }
   try { await r.body?.cancel(); } catch { /* ignore */ }
-  return { headers, status: r.status, finalUrl: r.url };
+  return { headers, status: r.status, finalUrl: r.url, setCookieAll };
 }
 
 // ─── REDIRECT CHAIN ──────────────────────────────────────────────────────────
@@ -370,6 +377,464 @@ async function subdomainAudit(subs: string[], cap = 12): Promise<SubAudit[]> {
   return await Promise.all(targets.map((s) => auditSubdomain(s).catch(() => ({ host: s, weaknesses: ["Audit failed"] } as SubAudit))));
 }
 
+// ─── EMAIL INFRA / SPF / DMARC / DKIM ────────────────────────────────────────
+interface EmailInfra {
+  mx_provider: string;          // Google / Microsoft / Zoho / etc
+  mx_records: string[];
+  spf: string;
+  spf_strict: boolean;          // -all vs ~all vs ?all vs none
+  dmarc: string;
+  dmarc_policy: string;         // none/quarantine/reject
+  dkim_selectors_found: string[];
+  weaknesses: string[];
+}
+
+async function emailInfraAudit(host: string): Promise<EmailInfra> {
+  const root = host.split(".").slice(-2).join(".");
+  const [mx, txt, dmarc] = await Promise.all([
+    dohQuery(root, "MX"),
+    dohQuery(root, "TXT"),
+    dohQuery(`_dmarc.${root}`, "TXT"),
+  ]);
+  // Common DKIM selectors
+  const selectors = ["google", "selector1", "selector2", "k1", "default", "mail", "dkim", "s1", "s2"];
+  const dkimResults = await Promise.all(
+    selectors.map(async (s) => {
+      const r = await dohQuery(`${s}._domainkey.${root}`, "TXT");
+      return r.length ? s : null;
+    }),
+  );
+  const dkim_selectors_found = dkimResults.filter(Boolean) as string[];
+
+  const mxLower = mx.join(" ").toLowerCase();
+  let mx_provider = "Unknown / self-hosted";
+  if (/google|gmail/.test(mxLower)) mx_provider = "Google Workspace";
+  else if (/outlook|protection\.outlook|microsoft/.test(mxLower)) mx_provider = "Microsoft 365";
+  else if (/zoho/.test(mxLower)) mx_provider = "Zoho Mail";
+  else if (/proofpoint/.test(mxLower)) mx_provider = "Proofpoint";
+  else if (/mimecast/.test(mxLower)) mx_provider = "Mimecast";
+  else if (/mailgun/.test(mxLower)) mx_provider = "Mailgun";
+  else if (/sendgrid/.test(mxLower)) mx_provider = "SendGrid";
+  else if (/amazonses|amazonaws/.test(mxLower)) mx_provider = "Amazon SES";
+  else if (/protonmail|proton\.me/.test(mxLower)) mx_provider = "Proton Mail";
+  else if (/fastmail|messagingengine/.test(mxLower)) mx_provider = "Fastmail";
+
+  const spfRec = txt.map((t) => t.replace(/^"|"$/g, "")).find((t) => /^v=spf1/i.test(t)) || "";
+  const dmarcRec = dmarc.map((t) => t.replace(/^"|"$/g, "")).find((t) => /^v=DMARC1/i.test(t)) || "";
+  const dmarcPolicy = (dmarcRec.match(/p\s*=\s*([a-z]+)/i)?.[1] || "none").toLowerCase();
+  const spfStrict = /-all\b/i.test(spfRec);
+
+  const weaknesses: string[] = [];
+  if (!spfRec) weaknesses.push("No SPF record — anyone can spoof outbound mail");
+  else if (!spfStrict) weaknesses.push(`SPF not strict (${spfRec.match(/[~?+\-]all/i)?.[0] || "no -all"}) — soft-fail allows spoofing`);
+  if (!dmarcRec) weaknesses.push("No DMARC record — phishing detection is blind");
+  else if (dmarcPolicy === "none") weaknesses.push("DMARC policy=none (monitor only) — upgrade to quarantine/reject");
+  if (dkim_selectors_found.length === 0) weaknesses.push("No common DKIM selectors found — outbound mail may not be signed");
+  if (mx.length === 0) weaknesses.push("No MX records — domain cannot receive mail");
+
+  return {
+    mx_provider, mx_records: mx, spf: spfRec, spf_strict: spfStrict,
+    dmarc: dmarcRec, dmarc_policy: dmarcPolicy,
+    dkim_selectors_found, weaknesses,
+  };
+}
+
+// ─── SECURITY HEADER DEEP-DIVE / CSP / CORS / COOKIES ────────────────────────
+interface SecurityAudit {
+  hsts_present: boolean;
+  hsts_max_age?: number;
+  hsts_includes_sub: boolean;
+  hsts_preload: boolean;
+  x_frame_options: string;          // DENY / SAMEORIGIN / missing
+  clickjacking_risk: boolean;
+  csp_present: boolean;
+  csp_unsafe_inline: boolean;
+  csp_unsafe_eval: boolean;
+  csp_wildcard_hosts: string[];
+  csp_report_only: boolean;
+  cors_acao: string;                // value of Access-Control-Allow-Origin
+  cors_wildcard_with_credentials: boolean;
+  cookies: Array<{ name: string; secure: boolean; httpOnly: boolean; sameSite: string }>;
+  cookie_weak_count: number;
+  mixed_content_resources: string[];
+  weaknesses: string[];
+}
+
+function parseCookies(setCookieAll: string[]): SecurityAudit["cookies"] {
+  const out: SecurityAudit["cookies"] = [];
+  for (const raw of setCookieAll) {
+    const name = (raw.split("=")[0] || "").trim();
+    if (!name) continue;
+    const lower = raw.toLowerCase();
+    const sameSiteMatch = lower.match(/samesite\s*=\s*(strict|lax|none)/);
+    out.push({
+      name,
+      secure: /;\s*secure(\b|;)/i.test(raw) || /;\s*secure\s*$/i.test(raw),
+      httpOnly: /;\s*httponly/i.test(raw),
+      sameSite: sameSiteMatch ? sameSiteMatch[1] : "missing",
+    });
+  }
+  return out;
+}
+
+function auditSecurity(html: string | null, headers: Record<string, string>, setCookieAll: string[]): SecurityAudit {
+  const hsts = headers["strict-transport-security"] || "";
+  const hstsMax = Number(hsts.match(/max-age\s*=\s*(\d+)/i)?.[1] || 0);
+  const xfo = headers["x-frame-options"] || "missing";
+  const cspRaw = headers["content-security-policy"] || "";
+  const cspRO = headers["content-security-policy-report-only"] || "";
+  const csp = cspRaw || cspRO;
+  const acao = headers["access-control-allow-origin"] || "";
+  const acac = (headers["access-control-allow-credentials"] || "").toLowerCase() === "true";
+  const cookies = parseCookies(setCookieAll);
+
+  const cspWildcards = csp ? [...csp.matchAll(/(?:^|\s)\*(?:\s|;|$)|https?:\/\/\*\.?[a-z0-9.\-]*/gi)].map((m) => m[0].trim()) : [];
+  const cspUnsafeInline = /['"]?unsafe-inline['"]?/i.test(csp);
+  const cspUnsafeEval = /['"]?unsafe-eval['"]?/i.test(csp);
+  const csp_present = !!cspRaw;
+
+  // Mixed content (http:// resources on https page)
+  const mixed: string[] = [];
+  if (html) {
+    const M = /(?:src|href)\s*=\s*["'](http:\/\/[^"']+)["']/gi;
+    let mm: RegExpExecArray | null;
+    while ((mm = M.exec(html)) !== null && mixed.length < 15) mixed.push(mm[1]);
+  }
+
+  const weaknesses: string[] = [];
+  if (!hsts) weaknesses.push("No HSTS — TLS downgrade possible");
+  else if (hstsMax < 15552000) weaknesses.push(`HSTS max-age=${hstsMax} (<6 months) — increase to 31536000`);
+  if (!/SAMEORIGIN|DENY/i.test(xfo) && !csp.includes("frame-ancestors")) weaknesses.push("Clickjacking risk — set X-Frame-Options or CSP frame-ancestors");
+  if (!csp_present) weaknesses.push("No CSP header — XSS protection minimal");
+  else {
+    if (cspUnsafeInline) weaknesses.push("CSP allows 'unsafe-inline' — defeats XSS mitigation");
+    if (cspUnsafeEval) weaknesses.push("CSP allows 'unsafe-eval' — defeats XSS mitigation");
+    if (cspWildcards.length) weaknesses.push(`CSP contains wildcard sources: ${cspWildcards.slice(0, 3).join(", ")}`);
+    if (cspRO && !cspRaw) weaknesses.push("CSP is report-only — not enforced");
+  }
+  if (acao === "*" && acac) weaknesses.push("CRITICAL: CORS wildcard origin with credentials=true");
+  else if (acao === "*") weaknesses.push("CORS allows any origin (wildcard)");
+  const weakCookies = cookies.filter((c) => !c.secure || !c.httpOnly || c.sameSite === "missing" || c.sameSite === "none");
+  if (weakCookies.length) weaknesses.push(`${weakCookies.length} cookie(s) missing Secure / HttpOnly / SameSite flags`);
+  if (mixed.length) weaknesses.push(`${mixed.length} mixed-content (HTTP) resource(s) on HTTPS page`);
+
+  return {
+    hsts_present: !!hsts, hsts_max_age: hstsMax || undefined,
+    hsts_includes_sub: /includesubdomains/i.test(hsts),
+    hsts_preload: /preload/i.test(hsts),
+    x_frame_options: xfo,
+    clickjacking_risk: !/SAMEORIGIN|DENY/i.test(xfo) && !csp.includes("frame-ancestors"),
+    csp_present, csp_unsafe_inline: cspUnsafeInline, csp_unsafe_eval: cspUnsafeEval,
+    csp_wildcard_hosts: cspWildcards.slice(0, 10),
+    csp_report_only: !cspRaw && !!cspRO,
+    cors_acao: acao || "(not set)",
+    cors_wildcard_with_credentials: acao === "*" && acac,
+    cookies, cookie_weak_count: weakCookies.length,
+    mixed_content_resources: mixed,
+    weaknesses,
+  };
+}
+
+// ─── PAGE STRUCTURE: FORMS, IFRAMES, COMMENTS ────────────────────────────────
+interface PageStructure {
+  forms: Array<{ action: string; method: string; fields: string[]; hidden_fields: string[] }>;
+  iframes: string[];
+  html_comments: string[];
+  noscript_blocks: number;
+  hreflang: Array<{ lang: string; href: string }>;
+  open_graph_full: Record<string, string>;
+  twitter_full: Record<string, string>;
+  jsonld_blocks: number;
+}
+
+function parsePageStructure(html: string): PageStructure {
+  const forms: PageStructure["forms"] = [];
+  const formRe = /<form\b([^>]*)>([\s\S]*?)<\/form>/gi;
+  let fm: RegExpExecArray | null;
+  while ((fm = formRe.exec(html)) !== null && forms.length < 20) {
+    const attrs = fm[1] || ""; const body = fm[2] || "";
+    const action = (attrs.match(/action\s*=\s*["']([^"']+)["']/i)?.[1]) || "(self)";
+    const method = (attrs.match(/method\s*=\s*["']([^"']+)["']/i)?.[1] || "GET").toUpperCase();
+    const fields: string[] = []; const hidden: string[] = [];
+    const inputRe = /<input\b([^>]*)>/gi;
+    let im: RegExpExecArray | null;
+    while ((im = inputRe.exec(body)) !== null) {
+      const a = im[1] || "";
+      const name = a.match(/name\s*=\s*["']([^"']+)["']/i)?.[1];
+      const type = (a.match(/type\s*=\s*["']([^"']+)["']/i)?.[1] || "text").toLowerCase();
+      if (!name) continue;
+      if (type === "hidden") hidden.push(name); else fields.push(`${name}:${type}`);
+    }
+    forms.push({ action, method, fields, hidden_fields: hidden });
+  }
+  const iframes = [...html.matchAll(/<iframe[^>]+src\s*=\s*["']([^"']+)["']/gi)].map((m) => m[1]).slice(0, 20);
+  const comments = [...html.matchAll(/<!--([\s\S]*?)-->/g)]
+    .map((m) => m[1].trim())
+    .filter((c) => c.length > 6 && !/^\s*\[if|\bIE\b/.test(c))
+    .slice(0, 20);
+  const noscript = (html.match(/<noscript\b/gi) || []).length;
+  const hreflang = [...html.matchAll(/<link[^>]+rel=["']alternate["'][^>]+hreflang=["']([^"']+)["'][^>]+href=["']([^"']+)["']/gi)]
+    .map((m) => ({ lang: m[1], href: m[2] })).slice(0, 30);
+  const og: Record<string, string> = {};
+  for (const m of html.matchAll(/<meta[^>]+property=["']og:([^"']+)["'][^>]+content=["']([^"']+)["']/gi)) og[m[1]] = m[2];
+  const tw: Record<string, string> = {};
+  for (const m of html.matchAll(/<meta[^>]+name=["']twitter:([^"']+)["'][^>]+content=["']([^"']+)["']/gi)) tw[m[1]] = m[2];
+  const jsonld = (html.match(/<script[^>]+application\/ld\+json/gi) || []).length;
+  return { forms, iframes, html_comments: comments, noscript_blocks: noscript, hreflang, open_graph_full: og, twitter_full: tw, jsonld_blocks: jsonld };
+}
+
+// ─── MOBILE APPS, AUTH, TRACKING SURFACE ─────────────────────────────────────
+interface MobileAuthIntel {
+  ios_app_link?: string;
+  android_app_link?: string;
+  app_bundle_ids: string[];
+  deep_link_schemes: string[];
+  apple_app_site_association?: boolean;
+  android_assetlinks?: boolean;
+  oauth_providers: string[];
+  auth_provider_detected: string[];     // Auth0, Clerk, Supabase, Firebase, Cognito
+  session_recording_tools: string[];    // Hotjar, FullStory, LogRocket
+  ad_pixels: string[];                  // Meta, TikTok, LinkedIn
+  live_chat: string[];                  // Intercom, Drift, Zendesk
+  consent_banner: string[];             // OneTrust, Cookiebot
+  ab_testing: string[];                 // Optimizely, LaunchDarkly
+}
+
+function parseMobileAuthIntel(html: string, jsCorpus: string): MobileAuthIntel {
+  const all = html + "\n" + jsCorpus;
+  const ios = all.match(/https?:\/\/apps\.apple\.com\/[^\s"'<>]+/i)?.[0];
+  const droid = all.match(/https?:\/\/play\.google\.com\/store\/apps\/details\?id=[A-Za-z0-9._\-]+/i)?.[0];
+  const bundleIds = dedupe([...all.matchAll(/(?:bundle[_\-]?id|appId|package)\s*[:=]\s*["']([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*){2,})["']/gi)].map((m) => m[1])).slice(0, 10);
+  const schemes = dedupe([...all.matchAll(/["']([a-z][a-z0-9+.\-]{2,30}):\/\/[^\s"'<>]/gi)]
+    .map((m) => m[1]).filter((s) => !["http","https","data","javascript","mailto","tel","file","blob","ws","wss","ftp"].includes(s.toLowerCase()))).slice(0, 10);
+
+  const oauth: string[] = [];
+  if (/accounts\.google\.com\/o\/oauth2|gsi\/client/i.test(all)) oauth.push("Google");
+  if (/github\.com\/login\/oauth/i.test(all)) oauth.push("GitHub");
+  if (/appleid\.apple\.com\/auth/i.test(all)) oauth.push("Apple");
+  if (/facebook\.com\/v[0-9]+\/dialog\/oauth/i.test(all)) oauth.push("Facebook");
+  if (/login\.microsoftonline\.com/i.test(all)) oauth.push("Microsoft");
+  if (/linkedin\.com\/oauth/i.test(all)) oauth.push("LinkedIn");
+
+  const authProv: string[] = [];
+  if (/auth0\.com|@auth0\//i.test(all)) authProv.push("Auth0");
+  if (/clerk\.com|@clerk\//i.test(all)) authProv.push("Clerk");
+  if (/supabase\.co\/auth|@supabase\/auth/i.test(all)) authProv.push("Supabase Auth");
+  if (/firebase[\/.]auth|firebaseauth/i.test(all)) authProv.push("Firebase Auth");
+  if (/cognito-idp|amazoncognito/i.test(all)) authProv.push("AWS Cognito");
+  if (/okta\.com|@okta\//i.test(all)) authProv.push("Okta");
+  if (/workos\.com/i.test(all)) authProv.push("WorkOS");
+  if (/stytch\.com/i.test(all)) authProv.push("Stytch");
+
+  const session: string[] = [];
+  if (/hotjar/i.test(all)) session.push("Hotjar");
+  if (/fullstory/i.test(all)) session.push("FullStory");
+  if (/logrocket/i.test(all)) session.push("LogRocket");
+  if (/clarity\.ms/i.test(all)) session.push("Microsoft Clarity");
+  if (/smartlook/i.test(all)) session.push("Smartlook");
+
+  const pixels: string[] = [];
+  if (/connect\.facebook\.net|fbq\(/i.test(all)) pixels.push("Meta Pixel");
+  if (/analytics\.tiktok\.com|ttq\.load/i.test(all)) pixels.push("TikTok Pixel");
+  if (/snap\.licdn\.com|_linkedin_partner_id/i.test(all)) pixels.push("LinkedIn Insight");
+  if (/snap\.snapchat\.com|snaptr/i.test(all)) pixels.push("Snap Pixel");
+  if (/pinimg\.com\/ct|pintrk\(/i.test(all)) pixels.push("Pinterest Tag");
+  if (/bat\.bing\.com/i.test(all)) pixels.push("Microsoft Ads UET");
+  if (/x\.ads-twitter\.com|twq\(/i.test(all)) pixels.push("X / Twitter Pixel");
+
+  const chat: string[] = [];
+  if (/intercom/i.test(all)) chat.push("Intercom");
+  if (/drift\.com|driftt/i.test(all)) chat.push("Drift");
+  if (/zdassets\.com|zopim/i.test(all)) chat.push("Zendesk");
+  if (/crisp\.chat/i.test(all)) chat.push("Crisp");
+  if (/tawk\.to/i.test(all)) chat.push("Tawk.to");
+  if (/livechatinc/i.test(all)) chat.push("LiveChat");
+
+  const consent: string[] = [];
+  if (/onetrust|cookielaw\.org/i.test(all)) consent.push("OneTrust");
+  if (/cookiebot/i.test(all)) consent.push("Cookiebot");
+  if (/iubenda/i.test(all)) consent.push("Iubenda");
+  if (/cookieyes/i.test(all)) consent.push("CookieYes");
+
+  const abt: string[] = [];
+  if (/optimizely/i.test(all)) abt.push("Optimizely");
+  if (/launchdarkly/i.test(all)) abt.push("LaunchDarkly");
+  if (/split\.io/i.test(all)) abt.push("Split.io");
+  if (/vwo\.com|visualwebsiteoptimizer/i.test(all)) abt.push("VWO");
+
+  return {
+    ios_app_link: ios, android_app_link: droid,
+    app_bundle_ids: bundleIds, deep_link_schemes: schemes,
+    oauth_providers: dedupe(oauth), auth_provider_detected: dedupe(authProv),
+    session_recording_tools: dedupe(session), ad_pixels: dedupe(pixels),
+    live_chat: dedupe(chat), consent_banner: dedupe(consent), ab_testing: dedupe(abt),
+  };
+}
+
+// ─── CLOUD STORAGE PROBE ─────────────────────────────────────────────────────
+interface CloudProbe {
+  bucket_url: string;
+  type: "s3" | "gcs" | "azure" | "firebase";
+  status: number;
+  public_listing: boolean;
+  risk: "info" | "warn" | "critical";
+  note: string;
+}
+
+async function probeCloudBuckets(host: string, html: string | null, jsCorpus: string): Promise<CloudProbe[]> {
+  const seen = new Set<string>();
+  const corpus = (html || "") + "\n" + jsCorpus;
+  const urls: Array<{ url: string; type: CloudProbe["type"] }> = [];
+  for (const m of corpus.matchAll(/https?:\/\/[a-z0-9.\-]+\.s3[.\-][a-z0-9\-]*\.?amazonaws\.com[^"'<>\s]*/gi)) urls.push({ url: m[0], type: "s3" });
+  for (const m of corpus.matchAll(/https?:\/\/storage\.googleapis\.com\/[a-z0-9._\-]+/gi)) urls.push({ url: m[0], type: "gcs" });
+  for (const m of corpus.matchAll(/https?:\/\/[a-z0-9]+\.blob\.core\.windows\.net\/[a-z0-9._\-]+/gi)) urls.push({ url: m[0], type: "azure" });
+  for (const m of corpus.matchAll(/https?:\/\/[a-z0-9\-]+\.firebaseio\.com\/?\.json/gi)) urls.push({ url: m[0], type: "firebase" });
+
+  // Also infer S3 bucket by domain prefix
+  const root = host.split(".").slice(-2)[0];
+  if (root) {
+    for (const guess of [`https://${root}.s3.amazonaws.com`, `https://${root}-prod.s3.amazonaws.com`, `https://${root}-static.s3.amazonaws.com`]) {
+      urls.push({ url: guess, type: "s3" });
+    }
+  }
+
+  const out: CloudProbe[] = [];
+  for (const { url, type } of urls.slice(0, 12)) {
+    if (seen.has(url)) continue; seen.add(url);
+    const probeUrl = type === "s3" ? url.replace(/\/[^/]*$/, "") + "/" : url;
+    const r = await fetchTimeout(probeUrl, { method: "GET", redirect: "manual" }, 5000);
+    if (!r) continue;
+    const txt = r.ok ? (await r.text().catch(() => "")).slice(0, 4000) : "";
+    try { await r.body?.cancel(); } catch { /* */ }
+    const listing = r.ok && (/<ListBucketResult|<EnumerationResults|"items"/i.test(txt));
+    const risk: CloudProbe["risk"] = listing ? "critical" : (r.status === 200 ? "warn" : "info");
+    let note = "";
+    if (listing) note = "Bucket listing publicly enumerable — restrict ACL immediately";
+    else if (r.status === 200) note = "Bucket reachable; verify object ACLs are private";
+    else if (r.status === 403) note = "Access denied (good — listing blocked)";
+    else if (r.status === 404) note = "Bucket not found / not claimed";
+    else note = `HTTP ${r.status}`;
+    out.push({ bucket_url: probeUrl, type, status: r.status, public_listing: listing, risk, note });
+  }
+  return out;
+}
+
+// ─── DEPENDENCY INTEL (from /package.json if exposed) ────────────────────────
+interface DependencyIntel {
+  package_json_exposed: boolean;
+  name?: string;
+  version?: string;
+  dependency_count: number;
+  dev_dependency_count: number;
+  outdated_warnings: string[];     // pinned to old majors of common libs
+  notable: string[];
+}
+
+const OLD_MAJOR_WARN: Record<string, number> = {
+  "react": 17, "next": 12, "vue": 2, "angular": 14, "@angular/core": 14,
+  "express": 4, "lodash": 4, "axios": 0, "webpack": 4, "node-fetch": 2,
+};
+
+async function dependencyIntel(host: string): Promise<DependencyIntel> {
+  const out: DependencyIntel = { package_json_exposed: false, dependency_count: 0, dev_dependency_count: 0, outdated_warnings: [], notable: [] };
+  const r = await fetchTimeout(`https://${host}/package.json`, { method: "GET", redirect: "manual" }, 5000);
+  if (!r || !r.ok) return out;
+  const txt = await r.text().catch(() => "");
+  if (!/^\s*\{/.test(txt)) return out;
+  try {
+    const j = JSON.parse(txt);
+    out.package_json_exposed = true;
+    out.name = j.name; out.version = j.version;
+    const deps = j.dependencies || {}; const devs = j.devDependencies || {};
+    out.dependency_count = Object.keys(deps).length;
+    out.dev_dependency_count = Object.keys(devs).length;
+    for (const [name, v] of Object.entries({ ...deps, ...devs })) {
+      const major = Number(String(v).match(/(\d+)/)?.[1] || 0);
+      if (OLD_MAJOR_WARN[name] !== undefined && major <= OLD_MAJOR_WARN[name]) {
+        out.outdated_warnings.push(`${name}@${v} — major below current LTS`);
+      }
+      if (/^next$|^react$|^vue$|^svelte$|^astro$|^@angular\/core$/.test(name)) out.notable.push(`${name}@${v}`);
+    }
+  } catch { /* malformed */ }
+  return out;
+}
+
+// ─── PERFORMANCE & TRANSPORT INTEL ───────────────────────────────────────────
+interface PerformanceIntel {
+  ttfb_ms?: number;
+  total_ms?: number;
+  bytes_received?: number;
+  http_protocol: string;       // best-effort: HTTP/1.1 vs HTTP/2 (alt-svc hint)
+  compression: string;         // gzip / br / none
+  cache_control?: string;
+  cdn_hint?: string;           // Cloudflare / Vercel / Fastly / etc
+}
+
+async function performanceIntel(host: string): Promise<PerformanceIntel> {
+  const start = Date.now();
+  const r = await fetchTimeout(`https://${host}`, { method: "GET", redirect: "follow" }, 10_000);
+  if (!r) return { http_protocol: "unknown", compression: "unknown" };
+  const headers: Record<string, string> = {};
+  r.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+  const ttfb = Date.now() - start;
+  let bytes = 0;
+  try {
+    const reader = r.body?.getReader();
+    if (reader) {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) bytes += value.length;
+        if (bytes > 2_000_000) { try { reader.cancel(); } catch { /* */ } break; }
+      }
+    }
+  } catch { /* */ }
+  const total = Date.now() - start;
+  const altSvc = headers["alt-svc"] || "";
+  let proto = "HTTP/1.1";
+  if (/h3/.test(altSvc)) proto = "HTTP/3 advertised (alt-svc h3)";
+  else if (/h2/.test(altSvc) || headers[":status"]) proto = "HTTP/2 advertised";
+  let cdn = "";
+  if (headers["cf-ray"] || /cloudflare/i.test(headers["server"] || "")) cdn = "Cloudflare";
+  else if (headers["x-vercel-id"]) cdn = "Vercel";
+  else if (headers["x-amz-cf-id"]) cdn = "AWS CloudFront";
+  else if (/fastly/i.test(headers["server"] || "") || headers["x-served-by"]?.includes("cache")) cdn = "Fastly";
+  else if (/akamai/i.test(headers["server"] || "")) cdn = "Akamai";
+  else if (/netlify/i.test(headers["server"] || "")) cdn = "Netlify";
+  return {
+    ttfb_ms: ttfb, total_ms: total, bytes_received: bytes,
+    http_protocol: proto,
+    compression: headers["content-encoding"] || "none",
+    cache_control: headers["cache-control"],
+    cdn_hint: cdn || undefined,
+  };
+}
+
+// ─── PASSIVE THREAT-INTEL & REPUTATION (no auth, public endpoints) ───────────
+interface ReputationIntel {
+  hibp_breach_count?: number;     // public breaches list (no auth)
+  google_safebrowsing_hint: "unknown";  // requires API key — left as hint
+  wayback_dead_pages_sampled: number;
+  notes: string[];
+}
+
+async function reputationIntel(host: string): Promise<ReputationIntel> {
+  const root = host.split(".").slice(-2).join(".");
+  const out: ReputationIntel = { google_safebrowsing_hint: "unknown", wayback_dead_pages_sampled: 0, notes: [] };
+  // HIBP unauthenticated breach lookup
+  const r = await fetchTimeout(`https://haveibeenpwned.com/api/v3/breaches?domain=${encodeURIComponent(root)}`, {
+    headers: { "user-agent": "ZophielRecon/1.0" },
+  }, 6000);
+  if (r?.ok) {
+    const j = await r.json().catch(() => null);
+    if (Array.isArray(j)) {
+      out.hibp_breach_count = j.length;
+      if (j.length) out.notes.push(`Domain appears in ${j.length} known public breach(es) — review HIBP`);
+    }
+  }
+  return out;
+}
+
 // ─── FORENSICS BUNDLE ────────────────────────────────────────────────────────
 interface ForensicsBundle {
   identity: PageIdentity | null;
@@ -379,25 +844,41 @@ interface ForensicsBundle {
   links: LinkInventory | null;
   archive: { first_seen?: string; last_seen?: string; snapshots?: number } | null;
   sub_audit: SubAudit[];
+  email_infra: EmailInfra | null;
+  security_audit: SecurityAudit | null;
+  page_structure: PageStructure | null;
+  mobile_auth: MobileAuthIntel | null;
+  cloud_buckets: CloudProbe[];
+  dependencies: DependencyIntel | null;
+  performance: PerformanceIntel | null;
+  reputation: ReputationIntel | null;
 }
 
-async function liveForensics(host: string, html: string | null, headers: Record<string, string>, subs: string[]): Promise<ForensicsBundle> {
-  const [redirect, exposed, archive, sub_audit] = await Promise.all([
+async function liveForensics(host: string, html: string | null, headers: Record<string, string>, subs: string[], setCookieAll: string[], jsCorpus: string): Promise<ForensicsBundle> {
+  const [redirect, exposed, archive, sub_audit, email_infra, cloud_buckets, dependencies, performance, reputation] = await Promise.all([
     redirectChain(host).catch(() => null),
     probeExposedFiles(host).catch(() => []),
     waybackInfo(host).catch(() => null),
     subs.length ? subdomainAudit(subs).catch(() => []) : Promise.resolve([]),
+    emailInfraAudit(host).catch(() => null),
+    probeCloudBuckets(host, html, jsCorpus).catch(() => []),
+    dependencyIntel(host).catch(() => null),
+    performanceIntel(host).catch(() => null),
+    reputationIntel(host).catch(() => null),
   ]);
   const identity = html ? parsePageIdentity(html) : null;
   const tech = html ? parseTechFingerprint(html, headers) : null;
   const links = html ? parseLinkInventory(html, host) : null;
-  return { identity, redirect, tech, exposed, links, archive, sub_audit };
+  const security_audit = auditSecurity(html, headers, setCookieAll);
+  const page_structure = html ? parsePageStructure(html) : null;
+  const mobile_auth = html ? parseMobileAuthIntel(html, jsCorpus) : null;
+  return { identity, redirect, tech, exposed, links, archive, sub_audit, email_infra, security_audit, page_structure, mobile_auth, cloud_buckets, dependencies, performance, reputation };
 }
 
 interface ReconBundle {
   host: string;
   dns: { A: string[]; AAAA: string[]; MX: string[]; NS: string[]; TXT: string[]; CNAME: string[] };
-  http: { status: number; finalUrl: string; headers: Record<string, string> } | null;
+  http: { status: number; finalUrl: string; headers: Record<string, string>; setCookieAll?: string[] } | null;
   geo: Record<string, unknown> | null;
   rdap: { registrar?: string; created?: string; expires?: string; nameservers?: string[] } | null;
   subdomains: string[];
@@ -456,6 +937,31 @@ const SECRET_PATTERNS: Array<{ type: string; label: string; re: RegExp; sev: Sec
   { type: "firebase_key",    label: "Firebase API Key",      re: /AIza[0-9A-Za-z_\-]{35}/g,                                         sev: "high" },
   { type: "private_key",     label: "Private Key Block",     re: /-----BEGIN (?:RSA |EC |OPENSSH |PGP |DSA |)PRIVATE KEY-----/g,    sev: "critical" },
   { type: "jwt_generic",     label: "Generic JWT",           re: /eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g,           sev: "med" },
+  { type: "sentry_dsn",      label: "Sentry DSN",            re: /https?:\/\/[a-f0-9]{20,}@[a-z0-9.\-]+\/[0-9]+/g,                  sev: "med" },
+  { type: "datadog_key",     label: "Datadog Client Token",  re: /pub[a-f0-9]{32}/g,                                                sev: "med" },
+  { type: "ga4_id",          label: "GA4 Measurement ID",    re: /G-[A-Z0-9]{8,12}/g,                                               sev: "low" },
+  { type: "segment_write",   label: "Segment Write Key",     re: /(?<![A-Za-z0-9])[A-Za-z0-9]{32}(?![A-Za-z0-9])(?=[\s"',]|$)/g,    sev: "low" },
+  { type: "recaptcha_site",  label: "reCAPTCHA Site Key",    re: /6L[0-9A-Za-z_\-]{38}/g,                                           sev: "low" },
+  { type: "mapbox_pub",      label: "Mapbox Public Token",   re: /pk\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g,                        sev: "med" },
+  { type: "intercom_app",    label: "Intercom App ID",       re: /(?:intercomSettings\s*=\s*\{[^}]*app_id\s*:\s*["'])([a-z0-9]{8})/g, sev: "low" },
+  { type: "hubspot_id",      label: "HubSpot Portal ID",     re: /(?:js\.hs-scripts\.com\/)([0-9]{6,9})/g,                          sev: "low" },
+  { type: "fb_pixel",        label: "Meta/Facebook Pixel ID",re: /(?:fbq\(['"]init['"],\s*['"])([0-9]{15,16})/g,                    sev: "low" },
+  { type: "tiktok_pixel",    label: "TikTok Pixel ID",       re: /(?:ttq\.load\(['"])([A-Z0-9]{20})/g,                              sev: "low" },
+  { type: "linkedin_partner",label: "LinkedIn Partner ID",   re: /_linkedin_partner_id\s*=\s*["']?([0-9]{6,9})/g,                   sev: "low" },
+  { type: "onesignal",       label: "OneSignal App ID",      re: /OneSignal\.init\([^)]*appId:\s*["']([a-f0-9\-]{36})/g,            sev: "low" },
+  { type: "auth0_domain",    label: "Auth0 Domain",          re: /[a-z0-9\-]+\.(?:us|eu|au|jp)\.auth0\.com/g,                       sev: "med" },
+  { type: "clerk_pub",       label: "Clerk Publishable Key", re: /pk_(?:test|live)_[A-Za-z0-9]{20,}/g,                              sev: "med" },
+  { type: "firebase_url",    label: "Firebase RTDB URL",     re: /https?:\/\/[a-z0-9\-]+\.firebaseio\.com/g,                        sev: "med" },
+  { type: "firebase_app",    label: "Firebase Project",      re: /[a-z0-9\-]+\.firebaseapp\.com/g,                                  sev: "low" },
+  { type: "s3_bucket",       label: "S3 Bucket URL",         re: /https?:\/\/[a-z0-9.\-]+\.s3[.\-][a-z0-9\-]*\.?amazonaws\.com/g,   sev: "med" },
+  { type: "gcs_bucket",      label: "GCS Bucket URL",        re: /https?:\/\/storage\.googleapis\.com\/[a-z0-9._\-]+/g,             sev: "med" },
+  { type: "azure_blob",      label: "Azure Blob URL",        re: /https?:\/\/[a-z0-9]+\.blob\.core\.windows\.net\/[a-z0-9._\-]+/g,  sev: "med" },
+  { type: "discord_webhook", label: "Discord Webhook",       re: /https?:\/\/discord(?:app)?\.com\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_\-]+/g, sev: "critical" },
+  { type: "slack_webhook",   label: "Slack Webhook",         re: /https?:\/\/hooks\.slack\.com\/services\/[A-Z0-9]+\/[A-Z0-9]+\/[A-Za-z0-9]+/g, sev: "critical" },
+  { type: "mailgun_key",     label: "Mailgun API Key",       re: /key-[0-9a-f]{32}/g,                                               sev: "critical" },
+  { type: "square_token",    label: "Square Access Token",   re: /sq0(?:atp|csp)-[A-Za-z0-9_\-]{22,}/g,                             sev: "critical" },
+  { type: "shopify_token",   label: "Shopify Access Token",  re: /shp(?:at|ca|pa|ss)_[a-fA-F0-9]{32,}/g,                            sev: "critical" },
+  { type: "npm_token",       label: "npm Access Token",      re: /npm_[A-Za-z0-9]{36}/g,                                            sev: "critical" },
 ];
 
 const EMAIL_RE   = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
@@ -946,7 +1452,10 @@ serve(async (req) => {
       secrets = s;
       const html = await fetchText(`https://${host}`, 2_000_000).catch(() => null);
       const headers = recon?.http?.headers || {};
-      forensics = await liveForensics(host, html, headers, recon?.subdomains || []).catch((e) => {
+      const setCookieAll = recon?.http?.setCookieAll || (headers["set-cookie"] ? [headers["set-cookie"]] : []);
+      // Build a small JS corpus from top bundles already discovered by secretScan
+      const jsCorpus = (s?.bundles || []).slice(0, 6).map((b) => b.source).join("\n");
+      forensics = await liveForensics(host, html, headers, recon?.subdomains || [], setCookieAll, jsCorpus).catch((e) => {
         console.error("[blueprint] forensics failed", e); return null;
       });
     } catch (e) {

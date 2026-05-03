@@ -53,6 +53,14 @@ interface LinkInventory {
   document_links: string[]; image_count: number;
 }
 interface SubAudit { host: string; ip?: string; cname?: string; status?: number; server?: string; tech?: string[]; weaknesses: string[]; }
+interface EmailInfra { mx_provider: string; mx_records: string[]; spf: string; spf_strict: boolean; dmarc: string; dmarc_policy: string; dkim_selectors_found: string[]; weaknesses: string[]; }
+interface SecurityAudit { hsts_present: boolean; hsts_max_age?: number; hsts_includes_sub: boolean; hsts_preload: boolean; x_frame_options: string; clickjacking_risk: boolean; csp_present: boolean; csp_unsafe_inline: boolean; csp_unsafe_eval: boolean; csp_wildcard_hosts: string[]; csp_report_only: boolean; cors_acao: string; cors_wildcard_with_credentials: boolean; cookies: Array<{ name: string; secure: boolean; httpOnly: boolean; sameSite: string }>; cookie_weak_count: number; mixed_content_resources: string[]; weaknesses: string[]; }
+interface PageStructure { forms: Array<{ action: string; method: string; fields: string[]; hidden_fields: string[] }>; iframes: string[]; html_comments: string[]; noscript_blocks: number; hreflang: Array<{ lang: string; href: string }>; open_graph_full: Record<string, string>; twitter_full: Record<string, string>; jsonld_blocks: number; }
+interface MobileAuthIntel { ios_app_link?: string; android_app_link?: string; app_bundle_ids: string[]; deep_link_schemes: string[]; oauth_providers: string[]; auth_provider_detected: string[]; session_recording_tools: string[]; ad_pixels: string[]; live_chat: string[]; consent_banner: string[]; ab_testing: string[]; }
+interface CloudProbe { bucket_url: string; type: "s3" | "gcs" | "azure" | "firebase"; status: number; public_listing: boolean; risk: "info" | "warn" | "critical"; note: string; }
+interface DependencyIntel { package_json_exposed: boolean; name?: string; version?: string; dependency_count: number; dev_dependency_count: number; outdated_warnings: string[]; notable: string[]; }
+interface PerformanceIntel { ttfb_ms?: number; total_ms?: number; bytes_received?: number; http_protocol: string; compression: string; cache_control?: string; cdn_hint?: string; }
+interface ReputationIntel { hibp_breach_count?: number; google_safebrowsing_hint: string; wayback_dead_pages_sampled: number; notes: string[]; }
 interface ForensicsBundle {
   identity: PageIdentity | null;
   redirect: { hops: Array<{ url: string; status: number }>; finalUrl: string; responseMs: number } | null;
@@ -61,6 +69,14 @@ interface ForensicsBundle {
   links: LinkInventory | null;
   archive: { first_seen?: string; last_seen?: string; snapshots?: number } | null;
   sub_audit: SubAudit[];
+  email_infra?: EmailInfra | null;
+  security_audit?: SecurityAudit | null;
+  page_structure?: PageStructure | null;
+  mobile_auth?: MobileAuthIntel | null;
+  cloud_buckets?: CloudProbe[];
+  dependencies?: DependencyIntel | null;
+  performance?: PerformanceIntel | null;
+  reputation?: ReputationIntel | null;
 }
 
 type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
@@ -1086,7 +1102,7 @@ const ChipList = ({ items, tone = "neutral" }: { items: string[]; tone?: Tone })
 
 const ForensicsPanels = ({ forensics, target }: { forensics: ForensicsBundle | null; target: string }) => {
   if (!forensics) return null;
-  const { identity, redirect, tech, exposed, links, archive, sub_audit } = forensics;
+  const { identity, redirect, tech, exposed, links, archive, sub_audit, email_infra, security_audit, page_structure, mobile_auth, cloud_buckets, dependencies, performance, reputation } = forensics;
 
   return (
     <div className="space-y-3">
@@ -1243,6 +1259,143 @@ const ForensicsPanels = ({ forensics, target }: { forensics: ForensicsBundle | n
               </tbody>
             </table>
           </div>
+        </SectionCard>
+      )}
+
+      {/* Email Infra (SPF/DMARC/DKIM) */}
+      {email_infra && (
+        <SectionCard title="Email Infrastructure" sub="SPF · DMARC · DKIM" tone={email_infra.weaknesses.length ? "warn" : "good"}>
+          <KV k="MX Provider" v={email_infra.mx_provider} />
+          <KV k="MX Records" v={<ChipList items={email_infra.mx_records} />} />
+          <KV k="SPF" v={email_infra.spf || "(missing)"} />
+          <KV k="SPF Strict" v={email_infra.spf_strict ? "yes (-all)" : "no"} />
+          <KV k="DMARC" v={email_infra.dmarc || "(missing)"} />
+          <KV k="DMARC Policy" v={email_infra.dmarc_policy} />
+          <KV k="DKIM Selectors" v={<ChipList items={email_infra.dkim_selectors_found} />} />
+          {email_infra.weaknesses.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[10px]">
+              {email_infra.weaknesses.map((w, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-amber-200/80"><AlertTriangle className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span>{w}</span></li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      )}
+
+      {/* Security Audit deep-dive */}
+      {security_audit && (
+        <SectionCard title="Security Headers · CSP · CORS · Cookies" sub="Layer 6 deep-dive" tone={security_audit.weaknesses.length ? (security_audit.cors_wildcard_with_credentials ? "critical" : "warn") : "good"}>
+          <KV k="HSTS" v={security_audit.hsts_present ? `max-age=${security_audit.hsts_max_age}${security_audit.hsts_includes_sub ? " +subdomains" : ""}${security_audit.hsts_preload ? " +preload" : ""}` : "missing"} />
+          <KV k="X-Frame-Options" v={security_audit.x_frame_options} />
+          <KV k="Clickjacking Risk" v={security_audit.clickjacking_risk ? "yes" : "no"} />
+          <KV k="CSP" v={security_audit.csp_present ? (security_audit.csp_report_only ? "report-only" : "enforced") : "missing"} />
+          <KV k="CSP unsafe-inline" v={security_audit.csp_unsafe_inline ? "yes" : "no"} />
+          <KV k="CSP unsafe-eval" v={security_audit.csp_unsafe_eval ? "yes" : "no"} />
+          <KV k="CSP wildcards" v={<ChipList items={security_audit.csp_wildcard_hosts} />} />
+          <KV k="CORS Allow-Origin" v={security_audit.cors_acao} />
+          <KV k="CORS * + credentials" v={security_audit.cors_wildcard_with_credentials ? "CRITICAL" : "no"} />
+          <KV k="Cookies" v={`${security_audit.cookies.length} set, ${security_audit.cookie_weak_count} weak`} />
+          <KV k="Mixed Content" v={`${security_audit.mixed_content_resources.length} HTTP resource(s)`} />
+          {security_audit.weaknesses.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[10px]">
+              {security_audit.weaknesses.map((w, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-amber-200/80"><AlertTriangle className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span>{w}</span></li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      )}
+
+      {/* Page Structure */}
+      {page_structure && (
+        <SectionCard title="Page Structure · Forms · iFrames · Hreflang" sub="Layer 7">
+          <KV k="Forms" v={`${page_structure.forms.length} found`} />
+          <KV k="iFrames" v={<ChipList items={page_structure.iframes} />} />
+          <KV k="HTML Comments" v={`${page_structure.html_comments.length} captured`} />
+          <KV k="<noscript> blocks" v={page_structure.noscript_blocks} />
+          <KV k="Hreflang" v={<ChipList items={page_structure.hreflang.map(h => `${h.lang}→${h.href}`)} />} />
+          <KV k="JSON-LD blocks" v={page_structure.jsonld_blocks} />
+          {page_structure.forms.length > 0 && (
+            <div className="mt-2 space-y-1 text-[10px] font-mono">
+              {page_structure.forms.slice(0, 6).map((f, i) => (
+                <div key={i} className="text-muted-foreground/80">
+                  <span className="text-accent/80">{f.method}</span> {f.action} — {f.fields.join(", ") || "(no named fields)"}
+                  {f.hidden_fields.length > 0 && <span className="text-amber-300/70"> · hidden: {f.hidden_fields.join(", ")}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+      )}
+
+      {/* Mobile / Auth / Tracking */}
+      {mobile_auth && (
+        <SectionCard title="Mobile · Auth · Tracking Surface" sub="Layer 9 / 10">
+          <KV k="iOS App" v={mobile_auth.ios_app_link || "—"} />
+          <KV k="Android App" v={mobile_auth.android_app_link || "—"} />
+          <KV k="Bundle IDs" v={<ChipList items={mobile_auth.app_bundle_ids} />} />
+          <KV k="Deep Link Schemes" v={<ChipList items={mobile_auth.deep_link_schemes} />} />
+          <KV k="OAuth Providers" v={<ChipList items={mobile_auth.oauth_providers} />} />
+          <KV k="Auth Provider" v={<ChipList items={mobile_auth.auth_provider_detected} />} />
+          <KV k="Session Recording" v={<ChipList items={mobile_auth.session_recording_tools} />} />
+          <KV k="Ad Pixels" v={<ChipList items={mobile_auth.ad_pixels} />} />
+          <KV k="Live Chat" v={<ChipList items={mobile_auth.live_chat} />} />
+          <KV k="Consent Banner" v={<ChipList items={mobile_auth.consent_banner} />} />
+          <KV k="A/B Testing" v={<ChipList items={mobile_auth.ab_testing} />} />
+        </SectionCard>
+      )}
+
+      {/* Cloud buckets */}
+      {cloud_buckets && cloud_buckets.length > 0 && (
+        <SectionCard title="Cloud Storage Exposure" sub={`${cloud_buckets.length} bucket(s) probed`} tone={cloud_buckets.some(b => b.risk === "critical") ? "critical" : cloud_buckets.some(b => b.risk === "warn") ? "warn" : "good"}>
+          <ul className="space-y-1 text-[10px] font-mono">
+            {cloud_buckets.map((b, i) => (
+              <li key={i} className={`flex items-start gap-2 ${b.risk === "critical" ? "text-red-300" : b.risk === "warn" ? "text-amber-200/90" : "text-muted-foreground/80"}`}>
+                <span className="px-1.5 py-0.5 rounded bg-card/40 border border-border/30 uppercase">{b.type}</span>
+                <span className="break-all flex-1">{b.bucket_url}</span>
+                <span className="opacity-70">[{b.status}]</span>
+                <span className="opacity-90">{b.note}</span>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      )}
+
+      {/* Dependencies */}
+      {dependencies && dependencies.package_json_exposed && (
+        <SectionCard title="Dependency Intelligence" sub="package.json publicly exposed" tone={dependencies.outdated_warnings.length ? "warn" : "neutral"}>
+          <KV k="Package" v={`${dependencies.name || "?"}@${dependencies.version || "?"}`} />
+          <KV k="Dependencies" v={dependencies.dependency_count} />
+          <KV k="Dev Dependencies" v={dependencies.dev_dependency_count} />
+          <KV k="Notable" v={<ChipList items={dependencies.notable} />} />
+          <KV k="Outdated Warnings" v={<ChipList items={dependencies.outdated_warnings} />} />
+        </SectionCard>
+      )}
+
+      {/* Performance */}
+      {performance && (
+        <SectionCard title="Performance & Transport" sub="latency · CDN · compression">
+          <KV k="TTFB" v={performance.ttfb_ms ? `${performance.ttfb_ms} ms` : "—"} />
+          <KV k="Total" v={performance.total_ms ? `${performance.total_ms} ms` : "—"} />
+          <KV k="Bytes" v={performance.bytes_received?.toLocaleString()} />
+          <KV k="Protocol Hint" v={performance.http_protocol} />
+          <KV k="Compression" v={performance.compression} />
+          <KV k="Cache-Control" v={performance.cache_control} />
+          <KV k="CDN Hint" v={performance.cdn_hint} />
+        </SectionCard>
+      )}
+
+      {/* Reputation */}
+      {reputation && (
+        <SectionCard title="Breach & Reputation" sub="passive HIBP lookup" tone={(reputation.hibp_breach_count || 0) > 0 ? "critical" : "good"}>
+          <KV k="HIBP Breaches" v={reputation.hibp_breach_count ?? "n/a"} />
+          {reputation.notes.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[10px]">
+              {reputation.notes.map((w, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-amber-200/80"><AlertTriangle className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span>{w}</span></li>
+              ))}
+            </ul>
+          )}
         </SectionCard>
       )}
     </div>
