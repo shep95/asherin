@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Crosshair, Loader2, Globe, Link2, Sparkles, Shield, Zap,
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
-  Copy, Check, ChevronRight, ChevronDown,
+  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,20 @@ interface Blueprint {
   branches: Branch[];
   edges: Edge[];
   criticals?: Critical[];
+}
+interface SecretHit { type: string; label: string; match: string; raw: string; source: string; severity: "critical" | "high" | "med" | "low"; context?: string; }
+interface SecretScan {
+  bundles_scanned: number;
+  bundles: Array<{ source: string; size: number; hits: number }>;
+  inline_scripts: number;
+  total_bytes: number;
+  secrets: SecretHit[];
+  emails: string[];
+  github_links: string[];
+  developer_comments: string[];
+  internal_codenames: string[];
+  feature_flags: string[];
+  truncated: boolean;
 }
 
 type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
