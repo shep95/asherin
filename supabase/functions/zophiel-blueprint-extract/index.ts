@@ -1052,7 +1052,7 @@ serve(async (req) => {
     if (recon && blueprint && !blueprint.target) blueprint.target = recon.host;
 
     return new Response(
-      JSON.stringify({ success: true, blueprint, recon, secrets }),
+      JSON.stringify({ success: true, blueprint, recon, secrets, forensics }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
