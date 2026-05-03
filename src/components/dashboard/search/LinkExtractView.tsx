@@ -244,6 +244,7 @@ const LinkExtractView = () => {
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
       setBlueprint(data.blueprint as Blueprint);
       if (data.secrets) setSecrets(data.secrets as SecretScan);
+      if (data.forensics) setForensics(data.forensics as ForensicsBundle);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to extract blueprint"));
     } finally {
