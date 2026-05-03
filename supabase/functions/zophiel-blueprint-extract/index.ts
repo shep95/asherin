@@ -122,7 +122,9 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
     { "from": "people", "to": "socialeng", "label": "targeted via" },
     { "from": "attacksurface", "to": "monitoring", "label": "watched by" },
     { "from": "threats", "to": "remediation", "label": "fixed via" },
-    { "from": "leaks", "to": "underground", "label": "surfaces in" }
+    { "from": "leaks", "to": "underground", "label": "surfaces in" },
+    { "from": "domain", "to": "redhawk", "label": "scanned by" },
+    { "from": "redhawk", "to": "attacksurface", "label": "feeds" }
   ],
   "criticals": [
     { "branch": "security", "finding": "CSP allows unsafe-eval", "severity": "high" }
