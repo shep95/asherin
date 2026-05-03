@@ -61,6 +61,31 @@ const SUBDOMAIN_BRANCH_META: Record<string, Pick<Branch, "label" | "icon" | "ton
   huntsurface: { label: "HUNT SURFACE AUDIT", icon: "shield", tone: "warn" },
 };
 
+// Plain-language explanations — what each branch means in everyday words.
+const BRANCH_GLOSSARY: Record<string, { plain: string; why: string; example: string }> = {
+  domain: { plain: "The website's address book entry — who owns the name and which servers answer for it.", why: "If this record is weak or expired, attackers can hijack the site or redirect mail.", example: "Like the name on a mailbox and the postal route to reach it." },
+  hosting: { plain: "The physical (or cloud) machines actually serving the site, plus the delivery network in front of them.", why: "Tells you how fast and resilient the site is, and which provider holds the keys.", example: "The building the shop is in, plus the delivery trucks that hand out copies." },
+  stack: { plain: "The software bricks — frameworks, runtimes, libraries — used to build the site.", why: "Outdated bricks have known cracks (CVEs) attackers exploit.", example: "Like knowing whether a house is wood, brick, or steel — and how old." },
+  security: { plain: "The locks, alarms, and headers protecting the site from common web attacks.", why: "Missing headers (CSP, HSTS, etc.) leave the front door unlocked.", example: "The deadbolts, security cameras, and alarm system on the building." },
+  thirdparty: { plain: "Outside services the site loads — analytics, ads, fonts, chat widgets, payment scripts.", why: "Each one is a guest with keys; if any are compromised, your site is too.", example: "Contractors you let walk around inside your shop after hours." },
+  network: { plain: "The pipes, peers and routes the site's traffic actually travels through.", why: "Reveals chokepoints, hidden providers and cross-border data paths.", example: "The highways and toll roads packets take to reach customers." },
+  org: { plain: "The legal entity behind the site — company name, registration, key contacts.", why: "Useful for due diligence, sanctions checks, and accountability.", example: "The business license posted on the wall." },
+  subdomains: { plain: "All the side-doors of the same brand — api.x.com, dev.x.com, mail.x.com, etc.", why: "Forgotten subdomains are the #1 way attackers slip in unnoticed.", example: "Side entrances and loading docks behind the main storefront." },
+  threats: { plain: "Known public vulnerabilities (CVEs) tied to the exact software versions detected.", why: "If a CVE is known and unpatched, it's already a public exploit recipe.", example: "Recall notices on the specific car model you drive." },
+  leaks: { plain: "Where credentials, keys, or customer data tend to leak for this kind of stack.", why: "Exposed secrets = instant account takeover and data theft.", example: "House keys accidentally left under the welcome mat." },
+  people: { plain: "Public footprint of staff — email patterns, LinkedIn presence, role exposure.", why: "Phishers use this to impersonate or target employees with precision.", example: "The staff name-tags visible from the street window." },
+  history: { plain: "How the site has changed over time — old stacks, dead pages, archive snapshots.", why: "Legacy code paths often stay live and unpatched in the background.", example: "Renovation history of a building — old wiring still in the walls." },
+  attacksurface: { plain: "Every door, window, and vent the outside internet can actually touch.", why: "You can only defend what you can see; this maps it.", example: "A floor plan showing every entrance, including the ones you forgot." },
+  peers: { plain: "Other sites running on the same shared infrastructure or stack.", why: "If a noisy neighbor gets compromised, you may bleed too.", example: "Tenants in the same office building sharing one front desk." },
+  socialeng: { plain: "How easy it would be to trick staff or customers via fake emails, calls, or impersonation.", why: "Most breaches start with a convincing message, not a hack.", example: "How easy it is to phone the front desk and pretend to be the boss." },
+  monitoring: { plain: "Whether changes to the site, certs, or DNS are being watched and alerted on.", why: "Silent changes are how attackers maintain footholds.", example: "Whether the security cameras are recording or just hanging there." },
+  remediation: { plain: "Prioritised, plain-English fixes — what to patch first, second, third.", why: "Turns the audit into a real action plan, not just a scary list.", example: "A to-do list from the building inspector, ranked by danger." },
+  underground: { plain: "Mentions of the brand or domain in public archives, leak indices and forums.", why: "Early-warning signal that someone is planning or selling access.", example: "Hearing your address being whispered about in the wrong neighborhood." },
+  recon: { plain: "A baseline external sweep — DNS, WHOIS, GeoIP, banners, ports, basic crawl.", why: "The same first look any auditor (or attacker) would take.", example: "Walking around the building once and writing down everything visible." },
+  huntsurface: { plain: "Deep self-audit checklist used by professional security researchers.", why: "Catches the subtle issues — takeovers, leaked JS secrets, open redirects, CORS gaps.", example: "A licensed home inspector with a thermal camera, not just a flashlight." },
+};
+
+
 const toTitle = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 
 const toLeafValue = (value: unknown): string => {
@@ -344,13 +369,13 @@ const ScorePip = ({ label, value }: { label: string; value?: number }) => {
   );
 };
 
-// ─── Web Diagram (SVG radial) ────────────────────────────────────────────────
+// ─── Web Diagram (SVG radial, clickable) ─────────────────────────────────────
 const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
   const branches = blueprint.branches;
   const n = branches.length;
-  // viewBox 800x440, center node
   const cx = 400, cy = 220;
-  const rx = 320, ry = 170; // ellipse radius
+  const rx = 320, ry = 170;
+  const [selected, setSelected] = useState<string | null>(null);
 
   const positions: Record<string, { x: number; y: number }> = {};
   branches.forEach((b, i) => {
@@ -358,10 +383,15 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
     positions[b.id] = { x: cx + Math.cos(angle) * rx, y: cy + Math.sin(angle) * ry };
   });
 
+  const sel = selected ? branches.find((b) => b.id === selected) : null;
+  const glossary = sel ? BRANCH_GLOSSARY[sel.id] : null;
+
   return (
-    <div className="rounded-2xl border border-border/15 bg-gradient-to-br from-card/20 via-card/10 to-background/0 backdrop-blur-sm p-2 overflow-hidden">
+    <div className="rounded-2xl border border-border/15 bg-gradient-to-br from-card/20 via-card/10 to-background/0 backdrop-blur-sm p-2 overflow-hidden relative">
+      <div className="absolute top-3 left-4 text-[9px] font-extralight tracking-[0.25em] text-muted-foreground/40 uppercase pointer-events-none">
+        Click any node to learn what it means
+      </div>
       <svg viewBox="0 0 800 440" className="w-full h-auto" style={{ maxHeight: 480 }}>
-        {/* Subtle grid */}
         <defs>
           <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.25" />
@@ -374,44 +404,40 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
         <rect x="0" y="0" width="800" height="440" fill="url(#gridP)" />
         <circle cx={cx} cy={cy} r="120" fill="url(#centerGlow)" />
 
-        {/* Edges from blueprint (between branches) */}
         {blueprint.edges?.map((e, i) => {
           const from = positions[e.from];
           const to = positions[e.to];
           if (!from || !to) return null;
           const mx = (from.x + to.x) / 2;
           const my = (from.y + to.y) / 2 - 20;
+          const dim = selected && e.from !== selected && e.to !== selected;
           return (
-            <g key={`e-${i}`}>
-              <path
-                d={`M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`}
-                fill="none"
-                stroke="hsl(var(--accent))"
-                strokeOpacity="0.18"
-                strokeWidth="1"
-                strokeDasharray="3 4"
-              />
-            </g>
+            <path key={`e-${i}`}
+              d={`M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`}
+              fill="none"
+              stroke="hsl(var(--accent))"
+              strokeOpacity={dim ? 0.05 : 0.18}
+              strokeWidth="1"
+              strokeDasharray="3 4"
+            />
           );
         })}
 
-        {/* Spokes from center to each branch */}
         {branches.map((b) => {
           const p = positions[b.id];
-          const tone = TONE_STYLES[b.tone] || TONE_STYLES.neutral;
           const stroke =
             b.tone === "good" ? "rgb(52 211 153 / 0.4)" :
             b.tone === "warn" ? "rgb(251 191 36 / 0.4)" :
             b.tone === "critical" ? "rgb(248 113 113 / 0.5)" :
             "hsl(var(--muted-foreground) / 0.25)";
+          const dim = selected && selected !== b.id;
           return (
             <line key={`s-${b.id}`} x1={cx} y1={cy} x2={p.x} y2={p.y}
-              stroke={stroke} strokeWidth="1.2" />
+              stroke={stroke} strokeOpacity={dim ? 0.15 : 1} strokeWidth="1.2" />
           );
         })}
 
-        {/* Center node */}
-        <g>
+        <g onClick={() => setSelected(null)} style={{ cursor: "pointer" }}>
           <circle cx={cx} cy={cy} r="38" fill="hsl(var(--background))" stroke="hsl(var(--accent))" strokeOpacity="0.5" strokeWidth="1.2" />
           <circle cx={cx} cy={cy} r="48" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="2 4" />
           <text x={cx} y={cy - 4} textAnchor="middle" className="fill-foreground" fontSize="10" fontWeight="500" letterSpacing="2">TARGET</text>
@@ -420,10 +446,11 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
           </text>
         </g>
 
-        {/* Branch nodes */}
         {branches.map((b) => {
           const p = positions[b.id];
           const Icon = ICONS[b.icon] || Globe;
+          const isSel = selected === b.id;
+          const dim = selected && !isSel;
           const fill =
             b.tone === "good" ? "rgb(16 185 129 / 0.12)" :
             b.tone === "warn" ? "rgb(245 158 11 / 0.12)" :
@@ -435,26 +462,73 @@ const WebDiagram = ({ blueprint }: { blueprint: Blueprint }) => {
             b.tone === "critical" ? "rgb(248 113 113 / 0.6)" :
             "hsl(var(--border))";
           return (
-            <g key={`n-${b.id}`}>
-              <circle cx={p.x} cy={p.y} r="28" fill={fill} stroke={stroke} strokeWidth="1.2" />
+            <g key={`n-${b.id}`}
+              onClick={(ev) => { ev.stopPropagation(); setSelected(isSel ? null : b.id); }}
+              style={{ cursor: "pointer", opacity: dim ? 0.35 : 1, transition: "opacity 200ms" }}
+            >
+              {isSel && (
+                <circle cx={p.x} cy={p.y} r="36" fill="none" stroke="hsl(var(--accent))" strokeOpacity="0.6" strokeWidth="1" strokeDasharray="2 3">
+                  <animate attributeName="r" from="32" to="42" dur="1.6s" repeatCount="indefinite" />
+                  <animate attributeName="stroke-opacity" from="0.6" to="0" dur="1.6s" repeatCount="indefinite" />
+                </circle>
+              )}
+              <circle cx={p.x} cy={p.y} r="28" fill={fill} stroke={stroke} strokeWidth={isSel ? 2 : 1.2} />
               <foreignObject x={p.x - 9} y={p.y - 18} width="18" height="18">
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="w-full h-full flex items-center justify-center pointer-events-none">
                   <Icon className="h-3.5 w-3.5 text-foreground/80" />
                 </div>
               </foreignObject>
-              <text x={p.x} y={p.y + 8} textAnchor="middle" className="fill-foreground" fontSize="8" fontWeight="500" letterSpacing="1.5">
+              <text x={p.x} y={p.y + 8} textAnchor="middle" className="fill-foreground pointer-events-none" fontSize="8" fontWeight="500" letterSpacing="1.5">
                 {b.label.split(" ")[0]}
               </text>
-              <text x={p.x} y={p.y + 44} textAnchor="middle" className="fill-muted-foreground" fontSize="8" fontWeight="300" letterSpacing="0.5">
+              <text x={p.x} y={p.y + 44} textAnchor="middle" className="fill-muted-foreground pointer-events-none" fontSize="8" fontWeight="300" letterSpacing="0.5">
                 {b.leaves.length} signals
               </text>
             </g>
           );
         })}
       </svg>
+
+      {/* Plain-language explainer panel */}
+      {sel && (
+        <div className="mt-2 rounded-xl border border-border/20 bg-background/60 backdrop-blur-md p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2">
+              <span className={`h-1.5 w-1.5 rounded-full ${(TONE_STYLES[sel.tone] || TONE_STYLES.neutral).dot}`} />
+              <span className="text-[10px] font-semibold tracking-[0.2em] text-foreground/90 uppercase">{sel.label}</span>
+              <span className="text-[9px] font-light tracking-wider text-muted-foreground/50">{sel.leaves.length} signals</span>
+            </div>
+            <button onClick={() => setSelected(null)} className="text-[10px] text-muted-foreground/50 hover:text-foreground/80 transition">close</button>
+          </div>
+          {glossary ? (
+            <div className="space-y-2 text-[11px] font-extralight leading-relaxed">
+              <p className="text-foreground/85"><span className="text-muted-foreground/50 uppercase tracking-wider text-[9px] mr-2">What it is</span>{glossary.plain}</p>
+              <p className="text-foreground/75"><span className="text-muted-foreground/50 uppercase tracking-wider text-[9px] mr-2">Why it matters</span>{glossary.why}</p>
+              <p className="text-muted-foreground/70 italic"><span className="text-muted-foreground/50 uppercase tracking-wider text-[9px] mr-2 not-italic">Like</span>{glossary.example}</p>
+            </div>
+          ) : (
+            <p className="text-[11px] font-extralight text-muted-foreground/60">No glossary entry — see the branch card below for raw signals.</p>
+          )}
+          {sel.leaves.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border/10">
+              <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50 mb-1.5">Top signals</div>
+              <ul className="space-y-1">
+                {sel.leaves.slice(0, 3).map((l, i) => (
+                  <li key={i} className="flex items-baseline gap-2 text-[11px]">
+                    <span className="font-extralight text-muted-foreground/60 truncate min-w-0 max-w-[40%]">{l.label}</span>
+                    <span className="flex-1 border-b border-dotted border-border/15 mb-0.5" />
+                    <span className="font-light text-foreground/85 truncate text-right max-w-[55%]" title={l.value}>{l.value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
+
 
 // ─── Branch Card (the "tree" leaves) ─────────────────────────────────────────
 const BranchCard = ({
