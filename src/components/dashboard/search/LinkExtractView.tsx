@@ -61,6 +61,31 @@ const SUBDOMAIN_BRANCH_META: Record<string, Pick<Branch, "label" | "icon" | "ton
   huntsurface: { label: "HUNT SURFACE AUDIT", icon: "shield", tone: "warn" },
 };
 
+// Plain-language explanations — what each branch means in everyday words.
+const BRANCH_GLOSSARY: Record<string, { plain: string; why: string; example: string }> = {
+  domain: { plain: "The website's address book entry — who owns the name and which servers answer for it.", why: "If this record is weak or expired, attackers can hijack the site or redirect mail.", example: "Like the name on a mailbox and the postal route to reach it." },
+  hosting: { plain: "The physical (or cloud) machines actually serving the site, plus the delivery network in front of them.", why: "Tells you how fast and resilient the site is, and which provider holds the keys.", example: "The building the shop is in, plus the delivery trucks that hand out copies." },
+  stack: { plain: "The software bricks — frameworks, runtimes, libraries — used to build the site.", why: "Outdated bricks have known cracks (CVEs) attackers exploit.", example: "Like knowing whether a house is wood, brick, or steel — and how old." },
+  security: { plain: "The locks, alarms, and headers protecting the site from common web attacks.", why: "Missing headers (CSP, HSTS, etc.) leave the front door unlocked.", example: "The deadbolts, security cameras, and alarm system on the building." },
+  thirdparty: { plain: "Outside services the site loads — analytics, ads, fonts, chat widgets, payment scripts.", why: "Each one is a guest with keys; if any are compromised, your site is too.", example: "Contractors you let walk around inside your shop after hours." },
+  network: { plain: "The pipes, peers and routes the site's traffic actually travels through.", why: "Reveals chokepoints, hidden providers and cross-border data paths.", example: "The highways and toll roads packets take to reach customers." },
+  org: { plain: "The legal entity behind the site — company name, registration, key contacts.", why: "Useful for due diligence, sanctions checks, and accountability.", example: "The business license posted on the wall." },
+  subdomains: { plain: "All the side-doors of the same brand — api.x.com, dev.x.com, mail.x.com, etc.", why: "Forgotten subdomains are the #1 way attackers slip in unnoticed.", example: "Side entrances and loading docks behind the main storefront." },
+  threats: { plain: "Known public vulnerabilities (CVEs) tied to the exact software versions detected.", why: "If a CVE is known and unpatched, it's already a public exploit recipe.", example: "Recall notices on the specific car model you drive." },
+  leaks: { plain: "Where credentials, keys, or customer data tend to leak for this kind of stack.", why: "Exposed secrets = instant account takeover and data theft.", example: "House keys accidentally left under the welcome mat." },
+  people: { plain: "Public footprint of staff — email patterns, LinkedIn presence, role exposure.", why: "Phishers use this to impersonate or target employees with precision.", example: "The staff name-tags visible from the street window." },
+  history: { plain: "How the site has changed over time — old stacks, dead pages, archive snapshots.", why: "Legacy code paths often stay live and unpatched in the background.", example: "Renovation history of a building — old wiring still in the walls." },
+  attacksurface: { plain: "Every door, window, and vent the outside internet can actually touch.", why: "You can only defend what you can see; this maps it.", example: "A floor plan showing every entrance, including the ones you forgot." },
+  peers: { plain: "Other sites running on the same shared infrastructure or stack.", why: "If a noisy neighbor gets compromised, you may bleed too.", example: "Tenants in the same office building sharing one front desk." },
+  socialeng: { plain: "How easy it would be to trick staff or customers via fake emails, calls, or impersonation.", why: "Most breaches start with a convincing message, not a hack.", example: "How easy it is to phone the front desk and pretend to be the boss." },
+  monitoring: { plain: "Whether changes to the site, certs, or DNS are being watched and alerted on.", why: "Silent changes are how attackers maintain footholds.", example: "Whether the security cameras are recording or just hanging there." },
+  remediation: { plain: "Prioritised, plain-English fixes — what to patch first, second, third.", why: "Turns the audit into a real action plan, not just a scary list.", example: "A to-do list from the building inspector, ranked by danger." },
+  underground: { plain: "Mentions of the brand or domain in public archives, leak indices and forums.", why: "Early-warning signal that someone is planning or selling access.", example: "Hearing your address being whispered about in the wrong neighborhood." },
+  recon: { plain: "A baseline external sweep — DNS, WHOIS, GeoIP, banners, ports, basic crawl.", why: "The same first look any auditor (or attacker) would take.", example: "Walking around the building once and writing down everything visible." },
+  huntsurface: { plain: "Deep self-audit checklist used by professional security researchers.", why: "Catches the subtle issues — takeovers, leaked JS secrets, open redirects, CORS gaps.", example: "A licensed home inspector with a thermal camera, not just a flashlight." },
+};
+
+
 const toTitle = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 
 const toLeafValue = (value: unknown): string => {
