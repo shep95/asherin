@@ -160,6 +160,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </SubscriptionProvider>
+      </AureonDomainGate>
     </AuthProvider>
   </QueryClientProvider>
 );
