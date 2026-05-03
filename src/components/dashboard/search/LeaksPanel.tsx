@@ -53,7 +53,7 @@ const LeaksPanel = () => {
   const [selected, setSelected] = useState<Record<string, AlephResult>>({});
   const [zipping, setZipping] = useState(false);
   const [integrating, setIntegrating] = useState(false);
-  const [activeSchemata, setActiveSchemata] = useState<Schema[]>(["Pages", "Document", "HyperText", "Email", "PlainText", "Person", "Company"]);
+  // Filters removed — AI Intent Filter does the narrowing instead.
 
   // ── Intent Filter ────────────────────────────────────────────
   const [intent, setIntent] = useState("");
@@ -242,7 +242,7 @@ const LeaksPanel = () => {
       params.set("limit", "60");
       params.set("highlight", "true");
       params.set("highlight_count", "2");
-      activeSchemata.forEach((s) => params.append("filter:schemata", s));
+      // No schema filter — return everything Aleph has, let the AI Intent Filter narrow it.
       const target = `${ALEPH}/search?${params.toString()}`;
 
       // Internet Archive query (parallel)
@@ -305,7 +305,7 @@ const LeaksPanel = () => {
     } catch (e: any) {
       setError(e?.message || "Search failed");
     } finally { setLoading(false); }
-  }, [activeSchemata]);
+  }, []);
 
   const toggleSel = (r: AlephResult) => {
     setSelected((s) => {
@@ -423,22 +423,7 @@ const LeaksPanel = () => {
         </button>
       </form>
 
-      {/* Schema filters */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/50 mr-1">Types</span>
-        {SCHEMATA.map((s) => {
-          const on = activeSchemata.includes(s);
-          return (
-            <button
-              key={s}
-              onClick={() => setActiveSchemata((cur) => on ? cur.filter((x) => x !== s) : [...cur, s])}
-              className={`px-2 py-0.5 rounded-md text-[10px] font-light tracking-wide border transition-colors ${
-                on ? "bg-accent/20 border-accent/40 text-accent" : "bg-card/30 border-border/30 text-muted-foreground/60 hover:text-foreground"
-              }`}
-            >{s}</button>
-          );
-        })}
-      </div>
+      {/* Schema filters removed — AI Intent Filter narrows results instead. */}
 
       {/* Intent Filter — describe what you actually want, AI picks matching docs */}
       {searched && results.length > 0 && (
