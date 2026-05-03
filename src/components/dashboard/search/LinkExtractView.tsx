@@ -1102,7 +1102,7 @@ const ChipList = ({ items, tone = "neutral" }: { items: string[]; tone?: Tone })
 
 const ForensicsPanels = ({ forensics, target }: { forensics: ForensicsBundle | null; target: string }) => {
   if (!forensics) return null;
-  const { identity, redirect, tech, exposed, links, archive, sub_audit } = forensics;
+  const { identity, redirect, tech, exposed, links, archive, sub_audit, email_infra, security_audit, page_structure, mobile_auth, cloud_buckets, dependencies, performance, reputation } = forensics;
 
   return (
     <div className="space-y-3">
