@@ -533,10 +533,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
-              {/* Archive — direct browse of archive.org */}
+              {/* Archive — direct browse of archive.org + admin Knowledge Harvester */}
               {mode === "archive" && (
                 <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
-                  <ArchivePanel />
+                  <div className="space-y-4">
+                    <ArchivesHarvesterPanel />
+                    <ArchivePanel />
+                  </div>
                 </Suspense>
               )}
 
