@@ -411,9 +411,19 @@ serve(async (req) => {
       });
     }
 
+    // Live recon — pull real, observable facts before AI synthesis
+    let recon: ReconBundle | null = null;
+    try {
+      recon = await liveRecon(url, { withSubs: !isSubdomainMode });
+    } catch (e) {
+      console.error("[blueprint] recon failed", e);
+    }
+    const reconBlock = recon ? reconToPromptBlock(recon) : "";
+
     const userPrompt = isSubdomainMode
-      ? `Subdomain target: ${url}\n\nReturn the JSON blueprint for THIS subdomain now.`
-      : `Target URL: ${url}\n\nReturn the JSON blueprint now (include the subdomains branch with enumerated hostnames).`;
+      ? `${reconBlock}\nSubdomain target: ${url}\n\nReturn the JSON blueprint for THIS subdomain now, grounded in the LIVE RECON FACTS above.`
+      : `${reconBlock}\nTarget URL: ${url}\n\nReturn the JSON blueprint now, grounded in the LIVE RECON FACTS above. Populate the 'subdomains' branch using the CERT-TRANSPARENCY SUBDOMAINS list verbatim (do not invent hostnames).`;
+
 
     let raw = "";
     let finishReason: string | undefined;
