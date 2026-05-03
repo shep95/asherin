@@ -71,13 +71,20 @@ async function geoIp(ip: string): Promise<Record<string, unknown> | null> {
   return await r.json().catch(() => null);
 }
 
-async function probeHttp(host: string): Promise<{ headers: Record<string, string>; status: number; finalUrl: string } | null> {
+async function probeHttp(host: string): Promise<{ headers: Record<string, string>; status: number; finalUrl: string; setCookieAll: string[] } | null> {
   const r = await fetchTimeout(`https://${host}`, { method: "GET", redirect: "follow" }, 10_000);
   if (!r) return null;
   const headers: Record<string, string> = {};
   r.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+  // Capture multiple Set-Cookie headers (Headers.getSetCookie when available)
+  let setCookieAll: string[] = [];
+  try {
+    const gsc = (r.headers as unknown as { getSetCookie?: () => string[] }).getSetCookie;
+    if (typeof gsc === "function") setCookieAll = gsc.call(r.headers) || [];
+    else if (headers["set-cookie"]) setCookieAll = [headers["set-cookie"]];
+  } catch { /* */ }
   try { await r.body?.cancel(); } catch { /* ignore */ }
-  return { headers, status: r.status, finalUrl: r.url };
+  return { headers, status: r.status, finalUrl: r.url, setCookieAll };
 }
 
 // ─── REDIRECT CHAIN ──────────────────────────────────────────────────────────
