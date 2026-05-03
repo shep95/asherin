@@ -567,13 +567,12 @@ const BranchCard = ({
       <ul className="space-y-1.5 relative pl-3">
         <span className="absolute left-0 top-1 bottom-1 w-px bg-border/20" />
         {branch.leaves.map((leaf, i) => (
-          <li key={i} className="relative flex items-baseline gap-2 text-[11px]">
+          <li key={i} className="relative flex items-start gap-2 text-[11px]">
             <span className="absolute -left-3 top-2 h-px w-2 bg-border/20" />
-            <span className="font-extralight text-muted-foreground/60 tracking-wide truncate min-w-0 max-w-[50%]">
+            <span className="font-extralight text-muted-foreground/60 tracking-wide shrink-0 max-w-[40%] break-words">
               {leaf.label}
             </span>
-            <span className="flex-1 border-b border-dotted border-border/15 mb-0.5 mx-1" />
-            <span className="font-light text-foreground/90 truncate text-right max-w-[55%]" title={leaf.value}>
+            <span className="font-light text-foreground/90 text-right flex-1 min-w-0 break-words whitespace-normal" title={leaf.value}>
               {leaf.value}
             </span>
           </li>
@@ -695,12 +694,11 @@ const NestedBranch = ({ branch }: { branch: Branch }) => {
       </div>
       <ul className="space-y-1">
         {branch.leaves.map((leaf, i) => (
-          <li key={i} className="flex items-baseline gap-2 text-[10px]">
-            <span className="font-extralight text-muted-foreground/60 tracking-wide truncate max-w-[45%]">
+          <li key={i} className="flex items-start gap-2 text-[10px]">
+            <span className="font-extralight text-muted-foreground/60 tracking-wide shrink-0 max-w-[40%] break-words">
               {leaf.label}
             </span>
-            <span className="flex-1 border-b border-dotted border-border/15 mb-0.5 mx-1" />
-            <span className="font-light text-foreground/90 truncate text-right max-w-[55%]" title={leaf.value}>
+            <span className="font-light text-foreground/90 text-right flex-1 min-w-0 break-words whitespace-normal" title={leaf.value}>
               {leaf.value}
             </span>
           </li>
