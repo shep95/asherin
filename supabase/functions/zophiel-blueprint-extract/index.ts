@@ -80,6 +80,320 @@ async function probeHttp(host: string): Promise<{ headers: Record<string, string
   return { headers, status: r.status, finalUrl: r.url };
 }
 
+// ─── REDIRECT CHAIN ──────────────────────────────────────────────────────────
+async function redirectChain(host: string): Promise<{ hops: Array<{ url: string; status: number }>; finalUrl: string; responseMs: number }> {
+  const hops: Array<{ url: string; status: number }> = [];
+  let current = `https://${host}`;
+  const start = Date.now();
+  for (let i = 0; i < 6; i++) {
+    const r = await fetchTimeout(current, { method: "GET", redirect: "manual" }, 8000);
+    if (!r) break;
+    hops.push({ url: current, status: r.status });
+    try { await r.body?.cancel(); } catch { /* */ }
+    if (r.status >= 300 && r.status < 400) {
+      const loc = r.headers.get("location");
+      if (!loc) break;
+      current = loc.startsWith("http") ? loc : new URL(loc, current).toString();
+      continue;
+    }
+    break;
+  }
+  return { hops, finalUrl: current, responseMs: Date.now() - start };
+}
+
+// ─── EXPOSED FILE PROBE ──────────────────────────────────────────────────────
+const EXPOSED_PATHS = [
+  "/robots.txt", "/sitemap.xml", "/package.json", "/.env", "/.env.local",
+  "/.env.production", "/.git/HEAD", "/.git/config", "/config.json",
+  "/credentials.json", "/manifest.json", "/site.webmanifest",
+  "/.DS_Store", "/.well-known/security.txt", "/composer.json",
+  "/wp-config.php.bak", "/backup.sql", "/database.sql",
+];
+
+interface ExposedFile { path: string; status: number; size: number; preview?: string; risk: "info" | "warn" | "critical" }
+
+async function probeExposedFiles(host: string): Promise<ExposedFile[]> {
+  const results = await Promise.all(EXPOSED_PATHS.map(async (p) => {
+    const r = await fetchTimeout(`https://${host}${p}`, { method: "GET", redirect: "manual" }, 6000);
+    if (!r) return null;
+    const ct = r.headers.get("content-type") || "";
+    const cl = Number(r.headers.get("content-length") || 0);
+    let preview = "";
+    let size = cl;
+    if (r.ok && /text|json|xml|html|javascript/i.test(ct)) {
+      const txt = await r.text().catch(() => "");
+      size = txt.length;
+      preview = txt.slice(0, 600);
+      // skip if it's clearly an HTML 404/SPA fallback
+      if (/<!doctype html/i.test(preview) && p !== "/manifest.json" && p !== "/site.webmanifest") {
+        return null;
+      }
+    } else {
+      try { await r.body?.cancel(); } catch { /* */ }
+    }
+    if (r.status >= 400) return null;
+    const risk: ExposedFile["risk"] =
+      /\.env|\.git|credentials|backup|\.sql|wp-config/.test(p) ? "critical"
+      : /package\.json|config\.json|composer/.test(p) ? "warn"
+      : "info";
+    return { path: p, status: r.status, size, preview, risk } as ExposedFile;
+  }));
+  return results.filter(Boolean) as ExposedFile[];
+}
+
+// ─── PAGE PARSING ────────────────────────────────────────────────────────────
+interface PageIdentity {
+  title: string;
+  description: string;
+  canonical: string;
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  twitterCard: string;
+  language: string;
+  generator: string;
+  socialLinks: string[];
+  schemaOrg: string[];
+}
+
+function parsePageIdentity(html: string): PageIdentity {
+  const m = (re: RegExp) => (html.match(re)?.[1] || "").trim();
+  const title = m(/<title[^>]*>([^<]+)<\/title>/i);
+  const description = m(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+  const canonical = m(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+  const ogTitle = m(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i);
+  const ogDescription = m(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
+  const ogImage = m(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+  const twitterCard = m(/<meta[^>]+name=["']twitter:card["'][^>]+content=["']([^"']+)["']/i);
+  const language = m(/<html[^>]+lang=["']([^"']+)["']/i);
+  const generator = m(/<meta[^>]+name=["']generator["'][^>]+content=["']([^"']+)["']/i);
+  const socialLinks: string[] = [];
+  const SOCIAL_RE = /https?:\/\/(?:www\.)?(?:twitter|x|facebook|instagram|linkedin|github|youtube|tiktok|discord|t\.me)\.com\/[A-Za-z0-9_.\-/@]+/gi;
+  socialLinks.push(...(html.match(SOCIAL_RE) || []));
+  const schemaOrg: string[] = [];
+  const LDJSON = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let lm: RegExpExecArray | null;
+  while ((lm = LDJSON.exec(html)) !== null) schemaOrg.push((lm[1] || "").trim().slice(0, 800));
+  return {
+    title, description, canonical, ogTitle, ogDescription, ogImage, twitterCard,
+    language, generator,
+    socialLinks: dedupe(socialLinks).slice(0, 20),
+    schemaOrg: schemaOrg.slice(0, 5),
+  };
+}
+
+interface TechFingerprint {
+  cms: string[];
+  frameworks: string[];
+  analytics: string[];
+  payments: string[];
+  third_party_hosts: string[];
+  graphql_endpoints: string[];
+  websocket_endpoints: string[];
+  api_endpoints: string[];
+  env_vars: string[];
+  source_maps: string[];
+}
+
+function parseTechFingerprint(html: string, headers: Record<string, string>): TechFingerprint {
+  const out: TechFingerprint = {
+    cms: [], frameworks: [], analytics: [], payments: [],
+    third_party_hosts: [], graphql_endpoints: [], websocket_endpoints: [],
+    api_endpoints: [], env_vars: [], source_maps: [],
+  };
+  const text = html;
+  // CMS
+  if (/wp-content|wp-includes/i.test(text)) out.cms.push("WordPress");
+  if (/cdn\.shopify\.com|Shopify\.theme/i.test(text)) out.cms.push("Shopify");
+  if (/webflow\.com|wf-/i.test(text)) out.cms.push("Webflow");
+  if (/ghost\.io|content\/images/i.test(text) && /ghost/i.test(text)) out.cms.push("Ghost");
+  if (/squarespace/i.test(text)) out.cms.push("Squarespace");
+  if (/wix\.com|wixstatic/i.test(text)) out.cms.push("Wix");
+  // Frameworks
+  if (/__NEXT_DATA__|_next\/static/i.test(text)) out.frameworks.push("Next.js");
+  if (/window\.__NUXT__|_nuxt\//i.test(text)) out.frameworks.push("Nuxt");
+  if (/svelte-|__SVELTEKIT/i.test(text)) out.frameworks.push("SvelteKit");
+  if (/data-reactroot|react-dom/i.test(text)) out.frameworks.push("React");
+  if (/ng-version=|ng-app/i.test(text)) out.frameworks.push("Angular");
+  if (/data-v-app|__VUE/i.test(text)) out.frameworks.push("Vue");
+  if (/_astro\//i.test(text)) out.frameworks.push("Astro");
+  if (/gatsby-/i.test(text)) out.frameworks.push("Gatsby");
+  if (headers["x-powered-by"]) out.frameworks.push(headers["x-powered-by"]);
+  // Analytics
+  if (/googletagmanager\.com|gtag\(/i.test(text)) out.analytics.push("Google Tag Manager / GA4");
+  if (/cdn\.segment\.com|analytics\.js/i.test(text)) out.analytics.push("Segment");
+  if (/mixpanel/i.test(text)) out.analytics.push("Mixpanel");
+  if (/cdn\.amplitude\.com/i.test(text)) out.analytics.push("Amplitude");
+  if (/posthog/i.test(text)) out.analytics.push("PostHog");
+  if (/hotjar/i.test(text)) out.analytics.push("Hotjar");
+  if (/plausible\.io/i.test(text)) out.analytics.push("Plausible");
+  // Payments
+  if (/js\.stripe\.com|stripe\.com\/v3/i.test(text)) out.payments.push("Stripe");
+  if (/paypal\.com\/sdk/i.test(text)) out.payments.push("PayPal");
+  if (/braintree/i.test(text)) out.payments.push("Braintree");
+  if (/square\.com\/sdk|squareupsandbox/i.test(text)) out.payments.push("Square");
+  // Third-party hosts (from script src)
+  const srcs: string[] = [];
+  let sm: RegExpExecArray | null;
+  const re = /<script[^>]+src=["']([^"']+)["']/gi;
+  while ((sm = re.exec(text)) !== null) {
+    try {
+      const u = new URL(sm[1].startsWith("//") ? "https:" + sm[1] : sm[1], "https://x");
+      if (u.hostname && u.hostname !== "x") srcs.push(u.hostname);
+    } catch { /* */ }
+  }
+  out.third_party_hosts = dedupe(srcs).slice(0, 30);
+  // GraphQL / WS / API
+  out.graphql_endpoints = dedupe([...text.matchAll(/["'](https?:\/\/[^"']+\/graphql[^"']*)["']/g)].map((m) => m[1])).slice(0, 10);
+  out.websocket_endpoints = dedupe([...text.matchAll(/["'](wss?:\/\/[^"']+)["']/g)].map((m) => m[1])).slice(0, 10);
+  out.api_endpoints = dedupe([...text.matchAll(/["'](\/api\/[A-Za-z0-9_\-\/.]+)["']/g)].map((m) => m[1])).slice(0, 30);
+  out.env_vars = dedupe([...text.matchAll(/(NEXT_PUBLIC_[A-Z0-9_]+|REACT_APP_[A-Z0-9_]+|VITE_[A-Z0-9_]+)/g)].map((m) => m[1])).slice(0, 30);
+  out.source_maps = dedupe([...text.matchAll(/sourceMappingURL=([^\s"'*]+\.map)/g)].map((m) => m[1])).slice(0, 10);
+  return out;
+}
+
+interface LinkInventory {
+  internal: string[];
+  external: string[];
+  admin_paths: string[];
+  document_links: string[];
+  image_count: number;
+}
+
+function parseLinkInventory(html: string, host: string): LinkInventory {
+  const hrefs: string[] = [];
+  const HREF_RE = /<a[^>]+href=["']([^"']+)["']/gi;
+  let hm: RegExpExecArray | null;
+  while ((hm = HREF_RE.exec(html)) !== null) hrefs.push(hm[1]);
+  const internal = new Set<string>();
+  const external = new Set<string>();
+  const docs = new Set<string>();
+  const admin = new Set<string>();
+  for (const h of hrefs) {
+    try {
+      if (h.startsWith("#") || h.startsWith("mailto:") || h.startsWith("tel:")) continue;
+      const u = new URL(h, `https://${host}`);
+      if (u.hostname === host || u.hostname.endsWith("." + host)) internal.add(u.pathname);
+      else external.add(u.toString());
+      if (/\.(pdf|docx?|xlsx?|pptx?|csv|zip|json)$/i.test(u.pathname)) docs.add(u.toString());
+      if (/\/(admin|dashboard|internal|console|panel|cms|wp-admin)/i.test(u.pathname)) admin.add(u.pathname);
+    } catch { /* */ }
+  }
+  // Hidden admin paths in JS / inline
+  const ADMIN_RE = /["'](\/(?:admin|dashboard|internal|console|panel|wp-admin|api\/admin)[A-Za-z0-9_\-\/.]*)["']/g;
+  for (const m of html.matchAll(ADMIN_RE)) admin.add(m[1]);
+  const imageCount = (html.match(/<img\b/gi) || []).length;
+  return {
+    internal: [...internal].slice(0, 60),
+    external: [...external].slice(0, 60),
+    admin_paths: [...admin].slice(0, 30),
+    document_links: [...docs].slice(0, 30),
+    image_count: imageCount,
+  };
+}
+
+// ─── ARCHIVE / WAYBACK ───────────────────────────────────────────────────────
+async function waybackInfo(host: string): Promise<{ first_seen?: string; last_seen?: string; snapshots?: number }> {
+  const r = await fetchTimeout(
+    `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(host)}&output=json&fl=timestamp&limit=1&filter=statuscode:200`,
+    {}, 9000,
+  );
+  const r2 = await fetchTimeout(
+    `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(host)}&output=json&fl=timestamp&limit=-1&filter=statuscode:200`,
+    {}, 9000,
+  );
+  const r3 = await fetchTimeout(
+    `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(host)}&output=json&showNumPages=true`,
+    {}, 9000,
+  );
+  const fmt = (ts: string) => `${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}`;
+  let first: string | undefined, last: string | undefined, snapshots: number | undefined;
+  if (r?.ok) {
+    const j = await r.json().catch(() => null);
+    if (Array.isArray(j) && j[1]?.[0]) first = fmt(String(j[1][0]));
+  }
+  if (r2?.ok) {
+    const j = await r2.json().catch(() => null);
+    if (Array.isArray(j) && j[1]?.[0]) last = fmt(String(j[1][0]));
+  }
+  if (r3?.ok) {
+    const j = await r3.json().catch(() => null);
+    const pages = Array.isArray(j) ? Number(j) : Number(j?.[0]);
+    if (!isNaN(pages)) snapshots = pages * 1000; // rough
+  }
+  return { first_seen: first, last_seen: last, snapshots };
+}
+
+// ─── LAYER 12: SUBDOMAIN AUDIT ───────────────────────────────────────────────
+interface SubAudit {
+  host: string;
+  ip?: string;
+  cname?: string;
+  status?: number;
+  server?: string;
+  tech?: string[];
+  weaknesses: string[];
+}
+
+async function auditSubdomain(host: string): Promise<SubAudit> {
+  const out: SubAudit = { host, weaknesses: [], tech: [] };
+  const [a, cn, http] = await Promise.all([
+    dohQuery(host, "A"),
+    dohQuery(host, "CNAME"),
+    fetchTimeout(`https://${host}`, { method: "GET", redirect: "manual" }, 6000),
+  ]);
+  out.ip = a[0];
+  out.cname = cn[0];
+  if (!a.length && !cn.length) out.weaknesses.push("Unresolvable — possible dangling record");
+  if (cn[0] && /\.(s3|herokuapp|github\.io|netlify\.app|vercel\.app|cloudfront|azurewebsites)\./i.test(cn[0])) {
+    // Probe to see if claimed
+    if (http && http.status === 404) out.weaknesses.push(`Possible takeover — CNAME→${cn[0]} returns 404`);
+  }
+  if (http) {
+    out.status = http.status;
+    out.server = http.headers.get("server") || undefined;
+    const sec = ["strict-transport-security","content-security-policy","x-frame-options"];
+    const missing = sec.filter((h) => !http.headers.get(h));
+    if (missing.length) out.weaknesses.push(`Missing security headers: ${missing.join(", ")}`);
+    if (/\b(staging|dev|test|preview|qa|uat|internal|admin|sandbox)\b/i.test(host)) {
+      if (http.status >= 200 && http.status < 400) out.weaknesses.push("Sensitive-named host publicly reachable — gate with auth");
+    }
+    try { await http.body?.cancel(); } catch { /* */ }
+  } else {
+    out.weaknesses.push("HTTPS unreachable — TLS/cert may be misconfigured");
+  }
+  return out;
+}
+
+async function subdomainAudit(subs: string[], cap = 12): Promise<SubAudit[]> {
+  const targets = subs.slice(0, cap);
+  return await Promise.all(targets.map((s) => auditSubdomain(s).catch(() => ({ host: s, weaknesses: ["Audit failed"] } as SubAudit))));
+}
+
+// ─── FORENSICS BUNDLE ────────────────────────────────────────────────────────
+interface ForensicsBundle {
+  identity: PageIdentity | null;
+  redirect: { hops: Array<{ url: string; status: number }>; finalUrl: string; responseMs: number } | null;
+  tech: TechFingerprint | null;
+  exposed: ExposedFile[];
+  links: LinkInventory | null;
+  archive: { first_seen?: string; last_seen?: string; snapshots?: number } | null;
+  sub_audit: SubAudit[];
+}
+
+async function liveForensics(host: string, html: string | null, headers: Record<string, string>, subs: string[]): Promise<ForensicsBundle> {
+  const [redirect, exposed, archive, sub_audit] = await Promise.all([
+    redirectChain(host).catch(() => null),
+    probeExposedFiles(host).catch(() => []),
+    waybackInfo(host).catch(() => null),
+    subs.length ? subdomainAudit(subs).catch(() => []) : Promise.resolve([]),
+  ]);
+  const identity = html ? parsePageIdentity(html) : null;
+  const tech = html ? parseTechFingerprint(html, headers) : null;
+  const links = html ? parseLinkInventory(html, host) : null;
+  return { identity, redirect, tech, exposed, links, archive, sub_audit };
+}
+
 interface ReconBundle {
   host: string;
   dns: { A: string[]; AAAA: string[]; MX: string[]; NS: string[]; TXT: string[]; CNAME: string[] };
