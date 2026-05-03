@@ -533,6 +533,13 @@ const ZophielEngineView = ({ onSearchedChange }: ZophielEngineViewProps = {}) =>
                 </Suspense>
               )}
 
+              {/* Archive — direct browse of archive.org */}
+              {mode === "archive" && (
+                <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+                  <ArchivePanel />
+                </Suspense>
+              )}
+
               {/* Deep Search Panel */}
               {mode !== "imagine" && mode !== "extract" && mode !== "audit" && mode !== "face" && mode !== "darkweb" && mode !== "leaks" && mode !== "archive" && deepSearchQuery && (
                 <DeepSearchPanel query={deepSearchQuery} onClose={() => setDeepSearchQuery(null)} />
