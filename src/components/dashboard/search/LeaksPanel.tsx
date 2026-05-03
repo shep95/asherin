@@ -287,7 +287,7 @@ const LeaksPanel = () => {
             id: `ia:${d.identifier}`,
             schema,
             properties: { title: [d.title || d.identifier], description: [desc], author: [creator], date: [d.date || ""] },
-            collection: { label: `Internet Archive · ${mt}`, publisher: "archive.org" },
+            collection: { label: `Asher Archives · ${mt}`, publisher: "Asher Archives" },
             links: {
               ui: `https://archive.org/details/${d.identifier}`,
               file: mt === "texts" ? `https://archive.org/download/${d.identifier}/${d.identifier}_djvu.txt` : undefined,
