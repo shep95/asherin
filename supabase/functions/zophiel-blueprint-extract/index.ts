@@ -878,7 +878,7 @@ async function liveForensics(host: string, html: string | null, headers: Record<
 interface ReconBundle {
   host: string;
   dns: { A: string[]; AAAA: string[]; MX: string[]; NS: string[]; TXT: string[]; CNAME: string[] };
-  http: { status: number; finalUrl: string; headers: Record<string, string> } | null;
+  http: { status: number; finalUrl: string; headers: Record<string, string>; setCookieAll?: string[] } | null;
   geo: Record<string, unknown> | null;
   rdap: { registrar?: string; created?: string; expires?: string; nameservers?: string[] } | null;
   subdomains: string[];
