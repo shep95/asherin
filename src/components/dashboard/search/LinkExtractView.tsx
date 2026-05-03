@@ -362,6 +362,10 @@ const LinkExtractView = () => {
           {/* OPEN API KEYS — live JS-bundle secret scan */}
           <OpenApiKeysPanel secrets={secrets} target={blueprint.target} />
 
+          {/* FORENSIC INTELLIGENCE PANELS — Layers 1-12 */}
+          <ForensicsPanels forensics={forensics} target={blueprint.target} />
+          <LayerDiagram forensics={forensics} secrets={secrets} target={blueprint.target} />
+
           {/* Branches grid (the tree leaves) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {blueprint.branches.map((b) => (
