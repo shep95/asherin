@@ -126,7 +126,7 @@ const ArchivePanel = () => {
 
       {searched && (
         <p className="text-[10px] font-light text-muted-foreground/50">
-          {loading ? "Searching archive.org…" : `${docs.length} shown of ${total.toLocaleString()} total matches`}
+          {loading ? "Searching Asher Archives…" : `${docs.length} shown of ${total.toLocaleString()} total matches`}
         </p>
       )}
 
