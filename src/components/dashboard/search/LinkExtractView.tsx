@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Crosshair, Loader2, Globe, Link2, Sparkles, Shield, Zap,
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
-  Copy, Check, ChevronRight, ChevronDown,
+  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,20 @@ interface Blueprint {
   branches: Branch[];
   edges: Edge[];
   criticals?: Critical[];
+}
+interface SecretHit { type: string; label: string; match: string; raw: string; source: string; severity: "critical" | "high" | "med" | "low"; context?: string; }
+interface SecretScan {
+  bundles_scanned: number;
+  bundles: Array<{ source: string; size: number; hits: number }>;
+  inline_scripts: number;
+  total_bytes: number;
+  secrets: SecretHit[];
+  emails: string[];
+  github_links: string[];
+  developer_comments: string[];
+  internal_codenames: string[];
+  feature_flags: string[];
+  truncated: boolean;
 }
 
 type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
@@ -147,6 +161,7 @@ const LinkExtractView = () => {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [subStates, setSubStates] = useState<Record<string, SubState>>({});
+  const [secrets, setSecrets] = useState<SecretScan | null>(null);
 
   const fetchSubdomainBlueprint = useCallback(async (host: string) => {
     setSubStates((s) => ({ ...s, [host]: { loading: true } }));
@@ -187,6 +202,7 @@ const LinkExtractView = () => {
     setError(null);
     setBlueprint(null);
     setSubStates({});
+    setSecrets(null);
 
     try {
       const byok = getActiveIntelMapByok();
@@ -199,6 +215,7 @@ const LinkExtractView = () => {
       if (data.error) throw new Error(data.error);
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
       setBlueprint(data.blueprint as Blueprint);
+      if (data.secrets) setSecrets(data.secrets as SecretScan);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to extract blueprint"));
     } finally {
@@ -312,6 +329,9 @@ const LinkExtractView = () => {
 
           {/* Web Diagram — central node radiating to branches */}
           <WebDiagram blueprint={blueprint} />
+
+          {/* OPEN API KEYS — live JS-bundle secret scan */}
+          <OpenApiKeysPanel secrets={secrets} target={blueprint.target} />
 
           {/* Branches grid (the tree leaves) */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -802,6 +822,196 @@ const NestedBranch = ({ branch }: { branch: Branch }) => {
     </div>
   );
 };
+
+
+// ─── OPEN API KEYS PANEL ────────────────────────────────────────────────────
+const SEV_STYLES: Record<SecretHit["severity"], { ring: string; chip: string; dot: string }> = {
+  critical: { ring: "border-red-400/40",    chip: "bg-red-500/10 text-red-300 border-red-400/30",     dot: "bg-red-400" },
+  high:     { ring: "border-orange-400/40", chip: "bg-orange-500/10 text-orange-300 border-orange-400/30", dot: "bg-orange-400" },
+  med:      { ring: "border-amber-400/30",  chip: "bg-amber-500/10 text-amber-300 border-amber-400/30", dot: "bg-amber-400" },
+  low:      { ring: "border-border/30",     chip: "bg-card/40 text-muted-foreground border-border/30",  dot: "bg-muted-foreground" },
+};
+
+const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; target: string }) => {
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [showSidecar, setShowSidecar] = useState(false);
+
+  if (!secrets) return null;
+
+  const grouped = secrets.secrets.reduce<Record<string, SecretHit[]>>((acc, s, i) => {
+    (acc[s.type] ||= []).push({ ...s, raw: s.raw, match: s.match, _idx: i } as SecretHit & { _idx: number });
+    return acc;
+  }, {});
+  const groupKeys = Object.keys(grouped);
+  const totalSecrets = secrets.secrets.length;
+
+  const sevOrder: SecretHit["severity"][] = ["critical", "high", "med", "low"];
+  const sevCounts = sevOrder.reduce<Record<string, number>>((a, sv) => {
+    a[sv] = secrets.secrets.filter((s) => s.severity === sv).length;
+    return a;
+  }, {});
+
+  const copy = (i: number, raw: string) => {
+    navigator.clipboard.writeText(raw);
+    setCopiedIdx(i);
+    setTimeout(() => setCopiedIdx(null), 1600);
+  };
+
+  return (
+    <div className="rounded-2xl border border-red-400/25 bg-gradient-to-br from-red-500/[0.04] via-card/30 to-card/10 backdrop-blur-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-border/10 bg-background/40 flex-wrap">
+        <div className="h-7 w-7 rounded-lg bg-red-500/15 border border-red-400/30 flex items-center justify-center">
+          <KeyRound className="h-3.5 w-3.5 text-red-300" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold tracking-[0.22em] text-red-200/90 uppercase">Open API Keys</div>
+          <div className="text-[9px] font-mono tracking-[0.18em] text-muted-foreground/60 uppercase truncate">
+            JS-Bundle Secret Scan · {target}
+          </div>
+        </div>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <span className="text-[9px] font-mono tracking-[0.2em] text-muted-foreground/60 uppercase">
+            {secrets.bundles_scanned} bundles · {secrets.inline_scripts} inline · {(secrets.total_bytes / 1024).toFixed(0)} KB
+          </span>
+          {sevOrder.map((sv) =>
+            sevCounts[sv] > 0 ? (
+              <span key={sv} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-mono tracking-wider uppercase ${SEV_STYLES[sv].chip}`}>
+                <span className={`h-1 w-1 rounded-full ${SEV_STYLES[sv].dot}`} />
+                {sv} {sevCounts[sv]}
+              </span>
+            ) : null
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-5 space-y-4">
+        {totalSecrets === 0 ? (
+          <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/[0.04] px-4 py-6 text-center">
+            <div className="inline-flex items-center gap-2 text-[11px] font-light text-emerald-300/90 tracking-wide">
+              <Shield className="h-3.5 w-3.5" />
+              No exposed API keys, tokens, or credentials detected in public JS bundles.
+            </div>
+            <div className="mt-1 text-[9px] font-mono tracking-[0.18em] text-muted-foreground/50 uppercase">
+              Scanned {secrets.bundles_scanned} bundle{secrets.bundles_scanned === 1 ? "" : "s"} · keep monitoring on each deploy
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-extralight text-muted-foreground/70 leading-relaxed max-w-2xl">
+                Live extraction from this site's HTML and every JavaScript bundle it loads.
+                Each match below is a real, observable string that any visitor can read in their browser.
+                Rotate any key flagged here immediately and move it to a server-side proxy.
+              </p>
+              <button
+                onClick={() => setShowSidecar((v) => !v)}
+                className="text-[9px] font-mono tracking-[0.2em] text-muted-foreground/60 hover:text-foreground/90 uppercase border border-border/30 rounded-md px-2 py-1"
+              >
+                {showSidecar ? "Hide" : "Show"} Side Signals
+              </button>
+            </div>
+
+            {/* Grouped secret hits */}
+            <div className="space-y-3">
+              {groupKeys.map((type) => {
+                const items = grouped[type];
+                const sev = items[0].severity;
+                const styles = SEV_STYLES[sev];
+                return (
+                  <div key={type} className={`rounded-xl border ${styles.ring} bg-background/30`}>
+                    <div className="flex items-center gap-2 px-3 py-2 border-b border-border/10">
+                      <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
+                      <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/90 uppercase">{items[0].label}</span>
+                      <span className="text-[9px] font-mono tracking-wider text-muted-foreground/50 uppercase">[{items.length}× found]</span>
+                      <span className={`ml-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[8px] font-mono tracking-[0.2em] uppercase ${styles.chip}`}>
+                        {sev}
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-border/10">
+                      {items.map((s) => {
+                        const idx = (s as SecretHit & { _idx: number })._idx;
+                        const isOpen = !!revealed[idx];
+                        return (
+                          <li key={idx} className="px-3 py-2 flex items-start gap-3 text-[10px] font-mono">
+                            <span className={`mt-1 h-1 w-1 rounded-full shrink-0 ${styles.dot}`} />
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <code className="font-mono text-foreground/95 break-all bg-background/60 border border-border/20 rounded px-1.5 py-0.5">
+                                  {isOpen ? s.raw : s.match}
+                                </code>
+                                <button
+                                  onClick={() => setRevealed((m) => ({ ...m, [idx]: !m[idx] }))}
+                                  className="inline-flex items-center gap-1 text-[9px] tracking-wider text-muted-foreground/60 hover:text-foreground/80 uppercase"
+                                  title={isOpen ? "Hide full value" : "Reveal full value"}
+                                >
+                                  {isOpen ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                  {isOpen ? "Hide" : "Reveal"}
+                                </button>
+                                <button
+                                  onClick={() => copy(idx, s.raw)}
+                                  className="inline-flex items-center gap-1 text-[9px] tracking-wider text-muted-foreground/60 hover:text-foreground/80 uppercase"
+                                  title="Copy raw value"
+                                >
+                                  {copiedIdx === idx ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                  Copy
+                                </button>
+                              </div>
+                              <div className="text-[9px] tracking-wide text-muted-foreground/50 break-all">
+                                <span className="uppercase mr-1.5">src</span>
+                                {s.source === "inline" ? "inline <script>" : s.source}
+                              </div>
+                              {s.context && (
+                                <div className="text-[9px] tracking-wide text-muted-foreground/40 break-all italic">
+                                  …{s.context}…
+                                </div>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Sidecar signals */}
+        {showSidecar && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-border/10">
+            <SignalList title="Emails" items={secrets.emails} />
+            <SignalList title="GitHub Links" items={secrets.github_links} />
+            <SignalList title="Internal Codenames" items={secrets.internal_codenames} />
+            <SignalList title="Feature Flags" items={secrets.feature_flags} />
+            <SignalList title="Developer Comments (TODO/FIXME)" items={secrets.developer_comments} full />
+            <SignalList title="Bundles Scanned" items={secrets.bundles.map((b) => `${b.source} · ${(b.size/1024).toFixed(0)}KB · ${b.hits} hits`)} full />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SignalList = ({ title, items, full }: { title: string; items: string[]; full?: boolean }) => (
+  <div className="rounded-xl border border-border/20 bg-background/30 p-3">
+    <div className="text-[9px] font-mono tracking-[0.22em] text-muted-foreground/70 uppercase mb-1.5">
+      {title} <span className="text-muted-foreground/40">[{items.length}]</span>
+    </div>
+    {items.length === 0 ? (
+      <div className="text-[10px] font-extralight text-muted-foreground/40 italic">none</div>
+    ) : (
+      <ul className={`space-y-0.5 text-[10px] font-mono text-foreground/80 ${full ? "" : "max-h-40 overflow-y-auto"}`}>
+        {items.slice(0, full ? 200 : 30).map((it, i) => (
+          <li key={i} className="break-all">{it}</li>
+        ))}
+      </ul>
+    )}
+  </div>
+);
 
 
 export default LinkExtractView;

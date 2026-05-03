@@ -89,6 +89,213 @@ interface ReconBundle {
   subdomains: string[];
 }
 
+// ─── OPEN-API-KEY / SECRET SCANNER ───────────────────────────────────────────
+// Pulls the live HTML, walks every <script src="">, fetches each JS bundle,
+// and pattern-matches embedded secrets so the asset owner can rotate them.
+
+interface SecretHit {
+  type: string;          // e.g. "google_api", "aws_key"
+  label: string;         // human label
+  match: string;         // redacted preview (first 6 + last 4)
+  raw: string;           // full raw string (for owner triage)
+  source: string;        // bundle URL or "inline"
+  severity: "critical" | "high" | "med" | "low";
+  context?: string;      // ±40 chars surrounding match
+}
+
+interface BundleFinding {
+  source: string;
+  size: number;
+  hits: number;
+}
+
+interface SecretScan {
+  bundles_scanned: number;
+  bundles: BundleFinding[];
+  inline_scripts: number;
+  total_bytes: number;
+  secrets: SecretHit[];
+  emails: string[];
+  github_links: string[];
+  developer_comments: string[];
+  internal_codenames: string[];
+  feature_flags: string[];
+  truncated: boolean;
+}
+
+const SECRET_PATTERNS: Array<{ type: string; label: string; re: RegExp; sev: SecretHit["severity"] }> = [
+  { type: "google_api",      label: "Google API Key",        re: /AIza[0-9A-Za-z_\-]{35}/g,                                         sev: "high" },
+  { type: "aws_key",         label: "AWS Access Key ID",     re: /AKIA[0-9A-Z]{16}/g,                                               sev: "critical" },
+  { type: "aws_secret",      label: "AWS Secret Access Key", re: /(?<![A-Za-z0-9\/+=])[A-Za-z0-9\/+=]{40}(?![A-Za-z0-9\/+=])/g,     sev: "critical" },
+  { type: "openai_sk",       label: "OpenAI Secret Key",     re: /sk-[A-Za-z0-9_\-]{20,}/g,                                         sev: "critical" },
+  { type: "anthropic_key",   label: "Anthropic API Key",     re: /sk-ant-[A-Za-z0-9_\-]{20,}/g,                                     sev: "critical" },
+  { type: "stripe_live",     label: "Stripe Live Key",       re: /(?:sk|rk|pk)_live_[0-9a-zA-Z]{16,}/g,                             sev: "critical" },
+  { type: "stripe_test",     label: "Stripe Test Key",       re: /(?:sk|rk|pk)_test_[0-9a-zA-Z]{16,}/g,                             sev: "high" },
+  { type: "github_token",    label: "GitHub Token",          re: /gh[pousr]_[A-Za-z0-9]{36,}/g,                                     sev: "critical" },
+  { type: "slack_token",     label: "Slack Token",           re: /xox[abpors]-[0-9A-Za-z\-]{10,}/g,                                 sev: "critical" },
+  { type: "supabase_key",    label: "Supabase JWT (anon/service)", re: /eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}/g, sev: "high" },
+  { type: "supabase_url",    label: "Supabase Project URL",  re: /https?:\/\/[a-z0-9]{20}\.supabase\.co/g,                          sev: "med" },
+  { type: "algolia_key",     label: "Algolia API Key",       re: /(?<![A-Za-z0-9])[a-f0-9]{32}(?![A-Za-z0-9])/g,                    sev: "med" },
+  { type: "mapbox_token",    label: "Mapbox Token",          re: /pk\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g,                        sev: "med" },
+  { type: "sendgrid",        label: "SendGrid API Key",      re: /SG\.[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}/g,                   sev: "critical" },
+  { type: "twilio_sid",      label: "Twilio Account SID",    re: /AC[a-f0-9]{32}/g,                                                 sev: "high" },
+  { type: "firebase_key",    label: "Firebase API Key",      re: /AIza[0-9A-Za-z_\-]{35}/g,                                         sev: "high" },
+  { type: "private_key",     label: "Private Key Block",     re: /-----BEGIN (?:RSA |EC |OPENSSH |PGP |DSA |)PRIVATE KEY-----/g,    sev: "critical" },
+  { type: "jwt_generic",     label: "Generic JWT",           re: /eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/g,           sev: "med" },
+];
+
+const EMAIL_RE   = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
+const GITHUB_RE  = /https?:\/\/github\.com\/[A-Za-z0-9_.\-]+\/[A-Za-z0-9_.\-]+/g;
+const COMMENT_RE = /(?:\/\/|\/\*)\s*(TODO|FIXME|HACK|XXX|NOTE|AUTHOR)\b[^\n*]{0,200}/gi;
+const FEATURE_RE = /(?:feature|flag|featureFlag|FEATURE_)[A-Za-z0-9_]{2,40}\s*[:=]\s*(?:true|false|"[^"]{0,40}")/g;
+const CODENAME_RE = /\b(?:strawberry|orion|sydney|gemini|gpt-?[0-9]|opus|sonnet|haiku|llama|claude|mistral|codename[_\-][a-z]+)\b/gi;
+const SCRIPT_SRC_RE = /<script[^>]+src\s*=\s*["']([^"']+)["']/gi;
+const INLINE_SCRIPT_RE = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+
+function redact(s: string): string {
+  if (s.length <= 14) return s.slice(0, 4) + "•••";
+  return s.slice(0, 6) + "•••" + s.slice(-4);
+}
+
+function dedupe<T>(arr: T[]): T[] { return [...new Set(arr)]; }
+
+function scanText(text: string, source: string): SecretHit[] {
+  const hits: SecretHit[] = [];
+  const seen = new Set<string>();
+  for (const p of SECRET_PATTERNS) {
+    p.re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = p.re.exec(text)) !== null) {
+      const raw = m[0];
+      const dedupKey = `${p.type}:${raw}`;
+      if (seen.has(dedupKey)) continue;
+      seen.add(dedupKey);
+      // skip obvious false positives
+      if (p.type === "algolia_key" && /^0+$|^f+$/.test(raw)) continue;
+      if (p.type === "aws_secret") {
+        // require some entropy: at least 1 digit, 1 lower, 1 upper
+        if (!/[0-9]/.test(raw) || !/[a-z]/.test(raw) || !/[A-Z]/.test(raw)) continue;
+      }
+      const start = Math.max(0, m.index - 40);
+      const end = Math.min(text.length, m.index + raw.length + 40);
+      hits.push({
+        type: p.type, label: p.label, raw,
+        match: redact(raw),
+        source, severity: p.sev,
+        context: text.slice(start, end).replace(/\s+/g, " ").trim(),
+      });
+      if (hits.length > 200) return hits;
+    }
+  }
+  return hits;
+}
+
+async function fetchText(url: string, max = 1_500_000): Promise<string | null> {
+  const r = await fetchTimeout(url, { method: "GET", redirect: "follow" }, 12_000);
+  if (!r || !r.ok) return null;
+  const ct = r.headers.get("content-type") || "";
+  // Allow html/js/json/text
+  if (!/text|javascript|json|xml/i.test(ct) && ct) {
+    try { await r.body?.cancel(); } catch { /* */ }
+    return null;
+  }
+  const reader = r.body?.getReader();
+  if (!reader) return await r.text().catch(() => null);
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    if (value) {
+      total += value.length;
+      if (total > max) { try { reader.cancel(); } catch { /* */ } break; }
+      chunks.push(value);
+    }
+  }
+  const buf = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) { buf.set(c, off); off += c.length; }
+  return new TextDecoder("utf-8", { fatal: false }).decode(buf);
+}
+
+async function secretScan(host: string): Promise<SecretScan> {
+  const out: SecretScan = {
+    bundles_scanned: 0, bundles: [], inline_scripts: 0, total_bytes: 0,
+    secrets: [], emails: [], github_links: [], developer_comments: [],
+    internal_codenames: [], feature_flags: [], truncated: false,
+  };
+  const baseUrl = `https://${host}`;
+  const html = await fetchText(baseUrl, 2_000_000);
+  if (!html) return out;
+  out.total_bytes += html.length;
+
+  const collected: SecretHit[] = [];
+
+  // Inline scripts
+  let im: RegExpExecArray | null;
+  INLINE_SCRIPT_RE.lastIndex = 0;
+  while ((im = INLINE_SCRIPT_RE.exec(html)) !== null) {
+    const inline = im[1] || "";
+    if (inline.trim().length > 20) {
+      out.inline_scripts++;
+      collected.push(...scanText(inline, "inline"));
+    }
+  }
+
+  // Bundle URLs from <script src>
+  const bundleSet = new Set<string>();
+  let sm: RegExpExecArray | null;
+  SCRIPT_SRC_RE.lastIndex = 0;
+  while ((sm = SCRIPT_SRC_RE.exec(html)) !== null) {
+    let src = (sm[1] || "").trim();
+    if (!src) continue;
+    if (src.startsWith("//")) src = "https:" + src;
+    else if (src.startsWith("/")) src = baseUrl + src;
+    else if (!/^https?:\/\//i.test(src)) src = baseUrl + "/" + src.replace(/^\.?\//, "");
+    bundleSet.add(src);
+  }
+
+  // Cap bundles to avoid runaway
+  const bundles = [...bundleSet].slice(0, 25);
+  if (bundleSet.size > bundles.length) out.truncated = true;
+
+  const results = await Promise.all(bundles.map(async (u) => {
+    const txt = await fetchText(u, 1_500_000).catch(() => null);
+    if (!txt) return { u, size: 0, hits: [] as SecretHit[] };
+    return { u, size: txt.length, hits: scanText(txt, u), text: txt };
+  }));
+
+  for (const r of results) {
+    if (!r.size) continue;
+    out.bundles_scanned++;
+    out.total_bytes += r.size;
+    out.bundles.push({ source: r.u, size: r.size, hits: r.hits.length });
+    collected.push(...r.hits);
+    const text = (r as { text?: string }).text || "";
+    out.emails.push(...(text.match(EMAIL_RE) || []));
+    out.github_links.push(...(text.match(GITHUB_RE) || []));
+    out.developer_comments.push(...(text.match(COMMENT_RE) || []).map((s) => s.slice(0, 200)));
+    out.internal_codenames.push(...(text.match(CODENAME_RE) || []));
+    out.feature_flags.push(...(text.match(FEATURE_RE) || []));
+  }
+
+  // Also harvest signals from raw HTML
+  out.emails.push(...(html.match(EMAIL_RE) || []));
+  out.github_links.push(...(html.match(GITHUB_RE) || []));
+  out.developer_comments.push(...(html.match(COMMENT_RE) || []).map((s) => s.slice(0, 200)));
+  out.internal_codenames.push(...(html.match(CODENAME_RE) || []));
+
+  // Dedupe + cap
+  out.secrets = collected.slice(0, 150);
+  out.emails = dedupe(out.emails).slice(0, 80);
+  out.github_links = dedupe(out.github_links).slice(0, 40);
+  out.developer_comments = dedupe(out.developer_comments).slice(0, 40);
+  out.internal_codenames = dedupe(out.internal_codenames.map((s) => s.toLowerCase())).slice(0, 40);
+  out.feature_flags = dedupe(out.feature_flags).slice(0, 40);
+
+  return out;
+}
+
 async function liveRecon(target: string, opts: { withSubs: boolean }): Promise<ReconBundle> {
   const host = extractHostname(target);
   const [A, AAAA, MX, NS, TXT, CNAME, http, subs] = await Promise.all([
@@ -411,10 +618,17 @@ serve(async (req) => {
       });
     }
 
-    // Live recon — pull real, observable facts before AI synthesis
+    // Live recon + secret scan — pull real, observable facts before AI synthesis
     let recon: ReconBundle | null = null;
+    let secrets: SecretScan | null = null;
     try {
-      recon = await liveRecon(url, { withSubs: !isSubdomainMode });
+      const host = extractHostname(url);
+      const [r, s] = await Promise.all([
+        liveRecon(url, { withSubs: !isSubdomainMode }),
+        secretScan(host).catch((e) => { console.error("[blueprint] secret scan failed", e); return null; }),
+      ]);
+      recon = r;
+      secrets = s;
     } catch (e) {
       console.error("[blueprint] recon failed", e);
     }
@@ -518,7 +732,7 @@ serve(async (req) => {
     if (recon && blueprint && !blueprint.target) blueprint.target = recon.host;
 
     return new Response(
-      JSON.stringify({ success: true, blueprint, recon }),
+      JSON.stringify({ success: true, blueprint, recon, secrets }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
