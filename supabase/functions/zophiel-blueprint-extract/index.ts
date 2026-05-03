@@ -135,7 +135,8 @@ Rules:
 - Each branch MUST have 4-8 leaves with concrete observed/inferred values.
 - Use 'tone' to color-code branches: good (secure/modern), neutral (standard), warn (gaps), critical (severe).
 - Leaves should be FACTS or DEFENSIVE recommendations ("Nginx 1.24 — upgrade to 1.26"), not vague descriptions.
-- Always include ALL branches above (16 total: domain, hosting, stack, security, thirdparty, network, org, subdomains, threats, leaks, people, history, attacksurface, peers, socialeng, monitoring, remediation, underground).
+- Always include ALL branches above (19 total: domain, hosting, stack, security, thirdparty, network, org, subdomains, threats, leaks, people, history, attacksurface, peers, socialeng, monitoring, remediation, underground, redhawk).
+- For 'redhawk': emulate the RED HAWK recon toolkit (Tuhinshubhra/RED_HAWK) — provide Basic Recon, WHOIS, GeoIP, Banner Grab, DNS, Open-Port surface, Reverse-IP/Co-Hosted, Subdomain Sweep, CMS vuln class, Crawler findings, and Honeypot likelihood. Frame as defensive audit only.
 - For 'threats': cross-reference detected versions against known CVE patterns; cite CVE IDs where confident, otherwise say "no known public CVE for this version".
 - For 'leaks': describe the EXPOSURE SURFACE (where leaks typically occur for this stack) and remediation — DO NOT fabricate specific leaked credentials.
 - For 'people': inferable email patterns and public LinkedIn footprint only — never invent named individuals or personal data.
