@@ -1047,4 +1047,293 @@ const SignalList = ({ title, items, full }: { title: string; items: string[]; fu
 );
 
 
+
+// ─── FORENSIC INTELLIGENCE PANELS (Layers 1-11) ─────────────────────────────
+const SectionCard = ({ title, sub, tone = "neutral", children }: { title: string; sub?: string; tone?: Tone; children: React.ReactNode }) => {
+  const t = TONE_STYLES[tone];
+  return (
+    <div className={`rounded-2xl border ${t.ring} bg-card/30 backdrop-blur-xl overflow-hidden`}>
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-border/10 bg-background/40">
+        <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} />
+        <span className="text-[10px] font-semibold tracking-[0.22em] text-foreground/90 uppercase">{title}</span>
+        {sub && <span className="ml-auto text-[9px] font-mono tracking-wider text-muted-foreground/50 uppercase">{sub}</span>}
+      </div>
+      <div className="p-4 text-[11px] font-light text-foreground/85">{children}</div>
+    </div>
+  );
+};
+
+const KV = ({ k, v }: { k: string; v: React.ReactNode }) => (
+  <div className="flex items-start gap-3 py-1 border-b border-border/5 last:border-0">
+    <span className="text-[9px] font-mono tracking-[0.18em] text-muted-foreground/50 uppercase shrink-0 w-32">{k}</span>
+    <span className="flex-1 break-all text-foreground/85">{v || <span className="italic text-muted-foreground/40">—</span>}</span>
+  </div>
+);
+
+const ChipList = ({ items, tone = "neutral" }: { items: string[]; tone?: Tone }) => {
+  if (!items?.length) return <span className="italic text-muted-foreground/40 text-[10px]">none</span>;
+  const t = TONE_STYLES[tone];
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((it, i) => (
+        <span key={i} className={`inline-flex items-center gap-1 rounded-full border ${t.ring} bg-background/40 px-2 py-0.5 text-[9px] font-mono tracking-wider text-foreground/85`}>
+          <span className={`h-1 w-1 rounded-full ${t.dot}`} /> {it}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+const ForensicsPanels = ({ forensics, target }: { forensics: ForensicsBundle | null; target: string }) => {
+  if (!forensics) return null;
+  const { identity, redirect, tech, exposed, links, archive, sub_audit } = forensics;
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-accent/25 bg-gradient-to-br from-accent/[0.06] via-card/30 to-card/10 backdrop-blur-xl px-5 py-3 flex items-center gap-3">
+        <Crosshair className="h-3.5 w-3.5 text-accent" />
+        <div>
+          <div className="text-[11px] font-semibold tracking-[0.22em] text-accent/90 uppercase">Forensic Intelligence</div>
+          <div className="text-[9px] font-mono tracking-[0.18em] text-muted-foreground/60 uppercase">Live Layered Audit · {target}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Page Identity */}
+        {identity && (
+          <SectionCard title="Page Identity" sub="Layer 0">
+            <KV k="Title" v={identity.title} />
+            <KV k="Description" v={identity.description} />
+            <KV k="Canonical" v={identity.canonical} />
+            <KV k="OG Title" v={identity.ogTitle} />
+            <KV k="OG Image" v={identity.ogImage} />
+            <KV k="Twitter Card" v={identity.twitterCard} />
+            <KV k="Language" v={identity.language} />
+            <KV k="Generator" v={identity.generator} />
+            <KV k="Social Links" v={<ChipList items={identity.socialLinks} />} />
+            <KV k="Schema.org" v={`${identity.schemaOrg.length} block(s)`} />
+          </SectionCard>
+        )}
+
+        {/* Redirect Chain */}
+        {redirect && (
+          <SectionCard title="Redirect Chain & Response" sub="Layer 0">
+            <KV k="Final URL" v={redirect.finalUrl} />
+            <KV k="Response Time" v={`${redirect.responseMs} ms`} />
+            <KV k="Hops" v={`${redirect.hops.length}`} />
+            <ul className="mt-2 space-y-1 font-mono text-[10px]">
+              {redirect.hops.map((h, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span className="text-muted-foreground/50">{i + 1}.</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] ${h.status >= 400 ? "bg-red-500/15 text-red-300" : h.status >= 300 ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500/15 text-emerald-300"}`}>{h.status}</span>
+                  <span className="break-all text-foreground/80">{h.url}</span>
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
+        )}
+
+        {/* Tech Fingerprint */}
+        {tech && (
+          <SectionCard title="Technology Fingerprint" sub="Layer 4" tone="warn">
+            <KV k="CMS" v={<ChipList items={tech.cms} />} />
+            <KV k="Frameworks" v={<ChipList items={tech.frameworks} />} />
+            <KV k="Analytics" v={<ChipList items={tech.analytics} />} />
+            <KV k="Payments" v={<ChipList items={tech.payments} />} />
+            <KV k="3rd-Party Hosts" v={<ChipList items={tech.third_party_hosts} />} />
+            <KV k="Env Vars" v={<ChipList items={tech.env_vars} tone="warn" />} />
+            <KV k="GraphQL" v={<ChipList items={tech.graphql_endpoints} />} />
+            <KV k="WebSocket" v={<ChipList items={tech.websocket_endpoints} />} />
+            <KV k="API Routes" v={<ChipList items={tech.api_endpoints.slice(0, 12)} />} />
+            <KV k="Source Maps" v={<ChipList items={tech.source_maps} tone="critical" />} />
+          </SectionCard>
+        )}
+
+        {/* Exposed Files */}
+        <SectionCard title="Exposed Files" sub={`Layer 5 · ${exposed.length} found`} tone={exposed.some(e => e.risk === "critical") ? "critical" : exposed.length ? "warn" : "good"}>
+          {exposed.length === 0 ? (
+            <div className="text-[10px] text-emerald-300/80 italic">No publicly exposed sensitive files detected.</div>
+          ) : (
+            <ul className="space-y-2">
+              {exposed.map((f, i) => (
+                <li key={i} className={`rounded-lg border ${f.risk === "critical" ? "border-red-400/30 bg-red-500/[0.05]" : f.risk === "warn" ? "border-amber-400/30 bg-amber-500/[0.05]" : "border-border/20 bg-background/30"} p-2`}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <code className="text-[10px] font-mono text-foreground/95">{f.path}</code>
+                    <span className="text-[8px] font-mono uppercase tracking-wider text-muted-foreground/60">[{f.status} · {f.size}B]</span>
+                    <span className={`ml-auto text-[8px] font-mono uppercase tracking-[0.2em] ${f.risk === "critical" ? "text-red-300" : f.risk === "warn" ? "text-amber-300" : "text-muted-foreground/60"}`}>{f.risk}</span>
+                  </div>
+                  {f.preview && <pre className="mt-1 text-[9px] font-mono text-muted-foreground/70 max-h-24 overflow-auto whitespace-pre-wrap break-all">{f.preview}</pre>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+
+        {/* Links Inventory */}
+        {links && (
+          <SectionCard title="Links & Paths Inventory" sub="Layer 8">
+            <KV k="Internal" v={`${links.internal.length} paths`} />
+            <KV k="External" v={`${links.external.length} URLs`} />
+            <KV k="Documents" v={`${links.document_links.length} files`} />
+            <KV k="Images" v={`${links.image_count}`} />
+            <KV k="Admin Paths" v={<ChipList items={links.admin_paths} tone={links.admin_paths.length ? "warn" : "neutral"} />} />
+            {links.document_links.length > 0 && (
+              <details className="mt-2">
+                <summary className="text-[9px] font-mono tracking-wider text-muted-foreground/60 uppercase cursor-pointer">Document Links</summary>
+                <ul className="mt-1 space-y-0.5 max-h-40 overflow-auto text-[10px] font-mono">
+                  {links.document_links.map((d, i) => <li key={i} className="break-all text-foreground/80">{d}</li>)}
+                </ul>
+              </details>
+            )}
+          </SectionCard>
+        )}
+
+        {/* Archive & Reputation */}
+        {archive && (
+          <SectionCard title="Wayback / Archive" sub="Layer 11">
+            <KV k="First Seen" v={archive.first_seen} />
+            <KV k="Last Seen" v={archive.last_seen} />
+            <KV k="Snapshots" v={archive.snapshots ? `~${archive.snapshots.toLocaleString()}` : undefined} />
+            <KV k="Archive URL" v={<a href={`https://web.archive.org/web/*/${target}`} target="_blank" rel="noreferrer" className="underline text-accent">browse history</a>} />
+          </SectionCard>
+        )}
+      </div>
+
+      {/* Layer 12 — Subdomain Audit */}
+      {sub_audit && sub_audit.length > 0 && (
+        <SectionCard title="Subdomain Map & Weaknesses" sub={`Layer 12 · ${sub_audit.length} audited`} tone="warn">
+          <div className="overflow-x-auto">
+            <table className="w-full text-[10px] font-mono">
+              <thead className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                <tr className="border-b border-border/15">
+                  <th className="text-left py-1.5 pr-3">Host</th>
+                  <th className="text-left py-1.5 pr-3">IP / CNAME</th>
+                  <th className="text-left py-1.5 pr-3">Status</th>
+                  <th className="text-left py-1.5 pr-3">Server</th>
+                  <th className="text-left py-1.5">Weaknesses</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sub_audit.map((s, i) => (
+                  <tr key={i} className="border-b border-border/5 align-top">
+                    <td className="py-1.5 pr-3 text-foreground/90 break-all">{s.host}</td>
+                    <td className="py-1.5 pr-3 text-muted-foreground/80 break-all">{s.ip || s.cname || "—"}</td>
+                    <td className="py-1.5 pr-3">
+                      {s.status ? (
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] ${s.status >= 400 ? "bg-red-500/15 text-red-300" : s.status >= 300 ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500/15 text-emerald-300"}`}>{s.status}</span>
+                      ) : <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                    <td className="py-1.5 pr-3 text-muted-foreground/70">{s.server || "—"}</td>
+                    <td className="py-1.5">
+                      {s.weaknesses.length === 0 ? (
+                        <span className="text-emerald-300/70 italic">clean</span>
+                      ) : (
+                        <ul className="space-y-0.5">
+                          {s.weaknesses.map((w, j) => (
+                            <li key={j} className="flex items-start gap-1.5 text-amber-200/80">
+                              <AlertTriangle className="h-2.5 w-2.5 mt-0.5 shrink-0" />
+                              <span>{w}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+      )}
+    </div>
+  );
+};
+
+// ─── LAYER DIAGRAM (text layout 0-12) ───────────────────────────────────────
+const LayerDiagram = ({ forensics, secrets, target }: { forensics: ForensicsBundle | null; secrets: SecretScan | null; target: string }) => {
+  if (!forensics && !secrets) return null;
+  const layers: Array<{ n: string; name: string; items: string[]; tone: Tone }> = [
+    { n: "INPUT", name: "Raw URL", items: [target], tone: "neutral" },
+    { n: "L0", name: "Page Identity", items: forensics?.identity ? [
+      `title: ${forensics.identity.title || "—"}`,
+      `canonical: ${forensics.identity.canonical || "—"}`,
+      `lang: ${forensics.identity.language || "—"}`,
+    ] : [], tone: "neutral" },
+    { n: "L1", name: "Network & Server", items: forensics?.redirect ? [
+      `final: ${forensics.redirect.finalUrl}`,
+      `hops: ${forensics.redirect.hops.length}`,
+      `latency: ${forensics.redirect.responseMs}ms`,
+    ] : [], tone: "neutral" },
+    { n: "L4", name: "Tech Fingerprint", items: forensics?.tech ? [
+      ...forensics.tech.cms.map(s => `cms: ${s}`),
+      ...forensics.tech.frameworks.slice(0, 4).map(s => `fw: ${s}`),
+      ...forensics.tech.analytics.slice(0, 3).map(s => `analytics: ${s}`),
+      ...forensics.tech.payments.map(s => `pay: ${s}`),
+    ] : [], tone: "warn" },
+    { n: "L5", name: "Exposed Files", items: (forensics?.exposed || []).map(e => `${e.path} [${e.status}]`), tone: forensics?.exposed.some(e => e.risk === "critical") ? "critical" : "warn" },
+    { n: "L6", name: "JS Bundle Analysis", items: secrets ? [
+      `bundles: ${secrets.bundles_scanned}`,
+      `inline: ${secrets.inline_scripts}`,
+      ...((forensics?.tech?.source_maps || []).slice(0, 3).map(m => `sourcemap: ${m}`)),
+      ...((forensics?.tech?.env_vars || []).slice(0, 5).map(e => `env: ${e}`)),
+    ] : [], tone: "warn" },
+    { n: "L7", name: "Secrets Extraction", items: secrets?.secrets.slice(0, 8).map(s => `${s.label}: ${s.match}`) || [], tone: secrets?.secrets.length ? "critical" : "good" },
+    { n: "L8", name: "Links & Paths", items: forensics?.links ? [
+      `internal: ${forensics.links.internal.length}`,
+      `external: ${forensics.links.external.length}`,
+      ...forensics.links.admin_paths.slice(0, 5).map(a => `admin: ${a}`),
+    ] : [], tone: forensics?.links?.admin_paths.length ? "warn" : "neutral" },
+    { n: "L9", name: "Media & Files", items: forensics?.links ? [
+      `images: ${forensics.links.image_count}`,
+      `documents: ${forensics.links.document_links.length}`,
+    ] : [], tone: "neutral" },
+    { n: "L10", name: "Contact & Identity", items: [
+      ...(secrets?.emails || []).slice(0, 5).map(e => `email: ${e}`),
+      ...(forensics?.identity?.socialLinks || []).slice(0, 4).map(s => `social: ${s}`),
+    ], tone: "neutral" },
+    { n: "L11", name: "Archive & Reputation", items: forensics?.archive ? [
+      `first: ${forensics.archive.first_seen || "—"}`,
+      `last: ${forensics.archive.last_seen || "—"}`,
+      `snapshots: ${forensics.archive.snapshots || "—"}`,
+    ] : [], tone: "neutral" },
+    { n: "L12", name: "Subdomains & Weaknesses", items: (forensics?.sub_audit || []).slice(0, 8).map(s =>
+      `${s.host}${s.weaknesses.length ? ` ⚠ ${s.weaknesses.length}` : " ✓"}`
+    ), tone: (forensics?.sub_audit || []).some(s => s.weaknesses.length) ? "warn" : "good" },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-border/20 bg-card/30 backdrop-blur-xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Network className="h-3.5 w-3.5 text-accent" />
+        <span className="text-[11px] font-semibold tracking-[0.22em] text-accent/90 uppercase">Layered Recon Diagram</span>
+        <span className="ml-auto text-[9px] font-mono tracking-[0.18em] text-muted-foreground/50 uppercase">12-Layer Forensic Stack</span>
+      </div>
+      <div className="space-y-2">
+        {layers.map((l, i) => {
+          const t = TONE_STYLES[l.tone];
+          return (
+            <div key={i} className={`flex items-stretch gap-3 rounded-xl border ${t.ring} bg-background/30 overflow-hidden`}>
+              <div className={`flex flex-col items-center justify-center px-3 py-2 ${t.glow} bg-background/60 border-r border-border/15 shrink-0 min-w-[80px]`}>
+                <span className={`text-[9px] font-mono tracking-[0.18em] uppercase ${t.text}`}>{l.n}</span>
+                <span className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-wider mt-0.5">{l.name}</span>
+              </div>
+              <div className="flex-1 px-3 py-2 text-[10px] font-mono text-foreground/85">
+                {l.items.length === 0 ? (
+                  <span className="italic text-muted-foreground/40">no signals captured</span>
+                ) : (
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                    {l.items.map((it, j) => (
+                      <span key={j} className="break-all">▸ {it}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default LinkExtractView;
