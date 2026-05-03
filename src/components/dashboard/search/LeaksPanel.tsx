@@ -411,7 +411,7 @@ const LeaksPanel = () => {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Asher Archives (leaks + Internet Archive)…"
+          placeholder="Search Asher Archives…"
           className="flex-1 bg-transparent text-sm font-light text-foreground placeholder:text-muted-foreground/40 outline-none"
         />
         <button
