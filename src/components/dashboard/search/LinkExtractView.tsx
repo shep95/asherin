@@ -202,6 +202,7 @@ const LinkExtractView = () => {
     setError(null);
     setBlueprint(null);
     setSubStates({});
+    setSecrets(null);
 
     try {
       const byok = getActiveIntelMapByok();
@@ -214,6 +215,7 @@ const LinkExtractView = () => {
       if (data.error) throw new Error(data.error);
       if (!data.blueprint?.branches?.length) throw new Error("Engine returned empty blueprint");
       setBlueprint(data.blueprint as Blueprint);
+      if (data.secrets) setSecrets(data.secrets as SecretScan);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to extract blueprint"));
     } finally {
