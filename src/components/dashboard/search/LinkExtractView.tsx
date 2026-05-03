@@ -53,6 +53,14 @@ interface LinkInventory {
   document_links: string[]; image_count: number;
 }
 interface SubAudit { host: string; ip?: string; cname?: string; status?: number; server?: string; tech?: string[]; weaknesses: string[]; }
+interface EmailInfra { mx_provider: string; mx_records: string[]; spf: string; spf_strict: boolean; dmarc: string; dmarc_policy: string; dkim_selectors_found: string[]; weaknesses: string[]; }
+interface SecurityAudit { hsts_present: boolean; hsts_max_age?: number; hsts_includes_sub: boolean; hsts_preload: boolean; x_frame_options: string; clickjacking_risk: boolean; csp_present: boolean; csp_unsafe_inline: boolean; csp_unsafe_eval: boolean; csp_wildcard_hosts: string[]; csp_report_only: boolean; cors_acao: string; cors_wildcard_with_credentials: boolean; cookies: Array<{ name: string; secure: boolean; httpOnly: boolean; sameSite: string }>; cookie_weak_count: number; mixed_content_resources: string[]; weaknesses: string[]; }
+interface PageStructure { forms: Array<{ action: string; method: string; fields: string[]; hidden_fields: string[] }>; iframes: string[]; html_comments: string[]; noscript_blocks: number; hreflang: Array<{ lang: string; href: string }>; open_graph_full: Record<string, string>; twitter_full: Record<string, string>; jsonld_blocks: number; }
+interface MobileAuthIntel { ios_app_link?: string; android_app_link?: string; app_bundle_ids: string[]; deep_link_schemes: string[]; oauth_providers: string[]; auth_provider_detected: string[]; session_recording_tools: string[]; ad_pixels: string[]; live_chat: string[]; consent_banner: string[]; ab_testing: string[]; }
+interface CloudProbe { bucket_url: string; type: "s3" | "gcs" | "azure" | "firebase"; status: number; public_listing: boolean; risk: "info" | "warn" | "critical"; note: string; }
+interface DependencyIntel { package_json_exposed: boolean; name?: string; version?: string; dependency_count: number; dev_dependency_count: number; outdated_warnings: string[]; notable: string[]; }
+interface PerformanceIntel { ttfb_ms?: number; total_ms?: number; bytes_received?: number; http_protocol: string; compression: string; cache_control?: string; cdn_hint?: string; }
+interface ReputationIntel { hibp_breach_count?: number; google_safebrowsing_hint: string; wayback_dead_pages_sampled: number; notes: string[]; }
 interface ForensicsBundle {
   identity: PageIdentity | null;
   redirect: { hops: Array<{ url: string; status: number }>; finalUrl: string; responseMs: number } | null;
@@ -61,6 +69,14 @@ interface ForensicsBundle {
   links: LinkInventory | null;
   archive: { first_seen?: string; last_seen?: string; snapshots?: number } | null;
   sub_audit: SubAudit[];
+  email_infra?: EmailInfra | null;
+  security_audit?: SecurityAudit | null;
+  page_structure?: PageStructure | null;
+  mobile_auth?: MobileAuthIntel | null;
+  cloud_buckets?: CloudProbe[];
+  dependencies?: DependencyIntel | null;
+  performance?: PerformanceIntel | null;
+  reputation?: ReputationIntel | null;
 }
 
 type SubState = { loading: boolean; blueprint?: Blueprint; error?: string };
