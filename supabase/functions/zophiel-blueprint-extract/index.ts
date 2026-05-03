@@ -618,10 +618,17 @@ serve(async (req) => {
       });
     }
 
-    // Live recon — pull real, observable facts before AI synthesis
+    // Live recon + secret scan — pull real, observable facts before AI synthesis
     let recon: ReconBundle | null = null;
+    let secrets: SecretScan | null = null;
     try {
-      recon = await liveRecon(url, { withSubs: !isSubdomainMode });
+      const host = extractHostname(url);
+      const [r, s] = await Promise.all([
+        liveRecon(url, { withSubs: !isSubdomainMode }),
+        secretScan(host).catch((e) => { console.error("[blueprint] secret scan failed", e); return null; }),
+      ]);
+      recon = r;
+      secrets = s;
     } catch (e) {
       console.error("[blueprint] recon failed", e);
     }
