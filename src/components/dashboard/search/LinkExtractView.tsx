@@ -161,6 +161,7 @@ const LinkExtractView = () => {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [subStates, setSubStates] = useState<Record<string, SubState>>({});
+  const [secrets, setSecrets] = useState<SecretScan | null>(null);
 
   const fetchSubdomainBlueprint = useCallback(async (host: string) => {
     setSubStates((s) => ({ ...s, [host]: { loading: true } }));
