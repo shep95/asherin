@@ -66,6 +66,7 @@ const Asher = lazy(() => import("./pages/Asher"));
 const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
+import AureonDomainGate from "./components/AureonDomainGate";
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -80,6 +81,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <AureonDomainGate>
       <SubscriptionProvider>
       <TooltipProvider>
         <Toaster />
