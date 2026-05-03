@@ -265,10 +265,8 @@ const LeaksPanel = () => {
 
       const [alephRes, iaRes] = await Promise.allSettled([
         (async () => {
-          let r = await fetch(target, { headers: { Accept: "application/json" } }).catch(() => null as any);
-          if (!r || !r.ok) r = await fetch(viaProxy(target));
-          if (!r.ok) throw new Error(`Asher Eyes ${r.status}`);
-          return r.json();
+          const schemaArrays = await Promise.all(schemaFetches);
+          return schemaArrays.flat();
         })(),
         (async () => {
           const r = await fetch(iaUrl);
@@ -281,9 +279,13 @@ const LeaksPanel = () => {
       let totalCount = 0;
 
       if (alephRes.status === "fulfilled") {
-        const d = alephRes.value;
-        if (Array.isArray(d.results)) merged.push(...d.results);
-        if (typeof d.total === "number") totalCount += d.total;
+        const items = alephRes.value as AlephResult[];
+        // Deduplicate by id
+        const seen = new Set<string>();
+        for (const item of items) {
+          if (!seen.has(item.id)) { seen.add(item.id); merged.push(item); }
+        }
+        totalCount += merged.length;
       }
       if (iaRes.status === "fulfilled") {
         const docs = iaRes.value?.response?.docs ?? [];
