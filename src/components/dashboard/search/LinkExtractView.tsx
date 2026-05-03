@@ -47,6 +47,16 @@ const SUBDOMAIN_BRANCH_META: Record<string, Pick<Branch, "label" | "icon" | "ton
   thirdparty: { label: "THIRD-PARTY", icon: "plug", tone: "neutral" },
   network: { label: "NETWORK TOPOLOGY", icon: "network", tone: "neutral" },
   org: { label: "ORG INTEL", icon: "building", tone: "neutral" },
+  threats: { label: "THREAT & CVE EXPOSURE", icon: "shield", tone: "warn" },
+  leaks: { label: "DATA LEAK SURFACE", icon: "shield", tone: "critical" },
+  people: { label: "PERSONNEL EXPOSURE", icon: "building", tone: "neutral" },
+  history: { label: "HISTORICAL EVOLUTION", icon: "globe", tone: "neutral" },
+  attacksurface: { label: "ATTACK SURFACE", icon: "network", tone: "warn" },
+  peers: { label: "PEER COMPARISON", icon: "network", tone: "neutral" },
+  socialeng: { label: "SOCIAL-ENG RISK", icon: "building", tone: "warn" },
+  monitoring: { label: "CHANGE MONITORING", icon: "network", tone: "neutral" },
+  remediation: { label: "REMEDIATION ROADMAP", icon: "shield", tone: "good" },
+  underground: { label: "UNDERGROUND MENTIONS", icon: "shield", tone: "neutral" },
 };
 
 const toTitle = (value: string) => value.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
