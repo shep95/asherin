@@ -159,6 +159,21 @@ serve(async (req) => {
       console.error("[asher-ai] Library of Leaks lookup failed:", e);
     }
 
+    // ── Internet Archive (archive.org) live grounding ──────────────────────
+    let archiveBlock = "";
+    try {
+      const userText = latestUserText(cleaned);
+      const { searchArchive, formatArchiveContext, shouldQueryArchive } =
+        await import("../_shared/internetArchive.ts");
+      if (shouldQueryArchive(userText)) {
+        console.log("[asher-ai] Internet Archive lookup:", userText.slice(0, 80));
+        const hits = await searchArchive(userText.slice(0, 200), { limit: 10, deepRead: 2 });
+        archiveBlock = formatArchiveContext(userText.slice(0, 80), hits);
+      }
+    } catch (e) {
+      console.error("[asher-ai] Internet Archive lookup failed:", e);
+    }
+
     // Gemini OpenAI-compatible endpoint — keeps client SSE parser unchanged.
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
