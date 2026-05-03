@@ -24,6 +24,7 @@ const CodeAuditView = lazy(() => import("./search/CodeAuditView"));
 const FaceRecognitionView = lazy(() => import("./search/FaceRecognitionView"));
 const DarkWebPanel = lazy(() => import("./search/DarkWebPanel"));
 const LeaksPanel = lazy(() => import("./search/LeaksPanel"));
+const ArchivePanel = lazy(() => import("./search/ArchivePanel"));
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 
 const CATEGORY_LABELS: Record<string, string> = {
