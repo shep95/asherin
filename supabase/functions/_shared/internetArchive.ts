@@ -1,5 +1,5 @@
 // Shared Internet Archive (archive.org) helper.
-// Used by Asher AI + Aureon Chat + Asher Search to ground answers in real
+// Used by Asher AI + Aureon Chat + Asher Archives to ground answers in real
 // archived books, web pages, audio, video, and software.
 //
 // Public API — no auth required. Fails soft (returns []).
