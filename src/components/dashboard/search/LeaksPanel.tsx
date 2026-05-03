@@ -261,7 +261,7 @@ const LeaksPanel = () => {
         })(),
         (async () => {
           const r = await fetch(iaUrl);
-          if (!r.ok) throw new Error(`Internet Archive ${r.status}`);
+          if (!r.ok) throw new Error(`Asher Archives ${r.status}`);
           return r.json();
         })(),
       ]);
