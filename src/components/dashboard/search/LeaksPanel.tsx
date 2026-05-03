@@ -53,7 +53,7 @@ const LeaksPanel = () => {
   const [selected, setSelected] = useState<Record<string, AlephResult>>({});
   const [zipping, setZipping] = useState(false);
   const [integrating, setIntegrating] = useState(false);
-  const [activeSchemata, setActiveSchemata] = useState<Schema[]>(["Pages", "Document", "HyperText", "Email", "PlainText", "Person", "Company"]);
+  // Filters removed — AI Intent Filter does the narrowing instead.
 
   // ── Intent Filter ────────────────────────────────────────────
   const [intent, setIntent] = useState("");
@@ -242,7 +242,7 @@ const LeaksPanel = () => {
       params.set("limit", "60");
       params.set("highlight", "true");
       params.set("highlight_count", "2");
-      activeSchemata.forEach((s) => params.append("filter:schemata", s));
+      // No schema filter — return everything Aleph has, let the AI Intent Filter narrow it.
       const target = `${ALEPH}/search?${params.toString()}`;
 
       // Internet Archive query (parallel)
@@ -305,7 +305,7 @@ const LeaksPanel = () => {
     } catch (e: any) {
       setError(e?.message || "Search failed");
     } finally { setLoading(false); }
-  }, [activeSchemata]);
+  }, []);
 
   const toggleSel = (r: AlephResult) => {
     setSelected((s) => {
