@@ -104,7 +104,7 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
         { "label": "Crawler Findings", "value": "Internal links, external links, JS files, CSS files, images surface map", "confidence": "med" },
         { "label": "Honeypot Likelihood", "value": "Heuristic 0-1 score (Shodan-style) for whether peer IPs look like honeypots", "confidence": "low" }
       ] },
-    { "id": "bugbounty", "label": "BUG BOUNTY SURFACE", "icon": "shield", "tone": "warn",
+    { "id": "huntsurface", "label": "HUNT SURFACE AUDIT", "icon": "shield", "tone": "warn",
       "leaves": [
         { "label": "Subdomain Enumeration", "value": "Cert-transparency + passive DNS surface (amass/subfinder class) — list shadow assets to retire", "confidence": "high" },
         { "label": "Port & Service Scan", "value": "Externally reachable services (naabu/masscan class) — close non-essential", "confidence": "high" },
@@ -142,8 +142,8 @@ Return ONLY valid JSON matching this exact schema (no markdown, no commentary):
     { "from": "leaks", "to": "underground", "label": "surfaces in" },
     { "from": "domain", "to": "recon", "label": "scanned by" },
     { "from": "recon", "to": "attacksurface", "label": "feeds" },
-    { "from": "subdomains", "to": "bugbounty", "label": "audited via" },
-    { "from": "bugbounty", "to": "remediation", "label": "fixed via" }
+    { "from": "subdomains", "to": "huntsurface", "label": "audited via" },
+    { "from": "huntsurface", "to": "remediation", "label": "fixed via" }
   ],
   "criticals": [
     { "branch": "security", "finding": "CSP allows unsafe-eval", "severity": "high" }
@@ -154,9 +154,9 @@ Rules:
 - Each branch MUST have 4-8 leaves with concrete observed/inferred values.
 - Use 'tone' to color-code branches: good (secure/modern), neutral (standard), warn (gaps), critical (severe).
 - Leaves should be FACTS or DEFENSIVE recommendations ("Nginx 1.24 — upgrade to 1.26"), not vague descriptions.
-- Always include ALL branches above (20 total: domain, hosting, stack, security, thirdparty, network, org, subdomains, threats, leaks, people, history, attacksurface, peers, socialeng, monitoring, remediation, underground, recon, bugbounty).
+- Always include ALL branches above (20 total: domain, hosting, stack, security, thirdparty, network, org, subdomains, threats, leaks, people, history, attacksurface, peers, socialeng, monitoring, remediation, underground, recon, huntsurface).
 - For 'recon': provide Basic Recon, WHOIS, GeoIP, Banner Grab, DNS, Open-Port surface, Reverse-IP/Co-Hosted, Subdomain Sweep, CMS vuln class, Crawler findings, and Honeypot likelihood. Frame as defensive audit only.
-- For 'bugbounty': emulate the tooling categories from the awesome-bugbounty-tools catalog (subdomain enum, port scan, URL/endpoint discovery, parameter discovery, JS secret scan, subdomain takeover, cloud storage exposure, SCM leakage, CORS, open redirect, XSS/SQLi/SSRF class, visual recon, tech fingerprint drift, VDP status). Frame strictly as a defensive self-audit checklist for the asset owner — no exploit payloads, no working PoCs.
+- For 'huntsurface': cover subdomain enum, port scan, URL/endpoint discovery, parameter discovery, JS secret scan, subdomain takeover, cloud storage exposure, SCM leakage, CORS, open redirect, XSS/SQLi/SSRF class, visual recon, tech fingerprint drift, intake-channel status. Frame strictly as a defensive self-audit checklist for the asset owner — no exploit payloads, no working PoCs.
 - For 'threats': cross-reference detected versions against known CVE patterns; cite CVE IDs where confident, otherwise say "no known public CVE for this version".
 - For 'leaks': describe the EXPOSURE SURFACE (where leaks typically occur for this stack) and remediation — DO NOT fabricate specific leaked credentials.
 - For 'people': inferable email patterns and public LinkedIn footprint only — never invent named individuals or personal data.
