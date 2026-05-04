@@ -246,38 +246,51 @@ const AsherBrainsModule = () => {
   };
 
   const processInBackground = async (files: File[]) => {
-    setBgQueue((n) => n + files.length);
+    // 1) Expand zips up front
+    const expanded: File[] = [];
+    for (const f of files) {
+      if (/\.zip$/i.test(f.name)) {
+        const inner = await expandZip(f);
+        if (inner.length) toast.success(`${f.name}: ${inner.length} file(s)`);
+        expanded.push(...inner);
+      } else {
+        expanded.push(f);
+      }
+    }
+    if (!expanded.length) return;
+
+    setBgQueue((n) => n + expanded.length);
     const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
-    for (const file of files) {
-      try {
-        if (/\.zip$/i.test(file.name)) {
-          const inner = await expandZip(file);
-          if (inner.length) {
-            setBgQueue((n) => n + inner.length);
-            toast.success(`${file.name}: extracted ${inner.length} file(s)`);
-            for (const f of inner) {
-              const res = await uploadOne(f, uploadCategory);
-              if (!res.ok) {
-                newFailed.push({ file: f, category: uploadCategory, error: res.error || "unknown" });
-                toast.error(`${f.name}: ${res.error}`);
-              }
-              setBgQueue((n) => Math.max(0, n - 1));
-            }
-          }
-        } else {
+    let okCount = 0;
+
+    // 2) Parallel pool — 6 concurrent uploads keeps the UI responsive without DoS
+    const CONCURRENCY = 6;
+    let idx = 0;
+    const worker = async () => {
+      while (idx < expanded.length) {
+        const i = idx++;
+        const file = expanded[i];
+        try {
           const res = await uploadOne(file, uploadCategory);
           if (!res.ok) {
             newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
-            toast.error(`${file.name}: ${res.error}`);
+          } else {
+            okCount++;
           }
+        } catch (err: any) {
+          newFailed.push({ file, category: uploadCategory, error: err?.message || "unknown" });
+        } finally {
+          setBgQueue((n) => Math.max(0, n - 1));
         }
-      } catch (err: any) {
-        newFailed.push({ file, category: uploadCategory, error: err?.message || "unknown" });
-      } finally {
-        setBgQueue((n) => Math.max(0, n - 1));
       }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, expanded.length) }, worker));
+
+    if (okCount) toast.success(`${okCount} brain(s) ingested`);
+    if (newFailed.length) {
+      setFailed((prev) => [...prev, ...newFailed]);
+      toast.error(`${newFailed.length} failed — use Retry Failed`);
     }
-    if (newFailed.length) setFailed((prev) => [...prev, ...newFailed]);
   };
 
   const upload = async (files: FileList | File[]) => {
