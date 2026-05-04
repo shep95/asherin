@@ -88,6 +88,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <CommandPalette />
+          <RouteSessionTracker />
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />
