@@ -189,6 +189,7 @@ const AsherDashboard = () => {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [superOwner, setSuperOwner] = useState(false);
+  const [brainContributor, setBrainContributor] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
@@ -196,6 +197,10 @@ const AsherDashboard = () => {
   const { user } = useAuth();
 
   useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
+  useEffect(() => {
+    const email = (user?.email || "").toLowerCase();
+    setBrainContributor(email === "ashernewtonx@gmail.com" || email === "ekk447@gmail.com");
+  }, [user?.email]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
 
