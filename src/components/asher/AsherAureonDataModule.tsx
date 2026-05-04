@@ -104,7 +104,7 @@ export default function AsherAureonDataModule() {
         supabase.from("profiles").select("user_id, created_at").gte("created_at", since),
         supabase.from("user_sessions").select("referrer, utm_source, country, created_at").gte("created_at", since),
         supabase.from("user_subscriptions").select("product_id, status").eq("status", "active"),
-        supabase.from("account_activity_log").select("event_type, created_at").gte("created_at", since).limit(5000),
+        supabase.from("account_activity_log").select("user_id, event_type, created_at").gte("created_at", since).limit(5000),
         supabase.from("account_activity_log").select("id, event_type, description, created_at, outcome").order("created_at", { ascending: false }).limit(40),
       ]);
       if (cancelled) return;
