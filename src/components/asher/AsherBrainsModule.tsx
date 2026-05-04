@@ -148,12 +148,16 @@ const AsherBrainsModule = () => {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    // Lightweight list query — DO NOT pull `content` (can be 200MB+ across all rows)
+    const { data, error } = await supabase
       .from("asher_brains")
-      .select("*")
+      .select("id,name,description,category,file_name,file_path,file_size,is_active,uploaded_by,created_at,updated_at")
       .order("category", { ascending: true })
-      .order("created_at", { ascending: false });
-    setBrains((data as AsherBrain[] | null) ?? []);
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (error) toast.error(`Load failed: ${error.message}`);
+    const rows = ((data as any[] | null) ?? []).map((r) => ({ ...r, content: "" })) as AsherBrain[];
+    setBrains(rows);
     setLoading(false);
   }, []);
 
@@ -317,23 +321,46 @@ const AsherBrainsModule = () => {
   const scanDuplicates = useCallback(async () => {
     setScanningDup(true);
     try {
+      // Cheap pre-pass: candidates share file_name + file_size (no content download)
+      const sizeMap = new Map<string, AsherBrain[]>();
+      for (const b of brains) {
+        const k = `${(b.file_name || "").toLowerCase()}::${b.file_size ?? 0}`;
+        const arr = sizeMap.get(k) || [];
+        arr.push(b);
+        sizeMap.set(k, arr);
+      }
+      const candidateGroups = Array.from(sizeMap.values()).filter((g) => g.length > 1);
+
+      // Verify by hashing content — only fetch content for candidate rows
       const hash = async (s: string) => {
         const buf = new TextEncoder().encode(s.trim().toLowerCase());
         const h = await crypto.subtle.digest("SHA-256", buf);
         return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
       };
-      const map = new Map<string, AsherBrain[]>();
-      for (const b of brains) {
-        if (!b.content) continue;
-        const k = await hash(b.content);
-        const arr = map.get(k) || [];
-        arr.push(b);
-        map.set(k, arr);
+
+      const finalGroups: AsherBrain[][] = [];
+      for (const cand of candidateGroups) {
+        const ids = cand.map((b) => b.id);
+        const { data } = await supabase
+          .from("asher_brains").select("id,content").in("id", ids);
+        const byId = new Map<string, string>(
+          ((data as any[] | null) ?? []).map((r) => [r.id as string, (r.content as string) ?? ""]),
+        );
+        const hashMap = new Map<string, AsherBrain[]>();
+        for (const b of cand) {
+          const c = byId.get(b.id) || "";
+          if (!c) continue;
+          const k = await hash(c);
+          const arr = hashMap.get(k) || [];
+          arr.push(b);
+          hashMap.set(k, arr);
+        }
+        for (const g of hashMap.values()) if (g.length > 1) finalGroups.push(g);
       }
-      const groups = Array.from(map.values()).filter((g) => g.length > 1);
-      setDupGroups(groups);
-      if (groups.length === 0) toast.success("No duplicate brains detected");
-      else toast.warning(`${groups.length} duplicate group(s) found · ${groups.reduce((n, g) => n + g.length, 0)} brains`);
+
+      setDupGroups(finalGroups);
+      if (finalGroups.length === 0) toast.success("No duplicate brains detected");
+      else toast.warning(`${finalGroups.length} duplicate group(s) · ${finalGroups.reduce((n, g) => n + g.length, 0)} brains`);
     } catch (err: any) {
       toast.error(err?.message || "Duplicate scan failed");
     } finally {
@@ -596,7 +623,13 @@ const AsherBrainsModule = () => {
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <button
-                              onClick={() => setPreview(b)}
+                              onClick={async () => {
+                                if (b.content) { setPreview(b); return; }
+                                const { data, error } = await supabase
+                                  .from("asher_brains").select("content").eq("id", b.id).maybeSingle();
+                                if (error) { toast.error(error.message); return; }
+                                setPreview({ ...b, content: (data?.content as string) ?? "" });
+                              }}
                               title="Preview content"
                               className="p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5"
                             >
