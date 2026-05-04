@@ -386,6 +386,8 @@ async function dispatch(
     case "digitalocean":   return probeDigitalocean(key);
     case "heroku_api":     return probeHeroku(key);
     case "npm_token":      return probeNpm(key);
+    case "fb_pixel":       return probeFbPixel(key);
+    case "segment_write":  return probeSegment(key);
     default:               return probeGeneric(key, hostHint);
   }
 }
