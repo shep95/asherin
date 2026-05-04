@@ -354,6 +354,7 @@ export default function AsherAureonDataModule() {
             { id: "operations", label: "Operations", icon: Activity },
             { id: "intel", label: "Global Intel", icon: Globe },
             { id: "flows", label: "Data Flows", icon: Database },
+            { id: "pages", label: "Pages & Time", icon: Clock },
             { id: "health", label: "System Health", icon: Cpu },
           ].map(({ id, label, icon: Icon }) => (
             <button
