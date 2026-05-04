@@ -516,13 +516,15 @@ const AsherBrainsModule = () => {
                                 ? <ToggleRight className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
                                 : <ToggleLeft className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />}
                             </button>
-                            <button
-                              onClick={() => void remove(b)}
-                              title="Delete"
-                              className="p-1.5 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => void remove(b)}
+                                title="Delete"
+                                className="p-1.5 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
