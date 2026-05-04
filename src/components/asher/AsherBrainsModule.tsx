@@ -182,14 +182,17 @@ const AsherBrainsModule = () => {
     try {
       const rawText = await readBrainFile(file);
       let text = sanitizeForPg(rawText);
-      // On retry, be more aggressive: keep only printable ASCII + newlines
       if (attempt > 1) {
         text = text.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
       }
       const name = file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " ");
-      const filePath = `${user?.id ?? "admin"}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error: uploadErr } = await supabase.storage.from("asher-brains").upload(filePath, file, { upsert: false });
-      if (uploadErr) console.warn("brain file storage upload failed:", uploadErr.message);
+      // unique path per attempt — prevents collisions when many files upload in parallel within same ms
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${user?.id ?? "admin"}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}_${safeName}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("asher-brains")
+        .upload(filePath, file, { upsert: true, contentType: file.type || "text/plain" });
+      if (uploadErr) console.warn("brain storage upload:", uploadErr.message);
 
       const { data: row, error } = await supabase
         .from("asher_brains")
@@ -204,19 +207,20 @@ const AsherBrainsModule = () => {
           uploaded_by: user?.id,
           is_active: true,
         })
-        .select()
+        .select("id,name,description,category,file_name,file_path,file_size,is_active,uploaded_by,created_at,updated_at")
         .single();
       if (error) {
         if (attempt < 3) return uploadOne(file, category, attempt + 1);
         return { ok: false, error: error.message };
       }
       if (row) {
-        setBrains((p) => [row as AsherBrain, ...p]);
-        toast.success(`"${name}" → ${category.toUpperCase()}`);
+        const full = { ...(row as any), content: "" } as AsherBrain;
+        setBrains((p) => [full, ...p]);
         logAsherEvent("module_open", { module: "asher_brain_uploaded", category, size: file.size });
       }
       return { ok: true };
     } catch (err: any) {
+      if (attempt < 3) return uploadOne(file, category, attempt + 1);
       return { ok: false, error: err?.message || "read failed" };
     }
   };
@@ -242,38 +246,51 @@ const AsherBrainsModule = () => {
   };
 
   const processInBackground = async (files: File[]) => {
-    setBgQueue((n) => n + files.length);
+    // 1) Expand zips up front
+    const expanded: File[] = [];
+    for (const f of files) {
+      if (/\.zip$/i.test(f.name)) {
+        const inner = await expandZip(f);
+        if (inner.length) toast.success(`${f.name}: ${inner.length} file(s)`);
+        expanded.push(...inner);
+      } else {
+        expanded.push(f);
+      }
+    }
+    if (!expanded.length) return;
+
+    setBgQueue((n) => n + expanded.length);
     const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
-    for (const file of files) {
-      try {
-        if (/\.zip$/i.test(file.name)) {
-          const inner = await expandZip(file);
-          if (inner.length) {
-            setBgQueue((n) => n + inner.length);
-            toast.success(`${file.name}: extracted ${inner.length} file(s)`);
-            for (const f of inner) {
-              const res = await uploadOne(f, uploadCategory);
-              if (!res.ok) {
-                newFailed.push({ file: f, category: uploadCategory, error: res.error || "unknown" });
-                toast.error(`${f.name}: ${res.error}`);
-              }
-              setBgQueue((n) => Math.max(0, n - 1));
-            }
-          }
-        } else {
+    let okCount = 0;
+
+    // 2) Parallel pool — 6 concurrent uploads keeps the UI responsive without DoS
+    const CONCURRENCY = 6;
+    let idx = 0;
+    const worker = async () => {
+      while (idx < expanded.length) {
+        const i = idx++;
+        const file = expanded[i];
+        try {
           const res = await uploadOne(file, uploadCategory);
           if (!res.ok) {
             newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
-            toast.error(`${file.name}: ${res.error}`);
+          } else {
+            okCount++;
           }
+        } catch (err: any) {
+          newFailed.push({ file, category: uploadCategory, error: err?.message || "unknown" });
+        } finally {
+          setBgQueue((n) => Math.max(0, n - 1));
         }
-      } catch (err: any) {
-        newFailed.push({ file, category: uploadCategory, error: err?.message || "unknown" });
-      } finally {
-        setBgQueue((n) => Math.max(0, n - 1));
       }
+    };
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, expanded.length) }, worker));
+
+    if (okCount) toast.success(`${okCount} brain(s) ingested`);
+    if (newFailed.length) {
+      setFailed((prev) => [...prev, ...newFailed]);
+      toast.error(`${newFailed.length} failed — use Retry Failed`);
     }
-    if (newFailed.length) setFailed((prev) => [...prev, ...newFailed]);
   };
 
   const upload = async (files: FileList | File[]) => {
