@@ -241,34 +241,48 @@ const AsherBrainsModule = () => {
     }
   };
 
+  const processInBackground = async (files: File[]) => {
+    setBgQueue((n) => n + files.length);
+    const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
+    for (const file of files) {
+      try {
+        if (/\.zip$/i.test(file.name)) {
+          const inner = await expandZip(file);
+          if (inner.length) {
+            setBgQueue((n) => n + inner.length);
+            toast.success(`${file.name}: extracted ${inner.length} file(s)`);
+            for (const f of inner) {
+              const res = await uploadOne(f, uploadCategory);
+              if (!res.ok) {
+                newFailed.push({ file: f, category: uploadCategory, error: res.error || "unknown" });
+                toast.error(`${f.name}: ${res.error}`);
+              }
+              setBgQueue((n) => Math.max(0, n - 1));
+            }
+          }
+        } else {
+          const res = await uploadOne(file, uploadCategory);
+          if (!res.ok) {
+            newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
+            toast.error(`${file.name}: ${res.error}`);
+          }
+        }
+      } catch (err: any) {
+        newFailed.push({ file, category: uploadCategory, error: err?.message || "unknown" });
+      } finally {
+        setBgQueue((n) => Math.max(0, n - 1));
+      }
+    }
+    if (newFailed.length) setFailed((prev) => [...prev, ...newFailed]);
+  };
+
   const upload = async (files: FileList | File[]) => {
     if (!canContribute) return;
     const arr = Array.from(files);
     if (!arr.length) return;
-    setUploading(true);
-
-    // Expand any .zip archives into their contained brain files
-    const expanded: File[] = [];
-    for (const f of arr) {
-      if (/\.zip$/i.test(f.name)) {
-        const inner = await expandZip(f);
-        if (inner.length) toast.success(`${f.name}: extracted ${inner.length} file(s)`);
-        expanded.push(...inner);
-      } else {
-        expanded.push(f);
-      }
-    }
-
-    const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
-    for (const file of expanded) {
-      const res = await uploadOne(file, uploadCategory);
-      if (!res.ok) {
-        newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
-        toast.error(`${file.name}: ${res.error}`);
-      }
-    }
-    setFailed((prev) => [...prev, ...newFailed]);
-    setUploading(false);
+    toast.success(`Queued ${arr.length} file(s) — processing in background`);
+    // fire-and-forget; UI stays responsive
+    void processInBackground(arr);
   };
 
   const retryFailed = async () => {
