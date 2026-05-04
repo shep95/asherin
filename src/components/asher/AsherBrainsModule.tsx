@@ -281,7 +281,7 @@ const AsherBrainsModule = () => {
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragging(false);
     if (e.dataTransfer.files.length) void upload(e.dataTransfer.files);
-  }, [uploadCategory, isAdmin, user?.id]);
+  }, [uploadCategory, canContribute, user?.id]);
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
