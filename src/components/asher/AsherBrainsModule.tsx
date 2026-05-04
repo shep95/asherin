@@ -148,16 +148,25 @@ const AsherBrainsModule = () => {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    // Lightweight list query — DO NOT pull `content` (can be 200MB+ across all rows)
-    const { data, error } = await supabase
-      .from("asher_brains")
-      .select("id,name,description,category,file_name,file_path,file_size,is_active,uploaded_by,created_at,updated_at")
-      .order("category", { ascending: true })
-      .order("created_at", { ascending: false })
-      .limit(2000);
-    if (error) toast.error(`Load failed: ${error.message}`);
-    const rows = ((data as any[] | null) ?? []).map((r) => ({ ...r, content: "" })) as AsherBrain[];
-    setBrains(rows);
+    // Paginate to avoid 1GB-table timeouts. Pull metadata only, 500 rows per page.
+    const PAGE = 500;
+    const all: AsherBrain[] = [];
+    let from = 0;
+    for (let i = 0; i < 20; i++) {
+      const { data, error } = await supabase
+        .from("asher_brains")
+        .select("id,name,description,category,file_name,file_path,file_size,is_active,uploaded_by,created_at,updated_at")
+        .order("created_at", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) { toast.error(`Load failed: ${error.message}`); break; }
+      const rows = ((data as any[] | null) ?? []).map((r) => ({ ...r, content: "" })) as AsherBrain[];
+      all.push(...rows);
+      if (rows.length < PAGE) break;
+      from += PAGE;
+      // incremental render so user sees data immediately
+      setBrains([...all]);
+    }
+    setBrains(all);
     setLoading(false);
   }, []);
 
