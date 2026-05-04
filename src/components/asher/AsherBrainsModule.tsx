@@ -568,15 +568,17 @@ const AsherBrainsModule = () => {
                             >
                               <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
                             </button>
-                            <button
-                              onClick={() => void toggle(b)}
-                              title={b.is_active ? "Deactivate" : "Activate"}
-                              className="p-1 rounded-md hover:bg-foreground/5"
-                            >
-                              {b.is_active
-                                ? <ToggleRight className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
-                                : <ToggleLeft className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />}
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => void toggle(b)}
+                                title={b.is_active ? "Deactivate" : "Activate"}
+                                className="p-1 rounded-md hover:bg-foreground/5"
+                              >
+                                {b.is_active
+                                  ? <ToggleRight className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
+                                  : <ToggleLeft className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />}
+                              </button>
+                            )}
                             {isAdmin && (
                               <button
                                 onClick={() => void remove(b)}
