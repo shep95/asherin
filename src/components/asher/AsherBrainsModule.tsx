@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Brain, Upload, Loader2, Trash2, ToggleLeft, ToggleRight, FileText,
-  ShieldAlert, Lock, Search, Filter, Eye, X,
+  ShieldAlert, Lock, Search, Filter, Eye, X, Copy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -140,6 +140,8 @@ const AsherBrainsModule = () => {
   const [filter, setFilter] = useState<AsherBrainCategory | "all">("all");
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState<AsherBrain | null>(null);
+  const [dupGroups, setDupGroups] = useState<AsherBrain[][]>([]);
+  const [scanningDup, setScanningDup] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -245,6 +247,10 @@ const AsherBrainsModule = () => {
   };
 
   const toggle = async (b: AsherBrain) => {
+    if (!isAdmin) {
+      toast.error("Only the super owner can toggle brains.");
+      return;
+    }
     const next = !b.is_active;
     setBrains((p) => p.map((x) => (x.id === b.id ? { ...x, is_active: next } : x)));
     const { error } = await supabase.from("asher_brains").update({ is_active: next }).eq("id", b.id);
@@ -273,6 +279,33 @@ const AsherBrainsModule = () => {
       logAsherEvent("module_open", { module: "asher_brain_deleted", category: b.category });
     }
   };
+
+  const scanDuplicates = useCallback(async () => {
+    setScanningDup(true);
+    try {
+      const hash = async (s: string) => {
+        const buf = new TextEncoder().encode(s.trim().toLowerCase());
+        const h = await crypto.subtle.digest("SHA-256", buf);
+        return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      };
+      const map = new Map<string, AsherBrain[]>();
+      for (const b of brains) {
+        if (!b.content) continue;
+        const k = await hash(b.content);
+        const arr = map.get(k) || [];
+        arr.push(b);
+        map.set(k, arr);
+      }
+      const groups = Array.from(map.values()).filter((g) => g.length > 1);
+      setDupGroups(groups);
+      if (groups.length === 0) toast.success("No duplicate brains detected");
+      else toast.warning(`${groups.length} duplicate group(s) found · ${groups.reduce((n, g) => n + g.length, 0)} brains`);
+    } catch (err: any) {
+      toast.error(err?.message || "Duplicate scan failed");
+    } finally {
+      setScanningDup(false);
+    }
+  }, [brains]);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragging(true);
@@ -381,8 +414,36 @@ const AsherBrainsModule = () => {
               Retry Failed ({failed.length})
             </button>
           )}
+          <button
+            onClick={() => void scanDuplicates()}
+            disabled={scanningDup || brains.length === 0}
+            title="Cross-check all brains for duplicate content"
+            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-foreground uppercase hover:bg-foreground/10 disabled:opacity-50"
+          >
+            {scanningDup ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+            Scan Duplicates
+          </button>
         </div>
       </div>
+
+      {dupGroups.length > 0 && (
+        <div className="shrink-0 border-b border-amber-400/30 bg-amber-400/5 px-4 py-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] font-light tracking-[0.25em] text-amber-300 uppercase">
+              {dupGroups.length} Duplicate Group(s) · {dupGroups.reduce((n, g) => n + g.length, 0)} Brains
+            </p>
+            <button onClick={() => setDupGroups([])} className="text-[9px] tracking-[0.2em] uppercase text-amber-300/70 hover:text-amber-300">Dismiss</button>
+          </div>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {dupGroups.map((g, i) => (
+              <div key={i} className="text-[10px] font-light text-amber-200/80">
+                <span className="text-amber-300/60">#{i + 1}:</span>{" "}
+                {g.map((b) => b.name).join("  ·  ")}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filter strip */}
       <div className="shrink-0 flex items-center gap-2 border-b border-border/15 px-4 py-2 bg-background">
@@ -507,15 +568,17 @@ const AsherBrainsModule = () => {
                             >
                               <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
                             </button>
-                            <button
-                              onClick={() => void toggle(b)}
-                              title={b.is_active ? "Deactivate" : "Activate"}
-                              className="p-1 rounded-md hover:bg-foreground/5"
-                            >
-                              {b.is_active
-                                ? <ToggleRight className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
-                                : <ToggleLeft className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />}
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => void toggle(b)}
+                                title={b.is_active ? "Deactivate" : "Activate"}
+                                className="p-1 rounded-md hover:bg-foreground/5"
+                              >
+                                {b.is_active
+                                  ? <ToggleRight className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
+                                  : <ToggleLeft className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />}
+                              </button>
+                            )}
                             {isAdmin && (
                               <button
                                 onClick={() => void remove(b)}
