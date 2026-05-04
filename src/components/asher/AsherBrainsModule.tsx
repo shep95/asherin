@@ -154,7 +154,7 @@ const AsherBrainsModule = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (unlocked && isAdmin) void refresh(); }, [unlocked, isAdmin, refresh]);
+  useEffect(() => { if (unlocked && canContribute) void refresh(); }, [unlocked, canContribute, refresh]);
 
   const [failed, setFailed] = useState<{ file: File; category: AsherBrainCategory; error: string }[]>([]);
 
