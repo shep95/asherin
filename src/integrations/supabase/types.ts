@@ -7586,6 +7586,7 @@ export type Database = {
           utm_source: string
         }[]
       }
+      admin_aureon_overview: { Args: never; Returns: Json }
       admin_module_usage: {
         Args: { _since: string }
         Returns: {
