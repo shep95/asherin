@@ -23,7 +23,7 @@ export const COUNTRY_LEADERS: LeaderRecord[] = [
     tzOffset: -4, lat: 40.7128, lon: -73.9650, city: "Queens, NY" },
   { countryCode: "IN", name: "Narendra Modi", role: "Prime Minister",
     birthDate: "1950-09-17", birthTime: "11:00", timeKnown: true,
-    tzOffset: 5.5, lat: 23.5880, lon: 72.3693, city: "Vadnagar" },
+    tzOffset: 5.5, lat: 23.7819, lon: 72.6411, city: "Vadnagar" },
   { countryCode: "GB", name: "Keir Starmer", role: "Prime Minister",
     birthDate: "1962-09-02", birthTime: "12:00", timeKnown: false,
     tzOffset: 1, lat: 51.5072, lon: -0.1276, city: "London" },
