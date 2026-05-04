@@ -117,17 +117,24 @@ export default function AsherAureonDataModule() {
       });
       const signupSeries = Object.entries(days).map(([date, count]) => ({ date, count }));
 
-      const evDays: Record<string, number> = {};
-      for (let i = range - 1; i >= 0; i--) evDays[format(subDays(new Date(), i), "MMM d")] = 0;
+      // ACTIVITY = unique user per day per event_type (one device, same person, same day = 1 activity)
+      const evDays: Record<string, Set<string>> = {};
+      for (let i = range - 1; i >= 0; i--) evDays[format(subDays(new Date(), i), "MMM d")] = new Set<string>();
+      const dailySeen = new Set<string>(); // user|day dedupe across event types
+      const evCountSets: Record<string, Set<string>> = {};
+      const totalUserDays = new Set<string>();
       (activity.data || []).forEach((a: any) => {
+        const uid = a.user_id || "anon";
         const d = format(new Date(a.created_at), "MMM d");
-        if (d in evDays) evDays[d]++;
+        const dayKey = `${uid}|${d}`;
+        const evKey = `${uid}|${d}|${a.event_type}`;
+        if (d in evDays) evDays[d].add(uid);
+        totalUserDays.add(dayKey);
+        if (!evCountSets[a.event_type]) evCountSets[a.event_type] = new Set<string>();
+        evCountSets[a.event_type].add(evKey);
       });
-      const eventSeries = Object.entries(evDays).map(([date, count]) => ({ date, count }));
-
-      const evCount: Record<string, number> = {};
-      (activity.data || []).forEach((a: any) => { evCount[a.event_type] = (evCount[a.event_type] || 0) + 1; });
-      const topEvents = Object.entries(evCount).map(([name, count]) => ({ name, count }))
+      const eventSeries = Object.entries(evDays).map(([date, set]) => ({ date, count: set.size }));
+      const topEvents = Object.entries(evCountSets).map(([name, set]) => ({ name, count: set.size }))
         .sort((a, b) => b.count - a.count).slice(0, 8);
 
       // Traffic sources from sessions in window
