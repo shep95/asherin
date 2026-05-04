@@ -83,13 +83,31 @@ function extractPhoneLookup(text: string): string | null {
   return match ? match[0].replace(/^(00)/, "+").trim() : null;
 }
 
+// Convert OpenAI-compat messages (with optional .attachments[]) to Gemini native parts.
+// attachments: [{ mimeType, dataBase64 }] — used for images/video/pdf vision.
+function toGeminiContents(messages: any[]): any[] {
+  return messages.map((m) => {
+    const role = m.role === "assistant" ? "model" : "user";
+    const parts: any[] = [];
+    if (typeof m.content === "string" && m.content.trim()) parts.push({ text: m.content });
+    if (Array.isArray(m.attachments)) {
+      for (const a of m.attachments) {
+        if (a?.dataBase64 && a?.mimeType) {
+          parts.push({ inline_data: { mime_type: a.mimeType, data: a.dataBase64 } });
+        }
+      }
+    }
+    if (parts.length === 0) parts.push({ text: " " });
+    return { role, parts };
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { messages, mapContext, byokGeminiKey, brainContext } = await req.json();
 
-    // Resolve key: user BYOK (header or body) > admin GEMINI_API_KEY
     const headerKey = req.headers.get("x-byok-gemini-key");
     const adminKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY_APP");
     const apiKey = (headerKey || byokGeminiKey || adminKey || "").trim();
@@ -103,8 +121,6 @@ serve(async (req) => {
       ? `\n\nCURRENT MAP CONTEXT:\n${JSON.stringify(mapContext, null, 2)}`
       : "";
 
-    // ASHER BRAINS injection — admin-uploaded personality + knowledge files.
-    // brainContext = { brains: [{ name, category, content }] } passed by client.
     let brainBlock = "";
     if (brainContext && Array.isArray(brainContext.brains) && brainContext.brains.length) {
       const sections = brainContext.brains
@@ -112,7 +128,6 @@ serve(async (req) => {
         .map((b: any) => {
           const cat = (b.category || "general").toUpperCase();
           const name = (b.name || "Untitled").toString();
-          // Cap each brain at ~12k chars to avoid context overflow.
           const body = b.content.length > 12000 ? b.content.slice(0, 12000) + "\n…[truncated]" : b.content;
           return `### [${cat}] ${name}\n${body}`;
         });
@@ -121,29 +136,26 @@ serve(async (req) => {
       }
     }
 
-    // Sanitize: Gemini's OpenAI-compat endpoint returns an empty stream when any
-    // message has empty content. Drop empty assistant/user turns and collapse
-    // consecutive duplicates from retry loops.
     const cleaned: any[] = [];
     for (const m of (messages || [])) {
       if (!m || typeof m !== "object") continue;
       const hasContent = typeof m.content === "string" ? m.content.trim().length > 0 : !!m.content;
+      const hasAtt = Array.isArray(m.attachments) && m.attachments.length > 0;
       const hasToolCalls = Array.isArray(m.tool_calls) && m.tool_calls.length > 0;
-      if (!hasContent && !hasToolCalls) continue;
+      if (!hasContent && !hasAtt && !hasToolCalls) continue;
       const last = cleaned[cleaned.length - 1];
-      if (last && last.role === m.role && last.content === m.content) continue;
+      if (last && last.role === m.role && last.content === m.content && !hasAtt) continue;
       cleaned.push(m);
     }
-    if (cleaned.length === 0) {
-      cleaned.push({ role: "user", content: "Hello" });
-    }
+    if (cleaned.length === 0) cleaned.push({ role: "user", content: "Hello" });
+
+    const hasAttachments = cleaned.some((m) => Array.isArray(m.attachments) && m.attachments.length);
 
     const phone = extractPhoneLookup(latestUserText(cleaned));
-    if (phone) {
+    if (phone && !hasAttachments) {
       return toolCallResponse("phone_intel", { phone });
     }
 
-    // ── Library of Leaks (DDoSecrets / Aleph) live grounding ───────────────
     let leaksBlock = "";
     try {
       const userText = latestUserText(cleaned);
@@ -151,68 +163,100 @@ serve(async (req) => {
         await import("../_shared/libraryOfLeaks.ts");
       if (shouldQueryLeaks(userText)) {
         const subject = extractLeakSubject(userText) || userText.slice(0, 60);
-        console.log("[asher-ai] Library of Leaks lookup:", subject);
         const hits = await searchLibraryOfLeaks(subject, { limit: 8 });
         leaksBlock = formatLeaksContext(subject, hits);
       }
-    } catch (e) {
-      console.error("[asher-ai] Library of Leaks lookup failed:", e);
-    }
+    } catch (e) { console.error("[asher-ai] leaks:", e); }
 
-    // ── Internet Archive (archive.org) live grounding ──────────────────────
     let archiveBlock = "";
     try {
       const userText = latestUserText(cleaned);
       const { searchArchive, formatArchiveContext, shouldQueryArchive } =
         await import("../_shared/internetArchive.ts");
       if (shouldQueryArchive(userText)) {
-        console.log("[asher-ai] Internet Archive lookup:", userText.slice(0, 80));
         const hits = await searchArchive(userText.slice(0, 200), { limit: 10, deepRead: 2 });
         archiveBlock = formatArchiveContext(userText.slice(0, 80), hits);
       }
-    } catch (e) {
-      console.error("[asher-ai] Internet Archive lookup failed:", e);
+    } catch (e) { console.error("[asher-ai] archive:", e); }
+
+    const fullSystem = SYSTEM_PROMPT + brainBlock + ctxBlock + leaksBlock + archiveBlock;
+
+    // ── Multimodal path (images / video / pdf): use Gemini native SSE stream
+    if (hasAttachments) {
+      const contents = toGeminiContents(cleaned);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+      const upstream = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: { role: "system", parts: [{ text: fullSystem }] },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+        }),
+      });
+      if (!upstream.ok || !upstream.body) {
+        const t = await upstream.text().catch(() => "");
+        console.error("asher-ai gemini native:", upstream.status, t);
+        return new Response(JSON.stringify({ error: `Gemini error ${upstream.status}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      // Translate Gemini SSE → OpenAI-compat SSE so client parser is unchanged
+      const reader = upstream.body.getReader();
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          let buf = "";
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            let idx;
+            while ((idx = buf.indexOf("\n")) !== -1) {
+              const line = buf.slice(0, idx).trimEnd(); buf = buf.slice(idx + 1);
+              if (!line.startsWith("data: ")) continue;
+              const json = line.slice(6).trim();
+              if (!json) continue;
+              try {
+                const parsed = JSON.parse(json);
+                const text = parsed?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || "").join("") || "";
+                if (text) {
+                  controller.enqueue(encoder.encode(sse({ choices: [{ delta: { content: text }, index: 0, finish_reason: null }] })));
+                }
+              } catch { /* ignore parse */ }
+            }
+          }
+          controller.enqueue(encoder.encode(sse("[DONE]")));
+          controller.close();
+        },
+      });
+      return new Response(stream, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
-    // Gemini OpenAI-compatible endpoint — keeps client SSE parser unchanged.
+    // ── Text-only path: OpenAI-compat (supports tool calls)
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "gemini-2.5-flash",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT + brainBlock + ctxBlock + leaksBlock + archiveBlock },
-            ...cleaned,
-          ],
+          messages: [{ role: "system", content: fullSystem }, ...cleaned.map((m) => ({ role: m.role, content: m.content }))],
           tools: TOOLS,
           stream: true,
         }),
       },
     );
 
-    if (response.status === 429) {
-      return new Response(JSON.stringify({ error: "Gemini rate limit — try again shortly." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    if (response.status === 401 || response.status === 403) {
-      return new Response(JSON.stringify({ error: "Gemini API key invalid or unauthorized." }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    if (response.status === 429) return new Response(JSON.stringify({ error: "Gemini rate limit." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (response.status === 401 || response.status === 403) return new Response(JSON.stringify({ error: "Gemini key invalid." }), { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!response.ok) {
       const t = await response.text();
-      console.error("asher-ai gemini error:", response.status, t);
-      return new Response(JSON.stringify({ error: `Gemini error ${response.status}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("asher-ai gemini:", response.status, t);
+      return new Response(JSON.stringify({ error: `Gemini error ${response.status}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+    return new Response(response.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
   } catch (e) {
     console.error("asher-ai error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
