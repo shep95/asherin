@@ -465,20 +465,24 @@ const AsherBrainsModule = () => {
             multiple
             accept=".txt,.md,.json,.csv,.pdf,.log,.yml,.yaml,.zip"
             className="hidden"
-            disabled={uploading}
             onChange={(e) => {
               if (e.target.files) void upload(e.target.files);
               e.target.value = "";
             }}
           />
           <button
-            onClick={() => !uploading && inputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-foreground uppercase hover:bg-foreground/10 disabled:opacity-50"
+            onClick={() => inputRef.current?.click()}
+            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-foreground uppercase hover:bg-foreground/10"
           >
-            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+            <Upload className="h-3 w-3" />
             Upload
           </button>
+          {bgQueue > 0 && (
+            <div className="flex items-center gap-1.5 rounded-md border border-border/30 bg-foreground/5 px-2.5 py-1 text-[10px] font-light tracking-[0.15em] text-muted-foreground uppercase">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Processing {bgQueue}
+            </div>
+          )}
           {failed.length > 0 && (
             <button
               onClick={retryFailed}
