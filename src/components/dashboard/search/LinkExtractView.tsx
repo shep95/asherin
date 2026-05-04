@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import {
   Crosshair, Loader2, Globe, Link2, Sparkles, Shield, Zap,
   Server, Cpu, Plug, Network, Building2, AlertTriangle, ExternalLink,
-  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff,
+  Copy, Check, ChevronRight, ChevronDown, KeyRound, Eye, EyeOff, Database,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
