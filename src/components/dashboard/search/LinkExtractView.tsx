@@ -377,7 +377,12 @@ const LinkExtractView = () => {
           <WebDiagram blueprint={blueprint} />
 
           {/* OPEN API KEYS — live JS-bundle secret scan */}
-          <OpenApiKeysPanel secrets={secrets} target={blueprint.target} />
+          <OpenApiKeysPanel
+            secrets={secrets}
+            target={blueprint.target}
+            pullEnabled={typeof window !== "undefined" && window.location.pathname.startsWith("/asher-dashboard")}
+          />
+
 
           {/* EMERGENCY OPS — Asher-dashboard / admin only (self-gates) */}
           {typeof window !== "undefined" && window.location.pathname.startsWith("/asher-dashboard") && (
