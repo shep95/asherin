@@ -230,22 +230,34 @@ export default function AsherAureonDataModule() {
     return () => clearInterval(t);
   }, [isAdmin]);
 
-  const liveCount = active.length;
+  // Dedupe live sessions: 1 user = 1 active person (regardless of how many devices/tabs)
+  const uniqueActive = useMemo(() => {
+    const seen = new Map<string, ActiveSession>();
+    active.forEach((s) => {
+      const key = s.user_id || s.email || Math.random().toString();
+      const prev = seen.get(key);
+      if (!prev || new Date(s.last_active_at) > new Date(prev.last_active_at)) {
+        seen.set(key, s);
+      }
+    });
+    return Array.from(seen.values());
+  }, [active]);
+  const liveCount = uniqueActive.length;
   const geoPoints = useMemo(() => {
     const m: Record<string, { lat: number; lon: number; city: string | null; country: string | null; count: number }> = {};
-    active.forEach((s) => {
+    uniqueActive.forEach((s) => {
       if (s.latitude == null || s.longitude == null) return;
       const k = `${s.latitude.toFixed(2)}_${s.longitude.toFixed(2)}`;
       if (!m[k]) m[k] = { lat: s.latitude, lon: s.longitude, city: s.city, country: s.country, count: 0 };
       m[k].count++;
     });
     return Object.values(m);
-  }, [active]);
+  }, [uniqueActive]);
   const maxGeo = Math.max(1, ...geoPoints.map((p) => p.count));
 
   const countryBars = useMemo(() => {
     const m: Record<string, number> = {};
-    active.forEach((s) => {
+    uniqueActive.forEach((s) => {
       const c = s.country || "Unknown";
       m[c] = (m[c] || 0) + 1;
     });
@@ -253,7 +265,7 @@ export default function AsherAureonDataModule() {
       .map(([country, count]) => ({ country, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 12);
-  }, [active]);
+  }, [uniqueActive]);
   const maxCountry = Math.max(1, ...countryBars.map((c) => c.count));
 
   // Build module-by-tier matrix
