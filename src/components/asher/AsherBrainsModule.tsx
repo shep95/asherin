@@ -305,14 +305,14 @@ const AsherBrainsModule = () => {
     return c;
   }, [brains]);
 
-  if (!isAdmin) {
+  if (!canContribute) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background px-6">
         <div className="max-w-md text-center">
           <Lock className="h-8 w-8 mx-auto text-muted-foreground/40 mb-4" strokeWidth={1.2} />
           <p className="text-sm font-light tracking-[0.2em] text-foreground uppercase mb-2">Restricted</p>
           <p className="text-[11px] font-light text-muted-foreground/60">
-            ASHER BRAINS is reserved for the super owner.
+            ASHER BRAINS is reserved for authorized contributors.
           </p>
         </div>
       </div>
