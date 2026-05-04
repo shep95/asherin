@@ -276,7 +276,33 @@ const AsherBrainsModule = () => {
     }
   };
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
+  const scanDuplicates = useCallback(async () => {
+    setScanningDup(true);
+    try {
+      const hash = async (s: string) => {
+        const buf = new TextEncoder().encode(s.trim().toLowerCase());
+        const h = await crypto.subtle.digest("SHA-256", buf);
+        return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      };
+      const map = new Map<string, AsherBrain[]>();
+      for (const b of brains) {
+        if (!b.content) continue;
+        const k = await hash(b.content);
+        const arr = map.get(k) || [];
+        arr.push(b);
+        map.set(k, arr);
+      }
+      const groups = Array.from(map.values()).filter((g) => g.length > 1);
+      setDupGroups(groups);
+      if (groups.length === 0) toast.success("No duplicate brains detected");
+      else toast.warning(`${groups.length} duplicate group(s) found · ${groups.reduce((n, g) => n + g.length, 0)} brains`);
+    } catch (err: any) {
+      toast.error(err?.message || "Duplicate scan failed");
+    } finally {
+      setScanningDup(false);
+    }
+  }, [brains]);
+
     e.preventDefault(); e.stopPropagation(); setDragging(true);
   }, []);
   const onDragLeave = useCallback((e: React.DragEvent) => {
