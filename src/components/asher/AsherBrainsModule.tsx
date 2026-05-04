@@ -438,7 +438,7 @@ const AsherBrainsModule = () => {
     } finally {
       setScanningDup(false);
     }
-  }, [brains]);
+  }, [brains, isAdmin]);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragging(true);
