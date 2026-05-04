@@ -121,11 +121,7 @@ export const EmergencyOpsPanel = ({ target }: Props) => {
     if (!u?.user || u.user.email !== ADMIN_EMAIL) {
       setError("Authorization revoked."); setBusy(false); return;
     }
-    // Re-verify password (Supabase signin attempt) so a hijacked session can't trigger.
-    const { error: pwErr } = await supabase.auth.signInWithPassword({
-      email: ADMIN_EMAIL, password,
-    });
-    if (pwErr) { setError("Password verification failed."); setBusy(false); return; }
+
 
     setStep("executing");
     const init: ExecResult = {
@@ -203,7 +199,7 @@ export const EmergencyOpsPanel = ({ target }: Props) => {
                 {l.actions.map((a) => <li key={a}>{a}</li>)}
               </ul>
               <button
-                onClick={() => { setPendingLevel(l.id); setStep("auth"); setError(null); }}
+                onClick={() => { setPendingLevel(l.id); setStep("ack"); setError(null); }}
                 className={`mt-1 inline-flex items-center justify-center gap-1.5 rounded-md border ${t.ring} ${t.bg} px-3 py-1.5 text-[10px] font-medium tracking-[0.15em] uppercase ${t.text} hover:bg-foreground/5 transition`}
               >
                 <AlertTriangle className="h-3 w-3" /> Execute
@@ -232,24 +228,7 @@ export const EmergencyOpsPanel = ({ target }: Props) => {
             </div>
 
             <div className="px-5 py-4 space-y-4">
-              {step === "auth" && (
-                <>
-                  <p className="text-[11px] font-light text-muted-foreground/80">
-                    Re-enter your operator password. Target: <strong className="text-foreground/90">{target}</strong>
-                  </p>
-                  <input
-                    type="password" autoFocus value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Operator password"
-                    className="w-full rounded-md border border-border/30 bg-background/40 px-3 py-2 text-sm font-light outline-none focus:border-red-400/40"
-                  />
-                  <button
-                    disabled={!password}
-                    onClick={() => setStep("ack")}
-                    className="w-full rounded-md bg-red-500/15 hover:bg-red-500/25 disabled:opacity-30 px-3 py-2 text-[11px] font-medium tracking-[0.15em] text-red-300 uppercase"
-                  >Continue</button>
-                </>
-              )}
+              {/* password step removed — already gated by Supabase admin session + Asher passcode */}
 
               {step === "ack" && (
                 <>
@@ -269,7 +248,7 @@ export const EmergencyOpsPanel = ({ target }: Props) => {
                     </label>
                   )}
                   <div className="flex gap-2">
-                    <button onClick={() => setStep("auth")} className="flex-1 rounded-md border border-border/30 px-3 py-2 text-[10px] font-light tracking-wider text-muted-foreground uppercase">Back</button>
+                    <button onClick={reset} className="flex-1 rounded-md border border-border/30 px-3 py-2 text-[10px] font-light tracking-wider text-muted-foreground uppercase">Cancel</button>
                     <button disabled={!allAcksChecked} onClick={() => setStep("phrase")}
                       className="flex-1 rounded-md bg-red-500/15 hover:bg-red-500/25 disabled:opacity-30 px-3 py-2 text-[10px] font-medium tracking-[0.15em] text-red-300 uppercase">Continue</button>
                   </div>
