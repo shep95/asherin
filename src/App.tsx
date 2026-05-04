@@ -67,6 +67,7 @@ const AsherDashboard = lazy(() => import("./pages/AsherDashboard"));
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommandPalette from "./components/CommandPalette";
 import AureonDomainGate from "./components/AureonDomainGate";
+import RouteSessionTracker from "./components/RouteSessionTracker";
 
 const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -87,6 +88,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <CommandPalette />
+          <RouteSessionTracker />
           <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />

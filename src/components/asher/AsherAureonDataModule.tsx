@@ -1,19 +1,62 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { BarChart3, Users, Activity, DollarSign, Globe, Smartphone, RefreshCw, ShieldAlert, TrendingUp, Eye } from "lucide-react";
+import {
+  BarChart3, Users, Activity, DollarSign, Globe, Smartphone, RefreshCw,
+  ShieldAlert, TrendingUp, Eye, Monitor, Laptop, Tablet, Apple,
+} from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart as RBarChart, CartesianGrid, Cell, Legend,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { format, subDays, startOfDay } from "date-fns";
+import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
+import { MapContainer, TileLayer, CircleMarker, Tooltip as LTooltip } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 
 type Range = 7 | 14 | 30 | 90;
 
 const fmt = (n: number) => new Intl.NumberFormat().format(n);
-const COLORS = ["#94a3b8", "#cbd5e1", "#64748b", "#475569", "#334155", "#1e293b"];
+const COLORS = ["#d4af37", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#334155"];
+
+// Device / OS color codes (per spec)
+const DEVICE_COLORS: Record<string, string> = {
+  iOS: "#60a5fa",          // blue
+  Android: "#22c55e",      // green
+  macOS: "#fb923c",        // orange (Mac)
+  Mac: "#fb923c",
+  Windows: "#a855f7",      // purple
+  "Windows 10/11": "#a855f7",
+  Linux: "#facc15",        // yellow
+  ChromeOS: "#06b6d4",     // cyan
+  Laptop: "#d4af37",       // gold
+  Desktop: "#9ca3af",
+  Mobile: "#22c55e",
+  Tablet: "#fb923c",
+  Unknown: "#6b7280",
+};
+const colorFor = (name: string) => DEVICE_COLORS[name] || DEVICE_COLORS[name?.split(" ")[0]] || "#9ca3af";
+
+// "Active session" pages — dashboard, zophiel and any sub-page of those
+const ACTIVE_PATH_PREFIXES = ["/dashboard", "/zophiel", "/asher-dashboard", "/asher", "/elite", "/whiteboard", "/proj-aureon"];
+const isActivePath = (p?: string | null) => !!p && ACTIVE_PATH_PREFIXES.some((x) => p === x || p.startsWith(x + "/"));
+// Sessions are considered "live" if last_active within 10 minutes
+const LIVE_WINDOW_MS = 10 * 60 * 1000;
+
+interface SessionRow {
+  device_type: string | null;
+  os: string | null;
+  browser: string | null;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  current_path: string | null;
+  last_active_at: string;
+  revoked_at: string | null;
+}
 
 interface Stats {
   loading: boolean;
@@ -27,19 +70,23 @@ interface Stats {
   eventSeries: { date: string; count: number }[];
   topEvents: { name: string; count: number }[];
   devices: { name: string; value: number }[];
+  osBreakdown: { name: string; value: number }[];
+  browsers: { name: string; value: number }[];
   countries: { name: string; value: number }[];
   tiers: { name: string; value: number }[];
   recent: { id: string; event_type: string; description: string; created_at: string; outcome: string }[];
+  liveSessions: SessionRow[];
+  pageActivity: { path: string; count: number }[];
+  geoPoints: { lat: number; lon: number; city: string | null; country: string | null; count: number }[];
 }
 
 const initial: Stats = {
   loading: true, totalUsers: 0, newUsers: 0, activeSessions: 0, activeSubs: 0, mrr: 0, totalEvents: 0,
-  signupSeries: [], eventSeries: [], topEvents: [], devices: [], countries: [], tiers: [], recent: [],
+  signupSeries: [], eventSeries: [], topEvents: [], devices: [], osBreakdown: [], browsers: [],
+  countries: [], tiers: [], recent: [], liveSessions: [], pageActivity: [], geoPoints: [],
 };
 
-const TIER_PRICES: Record<string, number> = {
-  chat: 47, aureon: 199, pro: 740, lifetime: 0,
-};
+const TIER_PRICES: Record<string, number> = { chat: 47, aureon: 199, pro: 740, lifetime: 0 };
 
 const tierFromProduct = (pid: string): string => {
   const p = (pid || "").toLowerCase();
@@ -63,19 +110,27 @@ export default function AsherAureonDataModule() {
     (async () => {
       setStats((s) => ({ ...s, loading: true }));
       const since = subDays(startOfDay(new Date()), range).toISOString();
+      const liveCutoff = new Date(Date.now() - LIVE_WINDOW_MS).toISOString();
 
       const [
         profilesAll, profilesNew, sessions, subs, activity, recent,
       ] = await Promise.all([
         supabase.from("profiles").select("user_id", { count: "exact", head: true }),
         supabase.from("profiles").select("user_id, created_at").gte("created_at", since),
-        supabase.from("user_sessions").select("device_type, country, last_active_at, revoked_at").is("revoked_at", null),
+        supabase.from("user_sessions")
+          .select("device_type, os, browser, country, city, region, latitude, longitude, current_path, last_active_at, revoked_at")
+          .is("revoked_at", null)
+          .gte("last_active_at", liveCutoff),
         supabase.from("user_subscriptions").select("product_id, status, subscription_type").eq("status", "active"),
         supabase.from("account_activity_log").select("event_type, created_at").gte("created_at", since).limit(5000),
         supabase.from("account_activity_log").select("id, event_type, description, created_at, outcome").order("created_at", { ascending: false }).limit(40),
       ]);
 
       if (cancelled) return;
+
+      const allSessions = (sessions.data || []) as SessionRow[];
+      // Active session = on /dashboard, /zophiel or sub-pages
+      const liveSessions = allSessions.filter((s) => isActivePath(s.current_path));
 
       // Signup series
       const days: Record<string, number> = {};
@@ -95,22 +150,44 @@ export default function AsherAureonDataModule() {
       });
       const eventSeries = Object.entries(evDays).map(([date, count]) => ({ date, count }));
 
-      // Top events
       const evCount: Record<string, number> = {};
       (activity.data || []).forEach((a: any) => { evCount[a.event_type] = (evCount[a.event_type] || 0) + 1; });
       const topEvents = Object.entries(evCount).map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count).slice(0, 8);
 
-      // Devices
+      // Device, OS, Browser breakdowns from LIVE active sessions
       const devCount: Record<string, number> = {};
-      (sessions.data || []).forEach((s: any) => { const k = s.device_type || "unknown"; devCount[k] = (devCount[k] || 0) + 1; });
-      const devices = Object.entries(devCount).map(([name, value]) => ({ name, value }));
-
-      // Countries
+      const osCount: Record<string, number> = {};
+      const brCount: Record<string, number> = {};
       const cCount: Record<string, number> = {};
-      (sessions.data || []).forEach((s: any) => { const k = s.country || "Unknown"; cCount[k] = (cCount[k] || 0) + 1; });
+      const pageCount: Record<string, number> = {};
+      const geoMap: Record<string, { lat: number; lon: number; city: string | null; country: string | null; count: number }> = {};
+
+      liveSessions.forEach((s) => {
+        const d = s.device_type || "Unknown";
+        devCount[d] = (devCount[d] || 0) + 1;
+        const o = s.os || "Unknown";
+        osCount[o] = (osCount[o] || 0) + 1;
+        const b = s.browser || "Unknown";
+        brCount[b] = (brCount[b] || 0) + 1;
+        const c = s.country || "Unknown";
+        cCount[c] = (cCount[c] || 0) + 1;
+        if (s.current_path) pageCount[s.current_path] = (pageCount[s.current_path] || 0) + 1;
+        if (s.latitude != null && s.longitude != null) {
+          const k = `${s.latitude.toFixed(2)}_${s.longitude.toFixed(2)}`;
+          if (!geoMap[k]) geoMap[k] = { lat: s.latitude, lon: s.longitude, city: s.city, country: s.country, count: 0 };
+          geoMap[k].count++;
+        }
+      });
+
+      const devices = Object.entries(devCount).map(([name, value]) => ({ name, value }));
+      const osBreakdown = Object.entries(osCount).map(([name, value]) => ({ name, value }));
+      const browsers = Object.entries(brCount).map(([name, value]) => ({ name, value }));
       const countries = Object.entries(cCount).map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value).slice(0, 8);
+      const pageActivity = Object.entries(pageCount).map(([path, count]) => ({ path, count }))
+        .sort((a, b) => b.count - a.count).slice(0, 10);
+      const geoPoints = Object.values(geoMap);
 
       // Tiers + MRR
       const tierCount: Record<string, number> = {};
@@ -126,25 +203,36 @@ export default function AsherAureonDataModule() {
         loading: false,
         totalUsers: profilesAll.count || 0,
         newUsers: (profilesNew.data || []).length,
-        activeSessions: (sessions.data || []).length,
+        activeSessions: liveSessions.length,
         activeSubs: (subs.data || []).length,
         mrr,
         totalEvents: (activity.data || []).length,
-        signupSeries, eventSeries, topEvents, devices, countries, tiers,
+        signupSeries, eventSeries, topEvents,
+        devices, osBreakdown, browsers, countries, tiers,
         recent: (recent.data as any) || [],
+        liveSessions, pageActivity, geoPoints,
       });
     })();
     return () => { cancelled = true; };
   }, [isAdmin, range, refreshKey]);
 
+  // Auto-refresh every 30s for "live" feel
+  useEffect(() => {
+    if (!isAdmin) return;
+    const t = setInterval(() => setRefreshKey((k) => k + 1), 30_000);
+    return () => clearInterval(t);
+  }, [isAdmin]);
+
   const kpis = useMemo(() => ([
     { label: "Total Users", value: fmt(stats.totalUsers), icon: Users },
     { label: `New (${range}d)`, value: fmt(stats.newUsers), icon: TrendingUp },
-    { label: "Active Sessions", value: fmt(stats.activeSessions), icon: Activity },
+    { label: "Live Active", value: fmt(stats.activeSessions), icon: Activity },
     { label: "Paying Subs", value: fmt(stats.activeSubs), icon: DollarSign },
     { label: "Est. MRR", value: `$${fmt(stats.mrr)}`, icon: BarChart3 },
     { label: `Events (${range}d)`, value: fmt(stats.totalEvents), icon: Eye },
   ]), [stats, range]);
+
+  const maxGeo = Math.max(1, ...stats.geoPoints.map((p) => p.count));
 
   if (!isAdmin) {
     return (
@@ -166,14 +254,14 @@ export default function AsherAureonDataModule() {
         <div>
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
             </span>
-            <p className="text-[10px] font-light tracking-[0.3em] uppercase text-muted-foreground/70">Live · Privacy-First</p>
+            <p className="text-[10px] font-light tracking-[0.3em] uppercase text-muted-foreground/70">Live · Auto-refresh 30s</p>
           </div>
           <h1 className="mt-1 text-2xl font-extralight tracking-[0.25em]">AUREON DATA</h1>
           <p className="text-[10px] font-light tracking-[0.2em] uppercase text-muted-foreground/60">
-            Product analytics · operator-only telemetry
+            Active = /dashboard, /zophiel & sub-pages · last 10 min
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -182,7 +270,7 @@ export default function AsherAureonDataModule() {
               key={r}
               onClick={() => setRange(r as Range)}
               className={`px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase rounded-md border transition-colors ${
-                range === r ? "border-foreground/40 bg-foreground/10" : "border-border/20 hover:bg-foreground/5"
+                range === r ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-border/20 hover:bg-foreground/5"
               }`}
             >
               {r}d
@@ -214,6 +302,157 @@ export default function AsherAureonDataModule() {
           })}
         </div>
 
+        {/* GLOBAL REGION MAP — gold themed */}
+        <div className="rounded-xl border border-amber-400/20 bg-card/30 backdrop-blur-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-3.5 w-3.5 text-amber-400" strokeWidth={1.5} />
+              <p className="text-[10px] font-light tracking-[0.25em] uppercase text-amber-200/80">Global Activity Map · Live Regions</p>
+            </div>
+            <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">
+              {stats.geoPoints.length} regions · {stats.activeSessions} live
+            </p>
+          </div>
+          <div className="rounded-lg overflow-hidden h-[380px] border border-amber-400/10" style={{ background: "#0a0a0a" }}>
+            <MapContainer
+              center={[20, 0]}
+              zoom={2}
+              minZoom={2}
+              scrollWheelZoom
+              style={{ height: "100%", width: "100%", background: "#0a0a0a" }}
+              worldCopyJump
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
+                attribution=""
+              />
+              {stats.geoPoints.map((p, i) => {
+                const intensity = p.count / maxGeo;
+                const radius = 6 + intensity * 18;
+                return (
+                  <CircleMarker
+                    key={i}
+                    center={[p.lat, p.lon]}
+                    radius={radius}
+                    pathOptions={{
+                      color: "#d4af37",
+                      fillColor: "#fbbf24",
+                      fillOpacity: 0.35 + intensity * 0.5,
+                      weight: 1.5,
+                    }}
+                  >
+                    <LTooltip>
+                      <div style={{ fontSize: 11 }}>
+                        <strong>{p.city || "Unknown"}, {p.country || "—"}</strong><br />
+                        {p.count} active session{p.count > 1 ? "s" : ""}
+                      </div>
+                    </LTooltip>
+                  </CircleMarker>
+                );
+              })}
+            </MapContainer>
+          </div>
+        </div>
+
+        {/* Live sessions table */}
+        <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground/70">Live Sessions · /dashboard & /zophiel</p>
+            <Activity className="h-3.5 w-3.5 text-emerald-400" strokeWidth={1.5} />
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-muted-foreground/60 text-[9px] tracking-[0.2em] uppercase">
+                  <th className="text-left py-2">Device</th>
+                  <th className="text-left">OS</th>
+                  <th className="text-left">Browser</th>
+                  <th className="text-left">Page</th>
+                  <th className="text-left">Location</th>
+                  <th className="text-left">Last Seen</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/10">
+                {stats.liveSessions.length === 0 && (
+                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground/60">No live activity right now.</td></tr>
+                )}
+                {stats.liveSessions.slice(0, 30).map((s, i) => (
+                  <tr key={i} className="font-light">
+                    <td className="py-2">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ background: colorFor(s.device_type || "Unknown") }} />
+                        {s.device_type || "Unknown"}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ background: colorFor(s.os || "Unknown") }} />
+                        {s.os || "Unknown"}
+                      </span>
+                    </td>
+                    <td>{s.browser || "—"}</td>
+                    <td className="text-amber-200/80 font-mono text-[10px]">{s.current_path}</td>
+                    <td className="text-muted-foreground/70">{[s.city, s.country].filter(Boolean).join(", ") || "—"}</td>
+                    <td className="text-muted-foreground/60">{formatDistanceToNow(new Date(s.last_active_at), { addSuffix: true })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Page Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <ChartCard title="Active by Page" icon={Eye}>
+            <ResponsiveContainer width="100%" height={240}>
+              <RBarChart data={stats.pageActivity} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} allowDecimals={false} />
+                <YAxis type="category" dataKey="path" stroke="hsl(var(--muted-foreground))" fontSize={10} width={120} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
+                <Bar dataKey="count" fill="#d4af37" radius={[0, 4, 4, 0]} />
+              </RBarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard title="OS · Recognition" icon={Apple}>
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={stats.osBreakdown} dataKey="value" nameKey="name" outerRadius={75} innerRadius={42} paddingAngle={2}>
+                  {stats.osBreakdown.map((e, i) => <Cell key={i} fill={colorFor(e.name)} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          <ChartCard title="Device Type · Recognition" icon={Smartphone}>
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={stats.devices} dataKey="value" nameKey="name" outerRadius={75} innerRadius={42} paddingAngle={2}>
+                  {stats.devices.map((e, i) => <Cell key={i} fill={colorFor(e.name)} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        {/* Color legend */}
+        <div className="rounded-xl border border-border/20 bg-card/30 backdrop-blur-xl p-4">
+          <p className="text-[10px] font-light tracking-[0.25em] uppercase text-muted-foreground/70 mb-3">Device · Color Codes</p>
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(DEVICE_COLORS).map(([name, color]) => (
+              <div key={name} className="flex items-center gap-2 px-2.5 py-1 rounded-md border border-border/20">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+                <span className="text-[10px] tracking-wide">{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Time series */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ChartCard title="Signups Over Time">
@@ -221,15 +460,15 @@ export default function AsherAureonDataModule() {
               <AreaChart data={stats.signupSeries}>
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="#94a3b8" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#d4af37" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="#d4af37" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
-                <Area type="monotone" dataKey="count" stroke="#cbd5e1" fill="url(#g1)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="count" stroke="#fbbf24" fill="url(#g1)" strokeWidth={1.5} />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -239,15 +478,15 @@ export default function AsherAureonDataModule() {
               <AreaChart data={stats.eventSeries}>
                 <defs>
                   <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#64748b" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="#64748b" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="#94a3b8" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
-                <Area type="monotone" dataKey="count" stroke="#94a3b8" fill="url(#g2)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="count" stroke="#cbd5e1" fill="url(#g2)" strokeWidth={1.5} />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -267,26 +506,26 @@ export default function AsherAureonDataModule() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Devices" icon={Smartphone}>
+          <ChartCard title="Browsers · Live" icon={Monitor}>
             <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={stats.devices} dataKey="value" nameKey="name" outerRadius={70} innerRadius={40} paddingAngle={2}>
-                  {stats.devices.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
+              <RBarChart data={stats.browsers} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} allowDecimals={false} />
+                <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} width={70} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-              </PieChart>
+                <Bar dataKey="value" fill="#d4af37" radius={[0, 4, 4, 0]} />
+              </RBarChart>
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Top Countries" icon={Globe}>
+          <ChartCard title="Top Countries · Live" icon={Globe}>
             <ResponsiveContainer width="100%" height={220}>
               <RBarChart data={stats.countries} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} width={70} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 11 }} />
-                <Bar dataKey="value" fill="#94a3b8" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="value" fill="#fbbf24" radius={[0, 4, 4, 0]} />
               </RBarChart>
             </ResponsiveContainer>
           </ChartCard>

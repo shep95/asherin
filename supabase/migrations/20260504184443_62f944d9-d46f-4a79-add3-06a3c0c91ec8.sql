@@ -1,0 +1,2 @@
+ALTER TABLE public.user_sessions ADD COLUMN IF NOT EXISTS current_path text, ADD COLUMN IF NOT EXISTS latitude double precision, ADD COLUMN IF NOT EXISTS longitude double precision;
+CREATE INDEX IF NOT EXISTS idx_user_sessions_path ON public.user_sessions(current_path);
