@@ -66,7 +66,7 @@ export async function registerSession(userId: string, sessionId: string) {
 
   const { browser, os, deviceType } = parseUserAgent();
   const ip = await fetchPublicIP();
-  const geo = ip ? await fetchGeoFromIP(ip) : { city: null, region: null, country: null };
+  const geo = ip ? await fetchGeoFromIP(ip) : { city: null, region: null, country: null, latitude: null, longitude: null };
 
   // Create a hash-like identifier from session ID (not actual crypto hash, just a fingerprint)
   const tokenHash = sessionId.replace(/-/g, "").substring(0, 32);
@@ -90,6 +90,9 @@ export async function registerSession(userId: string, sessionId: string) {
       city: geo.city,
       region: geo.region,
       country: geo.country,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      current_path: typeof window !== "undefined" ? window.location.pathname : null,
       is_current: true,
       last_active_at: new Date().toISOString(),
     },
@@ -112,11 +115,14 @@ export async function registerSession(userId: string, sessionId: string) {
   });
 }
 
-export async function updateSessionActivity(userId: string, sessionId: string) {
+export async function updateSessionActivity(userId: string, sessionId: string, path?: string) {
   const tokenHash = sessionId.replace(/-/g, "").substring(0, 32);
   await supabase
     .from("user_sessions")
-    .update({ last_active_at: new Date().toISOString() })
+    .update({
+      last_active_at: new Date().toISOString(),
+      ...(path ? { current_path: path } : {}),
+    })
     .eq("user_id", userId)
     .eq("session_token_hash", tokenHash);
 }
