@@ -280,7 +280,7 @@ export const rashis: Rashi[] = [
   { id: 5, name: "Simha (Leo)", sanskrit: "सिंह", ruler: "Sun", element: "Fire", quality: "Fixed", startDeg: 120, symbol: "♌" },
   { id: 6, name: "Kanya (Virgo)", sanskrit: "कन्या", ruler: "Mercury", element: "Earth", quality: "Mutable", startDeg: 150, symbol: "♍" },
   { id: 7, name: "Tula (Libra)", sanskrit: "तुला", ruler: "Venus", element: "Air", quality: "Cardinal", startDeg: 180, symbol: "♎" },
-  { id: 8, name: "Vrischika (Scorpio)", sanskrit: "वृश्चिक", ruler: "Mars", element: "Water", quality: "Fixed", startDeg: 210, symbol: "♏" },
+  { id: 8, name: "Vrischika (Scorpio)", sanskrit: "वृश्चिक", ruler: "Pluto", element: "Water", quality: "Fixed", startDeg: 210, symbol: "♏" },
   { id: 9, name: "Dhanu (Sagittarius)", sanskrit: "धनु", ruler: "Jupiter", element: "Fire", quality: "Mutable", startDeg: 240, symbol: "♐" },
   { id: 10, name: "Makara (Capricorn)", sanskrit: "मकर", ruler: "Saturn", element: "Earth", quality: "Cardinal", startDeg: 270, symbol: "♑" },
   { id: 11, name: "Kumbha (Aquarius)", sanskrit: "कुम्भ", ruler: "Saturn", element: "Air", quality: "Fixed", startDeg: 300, symbol: "♒" },
