@@ -326,8 +326,36 @@ export default function AsherAureonDataModule() {
         </div>
       </div>
 
+      {/* TAB NAVIGATION */}
+      <div className="px-8 pt-4 pb-2 sticky top-[88px] z-10 bg-background/40 backdrop-blur-2xl border-b border-amber-400/5">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "consciousness", label: "Consciousness", icon: Brain },
+            { id: "predictions", label: "Predictions", icon: Telescope },
+            { id: "operations", label: "Operations", icon: Activity },
+            { id: "intel", label: "Global Intel", icon: Globe },
+            { id: "flows", label: "Data Flows", icon: Database },
+            { id: "health", label: "System Health", icon: Cpu },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id as any)}
+              className={`flex items-center gap-2 px-4 py-2 text-[10px] tracking-[0.25em] uppercase rounded-md border transition-all ${
+                tab === id
+                  ? "border-amber-400/60 bg-amber-400/15 text-amber-200 shadow-[0_0_18px_rgba(251,191,36,0.18)]"
+                  : "border-border/20 text-muted-foreground/70 hover:bg-foreground/5"
+              }`}
+            >
+              <Icon className="h-3 w-3" strokeWidth={1.5} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="p-8 space-y-6">
-        {/* REVENUE BAND */}
+        {tab === "operations" && <>
+        {/* ============== OPERATIONS TAB (existing content) ============== */}
         <div className="rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-950/30 via-black/40 to-black/40 backdrop-blur-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
