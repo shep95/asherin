@@ -18,6 +18,7 @@ import {
   readBrainFile,
 } from "@/lib/asherBrains";
 import { logAsherEvent } from "@/lib/asherAudit";
+import JSZip from "jszip";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const CONTRIBUTOR_EMAILS = ["ashernewtonx@gmail.com", "ekk447@gmail.com"];
@@ -215,13 +216,46 @@ const AsherBrainsModule = () => {
     }
   };
 
+  const expandZip = async (file: File): Promise<File[]> => {
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const out: File[] = [];
+      const entries = Object.values(zip.files);
+      for (const entry of entries) {
+        if (entry.dir) continue;
+        const baseName = entry.name.split("/").pop() || entry.name;
+        if (!baseName || baseName.startsWith(".")) continue;
+        if (!isSupportedBrainFile(baseName)) continue;
+        const blob = await entry.async("blob");
+        out.push(new File([blob], baseName, { type: blob.type || "text/plain" }));
+      }
+      return out;
+    } catch (err: any) {
+      toast.error(`Zip extraction failed: ${err?.message || "unknown"}`);
+      return [];
+    }
+  };
+
   const upload = async (files: FileList | File[]) => {
     if (!canContribute) return;
     const arr = Array.from(files);
     if (!arr.length) return;
     setUploading(true);
+
+    // Expand any .zip archives into their contained brain files
+    const expanded: File[] = [];
+    for (const f of arr) {
+      if (/\.zip$/i.test(f.name)) {
+        const inner = await expandZip(f);
+        if (inner.length) toast.success(`${f.name}: extracted ${inner.length} file(s)`);
+        expanded.push(...inner);
+      } else {
+        expanded.push(f);
+      }
+    }
+
     const newFailed: { file: File; category: AsherBrainCategory; error: string }[] = [];
-    for (const file of arr) {
+    for (const file of expanded) {
       const res = await uploadOne(file, uploadCategory);
       if (!res.ok) {
         newFailed.push({ file, category: uploadCategory, error: res.error || "unknown" });
@@ -387,7 +421,7 @@ const AsherBrainsModule = () => {
             ref={inputRef}
             type="file"
             multiple
-            accept=".txt,.md,.json,.csv,.pdf,.log,.yml,.yaml"
+            accept=".txt,.md,.json,.csv,.pdf,.log,.yml,.yaml,.zip"
             className="hidden"
             disabled={uploading}
             onChange={(e) => {
