@@ -164,6 +164,7 @@ const AsherBrainsModule = () => {
   useEffect(() => { if (unlocked && canContribute) void refresh(); }, [unlocked, canContribute, refresh]);
 
   const [failed, setFailed] = useState<{ file: File; category: AsherBrainCategory; error: string }[]>([]);
+  const [bgQueue, setBgQueue] = useState(0);
 
   const sanitizeForPg = (s: string) =>
     s
