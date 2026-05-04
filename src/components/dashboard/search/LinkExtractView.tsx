@@ -1038,6 +1038,7 @@ const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; tar
                                 >
                                   {copiedIdx === idx ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   Copy
+                                </button>
                                 <button
                                   onClick={() => void runProbe(idx, s)}
                                   disabled={probes[idx]?.loading}
