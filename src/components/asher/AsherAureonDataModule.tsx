@@ -160,7 +160,7 @@ export default function AsherAureonDataModule() {
         totalUsers: profilesAll.count || 0,
         newUsers: (profilesNew.data || []).length,
         activeSubs: (subs.data || []).length,
-        totalEvents: (activity.data || []).length,
+        totalEvents: totalUserDays.size,
         signupSeries, eventSeries, topEvents, countries,
         recent: (recent.data as any) || [],
         trafficSources,
