@@ -1057,3 +1057,197 @@ function SystemHealthTab({ overview, stats, liveCount }: any) {
     </div>
   );
 }
+
+// ---------------- PAGES & TIME ----------------
+const PAGE_LABELS: Record<string, string> = {
+  "/": "Landing",
+  "/auth": "Sign In",
+  "/dashboard": "Aureon Chat",
+  "/zophiel": "Zophiel Intel",
+  "/asher-dashboard": "Asher Dashboard",
+  "/asher": "Asher",
+  "/elite": "Elite Suite",
+  "/whiteboard": "Whiteboard",
+  "/proj-aureon": "Aureon IDE",
+  "/vibe-imager": "Vibe Imager",
+  "/vibe-video": "Vibe Video",
+  "/zali": "Zali",
+  "/azplen": "Azplen Foundry",
+  "/nomad": "NOMAD",
+  "/lavba": "Lavba Strategy",
+  "/aziion": "AZIION",
+  "/zerlal": "ZERLAL",
+};
+const labelFor = (p: string) => {
+  if (PAGE_LABELS[p]) return PAGE_LABELS[p];
+  const root = "/" + (p.split("/")[1] || "");
+  return PAGE_LABELS[root] || p;
+};
+const fmtDuration = (sec: number) => {
+  if (!sec || sec < 1) return "—";
+  if (sec < 60) return `${Math.round(sec)}s`;
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ${Math.round(sec % 60)}s`;
+  return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
+};
+
+function PagesTimeTab({ range }: { range: number }) {
+  const [rows, setRows] = useState<any[]>([]);
+  const [timeline, setTimeline] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const since = new Date(Date.now() - range * 86400_000).toISOString();
+      const bucket = range <= 2 ? "hour" : "day";
+      const [agg, tl] = await Promise.all([
+        supabase.rpc("admin_page_analytics", { _since: since }),
+        supabase.rpc("admin_page_timeline", { _since: since, _bucket: bucket }),
+      ]);
+      if (cancelled) return;
+      setRows(agg.data || []);
+      setTimeline(tl.data || []);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [range]);
+
+  // Group rows by software label
+  const grouped = useMemo(() => {
+    const m: Record<string, { label: string; visits: number; users: Set<string>; total: number; weighted: number }> = {};
+    rows.forEach((r: any) => {
+      const lbl = labelFor(r.path);
+      if (!m[lbl]) m[lbl] = { label: lbl, visits: 0, users: new Set(), total: 0, weighted: 0 };
+      m[lbl].visits += Number(r.visits) || 0;
+      m[lbl].total += Number(r.total_seconds) || 0;
+      m[lbl].weighted += (Number(r.avg_seconds) || 0) * (Number(r.visits) || 0);
+    });
+    return Object.values(m)
+      .map((g) => ({
+        label: g.label,
+        visits: g.visits,
+        avgSeconds: g.visits > 0 ? g.weighted / g.visits : 0,
+        totalSeconds: g.total,
+      }))
+      .sort((a, b) => b.totalSeconds - a.totalSeconds);
+  }, [rows]);
+
+  // Build timeline series: per bucket, total unique users across all paths
+  const timelineSeries = useMemo(() => {
+    const m: Record<string, { date: string; users: Set<string>; visits: number; weighted: number; visitsForAvg: number }> = {};
+    timeline.forEach((t: any) => {
+      const d = new Date(t.bucket);
+      const key = range <= 2 ? format(d, "MMM d HH:mm") : format(d, "MMM d");
+      if (!m[key]) m[key] = { date: key, users: new Set(), visits: 0, weighted: 0, visitsForAvg: 0 };
+      m[key].visits += Number(t.visits) || 0;
+      // unique_users from RPC is per-path; sum is approximate upper bound
+      m[key].users.add(`${key}|${t.unique_users}|${t.path}`);
+      const av = Number(t.avg_seconds) || 0;
+      m[key].weighted += av * (Number(t.visits) || 0);
+      if (av > 0) m[key].visitsForAvg += Number(t.visits) || 0;
+    });
+    return Object.values(m).map((b) => ({
+      date: b.date,
+      visits: b.visits,
+      avgSeconds: b.visitsForAvg > 0 ? Math.round(b.weighted / b.visitsForAvg) : 0,
+    }));
+  }, [timeline, range]);
+
+  const maxTotal = Math.max(1, ...grouped.map((g) => g.totalSeconds));
+
+  return (
+    <div className="space-y-5">
+      <SectionHeader icon={Clock} title="Pages & Time" subtitle={`Unique users + average time spent · last ${range} days`} color="text-amber-300" />
+      {loading && <p className="text-[10px] text-amber-200/60 animate-pulse uppercase tracking-[0.2em]">syncing…</p>}
+
+      <Card>
+        <p className="text-[10px] tracking-[0.25em] uppercase text-amber-200/80 mb-3">Activity Over Time · Visits & Avg Session (sec)</p>
+        {timelineSeries.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground/60 italic">No page-view telemetry yet. Browse the app to populate this.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={timelineSeries}>
+              <defs>
+                <linearGradient id="vG" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="aG" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="#ffffff10" />
+              <XAxis dataKey="date" stroke="#ffffff60" fontSize={10} />
+              <YAxis stroke="#ffffff60" fontSize={10} />
+              <Tooltip contentStyle={{ background: "#000a", border: "1px solid #ffffff20", fontSize: 11 }} />
+              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Area type="monotone" dataKey="visits" name="Page Visits" stroke="#fbbf24" fill="url(#vG)" />
+              <Area type="monotone" dataKey="avgSeconds" name="Avg Seconds" stroke="#10b981" fill="url(#aG)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </Card>
+
+      <Card>
+        <p className="text-[10px] tracking-[0.25em] uppercase text-amber-200/80 mb-3">By Software / Section</p>
+        {grouped.length === 0 && <p className="text-[11px] text-muted-foreground/60 italic">No data.</p>}
+        <div className="space-y-2">
+          {grouped.map((g) => {
+            const pct = (g.totalSeconds / maxTotal) * 100;
+            return (
+              <div key={g.label} className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-amber-100/90">{g.label}</span>
+                  <span className="text-muted-foreground/70 tabular-nums">
+                    <span className="text-emerald-300">{fmtDuration(g.avgSeconds)}</span> avg ·{" "}
+                    <span className="text-amber-200">{g.visits.toLocaleString()}</span> visits ·{" "}
+                    <span className="text-amber-300">{fmtDuration(g.totalSeconds)}</span> total
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-amber-400/5 overflow-hidden border border-amber-400/10">
+                  <div className="h-full transition-all duration-500" style={{
+                    width: `${pct}%`,
+                    background: "linear-gradient(90deg,#d4af37,#fbbf24,#fde68a)",
+                  }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card>
+        <p className="text-[10px] tracking-[0.25em] uppercase text-amber-200/80 mb-3">By Exact Page · Top 25</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">
+                <th className="text-left py-2">Path</th>
+                <th className="text-right">Visits</th>
+                <th className="text-right">Unique Users</th>
+                <th className="text-right">Avg Time</th>
+                <th className="text-right">Total Time</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/10">
+              {rows.length === 0 && (
+                <tr><td colSpan={5} className="py-6 text-center text-muted-foreground/60">No page-view data.</td></tr>
+              )}
+              {rows.slice(0, 25).map((r: any) => (
+                <tr key={r.path} className="font-light">
+                  <td className="py-2 text-amber-200/90 font-mono">{r.path}</td>
+                  <td className="text-right tabular-nums">{Number(r.visits).toLocaleString()}</td>
+                  <td className="text-right tabular-nums text-emerald-300">{Number(r.unique_users).toLocaleString()}</td>
+                  <td className="text-right tabular-nums">{fmtDuration(Number(r.avg_seconds))}</td>
+                  <td className="text-right tabular-nums text-amber-300">{fmtDuration(Number(r.total_seconds))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
