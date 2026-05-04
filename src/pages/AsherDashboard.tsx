@@ -259,7 +259,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner, brainContributor, publishedTabs).map((branch) => {
+          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === "ashernewtonx@gmail.com", publishedTabs).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
@@ -318,6 +318,7 @@ const AsherDashboard = () => {
           {active === "map"       && <IntelligenceMapModule />}
           {active === "command"   && <AsherCommandCenter />}
           {active === "brains"    && <AsherBrainsModule />}
+          {active === "aureondata"&& <AsherAureonDataModule />}
           {active === "zophiel"   && <AsherZophielModule />}
           {active === "azplen"    && <AsherAzplenModule />}
           {active === "zali"      && <AsherZaliModule />}
