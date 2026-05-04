@@ -381,7 +381,7 @@ async function dispatch(
     case "slack_token":    return probeSlack(key);
     case "twilio":         return probeTwilio(extras?.sid ?? hostHint ?? "", key);
     case "airtable":       return probeAirtable(key);
-    case "algolia_key":    return probeAlgolia(key, extras?.appId);
+    case "algolia_key":    return probeAlgolia(key, extras?.appId ?? hostHint);
     case "supabase_key":   return probeSupabase(key, hostHint);
     case "digitalocean":   return probeDigitalocean(key);
     case "heroku_api":     return probeHeroku(key);
