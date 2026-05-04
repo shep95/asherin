@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Brain, Upload, Loader2, Trash2, ToggleLeft, ToggleRight, FileText,
-  ShieldAlert, Lock, Search, Filter, Eye, X,
+  ShieldAlert, Lock, Search, Filter, Eye, X, Copy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
