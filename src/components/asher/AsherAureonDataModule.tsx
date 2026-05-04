@@ -220,6 +220,19 @@ export default function AsherAureonDataModule() {
   }, [active]);
   const maxGeo = Math.max(1, ...geoPoints.map((p) => p.count));
 
+  const countryBars = useMemo(() => {
+    const m: Record<string, number> = {};
+    active.forEach((s) => {
+      const c = s.country || "Unknown";
+      m[c] = (m[c] || 0) + 1;
+    });
+    return Object.entries(m)
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12);
+  }, [active]);
+  const maxCountry = Math.max(1, ...countryBars.map((c) => c.count));
+
   // Build module-by-tier matrix
   const tierOrder = ["chat", "aureon", "pro", "lifetime", "free"];
   const moduleMatrix = useMemo(() => {
@@ -339,31 +352,43 @@ export default function AsherAureonDataModule() {
           })}
         </div>
 
-        {/* GLOBAL ACTIVITY MAP */}
+        {/* GLOBAL ACTIVITY · COUNTRY BARS */}
         <div className="rounded-xl border border-amber-400/20 bg-card/30 backdrop-blur-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Globe className="h-3.5 w-3.5 text-amber-400" strokeWidth={1.5} />
-              <p className="text-[10px] font-light tracking-[0.25em] uppercase text-amber-200/80">Global Activity · Live Regions</p>
+              <p className="text-[10px] font-light tracking-[0.25em] uppercase text-amber-200/80">Global Activity · Top Countries</p>
             </div>
-            <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">{geoPoints.length} regions · {liveCount} live</p>
+            <p className="text-[9px] tracking-[0.2em] uppercase text-muted-foreground/60">{countryBars.length} countries · {liveCount} live</p>
           </div>
-          <div className="rounded-lg overflow-hidden h-[360px] border border-amber-400/10 relative">
-            <MapContainer center={[20, 0]} zoom={2} minZoom={2} scrollWheelZoom worldCopyJump
-              style={{ height: "100%", width: "100%", background: "#050505" }} attributionControl={false}>
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png" attribution="" />
-              {geoPoints.map((p, i) => {
-                const intensity = p.count / maxGeo;
-                return (
-                  <CircleMarker key={i} center={[p.lat, p.lon]} radius={6 + intensity * 18}
-                    pathOptions={{ color: "#d4af37", fillColor: "#fbbf24", fillOpacity: 0.35 + intensity * 0.5, weight: 1.5 }}>
-                    <LTooltip>
-                      <div style={{ fontSize: 11 }}><strong>{p.city || "Unknown"}, {p.country || "—"}</strong><br />{p.count} active</div>
-                    </LTooltip>
-                  </CircleMarker>
-                );
-              })}
-            </MapContainer>
+          <div className="space-y-2">
+            {countryBars.length === 0 && (
+              <p className="text-[11px] text-muted-foreground/60 italic">No regional activity yet.</p>
+            )}
+            {countryBars.map((c, i) => {
+              const pct = (c.count / maxCountry) * 100;
+              return (
+                <div key={c.country} className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-amber-100/90 font-light tracking-wide">
+                      <span className="text-amber-400/60 mr-2">#{i + 1}</span>{c.country}
+                      {i === 0 && <span className="ml-2 text-[9px] uppercase tracking-[0.2em] text-amber-300/70">· Most Active</span>}
+                    </span>
+                    <span className="text-amber-200/70 tabular-nums">{c.count}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-amber-400/5 overflow-hidden border border-amber-400/10">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${pct}%`,
+                        background: `linear-gradient(90deg, #d4af37 0%, #fbbf24 60%, #fde68a 100%)`,
+                        boxShadow: "0 0 12px rgba(251,191,36,0.35)",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
