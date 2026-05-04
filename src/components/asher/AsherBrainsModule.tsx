@@ -140,6 +140,8 @@ const AsherBrainsModule = () => {
   const [filter, setFilter] = useState<AsherBrainCategory | "all">("all");
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState<AsherBrain | null>(null);
+  const [dupGroups, setDupGroups] = useState<AsherBrain[][]>([]);
+  const [scanningDup, setScanningDup] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
