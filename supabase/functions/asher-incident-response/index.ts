@@ -1,10 +1,8 @@
-// asher-incident-response — Authorized incident response orchestrator.
-// Strictly admin-only (ashernewtonx@gmail.com). Records every action to the
-// asher_audit_log. Provider-level destructive operations (DNS, firewall, CDN,
-// SSL revocation, compute teardown) require provider credentials configured
-// per-target in Supabase secrets. When credentials are absent the function
-// returns step status="skipped" with detail="no_provider_configured" so the
-// dashboard never silently fakes execution — the response is always ground truth.
+// asher-incident-response — Authorized incident response audit/control stub.
+// Strictly admin-only (ashernewtonx@gmail.com). This function intentionally does
+// not simulate provider control and does not perform destructive operations. It
+// records the verified admin request and returns the real control-state:
+// "provider_control_not_connected" until explicit provider integrations exist.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -18,21 +16,7 @@ const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 interface Step { action: string; status: "ok" | "skipped" | "error"; detail?: string; }
 
 async function executeAction(action: string): Promise<Step> {
-  // Provider credential check matrix. Add real provider clients when secrets are configured.
-  const a = action.toLowerCase();
-  if (a.includes("dns")) {
-    if (!Deno.env.get("CLOUDFLARE_API_TOKEN")) return { action, status: "skipped", detail: "no_provider_configured" };
-  } else if (a.includes("cdn")) {
-    if (!Deno.env.get("CLOUDFLARE_API_TOKEN")) return { action, status: "skipped", detail: "no_provider_configured" };
-  } else if (a.includes("ssl") || a.includes("certificate")) {
-    if (!Deno.env.get("ACME_ACCOUNT_KEY")) return { action, status: "skipped", detail: "no_provider_configured" };
-  } else if (a.includes("compute") || a.includes("instance") || a.includes("storage") || a.includes("teardown")) {
-    if (!Deno.env.get("AWS_ACCESS_KEY_ID")) return { action, status: "skipped", detail: "no_provider_configured" };
-  } else {
-    return { action, status: "skipped", detail: "no_provider_configured" };
-  }
-  // If we reach here, provider creds exist — implement live calls per-provider.
-  return { action, status: "ok", detail: "executed" };
+  return { action, status: "skipped", detail: "provider_control_not_connected" };
 }
 
 Deno.serve(async (req) => {
