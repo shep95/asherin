@@ -400,14 +400,45 @@ const AsherBrainsModule = () => {
       }
 
       setDupGroups(finalGroups);
-      if (finalGroups.length === 0) toast.success("No duplicate brains detected");
-      else toast.warning(`${finalGroups.length} duplicate group(s) · ${finalGroups.reduce((n, g) => n + g.length, 0)} brains`);
+      if (finalGroups.length === 0) {
+        toast.success("No duplicate brains detected");
+      } else if (!isAdmin) {
+        toast.warning(`${finalGroups.length} duplicate group(s) · ${finalGroups.reduce((n, g) => n + g.length, 0)} brains (admin required to purge)`);
+      } else {
+        // Auto-purge: keep oldest in each group, delete the rest
+        const toDelete: AsherBrain[] = [];
+        for (const g of finalGroups) {
+          const sorted = [...g].sort((a, b) => {
+            const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return ta - tb;
+          });
+          toDelete.push(...sorted.slice(1));
+        }
+        if (toDelete.length === 0) {
+          toast.success("No duplicates to purge");
+        } else {
+          const ids = toDelete.map((b) => b.id);
+          const paths = toDelete.map((b) => b.file_path).filter((p): p is string => !!p);
+          if (paths.length) {
+            await supabase.storage.from("asher-brains").remove(paths).catch(() => {});
+          }
+          const { error } = await supabase.from("asher_brains").delete().in("id", ids);
+          if (error) {
+            toast.error(`Purge failed: ${error.message}`);
+          } else {
+            setBrains((prev) => prev.filter((b) => !ids.includes(b.id)));
+            setDupGroups([]);
+            toast.success(`Purged ${toDelete.length} duplicate brain(s) across ${finalGroups.length} group(s)`);
+          }
+        }
+      }
     } catch (err: any) {
       toast.error(err?.message || "Duplicate scan failed");
     } finally {
       setScanningDup(false);
     }
-  }, [brains]);
+  }, [brains, isAdmin]);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragging(true);
