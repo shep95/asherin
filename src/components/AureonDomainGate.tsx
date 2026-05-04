@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, LogOut } from "lucide-react";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ALLOWED_EMAILS = new Set(["ashernewtonx@gmail.com", "ekk447@gmail.com"]);
 const RESTRICTED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
 
 /**
@@ -27,7 +28,7 @@ const AureonDomainGate = ({ children }: { children: ReactNode }) => {
   if (loading) return <>{children}</>;
 
   const email = (user?.email || "").toLowerCase();
-  const allowed = email === ADMIN_EMAIL;
+  const allowed = ALLOWED_EMAILS.has(email);
   if (allowed) return <>{children}</>;
 
   // Block everyone else on this domain

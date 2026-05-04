@@ -20,6 +20,7 @@ import {
 import { logAsherEvent } from "@/lib/asherAudit";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const CONTRIBUTOR_EMAILS = ["ashernewtonx@gmail.com", "ekk447@gmail.com"];
 const BRAINS_PASSCODE = "HOS080825";
 const BRAINS_GATE_KEY = "asher_brains_unlocked";
 
@@ -126,6 +127,7 @@ const BrainPreview = ({ brain, onClose }: { brain: AsherBrain; onClose: () => vo
 const AsherBrainsModule = () => {
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const canContribute = !!user?.email && CONTRIBUTOR_EMAILS.includes(user.email.toLowerCase());
 
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(BRAINS_GATE_KEY) === "1"; } catch { return false; }
@@ -152,7 +154,7 @@ const AsherBrainsModule = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (unlocked && isAdmin) void refresh(); }, [unlocked, isAdmin, refresh]);
+  useEffect(() => { if (unlocked && canContribute) void refresh(); }, [unlocked, canContribute, refresh]);
 
   const [failed, setFailed] = useState<{ file: File; category: AsherBrainCategory; error: string }[]>([]);
 
@@ -212,7 +214,7 @@ const AsherBrainsModule = () => {
   };
 
   const upload = async (files: FileList | File[]) => {
-    if (!isAdmin) return;
+    if (!canContribute) return;
     const arr = Array.from(files);
     if (!arr.length) return;
     setUploading(true);
@@ -253,6 +255,10 @@ const AsherBrainsModule = () => {
   };
 
   const remove = async (b: AsherBrain) => {
+    if (!isAdmin) {
+      toast.error("Only the super owner can delete brains.");
+      return;
+    }
     if (!confirm(`Delete "${b.name}"? This cannot be undone.`)) return;
     setBrains((p) => p.filter((x) => x.id !== b.id));
     if (b.file_path) {
@@ -279,7 +285,7 @@ const AsherBrainsModule = () => {
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragging(false);
     if (e.dataTransfer.files.length) void upload(e.dataTransfer.files);
-  }, [uploadCategory, isAdmin, user?.id]);
+  }, [uploadCategory, canContribute, user?.id]);
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -299,14 +305,14 @@ const AsherBrainsModule = () => {
     return c;
   }, [brains]);
 
-  if (!isAdmin) {
+  if (!canContribute) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background px-6">
         <div className="max-w-md text-center">
           <Lock className="h-8 w-8 mx-auto text-muted-foreground/40 mb-4" strokeWidth={1.2} />
           <p className="text-sm font-light tracking-[0.2em] text-foreground uppercase mb-2">Restricted</p>
           <p className="text-[11px] font-light text-muted-foreground/60">
-            ASHER BRAINS is reserved for the super owner.
+            ASHER BRAINS is reserved for authorized contributors.
           </p>
         </div>
       </div>
@@ -510,13 +516,15 @@ const AsherBrainsModule = () => {
                                 ? <ToggleRight className="h-4 w-4 text-emerald-400" strokeWidth={1.5} />
                                 : <ToggleLeft className="h-4 w-4 text-muted-foreground/40" strokeWidth={1.5} />}
                             </button>
-                            <button
-                              onClick={() => void remove(b)}
-                              title="Delete"
-                              className="p-1.5 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => void remove(b)}
+                                title="Delete"
+                                className="p-1.5 rounded-md text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}

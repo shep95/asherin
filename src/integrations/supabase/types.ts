@@ -7517,6 +7517,7 @@ export type Database = {
       }
       heartbeat_intel_slot: { Args: { _job_id: string }; Returns: undefined }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
+      is_asher_brain_contributor: { Args: { _uid: string }; Returns: boolean }
       is_asher_conv_member: {
         Args: { _conv_id: string; _user_id: string }
         Returns: boolean
