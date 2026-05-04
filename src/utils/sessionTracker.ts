@@ -40,18 +40,20 @@ async function fetchPublicIP(): Promise<string | null> {
   }
 }
 
-async function fetchGeoFromIP(ip: string): Promise<{ city: string | null; region: string | null; country: string | null }> {
+async function fetchGeoFromIP(ip: string): Promise<{ city: string | null; region: string | null; country: string | null; latitude: number | null; longitude: number | null }> {
   try {
     const res = await fetch(`https://ipapi.co/${ip}/json/`, { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return { city: null, region: null, country: null };
+    if (!res.ok) return { city: null, region: null, country: null, latitude: null, longitude: null };
     const data = await res.json();
     return {
       city: data.city || null,
       region: data.region || null,
       country: data.country_name || null,
+      latitude: typeof data.latitude === "number" ? data.latitude : null,
+      longitude: typeof data.longitude === "number" ? data.longitude : null,
     };
   } catch {
-    return { city: null, region: null, country: null };
+    return { city: null, region: null, country: null, latitude: null, longitude: null };
   }
 }
 
