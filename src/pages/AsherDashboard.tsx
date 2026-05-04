@@ -141,7 +141,7 @@ interface NavBranch { id: string; label: string; items: NavItem[] }
 
 interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
 
-const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
+const buildBranches = (superOwner: boolean, brainContributor: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
   ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
@@ -151,7 +151,7 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
   ]},
   { id: "ai", label: "AI & Reasoning", items: [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
-    ...(superOwner ? [{ id: "brains" as AsherTab, label: "ASHER BRAINS", icon: BrainCircuit, sub: "Sealed" }] : []),
+    ...((superOwner || brainContributor) ? [{ id: "brains" as AsherTab, label: "ASHER BRAINS", icon: BrainCircuit, sub: superOwner ? "Sealed" : "Upload" }] : []),
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
     { id: "code",    label: "Asher IDE",      icon: Code2,    sub: "IDE" },
@@ -189,6 +189,7 @@ const AsherDashboard = () => {
   const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [superOwner, setSuperOwner] = useState(false);
+  const [brainContributor, setBrainContributor] = useState(false);
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(ASHER_GATE_KEY) === "1"; } catch { return false; }
   });
@@ -196,6 +197,10 @@ const AsherDashboard = () => {
   const { user } = useAuth();
 
   useEffect(() => { isSuperOwner().then(setSuperOwner); }, [user?.id]);
+  useEffect(() => {
+    const email = (user?.email || "").toLowerCase();
+    setBrainContributor(email === "ashernewtonx@gmail.com" || email === "ekk447@gmail.com");
+  }, [user?.email]);
 
   useEffect(() => { document.title = "Asher Dashboard — Defense Intelligence"; }, []);
 
@@ -250,7 +255,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner, publishedTabs).map((branch) => {
+          {buildBranches(superOwner, brainContributor, publishedTabs).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
