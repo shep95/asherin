@@ -1044,17 +1044,19 @@ const OpenApiKeysPanel = ({ secrets, target, pullEnabled = false }: { secrets: S
                                   {copiedIdx === idx ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   Copy
                                 </button>
-                                <button
-                                  onClick={() => void runProbe(idx, s)}
-                                  disabled={probes[idx]?.loading}
-                                  className="inline-flex items-center gap-1 text-[9px] tracking-wider text-cyan-300/80 hover:text-cyan-200 uppercase border border-cyan-400/30 rounded px-1.5 py-0.5 disabled:opacity-50"
-                                  title="Authenticate with this key against the provider's API and pull live account data"
-                                >
-                                  {probes[idx]?.loading
-                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                    : <Database className="h-3 w-3" />}
-                                  Pull Data
-                                </button>
+                                {pullEnabled && (
+                                  <button
+                                    onClick={() => void runProbe(idx, s)}
+                                    disabled={probes[idx]?.loading}
+                                    className="inline-flex items-center gap-1 text-[9px] tracking-wider text-cyan-300/80 hover:text-cyan-200 uppercase border border-cyan-400/30 rounded px-1.5 py-0.5 disabled:opacity-50"
+                                    title="Authenticate with this key against the provider's API and pull live account data"
+                                  >
+                                    {probes[idx]?.loading
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <Database className="h-3 w-3" />}
+                                    Pull Data
+                                  </button>
+                                )}
                               </div>
                               <div className="text-[9px] tracking-wide text-muted-foreground/50 break-all">
                                 <span className="uppercase mr-1.5">src</span>
