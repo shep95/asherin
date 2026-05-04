@@ -897,7 +897,7 @@ type ProbeState = {
   result?: { ok: boolean; status: number; endpoint: string; summary: string; data: unknown; error?: string };
 };
 
-const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; target: string }) => {
+const OpenApiKeysPanel = ({ secrets, target, pullEnabled = false }: { secrets: SecretScan | null; target: string; pullEnabled?: boolean }) => {
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [showSidecar, setShowSidecar] = useState(false);
