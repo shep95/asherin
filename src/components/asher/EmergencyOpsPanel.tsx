@@ -121,11 +121,7 @@ export const EmergencyOpsPanel = ({ target }: Props) => {
     if (!u?.user || u.user.email !== ADMIN_EMAIL) {
       setError("Authorization revoked."); setBusy(false); return;
     }
-    // Re-verify password (Supabase signin attempt) so a hijacked session can't trigger.
-    const { error: pwErr } = await supabase.auth.signInWithPassword({
-      email: ADMIN_EMAIL, password,
-    });
-    if (pwErr) { setError("Password verification failed."); setBusy(false); return; }
+
 
     setStep("executing");
     const init: ExecResult = {
