@@ -131,7 +131,7 @@ export const COUNTRY_CHARTS: CountryFoundation[] = [
   { code: "LK", name: "Sri Lanka (Republic)", flag: "🇱🇰", event: "Republic Constitution",
     birthDate: "1972-05-22", birthTime: "12:34", tzOffset: 5.5, lat: 6.9271, lon: 79.8612, city: "Colombo" },
   { code: "NP", name: "Nepal (Republic)", flag: "🇳🇵", event: "Republic Declaration",
-    birthDate: "2008-05-28", birthTime: "23:25", tzOffset: 5.75, lat: 27.7172, lon: 85.3240, city: "Kathmandu" },
+    birthDate: "2008-05-28", birthTime: "11:25", tzOffset: 5.75, lat: 27.7172, lon: 85.3240, city: "Kathmandu" },
   { code: "CO", name: "Colombia", flag: "🇨🇴", event: "Independence",
     birthDate: "1810-07-20", birthTime: "12:00", tzOffset: -5, lat: 4.7110, lon: -74.0721, city: "Bogotá" },
   { code: "CL", name: "Chile", flag: "🇨🇱", event: "Independence",
