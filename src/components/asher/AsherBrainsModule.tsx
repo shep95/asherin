@@ -148,12 +148,16 @@ const AsherBrainsModule = () => {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    // Lightweight list query — DO NOT pull `content` (can be 200MB+ across all rows)
+    const { data, error } = await supabase
       .from("asher_brains")
-      .select("*")
+      .select("id,name,description,category,file_name,file_path,file_size,is_active,uploaded_by,created_at,updated_at")
       .order("category", { ascending: true })
-      .order("created_at", { ascending: false });
-    setBrains((data as AsherBrain[] | null) ?? []);
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (error) toast.error(`Load failed: ${error.message}`);
+    const rows = ((data as any[] | null) ?? []).map((r) => ({ ...r, content: "" })) as AsherBrain[];
+    setBrains(rows);
     setLoading(false);
   }, []);
 
