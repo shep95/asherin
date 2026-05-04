@@ -20,6 +20,7 @@ import {
 import { logAsherEvent } from "@/lib/asherAudit";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const CONTRIBUTOR_EMAILS = ["ashernewtonx@gmail.com", "ekk447@gmail.com"];
 const BRAINS_PASSCODE = "HOS080825";
 const BRAINS_GATE_KEY = "asher_brains_unlocked";
 
