@@ -247,6 +247,10 @@ const AsherBrainsModule = () => {
   };
 
   const toggle = async (b: AsherBrain) => {
+    if (!isAdmin) {
+      toast.error("Only the super owner can toggle brains.");
+      return;
+    }
     const next = !b.is_active;
     setBrains((p) => p.map((x) => (x.id === b.id ? { ...x, is_active: next } : x)));
     const { error } = await supabase.from("asher_brains").update({ is_active: next }).eq("id", b.id);
