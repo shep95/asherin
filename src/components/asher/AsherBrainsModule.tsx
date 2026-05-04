@@ -600,7 +600,13 @@ const AsherBrainsModule = () => {
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <button
-                              onClick={() => setPreview(b)}
+                              onClick={async () => {
+                                if (b.content) { setPreview(b); return; }
+                                const { data, error } = await supabase
+                                  .from("asher_brains").select("content").eq("id", b.id).maybeSingle();
+                                if (error) { toast.error(error.message); return; }
+                                setPreview({ ...b, content: (data?.content as string) ?? "" });
+                              }}
                               title="Preview content"
                               className="p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-foreground/5"
                             >
