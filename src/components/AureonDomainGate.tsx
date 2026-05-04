@@ -28,7 +28,7 @@ const AureonDomainGate = ({ children }: { children: ReactNode }) => {
   if (loading) return <>{children}</>;
 
   const email = (user?.email || "").toLowerCase();
-  const allowed = email === ADMIN_EMAIL;
+  const allowed = ALLOWED_EMAILS.has(email);
   if (allowed) return <>{children}</>;
 
   // Block everyone else on this domain
