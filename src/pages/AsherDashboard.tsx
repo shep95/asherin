@@ -190,7 +190,7 @@ const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimary
 
 const AsherDashboard = () => {
   const [active, setActive] = useState<AsherTab>("map");
-  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true });
+  const [openBranches, setOpenBranches] = useState<Record<string, boolean>>({ ops: true, ai: true, intel: false, custom: true, comms: true, vault: false, governance: true, analytics: true });
   const [publishedTabs, setPublishedTabs] = useState<PublishedTab[]>([]);
   const [superOwner, setSuperOwner] = useState(false);
   const [brainContributor, setBrainContributor] = useState(false);
