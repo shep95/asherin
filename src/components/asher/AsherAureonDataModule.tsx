@@ -104,7 +104,7 @@ export default function AsherAureonDataModule() {
         supabase.from("profiles").select("user_id, created_at").gte("created_at", since),
         supabase.from("user_sessions").select("referrer, utm_source, country, created_at").gte("created_at", since),
         supabase.from("user_subscriptions").select("product_id, status").eq("status", "active"),
-        supabase.from("account_activity_log").select("event_type, created_at").gte("created_at", since).limit(5000),
+        supabase.from("account_activity_log").select("user_id, event_type, created_at").gte("created_at", since).limit(5000),
         supabase.from("account_activity_log").select("id, event_type, description, created_at, outcome").order("created_at", { ascending: false }).limit(40),
       ]);
       if (cancelled) return;
@@ -117,17 +117,24 @@ export default function AsherAureonDataModule() {
       });
       const signupSeries = Object.entries(days).map(([date, count]) => ({ date, count }));
 
-      const evDays: Record<string, number> = {};
-      for (let i = range - 1; i >= 0; i--) evDays[format(subDays(new Date(), i), "MMM d")] = 0;
+      // ACTIVITY = unique user per day per event_type (one device, same person, same day = 1 activity)
+      const evDays: Record<string, Set<string>> = {};
+      for (let i = range - 1; i >= 0; i--) evDays[format(subDays(new Date(), i), "MMM d")] = new Set<string>();
+      const dailySeen = new Set<string>(); // user|day dedupe across event types
+      const evCountSets: Record<string, Set<string>> = {};
+      const totalUserDays = new Set<string>();
       (activity.data || []).forEach((a: any) => {
+        const uid = a.user_id || "anon";
         const d = format(new Date(a.created_at), "MMM d");
-        if (d in evDays) evDays[d]++;
+        const dayKey = `${uid}|${d}`;
+        const evKey = `${uid}|${d}|${a.event_type}`;
+        if (d in evDays) evDays[d].add(uid);
+        totalUserDays.add(dayKey);
+        if (!evCountSets[a.event_type]) evCountSets[a.event_type] = new Set<string>();
+        evCountSets[a.event_type].add(evKey);
       });
-      const eventSeries = Object.entries(evDays).map(([date, count]) => ({ date, count }));
-
-      const evCount: Record<string, number> = {};
-      (activity.data || []).forEach((a: any) => { evCount[a.event_type] = (evCount[a.event_type] || 0) + 1; });
-      const topEvents = Object.entries(evCount).map(([name, count]) => ({ name, count }))
+      const eventSeries = Object.entries(evDays).map(([date, set]) => ({ date, count: set.size }));
+      const topEvents = Object.entries(evCountSets).map(([name, set]) => ({ name, count: set.size }))
         .sort((a, b) => b.count - a.count).slice(0, 8);
 
       // Traffic sources from sessions in window
@@ -153,7 +160,7 @@ export default function AsherAureonDataModule() {
         totalUsers: profilesAll.count || 0,
         newUsers: (profilesNew.data || []).length,
         activeSubs: (subs.data || []).length,
-        totalEvents: (activity.data || []).length,
+        totalEvents: totalUserDays.size,
         signupSeries, eventSeries, topEvents, countries,
         recent: (recent.data as any) || [],
         trafficSources,
@@ -223,22 +230,34 @@ export default function AsherAureonDataModule() {
     return () => clearInterval(t);
   }, [isAdmin]);
 
-  const liveCount = active.length;
+  // Dedupe live sessions: 1 user = 1 active person (regardless of how many devices/tabs)
+  const uniqueActive = useMemo(() => {
+    const seen = new Map<string, ActiveSession>();
+    active.forEach((s) => {
+      const key = s.user_id || s.email || Math.random().toString();
+      const prev = seen.get(key);
+      if (!prev || new Date(s.last_active_at) > new Date(prev.last_active_at)) {
+        seen.set(key, s);
+      }
+    });
+    return Array.from(seen.values());
+  }, [active]);
+  const liveCount = uniqueActive.length;
   const geoPoints = useMemo(() => {
     const m: Record<string, { lat: number; lon: number; city: string | null; country: string | null; count: number }> = {};
-    active.forEach((s) => {
+    uniqueActive.forEach((s) => {
       if (s.latitude == null || s.longitude == null) return;
       const k = `${s.latitude.toFixed(2)}_${s.longitude.toFixed(2)}`;
       if (!m[k]) m[k] = { lat: s.latitude, lon: s.longitude, city: s.city, country: s.country, count: 0 };
       m[k].count++;
     });
     return Object.values(m);
-  }, [active]);
+  }, [uniqueActive]);
   const maxGeo = Math.max(1, ...geoPoints.map((p) => p.count));
 
   const countryBars = useMemo(() => {
     const m: Record<string, number> = {};
-    active.forEach((s) => {
+    uniqueActive.forEach((s) => {
       const c = s.country || "Unknown";
       m[c] = (m[c] || 0) + 1;
     });
@@ -246,7 +265,7 @@ export default function AsherAureonDataModule() {
       .map(([country, count]) => ({ country, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 12);
-  }, [active]);
+  }, [uniqueActive]);
   const maxCountry = Math.max(1, ...countryBars.map((c) => c.count));
 
   // Build module-by-tier matrix
@@ -375,6 +394,12 @@ export default function AsherAureonDataModule() {
           </div>
         </div>
 
+        {/* DEFINITION BANNER */}
+        <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 backdrop-blur-xl p-3 text-[10px] tracking-wide text-amber-100/80 leading-relaxed">
+          <span className="text-amber-300 font-medium tracking-[0.2em] uppercase mr-2">What counts as activity:</span>
+          1 person = 1 activity per day, regardless of device, tab, or click count. A user opening 20 pages on the same day is still <span className="text-amber-200">1 activity</span>. "Live Active" shows unique people active in the last 10 minutes (deduplicated across devices).
+        </div>
+
         {/* High-level KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
@@ -459,10 +484,10 @@ export default function AsherAureonDataModule() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/10">
-                {active.length === 0 && (
+                {uniqueActive.length === 0 && (
                   <tr><td colSpan={7} className="py-6 text-center text-muted-foreground/60">No live accounts right now.</td></tr>
                 )}
-                {active.slice(0, 50).map((s, i) => (
+                {uniqueActive.slice(0, 50).map((s, i) => (
                   <tr key={i} className="font-light">
                     <td className="py-2 text-emerald-200/90">{s.email}</td>
                     <td>
