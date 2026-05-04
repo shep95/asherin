@@ -5,7 +5,7 @@ import {
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
   Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
-  BrainCircuit,
+  BrainCircuit, BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ import AsherCodeModule from "@/components/asher/AsherCodeModule";
 import VedicAstrologyView from "@/components/dashboard/VedicAstrologyView";
 import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
+import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
 import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
@@ -133,7 +134,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains"
+  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
