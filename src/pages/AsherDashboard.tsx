@@ -141,7 +141,7 @@ interface NavBranch { id: string; label: string; items: NavItem[] }
 
 interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
 
-const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
+const buildBranches = (superOwner: boolean, brainContributor: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
   ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
   ]}] : []),
@@ -151,7 +151,7 @@ const buildBranches = (superOwner: boolean, publishedTabs: PublishedTab[]): NavB
   ]},
   { id: "ai", label: "AI & Reasoning", items: [
     { id: "command", label: "ASHER AI",       icon: Brain,    sub: "Live" },
-    ...(superOwner ? [{ id: "brains" as AsherTab, label: "ASHER BRAINS", icon: BrainCircuit, sub: "Sealed" }] : []),
+    ...((superOwner || brainContributor) ? [{ id: "brains" as AsherTab, label: "ASHER BRAINS", icon: BrainCircuit, sub: superOwner ? "Sealed" : "Upload" }] : []),
     { id: "zophiel", label: "Zophiel Engine", icon: Search,   sub: "Live" },
     { id: "axrlen",  label: "AXRLEN Predict", icon: Activity, sub: "Live" },
     { id: "code",    label: "Asher IDE",      icon: Code2,    sub: "IDE" },
