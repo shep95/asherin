@@ -478,10 +478,10 @@ export default function AsherAureonDataModule() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/10">
-                {active.length === 0 && (
+                {uniqueActive.length === 0 && (
                   <tr><td colSpan={7} className="py-6 text-center text-muted-foreground/60">No live accounts right now.</td></tr>
                 )}
-                {active.slice(0, 50).map((s, i) => (
+                {uniqueActive.slice(0, 50).map((s, i) => (
                   <tr key={i} className="font-light">
                     <td className="py-2 text-emerald-200/90">{s.email}</td>
                     <td>
