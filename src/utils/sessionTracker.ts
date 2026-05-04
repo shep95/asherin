@@ -78,6 +78,14 @@ export async function registerSession(userId: string, sessionId: string) {
     .eq("user_id", userId)
     .eq("is_current", true);
 
+  // Capture referrer / UTM (where the click came from)
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const referrer = typeof document !== "undefined" ? (document.referrer || null) : null;
+  const utm_source = params.get("utm_source") || params.get("ref") || null;
+  const utm_medium = params.get("utm_medium") || null;
+  const utm_campaign = params.get("utm_campaign") || null;
+  const landing_path = typeof window !== "undefined" ? window.location.pathname : null;
+
   // Upsert current session
   const { error } = await supabase.from("user_sessions").upsert(
     {
@@ -92,7 +100,12 @@ export async function registerSession(userId: string, sessionId: string) {
       country: geo.country,
       latitude: geo.latitude,
       longitude: geo.longitude,
-      current_path: typeof window !== "undefined" ? window.location.pathname : null,
+      current_path: landing_path,
+      landing_path,
+      referrer,
+      utm_source,
+      utm_medium,
+      utm_campaign,
       is_current: true,
       last_active_at: new Date().toISOString(),
     },
