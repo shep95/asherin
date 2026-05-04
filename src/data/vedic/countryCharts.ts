@@ -47,7 +47,7 @@ export const COUNTRY_CHARTS: CountryFoundation[] = [
   { code: "BD", name: "Bangladesh", flag: "🇧🇩", event: "Independence Proclamation",
     birthDate: "1971-03-26", birthTime: "00:30", tzOffset: 6, lat: 23.8103, lon: 90.4125, city: "Dhaka" },
   { code: "NG", name: "Nigeria", flag: "🇳🇬", event: "Independence",
-    birthDate: "1960-10-01", birthTime: "00:00", tzOffset: 1, lat: 9.0820, lon: 8.6753, city: "Abuja" },
+    birthDate: "1960-10-01", birthTime: "00:00", tzOffset: 1, lat: 9.0765, lon: 7.3986, city: "Abuja" },
   { code: "ZA", name: "South Africa", flag: "🇿🇦", event: "New Constitution",
     birthDate: "1994-04-27", birthTime: "00:00", tzOffset: 2, lat: -25.7479, lon: 28.2293, city: "Pretoria" },
   { code: "EG", name: "Egypt", flag: "🇪🇬", event: "Republic Proclamation",
