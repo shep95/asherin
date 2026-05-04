@@ -18,6 +18,7 @@ import {
   readBrainFile,
 } from "@/lib/asherBrains";
 import { logAsherEvent } from "@/lib/asherAudit";
+import JSZip from "jszip";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
 const CONTRIBUTOR_EMAILS = ["ashernewtonx@gmail.com", "ekk447@gmail.com"];
