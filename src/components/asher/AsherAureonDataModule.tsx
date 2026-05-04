@@ -394,6 +394,12 @@ export default function AsherAureonDataModule() {
           </div>
         </div>
 
+        {/* DEFINITION BANNER */}
+        <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 backdrop-blur-xl p-3 text-[10px] tracking-wide text-amber-100/80 leading-relaxed">
+          <span className="text-amber-300 font-medium tracking-[0.2em] uppercase mr-2">What counts as activity:</span>
+          1 person = 1 activity per day, regardless of device, tab, or click count. A user opening 20 pages on the same day is still <span className="text-amber-200">1 activity</span>. "Live Active" shows unique people active in the last 10 minutes (deduplicated across devices).
+        </div>
+
         {/* High-level KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
