@@ -202,6 +202,20 @@ export default function AsherAureonDataModule() {
     })();
   }, [isAdmin, range, refreshKey]);
 
+  // Aureon overview (predictions / incidents / flows) — admin RPC
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingOverview(true);
+      const { data } = await supabase.rpc("admin_aureon_overview");
+      if (!cancelled) {
+        if (data) setOverview(data);
+        setLoadingOverview(false);
+      }
+    })();
+  }, [isAdmin, refreshKey]);
+
   // Auto-refresh
   useEffect(() => {
     if (!isAdmin) return;
