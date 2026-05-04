@@ -214,7 +214,7 @@ const AsherBrainsModule = () => {
   };
 
   const upload = async (files: FileList | File[]) => {
-    if (!isAdmin) return;
+    if (!canContribute) return;
     const arr = Array.from(files);
     if (!arr.length) return;
     setUploading(true);
