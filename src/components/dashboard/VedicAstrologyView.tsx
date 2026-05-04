@@ -819,6 +819,8 @@ const VedicAstrologyView = () => {
               <h3 className="text-sm font-light tracking-[0.15em] text-foreground uppercase">Global Foundation Charts</h3>
               <span className="text-[10px] font-light text-muted-foreground/70 italic ml-auto">Independence / Constitution moments · sidereal Lahiri</span>
             </div>
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/[0.04] px-3 py-2 text-[10px] font-light text-amber-200/80 leading-relaxed">
+              <span className="uppercase tracking-[0.15em] text-amber-300/90 font-normal">Data Reliability</span> — Foundation charts use the official independence/constitution moment at the capital. Where the exact birth time of a leader is not on public record, we display a <em className="not-italic text-foreground/80">noon-chart approximation</em> (marked <span className="text-muted-foreground/70">· noon</span>): Sun &amp; Moon signs are reliable, but Lagna (Ascendant) and house cusps are best-estimate placeholders, not predictive.</div>
             <div className="flex flex-wrap items-center gap-3 text-[10px] font-light text-muted-foreground/70 -mt-1">
               <span className="uppercase tracking-[0.15em] text-muted-foreground/50">Leader Lagna vs you:</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#ff4fd8] shadow-[0_0_6px_rgba(255,79,216,0.7)]" /> Soulmate</span>
