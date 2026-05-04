@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, LogOut } from "lucide-react";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
+const ALLOWED_EMAILS = new Set(["ashernewtonx@gmail.com", "ekk447@gmail.com"]);
 const RESTRICTED_HOSTS = new Set(["aureonai.app", "www.aureonai.app"]);
 
 /**
