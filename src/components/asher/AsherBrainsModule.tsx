@@ -255,6 +255,10 @@ const AsherBrainsModule = () => {
   };
 
   const remove = async (b: AsherBrain) => {
+    if (!isAdmin) {
+      toast.error("Only the super owner can delete brains.");
+      return;
+    }
     if (!confirm(`Delete "${b.name}"? This cannot be undone.`)) return;
     setBrains((p) => p.filter((x) => x.id !== b.id));
     if (b.file_path) {
