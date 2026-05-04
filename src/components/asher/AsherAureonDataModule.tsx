@@ -4,14 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   BarChart3, Users, Activity, DollarSign, Globe, Smartphone, RefreshCw,
   ShieldAlert, TrendingUp, Eye, Monitor, Apple, Mail, Link as LinkIcon, Zap,
+  Brain, Telescope, Cpu, Database, AlertTriangle, CheckCircle2, Clock, XCircle,
 } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart as RBarChart, CartesianGrid, Cell, Legend,
   Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { format, subDays, startOfDay, formatDistanceToNow } from "date-fns";
-import { MapContainer, TileLayer, CircleMarker, Tooltip as LTooltip } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 import wallpaperAureon from "@/assets/wallpaper-aureon.png";
 
 const ADMIN_EMAIL = "ashernewtonx@gmail.com";
