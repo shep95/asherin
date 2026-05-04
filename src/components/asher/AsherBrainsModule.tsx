@@ -421,7 +421,7 @@ const AsherBrainsModule = () => {
             ref={inputRef}
             type="file"
             multiple
-            accept=".txt,.md,.json,.csv,.pdf,.log,.yml,.yaml"
+            accept=".txt,.md,.json,.csv,.pdf,.log,.yml,.yaml,.zip"
             className="hidden"
             disabled={uploading}
             onChange={(e) => {
