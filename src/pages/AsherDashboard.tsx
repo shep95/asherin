@@ -5,7 +5,7 @@ import {
   BookOpen, Lock, Settings, User, LogOut, ArrowLeft, ShieldAlert,
   Brain, Database, Bookmark, Search, ChevronDown, ChevronRight, MessageSquare,
   Building2, Wrench, PenSquare, Activity, NotebookPen, Code2, Package, Moon,
-  BrainCircuit,
+  BrainCircuit, BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ import AsherCodeModule from "@/components/asher/AsherCodeModule";
 import VedicAstrologyView from "@/components/dashboard/VedicAstrologyView";
 import AsherPublishedTabRenderer from "@/components/asher/AsherPublishedTabRenderer";
 import AsherBrainsModule from "@/components/asher/AsherBrainsModule";
+import AsherAureonDataModule from "@/components/asher/AsherAureonDataModule";
 import { isSuperOwner } from "@/lib/asherOrgs";
 
 import AsherProfile from "@/components/asher/AsherProfile";
@@ -133,7 +134,7 @@ const AsherPasscodeGate = ({ onUnlock }: { onUnlock: () => void }) => {
 type AsherTab =
   | "map" | "command" | "zophiel" | "azplen" | "zali" | "whiteboard" | "axrlen" | "notebooks" | "targets" | "comms"
   | "theater" | "targeting" | "sigint" | "geoint" | "doctrine"
-  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains"
+  | "audit" | "settings" | "profile" | "orgs" | "code" | "vedic" | "brains" | "aureondata"
   | string; // allow dynamic published-tab ids: `pub:<uuid>`
 
 interface NavItem { id: AsherTab; label: string; icon: any; sub?: string }
@@ -141,9 +142,12 @@ interface NavBranch { id: string; label: string; items: NavItem[] }
 
 interface PublishedTab { id: string; name: string; icon: string; entry_html: string }
 
-const buildBranches = (superOwner: boolean, brainContributor: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
+const buildBranches = (superOwner: boolean, brainContributor: boolean, isPrimaryAdmin: boolean, publishedTabs: PublishedTab[]): NavBranch[] => [
   ...(superOwner ? [{ id: "governance", label: "Organizations", items: [
     { id: "orgs" as AsherTab, label: "Org Management", icon: Building2, sub: "God-Mode" },
+  ]}] : []),
+  ...(isPrimaryAdmin ? [{ id: "analytics", label: "Analytics", items: [
+    { id: "aureondata" as AsherTab, label: "Aureon Data", icon: BarChart3, sub: "Operator" },
   ]}] : []),
   { id: "ops", label: "Operations", items: [
     { id: "map",     label: "Intelligence Map", icon: MapIcon,  sub: "Primary" },
@@ -255,7 +259,7 @@ const AsherDashboard = () => {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-          {buildBranches(superOwner, brainContributor, publishedTabs).map((branch) => {
+          {buildBranches(superOwner, brainContributor, (user?.email || "").toLowerCase() === "ashernewtonx@gmail.com", publishedTabs).map((branch) => {
             const open = !!openBranches[branch.id];
             return (
               <div key={branch.id}>
@@ -314,6 +318,7 @@ const AsherDashboard = () => {
           {active === "map"       && <IntelligenceMapModule />}
           {active === "command"   && <AsherCommandCenter />}
           {active === "brains"    && <AsherBrainsModule />}
+          {active === "aureondata"&& <AsherAureonDataModule />}
           {active === "zophiel"   && <AsherZophielModule />}
           {active === "azplen"    && <AsherAzplenModule />}
           {active === "zali"      && <AsherZaliModule />}
