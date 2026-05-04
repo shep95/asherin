@@ -4592,6 +4592,33 @@ export type Database = {
         }
         Relationships: []
       }
+      page_view_events: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          entered_at: string
+          id: string
+          path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          entered_at?: string
+          id?: string
+          path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          entered_at?: string
+          id?: string
+          path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plugins: {
         Row: {
           author: string
@@ -7594,6 +7621,26 @@ export type Database = {
           tier: string
           usage_count: number
           user_count: number
+        }[]
+      }
+      admin_page_analytics: {
+        Args: { _since: string }
+        Returns: {
+          avg_seconds: number
+          path: string
+          total_seconds: number
+          unique_users: number
+          visits: number
+        }[]
+      }
+      admin_page_timeline: {
+        Args: { _bucket?: string; _since: string }
+        Returns: {
+          avg_seconds: number
+          bucket: string
+          path: string
+          unique_users: number
+          visits: number
         }[]
       }
       asher_accept_invitation: { Args: { _token: string }; Returns: string }
