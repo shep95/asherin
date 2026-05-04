@@ -6264,11 +6264,14 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string | null
+          current_path: string | null
           device_type: string | null
           id: string
           ip_address: string | null
           is_current: boolean | null
           last_active_at: string | null
+          latitude: number | null
+          longitude: number | null
           os: string | null
           region: string | null
           revoked_at: string | null
@@ -6280,11 +6283,14 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          current_path?: string | null
           device_type?: string | null
           id?: string
           ip_address?: string | null
           is_current?: boolean | null
           last_active_at?: string | null
+          latitude?: number | null
+          longitude?: number | null
           os?: string | null
           region?: string | null
           revoked_at?: string | null
@@ -6296,11 +6302,14 @@ export type Database = {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          current_path?: string | null
           device_type?: string | null
           id?: string
           ip_address?: string | null
           is_current?: boolean | null
           last_active_at?: string | null
+          latitude?: number | null
+          longitude?: number | null
           os?: string | null
           region?: string | null
           revoked_at?: string | null
