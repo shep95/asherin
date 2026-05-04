@@ -7,6 +7,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveIntelMapByok } from "@/lib/intelMapByok";
+import EmergencyOpsPanel from "@/components/asher/EmergencyOpsPanel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Tone = "neutral" | "good" | "warn" | "critical";
@@ -377,6 +378,11 @@ const LinkExtractView = () => {
 
           {/* OPEN API KEYS — live JS-bundle secret scan */}
           <OpenApiKeysPanel secrets={secrets} target={blueprint.target} />
+
+          {/* EMERGENCY OPS — Asher-dashboard / admin only (self-gates) */}
+          {typeof window !== "undefined" && window.location.pathname.startsWith("/asher-dashboard") && (
+            <EmergencyOpsPanel target={blueprint.target} />
+          )}
 
           {/* FORENSIC INTELLIGENCE PANELS — Layers 1-12 */}
           <ForensicsPanels forensics={forensics} target={blueprint.target} />
