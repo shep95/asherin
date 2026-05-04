@@ -220,6 +220,19 @@ export default function AsherAureonDataModule() {
   }, [active]);
   const maxGeo = Math.max(1, ...geoPoints.map((p) => p.count));
 
+  const countryBars = useMemo(() => {
+    const m: Record<string, number> = {};
+    active.forEach((s) => {
+      const c = s.country || "Unknown";
+      m[c] = (m[c] || 0) + 1;
+    });
+    return Object.entries(m)
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12);
+  }, [active]);
+  const maxCountry = Math.max(1, ...countryBars.map((c) => c.count));
+
   // Build module-by-tier matrix
   const tierOrder = ["chat", "aureon", "pro", "lifetime", "free"];
   const moduleMatrix = useMemo(() => {
