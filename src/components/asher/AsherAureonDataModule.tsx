@@ -616,6 +616,13 @@ export default function AsherAureonDataModule() {
             ))}
           </div>
         </div>
+        </>}
+
+        {tab === "predictions" && <PredictionsTab overview={overview} loading={loadingOverview} />}
+        {tab === "consciousness" && <ConsciousnessTab overview={overview} stats={stats} liveCount={liveCount} />}
+        {tab === "intel" && <GlobalIntelTab active={active} countryBars={countryBars} maxCountry={maxCountry} overview={overview} />}
+        {tab === "flows" && <DataFlowsTab overview={overview} stats={stats} />}
+        {tab === "health" && <SystemHealthTab overview={overview} stats={stats} liveCount={liveCount} />}
 
         <p className="text-center text-[9px] font-light tracking-[0.3em] uppercase text-muted-foreground/40 pt-4">
           Aureon Data · operator telemetry · privacy-first
