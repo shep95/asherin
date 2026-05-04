@@ -283,6 +283,62 @@ async function probeNpm(key: string): Promise<ProbeResult> {
   };
 }
 
+async function probeFbPixel(pixelId: string): Promise<ProbeResult> {
+  // Meta Pixel IDs are public identifiers. We confirm the pixel is live by
+  // posting a noop server-side event using the public Graph endpoint and
+  // reading the validation response (no access token required for the
+  // basic existence/version check via the public CDN).
+  const ep = `https://www.facebook.com/tr/?id=${encodeURIComponent(pixelId)}&ev=PageView&noscript=1`;
+  const r = await fetch(ep, { redirect: "manual" });
+  // Meta returns a 1x1 gif (200) for any registered pixel id, 302/404 otherwise.
+  const live = r.status === 200 && (r.headers.get("content-type") || "").includes("image");
+  return {
+    ok: live,
+    type: "fb_pixel",
+    status: r.status,
+    endpoint: ep,
+    summary: live
+      ? `Meta Pixel ${pixelId} is LIVE · serving tracking gif`
+      : `Meta Pixel ${pixelId} not serving (status ${r.status}) — likely disabled or invalid`,
+    data: {
+      pixel_id: pixelId,
+      content_type: r.headers.get("content-type"),
+      cache_control: r.headers.get("cache-control"),
+      x_fb_debug: r.headers.get("x-fb-debug"),
+      facebook_api_version: r.headers.get("x-fb-rev"),
+    },
+  };
+}
+
+async function probeSegment(key: string): Promise<ProbeResult> {
+  // Segment Write Keys authenticate via HTTP Basic with the key as the
+  // username and an empty password. The tracking API returns 200 for any
+  // valid write key with a well-formed event.
+  const ep = "https://api.segment.io/v1/identify";
+  const auth = "Basic " + btoa(`${key}:`);
+  const body = JSON.stringify({
+    userId: "zophiel-probe",
+    traits: { probe: true, ts: new Date().toISOString() },
+    context: { library: { name: "zophiel-key-probe", version: "1.0" } },
+  });
+  const r = await fetch(ep, {
+    method: "POST",
+    headers: { Authorization: auth, "Content-Type": "application/json" },
+    body,
+  });
+  const data = await safeJson(r);
+  return {
+    ok: r.ok,
+    type: "segment_write",
+    status: r.status,
+    endpoint: ep,
+    summary: r.ok
+      ? `Segment write key VALID — events accepted into workspace pipeline`
+      : `Segment rejected write key (${r.status})`,
+    data: { response: data, key_prefix: key.slice(0, 6) + "…" + key.slice(-4) },
+  };
+}
+
 async function probeGeneric(key: string, hostHint?: string): Promise<ProbeResult> {
   // Last-resort: just probe the host's /api or root with the key as Bearer to see if it responds.
   const target = hostHint && /^https?:\/\//.test(hostHint) ? hostHint : null;
