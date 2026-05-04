@@ -87,7 +87,7 @@ export default function AsherAureonDataModule() {
   const [moduleUsage, setModuleUsage] = useState<ModuleUsage[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [loadingRev, setLoadingRev] = useState(false);
-  const [tab, setTab] = useState<"consciousness" | "predictions" | "operations" | "intel" | "flows" | "health">("operations");
+  const [tab, setTab] = useState<"consciousness" | "predictions" | "operations" | "intel" | "flows" | "health" | "pages">("operations");
   const [overview, setOverview] = useState<any>(null);
   const [loadingOverview, setLoadingOverview] = useState(false);
 
