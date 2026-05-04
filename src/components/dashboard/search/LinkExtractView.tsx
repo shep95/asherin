@@ -887,10 +887,36 @@ const SEV_STYLES: Record<SecretHit["severity"], { ring: string; chip: string; do
   low:      { ring: "border-border/30",     chip: "bg-card/40 text-muted-foreground border-border/30",  dot: "bg-muted-foreground" },
 };
 
+type ProbeState = {
+  loading?: boolean;
+  result?: { ok: boolean; status: number; endpoint: string; summary: string; data: unknown; error?: string };
+};
+
 const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; target: string }) => {
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [showSidecar, setShowSidecar] = useState(false);
+  const [probes, setProbes] = useState<Record<number, ProbeState>>({});
+
+  const runProbe = useCallback(async (idx: number, hit: SecretHit) => {
+    setProbes((p) => ({ ...p, [idx]: { loading: true } }));
+    try {
+      const { data, error } = await supabase.functions.invoke("zophiel-key-probe", {
+        body: { type: hit.type, key: hit.raw, hostHint: target },
+      });
+      if (error) throw error;
+      setProbes((p) => ({ ...p, [idx]: { loading: false, result: data as ProbeState["result"] } }));
+    } catch (e: any) {
+      setProbes((p) => ({
+        ...p,
+        [idx]: {
+          loading: false,
+          result: { ok: false, status: 0, endpoint: "(invoke failed)", summary: e?.message || "probe failed", data: null, error: e?.message },
+        },
+      }));
+    }
+  }, [target]);
+
 
   if (!secrets) return null;
 
