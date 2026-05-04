@@ -1038,6 +1038,16 @@ const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; tar
                                 >
                                   {copiedIdx === idx ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                                   Copy
+                                <button
+                                  onClick={() => void runProbe(idx, s)}
+                                  disabled={probes[idx]?.loading}
+                                  className="inline-flex items-center gap-1 text-[9px] tracking-wider text-cyan-300/80 hover:text-cyan-200 uppercase border border-cyan-400/30 rounded px-1.5 py-0.5 disabled:opacity-50"
+                                  title="Authenticate with this key against the provider's API and pull live account data"
+                                >
+                                  {probes[idx]?.loading
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <Database className="h-3 w-3" />}
+                                  Pull Data
                                 </button>
                               </div>
                               <div className="text-[9px] tracking-wide text-muted-foreground/50 break-all">
@@ -1049,6 +1059,28 @@ const OpenApiKeysPanel = ({ secrets, target }: { secrets: SecretScan | null; tar
                                   …{s.context}…
                                 </div>
                               )}
+                              {probes[idx]?.result && (
+                                <div className={`mt-1 rounded-md border px-2 py-1.5 text-[9px] font-mono ${probes[idx]!.result!.ok ? "border-emerald-400/30 bg-emerald-500/[0.04] text-emerald-200/90" : "border-red-400/30 bg-red-500/[0.04] text-red-200/90"}`}>
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <span className="tracking-[0.2em] uppercase">
+                                      {probes[idx]!.result!.ok ? "Live Data" : "Probe Failed"} · {probes[idx]!.result!.status}
+                                    </span>
+                                    <span className="text-muted-foreground/50 truncate">{probes[idx]!.result!.endpoint}</span>
+                                  </div>
+                                  <div className="text-foreground/90 whitespace-pre-wrap break-all">
+                                    {probes[idx]!.result!.summary}
+                                  </div>
+                                  <details className="mt-1">
+                                    <summary className="cursor-pointer text-muted-foreground/60 uppercase tracking-wider">Raw response</summary>
+                                    <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-all text-foreground/80">
+{typeof probes[idx]!.result!.data === "string"
+  ? probes[idx]!.result!.data
+  : JSON.stringify(probes[idx]!.result!.data, null, 2)}
+                                    </pre>
+                                  </details>
+                                </div>
+                              )}
+
                             </div>
                           </li>
                         );
