@@ -25,7 +25,7 @@ export const COUNTRY_CHARTS: CountryFoundation[] = [
   { code: "FR", name: "France (Fifth Republic)", flag: "🇫🇷", event: "Constitution",
     birthDate: "1958-10-05", birthTime: "00:00", tzOffset: 1, lat: 48.8566, lon: 2.3522, city: "Paris" },
   { code: "DE", name: "Germany (Reunified)", flag: "🇩🇪", event: "Reunification",
-    birthDate: "1990-10-03", birthTime: "00:00", tzOffset: 2, lat: 52.5200, lon: 13.4050, city: "Berlin" },
+    birthDate: "1990-10-03", birthTime: "00:00", tzOffset: 1, lat: 52.5200, lon: 13.4050, city: "Berlin" },
   { code: "CN", name: "China (PRC)", flag: "🇨🇳", event: "Proclamation of PRC",
     birthDate: "1949-10-01", birthTime: "15:15", tzOffset: 8, lat: 39.9042, lon: 116.4074, city: "Beijing" },
   { code: "RU", name: "Russian Federation", flag: "🇷🇺", event: "Sovereignty Declaration",
