@@ -127,6 +127,7 @@ const BrainPreview = ({ brain, onClose }: { brain: AsherBrain; onClose: () => vo
 const AsherBrainsModule = () => {
   const { user } = useAuth();
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const canContribute = !!user?.email && CONTRIBUTOR_EMAILS.includes(user.email.toLowerCase());
 
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     try { return sessionStorage.getItem(BRAINS_GATE_KEY) === "1"; } catch { return false; }
