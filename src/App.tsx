@@ -81,7 +81,6 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <AureonDomainGate>
       <SubscriptionProvider>
       <TooltipProvider>
         <Toaster />
@@ -144,7 +143,7 @@ const App = () => (
             <Route path="/whiteboard" element={<Whiteboard />} />
             <Route path="/elite" element={<ProtectedRoute><EliteSuite /></ProtectedRoute>} />
             <Route path="/asher" element={<Asher />} />
-            <Route path="/asher-dashboard" element={<ProtectedRoute><AsherDashboard /></ProtectedRoute>} />
+            <Route path="/asher-dashboard" element={<ProtectedRoute><AureonDomainGate><AsherDashboard /></AureonDomainGate></ProtectedRoute>} />
             <Route
               path="/dashboard"
               element={
@@ -160,7 +159,6 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </SubscriptionProvider>
-      </AureonDomainGate>
     </AuthProvider>
   </QueryClientProvider>
 );
